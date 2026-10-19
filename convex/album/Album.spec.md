@@ -167,6 +167,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   refuted: getThoughtfulBoards pinned the board's first row as the member's own, whoever it belonged to -> 1 of 4 tests failed: a member's pinned row named another member (2026-10-18)
   refuted: Hoggies' talliesOf read the tallies from the signed-in member's ID on, a gte instead of eq -> 1 of 8 tests failed: getAlbumHoggies answered a member another member's finds (2026-10-19)
   refuted: personPageOf read the pair tally of the person with the member instead of the member's own with the person -> 1 of 8 tests failed: a member's getAlbumPerson answered the other side's kudos given and received (2026-10-19)
+  refuted: lastKindNoteTo read the kudos the member gave, by giver, instead of the ones they received -> 1 of 13 tests failed: a member's getAlbumProfile quoted a kudos they sent as sent to them (2026-10-19)
   kinds: read
   checklist: scoped-reads declared as the album is private
   checklist: redaction dismissed: the read answers the member's own album whole or not at all; nothing inside it is scrubbed
@@ -239,6 +240,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
 - the profile's kind note is the last thoughtful kudos the member received: getAlbumProfile answers, from the newest 50 kudos awards the member received, the newest whose stored gate decision says thoughtful, with its giver, its words, its Slack link and its instant, or none; and the four people whose album stickers the member holds that were recorded last, newest first, each with the instant its sticker was recorded, from the 500 stickers getAlbum lists.
   over: a thoughtful kudos received before a short one received and one the member gave, five people put in on five days, a member nobody thanked with a why and whose album holds nobody, and the album off for the member
   via: AL52: getAlbumProfile reads the profile's kind note and newest people
+  refuted: lastKindNoteTo took the newest kudos received with any gate decision, thoughtful or not -> 2 of 4 tests failed: a brief kudos received since was quoted as the kind note (2026-10-19)
   because: the profile quotes the last kind words a member got and shows who joined their album last (AL52, #627, #668): a short thank-you, a kudos the member gave, or an older person shown as the newest would misquote what the page tells the member about themselves
   kinds: read
   checklist: scoped-reads declared as the album is private
