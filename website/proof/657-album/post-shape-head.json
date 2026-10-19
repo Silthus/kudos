@@ -1,0 +1,60 @@
+{
+  "step": "post-shape",
+  "ok": true,
+  "blocks": [
+    {
+      "type": "section",
+      "block_id": "p3YJ7",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*#657 shape check, not a Monday post: the top thoughtful kudos blocks with a team picture*",
+        "verbatim": false
+      }
+    },
+    {
+      "type": "section",
+      "block_id": "W/Xa8",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*1. Ines Varga* thanked *Theo Brandt*\n&gt;Thanks for staying late to pair on the release checklist @Theo Brandt :hedgehog:",
+        "verbatim": false
+      }
+    },
+    {
+      "type": "section",
+      "block_id": "+tQGb",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Team stickers unlocked last week*",
+        "verbatim": false
+      }
+    },
+    {
+      "type": "context",
+      "block_id": "eJELa",
+      "elements": [
+        {
+          "type": "image",
+          "image_url": "https://different-dog-467.convex.site/emoji/team.png",
+          "alt_text": "proof-hedgehogs"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Proof Hedgehogs* ×2",
+          "verbatim": false
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "block_id": "aHEZ2",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "*Team 10* ×1 · *Team 11* ×1",
+          "verbatim": false
+        }
+      ]
+    }
+  ]
+}

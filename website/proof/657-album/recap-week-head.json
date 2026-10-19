@@ -1,0 +1,20 @@
+{
+  "step": "recap-week",
+  "eventsSent": 3,
+  "kudos": {
+    "channel": "C0C9N9A4SE4",
+    "ts": "1790154000.000001",
+    "author": {
+      "id": "<sandbox human>",
+      "name": "the sandbox's human member"
+    }
+  },
+  "lunch": {
+    "channel": "C0C9N9A4SE4",
+    "ts": "1790154600.000002",
+    "author": {
+      "id": "<sandbox human>",
+      "name": "the sandbox's human member"
+    }
+  }
+}

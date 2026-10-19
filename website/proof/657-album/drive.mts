@@ -13,7 +13,7 @@ const run = `${Date.now()}`;
 const cast = process.env.KUDOS_CAST ?? "";
 const privateChannel = `G0PRF657PRV${cast}`;
 const lastWednesday = Date.parse("2026-10-14T09:00:00Z");
-const aWeekBeforeTheAlbum = Date.parse("2026-09-30T09:00:00Z");
+const aWeekBeforeTheAlbum = Date.parse(process.env.KUDOS_RECAP_DAY ?? "2026-09-30T09:00:00Z");
 const minuteMs = 60_000;
 
 type Person = { id: string; name: string };
@@ -123,6 +123,18 @@ if (step === "join") {
 } else if (step === "post-off") {
   await click(human, { type: "setMondayPost", on: false });
   console.log(JSON.stringify({ step, eventsSent: sent }));
+} else if (step === "post-shape") {
+  const picture = `${site}/emoji/team.png`;
+  const blocks = [
+    { type: "section", text: { type: "mrkdwn", text: "*#657 shape check, not a Monday post: the top thoughtful kudos blocks with a team picture*" } },
+    { type: "section", text: { type: "mrkdwn", text: "*1. Ines Varga* thanked *Theo Brandt*\n>Thanks for staying late to pair on the release checklist @Theo Brandt :hedgehog:" } },
+    { type: "section", text: { type: "mrkdwn", text: "*Team stickers unlocked last week*" } },
+    { type: "context", elements: [{ type: "image", image_url: picture, alt_text: "proof-hedgehogs" }, { type: "mrkdwn", text: "*Proof Hedgehogs* ×2" }] },
+    { type: "context", elements: [{ type: "mrkdwn", text: "*Team 10* ×1 · *Team 11* ×1" }] },
+  ];
+  const posted = await fetch("https://slack.com/api/chat.postMessage", { method: "POST", headers: { authorization: `Bearer ${botToken}`, "content-type": "application/json; charset=utf-8" }, body: JSON.stringify({ channel, text: "#657 shape check", blocks, unfurl_links: false, unfurl_media: false }) });
+  const answer = (await posted.json()) as { ok: boolean; error?: string; message?: { blocks?: unknown } };
+  console.log(JSON.stringify({ step, ok: answer.ok, error: answer.error, blocks: answer.message?.blocks }, null, 2));
 } else if (step === "read-post") {
   console.log(JSON.stringify(await newestAppPostIn(channel), null, 2));
 } else {

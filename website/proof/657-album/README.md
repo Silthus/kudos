@@ -1,5 +1,20 @@
 # #657 sandbox proof: the recap's emoji line and the weekly top thoughtful kudos post
 
+## Reviewed head (`abb7ae6e`, after review round 1)
+
+The head was hand-deployed to `different-dog-467` at 2026-10-19T14:50:55Z (dry run: no index added or dropped).
+
+- **Recap** (`recap-week-head.json`): with cast B, a signed thoughtful kudos dated 2026-09-23 from the human member to a new synthetic member earned `nell-okafor-2-hype` (a second Nell Okafor got `-2`). A hug on their message opened their hug week 2026-09-21. `convex run hugs/recap:sweep '{}'` sent it, and it went `waiting → sent` on its first try. Slack accepted the recap with its picture block.
+- **Weekly post**: the sandbox's post for the week of 2026-10-19 was already claimed by the first run below (a week posts once, and no claim is deleted), so the head's post can't be sent again until next Monday. The first run's live post covers ranking and public-only quoting. Since then, round 1 changed only:
+  - the order of the public check;
+  - the quote budget past blank lines;
+  - the line of teams past the tenth;
+  - the second send without pictures that Slack refuses.
+
+  Tests cover each of these. `post-shape-head.json` is a labelled shape check, not a Monday post: it was posted with the bot token to the sandbox channel and holds the post's team blocks. Its team picture is an `image` element at the sandbox's `/emoji/team.png`, beside the line of other teams. Slack answered `ok: true` and echoed the image element. That covers the team-picture path the first run couldn't reach.
+
+## First run (`7ebbbce7`)
+
 Branch `album/13` at `7ebbbce7` (origin/main merged), hand-deployed from a detached proof tree to the sandbox `different-dog-467` at 2026-10-19T14:21Z, functions only. The deploy added `grantsTold.by_workspace_at`, `teamStickers.by_workspace_at` and `thoughtfulPacks.by_giver_at`, and replaced a stale `randomEmojis` index with main's `emojiClasses` indexes (both owning lanes had merged). Flags: `album` and `album-slack` (971675) at `environment = sandbox`, 100%. Every event below is signed by hand with the sandbox signing secret (`drive.mts`), not a Slack click.
 
 ## The weekly post (`week.json`, `monday-post.json`)
