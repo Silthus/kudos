@@ -65,7 +65,7 @@ const day = 86_400_000;
 
 const now = Date.parse("2026-10-18T10:00:00Z");
 
-describe("AL51: Milestones shows one row per milestone with its four medals", { timeout: 60_000 }, () => {
+describe("AL51: Milestones shows one row per milestone with its four medals and the emoji each one unlocks", { timeout: 60_000 }, () => {
   it("lists the five milestones in the catalogue's order, each saying what it counts in plain words and the next goal", async () => {
     visit();
 
@@ -130,10 +130,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals", { 
 
     expect(await screen.findByText("Your milestones show here once your album starts filling.", undefined, { timeout: arrival })).toBeInTheDocument();
   });
-});
-
-describe("#707: under every medal, the emoji it unlocks: its picture and its Slack name", { timeout: 60_000 }, () => {
-  it("shows each tier's picture and name, earned tiers in colour and locked tiers greyed out with the step that unlocks them", async () => {
+  it("#707: under every medal, shows its tier's emoji picture and name, earned tiers in colour and locked tiers greyed out with the step that unlocks them", async () => {
     visit();
 
     expect(emojisUnder(await rowOf("Faces in the album"))).toEqual([
@@ -144,14 +141,14 @@ describe("#707: under every medal, the emoji it unlocks: its picture and its Sla
     ]);
   });
 
-  it("names each emoji as the album's earned emojis name it, so a name the registry numbered shows numbered", async () => {
+  it("#707: names each emoji as the album's earned emojis name it, so a name the registry numbered shows numbered", async () => {
     const numbered: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends-2", picture: "/emoji/milestone-people-gold.png", earned: false, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
     visit(withEmoji(midway, numbered));
 
     expect(emojisUnder(await rowOf("Faces in the album"))[2]).toMatchObject({ name: ":full-of-friends-2:", says: "Unlocks at 25" });
   });
 
-  it("before the album answers a tier's emoji, shows the tier's picture under the slug of its name and offers nothing to add", async () => {
+  it("#707: before the album answers a tier's emoji, shows the tier's picture under the slug of its name and offers nothing to add", async () => {
     visit(withoutMilestoneEmojis(midway));
 
     const faces = await rowOf("Faces in the album");
@@ -159,7 +156,7 @@ describe("#707: under every medal, the emoji it unlocks: its picture and its Sla
     expect(faces.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
   });
 
-  it("AL31: an earned emoji Slack doesn't have offers Add to Slack, which saves its picture as <name>.png and opens Slack's custom emoji page", async () => {
+  it("#707, AL31: an earned emoji Slack doesn't have offers Add to Slack, which saves its picture as <name>.png and opens Slack's custom emoji page", async () => {
     const saved = savedPictures();
     const { user } = visit();
 
@@ -171,7 +168,7 @@ describe("#707: under every medal, the emoji it unlocks: its picture and its Sla
     expect(saved).toEqual([{ href: "/emoji/milestone-people-silver.png", download: "familiar-faces.png" }]);
   });
 
-  it("AL30: a locked emoji never says it is in Slack or offers to add it, even where Slack already has its name", async () => {
+  it("#707, AL30: a locked emoji never says it is in Slack or offers to add it, even where Slack already has its name", async () => {
     const gold: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends", picture: "/emoji/milestone-people-gold.png", earned: false, seen: false, inSlack: true, progress: { have: 12, need: 25 } };
     visit(withEmoji(midway, gold));
 
