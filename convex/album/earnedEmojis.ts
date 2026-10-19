@@ -5,10 +5,10 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { customEmojiImageOf } from "../workspace/customEmoji";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
-import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, teamEmblemPicture } from "./emojiCatalogue";
+import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, teamEmblemPicture } from "./emojiCatalogue";
 import { emojiNameOf, type EarnedEmojiId } from "./emojiNames";
 import type { MilestoneAnswer } from "./milestones";
-import type { MilestoneId } from "./records";
+import type { MilestoneId, MilestoneTier } from "./records";
 import type { PageOwner, TeamPage } from "./teamPages";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype";
@@ -75,10 +75,9 @@ function teamPictureOf(art: TeamCrestArt): string {
 }
 
 function milestoneCausesOf(milestones: MilestoneAnswer[]): Cause[] {
-  return milestones.flatMap(({ id, count, tiers }) => {
-    const gold = tiers.find(({ tier }) => tier === "gold");
-    return gold === undefined ? [] : [{ id: `milestone:${id}` as const, kind: "milestone" as const, picture: emojiArtPictureOf("milestone", id), earned: gold.earnedAt !== null, progress: { have: count, need: gold.at } }];
-  });
+  return milestones.flatMap(({ id, count, tiers }) =>
+    tiers.map(({ tier, at, earnedAt }) => ({ id: `milestone:${id}:${tier}` as const, kind: "milestone" as const, picture: emojiArtPictureOf("milestone", milestoneTierArtOf(id, tier)), earned: earnedAt !== null, progress: { have: count, need: at } })),
+  );
 }
 
 function levelCausesOf({ level, xp }: EmojiCauses["level"]): Cause[] {
@@ -128,7 +127,7 @@ async function seenBy(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
 async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): Promise<boolean> {
   const [kind, cause] = splitOnce(id);
   if (kind === "team") return (await teamStickerOf(ctx, member, cause)) !== null;
-  if (kind === "milestone") return (await goldTierOf(ctx, member, cause as MilestoneId)) !== null;
+  if (kind === "milestone") return holdsMilestoneTier(ctx, member, cause);
   if (kind === "level") return emojiLevels.some((reward) => String(reward) === cause) && (await progressionHomeOf(ctx, member)).level >= Number(cause);
   if (kind === "hype") return hasPackedFor(ctx, member, ctx.db.normalizeId("members", cause));
   return false;
@@ -146,10 +145,15 @@ function teamStickerOf(ctx: QueryCtx, member: MemberId, team: string) {
     .first();
 }
 
-function goldTierOf(ctx: QueryCtx, member: MemberId, milestone: MilestoneId) {
+async function holdsMilestoneTier(ctx: QueryCtx, member: MemberId, cause: string): Promise<boolean> {
+  const emoji = milestoneTierEmojiOf(cause);
+  return emoji !== null && (await tierOf(ctx, member, emoji.milestone, emoji.tier)) !== null;
+}
+
+function tierOf(ctx: QueryCtx, member: MemberId, milestone: MilestoneId, tier: MilestoneTier) {
   return ctx.db
     .query("milestoneTiers")
-    .withIndex("by_member_milestone_tier", (q) => q.eq("member", member).eq("milestone", milestone).eq("tier", "gold"))
+    .withIndex("by_member_milestone_tier", (q) => q.eq("member", member).eq("milestone", milestone).eq("tier", tier))
     .first();
 }
 
