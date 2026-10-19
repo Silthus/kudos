@@ -35,13 +35,13 @@ export async function nameHypeEmojiOf(ctx: MutationCtx, workspace: string, perso
 }
 
 export async function teamEmojiNameOf(ctx: MutationCtx, workspace: string, team: string): Promise<string> {
-  if ((await emojiNameOf(ctx, workspace, `team:${team}`)) === null) await reserveEveryTeamNameIn(ctx, workspace);
+  if ((await emojiNameOf(ctx, workspace, `team:${team}`)) === null) await openTheRegistryOrNameItsTeamsIn(ctx, workspace);
   const name = await emojiNameOf(ctx, workspace, `team:${team}`);
   if (name === null) throw new Error(`the company copy holds no team ${team} to name`);
   return name;
 }
 
-async function reserveEveryTeamNameIn(ctx: MutationCtx, workspace: string) {
+async function openTheRegistryOrNameItsTeamsIn(ctx: MutationCtx, workspace: string) {
   if ((await registeredAs(ctx, workspace, firstUse)) === null) await reserveSharedNamesIn(ctx, workspace);
   else await reserveCompanyTeamNamesIn(ctx, workspace);
 }
