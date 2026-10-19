@@ -223,6 +223,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
   const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
+  const putIn = useSentOnce(api.website.album.putIn);
+  const putAllIn = useSentOnce(api.website.album.putAllIn);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
@@ -240,6 +242,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
       openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
+      putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })),
+      putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -247,7 +251,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, putIn, putAllIn, onSignInFailure],
   );
 }
 
