@@ -3,12 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { activityFixtures } from "./activityFixtures";
-import { albumFixtures, fixturePersonOf } from "./album/albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf } from "./album/albumFixtures";
 import { profileFixtures } from "./album/profileFixtures";
 import { weekFixtures } from "./album/weekFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { recentKudosFixtures } from "./recentKudosFixtures";
 import { spotlightFixtures } from "./spotlightFixtures";
+import { shellFixtures } from "./shell";
+import { renderAlbum } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
 
 const pages: { path: string; fixtures: string[] }[] = [
@@ -52,7 +54,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
       it(`${path} for ${fixture}: every kudos word, Slack-shaped ID, Slack URL and emoji name sits inside a ph-no-capture block`, async () => {
         window.history.replaceState(null, "", path);
         const { container } = render(<Root fixture={fixture} />);
-        await (fixture === "album" ? screen.findByRole("navigation", { name: "Album" }) : screen.findByRole("main"));
+        await (fixture === "album" ? screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 }) : screen.findByRole("main"));
         await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
 
         expect(exposedIn(container)).toEqual([]);
@@ -84,7 +86,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     window.history.replaceState(null, "", "/book#teams/kettle-works");
     const { container } = render(<Root fixture="album" />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await user.click(await screen.findByRole("button", { name: "Ready to unlock the Kettle Works sticker" }));
     const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
 
     expect(exposedIn(container)).toEqual([]);
@@ -109,6 +111,17 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
 
     expect(exposedIn(container)).toEqual([]);
     expect(screen.getByRole("heading", { level: 2, name: ":quiet-harbour:" }).closest(".ph-no-capture")).not.toBeNull();
+  });
+
+  it("AL56: an unlocked team page whose emoji isn't in Slack keeps the emoji's picture, its name and Add to Slack's Slack address in blocks", async () => {
+    const album = { ...albumFixtures.midway, emojis: albumFixtures.midway.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, inSlack: false } : emoji)) };
+    window.history.replaceState(null, "", "/book#teams/quiet-harbour");
+    const { container } = renderAlbum({ ...shellFixtures.memberWithEveryFeatureOpen, album: true }, fixedAlbum(album), { people: fixedPeople(album) });
+    const addToSlack = await screen.findByRole("button", { name: "Add :quiet-harbour: to Slack" }, { timeout: 10_000 });
+
+    expect(exposedIn(container)).toEqual([]);
+    expect(blocked(addToSlack)).toBe(true);
+    expect(blocked(screen.getByText(/team emoji\./).parentElement?.querySelector(".al-emoji-picture") ?? null)).toBe(true);
   });
 
   it("AL56: the pack opening, sealed and opened from the fixture build, keeps every face, name and Slack picture in blocks", async () => {

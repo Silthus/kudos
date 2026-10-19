@@ -22,7 +22,7 @@ export function EmojiPanel({ album, onFollow }: PanelProps) {
         <h2 className="al-emoji-panel-title">
           Your emojis <span className="al-quiet">· {earned} of {shown}</span>
         </h2>
-        <p className="al-emoji-panel-hint">Emojis marked In Slack work there: react with them or put them in a kudos.</p>
+        <p className="al-emoji-panel-hint">Emojis marked In Slack work there: react with them and put them in the kudos you give.</p>
         <label className="al-emoji-search">
           <IconSearch aria-hidden="true" />
           <input type="search" placeholder="Find an emoji, a team or a person" aria-label="Find an emoji" value={search} onChange={(event) => setSearch(event.target.value)} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AlbumEmoji } from "./answer";
 import { addToSlack, type AddedToSlack } from "./addToSlack";
+import "./emoji.css";
 
 type Adding = { kind: "idle" } | { kind: "adding" } | { kind: "added"; added: AddedToSlack } | { kind: "failed" };
 

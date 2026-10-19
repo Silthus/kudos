@@ -175,7 +175,7 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
     const popup = await openTheEmojis(view);
 
     const inSlack = shelf(popup, "Team stickers").getAllByRole("listitem")[0]!;
-    expect(within(inSlack).getByText("In Slack")).toHaveAccessibleDescription("Use it in Slack: react with it or put it in a kudos.");
+    expect(within(inSlack).getByText("In Slack")).toHaveAccessibleDescription("Use it in Slack: react with it and put it in the kudos you give.");
     expect(within(inSlack).queryByRole("button", { name: /Add to Slack/ })).not.toBeInTheDocument();
     expect(within(shelf(popup, "Hype").getByRole("listitem")).getByRole("button", { name: "Add :ines-okafor-hype: to Slack" })).toBeInTheDocument();
   });
@@ -250,14 +250,14 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     expect(view.marked).not.toHaveBeenCalled();
     expect(within(moment).getByRole("heading", { level: 2 }).textContent).toBe(":quiet-harbour:");
     expect(moment).toHaveTextContent("You unlocked the Quiet Harbour team sticker · 15 Oct 2026");
-    expect(moment).toHaveTextContent("Use it in Slack: react with it or put it in a kudos.");
+    expect(moment).toHaveTextContent("Use it in Slack: react with it and put it in the kudos you give.");
     expect(moment).toHaveTextContent("1 of 4 new");
     await view.user.click(within(moment).getByRole("button", { name: "Add to my emojis" }));
 
     expect(view.marked).toHaveBeenCalledExactlyOnceWith(["team:quiet-harbour"]);
     const next = await aMoment();
     await waitFor(() => expect(within(next).getByRole("heading", { level: 2 }).textContent).toBe(":level-5:"));
-    expect(next).toHaveTextContent("Add it to Slack from your emojis to react with it or put it in a kudos.");
+    expect(next).toHaveTextContent("Add it to Slack from your emojis, then react with it and put it in the kudos you give.");
   });
 
   it("Skip the rest marks every waiting emoji seen at once and plays no more moments", async () => {

@@ -1,7 +1,7 @@
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Album, AlbumEmoji, EarnedEmojiKind } from "./answer";
 import { milestoneNameOf } from "./milestones";
-import { dateOf, firstNameOf } from "./teamPage";
+import { dateOf, firstNameOf, howToUseIt } from "./teamPage";
 
 export type ShelfKind = { kind: EarnedEmojiKind; title: string; hint: string; earnedShown: number; lockedShown: number };
 
@@ -116,7 +116,9 @@ function number(value: number) {
   return value.toLocaleString("en");
 }
 
-export const useItInSlackWords = "Use it in Slack: react with it or put it in a kudos.";
+export const useItInSlackWords = `Use it in Slack: ${howToUseIt}.`;
+
+export const addItToSlackWords = `Add it to Slack from your emojis, then ${howToUseIt}.`;
 
 export function momentsOwedOf(album: Album, shown: ReadonlySet<string>): AlbumEmoji[] {
   return album.emojis.filter((emoji) => emoji.earned && !emoji.seen && !shown.has(emoji.id) && isShelved(emoji) && !heldForItsPack(album, emoji));

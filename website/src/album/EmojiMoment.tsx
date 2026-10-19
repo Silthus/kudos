@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
-import { momentsOwedOf, useItInSlackWords, whyWords } from "./emojiShelf";
+import { addItToSlackWords, momentsOwedOf, useItInSlackWords, whyWords } from "./emojiShelf";
 import { keepFocusIn } from "./focusTrap";
 import "./emoji.css";
 
@@ -83,7 +83,7 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
         </span>
         <h2 className="al-emoji-moment-name ph-no-capture">:{emoji.name}:</h2>
         <p className="al-emoji-moment-why ph-no-capture">{whyWords(emoji)}</p>
-        <p className="al-emoji-moment-use">{emoji.inSlack ? useItInSlackWords : "Add it to Slack from your emojis to react with it or put it in a kudos."}</p>
+        <p className="al-emoji-moment-use">{emoji.inSlack ? useItInSlackWords : addItToSlackWords}</p>
         <div className="al-emoji-moment-actions">
           <button ref={takeButton} type="button" className="al-emoji-moment-take" onClick={flyIn}>
             Add to my emojis
