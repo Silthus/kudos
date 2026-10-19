@@ -21,6 +21,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 type Visit = { album?: Album; unlockTeamSticker?: (team: string) => Promise<UnlockReply>; putAllIn?: () => Promise<PutAllInReply>; people?: PersonRead };
@@ -32,14 +33,18 @@ function visit(path: string, { album = midway, unlockTeamSticker = async (team) 
   return { ...view, send };
 }
 
-const answersNever = () => new Promise<never>(() => undefined);
+const arrival = { timeout: 10_000 };
 
 async function photo() {
-  return within(await screen.findByRole("figure", { name: /^Left to right/ }));
+  return within(await screen.findByRole("figure", { name: /^Left to right/ }, arrival));
 }
 
-async function goal() {
-  return within(await screen.findByRole("region", { name: /Collect the whole team|Ready to unlock|Unlocked/ }));
+async function unlockOnThePhoto(name = "Ready to unlock the Kettle Works sticker") {
+  return (await photo()).findByRole("button", { name });
+}
+
+async function unlockSays() {
+  return within(screen.getByRole("article")).findByRole("status");
 }
 
 function withTheTray(album: Album, person: string): Album {
@@ -50,7 +55,7 @@ describe("AL45: the team page is the team's class photo", () => {
   it("/ shows the member's own team in one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
     visit("/");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" }, arrival)).toBeInTheDocument();
     const shown = await photo();
     expect(shown.getAllByRole("listitem").map((person) => person.textContent)).toEqual([
       "IOInes Okafor In your album",
@@ -68,7 +73,7 @@ describe("AL45: the team page is the team's class photo", () => {
   it("the seal is ringed by one segment per person to collect, filled for each one in the album", async () => {
     visit("/");
 
-    const seal = await screen.findByRole("img", { name: "Lanterns sticker, 4 of 5" });
+    const seal = await screen.findByRole("img", { name: "Lanterns sticker, 4 of 5" }, arrival);
     expect(seal.querySelectorAll("[data-segment]")).toHaveLength(5);
     expect(seal.querySelectorAll("[data-segment='in']")).toHaveLength(4);
   });
@@ -87,48 +92,53 @@ describe("AL45: the team page is the team's class photo", () => {
   });
 });
 
-describe("AL45: Collect the whole team names the one next step", () => {
+describe("AL45: a team sticker unlocks only on the member's own click", () => {
   it.each([
-    { path: "/", album: midway, step: "Open Juno's pack to complete Lanterns." },
-    { path: "/", album: withTheTray(midway, "juno-park"), step: "Juno is in your tray: put the card in to complete Lanterns." },
-    { path: "/book#teams/tin-orchard", album: midway, step: "Give Cass a thoughtful kudos to complete Tin Orchard." },
-    { path: "/book#teams/salt-and-sparrow", album: midway, step: "Give Ivo, Mara and Teo a thoughtful kudos to complete Salt and Sparrow." },
-    { path: "/book#teams/copper-kite", album: midway, step: "Give anyone on Copper Kite a thoughtful kudos to start this page." },
-  ])("$step", async ({ path, album, step }) => {
-    visit(path, { album });
+    { path: "/book#teams/tin-orchard", state: "collecting" },
+    { path: "/book#teams/kettle-works", state: "ready" },
+    { path: "/book#teams/quiet-harbour", state: "unlocked" },
+  ])("a $state page has no call to action under the photo", async ({ path }) => {
+    visit(path);
 
-    const section = await goal();
-    expect(section.getByRole("heading", { name: "Collect the whole team" })).toBeInTheDocument();
-    expect(section.getByText(step)).toBeInTheDocument();
-    expect(section.queryByRole("button")).not.toBeInTheDocument();
+    await photo();
+    const page = screen.getByRole("article");
+    expect(within(page).queryByRole("region")).not.toBeInTheDocument();
+    expect(within(page).queryByText(/Collect all|Everyone is in|is yours|Unlock your team sticker/)).not.toBeInTheDocument();
   });
 
-  it("a page with four or more still to collect names two and counts the rest", async () => {
-    const lanterns = midway.teams.find(({ team }) => team === "lanterns")!;
-    const four = { ...lanterns, held: 1 };
-    const album: Album = { ...midway, packs: [], teams: midway.teams.map((team) => (team.team === "lanterns" ? four : team)), people: midway.people.map((person) => (person.teams.includes("lanterns") && person.person !== "ines-okafor" ? { ...person, held: false } : person)) };
-    visit("/", { album });
-
-    expect((await goal()).getByText("Give Bram, Oona and 2 more a thoughtful kudos to complete Lanterns.")).toBeInTheDocument();
-  });
-
-
-  it("the grey sticker carries a Ready to unlock ribbon, and the page asks to unlock it", async () => {
+  it("the ready sticker itself is the one unlock action: a button on the photo, under its Ready to unlock ribbon", async () => {
     visit("/book#teams/kettle-works");
 
-    expect(await screen.findByRole("img", { name: "Kettle Works sticker, ready to unlock" })).toHaveTextContent("Ready to unlock");
-    const section = await goal();
-    expect(section.getByText("3 of 3 in your album. Everyone is in.")).toBeInTheDocument();
-    expect(section.getByRole("button", { name: "Unlock the Kettle Works sticker" })).toBeEnabled();
+    const sticker = await unlockOnThePhoto();
+    expect(sticker).toHaveTextContent("Ready to unlock");
+    expect(sticker).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: /Ready to unlock the Kettle Works sticker/ })).toEqual([sticker]);
   });
-});
 
-describe("AL45: a team sticker unlocks only on the member's own click", () => {
+  it("a sticker still being collected or already unlocked is a picture, never a button", async () => {
+    visit("/book#teams/tin-orchard");
+    expect(await screen.findByRole("img", { name: /^Tin Orchard sticker, \d+ of \d+$/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Unlock/ })).not.toBeInTheDocument();
+  });
+
+  it("the sticker takes keyboard focus and Enter unlocks it", async () => {
+    preferReducedMotion();
+    const { user, send } = visit("/book#teams/kettle-works");
+    const sticker = await unlockOnThePhoto();
+
+    sticker.focus();
+    expect(sticker).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    expect(send).toHaveBeenCalledExactlyOnceWith("kettle-works");
+    expect(await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" })).toBeInTheDocument();
+  });
+
   it("visiting a ready page sends nothing, and one click sends unlockTeamSticker once for that team however often it is pressed", async () => {
     preferReducedMotion();
     let answer: (reply: UnlockReply) => void = () => undefined;
     const { send } = visit("/book#teams/kettle-works", { unlockTeamSticker: () => new Promise((resolve) => (answer = resolve)) });
-    const unlock = (await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" });
+    const unlock = await unlockOnThePhoto();
     expect(send).not.toHaveBeenCalled();
 
     await userEvent.click(unlock);
@@ -142,46 +152,46 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" })).toBeInTheDocument();
   });
 
-  it("a refusal says so beside the action and plays no moment", async () => {
+  it("a refusal says so under the photo and plays no moment", async () => {
     visit("/book#teams/kettle-works", { unlockTeamSticker: async () => ({ kind: "refused" }) });
 
-    await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await userEvent.click(await unlockOnThePhoto());
 
-    expect(await (await goal()).findByRole("status")).toHaveTextContent("The Kettle Works sticker couldn't be unlocked. Reload the page to see where it stands.");
+    expect(await unlockSays()).toHaveTextContent("The Kettle Works sticker couldn't be unlocked. Reload the page to see where it stands.");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("an unreachable server says so and the action stays to try again", async () => {
+  it("an unreachable server says so and the sticker stays to try again", async () => {
     visit("/book#teams/kettle-works", { unlockTeamSticker: async () => Promise.reject(new Error("no answer within 10 s")) });
 
-    await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await userEvent.click(await unlockOnThePhoto());
 
-    expect(await (await goal()).findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
-    expect((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" })).not.toHaveAttribute("aria-disabled");
+    expect(await unlockSays()).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    expect(await unlockOnThePhoto()).not.toHaveAttribute("aria-disabled");
   });
 
-  it("AL54: while Put them all in waits for its answer and while its cards fly in, the action says it waits and sends nothing, then comes back once they land", async () => {
+  it("AL54: while Put them all in waits for its answer and while its cards fly in, the sticker says it waits and sends nothing, then comes back once they land", async () => {
     const trayed: Album = { ...midway, tray: [{ item: "tray-juno", kind: "sticker", person: "juno-park" }, { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] };
     let answer: (reply: PutAllInReply) => void = () => undefined;
     const { user, send } = visit("/book#teams/kettle-works", { album: trayed, putAllIn: () => new Promise((resolve) => (answer = resolve)) });
     await user.click(await screen.findByRole("button", { name: /^Tray/ }));
     await user.click(screen.getByRole("button", { name: /^Put them all in/ }));
 
-    const waiting = (await goal()).getByRole("button", { name: "Waiting for your cards to land…" });
+    const waiting = await unlockOnThePhoto("Waiting for your cards to land…");
     expect(waiting).toHaveAttribute("aria-disabled", "true");
     await user.click(waiting);
     await act(async () => answer({ kind: "placed", items: trayed.tray, more: false }));
-    await user.click((await goal()).getByRole("button", { name: "Waiting for your cards to land…" }));
+    await user.click(await unlockOnThePhoto("Waiting for your cards to land…"));
     expect(send).not.toHaveBeenCalled();
 
-    const unlock = await (await goal()).findByRole("button", { name: "Unlock the Kettle Works sticker" }, { timeout: 5_000 });
+    const unlock = await (await photo()).findByRole("button", { name: "Ready to unlock the Kettle Works sticker" }, { timeout: 5_000 });
     expect(unlock).not.toHaveAttribute("aria-disabled");
   });
 
   it("AL54: while the unlock waits for its answer, the packs button opens nothing, so the moment never lands on a pack", async () => {
     let answer: (reply: UnlockReply) => void = () => undefined;
     const { user } = visit("/book#teams/kettle-works", { unlockTeamSticker: () => new Promise((resolve) => (answer = resolve)) });
-    await user.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await user.click(await unlockOnThePhoto());
 
     const [bar] = screen.getAllByRole("banner", { hidden: true });
     expect(bar).toHaveAttribute("inert");
@@ -190,7 +200,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" })).toBeInTheDocument();
   });
 
-  it("a refusal said beside the action goes once getAlbum reads the page unlocked, as when another tab unlocked it first", async () => {
+  it("a refusal said under the photo goes once getAlbum reads the page unlocked, as when another tab unlocked it first", async () => {
     const live = { album: midway, listeners: new Set<() => void>() };
     const read = (asking: boolean) => {
       const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.album);
@@ -198,18 +208,18 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     };
     window.history.replaceState(null, "", "/book#teams/kettle-works");
     renderAlbum(memberWithTheAlbum, read, { people: fixedPeople(midway), commands: { unlockTeamSticker: async () => ({ kind: "refused" }) } });
-    await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
-    expect(await (await goal()).findByRole("status")).toHaveTextContent(/couldn't be unlocked/);
+    await userEvent.click(await unlockOnThePhoto());
+    expect(await unlockSays()).toHaveTextContent(/couldn't be unlocked/);
 
     live.album = { ...midway, teams: midway.teams.map((team) => (team.team === "kettle-works" ? { ...team, state: "unlocked", unlockedAt: Date.parse("2026-10-18T10:00:00Z") } : team)) };
     act(() => live.listeners.forEach((listener) => listener()));
 
-    expect((await goal()).getByRole("status")).toHaveTextContent("");
+    expect(await unlockSays()).toHaveTextContent("");
   });
 
   it("dims the page, lifts the sticker, colours it, names it and its team emoji, then flies it back to an unlocked page, in about five seconds", async () => {
     visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis, kettleWorksEmoji] } });
-    const unlock = (await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" });
+    const unlock = await unlockOnThePhoto();
     vi.useFakeTimers();
     await act(async () => fireEvent.click(unlock));
     const moment = screen.getByRole("dialog", { name: "Kettle Works sticker unlocked" });
@@ -225,7 +235,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     await act(async () => vi.advanceTimersByTime(800));
     expect(moment).toHaveAttribute("data-phase", "emoji");
     expect(within(moment).getByText(":kettle-works:")).toBeInTheDocument();
-    expect(within(moment).getByText("New team emoji · use it in Slack: react with it or put it in a kudos")).toBeInTheDocument();
+    expect(within(moment).getByText("Your new team emoji. Use it in Slack: react with it and put it in the kudos you give.")).toBeInTheDocument();
     expect(within(moment).getByRole("button", { name: "Put it on the page" })).toHaveFocus();
 
     fireEvent.keyDown(window, { key: "Escape" });
@@ -234,21 +244,21 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Kettle Works sticker, unlocked" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Unlocked 18 Oct 2026" })).toHaveFocus();
+    expect(screen.getByText("Unlocked 18 Oct 2026")).toHaveFocus();
   });
 
   it("under reduced motion it shows its end state at once: the coloured sticker, its name, its emoji and the way back, with no lift and no confetti", async () => {
     preferReducedMotion();
     visit("/book#teams/kettle-works");
 
-    await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await userEvent.click(await unlockOnThePhoto());
 
     const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
     expect(moment).toHaveAttribute("data-phase", "emoji");
     expect(moment).toHaveAttribute("data-reduced");
     expect(moment.querySelector("[data-confetti]")).toBeNull();
     expect(within(moment).getByText(":kettle-works:")).toBeInTheDocument();
-    expect(within(moment).getByText("New team emoji")).toBeInTheDocument();
+    expect(within(moment).getByText("Your new team emoji. Add it to Slack from this page, then react with it and put it in the kudos you give.")).toBeInTheDocument();
     await userEvent.click(within(moment).getByRole("button", { name: "Put it on the page" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -257,7 +267,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     preferReducedMotion();
     visit("/book#teams/kettle-works");
 
-    await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await userEvent.click(await unlockOnThePhoto());
     await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
 
     const [bar] = screen.getAllByRole("banner", { hidden: true });
@@ -269,26 +279,64 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     preferReducedMotion();
     visit("/book#teams/kettle-works");
 
-    await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await userEvent.click(await unlockOnThePhoto());
     await userEvent.click(await screen.findByRole("button", { name: "Put it on the page" }));
 
     expect(await screen.findByRole("img", { name: "Kettle Works sticker, unlocked" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Unlock the Kettle Works sticker" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ready to unlock the Kettle Works sticker" })).not.toBeInTheDocument();
   });
 });
 
-describe("AL45: an unlocked page", () => {
-  it("shows the gold sticker with its date and its team emoji", async () => {
+describe("AL45: an unlocked page says plainly what the member got", () => {
+  it("while Slack has the team emoji: the gold sticker with its date, and how to use the emoji in Slack", async () => {
     visit("/book#teams/quiet-harbour");
 
-    expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" })).toBeInTheDocument();
-    const section = await goal();
-    expect(section.getByRole("heading", { name: "Unlocked 15 Oct 2026" })).toBeInTheDocument();
-    expect(section.getByText("The Quiet Harbour sticker is yours.")).toBeInTheDocument();
-    expect(section.getByText(":quiet-harbour:")).toBeInTheDocument();
-    expect(section.getByText(/is your team emoji\. Use it in Slack: react with it or put it in a kudos\./)).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
+    expect(screen.getByText("Unlocked 15 Oct 2026")).toBeInTheDocument();
+    expect(teamEmojiLine()).toHaveTextContent("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
+    expect(screen.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
+  });
+
+  it("AL30, AL31: while Slack doesn't have it, never says it's usable, and Add to Slack saves its picture as <name>.png and opens Slack's custom emoji page", async () => {
+    const saved: { href: string; download: string }[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      if (this.download !== "") saved.push({ href: this.getAttribute("href") ?? "", download: this.download });
+    });
+    const { user } = visit("/book#teams/quiet-harbour", { album: withTheTeamEmojiOutOfSlack(midway, "quiet-harbour") });
+
+    expect(await screen.findByText(/team emoji\./, undefined, arrival)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
+    expect(screen.queryByText(/Use it in Slack/)).not.toBeInTheDocument();
+    const add = screen.getByRole("link", { name: "Add to Slack" });
+    expect(add).toHaveAttribute("href", "https://my.slack.com/customize/emoji");
+    expect(add).toHaveAttribute("target", "_blank");
+
+    await user.click(add);
+
+    expect(saved).toEqual([{ href: "/emoji/team-quiet-harbour.png", download: "quiet-harbour.png" }]);
+  });
+
+  it("AL31: a team picture from another host saves the team emblem, which the browser can download", async () => {
+    const saved: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      if (this.download !== "") saved.push(`${this.getAttribute("href")} as ${this.download}`);
+    });
+    const outOfSlack = withTheTeamEmojiOutOfSlack(midway, "quiet-harbour");
+    const album: Album = { ...outOfSlack, emojis: outOfSlack.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, picture: "https://pictures.example/quiet-harbour.png" } : emoji)) };
+    const { user } = visit("/book#teams/quiet-harbour", { album });
+
+    await user.click(await screen.findByRole("link", { name: "Add to Slack" }, arrival));
+
+    expect(saved).toEqual(["/emoji/team.png as quiet-harbour.png"]);
   });
 });
+
+function teamEmojiLine() {
+  return screen.getByText(/team emoji\./);
+}
+
+function withTheTeamEmojiOutOfSlack(album: Album, team: string): Album {
+  return { ...album, emojis: album.emojis.map((emoji) => (emoji.id === `team:${team}` ? { ...emoji, inSlack: false } : emoji)) };
+}
 
 describe("AL46: the person page", () => {
   it("shows your history with them, their teams and their hype emoji", async () => {
