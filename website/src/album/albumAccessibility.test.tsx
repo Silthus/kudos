@@ -241,9 +241,12 @@ describe("AL55: the album's own colours meet WCAG 2.2 AA in both themes", () => 
       expect(contrast(mode, "al-count-ink", "al-accent")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-gold-ink", "al-gold")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-ribbon-ink", "al-ribbon")).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(mode, "al-card-back-ink", "al-card-back")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-accent-ink", "background")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "foreground", "card")).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it(`the card back, which carries no text, draws its logo and lines at 3:1 in ${mode}`, () => {
+      expect(contrast(mode, "al-card-back-ink", "al-card-back")).toBeGreaterThanOrEqual(3);
     });
 
     it(`the team and person pages' text reaches 4.5:1 in ${mode}`, () => {
