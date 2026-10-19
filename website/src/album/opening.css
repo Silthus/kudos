@@ -811,6 +811,7 @@
   }
 
   .al-opening-stage {
+    min-height: auto;
     overflow-x: clip;
   }
 
