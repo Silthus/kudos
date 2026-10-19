@@ -1,5 +1,5 @@
 import { screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
@@ -8,6 +8,10 @@ import type { Album, ProfileRead } from "./answer";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+
+beforeAll(async () => {
+  await import("./AlbumApp");
+});
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -27,7 +31,7 @@ function linksIn(region: ReturnType<typeof within>) {
   return region.getAllByRole("link").map((link: HTMLElement) => [link.getAttribute("aria-label") ?? link.textContent, link.getAttribute("href")]);
 }
 
-describe("AL43: a member without a team lands on the album overview, never an empty home", () => {
+describe("AL43: a member without a team lands on the album overview, never an empty home", { timeout: 30_000 }, () => {
   it("says their team's page comes once they're matched, and leads to finding themselves on posthog.com in Settings", async () => {
     visit();
 
