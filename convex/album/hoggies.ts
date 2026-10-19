@@ -5,7 +5,7 @@ import type { MemberId } from "../workspace/directory";
 
 export const rarestFindsShown = 5;
 
-export type AlbumHoggie = Omit<HeldHoggie, "count"> & { found: boolean; count: number; spares: number };
+export type AlbumHoggie = HeldHoggie & { found: boolean; spares: number };
 
 export type AlbumRarity = { rarity: Rarity; chance: number; found: number; total: number };
 
@@ -25,13 +25,13 @@ export async function albumHoggiesOf(ctx: QueryCtx, member: MemberId): Promise<A
   };
 }
 
-function albumHoggieOf({ count, ...hoggie }: HeldHoggie): AlbumHoggie {
-  return { ...hoggie, found: count > 0, count, spares: Math.max(0, count - 1) };
+function albumHoggieOf(hoggie: HeldHoggie): AlbumHoggie {
+  return { ...hoggie, found: hoggie.count > 0, spares: Math.max(0, hoggie.count - 1) };
 }
 
 function rarestFindsIn(hoggies: AlbumHoggie[]): AlbumHoggie[] {
   return hoggies
-    .filter(({ found }) => found)
-    .toSorted((one, other) => rarestFirst.indexOf(one.rarity) - rarestFirst.indexOf(other.rarity) || other.firstAt! - one.firstAt!)
+    .filter((hoggie): hoggie is AlbumHoggie & { firstAt: number } => hoggie.found && hoggie.firstAt !== null)
+    .toSorted((one, other) => rarestFirst.indexOf(one.rarity) - rarestFirst.indexOf(other.rarity) || other.firstAt - one.firstAt)
     .slice(0, rarestFindsShown);
 }

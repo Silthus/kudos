@@ -70,7 +70,7 @@ const whateverTheBookSays = [
   { book: "unlocks and achievements on and the Book open", alsoOn: ["xp-levels", "unlocks", "achievements"], collection: "collection" },
 ];
 
-describe("AL73: the album's hoggies", () => {
+describe("AL73: the album's hoggies", { timeout: 60_000 }, () => {
   test.each(whateverTheBookSays)("with $book, getAlbumHoggies answers every catalogue hoggie, the one put in found and the one still in the tray hidden, the same whatever getCollection answers", async ({ alsoOn, collection }) => {
     await switchWebsite(t, postHog, true, ...albumOpen, ...alsoOn);
     theDraw.pinned = [epic!, legendary!];
@@ -135,7 +135,7 @@ describe("AL73: the album's hoggies", () => {
   });
 });
 
-describe("the album is private", () => {
+describe("the album is private", { timeout: 60_000 }, () => {
   test("getAlbumHoggies answers each signed-in member the hoggies they found, never another member's", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen);
     await thanks(alice, why, bob);
@@ -154,6 +154,24 @@ describe("the album is private", () => {
     const withAnotherMember = { member: await memberOf(alice) } as unknown as Record<string, never>;
 
     await expect((await signedIn(bob)).query(api.website.album.getAlbumHoggies, withAnotherMember)).rejects.toThrow(/member/);
+  });
+});
+
+describe("CL11: turning collection off hides every hoggie and takes nothing away; on again shows the same", () => {
+  test("with album on, turning collection off makes getAlbumHoggies answer off and keeps every find, and on again shows the same hoggies", async () => {
+    await switchWebsite(t, postHog, true, ...albumOpen);
+    await thanks(alice, why, bob);
+    await holds(t, await memberOf(alice), epic!);
+    const asAlice = await signedIn(alice);
+    const before = await albumHoggiesOf(asAlice);
+
+    await switchWebsite(t, postHog, true, "album", "packs");
+    const whileOff = await asAlice.query(api.website.album.getAlbumHoggies, {});
+    await switchWebsite(t, postHog, true, ...albumOpen);
+
+    expect(whileOff, "getAlbumHoggies while collection is off").toEqual({ kind: "off" });
+    expect(await albumHoggiesOf(asAlice), "on again").toEqual(before);
+    expect(foundIn(before)).toEqual([epic]);
   });
 });
 

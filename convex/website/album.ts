@@ -7,6 +7,7 @@ import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
 import { albumStickersOf } from "../album/stickers";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
+import { hoggiesShownTo } from "../hoggies/flag";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
@@ -97,7 +98,11 @@ export const putAllIn = memberMutation({
   handler: async (ctx, me): Promise<PutAllInAnswer> => ((await albumShownTo(ctx, me.member)) ? { kind: "placed", ...(await putEveryItemIn(ctx, me, Date.now())) } : { kind: "refused" }),
 });
 
-export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)) } : { kind: "off" }));
+export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)) } : { kind: "off" }));
+
+async function albumHoggiesShownTo(ctx: QueryCtx, member: MemberId) {
+  return (await albumShownTo(ctx, member)) && (await hoggiesShownTo(ctx, member));
+}
 
 export const getThoughtfulBoards = memberQuery({
   args: { team: v.optional(v.string()) },
