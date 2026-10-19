@@ -80,6 +80,23 @@ describe("AL11 AL17: putting a tray item in", () => {
     expect(JSON.stringify(collected[0]!.properties)).not.toContain(bob.user);
   });
 
+  test("with album off, putting in answers the fixed refusal and changes no table", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [sticker] = await openEvery(asAlice);
+    await switchWebsite(t, postHog, true, "collection", "packs");
+    await settle(t);
+    const before = await everyTable();
+
+    expect(await putIn(asAlice, sticker!.item)).toEqual({ kind: "refused" });
+    expect(await putAllIn(asAlice)).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everyTable()).toEqual(before);
+  });
+});
+
+describe("a tray item is put in once", { timeout: 120_000 }, () => {
   test("AL12: a hoggie from a thoughtful pack counts as found on the Hoggies page only once it is put in", async () => {
     await theBookIsOpen();
     await thanks(alice, why, bob);
@@ -100,23 +117,6 @@ describe("AL11 AL17: putting a tray item in", () => {
     if (waiting.count === 0) expect([waiting.firstAt, putInHoggie.firstAt], "first found when put in").toEqual([null, putInAt]);
   });
 
-  test("with album off, putting in answers the fixed refusal and changes no table", async () => {
-    await thanks(alice, why, bob);
-    const asAlice = await signedIn(alice);
-    const [sticker] = await openEvery(asAlice);
-    await switchWebsite(t, postHog, true, "collection", "packs");
-    await settle(t);
-    const before = await everyTable();
-
-    expect(await putIn(asAlice, sticker!.item)).toEqual({ kind: "refused" });
-    expect(await putAllIn(asAlice)).toEqual({ kind: "refused" });
-    await settle(t);
-
-    expect(await everyTable()).toEqual(before);
-  });
-});
-
-describe("a tray item is put in once", () => {
   test("putting an item in a second time answers the fixed refusal and changes no table, and its hoggie counts once", async () => {
     await theBookIsOpen();
     await thanks(alice, why, bob);
@@ -159,15 +159,12 @@ describe("a tray item is put in once", () => {
 
     expect(await putAllIn(asAlice)).toEqual({ kind: "placed", items: [...hoggiesIn(rest), ...stickersIn(rest)], more: false });
   });
-});
 
-describe("the album is private", () => {
-  test("putIn given another member's tray item answers the fixed refusal and changes no table, and putAllIn places only the member's own tray", async () => {
+  test("putting in an item of another member's tray answers the fixed refusal and changes no table", async () => {
     await thanks(alice, why, bob);
     await thanks(bob, "Thanks for pairing on the gnarly cache bug", alice);
     const [asAlice, asBob] = [await signedIn(alice), await signedIn(bob)];
     const alicesItems = await openEvery(asAlice);
-    const bobsItems = await openEvery(asBob);
     await settle(t);
     const before = await everyTable();
 
@@ -175,12 +172,8 @@ describe("the album is private", () => {
     await settle(t);
 
     expect(await everyTable()).toEqual(before);
-    expect(await putAllIn(asBob)).toEqual({ kind: "placed", items: [...hoggiesIn(bobsItems), ...stickersIn(bobsItems)], more: false });
-    expect((await albumOf(asAlice)).tray).toEqual(alicesItems);
   });
-});
 
-describe("AL11: put them all in places 25 items a call in the put-in order", { timeout: 120_000 }, () => {
   test("a tray of 60 items goes in over three calls from two devices: hoggies first in opening order, then stickers by team page, the member's team first, then the most held, then people on no team, and a pack opened during the sequence takes its place in the next call", async () => {
     await theCompanyCopyHolds(
       { slug: "beacons", name: "Beacons", profiles: profilesOf(otters[0]!, ...beacons) },
@@ -214,6 +207,25 @@ describe("AL11: put them all in places 25 items a call in the put-in order", { t
     expect(album.tray).toEqual([]);
     expect(album.people.filter(({ held }) => held)).toHaveLength(34);
     expect(postHog.productEvents().filter(({ event }) => event === "album sticker collected")).toHaveLength(31);
+  });
+});
+
+describe("the album is private", () => {
+  test("putIn given another member's tray item answers the fixed refusal and changes no table, and putAllIn places only the member's own tray", async () => {
+    await thanks(alice, why, bob);
+    await thanks(bob, "Thanks for pairing on the gnarly cache bug", alice);
+    const [asAlice, asBob] = [await signedIn(alice), await signedIn(bob)];
+    const alicesItems = await openEvery(asAlice);
+    const bobsItems = await openEvery(asBob);
+    await settle(t);
+    const before = await everyTable();
+
+    for (const { item } of alicesItems) expect(await putIn(asBob, item), "Bob putting in Alice's item").toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everyTable()).toEqual(before);
+    expect(await putAllIn(asBob)).toEqual({ kind: "placed", items: [...hoggiesIn(bobsItems), ...stickersIn(bobsItems)], more: false });
+    expect((await albumOf(asAlice)).tray).toEqual(alicesItems);
   });
 });
 
