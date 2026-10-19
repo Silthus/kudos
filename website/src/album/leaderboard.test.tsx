@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
@@ -21,6 +23,14 @@ function visit(boards: BoardsShown = boardsFixtures.week) {
 
 async function board(name: "People" | "Teams") {
   return within(await screen.findByRole("region", { name }));
+}
+
+const albumCss = readFileSync(join(__dirname, "album.css"), "utf8");
+
+function declarationsOf(selector: string) {
+  const rule = [...albumCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(([, selectors]) => selectors!.split(",").some((each) => each.trim() === selector));
+  if (rule === undefined) throw new Error(`${selector} has no rule in album.css`);
+  return Object.fromEntries([...rule[2]!.matchAll(/([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]));
 }
 
 function rowsOf(list: ReturnType<typeof within>) {
@@ -79,6 +89,12 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(teams.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/");
     expect(teams.getByRole("link", { name: "Kettle Works" })).toHaveAttribute("href", "/book#teams/kettle-works");
     expect(teams.getByRole("link", { name: "Lanterns" }).closest("li")).toHaveAttribute("data-you");
+  });
+
+  it("keeps the member's own row and teams in view while a long board scrolls: each board scrolls inside itself and their rows stick to its edges", () => {
+    expect(declarationsOf(".al-board-rows"), "each board scrolls inside a bounded height").toMatchObject({ "overflow-y": "auto", "max-height": expect.any(String) });
+    expect(declarationsOf(".al-board-row[data-you]"), "the member's rows stick to the top and bottom edge of their board").toMatchObject({ position: "sticky", top: "0", bottom: "0" });
+    expect(declarationsOf(".al-board-row[data-you]").background, "a stuck row is opaque, so rows scrolling under it don't show through").toMatch(/var\(--card\)/);
   });
 
   it("names everyone who shares the lead", async () => {

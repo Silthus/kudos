@@ -863,9 +863,13 @@
 }
 
 .al-board-rows {
+  max-height: max(22.5rem, calc(100vh - 23.75rem));
   margin: 0;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
+  scrollbar-width: thin;
 }
 
 .al-board-row {
@@ -881,8 +885,12 @@
 }
 
 .al-board-row[data-you] {
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
   box-shadow: inset 3px 0 0 var(--al-accent);
-  background: var(--al-accent-soft);
+  background: linear-gradient(var(--al-accent-soft), var(--al-accent-soft)), var(--card);
 }
 
 .al-board-row[data-picked] {
@@ -1010,6 +1018,10 @@
 @media (max-width: 63.999rem) {
   .al-boards {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .al-board-rows {
+    max-height: 26rem;
   }
 
   .al-board-row {
