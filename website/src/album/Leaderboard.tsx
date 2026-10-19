@@ -47,7 +47,7 @@ function LeaderboardPage({ boards, period, loading, onChoosePeriod, homeTeam }: 
   return (
     <div className="al-page-body al-leaderboard">
       <header className="al-leaderboard-head">
-        <div>
+        <div className="al-leaderboard-title">
           <p className="al-eyebrow">Leaderboard · thoughtful kudos given</p>
           <PageTitle tab="Leaderboard" size="hero">
             Who said thanks, and why

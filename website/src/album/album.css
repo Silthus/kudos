@@ -812,6 +812,12 @@
   gap: 1rem;
 }
 
+.al-leaderboard-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .al-period-switch {
   display: inline-flex;
   flex-wrap: wrap;
