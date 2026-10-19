@@ -6,9 +6,9 @@ import type { Album, AlbumPerson, AlbumTeam } from "./answer";
 import { medalsOf, myTeamOf, plural, xpToNextOf } from "./facts";
 import { hrefOf, type Place } from "./place";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode };
 
-export function AlbumPage({ album, place, settings, leaderboard }: PageProps) {
+export function AlbumPage({ album, place, settings, leaderboard, activity }: PageProps) {
   switch (place.kind) {
     case "team":
       return <TeamPage album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} />;
@@ -41,11 +41,7 @@ export function AlbumPage({ album, place, settings, leaderboard }: PageProps) {
         </Page>
       );
     case "activity":
-      return (
-        <Page tab="Activity" title="Activity">
-          This week in your album.
-        </Page>
-      );
+      return activity;
     case "leaderboard":
       return leaderboard;
     case "settings":
