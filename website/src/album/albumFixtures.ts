@@ -120,6 +120,7 @@ const newcomerCast = castTeams.slice(0, 4).map((team) => ({ ...team, held: 0, st
 
 export const albumFixtures = {
   midway: albumOf(),
+  teamless: albumOf({ mine: null }),
   newcomer: { ...albumOf({ mine: null, cast: newcomerCast, gettingStarted: { hugged: false, thoughtful: false, opened: false, completed: false }, packs: 0 }), emojis: emojis.map((emoji) => ({ ...emoji, earned: false, seen: false })), milestones: milestones.map((milestone) => ({ ...milestone, count: 0, tiers: milestone.tiers.map((tier) => ({ ...tier, earnedAt: null })) })) },
   started: albumOf({ gettingStarted: { hugged: true, thoughtful: true, opened: true, completed: true } }),
   onePack: albumOf({ packs: 1 }),
