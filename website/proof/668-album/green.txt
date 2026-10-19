@@ -1,0 +1,21 @@
+ ✓ |convex| convex/website/albumProfile.test.ts > AL52: getAlbumProfile reads the profile's kind note and newest people > the kind note is the last thoughtful kudos someone sent you, with its giver, words and Slack link, past any briefer kudos since
+ ✓ |convex| convex/website/albumProfile.test.ts > AL52: getAlbumProfile reads the profile's kind note and newest people > the newest people are the four who joined your album last, newest first, with when each joined
+ ✓ |convex| convex/website/albumProfile.test.ts > AL52: getAlbumProfile reads the profile's kind note and newest people > a member nobody thanked with a why, whose album holds nobody yet, reads no note and no newest people
+ ✓ |convex| convex/website/albumProfile.test.ts > AL52: getAlbumProfile reads the profile's kind note and newest people > with album off for the member, the profile reads off
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > shows your yearbook photo, name, team, level and XP bar
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > shows the last kind note someone sent you, with who sent it, when, and its Slack link
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > shows no note while nobody has sent you a thoughtful kudos
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > the profile's level and XP are the top bar's, and its ranks are the board's
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > says a tie as the board does, and names your home team's rank when you are on two
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > asks for a first thoughtful kudos this week while you have none
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > points to Settings while you left the boards by choice
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > your album at a glance counts the people, your team and the hoggies, each leading to its page
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > leaves your team and the hoggies out of the glance while you have no team and the hoggies are off
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > coolest finds show your rarest hoggies and the people who joined your album last, each leading to its page
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > coolest finds say how to make the first one while you have none
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > best milestones show your highest medals, newest first within a metal, and the one you're closest to next
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > best milestones say no medal is earned yet and still show the closest next
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > waits for its reads, then shows the page
+ ✓ |website| src/album/profile.test.tsx > AL52: the profile page shows you, your week and your album at a glance > a profile read that fails shows the error page in the frame
+ Test Files  2 passed (2)
+      Tests  19 passed (19)

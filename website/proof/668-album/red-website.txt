@@ -1,0 +1,16 @@
+     × shows your yearbook photo, name, team, level and XP bar 648ms
+     × shows the last kind note someone sent you, with who sent it, when, and its Slack link 1030ms
+     × the profile's level and XP are the top bar's, and its ranks are the board's 1025ms
+     × says a tie as the board does, and names your home team's rank when you are on two 1028ms
+     × asks for a first thoughtful kudos this week while you have none 1023ms
+     × points to Settings while you left the boards by choice 1022ms
+     × your album at a glance counts the people, your team and the hoggies, each leading to its page 1021ms
+     × leaves your team and the hoggies out of the glance while you have no team and the hoggies are off 1016ms
+     × coolest finds show your rarest hoggies and the people who joined your album last, each leading to its page 1021ms
+     × coolest finds say how to make the first one while you have none 1015ms
+     × best milestones show your highest medals, newest first within a metal, and the one you're closest to next 1022ms
+     × best milestones say no medal is earned yet and still show the closest next 1016ms
+     × waits for its reads, then shows the page 27ms
+     × a profile read that fails shows the error page in the frame 1020ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  14 failed | 1 passed (15)
