@@ -395,6 +395,8 @@ button.al-seal[aria-disabled] {
 .al-unlock-emoji code {
   max-width: 100%;
   overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
   border-radius: 0.375rem;
   background: color-mix(in oklab, var(--foreground) 8%, transparent);
   padding: 0.0625rem 0.375rem;
