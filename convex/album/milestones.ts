@@ -3,12 +3,11 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyTeamsReplacedEventValidator, hoggieDroppedEventValidator } from "../bus/events";
 import { collectionOf } from "../hoggies/collection";
-import { membersPageIn, type MemberId } from "../workspace/directory";
-import { workspacesKnown } from "../workspace/settings";
+import { chatUserOf, membersPageIn, type MemberId } from "../workspace/directory";
 import { milestoneCatalogue, type MilestoneId, type Step } from "./milestoneCatalogue";
 import type { MilestoneTier } from "./records";
-import { peopleHeldBy } from "./stickers";
-import { companyCopyIn, teamPagesIn, teamPagesOf, type PageOwner, type TeamPage } from "./teamPages";
+import { peopleHeldBy, stickerHoldersAfter } from "./stickers";
+import { companyCopyIn, teamPagesIn, teamPagesOf, type CompanyCopy, type PageOwner, type TeamPage } from "./teamPages";
 
 export type MilestoneAnswer = { id: MilestoneId; count: number; tiers: (Step & { earnedAt: number | null })[] };
 
@@ -32,10 +31,33 @@ export const recordMilestonesAfterTheSync = internalMutation({
   args: { event: companyTeamsReplacedEventValidator },
   returns: v.null(),
   handler: async (ctx) => {
-    for (const workspace of await workspacesKnown(ctx)) await ctx.scheduler.runAfter(0, internal.album.milestones.recordMilestonesInWorkspace, { workspace, cursor: null });
+    await ctx.scheduler.runAfter(0, internal.album.milestones.recordMilestonesOfStickerHolders, { after: null });
     return null;
   },
 });
+
+export const recordMilestonesOfStickerHolders = internalMutation({
+  args: { after: v.union(v.id("members"), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { after }) => {
+    const holders = await stickerHoldersAfter(ctx, after, membersPerMilestonePage);
+    const copyOf = companyCopiesOf(ctx);
+    for (const member of holders) {
+      const company = await copyOf((await chatUserOf(ctx, member)).workspace);
+      await recordTiersOf(ctx, member, () => teamPagesIn(ctx, member, company), Date.now());
+    }
+    if (holders.length === membersPerMilestonePage) await ctx.scheduler.runAfter(0, internal.album.milestones.recordMilestonesOfStickerHolders, { after: holders.at(-1)! });
+    return null;
+  },
+});
+
+function companyCopiesOf(ctx: QueryCtx) {
+  const copies = new Map<string, CompanyCopy>();
+  return async (workspace: string) => {
+    if (!copies.has(workspace)) copies.set(workspace, await companyCopyIn(ctx, workspace));
+    return copies.get(workspace)!;
+  };
+}
 
 export const recordMilestonesAfterAHoggieDrop = internalMutation({
   args: { event: hoggieDroppedEventValidator },

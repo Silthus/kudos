@@ -38,3 +38,17 @@ export async function peopleHeldBy(ctx: QueryCtx, member: MemberId): Promise<Set
     .collect();
   return new Set(stickers.map(({ person }) => person));
 }
+
+export async function stickerHoldersAfter(ctx: QueryCtx, after: MemberId | null, atMost: number): Promise<MemberId[]> {
+  const holders: MemberId[] = [];
+  for (let last = after; holders.length < atMost; ) {
+    const next = await ctx.db
+      .query("albumStickers")
+      .withIndex("by_member_person", (q) => (last === null ? q : q.gt("member", last)))
+      .first();
+    if (next === null) break;
+    holders.push(next.member);
+    last = next.member;
+  }
+  return holders;
+}

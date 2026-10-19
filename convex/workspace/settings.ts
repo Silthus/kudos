@@ -73,7 +73,3 @@ function workspaceRow(ctx: QueryCtx, workspace: string) {
 export function defaultKudosEmoji() {
   return emojiNameOf(process.env.KUDOS_EMOJI ?? "") || fallbackKudosEmoji;
 }
-
-export async function workspacesKnown(ctx: QueryCtx): Promise<string[]> {
-  return (await ctx.db.query("workspaces").collect()).map(({ workspace }) => workspace);
-}
