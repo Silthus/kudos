@@ -13,3 +13,7 @@ Branch `album/18` at `9bc441e4` (`main` merged in), website built from that comm
 The two people thanked have no album sticker yet, so `getAlbum` doesn't list them and the opening names them "a teammate" with a blank face (decision `d-20ba1673`). The fixture build (`VITE_SHELL_FIXTURE=album`) shows the named card, the gold "Team complete!" burst and a rare hoggie's sparkles. Reduced motion can't be emulated in the preview browser; `packOpening.test.tsx` proves its end state.
 
 Run: `KUDOS_CAST=<letter> KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/662-album/drive.mts`
+
+## Rerun on the reviewed head
+
+After the review's fixes (focus kept inside the dialog, opened packs remembered by the shell, no sideways scroll), the website built from `41a0a3fc` was uploaded at 02:00 UTC on 2026-10-19 and walked with a fresh cast (`KUDOS_CAST=B`, `head-drive-output.txt`), light at 1440 × 900, by keyboard alone, recorded: Enter opens and rips, Escape jumps to the end, "Open next pack" flies the cards while focus stays on the dialog with no outline, the next sealed pack takes focus, Tab wraps from its last control to Close, and Done lands focus on the packs button with the tray at 4 and 50 XP. No console error.
