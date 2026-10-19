@@ -31,6 +31,7 @@ import {
   albumHistoryValidator,
   albumStickerValidator,
   emojiNameNumberValidator,
+  seenEmojiValidator,
   emojiNameValidator,
   grantRecordValidator,
   grantToldValidator,
@@ -557,6 +558,8 @@ export default defineSchema({
     .index("by_emoji", ["emoji", "person", "workspace"]),
 
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
+
+  seenEmojis: defineTable(seenEmojiValidator).index("by_member_emoji", ["member", "emoji"]),
 
   albumHistory: defineTable(albumHistoryValidator).index("by_workspace", ["workspace"]),
 

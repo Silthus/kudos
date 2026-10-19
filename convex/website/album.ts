@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
 import { thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { albumShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
@@ -37,6 +38,9 @@ export type AlbumAnswer = {
   tray: TrayItem[];
   moreTray: boolean;
   milestones: MilestoneAnswer[];
+  emojis: EarnedEmoji[];
+  moreEmojis: boolean;
+  sharedEmojis: SharedEmoji[] | null;
 };
 
 export const mostPeopleShown = 500;
@@ -52,6 +56,8 @@ export type OpenAnswer = ({ kind: "opened" } & Opening) | { kind: "refused" };
 export type UnlockAnswer = { kind: "unlocked"; sticker: TeamSticker } | { kind: "refused" };
 
 export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
+
+export type SeenAnswer = { kind: "seen"; ids: string[] } | { kind: "refused" };
 
 export type PutAllInAnswer = ({ kind: "placed" } & PutIn) | { kind: "refused" };
 
@@ -86,7 +92,11 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { tray, more: moreTray } = await trayOf(ctx, me.member);
   const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
   const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones: await milestonesOf(ctx, me, pagesAndPeople.pages) };
+  const level = await levelOf(ctx, me.member);
+  const milestones = await milestonesOf(ctx, me, pagesAndPeople.pages);
+  const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level });
+  const sharedEmojis = await sharedEmojisOf(ctx, me.member, earned);
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis };
 });
 
 async function teamsOf(ctx: QueryCtx, pagesAndPeople: TeamPagesAndPeople, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
@@ -140,6 +150,14 @@ export const unlockTeamSticker = memberMutation({
   handler: async (ctx, me, _person, { team }): Promise<UnlockAnswer> => {
     const sticker = (await albumShownTo(ctx, me.member)) ? await unlockTeamStickerOf(ctx, me, team, Date.now()) : null;
     return sticker === null ? { kind: "refused" } : { kind: "unlocked", sticker };
+  },
+});
+
+export const markEmojisSeen = memberMutation({
+  args: { ids: v.array(v.string()) },
+  handler: async (ctx, me, _person, { ids }): Promise<SeenAnswer> => {
+    const seen = (await albumShownTo(ctx, me.member)) ? await markEmojisSeenBy(ctx, me.member, ids, Date.now()) : null;
+    return seen === null ? { kind: "refused" } : { kind: "seen", ids: seen };
   },
 });
 

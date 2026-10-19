@@ -159,6 +159,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(walk.placed).toEqual(withoutTheAlbum.placed);
     expect([walk.placed?.one, walk.placed?.all].map((answer) => answer?.kind)).not.toContain("placed");
     expect(walk.albumRows.trayItems).toEqual([]);
+    expect(walk.emojisSeen).toEqual(withoutTheAlbum.emojisSeen);
+    expect(walk.emojisSeen?.kind).not.toBe("seen");
     expect(albumDecisions.filter(({ by }) => by === "exposed")).toEqual([]);
     expect(albumExposures(walk)).toEqual([]);
     expect(await decidedWithoutTheWebsite(dana)).toBe(false);
@@ -255,6 +257,7 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
   for (const { user } of members) await openHome(user);
   const opened = opening ? await aliceOpensHerFirstPack() : null;
   const placed = opening ? await alicePutsHerTrayIn() : null;
+  const emojisSeen = opening ? await aliceSeesHerEmojis() : null;
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   const albums: Record<string, unknown> = {};
   const boards: Record<string, unknown> = {};
@@ -275,7 +278,7 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
     productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isPacksEarned(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheAlbum(),
   };
-  return { seen, albums, boards, hoggies, pages, opened, placed, albumRows: await albumRows(), postHogEvents: postHog.events() };
+  return { seen, albums, boards, hoggies, pages, opened, placed, emojisSeen, albumRows: await albumRows(), postHogEvents: postHog.events() };
 }
 
 async function personAndWeekPagesOf(member: Person) {
@@ -301,6 +304,12 @@ async function aTrayItemIdNamingNoItem() {
     await ctx.db.delete(pack);
     return item;
   });
+}
+
+async function aliceSeesHerEmojis() {
+  nextStep();
+  const ids = ["level:5", `hype:${await memberOf(bob.user)}`];
+  return (await signedIn(alice)).mutation(api.website.album.markEmojisSeen, { ids });
 }
 
 async function aliceOpensHerFirstPack() {
