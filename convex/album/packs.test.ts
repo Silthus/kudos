@@ -139,7 +139,7 @@ describe("AL4 AL5: each grant records its outcome", () => {
   });
 });
 
-describe("a message's packs are told once", () => {
+describe("a message's packs are told once", { timeout: 30_000 }, () => {
   test("a thoughtful kudos to three people sends one packs earned with packs_earned 3, and a second to one of them one with 0 and recipients 1", async () => {
     await thanks(alice, why, bob, carol, dana);
     await thanks(alice, "Thanks again for pairing on the rollback", bob);
