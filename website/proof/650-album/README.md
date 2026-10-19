@@ -12,3 +12,12 @@ Branch `album/6` at `e64dadf8` (`main` at `7dcb093d` merged in), hand-deployed a
 The `getAlbum` files keep only the seeded team's page, the packs, the tray and a count of the other teams. The full answer lists every posthog.com team and the names of its people.
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> KUDOS_CAST=A SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/650-album/drive.mts`, then `KUDOS_CAST=A bun website/proof/650-album/seed.mts <companyProfiles.jsonl> <companyTeams.jsonl> seed > args.json` and `convex run companyProfiles/sync:replaceCompanyProfiles "$(cat args.json)"`.
+
+## Rerun on the reviewed head
+
+After qa-swarm's two rounds changed how the unlock names its team emoji (one reservation, a string name) and how the website reads held people's teams, `album/6` at `eb30978a` (`main` at `48e05c29` merged in) was deployed to the sandbox at 03:54 UTC on 2026-10-19. The proof tree also merged the live lanes `album/10` (`e3c4c95b`, and its proof tree `8bc4df2c`) and `album/19` (`87661586`). The dry run deleted no index. It re-added `teamStickers.by_member_team`, which a sibling's deploy had dropped since the first run; the stored rows survived.
+
+7. A fresh cast (`KUDOS_CAST=B`, `head/drive-output.txt`), seeded the same way as `Quillwrights B`. Before: `progress`, 0 of 2 (`head/getAlbum-1-before.json`). After opening both packs and `putAllIn` (two hoggies, then two stickers, `more: false`): `ready`, 2 of 2 (`head/getAlbum-2-ready.json`).
+8. `unlockTeamSticker` answered `unlocked` with the emoji name `quillwrights-b`, and a second click answered `refused` (`head/unlock.json`, `head/unlock-again.json`, `head/getAlbum-3-unlocked.json`).
+9. The real posthog.com sync replaced the copy, leaving posthog.com's 57 teams and no `proof-650` team. The page still reads `unlocked`, `Quillwrights B`, with the same date, and a click answers `refused` (`head/getAlbum-4-team-gone.json`, `head/unlock-after-gone.json`).
+10. Cross-version: cast A's team sticker, written by the first run's code at `e64dadf8`, still reads `unlocked`, `Quillwrights A`, with its original date, through this head (`head/getAlbum-castA-after-redeploy.json`). Both stored team stickers are in `head/teamStickers-sandbox.jsonl`.

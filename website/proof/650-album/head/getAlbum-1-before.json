@@ -1,0 +1,37 @@
+{
+  "kind": "album",
+  "me": {
+    "person": "js76rwhvz5y3bgx11c37r9qjc18gjth0"
+  },
+  "otherTeams": 57,
+  "packs": [
+    {
+      "earnedAt": 1792382068610,
+      "pack": "hn7jnsrj9kw83q2kgayhz6qd0n8gjdsx",
+      "person": "js73p5gc3gx81kkmsqdzr8j6q58gjy05"
+    },
+    {
+      "earnedAt": 1792382068610,
+      "pack": "hn7te6fezj7gc7n8s1abt9g2rd8gkzwy",
+      "person": "js7df50sjf3ggxanckyadn6eqh8gjmg9"
+    }
+  ],
+  "teams": [
+    {
+      "art": null,
+      "held": 0,
+      "mine": true,
+      "name": "Quillwrights B",
+      "people": [
+        "js73p5gc3gx81kkmsqdzr8j6q58gjy05",
+        "js7df50sjf3ggxanckyadn6eqh8gjmg9"
+      ],
+      "state": "progress",
+      "team": "proof-650-quillwrightsb",
+      "total": 2,
+      "unlockedAt": null,
+      "unmatched": []
+    }
+  ],
+  "tray": []
+}
