@@ -345,10 +345,11 @@ describe("#708: the sidebar stays in view", () => {
       .map((file) => readFileSync(join(__dirname, file), "utf8"))
       .join("\n");
 
+    expect(atRulesIn(albumCss).filter((atRule) => !readAtRules.includes(atRule))).toEqual([]);
     expect(looseScrollBoxesIn(albumCss)).toEqual([]);
   });
 
-  it("reads the stylesheets as a desktop browser does: the last position wins, a condition can only take a position away, the phone drawer is left out, and each selector of a list counts", () => {
+  it("reads the stylesheets as a desktop browser does: the last position wins, a condition can only take a position away, rules only below 64rem are left out with the phone drawer, every at-rule is read, and each selector of a list counts", () => {
     const css = [
       ".a, .b { overflow: hidden auto }",
       ".a { position: relative }",
@@ -361,16 +362,25 @@ describe("#708: the sidebar stays in view", () => {
       ".e { overflow-y: auto; position: relative }",
       "@media (prefers-reduced-motion: reduce) { .e { position: static } }",
       "@media (max-width: 63.999rem) { @keyframes fade { from { opacity: 0 } } .a { position: static } .f { overflow: auto } }",
+      ".g, .h, .i { overflow: auto; position: relative }",
+      "@media (min-width: 64rem) and (prefers-reduced-motion: reduce) { .g { position: static } }",
+      "@media (max-width: 63.999rem), (min-width: 90rem) { .h { position: static } }",
+      "@media (max-width: 47.99rem) { .i { position: static } }",
     ].join("\n");
 
-    expect(looseScrollBoxesIn(css)).toEqual([".b", ".c", ".d", ".e"]);
+    expect(looseScrollBoxesIn(css)).toEqual([".b", ".c", ".d", ".e", ".g", ".h"]);
+    expect(atRulesIn(`${css}\n@layer later { .a { position: static } }\n/* @container */`)).toEqual(["@media", "@supports", "@keyframes", "@layer"]);
   });
 });
 
 type DesktopRule = { selectors: string[]; style: CSSStyleDeclaration; conditional: boolean };
 
-const phoneWidths = "(max-width: 63.999rem)";
 const everyDesktopWidth = "(min-width: 64rem)";
+const readAtRules = ["@media", "@supports", "@keyframes"];
+
+function atRulesIn(css: string) {
+  return [...new Set(css.replace(/\/\*[\s\S]*?\*\//g, "").match(/@[\w-]+/g) ?? [])];
+}
 
 function looseScrollBoxesIn(css: string) {
   const rules = desktopRulesOf(css);
@@ -392,10 +402,15 @@ function desktopRulesOf(css: string): DesktopRule[] {
 function rulesWithin(rules: CSSRuleList, conditional: boolean): DesktopRule[] {
   return [...rules].flatMap((rule) => {
     if (rule instanceof CSSStyleRule) return [{ selectors: rule.selectorText.split(",").map((selector) => selector.trim()), style: rule.style, conditional }];
-    if (rule instanceof CSSMediaRule) return rule.media.mediaText.includes(phoneWidths) ? [] : rulesWithin(rule.cssRules, conditional || !rule.media.mediaText.includes(everyDesktopWidth));
+    if (rule instanceof CSSMediaRule) return onlyBelowDesktop(rule.media.mediaText) ? [] : rulesWithin(rule.cssRules, conditional || rule.media.mediaText !== everyDesktopWidth);
     if (rule instanceof CSSSupportsRule) return rulesWithin(rule.cssRules, conditional);
     return [];
   });
+}
+
+function onlyBelowDesktop(mediaText: string) {
+  const widest = /^\(max-width: ([\d.]+)rem\)$/.exec(mediaText)?.[1];
+  return widest !== undefined && Number(widest) < 64;
 }
 
 function scrolls({ style }: DesktopRule) {
