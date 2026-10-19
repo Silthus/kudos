@@ -236,6 +236,8 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: /book#hoggies over a collection part found with spares and one with nothing found, each filter, the strip as groups pass under the bar and at the page's end, each rarity picked, a short one picked near the page's end and one picked under a filter that hides its rarity, Back and Forward to a landed rarity, a landed rarity cleared in place, a plate opened and closed by `Escape`, stepped by key and by button through all and through the found, a hidden hoggie's detail, an address naming a hoggie and one naming none, Back from an opened detail, a shelf hoggie opened under a rarity it isn't in, the bar sticking and then not after a resize, and the read still loading
   via: AL50: Hoggies is a field guide of the member's hoggies, each with a centred detail
   refuted: useRarityUnderBar marked the last rarity group under the bar instead of the first -> with Uncommon and Rare under the bar the strip lit Rare, 1 of 16 tests red (2026-10-19)
+  refuted: useRarityStrip answered only the rarity in view, dropping the picked rarity's mark -> Epic picked near the page's end lit Legendary, 1 of 20 tests red (2026-10-19)
+  refuted: the collection stopped handing the measured bar line to the groups' scroll margin -> picked Uncommon and Rare landed off the bar's edge, 2 of 20 tests red (2026-10-19)
   because: hoggies are the album's surprise, so the page shows the rarest first, what's left to find and each one up close (AL50, AL73, #627, #665)
   kinds: output
   checklist: destination-confinement dismissed: the page reads getAlbumHoggies and sends nothing; a filter, the strip and the detail only change what it shows and the address
