@@ -19,7 +19,7 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
   const emoji = teamEmojiOf(album, team.team);
   const caption = useId();
   return (
-    <article className="al-page-body al-team">
+    <article className="al-page-body al-team-page">
       <header>
         <p className="al-eyebrow">{team.mine ? "Your team" : "Team page"}</p>
         <PageTitle tab={team.name} size="hero">

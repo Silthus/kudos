@@ -135,7 +135,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
 
     await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("The Kettle Works sticker couldn't be unlocked. Reload the page to see where it stands.");
+    expect(await (await goal()).findByRole("status")).toHaveTextContent("The Kettle Works sticker couldn't be unlocked. Reload the page to see where it stands.");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -144,7 +144,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
 
     await userEvent.click((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    expect(await (await goal()).findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
     expect((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" })).toBeEnabled();
   });
 

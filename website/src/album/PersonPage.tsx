@@ -93,7 +93,7 @@ function teamHrefOf(team: Pick<AlbumTeam, "team" | "mine">) {
 function HypeEmoji({ person, first }: { person: Person; first: string }) {
   const { earned, name } = person.hype;
   return (
-    <div className="al-hype ph-no-capture" data-earned={earned ? "" : undefined}>
+    <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
       <span className="al-hype-frame" aria-hidden="true">
         {earned && person.held ? <MemberFace face={person.face} className="al-hype-face" /> : <Silhouette name={person.name} />}
       </span>

@@ -304,3 +304,7 @@
     transform: translate(var(--x), calc(var(--y) + var(--fall))) rotate(var(--turn));
   }
 }
+
+.al-shell:has(.al-unlock-moment) .al-seal-spot {
+  visibility: hidden;
+}
