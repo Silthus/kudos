@@ -183,11 +183,11 @@
   border-radius: 0 0.75rem 0.75rem 0;
 }
 
-.al-packs .al-opens-out > span > span {
+.al-packs .al-opens-out > span {
   padding-inline: 0.25rem 0.75rem;
 }
 
-.al-top .al-packs[data-labelled] > .al-opens-out > span > span {
+.al-top .al-packs[data-labelled] > .al-opens-out > span {
   padding-inline: 0.5rem 0.375rem;
 }
 
@@ -262,40 +262,35 @@
   bottom: -1px;
   left: 100%;
   z-index: 1;
-  display: grid;
-  grid-template-columns: 0fr;
+  display: flex;
+  width: max-content;
   align-items: center;
   border: inherit;
   border-left: 0;
   border-radius: 0 999px 999px 0;
   background: var(--al-pill);
+  clip-path: inset(0 100% 0 0);
   opacity: 0;
   pointer-events: none;
   transition:
-    grid-template-columns 220ms cubic-bezier(0.2, 0, 0, 1),
+    clip-path 220ms cubic-bezier(0.2, 0, 0, 1),
     opacity 180ms ease-out;
 }
 
 .al-opens-out > span {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.al-opens-out > span > span {
-  display: block;
   padding-inline: 0 0.75rem;
   white-space: nowrap;
 }
 
 .al-top :hover > .al-opens-out,
 .al-top :focus-visible > .al-opens-out {
-  grid-template-columns: 1fr;
+  clip-path: inset(0 0 0 0);
   opacity: 1;
   transition-delay: 150ms;
 }
 
 .al-top [aria-expanded="true"] > .al-opens-out {
-  grid-template-columns: 1fr;
+  clip-path: inset(0 0 0 0);
   opacity: 1;
   transition-delay: 0ms;
 }
@@ -304,12 +299,12 @@
   position: static;
   border: 0;
   background: none;
-  grid-template-columns: 1fr;
+  clip-path: none;
   opacity: 1;
   transition-delay: 0ms;
 }
 
-.al-top [data-labelled] > .al-opens-out > span > span {
+.al-top [data-labelled] > .al-opens-out > span {
   padding-inline: 0.375rem 0;
 }
 
@@ -806,7 +801,11 @@
   }
 
   .al-top .al-top-end .al-opens-out {
-    grid-template-columns: 0fr;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
     opacity: 0;
   }
 

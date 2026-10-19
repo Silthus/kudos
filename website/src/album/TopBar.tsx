@@ -160,9 +160,7 @@ function FeedbackButton() {
 function OpensOut({ children }: { children: ReactNode }) {
   return (
     <span className="al-opens-out">
-      <span>
-        <span>{children}</span>
-      </span>
+      <span>{children}</span>
     </span>
   );
 }

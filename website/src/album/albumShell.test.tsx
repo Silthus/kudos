@@ -193,7 +193,7 @@ describe("#695: a top bar label opens out calmly", () => {
   it("opens about 150 ms after the pointer or keyboard focus arrives, so a pointer passing across the bar opens nothing", () => {
     const opening = declarationsOf(".al-top :hover > .al-opens-out");
 
-    expect(opening["grid-template-columns"]).toBe("1fr");
+    expect(opening["clip-path"]).toBe("inset(0 0 0 0)");
     expect(opening["transition-delay"]).toBe("150ms");
     expect(declarationsOf(".al-top :focus-visible > .al-opens-out")).toEqual(opening);
   });
@@ -201,8 +201,8 @@ describe("#695: a top bar label opens out calmly", () => {
   it("closes as soon as they leave, sliding shut rather than snapping", () => {
     const resting = declarationsOf(".al-opens-out");
 
-    expect(resting["grid-template-columns"]).toBe("0fr");
-    expect(resting.transition).toMatch(/grid-template-columns \d+ms/);
+    expect(resting["clip-path"]).toBe("inset(0 100% 0 0)");
+    expect(resting.transition).toMatch(/clip-path \d+ms/);
     expect(resting["transition-delay"]).toBeUndefined();
   });
 
@@ -211,13 +211,14 @@ describe("#695: a top bar label opens out calmly", () => {
 
     expect(resting.position).toBe("absolute");
     expect(resting.left).toBe("100%");
+    expect(resting.width).toBe("max-content");
     expect(resting["pointer-events"]).toBe("none");
   });
 
   it("opens at once, with no delay, while its panel is open", () => {
     const expanded = declarationsOf(".al-top [aria-expanded=\"true\"] > .al-opens-out");
 
-    expect(expanded["grid-template-columns"]).toBe("1fr");
+    expect(expanded["clip-path"]).toBe("inset(0 0 0 0)");
     expect(expanded["transition-delay"]).toBe("0ms");
   });
 
@@ -225,15 +226,14 @@ describe("#695: a top bar label opens out calmly", () => {
     const labelled = declarationsOf(".al-top [data-labelled] > .al-opens-out");
 
     expect(labelled.position).toBe("static");
-    expect(labelled["grid-template-columns"]).toBe("1fr");
+    expect(labelled["clip-path"]).toBe("none");
     expect(labelled["transition-delay"]).toBe("0ms");
   });
 
-  it("stays closed on a phone, where the bar has no room for a label", () => {
+  it("stays closed on a phone, read only by screen readers, so the bar never outgrows the screen", () => {
     const phone = declarationsOf(".al-top .al-top-end .al-opens-out", cssFrom("@media (max-width: 63.999rem)"));
 
-    expect(phone["grid-template-columns"]).toBe("0fr");
-    expect(phone.opacity).toBe("0");
+    expect(phone).toMatchObject({ width: "1px", height: "1px", overflow: "hidden", "clip-path": "inset(50%)", opacity: "0" });
   });
 
   it("with reduced motion, keeps the delay but shows and hides the label without sliding", () => {
