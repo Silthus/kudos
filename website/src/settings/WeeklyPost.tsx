@@ -32,7 +32,7 @@ export function WeeklyPost({ setting, setWeeklyPost }: WeeklyPostProps) {
 function AnnouncementChannel({ link }: { link: string | null }) {
   if (link === null) return <>the announcement channel</>;
   return (
-    <a href={link} target="_blank" rel="noreferrer" className="font-medium text-foreground underline underline-offset-2">
+    <a href={link} target="_blank" rel="noreferrer" className="ph-no-capture font-medium text-foreground underline underline-offset-2">
       the announcement channel
     </a>
   );
