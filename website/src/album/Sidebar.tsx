@@ -118,7 +118,7 @@ function MyTeam({ team, current, onFollow }: { team: AlbumTeam; current: boolean
       <h2 id={heading} className="al-side-heading">
         Your team
       </h2>
-      <AppLink href={teamHref(team)} className="al-mine" aria-current={current ? "page" : undefined} data-state={team.state} onFollow={onFollow}>
+      <AppLink href={teamHref(team)} className="al-mine" aria-current={current ? "page" : undefined} data-state={team.state} data-slot={`team:${team.team}`} onFollow={onFollow}>
         <span className="al-mine-crest">
           <TeamCrest art={team.art} size={40} name={team.name} />
         </span>
@@ -143,7 +143,7 @@ function TeamList({ teams, place, onFollow }: { teams: AlbumTeam[]; place: Place
     <ul className="al-teams" aria-label="Teams">
       {teams.map((team) => (
         <li key={team.team}>
-          <AppLink href={teamHref(team)} className="al-team" aria-current={isCurrentTeam(place, team) ? "page" : undefined} data-state={team.state} onFollow={onFollow}>
+          <AppLink href={teamHref(team)} className="al-team" aria-current={isCurrentTeam(place, team) ? "page" : undefined} data-state={team.state} data-slot={`team:${team.team}`} onFollow={onFollow}>
             <span className="al-team-crest">
               <TeamCrest art={team.art} size={22} name={team.name} />
             </span>
@@ -196,7 +196,7 @@ function DeepPages({ album, place, onFollow }: { album: Album; place: Place; onF
   return (
     <ul className="al-pages" aria-label="More of your album">
       <li>
-        <AppLink href={hrefOf({ kind: "hoggies", hoggie: null })} className="al-page" aria-current={place.kind === "hoggies" ? "page" : undefined} onFollow={onFollow}>
+        <AppLink href={hrefOf({ kind: "hoggies", hoggie: null })} className="al-page" aria-current={place.kind === "hoggies" ? "page" : undefined} data-slot="hoggies" onFollow={onFollow}>
           <span className="al-page-icon" aria-hidden="true">
             <HedgehogSitting size={20} />
           </span>

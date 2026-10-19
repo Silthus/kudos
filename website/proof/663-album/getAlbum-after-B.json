@@ -1,0 +1,43 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "OB",
+      "kind": "initials"
+    },
+    "name": "Odile Brandt",
+    "person": "js7dahjd8xyhvx00ttchgzxkad8gk1zj"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [],
+  "people": [
+    {
+      "face": {
+        "initials": "TR",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Tamsin Reed",
+      "person": "js74xskbx503jxqcam2bhp9gq98gjx88"
+    },
+    {
+      "face": {
+        "initials": "CV",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Corin Vale",
+      "person": "js7cdpb1s3nn5ern3xsmqswht58gjed0"
+    }
+  ],
+  "teams": "57 company teams, none holding these people",
+  "tray": []
+}
