@@ -22,3 +22,13 @@ Ticket 3's rerun giver (`KUDOS_CAST=H` in `website/proof/647-album/`) holds a tr
 9. `putAllIn` placed the hoggie, then the sticker, `more: false` (`base-opened/putAllIn.json`). The tray is empty and the person is held (`base-opened/getAlbum-after.json`). The tally is still count 1, with its original first find: the base-counted hoggie is not counted again. One album sticker `from: "pack"` is recorded (`base-opened/stored-after.jsonl`).
 
 The reverse direction is an accepted failure: after a rollback, a thoughtful hoggie this branch opened would wait uncounted, since the base code has no put-in, and the base schema ignores the `trayDrops` table. Production stores no thoughtful drop and no tray item while `album` is off there.
+
+## Rerun on the reviewed head
+
+After qa-swarm's two rounds changed how a put-in finds a hoggie (the next drop sequence number, the crest decided at the put-in on the tray drop, the waiting crates read once, no crests exposure), `album/4` at `e778faee` was deployed to the sandbox at 02:05 UTC on 2026-10-19 and run again with a fresh cast (`KUDOS_CAST=B`, `head-drive-output.txt`):
+
+10. `getAlbum` before: two waiting packs for one person (`head/getAlbum-before.json`). The opens drew `trenchcoat` with the sticker, then `panic` alone (`head/open-*.json`).
+11. Before the put-in: no tally, two waiting tray drops, and two drop records with `n` 1 and 2 (`head/stored-before-put-in.jsonl`).
+12. `putAllIn`: the two hoggies, then the sticker, `more: false`; again: `{ items: [], more: false }` (`head/putAllIn.json`, `head/putAllIn-again.json`). `getAlbum` after: the tray empty, the person held (`head/getAlbum-after.json`).
+13. After: each hoggie's tally counts 1, found at the put-in instant under the next sequence numbers 3 and 4; both tray drops carry `putInAt` and the crest the put-in decided (`null`); the drop records are byte for byte as before; one album sticker `from: "pack"` (`head/stored-after-put-in.jsonl`).
+14. PostHog: one `album sticker collected` at the put-in instant with only `environment`, `taxonomy_version` and `workspace_key` (`head/posthog-events.txt`).

@@ -1,0 +1,6 @@
+PostHog project 662840, execute-sql at 2026-10-19 ~02:08 UTC, this cast's events:
+
+album sticker collected | 2026-10-19T02:06:49.362Z | own properties: environment, taxonomy_version, workspace_key
+hoggie dropped          | 2026-10-19T02:06:45.501Z | crate_kind thoughtful, surface website
+hoggie dropped          | 2026-10-19T02:06:44.612Z | crate_kind thoughtful, surface website
+(two older rows at 02:02 from another lane's proof omitted)

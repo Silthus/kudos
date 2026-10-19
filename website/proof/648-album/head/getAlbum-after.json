@@ -1,0 +1,33 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "PH",
+      "kind": "initials"
+    },
+    "name": "Perpetua Hollin B",
+    "person": "js7crapvhnamsda3zz0tp5563h8gjxqw"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [],
+  "people": [
+    {
+      "face": {
+        "initials": "WC",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Wrenna Calloway",
+      "person": "js7dd8qhe7hne79wn1jr7dhtt18gkyy8"
+    }
+  ],
+  "tray": []
+}

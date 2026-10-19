@@ -1,0 +1,33 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 20
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7n0kseen6ef82w6vp50p5r2n8gjhje",
+      "kind": "sticker",
+      "person": "js7dd8qhe7hne79wn1jr7dhtt18gkyy8"
+    },
+    {
+      "hoggie": "trenchcoat",
+      "isNew": true,
+      "item": "jn7ns5aysqq2ggh2jmbqw7b0sh8gjhy4",
+      "kind": "hoggie",
+      "rarity": "common"
+    }
+  ],
+  "kind": "opened"
+}
