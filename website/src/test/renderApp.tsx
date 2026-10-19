@@ -43,7 +43,7 @@ const noAlbum: AlbumRead = (asking) => (asking ? { kind: "off" } : undefined);
 
 const noBoards: BoardsRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest" | "openThoughtfulPack">>;
+type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest" | "openThoughtfulPack" | "putIn" | "putAllIn">>;
 
 const noReads: AppReads = { useLeaderboard: noBoard, useQuests: noQuests, useBook: noBook, useCollection: noCollection, useSkillTree: noSkillTree, useProfileCard: noProfileCard, useRecentKudos: noRecentKudos, useActivityWatch: noActivity.watch, readActivity: noActivity.read, drawSpotlight: noSpotlight, useSettings: noSettings, useAlbum: noAlbum, useThoughtfulBoards: noBoards };
 
@@ -71,6 +71,8 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands)
     setAvatar: vi.fn(commands.setAvatar ?? (async () => ({ kind: "refused" }) as const)),
     swapQuest: vi.fn(commands.swapQuest ?? (async () => ({ kind: "refused" }) as const)),
     openThoughtfulPack: vi.fn(commands.openThoughtfulPack ?? (async () => ({ kind: "refused" }) as const)),
+    putIn: vi.fn(commands.putIn ?? (async () => ({ kind: "refused" }) as const)),
+    putAllIn: vi.fn(commands.putAllIn ?? (async () => ({ kind: "refused" }) as const)),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (

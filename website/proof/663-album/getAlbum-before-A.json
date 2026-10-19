@@ -1,0 +1,35 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 20
+  },
+  "me": {
+    "face": {
+      "initials": "OB",
+      "kind": "initials"
+    },
+    "name": "Odile Brandt",
+    "person": "js7bg1ae7w1778jekjx49jpp718gjqt2"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1792380044507,
+      "pack": "hn7p2y1vydv6zwwn33dmv2j9zh8gkeet",
+      "person": "js781q5r9zg1gnm7r19dgv8gtd8gkc17"
+    },
+    {
+      "earnedAt": 1792380044507,
+      "pack": "hn7kkp8y761z1nar89pcc72yed8gk847",
+      "person": "js761p3g12w0t6nhv7pv7k5kj58gj1zh"
+    }
+  ],
+  "people": [],
+  "teams": "57 company teams, none holding these people",
+  "tray": []
+}

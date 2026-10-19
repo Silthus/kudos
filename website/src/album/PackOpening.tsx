@@ -38,7 +38,7 @@ type Reveal = { contents: PackContents; beat: Beat };
 
 type Problem = "refused" | "unreachable";
 
-type After = { kind: "close" } | { kind: "next"; pack: WaitingPack };
+type After = { kind: "close" } | { kind: "put-all-in" } | { kind: "next"; pack: WaitingPack };
 
 type PackOpeningProps = {
   album: Album;
@@ -47,9 +47,10 @@ type PackOpeningProps = {
   onHold: (held: Partial<Held>) => void;
   onOpened: (pack: string) => void;
   onClose: () => void;
+  onPutAllIn: () => void;
 };
 
-export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onOpened, onClose }: PackOpeningProps) {
+export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onOpened, onClose, onPutAllIn }: PackOpeningProps) {
   const [reduced] = useState(prefersReducedMotion);
   const [active, setActive] = useState<WaitingPack | null>(() => album.packs[0] ?? null);
   const [opened, setOpened] = useState<string[]>([]);
@@ -108,6 +109,7 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onO
     const land = () => {
       onHold({ tray: null });
       if (after.kind === "close") return onClose();
+      if (after.kind === "put-all-in") return onPutAllIn();
       setActive(after.pack);
       setReveal(null);
       setProblem(null);
@@ -143,7 +145,7 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onO
         ) : reveal === null ? (
           <SealedPack album={album} pack={active} sending={sending} problem={problem} onRip={() => void rip()} />
         ) : (
-          <Turns reveal={reveal} reduced={reduced} flying={flying} waitingAfter={waiting.length} onTurn={turn} onSkip={skip} onFinish={(next) => finish(next && waiting[0] !== undefined ? { kind: "next", pack: waiting[0] } : { kind: "close" })} />
+          <Turns reveal={reveal} reduced={reduced} flying={flying} waitingAfter={waiting.length} onTurn={turn} onSkip={skip} onFinish={(next) => finish(next && waiting[0] !== undefined ? { kind: "next", pack: waiting[0] } : { kind: "close" })} onPutAllIn={() => finish({ kind: "put-all-in" })} />
         )}
       </div>
       {waiting.length > 0 && <UpNext album={album} waiting={waiting} disabled={busy || (reveal !== null && !ended)} onPick={(pack) => finish({ kind: "next", pack })} />}
@@ -247,9 +249,9 @@ function SealedPack({ album, pack, sending, problem, onRip }: SealedPackProps) {
   );
 }
 
-type TurnsProps = { reveal: Reveal; reduced: boolean; flying: boolean; waitingAfter: number; onTurn: () => void; onSkip: () => void; onFinish: (next: boolean) => void };
+type TurnsProps = { reveal: Reveal; reduced: boolean; flying: boolean; waitingAfter: number; onTurn: () => void; onSkip: () => void; onFinish: (next: boolean) => void; onPutAllIn: () => void };
 
-function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTurn, onSkip, onFinish }: TurnsProps) {
+function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTurn, onSkip, onFinish, onPutAllIn }: TurnsProps) {
   const celebrating = !reduced;
   const ended = beat === lastBeatOf(contents);
   const personUp = hasTurned(contents, beat, "person");
@@ -287,7 +289,7 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
       </div>
       <div className="al-turn-caption" key={beat}>
         <Caption contents={contents} beat={beat} />
-        {ended ? <EndActions waitingAfter={waitingAfter} disabled={flying} onFinish={onFinish} /> : <TurnActions contents={contents} beat={beat} onTurn={onTurn} onSkip={onSkip} />}
+        {ended ? <EndActions waitingAfter={waitingAfter} disabled={flying} onFinish={onFinish} onPutAllIn={onPutAllIn} /> : <TurnActions contents={contents} beat={beat} onTurn={onTurn} onSkip={onSkip} />}
       </div>
     </div>
   );
@@ -382,12 +384,15 @@ function turnWordsOf(contents: PackContents, beat: Beat) {
   return "Next card";
 }
 
-function EndActions({ waitingAfter, disabled, onFinish }: { waitingAfter: number; disabled: boolean; onFinish: (next: boolean) => void }) {
+function EndActions({ waitingAfter, disabled, onFinish, onPutAllIn }: { waitingAfter: number; disabled: boolean; onFinish: (next: boolean) => void; onPutAllIn: () => void }) {
   if (waitingAfter === 0)
     return (
       <div className="al-opening-actions">
         <button type="button" className="al-opening-button" data-primary="" onClick={() => onFinish(false)} disabled={disabled} autoFocus>
           Done
+        </button>
+        <button type="button" className="al-opening-button" onClick={onPutAllIn} disabled={disabled}>
+          Put them all in
         </button>
       </div>
     );
