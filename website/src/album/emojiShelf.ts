@@ -42,6 +42,36 @@ function nearestFirst(first: AlbumEmoji, second: AlbumEmoji) {
   return shareOf(second) - shareOf(first) || levelOf(first) - levelOf(second) || first.name.localeCompare(second.name);
 }
 
+export const milestonesShown = 2;
+
+export type MilestoneGroup = { milestone: string; name: string; emojis: AlbumEmoji[] };
+
+export function milestoneGroupsOf(emojis: AlbumEmoji[]): MilestoneGroup[] {
+  const groups = new Map<string, MilestoneGroup>();
+  for (const emoji of emojis) {
+    const [milestone = ""] = causeOf(emoji.id).split(":");
+    const group = groups.get(milestone) ?? { milestone, name: milestoneOf(emoji), emojis: [] };
+    group.emojis.push(emoji);
+    groups.set(milestone, group);
+  }
+  return [...groups.values()].toSorted((first, second) => catalogueRankOf(first.milestone) - catalogueRankOf(second.milestone)).map((group) => ({ ...group, emojis: group.emojis.toSorted((first, second) => tierRankOf(first) - tierRankOf(second)) }));
+}
+
+function catalogueRankOf(milestone: string) {
+  const rank = milestoneCatalogue.milestones.findIndex(({ id }) => id === milestone);
+  return rank === -1 ? milestoneCatalogue.milestones.length : rank;
+}
+
+function tierRankOf({ id }: Pick<AlbumEmoji, "id">) {
+  const tier = causeOf(id).split(":")[1] ?? "gold";
+  return isTier(tier) ? metalOrder.indexOf(tier) : metalOrder.length;
+}
+
+export function tierWords(emoji: AlbumEmoji): string {
+  if (emoji.earned) return emoji.earnedAt === null ? tierOf(emoji) : `${tierOf(emoji)} · ${dateOf(emoji.earnedAt)}`;
+  return `${tierOf(emoji)} · ${emoji.progress?.have ?? 0} of ${emoji.progress?.need ?? 0}`;
+}
+
 export function shareOf({ progress }: AlbumEmoji) {
   return progress === null || progress.need <= 0 ? 0 : Math.min(1, progress.have / progress.need);
 }
