@@ -124,7 +124,7 @@ const albumOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () 
 ];
 
 describe("AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it", { timeout: 180_000 }, () => {
-  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies, emoji names and the pair and week tallies it stores and the packs earned events it sends, and getAlbum, getAlbumHoggies and getThoughtfulBoards answer off", async ({ flag, turnOff }) => {
+  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies, emoji names and the pair and week tallies it stores and the packs earned events it sends, and getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson and getAlbumWeek answer off", async ({ flag, turnOff }) => {
     theAlbum.removed = true;
     const withoutTheAlbum = await walkIn(await fourMembers(flag, turnOff), { opening: true });
     freshFakes();
@@ -150,6 +150,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     ]);
     expect(Object.values(walk.albums).every((answer) => !(answer as object).hasOwnProperty("packs"))).toBe(true);
     expect(Object.values(walk.albums)).toEqual(Object.values(withoutTheAlbum.albums));
+    expect(Object.values(walk.pages).flatMap((page) => Object.values(page as Record<string, { kind: string }>).map(({ kind }) => kind))).not.toEqual(expect.arrayContaining([expect.stringMatching(/^(person|no-person|week)$/)]));
+    expect(Object.values(walk.pages)).toEqual(Object.values(withoutTheAlbum.pages));
     expect(walk.opened).toEqual(withoutTheAlbum.opened);
     expect(walk.opened).not.toHaveProperty("items");
     expect(walk.placed).toEqual(withoutTheAlbum.placed);
@@ -171,6 +173,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(on.albums.U_ALICE).toMatchObject({ kind: "album", me: { name: alice.name }, packs: [{ person: "<member U_BOB>" }, { person: "<member U_CAROL>" }], morePacks: false });
     expect(on.albums.U_BOB).toMatchObject({ kind: "album", packs: [{ person: "<member U_ALICE>" }] });
     expect(on.albums.U_CAROL).toMatchObject({ kind: "album", packs: [] });
+    expect(on.pages.U_ALICE).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, kudosReceived: 1 }, week: { kind: "week", issue: { kudosGiven: 2, kudosReceived: 1 } } });
+    expect(on.pages.U_CAROL).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, best: null }, week: { kind: "week", issue: { kudosGiven: 1, kudosReceived: 1 } } });
     expect(Object.values(on.hoggies)).toEqual(members.map(() => expect.objectContaining({ kind: "hoggies", total: catalogue.hoggies.length })));
     expect(on.boards.U_CAROL).toMatchObject({ kind: "boards", people: [{ name: alice.name, thoughtful: 2, rank: 1 }, { name: bob.name, thoughtful: 1, rank: 2 }], teams: [{ team: "lanterns", thoughtful: 3, rank: 1 }] });
     expect(albumExposures(on)).toEqual([]);
@@ -183,6 +187,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
 
     expect(onForAlice.albums.U_ALICE).toMatchObject({ kind: "album", packs: [{ person: "<member U_BOB>" }, { person: "<member U_CAROL>" }] });
     expect([onForAlice.albums.U_BOB, onForAlice.albums.U_CAROL, onForAlice.albums.U_DANA]).toEqual([{ kind: "off" }, { kind: "off" }, { kind: "off" }]);
+    expect(onForAlice.pages.U_ALICE).toMatchObject({ person: { kind: "person" }, week: { kind: "week" } });
+    expect([onForAlice.pages.U_BOB, onForAlice.pages.U_CAROL, onForAlice.pages.U_DANA]).toEqual(Array.from({ length: 3 }, () => ({ person: { kind: "off" }, week: { kind: "off" } })));
     expect(onForAlice.seen.answers.U_ALICE!.profile).toMatchObject({ album: true });
     expect([onForAlice.seen.answers.U_BOB!.profile, onForAlice.seen.answers.U_CAROL!.profile, onForAlice.seen.answers.U_DANA!.profile].map((profile) => "album" in (profile as object))).toEqual([false, false, false]);
     expect(albumExposures(onForAlice)).toEqual([]);
@@ -250,11 +256,13 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   const albums: Record<string, unknown> = {};
   const boards: Record<string, unknown> = {};
+  const pages: Record<string, unknown> = {};
   const hoggies: Record<string, unknown> = {};
   for (const member of members) {
     answers[member.user] = await onTheWebsite(member);
     albums[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getAlbum, {}));
     boards[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getThoughtfulBoards, {}));
+    pages[member.user] = await personAndWeekPagesOf(member);
     hoggies[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getAlbumHoggies, {}));
   }
   const seen = {
@@ -265,7 +273,13 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
     productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isPacksEarned(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheAlbum(),
   };
-  return { seen, albums, boards, hoggies, opened, placed, albumRows: await albumRows(), postHogEvents: postHog.events() };
+  return { seen, albums, boards, hoggies, pages, opened, placed, albumRows: await albumRows(), postHogEvents: postHog.events() };
+}
+
+async function personAndWeekPagesOf(member: Person) {
+  const asMember = await signedIn(member);
+  const person = await memberOf((member === bob ? alice : bob).user);
+  return withStableIds({ person: await asMember.query(api.website.album.getAlbumPerson, { person }), week: await asMember.query(api.website.album.getAlbumWeek, {}) });
 }
 
 async function alicePutsHerTrayIn() {

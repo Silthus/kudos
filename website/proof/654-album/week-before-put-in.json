@@ -1,0 +1,144 @@
+{
+  "issue": {
+    "days": [
+      5,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "hoggies": {
+      "hoggies": [],
+      "more": 0
+    },
+    "hugged": {
+      "more": 0,
+      "people": [
+        {
+          "face": {
+            "initials": "JV",
+            "kind": "initials"
+          },
+          "name": "Juniper Vale",
+          "person": "js79zdca22vdg9a7dqjfx6593d8gkmcj"
+        }
+      ]
+    },
+    "huggedBy": {
+      "more": 0,
+      "people": [
+        {
+          "face": {
+            "initials": "BS",
+            "kind": "initials"
+          },
+          "name": "Bram Seton",
+          "person": "js760760yxtvxdpwmedzj4dj758gjtc5"
+        }
+      ]
+    },
+    "hugsGiven": 1,
+    "hugsReceived": 1,
+    "kudosGiven": 2,
+    "kudosOfWeek": {
+      "at": 1792378957232,
+      "giver": {
+        "face": {
+          "initials": "MT",
+          "kind": "initials"
+        },
+        "name": "Marlowe Tansy",
+        "person": "js78rkrwqwwjsv10kvpvk4qy858gjyhz"
+      },
+      "hugs": 1,
+      "message": {
+        "edited": false,
+        "kind": "text",
+        "segments": [
+          {
+            "kind": "person",
+            "name": "Juniper Vale"
+          },
+          {
+            "kind": "text",
+            "text": " "
+          },
+          {
+            "kind": "emoji",
+            "name": "hedgehog",
+            "unicode": "🦔"
+          },
+          {
+            "kind": "text",
+            "text": " for pairing on the cranky search reindex"
+          }
+        ]
+      },
+      "permalink": "https://posthogtestgroup.slack.com/archives/C0C9N9A4SE4/p1792378957232000"
+    },
+    "kudosReceived": 1,
+    "newFaces": {
+      "more": 0,
+      "people": []
+    },
+    "packsOpened": 0,
+    "thanked": {
+      "more": 0,
+      "people": [
+        {
+          "face": {
+            "initials": "JV",
+            "kind": "initials"
+          },
+          "name": "Juniper Vale",
+          "person": "js79zdca22vdg9a7dqjfx6593d8gkmcj"
+        }
+      ]
+    },
+    "thankedBy": {
+      "more": 0,
+      "people": [
+        {
+          "face": {
+            "initials": "OB",
+            "kind": "initials"
+          },
+          "name": "Ottilie Brack",
+          "person": "js79qm0pdcr13a9c0k1bap09s98gksqf"
+        }
+      ]
+    },
+    "thoughtfulGiven": 1,
+    "thoughtfulReceived": 1
+  },
+  "kind": "week",
+  "week": "2026-10-19",
+  "weeks": [
+    {
+      "days": [
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "week": "2026-10-19"
+    },
+    {
+      "days": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "week": "2026-10-12"
+    }
+  ]
+}
