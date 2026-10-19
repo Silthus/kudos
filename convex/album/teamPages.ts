@@ -52,9 +52,9 @@ async function teamStickersOf(ctx: QueryCtx, member: MemberId): Promise<Map<stri
   return new Map(stickers.map(({ team, name, art, emoji, at }) => [team, { team, name, art, emoji, at }]));
 }
 
-export function teamProgressWith({ pages, held }: TeamPagesAndPeople, person: MemberId): TeamProgress[] {
-  const arriving = held.has(person) ? 0 : 1;
-  return pages.filter(({ people }) => people.includes(person)).map(({ name, held: counted, total }) => ({ name, held: counted + arriving, total }));
+export function teamProgressWith({ pages, held }: TeamPagesAndPeople, person: MemberId, arriving: ReadonlySet<MemberId>): TeamProgress[] {
+  const isArriving = (someone: MemberId) => arriving.has(someone) && !held.has(someone);
+  return pages.filter(({ people }) => people.includes(person)).map(({ name, people, held: counted, total }) => ({ name, held: counted + people.filter(isArriving).length, total }));
 }
 
 export function isComplete({ held, total }: Pick<TeamPage, "held" | "total">) {

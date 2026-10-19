@@ -6,6 +6,8 @@ import type { AlbumReply, AlbumReplyButton, AlbumReplyRecipient } from "../feedb
 import { mrkdwn, urlButtonOf } from "./blocks";
 import { attemptArgs, attemptCall, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
 
+const rateLimitErrors = new Set(["ratelimited", "rate_limited"]);
+
 export const deliverAlbumReply = observedAction({
   args: { event: thoughtfulPacksGrantedEventValidator, ...attemptArgs },
   handler: async (ctx, { event, attempt = 1 }) => {
@@ -26,15 +28,19 @@ async function sendAlbumReply(ctx: ActionCtx, event: ThoughtfulPacksGrantedEvent
 
 async function postAlbumReply(ctx: ActionCtx, reply: AlbumReply): Promise<Attempt> {
   const result = await attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(reply));
-  return isRefusedForItsBlocks(result) ? attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(withoutPictures(reply))) : result;
+  return isRefusedForItsBlocks(result) && hasPictures(reply) ? attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(withoutPictures(reply))) : result;
 }
 
 function isRateLimited(result: Attempt): result is Extract<Attempt, { kind: "held" | "failed" }> {
-  return result.kind === "held" || (result.kind === "failed" && result.retryAt !== undefined);
+  return result.kind === "held" || (result.kind === "failed" && (result.retryAt !== undefined || rateLimitErrors.has(result.error ?? "")));
 }
 
 function isRefusedForItsBlocks(result: Attempt) {
   return result.kind === "failed" && result.error === "invalid_blocks";
+}
+
+function hasPictures({ recipients }: AlbumReply) {
+  return recipients.some(({ hype }) => hype?.picture);
 }
 
 function withoutPictures(reply: AlbumReply): AlbumReply {

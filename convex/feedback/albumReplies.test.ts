@@ -63,13 +63,15 @@ let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
 let weeksLater = 0;
-const albumPostAnswers: Array<"lands without an answer" | "rate limited" | "lands with an internal error" | "refuses its pictures"> = [];
+const albumPostAnswers: Array<"lands without an answer" | "rate limited" | "refused as rate_limited" | "lands with an internal error" | "refuses its pictures"> = [];
+const albumPostsWithPictures: boolean[] = [];
 
 beforeEach(() => {
   theBus.holdingGrants = false;
   theBus.heldGrants = [];
   theBus.withoutTheReply = false;
   albumPostAnswers.length = 0;
+  albumPostsWithPictures.length = 0;
   for (const level of ["log", "info", "warn", "error", "debug"] as const) vi.spyOn(console, level).mockImplementation(() => {});
 });
 
@@ -192,13 +194,32 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     expect(threadRepliesTo(limited), "the post Slack rate-limited once").toHaveLength(1);
   });
 
+  test("two new people who complete a team page together are each told it is complete", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+
+    const ts = await thanks(alice, why, bob, dana);
+
+    expect(sectionsOf(threadRepliesTo(ts))).toEqual(["*Bob is new in your album*\nLanterns 1/2\nOtters 2/2: page complete!", "*Dana is new in your album*\nOtters 2/2: page complete!"]);
+  });
+
+  test("a post Slack refuses as rate_limited, without an HTTP 429, is posted once it may", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    albumPostAnswers.push("refused as rate_limited");
+
+    const ts = await thanks(alice, why, bob);
+
+    expect(threadRepliesTo(ts)).toHaveLength(1);
+  });
+
   test("Slack answering internal_error after the post landed is not posted again either, and a post Slack refuses for its pictures is sent once more without them", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     albumPostAnswers.push("lands with an internal error");
     const ambiguous = await thanks(alice, why, bob);
     albumPostAnswers.push("refuses its pictures");
+    albumPostsWithPictures.length = 0;
     const refused = await thanks(carol, why, dana);
 
+    expect(albumPostsWithPictures, "the refused post carried a picture and the one sent again carried none").toEqual([true, false]);
     expect(threadRepliesTo(ambiguous), "the post answered internal_error").toHaveLength(1);
     expect(sectionsOf(threadRepliesTo(refused))).toEqual(["*Dana is new in your album*\nOtters 1/2"]);
     expect(contextsOf(threadRepliesTo(refused))).toEqual([[{ type: "mrkdwn", text: "Dana's hype emoji is unlocked" }], [{ type: "mrkdwn", text: "+10 XP" }]]);
@@ -222,7 +243,7 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
 
     const again = await thanks(alice, "Thanks again for staffing the help desk", ...crowd);
 
-    expect(sectionsOf(threadRepliesTo(again))).toEqual(Array.from({ length: 10 }, (_, index) => `*Kudos counted.*\nYour next pack for Guest comes next week.`));
+    expect(sectionsOf(threadRepliesTo(again))).toEqual(Array<string>(10).fill("*Kudos counted.*\nYour next pack for Guest comes next week."));
     expect(buttonsOf(threadRepliesTo(again)).map(({ text }) => text)).toEqual(["Open your pack"]);
   });
 
@@ -337,10 +358,11 @@ async function fourMembers(flags: FlagDefinition[], more: Person[] = [], albumFl
 
 async function chatAnswering(input: string | URL | Request, init?: RequestInit) {
   const isAnAlbumPost = String(input instanceof Request ? input.url : input).endsWith("/chat.postMessage") && String(init?.body ?? "").includes("album-");
+  if (isAnAlbumPost) albumPostsWithPictures.push(String(init?.body).includes('"type":"image"'));
   const answer = isAnAlbumPost ? albumPostAnswers.shift() : undefined;
   if (answer === "rate limited") return rateLimitedFor(60)(() => new Response());
-  if (answer === "refuses its pictures" && String(init?.body).includes('"type":"image"')) return slackError("invalid_blocks")(() => new Response());
-  if (answer === "refuses its pictures") return slack.fetch(input, init);
+  if (answer === "refused as rate_limited") return slackError("rate_limited")(() => new Response());
+  if (answer === "refuses its pictures") return slackError("invalid_blocks")(() => new Response());
   const answered = await slack.fetch(input, init);
   if (answer === "lands with an internal error") return slackError("internal_error")(() => answered);
   return answer === "lands without an answer" ? timesOut(() => answered) : answered;

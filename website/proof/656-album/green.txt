@@ -1,1 +1,1 @@
-      Tests  20 passed (20)
+      Tests  22 passed (22)

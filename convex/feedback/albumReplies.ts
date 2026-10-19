@@ -21,7 +21,7 @@ export type AlbumReplyPicture = { url: string; label: string };
 
 export type AlbumReplyRecipient = { headline: string; lines: string[]; hype: { picture: AlbumReplyPicture | null; line: string } | null };
 
-export type AlbumReplyButton = { label: string; url: string; id: string };
+export type AlbumReplyButton = { label: string; url: string; id: "album-open-packs" | `album-see-person:${MemberId}` };
 
 export type AlbumReply = { workspace: string; destination: AlbumReplyDestination; recipients: AlbumReplyRecipient[]; more: number; buttons: AlbumReplyButton[]; gains: Line | null };
 
@@ -46,7 +46,7 @@ export const albumReply = internalQuery({
     if (destination === null) return null;
     const origin = await websiteOrigin(ctx, event.workspace);
     const named = event.outcomes.slice(0, mostRecipientsNamed);
-    const album = named.some(({ outcome }) => outcome === "new") ? await teamPagesAndPeopleOf(ctx, { workspace: event.workspace, member: event.giver }) : null;
+    const album = await newcomersOf(ctx, event);
     const recipients: AlbumReplyRecipient[] = [];
     for (const outcome of named) recipients.push(await recipientOf(ctx, event, outcome, album, origin));
     return {
@@ -67,9 +67,16 @@ async function destinationOf(ctx: QueryCtx, { giver, message }: ThoughtfulPacksG
   return { kind: "thread", conversation: message.conversation, threadTs: threadRoot ?? message.message };
 }
 
-async function recipientOf(ctx: QueryCtx, event: ThoughtfulPacksGrantedEvent, { recipient, outcome }: Outcome, album: TeamPagesAndPeople | null, origin: string | null): Promise<AlbumReplyRecipient> {
+type Newcomers = { pages: TeamPagesAndPeople; arriving: Set<MemberId> };
+
+async function newcomersOf(ctx: QueryCtx, { workspace, giver, outcomes }: ThoughtfulPacksGrantedEvent): Promise<Newcomers | null> {
+  const arriving = new Set(outcomes.filter(({ outcome }) => outcome === "new").map(({ recipient }) => recipient));
+  return arriving.size === 0 ? null : { pages: await teamPagesAndPeopleOf(ctx, { workspace, member: giver }), arriving };
+}
+
+async function recipientOf(ctx: QueryCtx, event: ThoughtfulPacksGrantedEvent, { recipient, outcome }: Outcome, newcomers: Newcomers | null, origin: string | null): Promise<AlbumReplyRecipient> {
   const first = await firstNameOf(ctx, recipient);
-  const { headline, lines } = outcome === "new" ? { headline: `${first} is new in your album`, lines: album === null ? [] : teamLinesOf(teamProgressWith(album, recipient)) } : wordsOf(outcome, first);
+  const { headline, lines } = outcome === "new" ? { headline: `${first} is new in your album`, lines: newcomers === null ? [] : teamLinesOf(teamProgressWith(newcomers.pages, recipient, newcomers.arriving)) } : wordsOf(outcome, first);
   return { headline, lines, hype: await unlockedHypeOf(ctx, event, recipient, outcome, first, origin) };
 }
 
