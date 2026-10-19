@@ -1,0 +1,36 @@
+{
+  "step": "week",
+  "eventsSent": 11,
+  "mostHugged": {
+    "channel": "C0C9N9A4SE4",
+    "ts": "1791968400.000001",
+    "author": {
+      "id": "U0PRF657INSA",
+      "name": "Ines Varga"
+    }
+  },
+  "twoRecipients": {
+    "channel": "C0C9N9A4SE4",
+    "ts": "1791969000.000002",
+    "author": {
+      "id": "U0PRF657THOA",
+      "name": "Theo Brandt"
+    }
+  },
+  "inPrivate": {
+    "channel": "G0PRF657PRVA",
+    "ts": "1791969600.000003",
+    "author": {
+      "id": "U0PRF657MRAA",
+      "name": "Mira Solberg"
+    }
+  },
+  "short": {
+    "channel": "C0C9N9A4SE4",
+    "ts": "1791970200.000004",
+    "author": {
+      "id": "U0PRF657INSA",
+      "name": "Ines Varga"
+    }
+  }
+}
