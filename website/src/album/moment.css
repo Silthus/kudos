@@ -16,6 +16,10 @@
   outline: none;
 }
 
+.dark .al-unlock-moment {
+  --al-moment-scrim: color-mix(in oklab, #000000 80%, transparent);
+}
+
 .al-unlock-dim {
   position: absolute;
   inset: 0;

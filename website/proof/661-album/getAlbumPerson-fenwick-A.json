@@ -1,0 +1,69 @@
+{
+  "best": {
+    "at": 1792388278817,
+    "message": {
+      "edited": false,
+      "kind": "text",
+      "segments": [
+        {
+          "kind": "person",
+          "name": "Fenwick AshdownA"
+        },
+        {
+          "kind": "text",
+          "text": " "
+        },
+        {
+          "kind": "person",
+          "name": "Marigold BrightwaterA"
+        },
+        {
+          "kind": "text",
+          "text": " "
+        },
+        {
+          "kind": "person",
+          "name": "Caspian HollowayA"
+        },
+        {
+          "kind": "text",
+          "text": " "
+        },
+        {
+          "kind": "emoji",
+          "name": "hedgehog",
+          "unicode": "🦔"
+        },
+        {
+          "kind": "text",
+          "text": " for carrying the lantern rota through the whole winter outage, nobody else could have kept every shift covered and calm"
+        }
+      ]
+    },
+    "permalink": "https://posthogtestgroup.slack.com/archives/C0C9N9A4SE4/p1792388278817000"
+  },
+  "face": {
+    "initials": "FA",
+    "kind": "initials"
+  },
+  "firstThankedAt": 1792388278817,
+  "held": true,
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "hype": {
+    "earned": true,
+    "name": "fenwick-ashdowna-hype"
+  },
+  "kind": "person",
+  "kudosGiven": 1,
+  "kudosReceived": 1,
+  "name": "Fenwick AshdownA",
+  "person": "js747fad1s49v3mftrm4465afh8gj69e",
+  "teams": [
+    {
+      "art": null,
+      "name": "Lamplighters A",
+      "team": "proof-661-lamplightersa"
+    }
+  ]
+}

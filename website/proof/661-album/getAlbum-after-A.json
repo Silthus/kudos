@@ -1,0 +1,107 @@
+{
+ "kind": "album",
+ "me": "Rosalind ThackerayA",
+ "teams": [
+  {
+   "art": null,
+   "held": 3,
+   "mine": true,
+   "name": "Lamplighters A",
+   "people": [
+    "js747fad1s49v3mftrm4465afh8gj69e",
+    "js75nm89t8e9ngj6n60g25md0d8gkmz4",
+    "js7c3r7j9nj8rs1543nemb984x8gj1vv"
+   ],
+   "state": "unlocked",
+   "team": "proof-661-lamplightersa",
+   "total": 3,
+   "unlockedAt": 1792388733173,
+   "unmatched": []
+  },
+  {
+   "art": null,
+   "held": 0,
+   "mine": false,
+   "name": "Lamplighters B",
+   "people": [
+    "js70crb33pdqj49gs98mtzbwyx8gkmp3",
+    "js71a2cqks2pyyaxtgswr3wdax8gkren",
+    "js70cewv7xxak36hj7gxhww7jh8gjc89",
+    "js79vnq3jadw37p4maejmxs2e18gjnnm"
+   ],
+   "state": "progress",
+   "team": "proof-661-lamplightersb",
+   "total": 4,
+   "unlockedAt": null,
+   "unmatched": []
+  }
+ ],
+ "peopleOnTheseTeams": [
+  {
+   "face": {
+    "initials": "FA",
+    "kind": "initials"
+   },
+   "held": true,
+   "name": "Fenwick AshdownA",
+   "person": "js747fad1s49v3mftrm4465afh8gj69e"
+  },
+  {
+   "face": {
+    "initials": "MB",
+    "kind": "initials"
+   },
+   "held": true,
+   "name": "Marigold BrightwaterA",
+   "person": "js75nm89t8e9ngj6n60g25md0d8gkmz4"
+  },
+  {
+   "face": {
+    "initials": "CH",
+    "kind": "initials"
+   },
+   "held": true,
+   "name": "Caspian HollowayA",
+   "person": "js7c3r7j9nj8rs1543nemb984x8gj1vv"
+  },
+  {
+   "face": {
+    "initials": "RT",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Rosalind ThackerayB",
+   "person": "js70crb33pdqj49gs98mtzbwyx8gkmp3"
+  },
+  {
+   "face": {
+    "initials": "FA",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Fenwick AshdownB",
+   "person": "js71a2cqks2pyyaxtgswr3wdax8gkren"
+  },
+  {
+   "face": {
+    "initials": "MB",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Marigold BrightwaterB",
+   "person": "js70cewv7xxak36hj7gxhww7jh8gjc89"
+  },
+  {
+   "face": {
+    "initials": "CH",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Caspian HollowayB",
+   "person": "js79vnq3jadw37p4maejmxs2e18gjnnm"
+  }
+ ],
+ "packs": [],
+ "tray": [],
+ "otherTeams": 57
+}
