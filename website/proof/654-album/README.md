@@ -28,3 +28,9 @@ The reverse direction is an accepted failure: a week tally this branch wrote wit
 Read-only from production's Convex data on 2026-10-19: production holds no pair or week tally yet, so every member's person page reads an empty history and every week no issue until a kudos, a hug or the history writes one. Rows written there before this deploy carry none of the new fields and read as none.
 
 The reverse direction, captured (`base-written/main-dry-run-refuses-head-row.txt`): a `convex deploy --dry-run` of `main` at `7dcb093d` to the sandbox, after this branch's put-in wrote Marlowe's week, fails with `Schema validation failed … Object contains extra field hoggiesFound`. That is the accepted failure: until this branch merges, a sandbox deploy needs it merged in. Production can't reach it while `album` is off. The automated check of base-shaped rows is the tabs test in `albumPersonWeek.test.ts`: it reads weeks the subscribers wrote without the new fields, and they read as none.
+
+## Rerun on the reviewed head
+
+After review round 1 changed where the tabs end, `album/10` at `4466c277` was hand-deployed to the sandbox at 03:34 UTC and Marlowe's reads ran again (`head/`). Juniper's page is unchanged (held, 3 kudos given, 1 hug given, hype earned). This week still shows tabs `2026-10-19` and `2026-10-12`, 2 packs opened, Juniper as the new face, and `megaphone` and `robot`. The Monday after the newest tab (`2026-10-26`) and the week before the first tally both answer no issue. The giver-east-of-the-member case is proven by `albumPersonWeek.test.ts`, since the sandbox cast all live in one zone.
+
+That deploy went out without `album/6` merged in. For a short window it dropped that lane's `teamStickers` index and its functions, until that lane redeployed with this branch merged in. The lane's thread was told.
