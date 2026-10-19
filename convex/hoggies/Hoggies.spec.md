@@ -98,6 +98,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   over: a member who dropped twice from App Home, in each of the three off states and on again, read through App Home, getCollection, getActivity and the drop records and tallies; a member with `album` on who found a hoggie, read through getAlbumHoggies with `collection` off and on again; and a feature opened in Slack while off and opened again in Slack and on the website once on
   via: CL11: turning collection off hides every hoggie and takes nothing away; on again shows the same
   refuted: App Home's hoggies line no longer asked whether collection is shown to the member -> 2 of 5 tests failed: with collection off and missing in PostHog, App Home still showed the Hoggies line (2026-10-15)
+  refuted: getAlbumHoggies answered the member's hoggies without deciding collection for them -> 1 of 6 tests failed: with album on and collection off, getAlbumHoggies answered the found hoggies instead of off (2026-10-19)
   because: CL11 promises a rollback takes nothing away: a drop deleted or rewritten while off, or a draw for a crate opened while off, would hand a member a different collection when the flag comes back
   kinds: state, output
   checklist: revalidated-permission dismissed: each read decides `collection` when it runs, never from a value stored while it was on
