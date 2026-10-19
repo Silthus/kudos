@@ -1,5 +1,5 @@
 import { IconCheck, IconChevronDown, IconRibbon, IconSearch } from "@posthog/icons";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { HedgehogSitting } from "../hoggies";
@@ -9,9 +9,9 @@ import { hrefOf, type Place } from "./place";
 
 const shownAtFirst = 10;
 
-type SidebarProps = { album: Album; place: Place; wide: boolean; footer: ReactNode };
+type SidebarProps = { album: Album; place: Place; wide: boolean };
 
-export function Sidebar({ album, place, wide, footer }: SidebarProps) {
+export function Sidebar({ album, place, wide }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const panel = useId();
   const close = () => setOpen(false);
@@ -26,7 +26,6 @@ export function Sidebar({ album, place, wide, footer }: SidebarProps) {
       {(wide || open) && (
         <div id={panel} className="al-side-panel">
           <Contents album={album} place={place} onFollow={close} />
-          <div className="al-side-foot">{footer}</div>
         </div>
       )}
     </nav>

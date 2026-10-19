@@ -34,7 +34,7 @@ import { matchingAskedOn, matchingSettingsHrefOf } from "./book/spread/matching"
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
 import { QuestsPage } from "./pages/QuestsPage";
-import { SettingsPage } from "./pages/SettingsPage";
+import { SettingsPage, ThemeAndSignOut } from "./pages/SettingsPage";
 import { SkillTreePage } from "./pages/SkillTreePage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -360,11 +360,28 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
 
 export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">;
 
-export function SettingsAnswerPage({ settings, actions, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; onSignIn: () => void; onSignOut: () => void }) {
+type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; withThemeAndSignOut?: boolean; onSignIn: () => void; onSignOut: () => void };
+
+export function SettingsAnswerPage({ settings, actions, withThemeAndSignOut = false, ...answers }: SettingsAnswerPageProps) {
+  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} />;
+  const answered = <SettingsElsewhere settings={settings} {...answers} />;
+  if (!withThemeAndSignOut || !settingsStillMissing(settings)) return answered;
+  return (
+    <>
+      {answered}
+      <ThemeAndSignOut onSignOut={answers.onSignOut} />
+    </>
+  );
+}
+
+function SettingsElsewhere({ settings, ...answers }: { settings: Exclude<SettingsShown, { kind: "settings" }> | undefined; onSignIn: () => void; onSignOut: () => void }) {
   if (settings === undefined) return <LoadingPage shape="column" />;
   if (settings.kind === "not-found") return <NotFoundPage />;
-  if (settings.kind !== "settings") return <AnswerPage answer={settings} {...answers} />;
-  return <SettingsPage settings={settings} actions={actions} />;
+  return <AnswerPage answer={settings} {...answers} />;
+}
+
+function settingsStillMissing(settings: SettingsShown | undefined) {
+  return settings === undefined || settings.kind === "not-found" || settings.kind === "broken" || settings.kind === "connecting";
 }
 
 export type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
