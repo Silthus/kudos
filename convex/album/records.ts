@@ -44,6 +44,10 @@ export const trayItemValidator = v.union(
   v.object({ ...trayItemFields, kind: v.literal("hoggie"), hoggie: v.string(), rarity: rarityValidator, isNew: v.boolean() }),
 );
 
+export const teamArtValidator = v.union(v.object({ kind: v.literal("crest"), slug: v.string() }), v.object({ kind: v.literal("image"), url: v.string() }), v.null());
+
+export const teamStickerValidator = v.object({ member: v.id("members"), team: v.string(), at: v.number(), name: v.string(), art: teamArtValidator, emoji: v.string() });
+
 export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string() });
 
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });

@@ -34,6 +34,14 @@ export async function nameHypeEmojiOf(ctx: MutationCtx, workspace: string, perso
   await allocate(ctx, workspace, `hype:${person}`, { slug: slugOf(await fullNameOf(ctx, person)), empty: "person", suffix: hypeSuffix });
 }
 
+export async function teamEmojiNameOf(ctx: MutationCtx, workspace: string, team: string): Promise<string | null> {
+  const named = await emojiNameOf(ctx, workspace, `team:${team}`);
+  if (named !== null) return named;
+  await reserveSharedNamesIn(ctx, workspace);
+  await reserveCompanyTeamNamesIn(ctx, workspace);
+  return emojiNameOf(ctx, workspace, `team:${team}`);
+}
+
 export const reserveTeamNamesAfterTheSync = internalMutation({
   args: { event: companyTeamsReplacedEventValidator },
   returns: v.null(),

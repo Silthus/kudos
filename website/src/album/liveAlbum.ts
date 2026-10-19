@@ -5,7 +5,7 @@ import type { AlbumPerson, MyAlbum } from "./answer";
 export function albumOf(answer: GetAlbumAnswer | Denial): MyAlbum {
   if (answer.kind !== "album") return answer;
   const { people, morePeople, ...answered } = answer;
-  return { teams: [], emojis: [], milestones: [], gettingStarted: null, ...answered, people: people.map(beforeTheirTeams), me: { team: null, ...answer.me } };
+  return { emojis: [], milestones: [], gettingStarted: null, ...answered, people: people.map(beforeTheirTeams), me: { team: null, ...answer.me } };
 }
 
 function beforeTheirTeams(person: HeldPerson): AlbumPerson {

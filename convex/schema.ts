@@ -37,6 +37,7 @@ import {
   pairTallyValidator,
   talliedAwardValidator,
   talliedHugValidator,
+  teamStickerValidator,
   thoughtfulPackValidator,
   thoughtfulTallyValidator,
   trayItemValidator,
@@ -544,6 +545,8 @@ export default defineSchema({
   thoughtfulTallies: defineTable(thoughtfulTallyValidator).index("by_workspace_week_giver", ["workspace", "week", "giver"]),
 
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
+
+  teamStickers: defineTable(teamStickerValidator).index("by_member_team", ["member", "team"]),
 
   emojiNames: defineTable(emojiNameValidator)
     .index("by_workspace_emoji", ["workspace", "emoji", "person"])

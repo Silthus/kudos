@@ -152,6 +152,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(walk.placed).toEqual(withoutTheAlbum.placed);
     expect([walk.placed?.one, walk.placed?.all].map((answer) => answer?.kind)).not.toContain("placed");
     expect(walk.albumRows.trayItems).toEqual([]);
+    expect(walk.unlocked).toEqual(withoutTheAlbum.unlocked);
+    expect(walk.unlocked?.kind).not.toBe("unlocked");
     expect(albumDecisions.filter(({ by }) => by === "exposed")).toEqual([]);
     expect(albumExposures(walk)).toEqual([]);
     expect(await decidedWithoutTheWebsite(dana)).toBe(false);
@@ -243,6 +245,7 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
   for (const { user } of members) await openHome(user);
   const opened = opening ? await aliceOpensHerFirstPack() : null;
   const placed = opening ? await alicePutsHerTrayIn() : null;
+  const unlocked = opening ? await aliceUnlocksHerTeamSticker() : null;
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   const albums: Record<string, unknown> = {};
   const boards: Record<string, unknown> = {};
@@ -259,7 +262,7 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
     productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isPacksEarned(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheAlbum(),
   };
-  return { seen, albums, boards, opened, placed, albumRows: await albumRows(), postHogEvents: postHog.events() };
+  return { seen, albums, boards, opened, placed, unlocked, albumRows: await albumRows(), postHogEvents: postHog.events() };
 }
 
 async function alicePutsHerTrayIn() {
@@ -268,6 +271,11 @@ async function alicePutsHerTrayIn() {
   const alicesMember = await memberOf(alice.user);
   const first = await t.run(async (ctx) => (await ctx.db.query("trayItems").collect()).find(({ member }) => member === alicesMember)?._id ?? null);
   return { one: await asAlice.mutation(api.website.album.putIn, { item: first ?? (await aTrayItemIdNamingNoItem()) }), all: await asAlice.mutation(api.website.album.putAllIn, {}) };
+}
+
+async function aliceUnlocksHerTeamSticker() {
+  nextStep();
+  return (await signedIn(alice)).mutation(api.website.album.unlockTeamSticker, { team: lanterns.slug! });
 }
 
 async function aTrayItemIdNamingNoItem() {
