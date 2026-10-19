@@ -1,14 +1,16 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Face } from "./shell";
 
-export function MemberFace({ face, className }: { face: Face; className: string }) {
-  if (face.kind === "initials") return <Initials initials={face.initials} className={className} />;
-  return <FaceImage key={face.image} face={face} className={className} />;
+type FaceProps = { face: Face; className: string; withoutPicture?: ReactNode };
+
+export function MemberFace({ face, className, withoutPicture }: FaceProps) {
+  if (face.kind === "initials") return withoutPicture ?? <Initials initials={face.initials} className={className} />;
+  return <FaceImage key={face.image} face={face} className={className} withoutPicture={withoutPicture} />;
 }
 
-function FaceImage({ face, className }: { face: Exclude<Face, { kind: "initials" }>; className: string }) {
+function FaceImage({ face, className, withoutPicture }: FaceProps & { face: Exclude<Face, { kind: "initials" }> }) {
   const { failed, picture, onError } = usePictureFailure();
-  if (failed) return <Initials initials={face.initials} className={className} />;
+  if (failed) return withoutPicture ?? <Initials initials={face.initials} className={className} />;
   const onColour: CSSProperties | undefined = face.kind === "company-profile" ? { backgroundColor: face.colour } : undefined;
   const fill = face.kind === "slack" ? "bg-muted object-cover" : "object-cover object-top";
   return <img ref={picture} src={face.image} alt="" style={onColour} onError={onError} className={`ph-no-capture shrink-0 rounded-full ${fill} ${className}`} />;

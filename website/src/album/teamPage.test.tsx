@@ -2,7 +2,8 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures, type Face, type MemberProfile } from "../shell";
+import { drawnPicturesIn } from "../test/pictures";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf, fixtureUnlockOf } from "./albumFixtures";
@@ -51,6 +52,18 @@ function withTheTray(album: Album, person: string): Album {
   return { ...album, tray: [{ item: `tray-${person}`, kind: "sticker", person }] };
 }
 
+const junoFace = { kind: "slack", image: "https://avatars.slack-edge.com/juno.png", initials: "JP" } as const;
+
+const inesFace = { kind: "company-profile", image: "https://res.cloudinary.com/posthog/ines.png", colour: "#f4c430", initials: "IO" } as const;
+
+function withFaces(album: Album, faces: Record<string, Face>): Album {
+  return { ...album, people: album.people.map((person) => ({ ...person, face: faces[person.person] ?? person.face })) };
+}
+
+function pictureShownOf(person: HTMLElement) {
+  return person.querySelector("[data-picture]")?.getAttribute("data-picture");
+}
+
 describe("AL45: the team page is the team's class photo", () => {
   it("the member's own team page is one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
     visit("/book#teams/lanterns");
@@ -68,6 +81,33 @@ describe("AL45: the team page is the team's class photo", () => {
     expect(shown.getByRole("link", { name: "Juno Park Not in your album yet" })).toHaveAttribute("href", "/book#people/juno-park");
     expect(shown.queryByRole("link", { name: /Hal Corwin/ })).not.toBeInTheDocument();
     expect(screen.getByRole("figure", { name: "Left to right Ines Okafor, Bram Teller, Oona Vasquez, Tomas Reyne, Juno Park, Hal Corwin" })).toBeInTheDocument();
+  });
+
+  it("someone not in your album yet shows their own picture greyed out, as a locked sticker is, while the collected show theirs in colour and someone not in Slack yet stays a named silhouette", async () => {
+    visit("/book#teams/lanterns", { album: withFaces(midway, { "juno-park": junoFace, "ines-okafor": inesFace }) });
+
+    const shown = await photo();
+    const juno = shown.getByRole("link", { name: "Juno Park Not in your album yet" });
+    expect(drawnPicturesIn(juno)).toEqual([junoFace.image]);
+    expect(pictureShownOf(juno)).toBe("grey");
+    expect(pictureShownOf(shown.getByRole("link", { name: "Ines Okafor In your album" }))).toBe("colour");
+    const hal = shown.getAllByRole("listitem").find((person) => person.textContent?.includes("Hal Corwin"))!;
+    expect(drawnPicturesIn(hal)).toEqual([]);
+    expect(hal).toHaveTextContent("HCHal Corwin Not in Slack yet");
+  });
+
+  it("once their card is put in, the same picture turns from grey to colour", async () => {
+    const album = withTheTray(withFaces(midway, { "juno-park": junoFace }), "juno-park");
+    const { user } = visit("/book#teams/lanterns", { album, putAllIn: async () => ({ kind: "placed", items: album.tray, more: false }) });
+    const picture = (await photo()).getByRole("link", { name: "Juno Park Not in your album yet" }).querySelector("img");
+    expect(picture).not.toBeNull();
+
+    await user.click(await screen.findByRole("button", { name: /^Tray/ }));
+    await user.click(screen.getByRole("button", { name: /^Put it in/ }));
+
+    const juno = await (await photo()).findByRole("link", { name: "Juno Park In your album" }, { timeout: 5_000 });
+    expect(juno.querySelector("img")).toBe(picture);
+    expect(pictureShownOf(juno)).toBe("colour");
   });
 
   it("the seal is ringed by one segment per person to collect, filled for each one in the album", async () => {
@@ -391,13 +431,24 @@ describe("AL46: the person page", () => {
     expect(within(screen.getByRole("list", { name: "Your history together" })).getByText("Not yet")).toBeInTheDocument();
   });
 
-  it("a hype emoji earned before the card is put in already shows their face", async () => {
-    const face = { kind: "slack", image: "https://avatars.slack-edge.com/juno.png", initials: "JP" } as const;
-    visit("/book#people/juno-park", { people: (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), face, hype: { earned: true, name: "juno-park-hype" } } : undefined) });
+  it("someone not in your album yet with a picture shows it greyed out, on their photo and in their hype emoji still to unlock", async () => {
+    visit("/book#people/juno-park", { people: (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), face: junoFace } : undefined) });
 
     const hype = (await screen.findByText(":juno-park-hype:")).closest("div")!;
-    expect(hype.querySelector("img")).toHaveAttribute("src", face.image);
-    expect(screen.getByRole("figure", { name: "Not in your album yet" }).querySelector("img")).toBeNull();
+    const figure = screen.getByRole("figure", { name: "Not in your album yet" });
+    expect(drawnPicturesIn(figure)).toEqual([junoFace.image]);
+    expect(pictureShownOf(figure)).toBe("grey");
+    expect(drawnPicturesIn(hype)).toEqual([junoFace.image]);
+    expect(pictureShownOf(hype)).toBe("grey");
+  });
+
+  it("a hype emoji earned before the card is put in already shows their face in colour, while their photo stays grey", async () => {
+    visit("/book#people/juno-park", { people: (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), face: junoFace, hype: { earned: true, name: "juno-park-hype" } } : undefined) });
+
+    const hype = (await screen.findByText(":juno-park-hype:")).closest("div")!;
+    expect(drawnPicturesIn(hype)).toEqual([junoFace.image]);
+    expect(pictureShownOf(hype)).toBe("colour");
+    expect(pictureShownOf(screen.getByRole("figure", { name: "Not in your album yet" }))).toBe("grey");
   });
 
   it("someone in the tray, or with nothing waiting, is told the step that adds them", async () => {
