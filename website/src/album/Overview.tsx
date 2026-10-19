@@ -14,9 +14,9 @@ const closestShown = 3;
 
 const packsShown = 3;
 
-type OverviewProps = { album: Album; newest: NewestPerson[] | null; onOpenPacks: () => void };
+type OverviewProps = { album: Album; newest: NewestPerson[] | null; packsWait: boolean; onOpenPacks: (opener: HTMLElement) => void };
 
-export function Overview({ album, newest, onOpenPacks }: OverviewProps) {
+export function Overview({ album, newest, packsWait, onOpenPacks }: OverviewProps) {
   return (
     <article className="al-page-body al-overview">
       <PageTitle tab="Your album" size="hero">
@@ -24,7 +24,7 @@ export function Overview({ album, newest, onOpenPacks }: OverviewProps) {
       </PageTitle>
       <FindYourTeam />
       <ClosestToComplete album={album} />
-      <WaitingPacks album={album} onOpenPacks={onOpenPacks} />
+      <WaitingPacks album={album} packsWait={packsWait} onOpenPacks={onOpenPacks} />
       {newest !== null && <Newest album={album} newest={newest} />}
     </article>
   );
@@ -55,7 +55,7 @@ function ClosestToComplete({ album }: { album: Album }) {
   );
 }
 
-function WaitingPacks({ album, onOpenPacks }: { album: Album; onOpenPacks: () => void }) {
+function WaitingPacks({ album, packsWait, onOpenPacks }: Pick<OverviewProps, "album" | "packsWait" | "onOpenPacks">) {
   const waiting = album.packs.length;
   if (waiting === 0)
     return (
@@ -73,7 +73,7 @@ function WaitingPacks({ album, onOpenPacks }: { album: Album; onOpenPacks: () =>
         </span>
         <div className="al-overview-pack-words">
           <p className="al-lede">{`${plural(waiting, "pack", "packs")}${album.morePacks ? " and more" : ""} waiting to open.`}</p>
-          <button type="button" className="al-overview-open" onClick={onOpenPacks}>
+          <button type="button" className="al-overview-open" aria-disabled={packsWait || undefined} onClick={packsWait ? undefined : (event) => onOpenPacks(event.currentTarget)}>
             Open a pack
           </button>
         </div>

@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
@@ -61,6 +61,17 @@ describe("AL43: a member without a team lands on the album overview, never an em
     await user.click(packs.getByRole("button", { name: "Open a pack" }));
 
     expect(await screen.findByRole("dialog", { name: "Open your packs" })).toBeInTheDocument();
+  });
+
+  it("closing the packs before a rip gives focus back to the overview's Open a pack", async () => {
+    const { user } = visit();
+    await user.click((await part("Waiting packs")).getByRole("button", { name: "Open a pack" }));
+    await screen.findByRole("dialog", { name: "Open your packs" });
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Open your packs" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open a pack" })).toHaveFocus());
   });
 
   it("with no pack waiting says how to earn one, and offers nothing to open", async () => {

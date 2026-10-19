@@ -11,7 +11,7 @@ import type { TeamUnlocking } from "./useTeamUnlock";
 
 type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; profile: ReactNode; hoggies: ReactNode; unlocking: TeamUnlocking; home: HomeProps };
 
-type HomeProps = { newest: NewestPerson[] | null; onOpenPacks: () => void };
+type HomeProps = { newest: NewestPerson[] | null; packsWait: boolean; onOpenPacks: (opener: HTMLElement) => void };
 
 export function AlbumPage({ album, place, settings, leaderboard, activity, person, profile, hoggies, unlocking, home }: PageProps) {
   switch (place.kind) {
@@ -53,9 +53,9 @@ function Page({ tab, title, children }: { tab: string; title: ReactNode; childre
   );
 }
 
-function Home({ album, unlocking, newest, onOpenPacks }: { album: Album; unlocking: TeamUnlocking } & HomeProps) {
+function Home({ album, unlocking, newest, packsWait, onOpenPacks }: { album: Album; unlocking: TeamUnlocking } & HomeProps) {
   const team = myTeamOf(album);
-  if (team === undefined) return <Overview album={album} newest={newest} onOpenPacks={onOpenPacks} />;
+  if (team === undefined) return <Overview album={album} newest={newest} packsWait={packsWait} onOpenPacks={onOpenPacks} />;
   return <TeamPage album={album} team={team} unlocking={unlocking} />;
 }
 

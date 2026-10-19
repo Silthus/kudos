@@ -56,6 +56,11 @@
   cursor: pointer;
 }
 
+.al-overview-open[aria-disabled] {
+  cursor: progress;
+  opacity: 0.75;
+}
+
 .al-overview .al-profile-newest {
   max-width: 28rem;
 }

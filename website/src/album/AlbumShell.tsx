@@ -40,7 +40,7 @@ export type AlbumShellProps = {
 
 export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, newest, busy, onSignOut, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
   const wide = useWideScreen();
-  const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
+  const { opening, open, openFrom, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
   const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
   const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker, { waits: puttingIn.busy });
@@ -72,7 +72,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "team" && place.team === null && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} unlocking={unlocking} home={{ newest, onOpenPacks: open }} />
+            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} unlocking={unlocking} home={{ newest, packsWait: puttingIn.busy || awaitingAMoment, onOpenPacks: openFrom }} />
           </ErrorBoundary>
         </main>
       </div>
@@ -94,14 +94,19 @@ function usePackOpening(answered: Album) {
   const album = useMemo(() => (opened.size === 0 ? answered : { ...answered, packs: answered.packs.filter(({ pack }) => !opened.has(pack)) }), [answered, opened]);
   const rememberOpened = useCallback((pack: string) => setOpened((packs) => new Set(packs).add(pack)), []);
   const packsButton = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (wasOpen.current && !opening) packsButton.current?.focus();
+    if (wasOpen.current && !opening) (opener.current?.isConnected ? opener.current : packsButton.current)?.focus();
     wasOpen.current = opening;
   }, [opening]);
-  const open = useCallback(() => setOpening(true), []);
+  const openFrom = useCallback((from: HTMLElement | null) => {
+    opener.current = from;
+    setOpening(true);
+  }, []);
+  const open = useCallback(() => openFrom(null), [openFrom]);
   const close = useCallback(() => setOpening(false), []);
-  return { opening, open, close, packsButton, album, rememberOpened };
+  return { opening, open, openFrom, close, packsButton, album, rememberOpened };
 }
 
 function Footer({ onSignOut }: { onSignOut: () => void }) {

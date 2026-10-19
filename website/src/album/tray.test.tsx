@@ -353,6 +353,19 @@ describe("AL54: putting in and the pack opening never overlap", () => {
     expect(screen.queryByRole("dialog", { name: "Open your packs" })).not.toBeInTheDocument();
     expect(bar.getByRole("button", { name: /^Open your packs/ })).toHaveAttribute("aria-disabled", "true");
   });
+
+  it("the overview's Open a pack opens nothing while the cards are being put in", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { user } = visit({ ...albumFixtures.teamless, tray: [juno, banana] }, { putAllIn: async () => ({ kind: "placed", items: [banana, juno], more: false }) });
+    await user.click((await openTheTray(user)).getByRole("button", { name: "Put them all in · 2" }));
+    await (await topBar()).findByRole("button", { name: "Tray, putting in, 2 to go" });
+
+    const open = within(screen.getByRole("region", { name: "Waiting packs" })).getByRole("button", { name: "Open a pack" });
+    await user.click(open);
+
+    expect(screen.queryByRole("dialog", { name: "Open your packs" })).not.toBeInTheDocument();
+    expect(open).toHaveAttribute("aria-disabled", "true");
+  });
 });
 
 describe("AL47: /book#packs opens the tray", () => {
