@@ -76,7 +76,7 @@ describe("AL52: getAlbumProfile reads the profile's kind note and newest people"
 
     const profile = await profileOf(alice);
 
-    expect(profile.kind === "profile" && profile.newest.map(({ name, at }) => [name, at])).toEqual([
+    expect("newest" in profile && profile.newest.map(({ name, at }) => [name, at])).toEqual([
       [finn.name, joined[4]],
       [erin.name, joined[3]],
       [dana.name, joined[2]],
@@ -98,7 +98,7 @@ describe("AL52: getAlbumProfile reads the profile's kind note and newest people"
   });
 });
 
-async function profileOf(person: Person): Promise<AlbumProfileRead> {
+async function profileOf(person: Person): Promise<AlbumProfileRead | { kind: string }> {
   return (await signedIn(person)).query(api.website.album.getAlbumProfile, {});
 }
 
