@@ -7,6 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
+import { mostHypeEmojisShown } from "./earnedEmojis";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
@@ -160,6 +161,21 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
   });
 });
 
+describe("AL25: a workspace's shared emoji names, reserved by hand where nothing opened its registry", { timeout: 90_000 }, () => {
+  test("before any grant or unlock a member reads no emoji; once the shared names are reserved by hand, a level-5 member reads their level emoji earned and unseen, and an admin the whole shared list", async () => {
+    await theCompanyCopyHolds(...threeTeams());
+    await reachesXp(alice, xpToReach(5));
+    await memberChanged(t, "user_change", { ...slackUser(bruno), is_admin: true });
+    await settle(t);
+    expect((await albumOf(await signedIn(alice))).emojis, "no registry yet").toEqual([]);
+
+    await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
+
+    expect(await emojiWithId(await signedIn(alice), "level:5")).toEqual(earned("level:5", "level", "level-5", "/emoji/level-5.png"));
+    expect((await albumOf(await signedIn(bruno))).sharedEmojis?.map(({ id }) => id)).toEqual(byId([...["otters", "lanterns", "product-analytics"].map((team) => ({ id: `team:${team}` })), ...milestoneGolds.map(([milestone]) => ({ id: `milestone:${milestone}` })), ...levels.map((level) => ({ id: `level:${level}` }))]).map(({ id }) => id));
+  });
+});
+
 describe("AL26: each earned emoji is seen once", { timeout: 90_000 }, () => {
   test("an earned emoji reads unseen until markEmojisSeen names it, then seen for good; a locked, unknown or repeated ID records nothing", async () => {
     await theCompanyCopyHolds(...threeTeams());
@@ -178,6 +194,31 @@ describe("AL26: each earned emoji is seen once", { timeout: 90_000 }, () => {
     expect(await everyTable()).toEqual(before);
   });
 
+  test("past the 200 hype emojis one read answers, the unseen ones come first, so a new hype emoji is never left out", async () => {
+    await thanks(bruno, why, lanterns[0]!);
+    const aliceId = await memberOf(alice);
+    const people = await t.run(async (ctx) => {
+      const ids: MemberId[] = [];
+      for (let index = 0; index <= mostHypeEmojisShown; index += 1) ids.push(await ctx.db.insert("members", { workspace: "T1", user: `U_PACKED_${index}`, kind: "member", asOf: 0 }));
+      return ids.toSorted();
+    });
+    const newest = people.at(-1)!;
+    await t.run(async (ctx) => {
+      for (const [index, person] of people.entries()) {
+        await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: aliceId, recipient: person, week: "2026-10-12", message: { workspace: "T1", conversation: "C1", message: `m${index}` }, holdsSticker: false, at: index });
+        await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person, name: `packed-${index}-hype` });
+        if (person !== newest) await ctx.db.insert("seenEmojis", { member: aliceId, emoji: `hype:${person}`, at: 0 });
+      }
+    });
+
+    const album = await albumOf(await signedIn(alice));
+
+    const hype = album.emojis.filter(({ kind }) => kind === "hype");
+    expect(hype).toHaveLength(mostHypeEmojisShown);
+    expect(album.moreEmojis).toBe(true);
+    expect(hype.filter(({ seen }) => !seen).map(({ id }) => id)).toEqual([`hype:${newest}`]);
+  });
+
   test("a member who earned emojis before the album sees each as new on their first visit", async () => {
     await reachesXp(alice, xpToReach(5));
     await thanks(bruno, why, lanterns[0]!);
@@ -190,7 +231,9 @@ describe("AL26: each earned emoji is seen once", { timeout: 90_000 }, () => {
     const asAlice = await signedIn(alice);
     const before = await everyTable();
 
-    expect(await asAlice.mutation(api.website.album.markEmojisSeen, { ids: Array.from({ length: 501 }, () => `hype:${otters[0]!.user}`) })).toEqual({ kind: "refused" });
+    const earnedHype = `hype:${await memberOf(otters[0]!)}`;
+
+    expect(await asAlice.mutation(api.website.album.markEmojisSeen, { ids: Array.from({ length: 501 }, () => earnedHype) })).toEqual({ kind: "refused" });
     expect(await everyTable()).toEqual(before);
   });
 });
@@ -232,6 +275,21 @@ describe("AL32: workspace admins and owners get the shared list", { timeout: 90_
     );
     expect((await albumOf(await signedIn(lanterns[0]!))).sharedEmojis, "an owner").toEqual(shared);
     expect((await albumOf(await signedIn(alice))).sharedEmojis, "a member who is neither").toBeNull();
+  });
+
+  test("a team that left posthog.com is off every admin's shared list, whether or not that admin unlocked its sticker", async () => {
+    await theCompanyCopyHolds(...threeTeams());
+    await memberChanged(t, "user_change", { ...slackUser(alice), is_admin: true });
+    await memberChanged(t, "user_change", { ...slackUser(bruno), is_admin: true });
+    await settle(t);
+    await aliceCollects(...otters);
+    await (await signedIn(alice)).mutation(api.website.album.unlockTeamSticker, { team: "otters" });
+
+    await theCompanyCopyHolds(...threeTeams().filter(({ slug }) => slug !== "otters"));
+
+    const teamsShared = async (someone: Person) => (await albumOf(await signedIn(someone))).sharedEmojis?.filter(({ kind }) => kind === "team").map(({ id }) => id);
+    expect(await teamsShared(alice), "the admin who unlocked it").toEqual(["team:lanterns", "team:product-analytics"]);
+    expect(await teamsShared(bruno), "the admin who didn't").toEqual(["team:lanterns", "team:product-analytics"]);
   });
 });
 

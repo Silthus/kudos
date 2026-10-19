@@ -1,6 +1,6 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
-import type { TeamCrestArt } from "../companyProfiles/teams";
+import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { customEmojiImageOf } from "../workspace/customEmoji";
@@ -25,13 +25,15 @@ export type EarnedEmojis = { emojis: EarnedEmoji[]; more: boolean };
 
 export const mostHypeEmojisShown = 200;
 
+export const mostPeoplePackedRead = 500;
+
 export const mostEmojisSeenAtOnce = 500;
 
 type Cause = { id: EarnedEmojiId; kind: EarnedEmojiKind; picture: string; earned: boolean; progress: EmojiProgress };
 
 export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: EmojiCauses): Promise<EarnedEmojis> {
-  const hype = await hypeCausesOf(ctx, owner);
   const seen = await seenBy(ctx, owner.member);
+  const hype = await hypeCausesOf(ctx, owner, seen);
   const emojis: EarnedEmoji[] = [];
   for (const cause of [...teamCausesOf(causes.pages), ...hype.causes, ...milestoneCausesOf(causes.milestones), ...levelCausesOf(causes.level)]) {
     const name = await emojiNameOf(ctx, owner.workspace, cause.id);
@@ -42,7 +44,8 @@ export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: Em
 
 export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }: EarnedEmojis): Promise<SharedEmoji[] | null> {
   if (!(await personFactsOf(ctx, member))?.admin) return null;
-  return emojis.filter(({ kind }) => kind !== "hype").map(({ id, kind, name, picture, inSlack }) => ({ id, kind, name, picture, inSlack }));
+  const companyTeams = new Set((await companyTeamsOf(ctx)).map(({ team }) => `team:${team}`));
+  return emojis.filter(({ id, kind }) => (kind === "team" ? companyTeams.has(id) : kind !== "hype")).map(({ id, kind, name, picture, inSlack }) => ({ id, kind, name, picture, inSlack }));
 }
 
 export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: string[], at: number): Promise<string[] | null> {
@@ -82,11 +85,16 @@ function levelCausesOf({ level, xp }: EmojiCauses["level"]): Cause[] {
   return emojiLevels.map((reward) => ({ id: `level:${reward}`, kind: "level", picture: emojiArtPictureOf("level", reward), earned: level >= reward, progress: { have: xp, need: xpToReach(reward) } }));
 }
 
-async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner): Promise<{ causes: Cause[]; more: boolean }> {
-  const people = await peoplePackedBy(ctx, member, mostHypeEmojisShown + 1);
+async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>): Promise<{ causes: Cause[]; more: boolean }> {
+  const people = unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen);
   const causes: Cause[] = [];
   for (const person of people.slice(0, mostHypeEmojisShown)) causes.push({ id: `hype:${person}`, kind: "hype", picture: await hypePictureOf(ctx, workspace, person), earned: true, progress: { have: 1, need: 1 } });
   return { causes, more: people.length > mostHypeEmojisShown };
+}
+
+function unseenFirst(people: MemberId[], seen: Set<string>): MemberId[] {
+  const isSeen = (person: MemberId) => seen.has(`hype:${person}`);
+  return [...people.filter((person) => !isSeen(person)), ...people.filter(isSeen)];
 }
 
 async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Promise<MemberId[]> {
