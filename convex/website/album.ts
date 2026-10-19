@@ -3,6 +3,7 @@ import { thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } f
 import { albumShownTo } from "../album/flag";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
+import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
 import { albumStickersOf } from "../album/stickers";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { xpToReach } from "../progression/levels";
@@ -35,6 +36,10 @@ export type AlbumPerson = { person: MemberId; name: string; face: Face; held: bo
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
 export type OpenAnswer = ({ kind: "opened" } & Opening) | { kind: "refused" };
+
+export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
+
+export type PutAllInAnswer = ({ kind: "placed" } & PutIn) | { kind: "refused" };
 
 export type BoardPersonRow = { person: MemberId; name: string; face: Face; teams: string[]; thoughtful: number; you: boolean } & Standing;
 
@@ -73,6 +78,19 @@ export const openThoughtfulPack = memberMutation({
 async function opensPacks(ctx: QueryCtx, me: VerifiedMember) {
   return (await albumShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }
+
+export const putIn = memberMutation({
+  args: { item: v.id("trayItems") },
+  handler: async (ctx, me, _person, { item }): Promise<PutInAnswer> => {
+    const placed = (await albumShownTo(ctx, me.member)) ? await putItemIn(ctx, me, item, Date.now()) : null;
+    return placed === null ? { kind: "refused" } : { kind: "placed", item: placed };
+  },
+});
+
+export const putAllIn = memberMutation({
+  args: {},
+  handler: async (ctx, me): Promise<PutAllInAnswer> => ((await albumShownTo(ctx, me.member)) ? { kind: "placed", ...(await putEveryItemIn(ctx, me, Date.now())) } : { kind: "refused" }),
+});
 
 export const getThoughtfulBoards = memberQuery({
   args: { team: v.optional(v.string()) },

@@ -149,6 +149,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(Object.values(walk.albums)).toEqual(Object.values(withoutTheAlbum.albums));
     expect(walk.opened).toEqual(withoutTheAlbum.opened);
     expect(walk.opened).not.toHaveProperty("items");
+    expect(walk.placed).toEqual(withoutTheAlbum.placed);
+    expect([walk.placed?.one, walk.placed?.all].map((answer) => answer?.kind)).not.toContain("placed");
     expect(walk.albumRows.trayItems).toEqual([]);
     expect(albumDecisions.filter(({ by }) => by === "exposed")).toEqual([]);
     expect(albumExposures(walk)).toEqual([]);
@@ -240,6 +242,7 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
   await settleInTimeOrder(t);
   for (const { user } of members) await openHome(user);
   const opened = opening ? await aliceOpensHerFirstPack() : null;
+  const placed = opening ? await alicePutsHerTrayIn() : null;
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   const albums: Record<string, unknown> = {};
   const boards: Record<string, unknown> = {};
@@ -256,7 +259,26 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
     productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isPacksEarned(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheAlbum(),
   };
-  return { seen, albums, boards, opened, albumRows: await albumRows(), postHogEvents: postHog.events() };
+  return { seen, albums, boards, opened, placed, albumRows: await albumRows(), postHogEvents: postHog.events() };
+}
+
+async function alicePutsHerTrayIn() {
+  nextStep();
+  const asAlice = await signedIn(alice);
+  const alicesMember = await memberOf(alice.user);
+  const first = await t.run(async (ctx) => (await ctx.db.query("trayItems").collect()).find(({ member }) => member === alicesMember)?._id ?? null);
+  return { one: await asAlice.mutation(api.website.album.putIn, { item: first ?? (await aTrayItemIdNamingNoItem()) }), all: await asAlice.mutation(api.website.album.putAllIn, {}) };
+}
+
+async function aTrayItemIdNamingNoItem() {
+  const [member, person] = [await memberOf(alice.user), await memberOf(bob.user)];
+  return t.run(async (ctx) => {
+    const pack = await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: member, recipient: person, week: "none", message: { workspace: "T1", conversation: "none", message: "none" }, holdsSticker: false, at: 0 });
+    const item = await ctx.db.insert("trayItems", { member, pack, at: 0, kind: "sticker", person });
+    await ctx.db.delete(item);
+    await ctx.db.delete(pack);
+    return item;
+  });
 }
 
 async function aliceOpensHerFirstPack() {

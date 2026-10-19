@@ -19,6 +19,14 @@ export async function storedCompanyMatchOf(ctx: QueryCtx, workspace: string, mem
   return row === null ? undefined : { face: row.face, profile: row.profile ?? null };
 }
 
+export async function storedHoldersIn(ctx: QueryCtx, workspace: string): Promise<Map<number, MemberId>> {
+  const rows = await ctx.db
+    .query("companyFaces")
+    .withIndex("by_member", (q) => q.eq("workspace", workspace))
+    .collect();
+  return new Map(rows.flatMap(({ profile, member }) => (profile === undefined ? [] : [[profile, member] as const])));
+}
+
 async function keepCompanyFaces(ctx: MutationCtx, workspace: string) {
   const matched = await matchesIn(ctx, workspace);
   const stored = await ctx.db

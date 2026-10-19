@@ -1,3 +1,4 @@
+import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
@@ -22,4 +23,18 @@ export async function inTheAlbumOf(ctx: QueryCtx, member: MemberId, person: Memb
 export async function recordHistorySticker(ctx: MutationCtx, member: MemberId, person: MemberId, at: number) {
   if (member === person || (await inTheAlbumOf(ctx, member, person))) return;
   await ctx.db.insert("albumStickers", { member, person, from: "history", at });
+}
+
+export async function recordPackSticker(ctx: MutationCtx, member: MemberId, person: MemberId, pack: Id<"thoughtfulPacks">, at: number): Promise<boolean> {
+  if (member === person || (await inTheAlbumOf(ctx, member, person))) return false;
+  await ctx.db.insert("albumStickers", { member, person, from: "pack", pack, at });
+  return true;
+}
+
+export async function peopleHeldBy(ctx: QueryCtx, member: MemberId): Promise<Set<MemberId>> {
+  const stickers = await ctx.db
+    .query("albumStickers")
+    .withIndex("by_member_person", (q) => q.eq("member", member))
+    .collect();
+  return new Set(stickers.map(({ person }) => person));
 }

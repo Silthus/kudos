@@ -9,7 +9,7 @@ import type { AppliedReward } from "../progression/rewards";
 import { catalogue, crestNamed, crestWith, firstVersionWithCrests, hoggieNamed, type Rarity } from "./catalogue";
 import { drawOf, packBonusOf } from "./draw";
 import { crestsShownFor, crestsShownTo, hoggiesDropFor, packsPayFor } from "./flag";
-import type { CrateKey } from "./crateKey";
+import { crateKindOf, type CrateKey } from "./crateKey";
 import type { DropRecord } from "./records";
 
 export type HoggieArt = { kind: "hoggie"; slug: string };
@@ -28,11 +28,12 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
   const { hoggie, rarity } = await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version });
   const n = await countDrop(ctx, member);
-  const copy = await countCopy(ctx, member, hoggie, at, n);
+  const copy = waitsInTheTray(crate) ? await nextCopyOf(ctx, member, hoggie) : await countFound(ctx, member, hoggie, at, n);
   const crest = await crestRecordedFor(ctx, member, hoggie, copy);
   const { workspace } = await chatUserOf(ctx, member);
   const pack = await packPaidFor(ctx, workspace, member, crate, at);
   await ctx.db.insert("drops", { member, crate, hoggie, rarity, n, copy, catalogueVersion: catalogue.version, at, ...crest, ...(pack && { pack }) });
+  if (waitsInTheTray(crate)) await ctx.db.insert("trayDrops", { member, crate });
   if (crest.crest) await crestsShownFor(ctx, member);
   await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at, ...(pack && { pack: { xp: pack.xp, coins: pack.coins } }), surface });
 }
@@ -40,6 +41,31 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
 async function packPaidFor(ctx: MutationCtx, workspace: string, member: MemberId, crate: CrateKey, at: number): Promise<AppliedReward | null> {
   if (!(await packsPayFor(ctx, member))) return null;
   return applyGain(ctx, workspace, { member, ...(await packBonusOf({ secret: drawSecret(), member, crate })) }, at);
+}
+
+export async function putDropIn(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number): Promise<void> {
+  const waiting = await trayDropOf(ctx, member, crate);
+  const drop = await dropRecordOf(ctx, member, crate);
+  if (waiting === null || waiting.putInAt !== undefined || drop === null) return;
+  await ctx.db.patch(waiting._id, { putInAt: at });
+  await countFound(ctx, member, drop.hoggie, at, drop.n);
+}
+
+function waitsInTheTray(crate: string) {
+  return crateKindOf(crate) === "thoughtful";
+}
+
+async function isFound(ctx: QueryCtx, { member, crate }: DropRecord) {
+  if (!waitsInTheTray(crate)) return true;
+  const waiting = await trayDropOf(ctx, member, crate);
+  return waiting === null || waiting.putInAt !== undefined;
+}
+
+function trayDropOf(ctx: QueryCtx, member: MemberId, crate: string): Promise<Doc<"trayDrops"> | null> {
+  return ctx.db
+    .query("trayDrops")
+    .withIndex("by_member_crate", (q) => q.eq("member", member).eq("crate", crate))
+    .unique();
 }
 
 export async function packOf(ctx: QueryCtx, member: MemberId, crate: string): Promise<AppliedReward | null> {
@@ -58,7 +84,7 @@ export async function* dropsByDecision(ctx: QueryCtx, member: MemberId, below: D
     .query("drops")
     .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))
     .order("desc");
-  for await (const record of rows) yield { at: record.at, n: record.n, decided: record._creationTime, drop: shownDrop(record, shown) };
+  for await (const record of rows) if (await isFound(ctx, record)) yield { at: record.at, n: record.n, decided: record._creationTime, drop: shownDrop(record, shown) };
 }
 
 function shownDrop({ hoggie, rarity, copy, crest }: DropRecord, shown: CrestsShown): Drop {
@@ -90,7 +116,11 @@ async function countDrop(ctx: MutationCtx, member: MemberId) {
   return drops;
 }
 
-async function countCopy(ctx: MutationCtx, member: MemberId, hoggie: string, at: number, n: number) {
+async function nextCopyOf(ctx: QueryCtx, member: MemberId, hoggie: string) {
+  return ((await tallyOf(ctx, member, hoggie))?.count ?? 0) + 1;
+}
+
+async function countFound(ctx: MutationCtx, member: MemberId, hoggie: string, at: number, n: number) {
   const tally = await tallyOf(ctx, member, hoggie);
   if (tally === null) {
     await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: at, firstN: n });
