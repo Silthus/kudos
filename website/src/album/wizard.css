@@ -9,6 +9,7 @@
 }
 
 .al-wizard {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
