@@ -1,0 +1,47 @@
+{
+  "packs": 0,
+  "earned": [
+    {
+      "name": "fenna-lark-hype",
+      "kind": "hype",
+      "seen": true,
+      "inSlack": false
+    },
+    {
+      "name": "elm-rookwood-hype",
+      "kind": "hype",
+      "seen": true,
+      "inSlack": false
+    },
+    {
+      "name": "cassia-moor-hype",
+      "kind": "hype",
+      "seen": true,
+      "inSlack": false
+    },
+    {
+      "name": "alder-finch-hype",
+      "kind": "hype",
+      "seen": true,
+      "inSlack": false
+    },
+    {
+      "name": "darrow-pike-hype",
+      "kind": "hype",
+      "seen": true,
+      "inSlack": false
+    },
+    {
+      "name": "bryony-vale-hype",
+      "kind": "hype",
+      "seen": true,
+      "inSlack": false
+    },
+    {
+      "name": "first-thank-you",
+      "kind": "milestone",
+      "seen": true,
+      "inSlack": false
+    }
+  ]
+}
