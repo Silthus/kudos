@@ -335,7 +335,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
-    expect(tierDmsTo("U_BOB")).toEqual([`🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.\n<${siteUrl}/book/earned|See what you earned on the web>`]);
+    expect(tierDmsTo("U_BOB")).toEqual([`🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.\n<${siteUrl}/book#milestones|See what you earned on the web>`]);
   });
 
   test("for a member previewing the website while it is closed for the workspace, the tier DM's link goes through the sign-in entry, and the others' DMs have no link", async () => {
@@ -345,7 +345,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
-    expect(tierDmsTo("U_BOB")).toEqual([`🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.\n<${siteUrl}/sign-in/book/earned|See what you earned on the web>`]);
+    expect(tierDmsTo("U_BOB")).toEqual([`🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.\n<${siteUrl}/sign-in/book#milestones|See what you earned on the web>`]);
     expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
   });
 });

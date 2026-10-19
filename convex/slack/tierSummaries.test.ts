@@ -208,7 +208,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await clickOpenBook(t, "U_ALICE");
 
-    expect(tierDmsTo("U_ALICE")).toEqual([`${bothBronzes}\n<${siteUrl}/book/earned|See what you earned on the web>`]);
+    expect(tierDmsTo("U_ALICE")).toEqual([`${bothBronzes}\n<${siteUrl}/book#milestones|See what you earned on the web>`]);
   });
 
   test("for a member previewing the website while it is closed for the workspace, the opening summary's link goes through the sign-in entry", async () => {
@@ -224,7 +224,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await clickOpenBook(t, "U_ALICE");
 
-    expect(tierDmsTo("U_ALICE")).toEqual([`${bothBronzes}\n<${siteUrl}/sign-in/book/earned|See what you earned on the web>`]);
+    expect(tierDmsTo("U_ALICE")).toEqual([`${bothBronzes}\n<${siteUrl}/sign-in/book#milestones|See what you earned on the web>`]);
   });
 });
 

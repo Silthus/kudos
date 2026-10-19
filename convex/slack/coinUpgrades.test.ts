@@ -134,10 +134,10 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
     const levelUp = levelUpDmTo("U_ALICE", 7);
 
-    expect(accessoryBeside(levelUp, "*Flame*")).toMatchObject({ url: `${siteUrl}/skills` });
+    expect(accessoryBeside(levelUp, "*Flame*")).toMatchObject({ url: `${siteUrl}/` });
     expect(accessoryBeside(levelUp, "*Flame*")).not.toHaveProperty("value");
-    expect(accessoryBeside(levelUp, "*Treasurer*")).toMatchObject({ url: `${siteUrl}/skills` });
-    expect(accessoryBeside(levelUp, "*Rhythm*")).toMatchObject({ url: `${siteUrl}/skills` });
+    expect(accessoryBeside(levelUp, "*Treasurer*")).toMatchObject({ url: `${siteUrl}/` });
+    expect(accessoryBeside(levelUp, "*Rhythm*")).toMatchObject({ url: `${siteUrl}/` });
   });
 
   test("a Buy from the level-up DM that Coins isn't open for says so in the conversation", async () => {

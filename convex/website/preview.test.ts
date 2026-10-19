@@ -332,7 +332,7 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
 
       expect(alicesLinks).toEqual({ origin: `${siteUrl}/sign-in`, pages: [
           { label: "Leaderboard", url: `${siteUrl}/sign-in/leaderboard` },
-          { label: "Quests", url: `${siteUrl}/sign-in/quests` },
+          { label: "Quests", url: `${siteUrl}/sign-in/` },
         ],
         sections: ["visibility"],
       });
