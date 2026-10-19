@@ -1,0 +1,76 @@
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { companyTeamsOf } from "../companyProfiles/teams";
+import { customEmojiImageOf } from "../workspace/customEmoji";
+import { personFactsOf, type MemberId } from "../workspace/directory";
+import { emojiLevels, milestoneGoldNames } from "./emojiCatalogue";
+import { freeTheName, giveEmojiTheName, namesHeldIn, type EarnedEmojiId } from "./emojiNames";
+import { classRandom, randomEmojiNamesIn, unclassRandom } from "./randomEmojis";
+
+export type MappingTarget = { kind: "team"; team: string } | { kind: "milestone"; milestone: string } | { kind: "level"; level: number } | { kind: "hype"; person: MemberId } | { kind: "random" };
+
+export type EmojiPlace = MappingTarget | { kind: "unmapped" };
+
+export type SlackEmojiMapping = { name: string; image: string; mapping: MappingTarget | null };
+
+export type MappableTeam = { team: string; name: string };
+
+export type MappableMilestone = { milestone: string; name: string };
+
+export type SlackEmojiMappings = { emoji: SlackEmojiMapping[]; more: boolean; teams: MappableTeam[]; milestones: MappableMilestone[]; levels: number[] };
+
+export const mostSlackEmojiListed = 10_000;
+
+export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string): Promise<SlackEmojiMappings> {
+  const listed = await ctx.db
+    .query("customEmoji")
+    .withIndex("by_name", (q) => q.eq("workspace", workspace))
+    .take(mostSlackEmojiListed + 1);
+  const named = await namesHeldIn(ctx, workspace);
+  const random = await randomEmojiNamesIn(ctx, workspace);
+  const mappingOf = (name: string): MappingTarget | null => (random.has(name) ? { kind: "random" } : targetOf(named.get(name)));
+  return {
+    emoji: listed.slice(0, mostSlackEmojiListed).map(({ name, image }) => ({ name, image, mapping: mappingOf(name) })),
+    more: listed.length > mostSlackEmojiListed,
+    teams: (await companyTeamsOf(ctx)).map(({ team, name }) => ({ team, name })).toSorted((one, other) => one.name.localeCompare(other.name)),
+    milestones: milestoneGoldNames.map(({ milestone, gold }) => ({ milestone, name: gold })),
+    levels: [...emojiLevels],
+  };
+}
+
+export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace): Promise<boolean> {
+  if ((await customEmojiImageOf(ctx, workspace, name)) === undefined) return false;
+  if (place.kind === "unmapped" || place.kind === "random") {
+    await freeTheName(ctx, workspace, name);
+    if (place.kind === "random") await classRandom(ctx, workspace, name);
+    else await unclassRandom(ctx, workspace, name);
+    return true;
+  }
+  const emoji = await earnedEmojiAt(ctx, workspace, place);
+  if (emoji === null) return false;
+  await unclassRandom(ctx, workspace, name);
+  await giveEmojiTheName(ctx, workspace, emoji, name);
+  return true;
+}
+
+function targetOf(emoji: EarnedEmojiId | undefined): MappingTarget | null {
+  if (emoji === undefined) return null;
+  const colon = emoji.indexOf(":");
+  const [kind, cause] = [emoji.slice(0, colon), emoji.slice(colon + 1)];
+  if (kind === "team") return { kind, team: cause };
+  if (kind === "milestone") return { kind, milestone: cause };
+  if (kind === "level") return { kind, level: Number(cause) };
+  return { kind: "hype", person: cause as MemberId };
+}
+
+async function earnedEmojiAt(ctx: QueryCtx, workspace: string, place: Exclude<MappingTarget, { kind: "random" }>): Promise<EarnedEmojiId | null> {
+  switch (place.kind) {
+    case "team":
+      return (await companyTeamsOf(ctx)).some(({ team }) => team === place.team) ? `team:${place.team}` : null;
+    case "milestone":
+      return milestoneGoldNames.some(({ milestone }) => milestone === place.milestone) ? `milestone:${place.milestone}` : null;
+    case "level":
+      return emojiLevels.some((level) => level === place.level) ? `level:${place.level}` : null;
+    case "hype":
+      return (await personFactsOf(ctx, place.person))?.workspace === workspace ? `hype:${place.person}` : null;
+  }
+}

@@ -66,6 +66,10 @@ export const seenEmojiValidator = v.object({ member: v.id("members"), emoji: v.s
 
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });
 
+export const randomEmojiValidator = v.object({ workspace: v.string(), name: v.string() });
+
+export const randomEmojiDropValidator = v.object({ member: v.id("members"), name: v.string(), pack: v.id("thoughtfulPacks"), at: v.number() });
+
 export const albumHistoryValidator = v.object({
   workspace: v.string(),
   startedAt: v.number(),
