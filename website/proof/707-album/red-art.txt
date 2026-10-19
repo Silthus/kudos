@@ -1,0 +1,3 @@
+     × the build holds one picture for every team crest, milestone tier and level of the catalogue, beside the team and hype emblems, each at its fixed unhashed path 3608ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 1 passed | 3 skipped (5)
