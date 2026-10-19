@@ -885,6 +885,11 @@
 }
 
 .al-board-row[data-you] {
+  box-shadow: inset 3px 0 0 var(--al-accent);
+  background: linear-gradient(var(--al-accent-soft), var(--al-accent-soft)), var(--card);
+}
+
+.al-board-row[data-pinned] {
   position: sticky;
   top: 0;
   bottom: 0;

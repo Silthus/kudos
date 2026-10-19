@@ -93,8 +93,8 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
   it("keeps the member's own row and teams in view while a long board scrolls: each board scrolls inside itself and their rows stick to its edges", () => {
     expect(declarationsOf(".al-board-rows"), "each board scrolls inside a bounded height").toMatchObject({ "overflow-y": "auto", "max-height": expect.any(String) });
-    expect(declarationsOf(".al-board-row[data-you]"), "the member's rows stick to the top and bottom edge of their board").toMatchObject({ position: "sticky", top: "0", bottom: "0" });
-    expect(declarationsOf(".al-board-row[data-you]").background, "a stuck row is opaque, so rows scrolling under it don't show through").toMatch(/var\(--card\)/);
+    expect(declarationsOf(".al-board-row[data-pinned]"), "the pinned rows stick to the top and bottom edge of their board").toMatchObject({ position: "sticky", top: "0", bottom: "0" });
+    expect(declarationsOf(".al-board-row[data-pinned]").background, "a stuck row is opaque, so rows scrolling under it don't show through").toMatch(/var\(--card\)/);
   });
 
   it("names everyone who shares the lead", async () => {
@@ -113,6 +113,14 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(mine).toEqual(["Rank 2: Lanterns Your team Who gave 8 thoughtful kudos", "Rank 5: Tin Orchard Your team Who gave 3 thoughtful kudos"]);
     expect(teams.getByText("Lanterns sits at No. 2. Tin Orchard sits at No. 5.")).toBeInTheDocument();
     expect(spokenTextOf((await board("People")).getByText("Sam Example").closest("li")!)).toBe("Rank 5: Sam Example You Lanterns, Tin Orchard 3 thoughtful kudos");
+  });
+
+  it("pins one row per board, the member's own and their home team's, so two stuck rows never cover each other", async () => {
+    visit(boardsFixtures.twoTeams);
+
+    const pinnedIn = async (name: "People" | "Teams") => (await board(name)).getAllByRole("listitem").filter((row) => row.hasAttribute("data-pinned")).map(spokenTextOf);
+    expect(await pinnedIn("People")).toEqual(["Rank 5: Sam Example You Lanterns, Tin Orchard 3 thoughtful kudos"]);
+    expect(await pinnedIn("Teams")).toEqual(["Rank 2: Lanterns Your team Who gave 8 thoughtful kudos"]);
   });
 
   it("links only the member's home team to the home page, and their other team to its own page", async () => {

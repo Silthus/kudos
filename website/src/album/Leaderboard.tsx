@@ -74,12 +74,13 @@ function PeopleBoard({ boards, teams, picked, onShowEveryone }: { boards: Though
 function TeamBoard({ boards, homeTeam, pickButtons, picked, onPick }: { boards: ThoughtfulBoards; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: string) => void }) {
   const unrankedMine = boards.pinned.teams.filter(({ rank }) => rank === null);
   const rows = [...boards.teams, ...unrankedMine];
+  const pinned = rows.find(({ mine, team }) => mine && team === homeTeam) ?? rows.find(({ mine }) => mine);
   return (
     <Board title="Teams" story={<TeamStory boards={boards} />}>
       {rows.length > 0 && (
         <ol className="al-board-rows">
           {rows.map((row) => (
-            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row.team)} />
+            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row.team)} />
           ))}
         </ol>
       )}
@@ -169,7 +170,7 @@ function PickedTeam({ team, onShowEveryone }: { team: BoardTeam; onShowEveryone:
 function PersonRow({ row, teams }: { row: BoardPerson; teams: TeamsByKey }) {
   const theirTeams = row.teams.flatMap((team) => teams.get(team) ?? []);
   return (
-    <li className="al-board-row" data-you={row.you ? "" : undefined}>
+    <li className="al-board-row" data-you={row.you ? "" : undefined} data-pinned={row.you ? "" : undefined}>
       <RankMark standing={row} />
       <MemberFace face={row.face} className="al-board-face" />
       <span className="al-board-who">
@@ -197,9 +198,9 @@ function PersonLink({ person, name }: { person: string; name: string }) {
   );
 }
 
-function TeamRow({ row, home, pickButtons, picked, onPick }: { row: BoardTeam; home: boolean; pickButtons: Map<string, HTMLButtonElement>; picked: boolean; onPick: () => void }) {
+function TeamRow({ row, home, pinned, pickButtons, picked, onPick }: { row: BoardTeam; home: boolean; pinned: boolean; pickButtons: Map<string, HTMLButtonElement>; picked: boolean; onPick: () => void }) {
   return (
-    <li className="al-board-row" data-you={row.mine ? "" : undefined} data-picked={picked ? "" : undefined}>
+    <li className="al-board-row" data-you={row.mine ? "" : undefined} data-pinned={pinned ? "" : undefined} data-picked={picked ? "" : undefined}>
       <RankMark standing={row} />
       <TeamCrest art={row.art} size={32} name={row.name} />
       <span className="al-board-who">
