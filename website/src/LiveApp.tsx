@@ -4,6 +4,7 @@ import { useConvex, useConvexAuth, useMutation, useQueries, useQuery, type Conve
 import { useCallback, useMemo, useState } from "react";
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex/server";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import type { MyGroupBoards } from "../../convex/website/groupBoards";
 import type { MyLeaderboard as MyEveryoneBoard } from "../../convex/website/leaderboard";
 import type { Denial } from "../../convex/website/memberQuery";
@@ -212,6 +213,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const linkCompanyProfile = useSentOnce(api.website.commands.linkCompanyProfile);
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
+  const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
@@ -228,6 +230,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       linkCompanyProfile: (member, profile) => answerWithin(commandAnswerBudgetMs, linkCompanyProfile({ member, profile })),
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
+      openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -235,7 +238,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, onSignInFailure],
   );
 }
 

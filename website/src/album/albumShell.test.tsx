@@ -85,7 +85,7 @@ describe("AL42: the top bar", () => {
     expect(bar.getByRole("link", { name: "HedgeHug" })).toHaveAttribute("href", "/");
     expect(bar.getByText("Level 6")).toBeInTheDocument();
     expect(bar.getByText("290 XP to level 7")).toBeInTheDocument();
-    expect(bar.getByRole("link", { name: "Open your packs, 2 waiting" })).toHaveAttribute("href", "/book#packs");
+    expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveAttribute("aria-haspopup", "dialog");
     expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
     expect(bar.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
     expect(bar.getByRole("link", { name: "Leaderboard" })).toHaveAttribute("href", "/leaderboard");
@@ -97,12 +97,12 @@ describe("AL42: the top bar", () => {
 
   it("says one pack, and no packs with how to earn one", async () => {
     visit("/", albumFixtures.onePack);
-    expect((await topBar()).getByRole("link", { name: "Open your packs, 1 waiting" })).toHaveTextContent("1 pack");
+    expect((await topBar()).getByRole("button", { name: "Open your packs, 1 waiting" })).toHaveTextContent("1 pack");
   });
 
   it("says no packs are waiting and how to earn one", async () => {
     visit("/", albumFixtures.newcomer);
-    expect((await topBar()).getByRole("link", { name: "No packs waiting" })).toHaveTextContent("Say thanks to earn one");
+    expect((await topBar()).getByRole("button", { name: "No packs waiting" })).toHaveTextContent("Say thanks to earn one");
   });
 
   it("the tray opens to say it holds nothing yet", async () => {
@@ -334,7 +334,7 @@ describe("AL55: the phone layout", () => {
     const bar = await topBar();
 
     expect(bar.getByText("Level 6")).toBeInTheDocument();
-    expect(bar.getByRole("link", { name: "Open your packs, 2 waiting" })).toBeInTheDocument();
+    expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Your emojis, 3 earned" })).toBeInTheDocument();
     expect(bar.queryByRole("link", { name: "Activity" })).not.toBeInTheDocument();

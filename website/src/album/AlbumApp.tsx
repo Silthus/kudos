@@ -37,7 +37,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings }: App
     );
   return (
     <NavigateProvider value={arriveAt}>
-      <AlbumShell album={album} place={place} busy={onSettings && settings === undefined} settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />} onSignOut={actions.signOut} />
+      <AlbumShell album={album} place={place} busy={onSettings && settings === undefined} settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />} onSignOut={actions.signOut} openThoughtfulPack={actions.openThoughtfulPack} />
     </NavigateProvider>
   );
 }
