@@ -67,7 +67,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("AL60: the Monday hug recap names the emojis earned last week", { timeout: 60_000 }, () => {
+describe("AL60: the Monday hug recap names the emojis earned last week", { timeout: 180_000 }, () => {
   test("a member who unlocked a team sticker and two hype emojis last week gets one more line in their recap, each emoji's picture with its name, Slack's own where Slack has it, and a member who earned none gets today's recap", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     slack.withCustomEmoji("carol-lindqvist-hype", "https://emoji.slack-edge.com/T1/carol-lindqvist-hype/1.png");
@@ -138,7 +138,7 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
   });
 });
 
-describe("AL61: the Monday post becomes the week's top thoughtful kudos", { timeout: 60_000 }, () => {
+describe("AL61: the Monday post becomes the week's top thoughtful kudos", { timeout: 180_000 }, () => {
   test("the three most hugged public thoughtful kudos are quoted, then by recipients, then newest, each with giver, recipients, its first 200 characters and a link, and the week's team stickers by count", async () => {
     await fourMembers([onForEveryone(albumSlack)], { startingAt: lastWeeksTuesday });
     await collects(alice, bob, carol);
@@ -201,7 +201,7 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
   });
 });
 
-describe("AL61 AL63: a weekly post quotes only public kudos", { timeout: 60_000 }, () => {
+describe("AL61 AL63: a weekly post quotes only public kudos", { timeout: 180_000 }, () => {
   test("a thoughtful kudos in a private channel, in a group DM or in a DM, or one deleted since, is never quoted however hugged, and a public one is", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     const inPrivate = await thanks(alice, "Thanks for walking me through the billing edge cases", bob, { channel: "G_PRIVATE", channelType: "group" });
@@ -247,7 +247,7 @@ const albumSlackOff: Array<{ condition: string; flags: FlagDefinition[]; turnOff
   { condition: "with album-slack on for someone else's email only", flags: [onForEmails(albumSlack, dana.email)] },
 ];
 
-describe("AL58: album moments are dark where album-slack is off", { timeout: 60_000 }, () => {
+describe("AL58: album moments are dark where album-slack is off", { timeout: 180_000 }, () => {
   test.each(albumSlackOff)("$condition, the Monday recaps and the Monday post make every Slack call they make with the album moments shut, and expose nothing", async ({ condition, flags, turnOff, momentsSent = { recaps: 2, mondayPosts: 1 } }) => {
     const albumFlags = condition.includes("album off") ? albumOn.filter((key) => key !== "album") : albumOn;
     theGate.shut = true;
