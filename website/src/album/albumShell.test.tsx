@@ -4,7 +4,8 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
-import { fixedHoggies, fixedProfile, hoggiesFixtures, profileFixtures } from "./profileFixtures";
+import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
+import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 import type { MyAlbum } from "./answer";
 import type { SettingsRead, SettingsShown } from "../settingsRead";
@@ -23,7 +24,7 @@ beforeEach(() => {
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum, capturer: Capturer | null = null) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.found), capturer });
+  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway), capturer });
 }
 
 function visitWhileCapturing(path: string) {

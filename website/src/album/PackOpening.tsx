@@ -1,5 +1,5 @@
 import { IconX } from "@posthog/icons";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Rarity } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, WaitingPack } from "./answer";
@@ -21,6 +21,7 @@ import {
   type Beat,
   type PackContents,
 } from "./opening";
+import { keepFocusIn } from "./focusTrap";
 import { CardBack, Confetti, HoggieCard, PackWrapper, PersonCard, Ring, Shine, Sparkles } from "./PackCards";
 import "./opening.css";
 
@@ -154,15 +155,6 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onO
       </p>
     </div>
   );
-}
-
-function keepFocusIn(dialog: HTMLElement | null, event: ReactKeyboardEvent<HTMLElement>) {
-  const controls = [...(dialog?.querySelectorAll<HTMLElement>("button:not(:disabled)") ?? [])];
-  const focused = document.activeElement as HTMLElement | null;
-  const atTheEdge = event.shiftKey ? focused === controls[0] : focused === controls.at(-1);
-  if (controls.length > 0 && focused !== null && controls.includes(focused) && !atTheEdge) return;
-  event.preventDefault();
-  (controls.length === 0 ? dialog : event.shiftKey ? controls.at(-1) : controls[0])?.focus();
 }
 
 function countWordsOf(openedCount: number, left: number) {

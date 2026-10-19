@@ -15,7 +15,8 @@ import { renderAlbum, renderApp } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
-import { fixedHoggies, fixedProfile, hoggiesFixtures, profileFixtures } from "./profileFixtures";
+import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
+import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -39,7 +40,7 @@ beforeEach(() => {
 
 function visit(address: string) {
   window.history.replaceState(null, "", address);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: fixedPeople(albumFixtures.midway), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.found) });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: fixedPeople(albumFixtures.midway), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway) });
 }
 
 function addressNow() {
