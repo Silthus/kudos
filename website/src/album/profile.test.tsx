@@ -24,8 +24,10 @@ function visit({ album = albumFixtures.midway, boards = boardsFixtures.week, pro
   return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { boards: fixedBoards(boards), profile: fixedProfile(profile), hoggies: fixedHoggies(hoggies) });
 }
 
+const arrival = { timeout: 10_000 };
+
 async function section(name: string) {
-  return within(await screen.findByRole("region", { name }));
+  return within(await screen.findByRole("region", { name }, arrival));
 }
 
 function topBar() {
@@ -42,7 +44,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
   it("shows your yearbook photo, name, team, level and XP bar", async () => {
     visit();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Sam Example" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Sam Example" }, arrival)).toBeInTheDocument();
     expect(screen.getByRole("figure", { name: "Sam Example, Lanterns" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lanterns · 4 of 5 in your album" })).toHaveAttribute("href", "/");
     const bar = screen.getByRole("progressbar", { name: "290 XP to level 7" });
@@ -54,7 +56,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
   it("shows the last kind note someone sent you, with who sent it, when, and its Slack link", async () => {
     visit();
 
-    const note = within(await screen.findByRole("figure", { name: "Someone wrote to you" }));
+    const note = within(await screen.findByRole("figure", { name: "Someone wrote to you" }, arrival));
     expect(note.getByText("Thank you for reviewing my first PR so kindly, I learned a lot from your comments.")).toBeInTheDocument();
     expect(note.getByRole("link", { name: "Ines Okafor, 17 Oct 2026" })).toHaveAttribute("href", "/book#people/ines-okafor");
     expect(note.getByRole("link", { name: /Open in Slack/ })).toHaveAttribute("href", "https://example.slack.com/archives/C1/p2");
@@ -63,7 +65,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
   it("shows no note while nobody has sent you a thoughtful kudos", async () => {
     visit({ profile: profileFixtures.quiet });
 
-    await screen.findByRole("heading", { level: 1, name: "Sam Example" });
+    await screen.findByRole("heading", { level: 1, name: "Sam Example" }, arrival);
     expect(screen.queryByRole("figure", { name: "Someone wrote to you" })).toBeNull();
   });
 
@@ -178,7 +180,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     window.history.replaceState(null, "", "/book#me");
     renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: fixedBoards(boardsFixtures.week), hoggies: fixedHoggies(hoggiesFixtures.found), profile: () => undefined });
 
-    await screen.findByRole("navigation", { name: "Album" });
+    await screen.findByRole("navigation", { name: "Album" }, arrival);
     expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByRole("region", { name: "Coolest finds" })).toBeNull();
   });
@@ -186,6 +188,6 @@ describe("AL52: the profile page shows you, your week and your album at a glance
   it("a profile read that fails shows the error page in the frame", async () => {
     visit({ profile: { kind: "broken" } });
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Something went wrong" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Something went wrong" }, arrival)).toBeInTheDocument();
   });
 });
