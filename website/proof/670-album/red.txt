@@ -1,0 +1,37 @@
+
+ RUN  v5.0.3 /home/coder/.t3/worktrees/kudos/t3-a9945cf2
+
+ ❯ |convex| convex/album/endState.test.ts (2 tests | 1 failed) 28427ms
+   ❯ AL37: with album and album-slack on and every retired flag off, a member keeps everything the album needs and App Home shows none of the retired features (2)
+     × App Home shows no coins, store, quests, Journey, skill tree, ladders or level unlocks on any tab, where the same walk with the retired flags on shows each 13371ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/album/endState.test.ts > AL37: with album and album-slack on and every retired flag off, a member keeps everything the album needs and App Home shows none of the retired features > App Home shows no coins, store, quests, Journey, skill tree, ladders or level unlocks on any tab, where the same walk with the retired flags on shows each
+AssertionError: U_ALICE_MARCHETTI's App Home with the retired flags off: expected [ 'ladders', 'level unlocks' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "ladders",
++   "level unlocks",
++ ]
+
+ ❯ convex/album/endState.test.ts:90:136
+     88|     const endState = await walkWith("off");
+     89|
+     90|     for (const { user } of everyone) expect(retiredFeaturesOn(endState…
+       |                                                                                                                                        ^
+     91|     expect(retiredFeaturesOn(Object.values(withTheRetiredOn.homes).fla…
+     92|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  16:14:47
+   Duration  29.80s (tests 96%, transform 3%, import 1%)
+
