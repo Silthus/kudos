@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { AnswerPage } from "../App";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -57,13 +57,14 @@ function PeopleBoard({ boards, teams, picked, onShowEveryone }: { boards: Though
   const shown = picked === undefined ? boards.people : boards.people.filter(({ teams: theirs }) => theirs.includes(picked.team));
   const me = boards.pinned.me;
   const rows = me === null || shown.some(({ you }) => you) ? shown : [...shown, me];
+  const { clearance, pinnedRef } = usePinnedClearance();
   return (
     <Board title="People" story={<PeopleStory boards={boards} />} filter={picked === undefined ? undefined : <PickedTeam team={picked} onShowEveryone={onShowEveryone} />}>
       {picked !== undefined && shown.length === 0 && <p className="al-board-empty">Nobody in {picked.name} has given one yet this week.</p>}
       {rows.length > 0 && (
-        <ol className="al-board-rows">
+        <ol className="al-board-rows" style={clearance}>
           {rows.map((row) => (
-            <PersonRow key={row.person} row={row} teams={teams} />
+            <PersonRow key={row.person} row={row} teams={teams} pinnedRef={pinnedRef} />
           ))}
         </ol>
       )}
@@ -75,12 +76,13 @@ function TeamBoard({ boards, homeTeam, pickButtons, picked, onPick }: { boards: 
   const unrankedMine = boards.pinned.teams.filter(({ rank }) => rank === null);
   const rows = [...boards.teams, ...unrankedMine];
   const pinned = rows.find(({ mine, team }) => mine && team === homeTeam) ?? rows.find(({ mine }) => mine);
+  const { clearance, pinnedRef } = usePinnedClearance();
   return (
     <Board title="Teams" story={<TeamStory boards={boards} />}>
       {rows.length > 0 && (
-        <ol className="al-board-rows">
+        <ol className="al-board-rows" style={clearance}>
           {rows.map((row) => (
-            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row.team)} />
+            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pinnedRef={pinnedRef} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row.team)} />
           ))}
         </ol>
       )}
@@ -167,10 +169,10 @@ function PickedTeam({ team, onShowEveryone }: { team: BoardTeam; onShowEveryone:
   );
 }
 
-function PersonRow({ row, teams }: { row: BoardPerson; teams: TeamsByKey }) {
+function PersonRow({ row, teams, pinnedRef }: { row: BoardPerson; teams: TeamsByKey; pinnedRef: PinnedRef }) {
   const theirTeams = row.teams.flatMap((team) => teams.get(team) ?? []);
   return (
-    <li className="al-board-row" data-you={row.you ? "" : undefined} data-pinned={row.you ? "" : undefined}>
+    <li ref={row.you ? pinnedRef : undefined} className="al-board-row" data-you={row.you ? "" : undefined} data-pinned={row.you ? "" : undefined}>
       <RankMark standing={row} />
       <MemberFace face={row.face} className="al-board-face" />
       <span className="al-board-who">
@@ -198,9 +200,9 @@ function PersonLink({ person, name }: { person: string; name: string }) {
   );
 }
 
-function TeamRow({ row, home, pinned, pickButtons, picked, onPick }: { row: BoardTeam; home: boolean; pinned: boolean; pickButtons: Map<string, HTMLButtonElement>; picked: boolean; onPick: () => void }) {
+function TeamRow({ row, home, pinned, pinnedRef, pickButtons, picked, onPick }: { row: BoardTeam; home: boolean; pinned: boolean; pinnedRef: PinnedRef; pickButtons: Map<string, HTMLButtonElement>; picked: boolean; onPick: () => void }) {
   return (
-    <li className="al-board-row" data-you={row.mine ? "" : undefined} data-pinned={pinned ? "" : undefined} data-picked={picked ? "" : undefined}>
+    <li ref={pinned ? pinnedRef : undefined} className="al-board-row" data-you={row.mine ? "" : undefined} data-pinned={pinned ? "" : undefined} data-picked={picked ? "" : undefined}>
       <RankMark standing={row} />
       <TeamCrest art={row.art} size={32} name={row.name} />
       <span className="al-board-who">
@@ -217,6 +219,23 @@ function TeamRow({ row, home, pinned, pickButtons, picked, onPick }: { row: Boar
       <Score thoughtful={row.thoughtful} />
     </li>
   );
+}
+
+type PinnedRef = (row: HTMLLIElement | null) => void;
+
+function usePinnedClearance(): { clearance: CSSProperties; pinnedRef: PinnedRef } {
+  const [height, setHeight] = useState(0);
+  const observer = useRef<ResizeObserver | null>(null);
+  const pinnedRef = useCallback((row: HTMLLIElement | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
+    if (row === null) return;
+    setHeight(row.offsetHeight);
+    if (typeof ResizeObserver === "undefined") return;
+    observer.current = new ResizeObserver(() => setHeight(row.offsetHeight));
+    observer.current.observe(row);
+  }, []);
+  return { clearance: { "--al-pinned-height": `${height}px` } as CSSProperties, pinnedRef };
 }
 
 function keepPickButton(pickButtons: Map<string, HTMLButtonElement>, team: string, button: HTMLButtonElement | null) {

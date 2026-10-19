@@ -94,6 +94,8 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
   it("keeps the member's own row and teams in view while a long board scrolls: each board scrolls inside itself and their rows stick to its edges", () => {
     expect(declarationsOf(".al-board-rows"), "each board scrolls inside a bounded height").toMatchObject({ "overflow-y": "auto", "max-height": expect.any(String) });
     expect(declarationsOf(".al-board-row[data-pinned]"), "the pinned rows stick to the top and bottom edge of their board").toMatchObject({ position: "sticky", top: "0", bottom: "0" });
+    expect(declarationsOf(".al-board-rows")["scroll-padding-block"], "focus moving under a stuck row scrolls clear of it, by the stuck row's own height").toMatch(/var\(--al-pinned-height/);
+    expect(declarationsOf(".al-board-row[data-picked]").background, "a picked row stays opaque, so a picked pinned team never shows rows through it").toMatch(/var\(--card\)/);
     expect(declarationsOf(".al-board-row[data-pinned]").background, "a stuck row is opaque, so rows scrolling under it don't show through").toMatch(/var\(--card\)/);
   });
 

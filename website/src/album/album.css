@@ -863,12 +863,14 @@
 }
 
 .al-board-rows {
+  --al-picked: color-mix(in oklab, var(--foreground) 6%, transparent);
   max-height: max(22.5rem, calc(100vh - 23.75rem));
   margin: 0;
   padding: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   list-style: none;
+  scroll-padding-block: var(--al-pinned-height, 0px);
   scrollbar-width: thin;
 }
 
@@ -899,7 +901,7 @@
 }
 
 .al-board-row[data-picked] {
-  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  background: linear-gradient(var(--al-picked), var(--al-picked)), var(--card);
 }
 
 .al-board-rank {
