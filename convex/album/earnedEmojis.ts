@@ -61,7 +61,7 @@ export async function hypeEmojiOf(ctx: QueryCtx, workspace: string, person: Memb
   const name = await emojiNameOf(ctx, workspace, `hype:${person}`);
   if (name === null) return null;
   const slackPicture = await customEmojiImageOf(ctx, workspace, name);
-  return { name, picture: slackPicture ?? (await hypePictureOf(ctx, workspace, person)), inSlack: slackPicture !== undefined };
+  return { name, picture: slackPicture ?? (await hypeFaceOf(ctx, workspace, person)).picture, inSlack: slackPicture !== undefined };
 }
 
 export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: string[], at: number): Promise<string[] | null> {
