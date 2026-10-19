@@ -2,25 +2,21 @@ import type { ReactNode } from "react";
 import { PageTitle } from "../PageTitle";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import type { Album, AlbumTeam } from "./answer";
-import { medalsOf, myTeamOf, plural, xpToNextOf } from "./facts";
+import { medalsOf, myTeamOf, plural } from "./facts";
 import type { Place } from "./place";
 import { TeamPage } from "./TeamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; unlocking: TeamUnlocking };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; profile: ReactNode; unlocking: TeamUnlocking };
 
-export function AlbumPage({ album, place, settings, leaderboard, activity, person, unlocking }: PageProps) {
+export function AlbumPage({ album, place, settings, leaderboard, activity, person, profile, unlocking }: PageProps) {
   switch (place.kind) {
     case "team":
       return <TeamOrHome album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} unlocking={unlocking} />;
     case "person":
       return person;
     case "profile":
-      return (
-        <Page tab="Profile" eyebrow="Your profile" title={<span className="ph-no-capture">{album.me.name}</span>}>
-          Level {album.level.level} · {xpToNextOf(album.level)} XP to level {album.level.level + 1}
-        </Page>
-      );
+      return profile;
     case "hoggies":
       return (
         <Page tab="Hoggies" title="Hoggies">
@@ -50,10 +46,9 @@ export function AlbumPage({ album, place, settings, leaderboard, activity, perso
   }
 }
 
-function Page({ tab, eyebrow, title, children }: { tab: string; eyebrow?: string; title: ReactNode; children: ReactNode }) {
+function Page({ tab, title, children }: { tab: string; title: ReactNode; children: ReactNode }) {
   return (
     <div className="al-page-body">
-      {eyebrow !== undefined && <p className="al-eyebrow">{eyebrow}</p>}
       <PageTitle tab={tab} size="hero">
         {title}
       </PageTitle>

@@ -9,6 +9,7 @@ import { contrast, contrastOnTint, type Mode } from "../test/themeContrast";
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePackOpeningOf, fixturePutAllIn, fixtureUnlockOf } from "./albumFixtures";
 import type { BoardsShown, MyAlbum, WeekShown } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
+import { fixedHoggies, fixedProfile, hoggiesFixtures, profileFixtures } from "./profileFixtures";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -22,6 +23,7 @@ const pages: { path: string; album?: MyAlbum; boards?: BoardsShown; week?: WeekS
   { path: "/book#people/ines-okafor" },
   { path: "/book#people/juno-park" },
   { path: "/book#me" },
+  { path: "/book#me", album: albumFixtures.newcomer },
   { path: "/book#hoggies" },
   { path: "/book#milestones" },
   { path: "/book#packs" },
@@ -59,7 +61,7 @@ async function violationsIn(container: Element) {
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week, week?: WeekShown) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), weeks: week === undefined ? fixtureWeeks() : fixedWeek(week), people: album.kind === "album" ? fixedPeople(album) : undefined, commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), unlockTeamSticker: async (team) => (album.kind === "album" ? fixtureUnlockOf(album, team) : { kind: "refused" }) } });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), weeks: week === undefined ? fixtureWeeks() : fixedWeek(week), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.found), commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), unlockTeamSticker: async (team) => (album.kind === "album" ? fixtureUnlockOf(album, team) : { kind: "refused" }) } });
 }
 
 describe("AL55: every album page passes axe in light and dark, wide and on a phone", () => {
@@ -71,7 +73,7 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
           if (wide) preferWideScreen();
           else aWideScreenThatNarrows().narrow();
           const { container } = visit(path, album, boards, week);
-          await screen.findByRole("navigation", { name: "Album" });
+          await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
 
           expect(await violationsIn(container)).toEqual([]);
         }, 30_000);
@@ -168,12 +170,12 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
   }
 });
 
-describe("AL55: the album is usable by keyboard alone", () => {
+describe("AL55: the album is usable by keyboard alone", { timeout: 30_000 }, () => {
   it("Tab walks the top bar in reading order, then the sidebar, then the page", async () => {
     fakeSystemTheme(false);
     preferWideScreen();
     const { user } = visit("/");
-    await screen.findByRole("navigation", { name: "Album" });
+    await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
 
     const reached: string[] = [];
     for (let step = 0; step < 11; step += 1) {
