@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "hoggie": "coffee-run",
+      "isNew": true,
+      "item": "jn7nwrcwhj3h169x9d96xgzmeh8gkj6z",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "hoggie": "tourist",
+      "isNew": true,
+      "item": "jn7hrm9m9eh3wprr7wpa3akcz18gk5re",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    },
+    {
+      "item": "jn7thcqakmm7cp0drraeaxbqnd8gjy1e",
+      "kind": "sticker",
+      "person": "js77hxh6fxeje6f9gz595xqt858gktxd"
+    },
+    {
+      "item": "jn7t9k8v2vjq1jyhxf9h00cbzh8gj9xm",
+      "kind": "sticker",
+      "person": "js71tqx3dy8jy4aq0b528ywfwd8gkmcq"
+    }
+  ],
+  "kind": "placed",
+  "more": false
+}

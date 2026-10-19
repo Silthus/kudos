@@ -727,6 +727,10 @@
     {
       "name": "album sticker",
       "definition": "A person in a member's album: put in from a thoughtful pack, or brought by the album's history for someone the member gave a kudos award to before it began (AL13, AL14); never added by being thanked, kept for good, and not a Book sticker."
+    },
+    {
+      "name": "team sticker",
+      "definition": "A complete team page's seal in a member's album, unlocked once and for good by the member's own click (AL19); it keeps the team's slug, name, crest art and team emoji name as they were at its unlock, so a team joined, a lost match, the team leaving posthog.com or a rename never takes it back or changes how it shows (AL20). Not a crest, which a member collects from hoggies."
     }
   ],
   "retired": [

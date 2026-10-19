@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "hoggie": "safari",
+      "isNew": true,
+      "item": "jn7m849twsvhxrkpxdbexf5rjd8gknq0",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    },
+    {
+      "hoggie": "heart",
+      "isNew": true,
+      "item": "jn7jtgpmjqzm753gj59k7k3h2s8gkhp9",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "item": "jn7syjfhns2aqby7hp8bkhrwa58gjd7h",
+      "kind": "sticker",
+      "person": "js73p5gc3gx81kkmsqdzr8j6q58gjy05"
+    },
+    {
+      "item": "jn7tn5vq4x9aeqeay53qbsdfgn8gj0rp",
+      "kind": "sticker",
+      "person": "js7df50sjf3ggxanckyadn6eqh8gjmg9"
+    }
+  ],
+  "kind": "placed",
+  "more": false
+}

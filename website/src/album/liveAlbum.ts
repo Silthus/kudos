@@ -1,13 +1,13 @@
 import type { AlbumPerson as HeldPerson, AlbumRead as GetAlbumAnswer } from "../../../convex/website/album";
 import type { Denial } from "../../../convex/website/memberQuery";
-import type { AlbumPerson, MyAlbum } from "./answer";
+import type { AlbumPerson, AlbumTeam, MyAlbum } from "./answer";
 
 export function albumOf(answer: GetAlbumAnswer | Denial): MyAlbum {
   if (answer.kind !== "album") return answer;
   const { people, morePeople, ...answered } = answer;
-  return { teams: [], emojis: [], milestones: [], gettingStarted: null, ...answered, people: people.map(beforeTheirTeams), me: { team: null, ...answer.me } };
+  return { emojis: [], milestones: [], gettingStarted: null, ...answered, people: people.map((person) => onTheirTeams(person, answer.teams)), me: { team: null, ...answer.me } };
 }
 
-function beforeTheirTeams(person: HeldPerson): AlbumPerson {
-  return { ...person, teams: [], packedThisWeek: false };
+function onTheirTeams(person: HeldPerson, teams: AlbumTeam[]): AlbumPerson {
+  return { ...person, teams: teams.filter(({ people }) => people.includes(person.person)).map(({ team }) => team), packedThisWeek: false };
 }
