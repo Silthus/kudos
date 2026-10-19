@@ -23,3 +23,11 @@ The sandbox `different-dog-467` ran a throwaway tree at `6d182cee`: branch `albu
 The face in the screenshots is blurred: it's a real photo, Gravatar's docs example.
 
 Run: `KUDOS_CAST=<letter> KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/718-album/drive.mts`
+
+## Rerun after review round 1
+
+The round-1 fixes changed the put-in path: `putIn` and `putAllIn` now answer each sticker with the person. At 17:52 UTC, the sandbox ran `9254566a`: this branch at `840ecdb9` (with `main` merged), plus #670's live backend. The website was the branch's own, untouched. The dry run showed no index change.
+
+- Tamsin Vale's tray still held both cards. Putting in Maximiliane's card flew a token with the face (Gravatar's docs example), not a blank disc.
+- "Put them all in" flew the two hoggies and Pim Lark's card with `PL`. The tray then read "nothing to put in".
+- No `securitypolicyviolation` during the walk.
