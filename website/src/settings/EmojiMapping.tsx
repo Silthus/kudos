@@ -39,22 +39,40 @@ const places: [PlaceKind, string][] = [
   ["random", "Random drops"],
 ];
 
+const sectionLabel = "Earned emojis in Slack";
+
 export function EmojiMappingSection({ useEmojiMappings, mapSlackEmoji }: { useEmojiMappings: EmojiMappingsRead; mapSlackEmoji: MapSlackEmoji }) {
   const mappings = useEmojiMappings(true);
-  if (mappings?.kind !== "mappings") return null;
+  if (mappings === undefined || mappings.kind === "connecting") return <Panel id="emoji-mapping" label={sectionLabel} busy />;
+  if (mappings.kind === "broken")
+    return (
+      <Panel id="emoji-mapping" label={sectionLabel}>
+        <p className="text-sm text-muted-foreground">The workspace's Slack emoji didn't load. Try again in a moment.</p>
+      </Panel>
+    );
+  if (mappings.kind !== "mappings") return null;
   return <EmojiMapping mappings={mappings} mapSlackEmoji={mapSlackEmoji} />;
 }
 
 function EmojiMapping({ mappings, mapSlackEmoji }: { mappings: EmojiMappings; mapSlackEmoji: MapSlackEmoji }) {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearchNow] = useState("");
+  const [filter, setFilterNow] = useState<Filter>("all");
   const [editing, setEditing] = useState<string | null>(null);
+  const [kept, setKept] = useState<string | null>(null);
+  const [shown, setShown] = useState(emojiShownAtMost);
+  const narrowTo = <Value,>(set: (value: Value) => void) => (value: Value) => {
+    set(value);
+    setKept(null);
+    setShown(emojiShownAtMost);
+  };
+  const setSearch = narrowTo(setSearchNow);
+  const setFilter = narrowTo(setFilterNow);
   const names = useMemo(() => namesOf(mappings), [mappings]);
   const searchable = useMemo(() => mappings.emoji.map((emoji) => ({ emoji, text: searchTextOf(emoji.name) })), [mappings.emoji]);
-  const found = searchable.filter(({ emoji, text }) => isShownBy(filter, emoji) && isFoundBy(text, search)).map(({ emoji }) => emoji);
-  const more = found.length - emojiShownAtMost;
+  const found = searchable.filter(({ emoji, text }) => emoji.name === kept || (isShownBy(filter, emoji) && isFoundBy(text, search))).map(({ emoji }) => emoji);
+  const more = found.length - shown;
   return (
-    <Panel id="emoji-mapping" label="Earned emojis in Slack">
+    <Panel id="emoji-mapping" label={sectionLabel}>
       <p className="text-sm text-muted-foreground">Map a Slack emoji to a team, a person's hype, a milestone, a level or the random drops. A mapped emoji is that earned emoji in Slack and in the album at once, and everyone who earned it keeps it. Random drops come from thoughtful packs, now and then.</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <SearchField label="Find a Slack emoji" value={search} onChange={setSearch} />
@@ -70,15 +88,21 @@ function EmojiMapping({ mappings, mapSlackEmoji }: { mappings: EmojiMappings; ma
         </label>
       </div>
       {found.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No Slack emoji matches that.</p>
+        <p className="text-sm text-muted-foreground">{mappings.emoji.length === 0 ? "Slack has no custom emoji for this workspace yet." : "No Slack emoji matches that."}</p>
       ) : (
         <ul aria-label="Slack emojis" className="ph-no-capture max-h-[36rem] divide-y overflow-y-auto rounded-lg border">
-          {found.slice(0, emojiShownAtMost).map((emoji) => (
-            <EmojiRow key={emoji.name} emoji={emoji} mappings={mappings} names={names} editing={editing === emoji.name} onEdit={setEditing} mapSlackEmoji={mapSlackEmoji} />
+          {found.slice(0, shown).map((emoji) => (
+            <EmojiRow key={emoji.name} emoji={emoji} mappings={mappings} names={names} editing={editing === emoji.name} onEdit={setEditing} onSaved={setKept} mapSlackEmoji={mapSlackEmoji} />
           ))}
         </ul>
       )}
-      {more > 0 && <p className="text-sm text-muted-foreground">{`${more} more. Search or filter to narrow it down.`}</p>}
+      {more > 0 && (
+        <div>
+          <Button variant="outline" size="sm" onClick={() => setShown(shown + emojiShownAtMost)}>
+            {`Show ${Math.min(more, emojiShownAtMost)} more`}
+          </Button>
+        </div>
+      )}
       {mappings.more && <p className="text-sm text-muted-foreground">Slack has more emoji than this list holds. Search finds only the ones listed.</p>}
     </Panel>
   );
@@ -95,9 +119,9 @@ function isShownBy(filter: Filter, { mapping }: SlackEmoji) {
   return (mapping?.kind ?? "unmapped") === filter;
 }
 
-type EmojiRowProps = { emoji: SlackEmoji; mappings: EmojiMappings; names: Names; editing: boolean; onEdit: (name: string | null) => void; mapSlackEmoji: MapSlackEmoji };
+type EmojiRowProps = { emoji: SlackEmoji; mappings: EmojiMappings; names: Names; editing: boolean; onEdit: (name: string | null) => void; onSaved: (name: string) => void; mapSlackEmoji: MapSlackEmoji };
 
-function EmojiRow({ emoji: { name, image, mapping }, mappings, names, editing, onEdit, mapSlackEmoji }: EmojiRowProps) {
+function EmojiRow({ emoji: { name, image, mapping }, mappings, names, editing, onEdit, onSaved, mapSlackEmoji }: EmojiRowProps) {
   const current: EmojiPlaceChoice = mapping ?? { kind: "unmapped" };
   const { pending, settled, choose } = useSentChoice(keyOf(current), async (asked: string) => answerOf(await mapSlackEmoji(name, placeOfKey(asked))));
   const change = useRef<HTMLButtonElement>(null);
@@ -106,6 +130,7 @@ function EmojiRow({ emoji: { name, image, mapping }, mappings, names, editing, o
     change.current?.focus();
   };
   const save = (asked: EmojiPlaceChoice) => {
+    onSaved(name);
     closeEditor();
     void choose(keyOf(asked));
   };
@@ -123,7 +148,7 @@ function EmojiRow({ emoji: { name, image, mapping }, mappings, names, editing, o
           Change
         </Button>
       </div>
-      {editing && <PlaceEditor name={name} current={current} mappings={mappings} onSave={save} onCancel={closeEditor} />}
+      {editing && <PlaceEditor name={name} current={current} mappings={mappings} names={names} onSave={save} onCancel={closeEditor} />}
       <StatusLine line={lineAfter(settled, `:${name}: is now ${wordsOf(current, names).told}.`)} />
     </li>
   );
@@ -131,12 +156,13 @@ function EmojiRow({ emoji: { name, image, mapping }, mappings, names, editing, o
 
 type Draft = { kind: PlaceKind; team: string; milestone: string; level: string; person: string };
 
-type PlaceEditorProps = { name: string; current: EmojiPlaceChoice; mappings: EmojiMappings; onSave: (asked: EmojiPlaceChoice) => void; onCancel: () => void };
+type PlaceEditorProps = { name: string; current: EmojiPlaceChoice; mappings: EmojiMappings; names: Names; onSave: (asked: EmojiPlaceChoice) => void; onCancel: () => void };
 
-function PlaceEditor({ name, current, mappings, onSave, onCancel }: PlaceEditorProps) {
+function PlaceEditor({ name, current, mappings, names, onSave, onCancel }: PlaceEditorProps) {
   const [draft, setDraft] = useState<Draft>(() => draftOf(current));
   const asked = placeOfDraft(draft);
   const savable = asked !== null && keyOf(asked) !== keyOf(current);
+  const displaced = savable ? displacedBy(asked, current, name, mappings, names) : null;
   return (
     <div role="group" aria-label={`:${name}:'s place`} className="flex flex-col gap-3 rounded-lg border bg-background p-3">
       <label className="flex flex-col gap-1 text-sm font-medium">
@@ -153,6 +179,7 @@ function PlaceEditor({ name, current, mappings, onSave, onCancel }: PlaceEditorP
       {draft.kind === "milestone" && <Choice label="Milestone" placeholder="Pick a milestone" value={draft.milestone} options={mappings.milestones.map(({ milestone, name: milestoneName }) => [milestone, milestoneName])} onChange={(milestone) => setDraft({ ...draft, milestone })} />}
       {draft.kind === "level" && <Choice label="Level" placeholder="Pick a level" value={draft.level} options={mappings.levels.map((level) => [String(level), `Level ${level}`])} onChange={(level) => setDraft({ ...draft, level })} />}
       {draft.kind === "hype" && <PersonPicker people={mappings.people} picked={draft.person} onPick={(person) => setDraft({ ...draft, person })} />}
+      {displaced !== null && <p className="text-sm text-muted-foreground">{displaced}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="primary" size="sm" disabled={!savable} onClick={() => asked !== null && savable && onSave(asked)}>
           Save
@@ -241,6 +268,17 @@ function placeOfDraft({ kind, team, milestone, level, person }: Draft): EmojiPla
     default:
       return { kind };
   }
+}
+
+function displacedBy(asked: EmojiPlaceChoice, current: EmojiPlaceChoice, name: string, { emoji }: EmojiMappings, names: Names): string | null {
+  if (isEarnedPlace(current) && !isEarnedPlace(asked)) return `The ${wordsOf(current, names).shown} leaves Slack until Slack has an emoji of its new name.`;
+  if (!isEarnedPlace(asked)) return null;
+  const holder = emoji.find((each) => each.name !== name && each.mapping !== null && keyOf(each.mapping) === keyOf(asked));
+  return holder === undefined ? null : `:${holder.name}: holds it now and becomes unmapped.`;
+}
+
+function isEarnedPlace(place: EmojiPlaceChoice): boolean {
+  return place.kind !== "random" && place.kind !== "unmapped";
 }
 
 function keyOf(place: EmojiPlaceChoice): string {

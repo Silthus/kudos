@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
-import { TeamCrest } from "../crates/TeamCrest";
 import { prefersReducedMotion } from "../reducedMotion";
+import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import type { AlbumEmoji, AlbumTeam, TeamSticker } from "./answer";
 import { SealArt } from "./Seal";
 import { dateOf, inSlackWords } from "./teamPage";
@@ -84,10 +84,10 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
               <>
                 <div className="al-unlock-emoji ph-no-capture">
                   <span className="al-emoji-picture">
-                    <TeamCrest art={sticker.art} size={48} name={sticker.name} />
+                    <TeamEmojiPicture art={sticker.art} name={sticker.name} emoji={emoji} size={48} />
                   </span>
                   <span className="al-unlock-emoji-words">
-                    <code>:{sticker.emoji}:</code>
+                    <code>:{emoji?.name ?? sticker.emoji}:</code>
                     <span>{emojiLineOf(emoji)}</span>
                   </span>
                 </div>

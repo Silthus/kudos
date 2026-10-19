@@ -16,10 +16,10 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/settings");
 });
 
-async function showSettings({ settings = settingsFixtures.forTheMaintainer, mappings = emojiMappingsFixtures.workspace, mapSlackEmoji }: { settings?: MySettings; mappings?: EmojiMappingsShown; mapSlackEmoji?: ShellActions["mapSlackEmoji"] } = {}) {
+async function showSettings({ settings = settingsFixtures.forTheMaintainer, mappings = emojiMappingsFixtures.workspace as EmojiMappingsShown | undefined, mapSlackEmoji }: { settings?: MySettings; mappings?: EmojiMappingsShown | undefined; mapSlackEmoji?: ShellActions["mapSlackEmoji"] } = {}) {
   let shown = mappings;
   const view = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settings), emojiMappings: (asking) => (asking ? shown : undefined), commands: { mapSlackEmoji } });
-  const showMappings = (next: EmojiMappingsShown) => {
+  const showMappings = (next: EmojiMappingsShown | undefined) => {
     shown = next;
     view.showVisitor({ ...memberWithTheAlbum });
   };
@@ -68,7 +68,7 @@ describe("the maintainer maps Slack emojis to earned emojis in Settings", { time
     expect(within(screen.getByRole("main")).queryByRole("region", { name: "Earned emojis in Slack" })).not.toBeInTheDocument();
   });
 
-  it("lists the workspace's Slack emojis with their pictures and what each one is mapped to, the first 50, saying how many more a search would find", async () => {
+  it("lists the workspace's Slack emojis with their pictures and what each one is mapped to, the first 50, with a button for the rest", async () => {
     await showSettings();
 
     expect(rowOf("otters").getByText("Otters team emoji")).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe("the maintainer maps Slack emojis to earned emojis in Settings", { time
     expect(rowOf("shipit").getByText("Not mapped")).toBeInTheDocument();
     expect(rowElementOf("shipit").querySelector("img")).toHaveAttribute("src", shipitPicture);
     expect(rows()).toHaveLength(50);
-    expect(within(section()).getByText("38 more. Search or filter to narrow it down.")).toBeInTheDocument();
+    expect(within(section()).getByRole("button", { name: "Show 38 more" })).toBeInTheDocument();
   });
 
   it("finds Slack emojis by any part of their name, and filters them by what they are mapped to", async () => {
@@ -159,6 +159,54 @@ describe("the maintainer maps Slack emojis to earned emojis in Settings", { time
     await user.click(rowOf("otters").getByRole("button", { name: "Save" }));
 
     expect(rowOf("otters").getByRole("status")).toHaveTextContent("That couldn't be changed.");
+  });
+
+  it("keeps a row saved under a filter in view with its confirmation, until the filter changes", async () => {
+    const { user, showMappings } = await showSettings({ mapSlackEmoji: async () => ({ kind: "mapped" }) });
+    await user.selectOptions(within(section()).getByRole("combobox", { name: "Show" }), "Not mapped");
+
+    await user.click(rowOf("shipit").getByRole("button", { name: "Change :shipit:" }));
+    await user.selectOptions(rowOf("shipit").getByRole("combobox", { name: "Map to" }), "Random drops");
+    await user.click(rowOf("shipit").getByRole("button", { name: "Save" }));
+    showMappings(withMapping(emojiMappingsFixtures.workspace, "shipit", { kind: "random" }));
+
+    expect(rowOf("shipit").getByRole("button", { name: "Change :shipit:" })).toHaveFocus();
+    expect(rowOf("shipit").getByRole("status")).toHaveTextContent(":shipit: is now a random drop.");
+    await user.selectOptions(within(section()).getByRole("combobox", { name: "Show" }), "Every emoji");
+    await user.selectOptions(within(section()).getByRole("combobox", { name: "Show" }), "Not mapped");
+    expect(namesShown()).not.toContain(":shipit:");
+  });
+
+  it("says what a change displaces: the Slack emoji that holds the place now, and an earned emoji leaving Slack", async () => {
+    const { user } = await showSettings();
+
+    await user.click(rowOf("shipit").getByRole("button", { name: "Change :shipit:" }));
+    await user.selectOptions(rowOf("shipit").getByRole("combobox", { name: "Map to" }), "A team");
+    await user.selectOptions(rowOf("shipit").getByRole("combobox", { name: "Team" }), "Otters");
+    expect(rowOf("shipit").getByText(":otters: holds it now and becomes unmapped.")).toBeInTheDocument();
+    await user.click(rowOf("shipit").getByRole("button", { name: "Cancel" }));
+
+    await user.click(rowOf("otters").getByRole("button", { name: "Change :otters:" }));
+    await user.selectOptions(rowOf("otters").getByRole("combobox", { name: "Map to" }), "Not mapped");
+    expect(rowOf("otters").getByText("The Otters team emoji leaves Slack until Slack has an emoji of its new name.")).toBeInTheDocument();
+  });
+
+  it("shows 50 more rows at a time, so every emoji a search finds can be reached", async () => {
+    const { user } = await showSettings();
+
+    await user.click(within(section()).getByRole("button", { name: "Show 38 more" }));
+
+    expect(rows()).toHaveLength(88);
+    expect(within(section()).queryByRole("button", { name: /more/ })).not.toBeInTheDocument();
+  });
+
+  it("says when the list is loading, when it didn't load, and when Slack has no custom emoji yet", async () => {
+    const { showMappings } = await showSettings({ mappings: { kind: "connecting" } });
+    expect(section()).toHaveAttribute("aria-busy", "true");
+    showMappings({ kind: "broken" });
+    expect(within(section()).getByText("The workspace's Slack emoji didn't load. Try again in a moment.")).toBeInTheDocument();
+    showMappings({ ...emojiMappingsFixtures.workspace, emoji: [] });
+    expect(within(section()).getByText("Slack has no custom emoji for this workspace yet.")).toBeInTheDocument();
   });
 
   it("has no accessibility violations, with an editor open", async () => {

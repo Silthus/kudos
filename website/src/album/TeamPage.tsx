@@ -1,6 +1,7 @@
 import { Fragment, useId } from "react";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
+import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
@@ -192,7 +193,7 @@ function TeamEmojiLine({ team, emoji }: { team: AlbumTeam; emoji: AlbumEmoji }) 
   return (
     <p className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
-        <TeamCrest art={team.art} size={32} name={team.name} />
+        <TeamEmojiPicture art={team.art} name={team.name} emoji={emoji} size={32} />
       </span>
       <code>:{emoji.name}:</code>
       <span> is your team emoji.{inSlack === null ? "" : ` ${inSlack.charAt(0).toUpperCase()}${inSlack.slice(1)}.`}</span>

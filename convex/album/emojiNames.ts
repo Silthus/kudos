@@ -5,6 +5,7 @@ import { companyTeamsOf } from "../companyProfiles/teams";
 import { customEmojiImageOf } from "../workspace/customEmoji";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { emojiLevels, milestoneGoldNames, slugOf } from "./emojiCatalogue";
+import { isClassed } from "./emojiClasses";
 import { standardEmojiNames } from "./standardEmojiNames";
 
 export type EarnedEmojiId = `level:${number}` | `milestone:${string}` | `team:${string}` | `hype:${MemberId}`;
@@ -43,8 +44,11 @@ export async function namesHeldIn(ctx: QueryCtx, workspace: string): Promise<Map
   return new Map(rows.map((row) => [row.name, emojiIdOf(row)]));
 }
 
-export async function giveEmojiTheName(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiId, name: string): Promise<void> {
+export async function openTheRegistryIn(ctx: MutationCtx, workspace: string): Promise<void> {
   await reserveSharedNamesIn(ctx, workspace);
+}
+
+export async function giveEmojiTheName(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiId, name: string): Promise<void> {
   const named = await registeredAs(ctx, workspace, emoji);
   if (named?.name === name) return;
   await freeTheName(ctx, workspace, name);
@@ -147,7 +151,7 @@ async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty,
 }
 
 async function isFree(ctx: QueryCtx, workspace: string, name: string) {
-  return !standardEmojiNames.has(name) && !(await nameTaken(ctx, workspace, name));
+  return !standardEmojiNames.has(name) && !(await nameTaken(ctx, workspace, name)) && !(await isClassed(ctx, workspace, name));
 }
 
 function numberingOf(ctx: QueryCtx, workspace: string, stem: string) {

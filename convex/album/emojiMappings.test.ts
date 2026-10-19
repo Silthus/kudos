@@ -7,6 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
+import { mostRandomEmojis } from "./randomEmojis";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { EmojiMappings, EmojiMappingsRead } from "../website/emojiMappings";
@@ -190,9 +191,43 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
       ["spare", { kind: "hype", person: "not-a-key" }],
     ] as const) expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to }), `${name} to ${JSON.stringify(to)}`).toEqual({ kind: "refused" });
     expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
-    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "spare", to: { kind: "unmapped" } })).toEqual({ kind: "mapped" });
 
     expect(await everyTable()).toEqual(before);
+  });
+
+  test("a Slack emoji classed random or left unmapped keeps that place when the registry opens, when a person's first pack names their hype emoji and when a later sync adds a team named like it", async () => {
+    await slackHas("level-5", "lantern-wickfield1-hype", "beavers");
+    const asOwner = await signedIn(owner);
+    for (const [name, to] of [
+      ["level-5", { kind: "random" }],
+      ["lantern-wickfield1-hype", { kind: "unmapped" }],
+      ["beavers", { kind: "random" }],
+    ] as const) await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to });
+
+    await aliceCollects(lanterns[0]!);
+    await theCompanyCopyHolds(...twoTeams(), { slug: "beavers", name: "Beavers", profiles: profilesOf(bruno) });
+
+    expect((await mappingsOf(asOwner)).emoji.map(({ name, mapping }) => [name, mapping])).toEqual([
+      ["beavers", { kind: "random" }],
+      ["lantern-wickfield1-hype", null],
+      ["level-5", { kind: "random" }],
+    ]);
+    const asAlice = await signedIn(alice);
+    expect(await emojiWithId(asAlice, "level:5")).toMatchObject({ name: "level-5-2", inSlack: false });
+    expect(await emojiWithId(asAlice, `hype:${await memberOf(lanterns[0]!)}`)).toMatchObject({ name: "lantern-wickfield1-2-hype", inSlack: false });
+    expect(await emojiWithId(asAlice, "team:beavers")).toMatchObject({ name: "beavers-2", inSlack: false });
+  });
+
+  test(`at most ${mostRandomEmojis} Slack emojis are random drops; one more is refused`, async () => {
+    const names = Array.from({ length: mostRandomEmojis + 1 }, (_, index) => `drop-${String(index).padStart(3, "0")}`);
+    await slackHas(...names);
+    const asOwner = await signedIn(owner);
+    for (const name of names.slice(0, mostRandomEmojis)) await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to: { kind: "random" } });
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: names.at(-1)!, to: { kind: "random" } })).toEqual({ kind: "refused" });
+    theRoll.next = { chance: 0, pick: 0.5 };
+    await aliceCollects(otters[0]!);
+    expect((await albumOf(await signedIn(alice))).emojis.filter(({ kind }) => kind === "random"), "a pack opens within Convex's limits with every random emoji classed").toHaveLength(1);
   });
 });
 

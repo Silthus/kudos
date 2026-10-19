@@ -1,10 +1,10 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf } from "../companyProfiles/teams";
-import { customEmojiImageOf } from "../workspace/customEmoji";
+import { customEmojiImageOf, customEmojiListedIn } from "../workspace/customEmoji";
 import { personFactsOf, type MemberId } from "../workspace/directory";
 import { emojiLevels, milestoneGoldNames } from "./emojiCatalogue";
-import { freeTheName, giveEmojiTheName, namesHeldIn, type EarnedEmojiId } from "./emojiNames";
-import { classRandom, randomEmojiNamesIn, unclassRandom } from "./randomEmojis";
+import { classEmoji, emojiClassesIn, unclassEmoji } from "./emojiClasses";
+import { freeTheName, giveEmojiTheName, namesHeldIn, openTheRegistryIn, type EarnedEmojiId } from "./emojiNames";
 
 export type MappingTarget = { kind: "team"; team: string } | { kind: "milestone"; milestone: string } | { kind: "level"; level: number } | { kind: "hype"; person: MemberId } | { kind: "random" };
 
@@ -21,13 +21,10 @@ export type SlackEmojiMappings = { emoji: SlackEmojiMapping[]; more: boolean; te
 export const mostSlackEmojiListed = 10_000;
 
 export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string): Promise<SlackEmojiMappings> {
-  const listed = await ctx.db
-    .query("customEmoji")
-    .withIndex("by_name", (q) => q.eq("workspace", workspace))
-    .take(mostSlackEmojiListed + 1);
+  const listed = await customEmojiListedIn(ctx, workspace, mostSlackEmojiListed + 1);
   const named = await namesHeldIn(ctx, workspace);
-  const random = await randomEmojiNamesIn(ctx, workspace);
-  const mappingOf = (name: string): MappingTarget | null => (random.has(name) ? { kind: "random" } : targetOf(named.get(name)));
+  const classes = await emojiClassesIn(ctx, workspace);
+  const mappingOf = (name: string): MappingTarget | null => (classes.get(name) === "random" ? { kind: "random" } : targetOf(named.get(name)));
   return {
     emoji: listed.slice(0, mostSlackEmojiListed).map(({ name, image }) => ({ name, image, mapping: mappingOf(name) })),
     more: listed.length > mostSlackEmojiListed,
@@ -39,15 +36,15 @@ export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string): Pr
 
 export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace): Promise<boolean> {
   if ((await customEmojiImageOf(ctx, workspace, name)) === undefined) return false;
+  await openTheRegistryIn(ctx, workspace);
   if (place.kind === "unmapped" || place.kind === "random") {
+    if (!(await classEmoji(ctx, workspace, name, place.kind))) return false;
     await freeTheName(ctx, workspace, name);
-    if (place.kind === "random") await classRandom(ctx, workspace, name);
-    else await unclassRandom(ctx, workspace, name);
     return true;
   }
   const emoji = await earnedEmojiAt(ctx, workspace, place);
   if (emoji === null) return false;
-  await unclassRandom(ctx, workspace, name);
+  await unclassEmoji(ctx, workspace, name);
   await giveEmojiTheName(ctx, workspace, emoji, name);
   return true;
 }
