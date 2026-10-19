@@ -13,3 +13,12 @@ Branch `album/4` at `47479044` (`main` at `3174e514` merged in), hand-deployed a
 The Book's `getCollection` answers `ready` for this synthetic member (their Book feature is not opened), so the found counts are read from the stored tallies instead; `convex/album/putIn.test.ts` proves the same through `getCollection` with the Book open.
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/648-album/drive.mts`
+
+## Cross-version: a tray the base code opened, put in by this branch
+
+Ticket 3's rerun giver (`KUDOS_CAST=H` in `website/proof/647-album/`) holds a tray that `main`'s code opened on the sandbox at 00:20 UTC, before this branch's deploy: a sticker and `burning-money`, whose tally the base open already counted, with no tray drop.
+
+8. `getAlbum` through this branch lists both items (`base-opened/getAlbum-before.json`); the stored rows show the tally at count 1 and no tray drop (`base-opened/stored-before.jsonl`).
+9. `putAllIn` placed the hoggie, then the sticker, `more: false` (`base-opened/putAllIn.json`). The tray is empty and the person is held (`base-opened/getAlbum-after.json`). The tally is still count 1, with its original first find: the base-counted hoggie is not counted again. One album sticker `from: "pack"` is recorded (`base-opened/stored-after.jsonl`).
+
+The reverse direction is an accepted failure: after a rollback, a thoughtful hoggie this branch opened would wait uncounted, since the base code has no put-in, and the base schema ignores the `trayDrops` table. Production stores no thoughtful drop and no tray item while `album` is off there.
