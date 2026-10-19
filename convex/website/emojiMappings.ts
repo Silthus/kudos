@@ -45,7 +45,7 @@ export const mapSlackEmoji = memberMutation({
   handler: async (ctx, me, _person, { emoji, to }): Promise<EmojiMappingAnswer> => {
     if (!(await workspaceSettingsShownTo(ctx, me.member))) return { kind: "refused" };
     const place = await placeOf(ctx, me, to);
-    return place !== null && (await placeSlackEmoji(ctx, me.workspace, emoji, place, await randomEmojisShownTo(ctx, me.member))) ? { kind: "mapped" } : { kind: "refused" };
+    return place !== null && (await placeSlackEmoji(ctx, me.workspace, emoji, place, await randomEmojisShownTo(ctx, me.member), me.member)) ? { kind: "mapped" } : { kind: "refused" };
   },
 });
 

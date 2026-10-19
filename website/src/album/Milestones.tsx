@@ -1,7 +1,7 @@
 import { useId, type CSSProperties } from "react";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { PageTitle } from "../PageTitle";
-import { AddToSlackButton } from "./AddToSlackButton";
+import { NotInSlack } from "./findInSlack";
 import type { Album, AlbumMilestone } from "./answer";
 import { medalsOf } from "./facts";
 import { climbedShareOf, emblemOf, goalOf, isEarned, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
@@ -150,7 +150,7 @@ function emojiSaysOf(earned: boolean, at: number, answered: TierEmoji["answered"
   if (!earned) return `Unlocks at ${at}`;
   if (answered === null) return null;
   if (answered.inSlack) return "In Slack";
-  return <AddToSlackButton emoji={answered} emojiPage={emojiPage} />;
+  return <NotInSlack emoji={answered} emojiPage={emojiPage} />;
 }
 
 const ringRadius = 46;

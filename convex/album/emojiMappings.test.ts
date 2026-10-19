@@ -185,7 +185,7 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     expect((await mappingsOf(asOwner)).emoji[0]!.mapping, "after the next company sync").toBeNull();
   });
 
-  test("a Slack emoji the maintainer doesn't have, a team, milestone, level or person nobody knows, and a Slack emoji already in that place are refused or change nothing", async () => {
+  test("a Slack emoji the maintainer doesn't have, and a team, milestone, level or person nobody knows, are refused and change nothing; a Slack emoji already in that place only records the maintainer as who mapped it", async () => {
     await aliceCollects(otters[0]!);
     await slackHas("otters", "spare");
     const asOwner = await signedIn(owner);
@@ -200,9 +200,13 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
       ["spare", { kind: "level", level: 7 }],
       ["spare", { kind: "hype", person: "not-a-key" }],
     ] as const) expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to }), `${name} to ${JSON.stringify(to)}`).toEqual({ kind: "refused" });
-    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
-
     expect(await everyTable()).toEqual(before);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
+    const { emojiNames, ...after } = await everyTable();
+    const { emojiNames: _namesBefore, ...beforeWithoutNames } = before;
+    expect(after, "mapping a Slack emoji to the place it already has changes nothing else").toEqual(beforeWithoutNames);
+    expect(emojiNames!.find((row) => (row as { name: string }).name === "otters"), "and records the maintainer as who mapped it").toMatchObject({ name: "otters", mappedBy: { member: await memberOf(owner), as: "maintainer" } });
   });
 
   test("a Slack emoji classed random or left unmapped keeps that place when the registry opens, when a person's first pack names their hype emoji and when a later sync adds a team named like it", async () => {

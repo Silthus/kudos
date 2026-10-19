@@ -3,6 +3,8 @@ import { prefersReducedMotion } from "../reducedMotion";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import type { AlbumEmoji, AlbumTeam, TeamSticker } from "./answer";
 import { SealArt } from "./Seal";
+import { FindInSlackWhileOn, useEmojiWizardOn } from "./findInSlack";
+import { keepFocusIn } from "./focusTrap";
 import { dateOf, newTeamEmojiWords } from "./teamPage";
 import "./moment.css";
 
@@ -19,6 +21,7 @@ const momentSealSize = 264;
 type UnlockMomentProps = { sticker: TeamSticker; collected: number; emoji: AlbumEmoji | undefined; onDone: () => void };
 
 export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMomentProps) {
+  const wizardOn = useEmojiWizardOn();
   const [reduced] = useState(prefersReducedMotion);
   const [phase, setPhaseNow] = useState<Phase>(reduced ? "emoji" : "lift");
   const setPhase = useCallback((next: Phase) => setPhaseNow((current) => (phases.indexOf(next) > phases.indexOf(current) ? next : current)), []);
@@ -50,7 +53,7 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
   useEscapeTo(advance);
 
   return (
-    <div ref={dialog} tabIndex={-1} className="al-unlock-moment" role="dialog" aria-modal="true" aria-label={`${sticker.name} sticker unlocked`} data-phase={phase} data-reduced={reduced ? "" : undefined} onClick={advance} onKeyDown={(event) => event.key === "Tab" && keepFocusOnTheWayBack(event, continueButton.current)}>
+    <div ref={dialog} tabIndex={-1} className="al-unlock-moment" role="dialog" aria-modal="true" aria-label={`${sticker.name} sticker unlocked`} data-phase={phase} data-reduced={reduced ? "" : undefined} onClick={advance} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
       <div className="al-unlock-dim" aria-hidden="true" />
       <div className="al-unlock-stage">
         <div className="al-unlock-spot">
@@ -88,8 +91,9 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
                   </span>
                   <span className="al-unlock-emoji-words">
                     <code>:{emoji?.name ?? sticker.emoji}:</code>
-                    <span>{newTeamEmojiWords(emoji)}</span>
+                    <span>{newTeamEmojiWords(emoji, wizardOn)}</span>
                   </span>
+                  {emoji !== undefined && <FindInSlackWhileOn emoji={emoji} />}
                 </div>
                 <div className="al-unlock-continue">
                   <button
@@ -148,11 +152,6 @@ function useEscapeTo(advance: () => void) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-}
-
-function keepFocusOnTheWayBack(event: ReactKeyboardEvent<HTMLElement>, button: HTMLButtonElement | null) {
-  event.preventDefault();
-  (button ?? (event.currentTarget as HTMLElement)).focus();
 }
 
 function sealOnThePage(team: string) {

@@ -48,6 +48,7 @@ import type { QuestsRead, QuestsShown } from "./questsRead";
 import type { RecentKudosRead } from "./recentKudosRead";
 import { useLinkTargetOnceLanded } from "./linkTarget";
 import type { EmojiMappingsRead } from "./emojiMappingsRead";
+import type { AppEmojisRead, SlackEmojiMatchesRead } from "./emojiWizardReads";
 import type { SettingsRead, SettingsShown } from "./settingsRead";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import type { SpotlightDraw } from "./spotlightRead";
@@ -58,7 +59,7 @@ import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./s
 
 export type AppReads = Omit<AppProps, "visitor" | "actions">;
 
-export type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead; useEmojiMappings: EmojiMappingsRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead };
+export type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead; useEmojiMappings: EmojiMappingsRead; useSlackEmojiMatches: SlackEmojiMatchesRead; useAppEmojis: AppEmojisRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead };
 
 const AlbumApp = lazy(() => import("./album/AlbumApp"));
 

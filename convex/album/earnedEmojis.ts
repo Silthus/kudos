@@ -156,7 +156,7 @@ function teamCausesOf(pages: TeamPage[]): Cause[] {
   return pages.map(({ team, name, art, state, held, total, unlockedAt }) => ({ id: `team:${team}`, kind: "team", from: name, picture: teamPictureOf(art), earned: state === "unlocked", earnedAt: unlockedAt, progress: { have: held, need: total } }));
 }
 
-function teamPictureOf(art: TeamCrestArt): string {
+export function teamPictureOf(art: TeamCrestArt): string {
   if (art === null) return teamEmblemPicture;
   return art.kind === "crest" ? emojiArtPictureOf("team", art.slug) : art.url;
 }
@@ -205,7 +205,7 @@ async function nameOrUnnamed(ctx: QueryCtx, person: MemberId): Promise<string> {
   return (await nameAndPictureOf(ctx, person)).name ?? unnamedPerson;
 }
 
-async function hypeFaceOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<{ name: string; picture: string }> {
+export async function hypeFaceOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<{ name: string; picture: string }> {
   const companyFace = await storedCompanyFaceOf(ctx, workspace, person);
   const { name, picture } = await nameAndPictureOf(ctx, person);
   return { name: name ?? unnamedPerson, picture: companyFace?.image ?? picture ?? hypeEmblemPicture };
@@ -219,7 +219,7 @@ async function seenBy(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
   return new Set(seen.map(({ emoji }) => emoji));
 }
 
-async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): Promise<boolean> {
+export async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): Promise<boolean> {
   const [kind, cause] = splitOnce(id);
   if (kind === "team") return (await teamStickerOf(ctx, member, cause)) !== null;
   if (kind === "milestone") return holdsMilestoneTier(ctx, member, cause);

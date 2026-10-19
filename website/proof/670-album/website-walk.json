@@ -1,0 +1,326 @@
+{
+ "U0PRF670AVAA": {
+  "packs waiting before opening": 2,
+  "openThoughtfulPack": [
+   {
+    "kind": "opened",
+    "items": [
+     "sticker",
+     "hoggie"
+    ],
+    "applied": {
+     "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 25
+     },
+     "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 40
+     }
+    }
+   },
+   {
+    "kind": "opened",
+    "items": [
+     "sticker",
+     "hoggie"
+    ],
+    "applied": {
+     "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 40
+     },
+     "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 55
+     }
+    }
+   }
+  ],
+  "tray after opening": [
+   "sticker",
+   "hoggie",
+   "sticker",
+   "hoggie"
+  ],
+  "putIn": "placed",
+  "putAllIn": "placed",
+  "markEmojisSeen": {
+   "kind": "seen",
+   "ids": 2
+  },
+  "unlockTeamSticker (no complete page)": "refused",
+  "getAlbum": {
+   "kind": "album",
+   "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 55
+   },
+   "stickers held": [
+    "Ben Achterberg",
+    "Cyd Moreno"
+   ],
+   "people not yet held": 17,
+   "team pages": 60,
+   "milestones": {
+    "people": 2,
+    "teams": 0,
+    "reach": 0,
+    "hoggies": 2,
+    "thoughtful": 2
+   },
+   "emojis earned": [
+    "cyd-moreno-hype",
+    "ben-achterberg-hype",
+    "first-face",
+    "first-thank-you"
+   ],
+   "packs": 0,
+   "tray": 0
+  },
+  "getAlbumHoggies": {
+   "kind": "hoggies",
+   "found": 2,
+   "total": 151
+  },
+  "getThoughtfulBoards": {
+   "kind": "boards",
+   "people ranked": 42,
+   "synthetic rows": [
+    [
+     "Ava Lindgren",
+     2,
+     10
+    ],
+    [
+     "Ben Achterberg",
+     1,
+     31
+    ]
+   ],
+   "teams ranked": 11
+  },
+  "getAlbumPerson": {
+   "kind": "person",
+   "kudosGiven": 1,
+   "kudosReceived": 0
+  },
+  "getAlbumWeek": {
+   "kind": "week",
+   "issue": {
+    "hugsGiven": 0,
+    "hugsReceived": 0,
+    "kudosGiven": 2,
+    "kudosReceived": 1,
+    "packsOpened": 2,
+    "thoughtfulGiven": 2,
+    "thoughtfulReceived": 1
+   }
+  },
+  "getAlbumProfile": {
+   "kind": "profile"
+  },
+  "getEmojiMappings": {
+   "kind": "off"
+  }
+ },
+ "U0PRF670BENA": {
+  "packs waiting before opening": 1,
+  "openThoughtfulPack": [
+   {
+    "kind": "opened",
+    "items": [
+     "sticker",
+     "hoggie"
+    ],
+    "applied": {
+     "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 20
+     },
+     "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+     }
+    }
+   }
+  ],
+  "tray after opening": [
+   "sticker",
+   "hoggie"
+  ],
+  "putIn": "placed",
+  "putAllIn": "placed",
+  "markEmojisSeen": {
+   "kind": "seen",
+   "ids": 2
+  },
+  "unlockTeamSticker (no complete page)": "refused",
+  "getAlbum": {
+   "kind": "album",
+   "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 35
+   },
+   "stickers held": [
+    "Ava Lindgren"
+   ],
+   "people not yet held": 17,
+   "team pages": 60,
+   "milestones": {
+    "people": 1,
+    "teams": 0,
+    "reach": 0,
+    "hoggies": 1,
+    "thoughtful": 1
+   },
+   "emojis earned": [
+    "ava-lindgren-hype",
+    "first-face",
+    "first-thank-you"
+   ],
+   "packs": 0,
+   "tray": 0
+  },
+  "getAlbumHoggies": {
+   "kind": "hoggies",
+   "found": 1,
+   "total": 151
+  },
+  "getThoughtfulBoards": {
+   "kind": "boards",
+   "people ranked": 42,
+   "synthetic rows": [
+    [
+     "Ava Lindgren",
+     2,
+     10
+    ],
+    [
+     "Ben Achterberg",
+     1,
+     31
+    ]
+   ],
+   "teams ranked": 11
+  },
+  "getAlbumPerson": {
+   "kind": "person",
+   "kudosGiven": 0,
+   "kudosReceived": 1
+  },
+  "getAlbumWeek": {
+   "kind": "week",
+   "issue": {
+    "hugsGiven": 0,
+    "hugsReceived": 0,
+    "kudosGiven": 1,
+    "kudosReceived": 2,
+    "packsOpened": 1,
+    "thoughtfulGiven": 1,
+    "thoughtfulReceived": 1
+   }
+  },
+  "getAlbumProfile": {
+   "kind": "profile"
+  },
+  "getEmojiMappings": {
+   "kind": "off"
+  }
+ },
+ "U0PRF670CYDA": {
+  "packs waiting before opening": 0,
+  "openThoughtfulPack": [],
+  "tray after opening": [],
+  "putIn": null,
+  "putAllIn": "placed",
+  "markEmojisSeen": {
+   "kind": "seen",
+   "ids": 0
+  },
+  "unlockTeamSticker (no complete page)": "refused",
+  "getAlbum": {
+   "kind": "album",
+   "level": {
+    "level": 1,
+    "nextAt": 20,
+    "startsAt": 0,
+    "xp": 15
+   },
+   "stickers held": [],
+   "people not yet held": 17,
+   "team pages": 60,
+   "milestones": {
+    "people": 0,
+    "teams": 0,
+    "reach": 0,
+    "hoggies": 0,
+    "thoughtful": 0
+   },
+   "emojis earned": [],
+   "packs": 0,
+   "tray": 0
+  },
+  "getAlbumHoggies": {
+   "kind": "hoggies",
+   "found": 0,
+   "total": 151
+  },
+  "getThoughtfulBoards": {
+   "kind": "boards",
+   "people ranked": 42,
+   "synthetic rows": [
+    [
+     "Ava Lindgren",
+     2,
+     10
+    ],
+    [
+     "Ben Achterberg",
+     1,
+     31
+    ]
+   ],
+   "teams ranked": 11
+  },
+  "getAlbumPerson": {
+   "kind": "person",
+   "kudosGiven": 1,
+   "kudosReceived": 0
+  },
+  "getAlbumWeek": {
+   "kind": "week",
+   "issue": {
+    "hugsGiven": 0,
+    "hugsReceived": 0,
+    "kudosGiven": 1,
+    "kudosReceived": 1,
+    "packsOpened": 0,
+    "thoughtfulGiven": 0,
+    "thoughtfulReceived": 1
+   }
+  },
+  "getAlbumProfile": {
+   "kind": "profile"
+  },
+  "getEmojiMappings": {
+   "kind": "off"
+  }
+ }
+}

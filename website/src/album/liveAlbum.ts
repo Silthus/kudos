@@ -4,8 +4,8 @@ import type { AlbumEmoji, AlbumPerson, AlbumTeam, MyAlbum, SharedEmoji } from ".
 
 export function albumOf(answer: GetAlbumAnswer | Denial): MyAlbum {
   if (answer.kind !== "album") return answer;
-  const { people, morePeople, milestones = [], emojis = [], moreEmojis = false, sharedEmojis = null, emojiPage = null, ...answered } = answer;
-  return { gettingStarted: null, ...answered, milestones, emojis: emojis.map(withItsSource), moreEmojis, sharedEmojis: sharedEmojis?.map(withItsName) ?? null, emojiPage, people: people.map((person) => onTheirTeams(person, answer.teams)), me: { team: null, ...answer.me } };
+  const { people, morePeople, milestones = [], emojis = [], moreEmojis = false, sharedEmojis = null, emojiPage = null, emojiWizard = false, ...answered } = answer;
+  return { gettingStarted: null, ...answered, milestones, emojis: emojis.map(withItsSource), moreEmojis, sharedEmojis: sharedEmojis?.map(withItsName) ?? null, emojiPage, emojiWizard, people: people.map((person) => onTheirTeams(person, answer.teams)), me: { team: null, ...answer.me } };
 }
 
 type AnsweredEmoji = Omit<AlbumEmoji, "from" | "earnedAt"> & Partial<Pick<AlbumEmoji, "from" | "earnedAt">>;

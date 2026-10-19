@@ -23,8 +23,8 @@ const refusals = ["user_not_in_channel", "channel_not_found", "not_in_channel"];
 
 const pickers = {
   kudosReply: (place: string) => `section: *After-kudos reply* — What a kudos you gave earned you, right after you send it. [select: ${place}]`,
-  levelUps: (place: string) => `section: *Level ups* — When you reach a level, with what it opens for you. [select: ${place}]`,
-  celebrations: "section: *Public celebrations* — Your level ups and tiers in the announcement channel. [select: In the announcement channel]",
+  levelUps: (place: string) => `section: *Level ups* — When you reach a level. [select: ${place}]`,
+  celebrations: "section: *Public celebrations* — Your level ups in the announcement channel. [select: In the announcement channel]",
 };
 
 const noKudosBehind: Array<[string, Notification]> = [
@@ -78,7 +78,7 @@ describe("QM23: each kind is one choice of place", () => {
     await pick(t, "U_ALICE", "Level ups", "None");
     await giveKudos(t, "U_ALICE", "U_BOB");
 
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: *Level ups* · Off — When you reach a level, with what it opens for you. [select: None]");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: *Level ups* · Off — When you reach a level. [select: None]");
     expect(settingChanges()).toEqual([{ kind: "level-ups", on: false, place: "none" }]);
     expect(levelUpsTo("U_ALICE")).toEqual([]);
   });

@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/.t3/worktrees/kudos/t3-a9945cf2
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  16:15:45
+   Duration  31.42s (tests 96%, transform 3%, import 1%)
+
