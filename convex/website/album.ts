@@ -44,10 +44,14 @@ export type ThoughtfulBoardsRead = { kind: "off" } | ThoughtfulBoardsAnswer;
 
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
-  const { packs, more: morePacks } = await waitingPacksOf(ctx, me.member);
+  const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
   const { tray, more: moreTray } = await trayOf(ctx, me.member);
   return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), packs, morePacks, tray, moreTray };
 });
+
+async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember) {
+  return (await noLaunchWaitsFor(ctx, me)) ? waitingPacksOf(ctx, me.member) : { packs: [], more: false };
+}
 
 export const openThoughtfulPack = memberMutation({
   args: { pack: v.id("thoughtfulPacks") },

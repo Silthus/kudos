@@ -158,7 +158,7 @@ describe("AL9: a thoughtful pack pays 15 XP and no coins", () => {
     expect((await albumOf(asAlice)).level.xp).toBe(before + 15);
   });
 
-  test("while coins and skill points aren't shown to the member, the answer shows none of them, as the website's other opens do", async () => {
+  test("while coins aren't shown to the member, the answer shows none of them, as the website's other opens do", async () => {
     await thanks(alice, why, bob);
     const member = await memberOf(alice);
     await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:earned:120", xp: 0, coins: 120, item: null, catalogueVersion: "2", at: 0 }));
@@ -167,7 +167,7 @@ describe("AL9: a thoughtful pack pays 15 XP and no coins", () => {
 
     const opened = await open(asAlice, forBob!);
 
-    expect(opened).toMatchObject({ kind: "opened", applied: { xp: 15, coins: 0, from: { coins: 0, skillPoints: 0 }, to: { coins: 0, skillPoints: 0 } } });
+    expect(opened).toMatchObject({ kind: "opened", applied: { xp: 15, coins: 0, from: { coins: 0 }, to: { coins: 0 } } });
   });
 
   test("with packs off, the open still fills the tray and pays nothing", async () => {
@@ -269,7 +269,7 @@ describe("website commands pass one guard", () => {
 });
 
 describe("a website command never launches unlocks", () => {
-  test("WS62 P77: with xp-levels and unlocks on and no unlocks launch recorded, opening a pack answers refused and launches nothing", async () => {
+  test("WS62 P77: with xp-levels and unlocks on and no unlocks launch recorded, opening a pack answers refused, launches nothing, and getAlbum lists no pack to open", async () => {
     await thanks(alice, why, bob);
     const asAlice = await signedIn(alice);
     const [forBob] = await waitingPacksOf(asAlice);
@@ -282,9 +282,10 @@ describe("a website command never launches unlocks", () => {
 
     expect(await everythingWritten()).toEqual(before);
     expect(before.tables.unlockLaunches).toEqual([]);
+    expect(await albumOf(asAlice)).toMatchObject({ packs: [], morePacks: false });
   });
 
-  test("WS62 P91: with quests on and no Journey launch, opening a pack answers refused and doesn't launch the Journey", async () => {
+  test("WS62 P91: with quests on and no Journey launch, opening a pack answers refused, doesn't launch the Journey, and getAlbum lists no pack to open", async () => {
     await unlocksShippedBeforeAnyoneJoined(t);
     await thanks(alice, why, bob);
     const asAlice = await signedIn(alice);
@@ -298,6 +299,7 @@ describe("a website command never launches unlocks", () => {
 
     expect(await everythingWritten()).toEqual(before);
     expect(before.tables.journeyLaunches).toEqual([]);
+    expect(await albumOf(asAlice)).toMatchObject({ packs: [], morePacks: false });
   });
 });
 
