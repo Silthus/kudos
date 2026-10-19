@@ -326,3 +326,43 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: supersession-safety dismissed: the decision is read in the mutation that would store the notice, so a late levelReached reads the flags of its own moment
   checklist: worker-fencing dismissed: no worker owns a notice; Convex serializes the mutations that read the decision and store it
   checklist: resumption-coverage dismissed: no batch operation resumes; each levelReached is decided once in its own mutation
+- album moments are dark where album-slack is off: With `album-slack` off in the giver's member decision, not created, unread without the flags key, on only in the sandbox while the deployment is production, on for someone else's email only, or on while `album` is off for the giver, every Slack call a walk of thoughtful, short and threaded kudos makes equals the calls the same walk makes without the thread reply, and nothing exposes `album-slack`, while the thoughtful packs are earned all the same (AL3, AL58).
+  over: the Slack calls of a thoughtful kudos to two people, a short kudos and a thoughtful kudos posted in a thread, in each of those six off states, beside the same walk with the thread reply's subscriber removed; and the same walk with `album-slack` on for the first giver's email only, which adds only that giver's thread reply
+  via: AL58: album moments are dark where album-slack is off
+  because: AL58 keeps every Slack call equal to `main` until the conductor widens `album-slack`, and applies it only where `album` applies, so no Slack moment links to an album its reader can't open; a reply posted in a public thread while the flag is off would show the album to a whole channel before anyone chose to
+  kinds: state, output, message
+  checklist: revalidated-permission dismissed: the reply needs no permission; the giver's member decisions of `album` and `album-slack` are read in the subscriber's own mutation, after the grant committed
+  checklist: destination-confinement dismissed: with the flag off nothing is sent; with it on the reply goes to Slack's API at one configured base URL, to the kudos message's own conversation or the giver's DM, with no destination taken from input
+  checklist: message-authenticity dismissed: the reply is outbound; the kudos behind it is verified by the Slack adapter's signed Slack requests only
+  checklist: redaction dismissed: the reply holds the app's copy, first names, team names and the gains line, never the kudos message's text
+  checklist: input-validation dismissed: the subscriber's argument is checked by the thoughtfulPacksGranted validator, and only the album's grant publishes it
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession dismissed: the gate stores nothing; it reads two flag decisions and schedules a delivery or not
+  checklist: supersession-safety dismissed: no late write displaces another; the delivery renders from the grant's outcomes and reads the private reply and the album as they are
+  checklist: retry-recognition dismissed: the gate runs once per published fact, which a message's packs are told once publishes once
+  checklist: duplicate-suppression declared as a thoughtful kudos gets one thread reply
+  checklist: keyed-ordering dismissed: one reply per message, with no ordering promised between messages
+  checklist: worker-fencing dismissed: no worker owns a reply; each is one scheduled action
+  checklist: acknowledgment-barrier dismissed: nothing retires work on Slack's answer; an unknown answer ends the delivery
+  checklist: commit-ordered-effects dismissed: the delivery is scheduled in the subscriber's mutation and runs only after it commits
+  checklist: resumption-coverage dismissed: no batch resumes; each fact is decided once
+  checklist: retry-classification dismissed: the Slack adapter's delivery classifies failures, as for every message it sends
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: the only writer is replyInThread, reached by the oracle through kudos given at the Slack boundary
+- a thoughtful kudos gets one thread reply: Where `album-slack` applies to the giver, a thoughtful kudos message gets one message from the app once its `thoughtfulPacksGranted` is published: public in the kudos message's thread where the giver's `kudos-reply` place is the channel, a DM to the giver where it is a DM, and nothing where it is none; it names, for at most ten recipients and the rest counted, each recipient's stored outcome, the team progress of a person new in the album, a hype emoji the grant unlocked as its picture and only by name while Slack has it (AL29, AL30), `Open your pack` or `See {first}'s page`, and the giver's gains line; it is never posted twice, an answer Slack doesn't give is never sent again, and a short kudos keeps today's private reply alone (AL59).
+  over: the `chat.postMessage` calls for a thoughtful kudos to a person new in the album and to one already in it, a second thoughtful kudos the same week, one the next week while the first pack is unopened, a hype emoji Slack has and one it doesn't, a kudos posted in a thread, a giver who chose DMs and one who chose none, a short kudos, a grant held until after the private reply and run twice, and a message to twelve people
+  via: AL59: a thoughtful kudos gets one thread reply that names what each recipient's pack holds
+  because: AL59 makes the thread reply the visible moment of a thoughtful kudos (Q4), driven by the grant's one completed fact so it reads every outcome after the grant ran (AL6); a reply posted again from a retried grant or an unknown answer would repeat it in front of the channel, and a bare `:name:` for an emoji Slack lacks would print as text
+  kinds: message, output
+  checklist: destination-confinement dismissed: the reply goes to Slack's API at one configured base URL, to the kudos message's own conversation and thread or the giver's own DM as their `kudos-reply` place says, with no destination taken from input
+  checklist: message-authenticity dismissed: the reply is outbound; the kudos behind it is verified by the Slack adapter's signed Slack requests only
+  checklist: redaction dismissed: the reply holds the app's copy, first names, team names, an emoji name and picture and the gains line, never the kudos message's text, and never the allowance or the skipped mentions the private reply keeps to the giver
+  checklist: input-validation dismissed: the reply is rendered from the grant's outcomes, checked by the thoughtfulPacksGranted validator, and from stored rows, never from outside input
+  checklist: retry-recognition declared as a thoughtful kudos gets one thread reply
+  checklist: duplicate-suppression declared as a thoughtful kudos gets one thread reply
+  checklist: keyed-ordering dismissed: one reply per message, with no ordering promised between messages
+  checklist: acknowledgment-barrier dismissed: the delivery sends again only after Slack's known refusal; an answer it never got ends the delivery for good, so a post that landed is never repeated
+  checklist: commit-ordered-effects dismissed: the delivery is scheduled in the subscriber's mutation and runs only after it commits
+  checklist: retry-classification dismissed: a known refusal or rate limit is tried at most 3 times, a gone destination stops, and no known result stops for good
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: a reply has exactly one target, the thread or the DM its giver's `kudos-reply` place names

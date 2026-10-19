@@ -23,6 +23,8 @@ export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; le
 
 export type EarnedEmojis = { emojis: EarnedEmoji[]; more: boolean };
 
+export type HypeEmoji = Pick<EarnedEmoji, "name" | "picture" | "inSlack">;
+
 export const mostHypeEmojisShown = 200;
 
 export const mostPeoplePackedRead = 500;
@@ -48,6 +50,12 @@ export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }
   return emojis.filter(({ id, kind }) => (kind === "team" ? companyTeams.has(id) : kind !== "hype")).map(({ id, kind, name, picture, inSlack }) => ({ id, kind, name, picture, inSlack }));
 }
 
+export async function hypeEmojiOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<HypeEmoji | null> {
+  const name = await emojiNameOf(ctx, workspace, `hype:${person}`);
+  if (name === null) return null;
+  return { name, picture: await hypePictureOf(ctx, workspace, person), inSlack: await isInSlack(ctx, workspace, name) };
+}
+
 export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: string[], at: number): Promise<string[] | null> {
   if (ids.length > mostEmojisSeenAtOnce) return null;
   const seen = await seenBy(ctx, member);
@@ -61,8 +69,11 @@ export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: 
 }
 
 async function emojiOf(ctx: QueryCtx, workspace: string, { id, kind, picture, earned, progress }: Cause, name: string, seen: Set<string>): Promise<EarnedEmoji> {
-  const inSlack = (await customEmojiImageOf(ctx, workspace, name)) !== undefined;
-  return { id, kind, name, picture, earned, seen: earned && seen.has(id), inSlack, progress: earned ? null : progress };
+  return { id, kind, name, picture, earned, seen: earned && seen.has(id), inSlack: await isInSlack(ctx, workspace, name), progress: earned ? null : progress };
+}
+
+async function isInSlack(ctx: QueryCtx, workspace: string, name: string) {
+  return (await customEmojiImageOf(ctx, workspace, name)) !== undefined;
 }
 
 function teamCausesOf(pages: TeamPage[]): Cause[] {

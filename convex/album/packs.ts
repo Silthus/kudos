@@ -41,6 +41,18 @@ export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<{
   return { packs, more: oldestFirst.length > mostWaitingPacksShown };
 }
 
+export async function isFirstPackFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId, message: MessageRef): Promise<boolean> {
+  const first = await ctx.db
+    .query("thoughtfulPacks")
+    .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
+    .first();
+  return first !== null && isTheSameMessage(first.message, message);
+}
+
+function isTheSameMessage(one: MessageRef, other: MessageRef) {
+  return one.workspace === other.workspace && one.conversation === other.conversation && one.message === other.message;
+}
+
 function recipientsOf(event: KudosGivenEvent): MemberId[] {
   return [...new Set(event.awards.map(({ recipient }) => recipient))].filter((recipient) => recipient !== event.giver);
 }

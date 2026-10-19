@@ -60,6 +60,8 @@ export type Reply =
 
 export const questsWaitMs = 10_000;
 
+const mostRepliesReadPerMessage = 10;
+
 const hintLine: Line = [{ text: "Add why they earned it to earn more." }];
 
 type WrittenReply = Pick<Doc<"privateReplies">, "given" | "lines" | "gains" | "hint" | "held">;
@@ -134,6 +136,18 @@ async function hintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | 
   if (hint === undefined) return null;
   if (member === null) return (await skillTreeAppliesIn(ctx, workspace)) ? hint : null;
   return (await sayingWhyEarnsMore(ctx, member)) && (await wantsMessage(ctx, member, "tips")) ? hint : null;
+}
+
+export async function givenReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<Doc<"privateReplies"> | null> {
+  const replies = await ctx.db
+    .query("privateReplies")
+    .withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .take(mostRepliesReadPerMessage);
+  return replies.find(({ gains }) => gains !== undefined) ?? null;
+}
+
+export async function gainsLineOf(ctx: QueryCtx, workspace: string, member: MemberId, gains: Gains): Promise<Line | null> {
+  return extrasLineOf(await gainsShownTo(ctx, workspace, member, gains), null, null);
 }
 
 function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {

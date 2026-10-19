@@ -27,6 +27,8 @@ export type StoredMatch = { profile: number; face: CompanyFace | null };
 
 export type TeamPagesAndPeople = { pages: TeamPage[]; held: Set<MemberId>; matchOf: Map<MemberId, StoredMatch> };
 
+export type TeamProgress = Pick<TeamPage, "name" | "held" | "total">;
+
 export async function teamPagesOf(ctx: QueryCtx, owner: PageOwner): Promise<TeamPage[]> {
   return (await teamPagesAndPeopleOf(ctx, owner)).pages;
 }
@@ -48,6 +50,12 @@ async function teamStickersOf(ctx: QueryCtx, member: MemberId): Promise<Map<stri
     .withIndex("by_member_team", (q) => q.eq("member", member))
     .collect();
   return new Map(stickers.map(({ team, name, art, emoji, at }) => [team, { team, name, art, emoji, at }]));
+}
+
+export async function teamProgressWith(ctx: QueryCtx, owner: PageOwner, person: MemberId): Promise<TeamProgress[]> {
+  const { pages, held } = await teamPagesAndPeopleOf(ctx, owner);
+  const arriving = held.has(person) ? 0 : 1;
+  return pages.filter(({ people }) => people.includes(person)).map(({ name, held: counted, total }) => ({ name, held: counted + arriving, total }));
 }
 
 export function isComplete({ held, total }: Pick<TeamPage, "held" | "total">) {
