@@ -907,6 +907,11 @@
   font-size: 0.8125rem;
 }
 
+.al-board-deck a {
+  color: var(--al-accent-ink);
+  font-weight: 700;
+}
+
 .al-board-picked {
   display: flex;
   flex-wrap: wrap;

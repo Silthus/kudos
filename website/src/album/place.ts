@@ -118,6 +118,8 @@ export function hrefOf(place: Place): string {
   }
 }
 
+export const findYourselfHref = hrefOf({ kind: "settings", section: "company-profile" });
+
 export function keyOf(place: Place): string {
   if (place.kind === "hoggies") return hrefOf({ kind: "hoggies", hoggie: null });
   return hrefOf(place) + (place.kind === "elsewhere" ? "#elsewhere" : "");

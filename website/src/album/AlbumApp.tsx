@@ -29,7 +29,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
   const onLeaderboard = place.kind === "leaderboard";
   const onProfile = place.kind === "profile";
   const boards = useBoardsOfPeriod(useThoughtfulBoards, onLeaderboard, onProfile);
-  const profile = useAlbumProfile(onProfile);
+  const onOverview = place.kind === "team" && place.team === null && album?.kind === "album" && myTeamOf(album) === undefined;
+  const profile = useAlbumProfile(onProfile || onOverview);
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
   const onPerson = place.kind === "person";
@@ -62,11 +63,12 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         place={place}
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
-        leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
+        leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} {...answers} />}
+        newest={profile?.kind === "profile" ? profile.newest : null}
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}

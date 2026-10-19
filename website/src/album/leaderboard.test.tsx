@@ -75,7 +75,28 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
       "Rank 3, tied: Quiet Harbour Who gave 4 thoughtful kudos",
       "Rank 5: Salt and Sparrow Who gave 2 thoughtful kudos",
       "Rank 6: Brass Tidings Who gave 1 thoughtful kudos",
+      "Not ranked: Amber Ledger Who gave 0 thoughtful kudos",
+      "Not ranked: Copper Kite Who gave 0 thoughtful kudos",
+      "Not ranked: Glass Meadow Who gave 0 thoughtful kudos",
+      "Not ranked: Nimble Lantern Who gave 0 thoughtful kudos",
+      "Not ranked: Tin Orchard Who gave 0 thoughtful kudos",
+      "Not ranked: Velvet Signal Who gave 0 thoughtful kudos",
+      "Not ranked: Willow Desk Who gave 0 thoughtful kudos",
     ]);
+  });
+
+  it("a member without a team still sees every team on the team board, and it says how to find theirs", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.teamless), { boards: fixedBoards(boardsFixtures.teamless) });
+
+    const teams = await board("Teams");
+    expect(teams.getByText("No team has said thanks with a why yet this week.")).toBeInTheDocument();
+    expect(rowsOf(teams)).toHaveLength(albumFixtures.teamless.teams.length);
+    expect(rowsOf(teams)[0]).toBe("Not ranked: Amber Ledger Who gave 0 thoughtful kudos");
+    expect(teams.queryByText("Your team")).not.toBeInTheDocument();
+    const find = teams.getByRole("link", { name: "Find yourself on posthog.com" });
+    expect(find).toHaveAttribute("href", "/settings?section=company-profile");
+    expect(find.closest("p")).toHaveTextContent("Your thoughtful kudos count for your team once you're matched to your profile. Find yourself on posthog.com");
   });
 
   it("names who leads each board and where the member and their team stand", async () => {
@@ -172,7 +193,8 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     const teams = await board("Teams");
     expect(teams.getByText("No team has said thanks with a why yet this week.")).toBeInTheDocument();
     expect(teams.getByText("Lanterns hasn't given one yet. Tin Orchard hasn't given one yet.")).toBeInTheDocument();
-    expect(rowsOf(teams)).toEqual(["Not ranked: Lanterns Your team Who gave 0 thoughtful kudos", "Not ranked: Tin Orchard Your team Who gave 0 thoughtful kudos"]);
+    expect(rowsOf(teams).slice(0, 3)).toEqual(["Not ranked: Lanterns Your team Who gave 0 thoughtful kudos", "Not ranked: Tin Orchard Your team Who gave 0 thoughtful kudos", "Not ranked: Amber Ledger Who gave 0 thoughtful kudos"]);
+    expect(teams.queryByRole("link", { name: "Find yourself on posthog.com" })).not.toBeInTheDocument();
   });
 
   it("Who gave keeps only that team's givers with their ranks, the member's own row still pinned, until Show everyone", async () => {

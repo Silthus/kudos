@@ -69,7 +69,9 @@ const lastWeek = boardsOf(
   { ...samRanked, thoughtful: 2, rank: 2 },
 );
 
-export const boardsFixtures = { week, twoTeams, hidden, quiet, lastWeek } satisfies Record<string, ThoughtfulBoards>;
+const teamless = boardsOf([], [], sam([], 0, { rank: null }));
+
+export const boardsFixtures = { week, twoTeams, hidden, quiet, lastWeek, teamless } satisfies Record<string, ThoughtfulBoards>;
 
 export function fixedBoards(answer: BoardsShown): BoardsRead {
   return (asking) => (asking ? answer : undefined);

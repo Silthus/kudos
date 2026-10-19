@@ -5,16 +5,26 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
-import type { BoardPeriod, BoardPerson, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
+import type { AlbumTeam, BoardPeriod, BoardPerson, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
 import type { BoardsOfPeriod } from "./boardPeriods";
-import { hrefOf } from "./place";
+import { findYourselfHref, hrefOf } from "./place";
 
-type LeaderboardAnswerProps = { boards: BoardsOfPeriod; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
+type LeaderboardAnswerProps = { boards: BoardsOfPeriod; teams: AlbumTeam[]; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards: { shown, period, loading, choose }, homeTeam, ...answers }: LeaderboardAnswerProps) {
+export function LeaderboardAnswerPage({ boards: { shown, period, loading, choose }, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "boards") return <AnswerPage answer={shown} {...answers} />;
-  return <LeaderboardPage boards={shown} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
+  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
+}
+
+function teamRowsOf(boards: ThoughtfulBoards, albumTeams: AlbumTeam[]): BoardTeam[] {
+  const listed = [...boards.teams, ...boards.pinned.teams.filter(({ rank }) => rank === null)];
+  const onTheBoard = new Set(listed.map(({ team }) => team));
+  const unscored = albumTeams
+    .filter(({ team }) => !onTheBoard.has(team))
+    .toSorted((first, second) => first.name.localeCompare(second.name))
+    .map(({ team, name, art }): BoardTeam => ({ team, name, art, thoughtful: 0, mine: false, rank: null, tied: false }));
+  return [...listed, ...unscored];
 }
 
 type PeriodWords = { label: string; span: string; past: boolean };
@@ -32,16 +42,16 @@ const quietOffers: Record<BoardPeriod, BoardPeriod | null> = { week: "last-week"
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-type LeaderboardPageProps = { boards: ThoughtfulBoards; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
+type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: BoardTeam[]; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
 
-function LeaderboardPage({ boards, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
+function LeaderboardPage({ boards, teamRows, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
   const [picked, setPicked] = useState<BoardTeam | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
   const showEveryone = () => {
     if (picked !== null) pickButtons.current.get(picked.team)?.focus();
     setPicked(null);
   };
-  const teams: TeamsByKey = new Map([...boards.teams, ...boards.pinned.teams].map((team) => [team.team, team]));
+  const teams: TeamsByKey = new Map(teamRows.map((team) => [team.team, team]));
   const pickedTeam = picked === null ? undefined : (teams.get(picked.team) ?? picked);
   const words = periodWords[period];
   return (
@@ -57,7 +67,7 @@ function LeaderboardPage({ boards, period, loading, onChoosePeriod, homeTeam }: 
       </header>
       <div className="al-boards" aria-busy={loading || undefined}>
         <PeopleBoard boards={boards} words={words} offer={quietOffers[period]} onChoosePeriod={onChoosePeriod} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
-        <TeamBoard boards={boards} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
+        <TeamBoard boards={boards} rows={teamRows} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
@@ -104,11 +114,9 @@ function PeopleBoard({ boards, words, offer, onChoosePeriod, teams, picked, onSh
   );
 }
 
-type TeamBoardProps = { boards: ThoughtfulBoards; words: PeriodWords; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: BoardTeam) => void };
+type TeamBoardProps = { boards: ThoughtfulBoards; rows: BoardTeam[]; words: PeriodWords; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: BoardTeam) => void };
 
-function TeamBoard({ boards, words, homeTeam, pickButtons, picked, onPick }: TeamBoardProps) {
-  const unrankedMine = boards.pinned.teams.filter(({ rank }) => rank === null);
-  const rows = [...boards.teams, ...unrankedMine];
+function TeamBoard({ boards, rows, words, homeTeam, pickButtons, picked, onPick }: TeamBoardProps) {
   const pinned = rows.find(({ mine, team }) => mine && team === homeTeam) ?? rows.find(({ mine }) => mine);
   const { clearance, pinnedRef } = usePinnedClearance();
   return (
@@ -190,9 +198,17 @@ function myStandingWords(me: BoardPerson | null, words: PeriodWords) {
 
 function TeamStory({ boards, words }: { boards: ThoughtfulBoards; words: PeriodWords }) {
   const leaders = leadersOf(boards.teams);
-  const mine = boards.pinned.teams.map((team) => teamStandingWords(team, words)).join(" ");
+  const mine = boards.pinned.teams.length === 0 ? <NoTeamYet /> : boards.pinned.teams.map((team) => teamStandingWords(team, words)).join(" ");
   if (leaders.length === 0) return <Story headline={nobodyWords("No team", words)}>{mine}</Story>;
   return <Story headline={leadWords(leaders.map(({ name }) => name), leaders[0]!.thoughtful)}>{mine}</Story>;
+}
+
+function NoTeamYet() {
+  return (
+    <>
+      Your thoughtful kudos count for your team once you're matched to your profile. <AppLink href={findYourselfHref}>Find yourself on posthog.com</AppLink>
+    </>
+  );
 }
 
 function teamStandingWords({ name, rank, tied }: BoardTeam, words: PeriodWords) {
