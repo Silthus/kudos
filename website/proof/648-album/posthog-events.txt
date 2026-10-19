@@ -1,0 +1,10 @@
+PostHog project 662840, execute-sql at 2026-10-19 ~01:37 UTC, events of the last 2 hours:
+
+event                    | timestamp                | environment | crate_kind | surface | pack_xp | pack_coins | is_new
+album sticker collected  | 2026-10-19T01:34:50.169Z | sandbox     |            |         |         |            |
+hoggie dropped           | 2026-10-19T01:34:26.898Z | sandbox     | thoughtful | website | 15      | 0          | true
+hoggie dropped           | 2026-10-19T01:34:25.966Z | sandbox     | thoughtful | website | 15      | 0          | true
+(three older hoggie dropped rows from other lanes' proofs omitted)
+
+album sticker collected, its own (non-$) property keys: ['environment', 'taxonomy_version', 'workspace_key']
+No property names the person put in.

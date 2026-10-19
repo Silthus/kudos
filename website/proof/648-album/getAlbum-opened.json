@@ -1,0 +1,43 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "PH",
+      "kind": "initials"
+    },
+    "name": "Perpetua Hollin",
+    "person": "js74rdvab9ten5t3xbzphms4p58gkdqp"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [],
+  "people": [],
+  "tray": [
+    {
+      "item": "jn7zqg60gyqj8hyq1jja3461tn8gka5s",
+      "kind": "sticker",
+      "person": "js78z19eqmhvbpaf2t5dh2c7j18gjnf8"
+    },
+    {
+      "hoggie": "doctor",
+      "isNew": true,
+      "item": "jn7rwknremsxjrc20ccn8gtz818gk21m",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    },
+    {
+      "hoggie": "data-thief",
+      "isNew": true,
+      "item": "jn7wrq7vfrehpxqtpgtyrmrn198gkkhz",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ]
+}

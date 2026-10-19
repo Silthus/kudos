@@ -1,0 +1,34 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 20
+  },
+  "me": {
+    "face": {
+      "initials": "PH",
+      "kind": "initials"
+    },
+    "name": "Perpetua Hollin",
+    "person": "js74rdvab9ten5t3xbzphms4p58gkdqp"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1791768828462,
+      "pack": "hn7v3rsnxa8cebzv5f42k5wbqn8gjs8b",
+      "person": "js78z19eqmhvbpaf2t5dh2c7j18gjnf8"
+    },
+    {
+      "earnedAt": 1792373632758,
+      "pack": "hn7wh7a4ae5pt51h31w8065z918gk7ky",
+      "person": "js78z19eqmhvbpaf2t5dh2c7j18gjnf8"
+    }
+  ],
+  "people": [],
+  "tray": []
+}
