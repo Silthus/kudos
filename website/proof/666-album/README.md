@@ -22,3 +22,7 @@ Not shown on the sandbox, and proven by `website/src/album/activity.test.tsx` in
 - reduced motion. The preview can't emulate it; the issue's fade is the only motion, and it is off under reduced motion.
 
 Tests: `red.txt` (14 of 15 new tests failing before the page existed), `red-round-1.txt` (review round 1's three tests before their fix).
+
+## Rerun on the reviewed head
+
+After review round 1 and the merge with `main` (#685, the tray), `album/22` at `c5a9ab74` was built and uploaded again, website only. As Marlowe, `/activity` showed This week, and picking Last week read `2026-10-12`'s issue. That issue has no new faces, and its panel now takes focus (`tabIndex` 0). The capture is in the PR.
