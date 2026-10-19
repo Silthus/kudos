@@ -1,18 +1,21 @@
 import type { ReactNode } from "react";
 import { PageTitle } from "../PageTitle";
 import { NotFoundPage } from "../pages/NotFoundPage";
-import type { Album, AlbumTeam } from "./answer";
+import type { Album, AlbumTeam, NewestPerson } from "./answer";
 import { medalsOf, myTeamOf, plural } from "./facts";
+import { Overview } from "./Overview";
 import type { Place } from "./place";
 import { TeamPage } from "./TeamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; profile: ReactNode; unlocking: TeamUnlocking };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; profile: ReactNode; unlocking: TeamUnlocking; home: HomeProps };
 
-export function AlbumPage({ album, place, settings, leaderboard, activity, person, profile, unlocking }: PageProps) {
+type HomeProps = { newest: NewestPerson[] | null; onOpenPacks: () => void };
+
+export function AlbumPage({ album, place, settings, leaderboard, activity, person, profile, unlocking, home }: PageProps) {
   switch (place.kind) {
     case "team":
-      return <TeamOrHome album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} unlocking={unlocking} />;
+      return place.team === null ? <Home album={album} unlocking={unlocking} {...home} /> : <TeamOrNotFound album={album} team={album.teams.find(({ team }) => team === place.team)} unlocking={unlocking} />;
     case "person":
       return person;
     case "profile":
@@ -57,13 +60,13 @@ function Page({ tab, title, children }: { tab: string; title: ReactNode; childre
   );
 }
 
-function TeamOrHome({ album, team, home, unlocking }: { album: Album; team: AlbumTeam | undefined; home: boolean; unlocking: TeamUnlocking }) {
-  if (team === undefined && home)
-    return (
-      <Page tab="Your album" title="Your album">
-        Your team's page shows here once you're matched to a team on posthog.com.{album.teams.length > 0 && " Every team is in the sidebar."}
-      </Page>
-    );
+function Home({ album, unlocking, newest, onOpenPacks }: { album: Album; unlocking: TeamUnlocking } & HomeProps) {
+  const team = myTeamOf(album);
+  if (team === undefined) return <Overview album={album} newest={newest} onOpenPacks={onOpenPacks} />;
+  return <TeamPage album={album} team={team} unlocking={unlocking} />;
+}
+
+function TeamOrNotFound({ album, team, unlocking }: { album: Album; team: AlbumTeam | undefined; unlocking: TeamUnlocking }) {
   if (team === undefined) return <NotFoundPage />;
   return <TeamPage album={album} team={team} unlocking={unlocking} />;
 }

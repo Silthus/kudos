@@ -26,7 +26,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
   const onLeaderboard = place.kind === "leaderboard";
   const onProfile = place.kind === "profile";
   const boards = useThoughtfulBoards(onLeaderboard || onProfile);
-  const profile = useAlbumProfile(onProfile);
+  const onOverview = place.kind === "team" && place.team === null && album?.kind === "album" && myTeamOf(album) === undefined;
+  const profile = useAlbumProfile(onProfile || onOverview);
   const hoggies = useAlbumHoggies(onProfile);
   const onPerson = place.kind === "person";
   const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
@@ -57,10 +58,11 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         place={place}
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies }))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
-        leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
+        leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards} hoggies={hoggies} {...answers} />}
+        newest={profile?.kind === "profile" ? profile.newest : null}
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}
