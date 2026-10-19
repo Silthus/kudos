@@ -1,6 +1,8 @@
 import type { Segment } from "../activity/entries";
 import type { MondayPost, PostedGroup } from "../leaderboard/mondayPost";
-import type { QuotedKudos, TeamEmoji, TopKudosPost } from "../leaderboard/topKudos";
+import type { ShownEmoji } from "../album/earnedEmojis";
+import type { QuotedKudos, TopKudosPost } from "../leaderboard/topKudos";
+import { publicPictureOf } from "./albumSlack";
 import { asWritten } from "./groupCopy";
 import { medalOf } from "./leaderboard";
 import type { Line } from "./segments";
@@ -24,15 +26,17 @@ export type Words = { text: string; strong?: true };
 
 export type TopKudosEntry = { lead: Words[]; quote: string; permalink: string | null };
 
-export type TeamRow = { team: string; count: string; emoji: TeamEmoji | null };
+export type PublicEmoji = Omit<ShownEmoji, "picture"> & { picture: string | null };
+
+export type TeamRow = { team: string; count: string; emoji: PublicEmoji | null };
 
 export type TopKudosMessage = { headline: string; kudos: TopKudosEntry[]; teams: { headline: string; rows: TeamRow[] } | null };
 
-export function renderTopKudosPost({ kudos, teams }: TopKudosPost): TopKudosMessage {
+export function renderTopKudosPost({ kudos, teams, origin }: TopKudosPost): TopKudosMessage {
   return {
     headline: "🏆 Last week's top thoughtful kudos",
     kudos: kudos.map((entry, index) => ({ lead: leadOf(entry, index + 1), quote: quoteOf(entry.words), permalink: entry.permalink })),
-    teams: teams.length === 0 ? null : { headline: "Team stickers unlocked last week", rows: teams.map(({ name, count, emoji }) => ({ team: name, count: `×${count}`, emoji })) },
+    teams: teams.length === 0 ? null : { headline: "Team stickers unlocked last week", rows: teams.map(({ name, count, emoji }) => ({ team: name, count: `×${count}`, emoji: emoji === null ? null : { ...emoji, picture: publicPictureOf(emoji.picture, origin) } })) },
   };
 }
 

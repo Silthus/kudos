@@ -1,12 +1,11 @@
 import type { QueryCtx } from "../_generated/server";
-import { teamEmojiOf } from "../album/earnedEmojis";
+import { teamEmojiOf, type ShownEmoji } from "../album/earnedEmojis";
 import { thoughtfulKudosBetween, type Instants, type ThoughtfulKudos } from "../album/packs";
-import { teamStickersUnlockedIn, type TeamStickersUnlocked } from "../album/teamStickers";
+import { teamStickersUnlockedIn } from "../album/teamStickers";
 import type { Segment } from "../activity/entries";
 import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf, type Mentions } from "../activity/kudos";
 import type { MessageRef } from "../engine/messageEvent";
 import { publicThoughtfulKudosOf, type DrawableKudos } from "../engine/spotlight";
-import { publicPictureOf } from "../feedback/albumSlack";
 import { hugsOnTheMessage } from "../hugs/weeks";
 import { nameless } from "../website/faces";
 import { websiteOrigin } from "../website/link";
@@ -23,16 +22,14 @@ const mentionLookupsAtMost = 3 * segmentsQuotedAtMost;
 
 export type QuotedKudos = { giver: string; recipients: string[]; moreRecipients: number; words: Segment[]; permalink: string | null };
 
-export type TeamEmoji = { name: string; picture: string | null; inSlack: boolean };
+export type UnlockedTeam = { name: string; count: number; emoji: ShownEmoji | null };
 
-export type UnlockedTeam = { name: string; count: number; emoji: TeamEmoji | null };
-
-export type TopKudosPost = { kind: "topKudos"; kudos: QuotedKudos[]; teams: UnlockedTeam[] };
+export type TopKudosPost = { kind: "topKudos"; kudos: QuotedKudos[]; teams: UnlockedTeam[]; origin: string | null };
 
 type Ranked = ThoughtfulKudos & { hugs: number };
 
 export async function topKudosPostOf(ctx: QueryCtx, workspace: string, week: Instants): Promise<TopKudosPost> {
-  return { kind: "topKudos", kudos: await topKudosOf(ctx, workspace, week), teams: await teamsUnlockedOf(ctx, workspace, week) };
+  return { kind: "topKudos", kudos: await topKudosOf(ctx, workspace, week), teams: await teamsUnlockedOf(ctx, workspace, week), origin: await websiteOrigin(ctx, workspace) };
 }
 
 async function topKudosOf(ctx: QueryCtx, workspace: string, week: Instants): Promise<QuotedKudos[]> {
@@ -65,15 +62,9 @@ async function quotedKudosOf(ctx: QueryCtx, mentions: Mentions, message: Message
 }
 
 async function teamsUnlockedOf(ctx: QueryCtx, workspace: string, week: Instants): Promise<UnlockedTeam[]> {
-  const origin = await websiteOrigin(ctx, workspace);
   const teams: UnlockedTeam[] = [];
-  for (const unlocked of await teamStickersUnlockedIn(ctx, workspace, week, mostTeamStickersRead)) teams.push({ name: unlocked.name, count: unlocked.count, emoji: await teamEmojiShownOf(ctx, workspace, unlocked, origin) });
+  for (const unlocked of await teamStickersUnlockedIn(ctx, workspace, week, mostTeamStickersRead)) teams.push({ name: unlocked.name, count: unlocked.count, emoji: await teamEmojiOf(ctx, workspace, unlocked) });
   return teams;
-}
-
-async function teamEmojiShownOf(ctx: QueryCtx, workspace: string, unlocked: TeamStickersUnlocked, origin: string | null): Promise<TeamEmoji | null> {
-  const emoji = await teamEmojiOf(ctx, workspace, unlocked);
-  return emoji === null ? null : { name: emoji.name, picture: publicPictureOf(emoji.picture, origin), inSlack: emoji.inSlack };
 }
 
 async function nameOf(ctx: QueryCtx, member: MemberId) {

@@ -58,20 +58,20 @@ export async function packsEarnedBetween(ctx: QueryCtx, giver: MemberId, { from,
 }
 
 export async function isFirstPackFor(ctx: QueryCtx, { _id, giver, recipient }: Doc<"thoughtfulPacks">): Promise<boolean> {
-  const first = await ctx.db
-    .query("thoughtfulPacks")
-    .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
-    .first();
-  return first?._id === _id;
+  return (await firstPackGrantedFor(ctx, giver, recipient))?._id === _id;
 }
 
 export async function isFirstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId, message: MessageRef): Promise<boolean> {
+  const first = await firstPackGrantedFor(ctx, giver, recipient);
+  return first !== null && isTheSameMessage(first.message, message);
+}
+
+async function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
   const packs = await ctx.db
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
     .collect();
-  const first = packs.reduce<(typeof packs)[number] | null>((earliest, pack) => (earliest === null || pack._creationTime < earliest._creationTime ? pack : earliest), null);
-  return first !== null && isTheSameMessage(first.message, message);
+  return packs.reduce<Doc<"thoughtfulPacks"> | null>((earliest, pack) => (earliest === null || pack._creationTime < earliest._creationTime ? pack : earliest), null);
 }
 
 function isTheSameMessage(one: MessageRef, other: MessageRef) {
