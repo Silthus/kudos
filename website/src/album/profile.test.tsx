@@ -47,7 +47,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
 
     expect(await screen.findByRole("heading", { level: 1, name: "Sam Example" }, arrival)).toBeInTheDocument();
     expect(screen.getByRole("figure", { name: "Sam Example, Lanterns" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Lanterns · 4 of 5 in your album" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Lanterns · 4 of 5 in your album" })).toHaveAttribute("href", "/book#teams/lanterns");
     const bar = screen.getByRole("progressbar", { name: "290 XP to level 7" });
     expect(bar).toHaveAttribute("aria-valuenow", "1210");
     expect(bar).toHaveAttribute("aria-valuemin", "1000");
@@ -112,7 +112,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
 
     const glance = await section("Your album at a glance");
     expect(glance.getByRole("link", { name: "People in your album: 18 of 38" })).toHaveAttribute("href", "/book#milestones");
-    expect(glance.getByRole("link", { name: "Your team, Lanterns: 4 of 5" })).toHaveAttribute("href", "/");
+    expect(glance.getByRole("link", { name: "Your team, Lanterns: 4 of 5" })).toHaveAttribute("href", "/book#teams/lanterns");
     expect(glance.getByRole("link", { name: "Hoggies found: 18 of 151" })).toHaveAttribute("href", "/book#hoggies");
     expect(glance.getByText("1 of 13 team stickers unlocked")).toBeInTheDocument();
     expect(glance.getByText("1 to go for the seal")).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     expect(glance.getByText("Nobody else on Lanterns is in Slack yet")).toBeInTheDocument();
     expect(glance.queryByText(/to go for the seal/)).toBeNull();
     expect(glance.getByRole("link", { name: "Your team, Lanterns" })).not.toHaveTextContent(/of 0/);
-    expect(screen.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/book#teams/lanterns");
   });
 
   it("an unlocked home team says when it was unlocked, even with nobody else in Slack", async () => {
