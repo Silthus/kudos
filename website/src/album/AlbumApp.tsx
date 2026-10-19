@@ -1,5 +1,8 @@
 import { useCallback, useEffect } from "react";
-import { AlbumWaits, AnswerPage, SettingsAnswerPage, type AppProps } from "../App";
+import type { AppProps } from "../App";
+import { AlbumWaits } from "../pages/AlbumWaits";
+import { AnswerPage } from "../pages/AnswerPage";
+import { SettingsAnswerPage } from "../pages/SettingsAnswerPage";
 import { NavigateProvider } from "../AppLink";
 import { Frame } from "../Frame";
 import { ClosedPage } from "../pages/ClosedPage";

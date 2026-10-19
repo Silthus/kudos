@@ -1,22 +1,17 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
 import type { AlbumRead, BoardsRead, HoggiesRead, PersonRead, ProfileRead, WeekRead } from "./album/answer";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
-import { ClosedPage } from "./pages/ClosedPage";
-import { ConnectingPage } from "./pages/ConnectingPage";
+import { AlbumWaits } from "./pages/AlbumWaits";
+import { AnswerPage, type Answers } from "./pages/AnswerPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { LoadingPage } from "./pages/LoadingPage";
-import { SettingsPage, ThemeAndSignOut } from "./pages/SettingsPage";
-import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { SignedOutPage, SignInCard } from "./pages/SignedOutPage";
-import { SignInUnfinishedPage } from "./pages/SignInUnfinishedPage";
-import { UnverifiedPage } from "./pages/UnverifiedPage";
-import { VerifyingPage } from "./pages/VerifyingPage";
+import { SignedOutPage } from "./pages/SignedOutPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
 import type { EmojiMappingsRead } from "./emojiMappingsRead";
 import type { AppEmojisRead, SlackEmojiMatchesRead } from "./emojiWizardReads";
-import type { SettingsRead, SettingsShown } from "./settingsRead";
+import type { SettingsRead } from "./settingsRead";
 import { returnAddressOf, useRoute, type Route } from "./route";
 import type { MemberProfile, ShellActions, ShellState } from "./shell";
 import { forgetSignInStarted, rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
@@ -60,14 +55,6 @@ function shellOf(visitor: ShellState): Shell | undefined {
   return visitor.kind === "member" ? "album" : "visitor";
 }
 
-export function AlbumWaits() {
-  return (
-    <main aria-busy="true" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">
-      <LoadingPage />
-    </main>
-  );
-}
-
 type Visitor = Exclude<ShellState, MemberProfile>;
 
 function VisitorApp({ visitor, actions, arrivedFromAnotherPage }: { visitor: Visitor; actions: ShellActions; arrivedFromAnotherPage: boolean }) {
@@ -97,55 +84,4 @@ function VisitorPage({ state, route, ...answers }: { state: Visitor; route: Rout
   if (state.kind === "loading") return <LoadingPage />;
   if (state.kind === "connecting" || state.kind === "closed" || route.page !== "not-found") return <AnswerPage answer={state} {...answers} />;
   return <NotFoundPage />;
-}
-
-type Answers = { onSignIn: () => void; onSignOut: () => void };
-
-export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "mapSlackEmoji">;
-
-type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; useEmojiMappings: EmojiMappingsRead; withThemeAndSignOut?: boolean; albumSections?: ReactNode } & Answers;
-
-export function SettingsAnswerPage({ settings, actions, useEmojiMappings, withThemeAndSignOut = false, albumSections, ...answers }: SettingsAnswerPageProps) {
-  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} albumSections={albumSections} />;
-  const answered = <SettingsElsewhere settings={settings} {...answers} />;
-  if (!withThemeAndSignOut || !settingsStillMissing(settings)) return answered;
-  return (
-    <>
-      {answered}
-      <ThemeAndSignOut onSignOut={answers.onSignOut} />
-    </>
-  );
-}
-
-function SettingsElsewhere({ settings, ...answers }: { settings: Exclude<SettingsShown, { kind: "settings" }> | undefined } & Answers) {
-  if (settings === undefined) return <LoadingPage shape="column" />;
-  if (settings.kind === "not-found") return <NotFoundPage />;
-  return <AnswerPage answer={settings} {...answers} />;
-}
-
-function settingsStillMissing(settings: SettingsShown | undefined) {
-  return settings === undefined || settings.kind === "not-found" || settings.kind === "broken" || settings.kind === "connecting";
-}
-
-export type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
-
-export function AnswerPage({ answer, onSignIn, onSignOut }: { answer: NotAMember } & Answers) {
-  switch (answer.kind) {
-    case "broken":
-      return <ErrorPage focusWasOnPage={false} />;
-    case "connecting":
-      return <ConnectingPage />;
-    case "closed":
-      return <ClosedPage />;
-    case "signed-out":
-      return <SignInCard onSignIn={onSignIn} />;
-    case "sign-in-unfinished":
-      return <SignInUnfinishedPage onSignIn={onSignIn} />;
-    case "verifying":
-      return <VerifyingPage onSignOut={onSignOut} />;
-    case "unverified":
-      return <UnverifiedPage onSignIn={onSignIn} onSignOut={onSignOut} />;
-    case "not-a-member":
-      return <NotAMemberPage onSignOut={onSignOut} />;
-  }
 }
