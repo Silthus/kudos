@@ -11,6 +11,7 @@ import { fixtureProfileCardFor } from "./profileCardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { fixtureRecentKudos } from "./recentKudosFixtures";
 import type { ShellState } from "./shell";
+import { emojiMappingsFixtures } from "./emojiMappingFixtures";
 import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import { fixtureSkillTreeFor } from "./skillTreeFixtures";
 import { fixtureSpotlight } from "./spotlightFixtures";
@@ -45,6 +46,7 @@ export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads
     readActivity: fixtureReadActivity,
     drawSpotlight: fixtureSpotlight,
     useSettings: fixtureSettings,
+    useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
     useAlbum: fixtureAlbum,
     useThoughtfulBoards: fixtureBoards,
     useAlbumPerson: fixturePeople,

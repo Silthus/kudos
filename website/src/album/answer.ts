@@ -18,7 +18,7 @@ export type WaitingPack = { pack: string; person: string; earnedAt: number };
 
 export type TrayItem = { item: string; kind: "sticker"; person: string } | { item: string; kind: "hoggie"; hoggie: string; rarity: Rarity; isNew: boolean };
 
-export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype";
+export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
 export type AlbumEmoji = { id: string; kind: EarnedEmojiKind; name: string; picture: string; earned: boolean; seen: boolean; inSlack: boolean; progress: { have: number; need: number } | null };
 

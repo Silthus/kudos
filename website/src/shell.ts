@@ -3,6 +3,7 @@ import type { Quest, WeeklyQuest } from "../../convex/quests/step";
 import type { PerkId } from "../../convex/progression/tree";
 import type { AdminProfileLinkAnswer, AvatarAnswer, CommandAnswer, CompanyProfileLinkAnswer, CrateAnswer, CrateOpenAnswer, CratePurchaseAnswer, GroupPickAnswer, ItemPurchaseAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer, WorkspaceSettingsAnswer } from "../../convex/website/commands";
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
+import type { EmojiMappingAnswer, EmojiMappings, EmojiMappingsRead as EmojiMappingsReadAnswer, ShownTarget } from "../../convex/website/emojiMappings";
 import type { Denial } from "../../convex/website/memberQuery";
 
 import type { Drop } from "./crates/drops";
@@ -82,6 +83,16 @@ export type AvatarReply = AvatarAnswer | Denial;
 
 export type MySettingsAnswer = SettingsAnswer | Denial;
 
+export type { EmojiMappings };
+
+export type ShownMappingTarget = ShownTarget;
+
+export type EmojiPlaceChoice = ShownTarget | { kind: "unmapped" };
+
+export type EmojiMappingsAnswer = EmojiMappingsReadAnswer | Denial;
+
+export type EmojiMappingReply = EmojiMappingAnswer | Denial;
+
 export type MyQuests = QuestsAnswer | Denial;
 
 export type MyBook = BookAnswer | Denial;
@@ -92,7 +103,7 @@ export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } |
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer>; buyItem(purchase: ItemPurchase): Promise<ItemBuyAnswer>; buyCrate(next: number): Promise<CratePurchaseReply>; openCrate(crate: string): Promise<CrateOpenReply>; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setAvatar(hoggie: string | null): Promise<AvatarReply>; swapQuest(quest: WeeklyQuest): Promise<SwapReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer>; buyItem(purchase: ItemPurchase): Promise<ItemBuyAnswer>; buyCrate(next: number): Promise<CratePurchaseReply>; openCrate(crate: string): Promise<CrateOpenReply>; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; setAvatar(hoggie: string | null): Promise<AvatarReply>; swapQuest(quest: WeeklyQuest): Promise<SwapReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -388,4 +399,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), buyItem: async ({ item }) => ({ kind: "bought", item }), buyCrate: async (next) => ({ kind: "bought", crate: `bought:${next}` }), openCrate: async (crate) => fixturePackOpenOf(crate), setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), setAvatar: async () => ({ kind: "refused" }), swapQuest: async () => ({ kind: "swapped" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), buyItem: async ({ item }) => ({ kind: "bought", item }), buyCrate: async (next) => ({ kind: "bought", crate: `bought:${next}` }), openCrate: async (crate) => fixturePackOpenOf(crate), setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), mapSlackEmoji: async () => ({ kind: "mapped" }), setAvatar: async () => ({ kind: "refused" }), swapQuest: async () => ({ kind: "swapped" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team) };

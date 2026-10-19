@@ -47,6 +47,7 @@ import type { ProfileCardRead, ProfileCardShown } from "./profileCardRead";
 import type { QuestsRead, QuestsShown } from "./questsRead";
 import type { RecentKudosRead } from "./recentKudosRead";
 import { useLinkTargetOnceLanded } from "./linkTarget";
+import type { EmojiMappingsRead } from "./emojiMappingsRead";
 import type { SettingsRead, SettingsShown } from "./settingsRead";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import type { SpotlightDraw } from "./spotlightRead";
@@ -57,7 +58,7 @@ import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./s
 
 export type AppReads = Omit<AppProps, "visitor" | "actions">;
 
-export type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead };
+export type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead; useEmojiMappings: EmojiMappingsRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead };
 
 const AlbumApp = lazy(() => import("./album/AlbumApp"));
 
@@ -79,7 +80,7 @@ export function AlbumWaits() {
   );
 }
 
-function TodaysApp({ visitor, actions, useLeaderboard, useQuests, useBook, useCollection, useSkillTree, useProfileCard, useRecentKudos, useActivityWatch, readActivity, drawSpotlight, useSettings }: AppProps) {
+function TodaysApp({ visitor, actions, useLeaderboard, useQuests, useBook, useCollection, useSkillTree, useProfileCard, useRecentKudos, useActivityWatch, readActivity, drawSpotlight, useSettings, useEmojiMappings }: AppProps) {
   const { route, navigate, choosePeriod, chooseFilter } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
@@ -149,7 +150,7 @@ function TodaysApp({ visitor, actions, useLeaderboard, useQuests, useBook, useCo
           ) : (
             <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
               <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-                <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} matchingHref={matchingHref} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onOpenCrate={actions.openCrate} onSetAvatar={actions.setAvatar} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
+                <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} matchingHref={matchingHref} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onOpenCrate={actions.openCrate} onSetAvatar={actions.setAvatar} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} useEmojiMappings={useEmojiMappings} onSignIn={signIn} onSignOut={actions.signOut} />
               </ErrorBoundary>
             </Frame>
           )}
@@ -280,11 +281,12 @@ type PageProps = {
   onSetBoardVisibility: ShellActions["setBoardVisibility"];
   onSwapQuest: ShellActions["swapQuest"];
   settingsActions: SettingsActions;
+  useEmojiMappings: EmojiMappingsRead;
   onSignIn: () => void;
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, book, collection, matchingHref, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, pendingItemPurchase, onChoosePeriod, onBuyPerk, onBuyItem, onBuyCrate, onOpenCrate, onSetAvatar, onSetBoardVisibility, onSwapQuest, settingsActions, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, collection, matchingHref, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, pendingItemPurchase, onChoosePeriod, onBuyPerk, onBuyItem, onBuyCrate, onOpenCrate, onSetAvatar, onSetBoardVisibility, onSwapQuest, settingsActions, useEmojiMappings, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return <LoadingPage shape={loadingShapeOf(route)} />;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
@@ -294,7 +296,7 @@ function Page({ state, route, board, quests, book, collection, matchingHref, ski
   if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} matchingHref={matchingHref} page={route.bookPage} spread={route.spread} onBuyCrate={onBuyCrate} onOpenCrate={onOpenCrate} onSetAvatar={onSetAvatar} {...actions} />;
-  if (route.page === "settings") return <SettingsAnswerPage settings={settings} actions={settingsActions} {...actions} />;
+  if (route.page === "settings") return <SettingsAnswerPage settings={settings} actions={settingsActions} useEmojiMappings={useEmojiMappings} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
   if (board === undefined) return <LoadingPage shape="board" />;
   if (board.kind === "not-found") return <NotFoundPage />;
@@ -358,13 +360,13 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
   return <SkillTreePage tree={skillTree} level={member.progression?.level} buyPerk={onBuyPerk} />;
 }
 
-export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">;
+export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "mapSlackEmoji">;
 
-export function SettingsAnswerPage({ settings, actions, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; onSignIn: () => void; onSignOut: () => void }) {
+export function SettingsAnswerPage({ settings, actions, useEmojiMappings, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; useEmojiMappings: EmojiMappingsRead; onSignIn: () => void; onSignOut: () => void }) {
   if (settings === undefined) return <LoadingPage shape="column" />;
   if (settings.kind === "not-found") return <NotFoundPage />;
   if (settings.kind !== "settings") return <AnswerPage answer={settings} {...answers} />;
-  return <SettingsPage settings={settings} actions={actions} />;
+  return <SettingsPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} />;
 }
 
 export type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
