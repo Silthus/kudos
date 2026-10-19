@@ -1,0 +1,4 @@
+3-map-glitch-crab-random.json: {"kind":"mapped"}
+3-map-shipit-level5.json: {"kind":"mapped"}
+3-map-squirrel-hype.json: {"kind":"mapped"}
+3-map-unknown-refused.json: {"kind":"refused"}
