@@ -9,7 +9,7 @@ import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf, fixtureUnlockOf } from "./albumFixtures";
 import type { Album, AlbumEmoji, PersonPage, PersonRead, PutAllInReply, UnlockReply } from "./answer";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 const midway = albumFixtures.midway;
 

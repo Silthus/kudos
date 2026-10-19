@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Panel } from "../home/Panel";
+import { Panel } from "../settings/Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
 import { PageTitle } from "../PageTitle";

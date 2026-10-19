@@ -1,15 +1,11 @@
 import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { commandsOf } from "./palette/commands";
 import { fixedSettings, hugsRecap, settingsFixtures } from "./settingsFixtures";
 import type { SettingsShown } from "./settingsRead";
-import { shellFixtures, type GroupPickReply, type MessagePlace, type MessageSettingReply, type MySettings, type ShellActions, type ShellState, type VisibilityReply } from "./shell";
-import { renderApp } from "./test/renderApp";
-import { navEntryNames, screensNav } from "./test/screensNav";
+import { shellFixtures, type GroupPickReply, type MessagePlace, type MessageSettingReply, type MySettings, type ShellActions, type VisibilityReply } from "./shell";
+import { renderApp, renderSettingsPage } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
-
-const withSettings = shellFixtures.memberWithSettings;
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -22,12 +18,12 @@ function main() {
 
 type Commands = Partial<Pick<ShellActions, "setMessageSetting" | "pickPrimaryGroup" | "setBoardVisibility">>;
 
-function showSettings(settings: SettingsShown, commands: Commands = {}, visitor: ShellState = withSettings) {
+async function showSettings(settings: SettingsShown, commands: Commands = {}) {
   let shown = settings;
-  const view = renderApp(visitor, undefined, commands, undefined, undefined, undefined, undefined, undefined, undefined, undefined, (asking) => (asking ? shown : undefined));
+  const view = await renderSettingsPage((asking) => (asking ? shown : undefined), commands);
   const showSettingsAnswer = (next: SettingsShown) => {
     shown = next;
-    view.showVisitor(visitor);
+    view.showSettingsAgain();
   };
   return { ...view, showSettingsAnswer };
 }
@@ -69,54 +65,29 @@ function withPlace(settings: MySettings, kind: string, chosen: MessagePlace): My
 }
 
 describe("SW10: /settings is a page of its own", () => {
-  it("shows the Settings heading and its tab title", () => {
-    showSettings(settingsFixtures.everything);
+  it("shows the Settings heading and its tab title", async () => {
+    await showSettings(settingsFixtures.everything);
 
     expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
     expect(document.title).toBe("HedgeHug · Settings");
   });
 
-  it("puts Settings in the screen nav, marked current on its page, while the member has something to set", () => {
-    showSettings(settingsFixtures.everything);
-
-    const entry = within(screensNav()).getByRole("link", { name: "Settings" });
-    expect(entry).toHaveAttribute("href", "/settings");
-    expect(entry).toHaveAttribute("aria-current", "page");
-  });
-
-  it("leaves Settings out of the screen nav and the palette while the member has nothing to set", () => {
-    window.history.replaceState(null, "", "/");
-    renderApp(shellFixtures.member);
-
-    expect(navEntryNames()).not.toContain("Settings");
-    expect(commandsOf(shellFixtures.member).map(({ name }) => name)).not.toContain("settings");
-  });
-
-  it("offers a settings command in the palette that goes to /settings", () => {
-    const settings = commandsOf(withSettings).find(({ name }) => name === "settings")!;
-    const go = vi.fn();
-
-    settings.run([], { go, openCrate: vi.fn(), theme: "system", chooseTheme: vi.fn(), signOut: vi.fn() }, "settings");
-
-    expect(go).toHaveBeenCalledExactlyOnceWith("/settings");
-  });
-
-  it("shows the not-found page when the read finds nothing to set", () => {
-    showSettings({ kind: "not-found" });
+  it("shows the not-found page when the read finds nothing to set", async () => {
+    await showSettings({ kind: "not-found" });
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/not found|can't find|nothing/i);
   });
 
-  it("asks a signed-out visitor to sign in, coming back to /settings", () => {
-    showSettings(settingsFixtures.everything, {}, shellFixtures.signedOut);
+  it("asks a signed-out visitor to sign in, coming back to /settings", async () => {
+    renderApp(shellFixtures.signedOut);
 
-    expect(within(main()).getByRole("button", { name: /Sign in with Slack/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Sign in with Slack/ })).toBeInTheDocument();
   });
 });
 
 describe("Messages: where each message reaches the member", () => {
-  it("lists every kind the read gives, in its order, with its label and description, and says what In the channel means", () => {
-    showSettings(settingsFixtures.everything);
+  it("lists every kind the read gives, in its order, with its label and description, and says what In the channel means", async () => {
+    await showSettings(settingsFixtures.everything);
 
     const messages = section("Messages");
     expect(within(messages).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["After-kudos reply", "Level ups", "New features", "Public celebrations"]);
@@ -124,9 +95,9 @@ describe("Messages: where each message reaches the member", () => {
     expect(within(messages).getByText(/In the channel means a message only you see, beside the kudos that caused it/)).toBeInTheDocument();
   });
 
-  it("#580: draws a shortcode in a description as its emoji, and a custom one as a quiet chip", () => {
+  it("#580: draws a shortcode in a description as its emoji, and a custom one as a quiet chip", async () => {
     const recapWithBoth = { ...hugsRecap, description: hugsRecap.description.replace(":hedgehug:", ":hugging_face: and :hedgehug:").replace("Monday morning", "Monday at 09:30:00") };
-    showSettings({ ...settingsFixtures.everything, messages: [recapWithBoth] } as MySettings);
+    await showSettings({ ...settingsFixtures.everything, messages: [recapWithBoth] } as MySettings);
 
     const recap = within(section("Messages")).getByRole("group", { name: "Weekly hugs recap" });
     expect(recap).toHaveTextContent("Last week's hugs, the 🤗 and :hedgehug: you and your teammates reacted, with their XP, on Monday at 09:30:00.");
@@ -134,16 +105,16 @@ describe("Messages: where each message reaches the member", () => {
     expect(recap.querySelectorAll("[data-custom-emoji]")).toHaveLength(1);
   });
 
-  it("offers a kind with three places as one choice, checked from the read", () => {
-    showSettings(settingsFixtures.everything);
+  it("offers a kind with three places as one choice, checked from the read", async () => {
+    await showSettings(settingsFixtures.everything);
 
     expect(within(placeChoice("Level ups")).getAllByRole("radio").map((radio) => radio.closest("label")?.textContent)).toEqual(["As a DM", "In the channel", "None"]);
     expect(place("Level ups", "As a DM")).toBeChecked();
     expect(place("Level ups", "None")).not.toBeChecked();
   });
 
-  it("offers a kind with two places as a switch, on while it isn't none", () => {
-    showSettings(withPlace(settingsFixtures.everything, "new-features", "none"));
+  it("offers a kind with two places as a switch, on while it isn't none", async () => {
+    await showSettings(withPlace(settingsFixtures.everything, "new-features", "none"));
 
     expect(messageSwitch("New features")).not.toBeChecked();
     expect(messageSwitch("Public celebrations")).toBeChecked();
@@ -152,7 +123,7 @@ describe("Messages: where each message reaches the member", () => {
   it("sends the chosen place once, and holds the row while the call is pending", async () => {
     const pending = answerLater<MessageSettingReply>();
     const setMessageSetting = vi.fn(() => pending.answer);
-    const { user } = showSettings(settingsFixtures.everything, { setMessageSetting });
+    const { user } = await showSettings(settingsFixtures.everything, { setMessageSetting });
 
     await user.click(place("Level ups", "In the channel"));
 
@@ -167,7 +138,7 @@ describe("Messages: where each message reaches the member", () => {
 
   it("turns a two-place kind off with none and on with its other place", async () => {
     const setMessageSetting = vi.fn(async (_kind: string, chosen: MessagePlace) => ({ kind: "set", place: chosen }) as const);
-    const { user, showSettingsAnswer } = showSettings(settingsFixtures.everything, { setMessageSetting });
+    const { user, showSettingsAnswer } = await showSettings(settingsFixtures.everything, { setMessageSetting });
 
     await user.click(messageSwitch("New features"));
     expect(setMessageSetting).toHaveBeenLastCalledWith("new-features", "none");
@@ -178,7 +149,7 @@ describe("Messages: where each message reaches the member", () => {
   });
 
   it("keeps its position from the read, never from the place sent, and says where it lands once the read moves", async () => {
-    const { user, showSettingsAnswer } = showSettings(settingsFixtures.everything, { setMessageSetting: async () => ({ kind: "set", place: "none" }) });
+    const { user, showSettingsAnswer } = await showSettings(settingsFixtures.everything, { setMessageSetting: async () => ({ kind: "set", place: "none" }) });
 
     await user.click(place("Level ups", "None"));
     await act(async () => undefined);
@@ -193,7 +164,7 @@ describe("Messages: where each message reaches the member", () => {
     { reply: async () => ({ kind: "refused" }) as const, line: "That couldn't be changed." },
     { reply: async () => Promise.reject(new Error("offline")), line: "Couldn't reach HedgeHug. Try again." },
   ])("says $line when the change doesn't land", async ({ reply, line }) => {
-    const { user } = showSettings(settingsFixtures.everything, { setMessageSetting: reply });
+    const { user } = await showSettings(settingsFixtures.everything, { setMessageSetting: reply });
 
     await user.click(place("Level ups", "None"));
 
@@ -202,7 +173,7 @@ describe("Messages: where each message reaches the member", () => {
   });
 
   it("forgets a refusal once another tab moves the read, so it never comes back", async () => {
-    const { user, showSettingsAnswer } = showSettings(settingsFixtures.everything, { setMessageSetting: async () => ({ kind: "refused" }) });
+    const { user, showSettingsAnswer } = await showSettings(settingsFixtures.everything, { setMessageSetting: async () => ({ kind: "refused" }) });
 
     await user.click(place("Level ups", "None"));
     expect(rowStatus("Level ups")).toHaveTextContent("That couldn't be changed.");
@@ -213,8 +184,8 @@ describe("Messages: where each message reaches the member", () => {
     expect(rowStatus("Level ups")).toBeEmptyDOMElement();
   });
 
-  it("leaves Messages out while the read has none", () => {
-    showSettings({ ...settingsFixtures.everything, messages: null });
+  it("leaves Messages out while the read has none", async () => {
+    await showSettings({ ...settingsFixtures.everything, messages: null });
 
     expect(within(main()).queryByRole("region", { name: "Messages" })).not.toBeInTheDocument();
   });
@@ -223,7 +194,7 @@ describe("Messages: where each message reaches the member", () => {
 describe("Leaderboards: the visibility switch lives on /settings too", () => {
   it("is checked from the read and sends the flipped setting", async () => {
     const setBoardVisibility = vi.fn(async (visible: boolean): Promise<VisibilityReply> => ({ kind: "set", visible }));
-    const { user } = showSettings(settingsFixtures.everything, { setBoardVisibility });
+    const { user } = await showSettings(settingsFixtures.everything, { setBoardVisibility });
 
     const visibility = within(section("Leaderboards")).getByRole("switch", { name: "Show me on the leaderboards" });
     expect(visibility).toBeChecked();
@@ -232,8 +203,8 @@ describe("Leaderboards: the visibility switch lives on /settings too", () => {
     expect(setBoardVisibility).toHaveBeenCalledExactlyOnceWith(false);
   });
 
-  it("leaves Leaderboards out while the board isn't open", () => {
-    showSettings({ ...settingsFixtures.everything, board: null });
+  it("leaves Leaderboards out while the board isn't open", async () => {
+    await showSettings({ ...settingsFixtures.everything, board: null });
 
     expect(within(main()).queryByRole("region", { name: "Leaderboards" })).not.toBeInTheDocument();
   });
@@ -244,8 +215,8 @@ describe("Your group: the group the member counts for", () => {
     return within(section("Your group")).getByRole("combobox", { name: "The group you count for" });
   }
 
-  it("picks from the member's groups, the primary one selected", () => {
-    showSettings(settingsFixtures.everything);
+  it("picks from the member's groups, the primary one selected", async () => {
+    await showSettings(settingsFixtures.everything);
 
     expect(within(groupPicker()).getAllByRole("option").map((option) => option.textContent)).toEqual(["Gardeners", "Zebras"]);
     expect(groupPicker()).toHaveValue("g_zebras");
@@ -254,7 +225,7 @@ describe("Your group: the group the member counts for", () => {
   it("sends the pick once, held while pending, and says which group the member counts for after the read moves", async () => {
     const pending = answerLater<GroupPickReply>();
     const pickPrimaryGroup = vi.fn(() => pending.answer);
-    const { user, showSettingsAnswer } = showSettings(settingsFixtures.everything, { pickPrimaryGroup });
+    const { user, showSettingsAnswer } = await showSettings(settingsFixtures.everything, { pickPrimaryGroup });
 
     await user.selectOptions(groupPicker(), "Gardeners");
 
@@ -272,7 +243,7 @@ describe("Your group: the group the member counts for", () => {
   });
 
   it("says That couldn't be changed. when the pick is refused", async () => {
-    const { user } = showSettings(settingsFixtures.everything, { pickPrimaryGroup: async () => ({ kind: "refused" }) });
+    const { user } = await showSettings(settingsFixtures.everything, { pickPrimaryGroup: async () => ({ kind: "refused" }) });
 
     await user.selectOptions(groupPicker(), "Gardeners");
 
@@ -287,7 +258,7 @@ describe("WS24: /settings passes axe in light and dark", () => {
   for (const dark of [false, true]) {
     it(`with every section, after a refusal, in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
-      const { container, user } = showSettings(fixedSettings(settingsFixtures.everything)(true)!, { setMessageSetting: async () => ({ kind: "refused" }) });
+      const { container, user } = await showSettings(fixedSettings(settingsFixtures.everything)(true)!, { setMessageSetting: async () => ({ kind: "refused" }) });
       await user.click(place("Level ups", "None"));
       rowStatus("Level ups");
 

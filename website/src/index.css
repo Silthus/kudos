@@ -42,14 +42,6 @@
 :root {
   --primary-foreground: oklch(0.13 0.028 262);
   --font-sans: RoundHog, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --band-tangerine: #ff5c1c;
-  --band-lemon: #ffce1c;
-  --band-lemon-ink: #141414;
-  --band-blue: #106fb2;
-  --band-night: #141414;
-  --band-night-ink: #ffffff;
-  --band-night-quiet: #c4c4c4;
-  --band-night-edge: #ffffff;
   --medal-bronze: #a3622c;
   --medal-silver: #737780;
   --medal-gold: #94700a;
@@ -68,7 +60,7 @@
   --medal-diamond: #7cc9de;
 }
 
-:is(.dark, .moment-scrim, .pk-scrim) {
+.dark {
   --rarity-common: #aeb3c4;
   --rarity-uncommon: #4ade80;
   --rarity-rare: #60a5fa;
@@ -109,40 +101,6 @@ body {
   letter-spacing: -0.025em;
 }
 
-.night-band {
-  position: relative;
-  isolation: isolate;
-  background-color: var(--band-night);
-  color: var(--band-night-ink);
-  --crate-edge: var(--band-night-edge);
-}
-
-.night-band::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.07) 1px, transparent 1.4px) 0 0 / 14px 14px;
-}
-
-.night-band::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(60% 70% at 50% 62%, rgb(255 255 255 / 0.12), transparent 70%);
-}
-
-.night-band-quiet {
-  color: var(--band-night-quiet);
-}
-
-.night-band .hud-label {
-  color: var(--band-night-quiet);
-}
-
 .hog-silhouette {
   color: var(--muted-foreground);
 }
@@ -159,65 +117,3 @@ body {
   font-weight: 700;
   color: var(--muted-foreground);
 }
-
-@layer components {
-  .hud-panel {
-    position: relative;
-  }
-}
-
-.hud-panel::before,
-.hud-panel::after {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  width: 10px;
-  height: 10px;
-  border: 0 solid color-mix(in oklab, var(--foreground) 28%, transparent);
-  pointer-events: none;
-}
-
-.hud-panel::before {
-  top: 5px;
-  left: 5px;
-  border-top-width: 1.5px;
-  border-left-width: 1.5px;
-  border-top-left-radius: 4px;
-}
-
-.hud-panel::after {
-  bottom: 5px;
-  right: 5px;
-  border-bottom-width: 1.5px;
-  border-right-width: 1.5px;
-  border-bottom-right-radius: 4px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .perk-pop {
-    animation: perk-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
-  }
-}
-
-@keyframes perk-pop {
-  0% {
-    transform: scale(1);
-  }
-  40% {
-    transform: scale(1.18);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .book-index-hog {
-    transition: transform 0.2s ease;
-  }
-
-  a:hover .book-index-hog {
-    transform: rotate(-8deg);
-  }
-}
-

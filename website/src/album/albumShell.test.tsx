@@ -15,7 +15,7 @@ import type { Capturer } from "../browserAnalytics/capture";
 import { renderAlbum, renderApp } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -68,7 +68,7 @@ describe("the AlbumAnswer fixtures keep the contract the UI tickets build on", (
 
 describe("AL67: the album is the only shell", () => {
   it("a member gets the album's frame whatever getMyProfile says about the album", async () => {
-    visit("/", albumFixtures.midway, shellFixtures.memberWithEveryFeatureOpen);
+    visit("/", albumFixtures.midway, shellFixtures.member);
 
     expect(await screen.findByRole("navigation", { name: "Album" })).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Screens" })).not.toBeInTheDocument();

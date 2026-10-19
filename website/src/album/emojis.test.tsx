@@ -8,7 +8,7 @@ import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/
 import { albumFixtures, fixedAlbum, fixturePackOpeningOf, fixtureUnlockOf } from "./albumFixtures";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 const midway = albumFixtures.midway;
 

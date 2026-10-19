@@ -68,7 +68,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     finish();
   };
   const awaitingAMoment = playing || unlocking.sending !== null;
-  useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
+  useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (

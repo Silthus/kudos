@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
-export function useTitleFocusAfterChange(kind: string, { held }: { held: boolean }) {
+export function useTitleFocusAfterChange(kind: string) {
   const lastShown = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (kind === "loading") return;
     const changed = lastShown.current !== undefined && lastShown.current !== kind;
     lastShown.current = kind;
-    if (changed && !held) focusPageTitle();
-  }, [kind, held]);
+    if (changed) focusPageTitle();
+  }, [kind]);
 }
 
 export function useTitleFocusWhenTheFocusedElementGoes() {
@@ -30,8 +30,8 @@ export function focusPageTitle() {
   document.querySelector<HTMLElement>("main h1")?.focus();
 }
 
-export function useTitleFocusOnArrival() {
-  const arriving = useRef(false);
+export function useTitleFocusOnArrival(arrivingNow = false) {
+  const arriving = useRef(arrivingNow);
   useEffect(() => {
     if (!arriving.current) return;
     const title = document.querySelector<HTMLElement>("main h1");

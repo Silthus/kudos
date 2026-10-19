@@ -9,7 +9,7 @@ import type { Album, AlbumRead, PackOpenReply, PutAllInReply, PutInReply, TrayIt
 import { albumWithLanded } from "./tray";
 import { putInFlightMs, putInGapMs } from "./usePuttingIn";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);

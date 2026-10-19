@@ -9,7 +9,7 @@ import { shellFixtures, type EmojiMappingReply, type MemberProfile, type MySetti
 import { renderAlbum } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);

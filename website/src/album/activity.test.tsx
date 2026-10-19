@@ -7,7 +7,7 @@ import { albumFixtures, fixedAlbum } from "./albumFixtures";
 import type { WeekRead, WeekShown } from "./answer";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);

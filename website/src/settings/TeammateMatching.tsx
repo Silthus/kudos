@@ -1,6 +1,6 @@
 import { Button } from "@posthog/quill";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Panel } from "../home/Panel";
+import { Panel } from "./Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import type { AdminLinkTarget, AdminProfiles, ShellActions } from "../shell";
 import { PeopleFinder } from "./PeopleFinder";

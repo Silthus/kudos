@@ -2,11 +2,10 @@ import { useCallback, useEffect } from "react";
 import { AlbumWaits, AnswerPage, SettingsAnswerPage, type AppProps } from "../App";
 import { NavigateProvider } from "../AppLink";
 import { Frame } from "../Frame";
-import { ErrorPage } from "../pages/ErrorPage";
-import { useLinkTargetOnceLanded } from "../linkTarget";
+import { ClosedPage } from "../pages/ClosedPage";
+import { useSectionOnceLanded } from "../linkTarget";
 import { useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
-import type { MemberProfile } from "../shell";
 import type { Album } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
@@ -23,7 +22,7 @@ import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ arrivedFromAnotherPage, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { arrivedFromAnotherPage: boolean }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
@@ -41,8 +40,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
   const edition = useWeekEdition(useAlbumWeek, onActivity);
-  useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: album?.kind === "album" && onSettings && settings?.kind === "settings" });
-  const expectArrival = useTitleFocusOnArrival();
+  useSectionOnceLanded(route, album?.kind === "album" && onSettings && settings?.kind === "settings");
+  const expectArrival = useTitleFocusOnArrival(arrivedFromAnotherPage);
   const arriveAt = useCallback(
     (href: string) => {
       expectArrival();
@@ -52,13 +51,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
   );
   const signIn = useCallback(() => actions.signIn(returnAddressOf(route)), [actions, route]);
   const answers = { onSignIn: signIn, onSignOut: actions.signOut };
-  if (album === undefined || album.kind === "off") return <AlbumWaits />;
-  if (album.kind !== "album")
-    return (
-      <Frame member={member} busy={false}>
-        {album.kind === "broken" ? <ErrorPage focusWasOnPage={false} /> : <AnswerPage answer={album} {...answers} />}
-      </Frame>
-    );
+  if (album === undefined) return <AlbumWaits />;
+  if (album.kind !== "album") return <Frame busy={false}>{album.kind === "off" ? <ClosedPage /> : <AnswerPage answer={album} {...answers} />}</Frame>;
   return (
     <NavigateProvider value={arriveAt}>
       <EmojiWizardHost on={album.emojiWizard} emojis={album.emojis} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>

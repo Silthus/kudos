@@ -6,7 +6,6 @@ import { routeList, signInEntry, urlOf, type Page } from "../../../convex/websit
 import { activityHref } from "../route";
 import { bookHref, categories } from "../book/categories";
 import { rarestFirst, spreadHrefOf, type Spread } from "../book/spread/spreads";
-import { groupSlugOf } from "../book/spread/teamPages";
 import { pagePropertiesOf } from "../browserAnalytics/pageviews";
 import type { Rarity } from "../crates/drops";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
@@ -19,7 +18,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 const site = "https://kudos-site.test";
 
@@ -132,7 +131,7 @@ const everySpread: Spread[] = [
   ...rarestFirst.map((rarity) => ({ kind: "hoggies", rarity }) as const),
   { kind: "teams" },
   { kind: "team", team: "paper-moons" },
-  { kind: "team", team: groupSlugOf("S0123456789") },
+  { kind: "team", team: "group:S0123456789" },
   { kind: "achievements", category: "all" },
   ...categories.map(({ id }) => ({ kind: "achievements", category: id }) as const),
 ];
@@ -271,10 +270,10 @@ describe("MS22: the pageview seam reads each landing as the album page it shows"
   });
 });
 
-describe("AL39: without the album nothing lands anywhere new", () => {
+describe("AL67: while getAlbum answers off, nothing lands anywhere new", () => {
   it.each(["/quests?quest=2", "/book/earned", "/sign-in/leaderboard?period=month", "/book#cover"])("%s keeps its address", async (link) => {
     window.history.replaceState(null, "", link);
-    renderApp(shellFixtures.memberWithEveryFeatureOpen);
+    renderApp(shellFixtures.member);
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(addressNow()).toBe(link.replace(signInEntry, ""));

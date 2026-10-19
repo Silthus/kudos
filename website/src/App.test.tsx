@@ -2,7 +2,8 @@ import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { picturesIn } from "./test/pictures";
-import { renderApp } from "./test/renderApp";
+import { albumFixtures, fixedAlbum } from "./album/albumFixtures";
+import { renderAlbum, renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -54,10 +55,10 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
     expect(document.title).toBe("HedgeHug · Sign in");
   });
 
-  it("shows the not-found page with a link back to the profile on any other path", () => {
+  it("shows a member the not-found page with a link back to the profile on any other path", async () => {
     visit("/profile");
-    renderApp(shellFixtures.member);
-    expect(pageTitle()).toHaveTextContent("Page not found");
+    renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
+    expect(await screen.findByRole("heading", { level: 1, name: "Page not found" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
     expect(document.title).toBe("HedgeHug · Not found");
   });
@@ -67,29 +68,6 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
     expect(pageTitle()).toHaveTextContent("Something went wrong");
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     expect(document.title).toBe("HedgeHug · Error");
-  });
-
-  it("frames a member's profile with the wordmark, Profile as the only nav item, the theme control, the avatar and Sign out", () => {
-    renderApp(shellFixtures.member);
-    const banner = screen.getByRole("banner");
-    expect(within(banner).getByRole("link", { name: /HedgeHug/ })).toHaveAttribute("href", "/");
-    expect(within(banner).getByText("Thanks a Hog")).toBeInTheDocument();
-    const nav = within(banner).getByRole("navigation", { name: "Screens" });
-    const items = within(nav).getAllByRole("link");
-    expect(items.map((item) => item.textContent)).toEqual(["Profile"]);
-    expect(items[0]).toHaveAttribute("aria-current", "page");
-    expect(within(banner).getByRole("group", { name: "Theme" })).toBeInTheDocument();
-    expect(within(banner).getByRole("link", { name: "Sam Example" })).toHaveTextContent("SE");
-    expect(within(banner).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
-    expect(pageTitle()).toHaveTextContent("Sam Example");
-    expect(document.title).toBe("HedgeHug · Profile");
-  });
-
-  it("greets a member whose name Slack didn't share without inventing one", () => {
-    const { name: _, ...withoutName } = shellFixtures.member;
-    renderApp({ ...withoutName, face: { kind: "initials", initials: "?" } });
-    expect(screen.queryByText("Sam Example")).not.toBeInTheDocument();
-    expect(within(screen.getByRole("banner")).getByRole("link", { name: "Your profile" })).toHaveAttribute("href", "/");
   });
 
   it("keeps the nav, the avatar and the header's Sign out off the pages of a visitor who isn't a member", () => {

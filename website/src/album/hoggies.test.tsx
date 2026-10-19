@@ -12,7 +12,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 
 const arrival = 10_000;
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 type Box = { top: number; height: number };
 

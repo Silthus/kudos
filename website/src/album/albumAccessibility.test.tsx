@@ -13,7 +13,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 const pages: { path: string; album?: MyAlbum; boards?: BoardsShown; week?: WeekShown; hoggies?: HoggiesShown }[] = [
   { path: "/book#teams/lanterns" },

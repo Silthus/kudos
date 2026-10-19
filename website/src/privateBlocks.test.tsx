@@ -2,30 +2,14 @@ import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
-import { activityFixtures } from "./activityFixtures";
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf } from "./album/albumFixtures";
 import { profileFixtures } from "./album/profileFixtures";
 import { weekFixtures } from "./album/weekFixtures";
-import { leaderboardFixtures } from "./leaderboardFixtures";
-import { recentKudosFixtures } from "./recentKudosFixtures";
-import { spotlightFixtures } from "./spotlightFixtures";
 import { shellFixtures } from "./shell";
 import { renderAlbum } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
 
 const pages: { path: string; fixtures: string[] }[] = [
-  { path: "/", fixtures: ["member-with-every-feature-open", "member-with-custom-emoji", "member-with-the-board", "member-with-quests", "member-with-the-inventory"] },
-  { path: "/activity", fixtures: ["member-with-every-feature-open"] },
-  { path: "/activity?filter=received", fixtures: ["member-with-every-feature-open"] },
-  { path: "/activity?filter=given", fixtures: ["member-with-every-feature-open"] },
-  { path: "/leaderboard", fixtures: ["member-with-every-feature-open", "member-with-the-board"] },
-  { path: "/quests", fixtures: ["member-with-quests"] },
-  { path: "/skills", fixtures: ["member-with-every-feature-open"] },
-  { path: "/book", fixtures: ["member-with-the-book-opened"] },
-  { path: "/book/collection", fixtures: ["member-with-the-book-opened", "member-with-the-crate-store"] },
-  { path: "/book#hoggies/legendary", fixtures: ["member-with-the-book-spread"] },
-  { path: "/book#teams", fixtures: ["member-with-the-book-spread"] },
-  { path: "/settings", fixtures: ["member-with-settings"] },
   ...["/", "/book#teams/paper-moons", "/book#teams/kettle-works", "/book#teams/quiet-harbour", "/book#people/ines-okafor", "/book#people/juno-park", "/book#me", "/book#hoggies", "/book#hoggies/asleep", "/book#milestones", "/book#packs", "/activity", "/leaderboard", "/settings"].map((path) => ({ path, fixtures: ["album"] })),
   { path: "/settings", fixtures: ["album-maintainer"] },
 ];
@@ -35,7 +19,9 @@ const slackShapedId = /\b[UWCGDT][A-Z0-9]{8,}\b/;
 const emojiName = /:[a-z0-9_+'-]+:/;
 const checkedAttributes = ["href", "src", "srcset", "alt", "title", "aria-label", "aria-description", "data-href"];
 
-const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures, weekFixtures, profileFixtures, fixturePersonOf(albumFixtures.midway, "ines-okafor")])].filter((text) => text.trim().length >= 8);
+const albumPages = [weekFixtures, profileFixtures, fixturePersonOf(albumFixtures.midway, "ines-okafor")];
+
+const kudosWords = [...wordsIn(albumPages)].filter((text) => text.trim().length >= 8);
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -47,7 +33,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }, () => {
   it("the fixtures hold kudos words, Slack pictures and permalinks for the walk to find", () => {
     expect(kudosWords.length).toBeGreaterThan(5);
-    expect(JSON.stringify([activityFixtures, spotlightFixtures])).toMatch(slackHost);
+    expect(JSON.stringify(albumPages)).toMatch(slackHost);
   });
 
   for (const { path, fixtures } of pages) {
@@ -55,7 +41,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
       it(`${path} for ${fixture}: every kudos word, Slack-shaped ID, Slack URL and emoji name sits inside a ph-no-capture block`, async () => {
         window.history.replaceState(null, "", path);
         const { container } = render(<Root fixture={fixture} />);
-        await (fixture === "album" ? screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 }) : screen.findByRole("main"));
+        await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
         await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
 
         expect(exposedIn(container)).toEqual([]);
@@ -119,7 +105,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
   it("AL56: an unlocked team page whose emoji isn't in Slack keeps the emoji's picture, its name and Add to Slack's Slack address in blocks", async () => {
     const album = { ...albumFixtures.midway, emojis: albumFixtures.midway.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, inSlack: false } : emoji)) };
     window.history.replaceState(null, "", "/book#teams/quiet-harbour");
-    const { container } = renderAlbum({ ...shellFixtures.memberWithEveryFeatureOpen, album: true }, fixedAlbum(album), { people: fixedPeople(album) });
+    const { container } = renderAlbum(shellFixtures.member, fixedAlbum(album), { people: fixedPeople(album) });
     const addToSlack = await screen.findByRole("button", { name: "Add to Slack: :quiet-harbour:" }, { timeout: 10_000 });
 
     expect(exposedIn(container)).toEqual([]);
@@ -196,15 +182,6 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     const slackPictures = [...container.querySelectorAll("img")].filter((image) => slackHost.test(image.getAttribute("src")!));
     expect(slackPictures).toHaveLength(1);
     expect(slackPictures.every((image) => image.closest(".ph-no-capture") !== null)).toBe(true);
-  });
-
-  it("a page with private things in it carries blocks, so the walk is not vacuous", async () => {
-    window.history.replaceState(null, "", "/activity");
-    const { container } = render(<Root fixture="member-with-every-feature-open" />);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
-
-    expect(container.querySelectorAll(".ph-no-capture").length).toBeGreaterThan(3);
-    expect([...container.querySelectorAll("a[href]")].some((link) => slackHost.test(link.getAttribute("href")!))).toBe(true);
   });
 });
 

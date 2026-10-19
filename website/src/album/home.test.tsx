@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
@@ -9,7 +9,7 @@ import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 beforeAll(async () => {
   await import("./AlbumApp");
@@ -60,7 +60,7 @@ describe("AL43: the album's home is the member's profile", { timeout: 30_000 }, 
     await waitFor(() => expect(addressNow()).toBe("/book?code=one-time#me"));
   });
 
-  it("/ keeps its address while getAlbum answers off, so a member the album isn't shown to stays on today's home", async () => {
+  it("/ keeps its address while getAlbum answers off, where the member reads that the website isn't open here", async () => {
     window.history.replaceState(null, "", "/");
     const askedForTheAlbum = vi.fn();
     renderAlbum(memberWithTheAlbum, (asking) => {
@@ -69,8 +69,7 @@ describe("AL43: the album's home is the member's profile", { timeout: 30_000 }, 
     });
 
     await waitFor(() => expect(askedForTheAlbum).toHaveBeenCalled());
-    await act(async () => undefined);
-    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByRole("heading", { level: 1, name: "Not open yet" })).toBeInTheDocument();
     expect(addressNow()).toBe("/");
   });
 

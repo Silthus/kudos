@@ -8,7 +8,7 @@ import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/
 import { albumFixtures } from "./albumFixtures";
 import type { Album, AlbumEmoji, AlbumRead, PackOpenReply, TrayItem } from "./answer";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 const bonus = { xp: 15, coins: 0, from: { xp: 1210, level: 6, coins: 0, skillPoints: 0 }, to: { xp: 1225, level: 6, coins: 0, skillPoints: 0 } };
 

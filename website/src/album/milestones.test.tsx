@@ -9,7 +9,7 @@ import type { Album, AlbumEmoji, AlbumMilestone } from "./answer";
 
 const arrival = 10_000;
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum: MemberProfile = shellFixtures.member;
 
 const midway = albumFixtures.midway;
 
