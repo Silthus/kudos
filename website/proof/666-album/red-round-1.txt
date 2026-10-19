@@ -1,0 +1,7 @@
+     × only the chosen week's tab is in the Tab order, and it leads into its issue
+     × a quiet week's issue, which holds nothing focusable, is still reached by Tab from its week
+     × while a picked week loads, the issue on screen is the newest answer the read gave, not an earlier one
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: the kept issue carries the live update, not the first answer: expected 'hugs | 8 | 3 given · 5 received' to be 'hugs | 14 | 9 given · 5 received' // Object.is equality
+ Test Files  1 failed (1)
+      Tests  3 failed | 14 passed (17)

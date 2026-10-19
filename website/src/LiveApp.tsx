@@ -13,7 +13,7 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
-import type { AlbumShown, BoardsShown, PersonShown } from "./album/answer";
+import type { AlbumShown, BoardsShown, PersonShown, WeekShown } from "./album/answer";
 import { albumOf } from "./album/liveAlbum";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
@@ -67,6 +67,7 @@ function LiveApp() {
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking) => useLiveThoughtfulBoards(asking, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
+      useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
@@ -137,6 +138,14 @@ function useLiveThoughtfulBoards(asking: boolean, unreachable: boolean): BoardsS
 function useLiveAlbumPerson(asking: boolean, person: string | null, unreachable: boolean): PersonShown | undefined {
   const request = useMemo((): RequestForQueries => (asking && person !== null ? { person: { query: api.website.album.getAlbumPerson, args: { person } } } : {}), [asking, person]);
   const { person: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
+}
+
+function useLiveAlbumWeek(asking: boolean, week: string | undefined, unreachable: boolean): WeekShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { week: { query: api.website.album.getAlbumWeek, args: week === undefined ? {} : { week } } } : {}), [asking, week]);
+  const { week: answer } = useQueries(request);
   if (answer instanceof Error) return { kind: "broken" };
   if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return answer;

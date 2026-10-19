@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { activityFixtures } from "./activityFixtures";
 import { albumFixtures, fixturePersonOf } from "./album/albumFixtures";
+import { weekFixtures } from "./album/weekFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { recentKudosFixtures } from "./recentKudosFixtures";
 import { spotlightFixtures } from "./spotlightFixtures";
@@ -30,7 +31,7 @@ const slackShapedId = /\b[UWCGDT][A-Z0-9]{8,}\b/;
 const emojiName = /:[a-z0-9_+'-]+:/;
 const checkedAttributes = ["href", "src", "srcset", "alt", "title", "aria-label", "aria-description", "data-href"];
 
-const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures, fixturePersonOf(albumFixtures.midway, "ines-okafor")])].filter((text) => text.trim().length >= 8);
+const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures, weekFixtures, fixturePersonOf(albumFixtures.midway, "ines-okafor")])].filter((text) => text.trim().length >= 8);
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -126,6 +127,21 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
 
     const blocked = [...container.querySelectorAll(".ph-no-capture")].map((block) => block.textContent);
     expect(blocked).toEqual(expect.arrayContaining(["Wren Alder", "Ines Okafor", "Perrin Holt", "Sam Example", "WA", "Wren Alder leads with 6."]));
+    const slackPictures = [...container.querySelectorAll("img")].filter((image) => slackHost.test(image.getAttribute("src")!));
+    expect(slackPictures).toHaveLength(1);
+    expect(slackPictures.every((image) => image.closest(".ph-no-capture") !== null)).toBe(true);
+  });
+
+  it("AL56: the album's Activity carries blocks around every face and name, the kudos of the week and its Slack link, so its walk is not vacuous", async () => {
+    window.history.replaceState(null, "", "/activity");
+    const { container } = render(<Root fixture="album" />);
+    await screen.findByRole("tabpanel");
+
+    const blocked = [...container.querySelectorAll(".ph-no-capture")].map((block) => block.textContent);
+    expect(blocked).toEqual(expect.arrayContaining(["From Ines Okafor", "You untangled the release notes at midnight and saved the launch.", "IO", "Wren Alder", "Juno Park", "Kit Sorrel", "Della Crane"]));
+    const slackLinks = [...container.querySelectorAll("a[href]")].filter((link) => slackHost.test(link.getAttribute("href")!));
+    expect(slackLinks).toHaveLength(1);
+    expect(slackLinks.every((link) => link.closest(".ph-no-capture") !== null)).toBe(true);
     const slackPictures = [...container.querySelectorAll("img")].filter((image) => slackHost.test(image.getAttribute("src")!));
     expect(slackPictures).toHaveLength(1);
     expect(slackPictures.every((image) => image.closest(".ph-no-capture") !== null)).toBe(true);

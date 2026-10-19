@@ -7,12 +7,13 @@ import { renderAlbum } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { contrast, contrastOnTint, type Mode } from "../test/themeContrast";
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePackOpeningOf, fixturePutAllIn, fixtureUnlockOf } from "./albumFixtures";
-import type { BoardsShown, MyAlbum } from "./answer";
+import type { BoardsShown, MyAlbum, WeekShown } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
+import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
-const pages: { path: string; album?: MyAlbum; boards?: BoardsShown }[] = [
+const pages: { path: string; album?: MyAlbum; boards?: BoardsShown; week?: WeekShown }[] = [
   { path: "/" },
   { path: "/", album: albumFixtures.newcomer },
   { path: "/book#teams/kettle-works" },
@@ -25,11 +26,23 @@ const pages: { path: string; album?: MyAlbum; boards?: BoardsShown }[] = [
   { path: "/book#milestones" },
   { path: "/book#packs" },
   { path: "/activity" },
+  { path: "/activity", week: weekFixtures.quiet },
+  { path: "/activity", week: weekFixtures.overflowing },
+  { path: "/activity", week: weekFixtures.ownKudos },
+  { path: "/activity", week: weekFixtures.noHistory },
   { path: "/leaderboard" },
   { path: "/leaderboard", boards: boardsFixtures.quiet },
   { path: "/leaderboard", boards: boardsFixtures.hidden },
   { path: "/settings" },
 ];
+
+function weekNameOf(week: WeekShown | undefined) {
+  if (week === weekFixtures.quiet) return " in a quiet week";
+  if (week === weekFixtures.overflowing) return " in an overflowing week";
+  if (week === weekFixtures.ownKudos) return " in a week led by the member's own kudos";
+  if (week === weekFixtures.noHistory) return " before the first week";
+  return "";
+}
 
 function boardsNameOf(boards: BoardsShown | undefined) {
   if (boards === boardsFixtures.quiet) return " before anyone gave";
@@ -44,20 +57,20 @@ async function violationsIn(container: Element) {
   return results.violations.map((violation) => `${violation.id}: ${violation.help}`);
 }
 
-function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week) {
+function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week, week?: WeekShown) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), people: album.kind === "album" ? fixedPeople(album) : undefined, commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), unlockTeamSticker: async (team) => (album.kind === "album" ? fixtureUnlockOf(album, team) : { kind: "refused" }) } });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), weeks: week === undefined ? fixtureWeeks() : fixedWeek(week), people: album.kind === "album" ? fixedPeople(album) : undefined, commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), unlockTeamSticker: async (team) => (album.kind === "album" ? fixtureUnlockOf(album, team) : { kind: "refused" }) } });
 }
 
 describe("AL55: every album page passes axe in light and dark, wide and on a phone", () => {
   for (const dark of [false, true]) {
     for (const wide of [true, false]) {
-      for (const { path, album, boards } of pages) {
-        it(`${path}${album === albumFixtures.newcomer ? " for a newcomer" : ""}${boardsNameOf(boards)} in ${dark ? "dark" : "light"}, ${wide ? "wide" : "on a phone"}`, async () => {
+      for (const { path, album, boards, week } of pages) {
+        it(`${path}${album === albumFixtures.newcomer ? " for a newcomer" : ""}${boardsNameOf(boards)}${weekNameOf(week)} in ${dark ? "dark" : "light"}, ${wide ? "wide" : "on a phone"}`, async () => {
           fakeSystemTheme(dark);
           if (wide) preferWideScreen();
           else aWideScreenThatNarrows().narrow();
-          const { container } = visit(path, album, boards);
+          const { container } = visit(path, album, boards, week);
           await screen.findByRole("navigation", { name: "Album" });
 
           expect(await violationsIn(container)).toEqual([]);

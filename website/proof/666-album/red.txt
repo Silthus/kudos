@@ -1,0 +1,17 @@
+     × opens on this week's issue: its tallies, the kudos of the week, who you thanked, who thanked you, new faces, hoggies from packs and quiet hugs
+     × lists every week with an issue as a tab, newest first, each with its dates, a sparkline of its seven days and what happened
+     × picking a week reads that week's issue, and the arrow keys, Home and End move between weeks
+     × only the chosen week's tab is in the Tab order, and it leads into its issue
+     × an empty week shows its tallies at nothing and says it was quiet
+     × an overflowing week shows twelve in each list and counts the rest
+     × a kudos of the week the member gave reads From you, and has no Slack link when it has none
+     × a member with no week yet gets no tabs and no issue, and is told when the first one comes
+     × a week the read has no issue for says so
+     × keeps the issue and its tabs on screen while the picked week loads, busy, with focus kept on the tab
+     × opens on this week again after the member leaves Activity and comes back
+     × shows the page busy while the week loads
+     × says the week didn't load when the read fails
+     × shows today's answer page when the read denies the member, inside the album's frame
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  14 failed | 1 passed (15)

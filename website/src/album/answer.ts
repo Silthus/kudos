@@ -73,6 +73,40 @@ export type BoardsShown = ThoughtfulBoards | { kind: "off" } | Denial | { kind: 
 
 export type BoardsRead = (asking: boolean) => BoardsShown | undefined;
 
+export type WeekPerson = { person: string; name: string; face: Face };
+
+export type PeopleListed = { people: WeekPerson[]; more: number };
+
+export type HoggiesFound = { hoggies: { hoggie: string; rarity: Rarity }[]; more: number };
+
+export type KudosOfTheWeek = { giver: WeekPerson; message: Message; permalink: string | null; at: number; hugs: number };
+
+export type WeekIssue = {
+  kudosGiven: number;
+  kudosReceived: number;
+  thoughtfulGiven: number;
+  thoughtfulReceived: number;
+  hugsGiven: number;
+  hugsReceived: number;
+  packsOpened: number;
+  days: number[];
+  kudosOfWeek: KudosOfTheWeek | null;
+  thanked: PeopleListed;
+  thankedBy: PeopleListed;
+  hugged: PeopleListed;
+  huggedBy: PeopleListed;
+  newFaces: PeopleListed;
+  hoggies: HoggiesFound;
+};
+
+export type WeekTab = { week: string; days: number[] };
+
+export type AlbumWeek = { kind: "week"; week: string; weeks: WeekTab[]; issue: WeekIssue | null };
+
+export type WeekShown = AlbumWeek | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type WeekRead = (asking: boolean, week: string | undefined) => WeekShown | undefined;
+
 export type TeamSticker = { team: string; name: string; art: TeamArt; emoji: string; at: number };
 
 export type UnlockAnswer = { kind: "unlocked"; sticker: TeamSticker } | { kind: "refused" };

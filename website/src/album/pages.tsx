@@ -7,9 +7,9 @@ import type { Place } from "./place";
 import { TeamPage } from "./TeamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; person: ReactNode; unlocking: TeamUnlocking };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; unlocking: TeamUnlocking };
 
-export function AlbumPage({ album, place, settings, leaderboard, person, unlocking }: PageProps) {
+export function AlbumPage({ album, place, settings, leaderboard, activity, person, unlocking }: PageProps) {
   switch (place.kind) {
     case "team":
       return <TeamOrHome album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} unlocking={unlocking} />;
@@ -40,11 +40,7 @@ export function AlbumPage({ album, place, settings, leaderboard, person, unlocki
         </Page>
       );
     case "activity":
-      return (
-        <Page tab="Activity" title="Activity">
-          This week in your album.
-        </Page>
-      );
+      return activity;
     case "leaderboard":
       return leaderboard;
     case "settings":
