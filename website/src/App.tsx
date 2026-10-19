@@ -360,11 +360,13 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
 
 export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">;
 
-export function SettingsAnswerPage({ settings, actions, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; onSignIn: () => void; onSignOut: () => void }) {
+type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; withThemeAndSignOut?: boolean; onSignIn: () => void; onSignOut: () => void };
+
+export function SettingsAnswerPage({ settings, actions, withThemeAndSignOut = false, ...answers }: SettingsAnswerPageProps) {
   if (settings === undefined) return <LoadingPage shape="column" />;
   if (settings.kind === "not-found") return <NotFoundPage />;
   if (settings.kind !== "settings") return <AnswerPage answer={settings} {...answers} />;
-  return <SettingsPage settings={settings} actions={actions} />;
+  return <SettingsPage settings={settings} actions={actions} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} />;
 }
 
 export type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
@@ -8,6 +10,7 @@ import type { MyAlbum } from "./answer";
 import type { SettingsRead, SettingsShown } from "../settingsRead";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures, type MemberProfile } from "../shell";
+import type { Capturer } from "../browserAnalytics/capture";
 import { renderAlbum, renderApp } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 
@@ -18,9 +21,30 @@ beforeEach(() => {
   preferWideScreen();
 });
 
-function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum) {
+function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum, capturer: Capturer | null = null) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.found) });
+  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.found), capturer });
+}
+
+function visitWhileCapturing(path: string) {
+  return visit(path, albumFixtures.midway, memberWithTheAlbum, { capture: vi.fn() } as unknown as Capturer);
+}
+
+function opensOutTo(control: HTMLElement) {
+  return control.querySelector(".al-opens-out")?.textContent ?? null;
+}
+
+const albumCss = readFileSync(join(__dirname, "album.css"), "utf8");
+
+function declarationsOf(selector: string, css = albumCss) {
+  const rule = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(([, selectors]) => selectors!.split(",").some((each) => each.trim() === selector));
+  if (rule === undefined) throw new Error(`${selector} has no rule in album.css`);
+  return Object.fromEntries([...rule[2]!.matchAll(/([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]));
+}
+
+function reducedMotionCss() {
+  const start = albumCss.indexOf("@media (prefers-reduced-motion: reduce)");
+  return albumCss.slice(start);
 }
 
 async function topBar() {
@@ -128,9 +152,70 @@ describe("AL42: the top bar", () => {
     expect(bar.getByRole("link", { name: "Leaderboard" })).not.toHaveAttribute("data-labelled");
   });
 
+  it("#695: holds Feedback while the visit is captured, and the sidebar holds only teams and pages", async () => {
+    visitWhileCapturing("/");
+    const bar = await topBar();
+    const side = await sidebar();
+
+    expect(bar.getByRole("button", { name: "Feedback" })).toHaveAttribute("data-ph-capture-attribute-control", "feedback");
+    expect(side.queryByRole("button", { name: "Feedback" })).not.toBeInTheDocument();
+    expect(side.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+    expect(side.queryByRole("group", { name: "Theme" })).not.toBeInTheDocument();
+  });
+
+  it("#695: the packs button, the tray, Activity, Leaderboard, the emojis and Feedback each open out to their label", async () => {
+    visitWhileCapturing("/");
+    const bar = await topBar();
+
+    expect(opensOutTo(bar.getByRole("button", { name: "Open your packs, 2 waiting" }))).toBe("2 packsReady to open");
+    expect(opensOutTo(bar.getByRole("button", { name: "Tray, nothing to put in" }))).toBe("Tray");
+    expect(opensOutTo(bar.getByRole("link", { name: "Activity" }))).toBe("Activity");
+    expect(opensOutTo(bar.getByRole("link", { name: "Leaderboard" }))).toBe("Leaderboard");
+    expect(opensOutTo(bar.getByRole("button", { name: "Your emojis, 3 earned" }))).toBe("Emojis");
+    expect(opensOutTo(bar.getByRole("button", { name: "Feedback" }))).toBe("Feedback");
+  });
+
+  it("#695: the packs button stays open on the packs page, as Activity and Leaderboard do on theirs", async () => {
+    visit("/book#packs");
+    const bar = await topBar();
+
+    expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveAttribute("data-labelled", "");
+    expect(bar.getByRole("link", { name: "Activity" })).not.toHaveAttribute("data-labelled");
+  });
+
   it("the member's face and name lead to the profile, current there", async () => {
     visit("/book#me");
     expect((await topBar()).getByRole("link", { name: "Your profile, Sam Example" })).toHaveAttribute("aria-current", "page");
+  });
+});
+
+describe("#695: a top bar label opens out calmly", () => {
+  it("opens about 150 ms after the pointer or keyboard focus arrives, so a pointer passing across the bar opens nothing", () => {
+    const opening = declarationsOf(".al-top :hover > .al-opens-out");
+
+    expect(opening["grid-template-columns"]).toBe("1fr");
+    expect(opening["transition-delay"]).toBe("150ms");
+    expect(declarationsOf(".al-top :focus-visible > .al-opens-out")).toEqual(opening);
+  });
+
+  it("closes as soon as they leave, sliding shut rather than snapping", () => {
+    const resting = declarationsOf(".al-opens-out");
+
+    expect(resting["grid-template-columns"]).toBe("0fr");
+    expect(resting.transition).toMatch(/grid-template-columns \d+ms/);
+    expect(resting["transition-delay"]).toBeUndefined();
+  });
+
+  it("stays open at once, with no delay, on the current page and while its panel is open", () => {
+    const labelled = declarationsOf(".al-top [data-labelled] > .al-opens-out");
+
+    expect(labelled["grid-template-columns"]).toBe("1fr");
+    expect(labelled["transition-delay"]).toBe("0ms");
+    expect(declarationsOf(".al-top [aria-expanded=\"true\"] > .al-opens-out")).toEqual(labelled);
+  });
+
+  it("with reduced motion, keeps the delay but shows and hides the label without sliding", () => {
+    expect(declarationsOf(".al-opens-out", reducedMotionCss())["transition-duration"]).toBe("0s");
   });
 });
 
@@ -289,6 +374,22 @@ describe("AL43: every album route has its page", () => {
     expect((await topBar()).getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("#695: Settings also holds the theme choice and Sign out, which left the sidebar", async () => {
+    const { user, actions } = visit("/settings");
+    await screen.findByRole("heading", { level: 1, name: "Settings" });
+    const page = within(screen.getByRole("main"));
+    const theme = page.getByRole("group", { name: "Theme" });
+
+    await user.click(within(theme).getByRole("button", { name: "Dark" }));
+    expect(within(theme).getByRole("button", { name: "Dark" })).toHaveAttribute("aria-pressed", "true");
+    expect(document.documentElement).toHaveClass("dark");
+    await user.click(within(theme).getByRole("button", { name: "System" }));
+    expect(document.documentElement).not.toHaveClass("dark");
+
+    await user.click(page.getByRole("button", { name: "Sign out" }));
+    expect(actions.signOut).toHaveBeenCalledOnce();
+  });
+
   it("following a sidebar link moves to that page and its title takes focus", async () => {
     const { user } = visit("/");
     await user.click(within((await sidebar()).getByRole("list", { name: "Teams" })).getByRole("link", { name: /^Paper Moons/ }));
@@ -355,6 +456,15 @@ describe("AL55: the phone layout", () => {
     await user.click(drawer);
     expect(drawer).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("searchbox", { name: "Search teams and people" })).toBeInTheDocument();
+  });
+
+  it("#695: keeps Feedback in the bar, where its form can stay open, and Settings in the menu", async () => {
+    aWideScreenThatNarrows().narrow();
+    visitWhileCapturing("/");
+    const bar = await topBar();
+
+    expect(bar.getByRole("button", { name: "Feedback" })).toBeInTheDocument();
+    expect(bar.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
   });
 
   it("closes the drawer once a page in it is followed", async () => {

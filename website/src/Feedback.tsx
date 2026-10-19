@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
 import { IconMessage } from "@posthog/icons";
 import { Button, Popover, PopoverContent, PopoverTrigger, Textarea } from "@posthog/quill";
 import type { Capturer } from "./browserAnalytics/capture";
@@ -7,7 +7,9 @@ const survey = { id: "01a14dfa-686c-0000-15fd-1e42871cb016", question: { id: "ac
 
 const aboutTheSurvey = { $survey_id: survey.id };
 
-export function Feedback({ capturer }: { capturer: Capturer }) {
+type FeedbackProps = { capturer: Capturer; trigger?: ReactElement; label?: ReactNode };
+
+export function Feedback({ capturer, trigger = <Button variant="outline" size="sm" />, label = <span className="max-sm:sr-only">Feedback</span> }: FeedbackProps) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [answer, setAnswer] = useState("");
@@ -30,9 +32,9 @@ export function Feedback({ capturer }: { capturer: Capturer }) {
 
   return (
     <Popover open={open} onOpenChange={changeOpen}>
-      <PopoverTrigger render={<Button variant="outline" size="sm" data-ph-capture-attribute-control="feedback" />}>
+      <PopoverTrigger render={trigger} data-ph-capture-attribute-control="feedback">
         <IconMessage aria-hidden />
-        <span className="max-sm:sr-only">Feedback</span>
+        {label}
       </PopoverTrigger>
       <PopoverContent aria-label="Feedback" align="end" className="w-80 max-w-[calc(100vw-2rem)]">
         {sent ? <Thanks onClose={() => changeOpen(false)} /> : <AnswerForm answer={answer} onChange={setAnswer} onSend={send} />}

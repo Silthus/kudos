@@ -109,11 +109,10 @@
 .al-packs {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   background: var(--card);
-  padding: 0.25rem 0.75rem 0.25rem 0.375rem;
+  padding: 0.25rem 0.375rem;
   color: inherit;
   font: inherit;
   font-size: 0.75rem;
@@ -177,6 +176,10 @@
   flex-direction: column;
 }
 
+.al-packs .al-opens-out > span > span {
+  padding-inline: 0.5rem 0.375rem;
+}
+
 .al-packs-words span {
   color: var(--al-quiet);
 }
@@ -194,7 +197,6 @@
   min-width: 2.25rem;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
@@ -228,6 +230,11 @@
   background: var(--card);
 }
 
+.al-tray-count,
+.al-emojis-count {
+  margin-inline-start: 0.375rem;
+}
+
 .al-tray-count {
   border-radius: 999px;
   background: var(--al-accent-ink);
@@ -236,18 +243,38 @@
   font-size: 0.6875rem;
 }
 
-.al-icon-label {
-  display: inline-block;
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: max-width 160ms ease-out;
+.al-opens-out {
+  display: inline-grid;
+  grid-template-columns: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-columns 220ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 180ms ease-out;
 }
 
-.al-icon-link:hover .al-icon-label,
-.al-icon-link:focus-visible .al-icon-label,
-.al-icon-link[data-labelled] .al-icon-label {
-  max-width: 8rem;
+.al-opens-out > span {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.al-opens-out > span > span {
+  display: block;
+  padding-inline-start: 0.375rem;
+  white-space: nowrap;
+}
+
+.al-top :hover > .al-opens-out,
+.al-top :focus-visible > .al-opens-out {
+  grid-template-columns: 1fr;
+  opacity: 1;
+  transition-delay: 150ms;
+}
+
+.al-top [data-labelled] > .al-opens-out,
+.al-top [aria-expanded="true"] > .al-opens-out {
+  grid-template-columns: 1fr;
+  opacity: 1;
+  transition-delay: 0ms;
 }
 
 .al-icon-link[aria-current="page"],
@@ -604,16 +631,6 @@
   font-size: 0.75rem;
 }
 
-.al-side-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: auto;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-}
-
 .al-main {
   min-width: 0;
   flex: 1;
@@ -773,7 +790,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .al-icon-label,
+  .al-opens-out {
+    transition-duration: 0s;
+  }
+
   .al-side-toggle svg {
     transition: none;
   }

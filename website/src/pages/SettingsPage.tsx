@@ -2,6 +2,8 @@ import { Panel } from "../home/Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
 import { PageTitle } from "../PageTitle";
+import { SignOutButton } from "../SignOutButton";
+import { ThemeChoices } from "../ThemeControl";
 import { CompanyProfileSection } from "../settings/CompanyProfileSection";
 import { GroupPicker } from "../settings/GroupPicker";
 import { MessageSettingRow } from "../settings/MessageSettingRow";
@@ -9,9 +11,9 @@ import { TeammateMatching } from "../settings/TeammateMatching";
 import { WorkspaceSettings } from "../settings/WorkspaceSettings";
 import type { MessageSetting, MySettings, ShellActions } from "../shell";
 
-type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings"> };
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">; themeAndSignOut?: { onSignOut: () => void } };
 
-export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace }, actions }: SettingsPageProps) {
+export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace }, actions, themeAndSignOut }: SettingsPageProps) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -21,6 +23,12 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
         </PageTitle>
         <p className="text-sm text-muted-foreground">Your choices in one place. Changes here show in Slack's App Home too.</p>
       </header>
+      {themeAndSignOut !== undefined && (
+        <Panel id="appearance" label="Appearance">
+          <p className="text-sm text-muted-foreground">How HedgeHug looks in this browser.</p>
+          <ThemeChoices />
+        </Panel>
+      )}
       {messages !== null && <Messages messages={messages} setMessageSetting={actions.setMessageSetting} />}
       {board !== null && (
         <Panel id="leaderboards" label="Leaderboards" target={panelTargetAttributes("visibility")}>
@@ -39,6 +47,14 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
       {companyProfile !== undefined && <CompanyProfileSection setting={companyProfile} linkMyCompanyProfile={actions.linkMyCompanyProfile} />}
       {admin !== undefined && <TeammateMatching admin={admin} linkCompanyProfile={actions.linkCompanyProfile} />}
       {workspace !== undefined && <WorkspaceSettings workspace={workspace} setWorkspaceSettings={actions.setWorkspaceSettings} />}
+      {themeAndSignOut !== undefined && (
+        <Panel id="account" label="Account">
+          <p className="text-sm text-muted-foreground">Sign out of HedgeHug in this browser. Your album stays as it is.</p>
+          <div>
+            <SignOutButton onSignOut={themeAndSignOut.onSignOut} />
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }

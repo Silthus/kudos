@@ -24,6 +24,30 @@ export function ThemeControl() {
   );
 }
 
+export function ThemeChoices() {
+  const { choice, choose } = useTheme();
+  return (
+    <div role="group" aria-label="Theme" className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const selected = option.choice === choice;
+        return (
+          <button
+            key={option.choice}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => choose(option.choice)}
+            className={`relative flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition-colors ${selected ? "border-primary bg-fill-selected text-foreground" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
+          >
+            <option.Icon className="size-4" />
+            {option.short}
+            {selected && <SelectedMark />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 type ThemeProps = { choice: ThemeChoice; choose: (choice: ThemeChoice) => void };
 
 function ThemeGroup({ choice, choose }: ThemeProps) {
