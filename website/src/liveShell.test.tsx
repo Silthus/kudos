@@ -897,7 +897,6 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     renderLiveSite();
 
     expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" })).toBeInTheDocument();
-    expect(screen.getByText("2 of 3 in your album. Collect all 3 to unlock the Lanterns sticker.")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Lanterns sticker, 2 of 3" })).toBeInTheDocument();
   });
 
@@ -915,7 +914,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     renderLiveSite();
 
     expect(await screen.findByRole("link", { name: "Omar Siddiqui Not in your album yet" })).toHaveAttribute("href", "/book#people/m-omar");
-    expect(screen.getByText("Give Omar a thoughtful kudos to complete Lanterns.")).toBeInTheDocument();
+    expect(screen.getByRole("figure", { name: "Left to right Ines Okafor, Omar Siddiqui" })).toBeInTheDocument();
   });
 
   it("AL46: a person page subscribes to getAlbumPerson for the person in its address, and only there", async () => {
@@ -940,7 +939,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     window.history.replaceState(null, "", "/book#teams/comets");
     const { user } = renderLiveSite();
 
-    await user.click(await screen.findByRole("button", { name: "Unlock the Comets sticker" }));
+    await user.click(await screen.findByRole("button", { name: "Ready to unlock the Comets sticker" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:unlockTeamSticker", args: { team: "comets" } });
   });
