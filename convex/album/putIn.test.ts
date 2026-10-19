@@ -315,7 +315,7 @@ describe("the album is private", () => {
 
     expect(await everyTable()).toEqual(before);
     expect(await putAllIn(asBob)).toEqual({ kind: "placed", items: [...hoggiesIn(bobsItems), ...stickersIn(bobsItems)], more: false });
-    expect((await albumOf(asAlice)).tray).toEqual(alicesItems);
+    expect(storedItemsOf((await albumOf(asAlice)).tray)).toEqual(alicesItems);
   });
 });
 
@@ -437,6 +437,14 @@ function putIn(reader: Reader, item: ItemId) {
 
 function putAllIn(reader: Reader) {
   return reader.mutation(api.website.album.putAllIn, {});
+}
+
+function storedItemsOf(tray: AlbumAnswer["tray"]) {
+  return tray.map((shown) => {
+    if (shown.kind !== "sticker") return shown;
+    const { thanked: _shownPerson, ...stored } = shown;
+    return stored;
+  });
 }
 
 async function albumOf(reader: Reader): Promise<AlbumAnswer> {
