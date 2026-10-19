@@ -50,6 +50,16 @@ export const teamStickerValidator = v.object({ member: v.id("members"), team: v.
 
 export type TeamSticker = Omit<Infer<typeof teamStickerValidator>, "member">;
 
+export const milestoneTierValidator = v.union(v.literal("bronze"), v.literal("silver"), v.literal("gold"), v.literal("diamond"));
+
+export type MilestoneTier = Infer<typeof milestoneTierValidator>;
+
+export const milestoneIdValidator = v.union(v.literal("people"), v.literal("teams"), v.literal("reach"), v.literal("hoggies"), v.literal("thoughtful"));
+
+export type MilestoneId = Infer<typeof milestoneIdValidator>;
+
+export const milestoneTierRecordValidator = v.object({ member: v.id("members"), milestone: milestoneIdValidator, tier: milestoneTierValidator, at: v.number(), catalogue: v.number() });
+
 export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string() });
 
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });

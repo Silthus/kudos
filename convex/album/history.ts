@@ -32,7 +32,8 @@ export const recordAlbumHistory = internalMutation({
     if (history === null || history.done) return null;
     const moved = history.phase === "kudos" ? await recordAwardsPage(ctx, history) : await tallyHugsPage(ctx, history);
     await ctx.db.patch(history._id, moved);
-    if (!moved.done) await ctx.scheduler.runAfter(0, internal.album.history.recordAlbumHistory, { workspace });
+    if (moved.done) await ctx.scheduler.runAfter(0, internal.album.milestones.recordMilestonesInWorkspace, { workspace, cursor: null });
+    else await ctx.scheduler.runAfter(0, internal.album.history.recordAlbumHistory, { workspace });
     return null;
   },
 });

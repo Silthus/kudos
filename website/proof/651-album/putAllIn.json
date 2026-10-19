@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "hoggie": "croissant",
+      "isNew": true,
+      "item": "jn7w1mjz248t40vzkp5w7ayqm58gk0zn",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "item": "jn7kg0bycxvmgzynev8yd59san8gkfy8",
+      "kind": "sticker",
+      "person": "js742kw1jxmqfh37qgnw6zndy18gkdnr"
+    }
+  ],
+  "kind": "placed",
+  "more": false
+}

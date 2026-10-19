@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { albumShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
+import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
@@ -35,6 +36,7 @@ export type AlbumAnswer = {
   morePacks: boolean;
   tray: TrayItem[];
   moreTray: boolean;
+  milestones: MilestoneAnswer[];
 };
 
 export const mostPeopleShown = 500;
@@ -80,12 +82,12 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
   const { people: held, morePeople } = await peopleHeldBy(ctx, me);
   const { tray, more: moreTray } = await trayOf(ctx, me.member);
-  const { teams, unlisted } = await teamsOf(ctx, me, new Set(held.map(({ person }) => person)));
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray };
+  const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
+  const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
+  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones: await milestonesOf(ctx, me, pagesAndPeople.pages) };
 });
 
-async function teamsOf(ctx: QueryCtx, me: VerifiedMember, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
-  const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
+async function teamsOf(ctx: QueryCtx, pagesAndPeople: TeamPagesAndPeople, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
   const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));
   const teams = pagesAndPeople.pages.map(({ unmatched, ...page }) => ({ ...page, unmatched: unmatched.flatMap((profile) => named.get(profile) ?? []) }));
   return { teams, unlisted: unlistedPeopleOn(pagesAndPeople, listed, named) };
