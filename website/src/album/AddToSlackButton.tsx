@@ -16,7 +16,7 @@ export function AddToSlackButton({ emoji, emojiPage }: { emoji: Pick<AlbumEmoji,
   };
   return (
     <span className="al-add-to-slack">
-      <button type="button" className="al-add-to-slack-button ph-no-capture" onClick={add} disabled={adding.kind === "adding"} aria-label={`Add :${emoji.name}: to Slack`}>
+      <button type="button" className="al-add-to-slack-button ph-no-capture" onClick={adding.kind === "adding" ? undefined : add} aria-disabled={adding.kind === "adding" || undefined} aria-label={`Add to Slack: :${emoji.name}:`}>
         {adding.kind === "adding" ? "Saving…" : "Add to Slack"}
       </button>
       <span role="status" className="al-add-to-slack-said ph-no-capture">

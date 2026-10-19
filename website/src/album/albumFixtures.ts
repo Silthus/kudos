@@ -118,6 +118,7 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugge
     morePacks: false,
     tray: [],
     emojis,
+    moreEmojis: false,
     sharedEmojis: null,
     emojiPage,
     milestones,

@@ -117,7 +117,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     const album = { ...albumFixtures.midway, emojis: albumFixtures.midway.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, inSlack: false } : emoji)) };
     window.history.replaceState(null, "", "/book#teams/quiet-harbour");
     const { container } = renderAlbum({ ...shellFixtures.memberWithEveryFeatureOpen, album: true }, fixedAlbum(album), { people: fixedPeople(album) });
-    const addToSlack = await screen.findByRole("button", { name: "Add :quiet-harbour: to Slack" }, { timeout: 10_000 });
+    const addToSlack = await screen.findByRole("button", { name: "Add to Slack: :quiet-harbour:" }, { timeout: 10_000 });
 
     expect(exposedIn(container)).toEqual([]);
     expect(blocked(addToSlack)).toBe(true);

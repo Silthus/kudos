@@ -41,6 +41,7 @@ export type Album = {
   morePacks: boolean;
   tray: TrayItem[];
   emojis: AlbumEmoji[];
+  moreEmojis: boolean;
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
   milestones: AlbumMilestone[];

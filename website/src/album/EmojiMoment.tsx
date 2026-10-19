@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
@@ -10,13 +10,18 @@ export const emojiMomentTiming = { settleMs: 700, flightMs: 850 };
 
 const momentPictureSize = 128;
 
-export type EmojiMoments = { playing: AlbumEmoji | null; position: number; waiting: number; take: () => void; skipTheRest: () => void; shownElsewhere: (ids: string[]) => void };
+export type EmojiMoments = { playing: AlbumEmoji | null; position: number; inThisBatch: number; take: () => void; skipTheRest: () => void; shownElsewhere: (ids: string[]) => void };
 
 export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (ids: string[]) => Promise<SeenReply>): EmojiMoments {
   const [shown, setShown] = useState<ReadonlySet<string>>(() => new Set());
   const [playing, setPlaying] = useState<AlbumEmoji | null>(null);
+  const [takenInThisBatch, setTakenInThisBatch] = useState(0);
   const owed = momentsOwedOf(album, shown);
   const next = owed[0] ?? null;
+  const batchOver = playing === null && next === null;
+  useEffect(() => {
+    if (batchOver) setTakenInThisBatch(0);
+  }, [batchOver]);
   useEffect(() => {
     if (waits || playing !== null || next === null) return;
     const timer = window.setTimeout(() => setPlaying(next), emojiMomentTiming.settleMs);
@@ -37,28 +42,24 @@ export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (i
     [shownElsewhere],
   );
   const take = useCallback(() => {
-    if (playing !== null) markShown([playing.id]);
+    if (playing === null) return;
+    setTakenInThisBatch((taken) => taken + 1);
+    markShown([playing.id]);
   }, [playing, markShown]);
   const skipTheRest = useCallback(() => markShown(owed.map(({ id }) => id)), [owed, markShown]);
-  return { playing, position: shown.size + 1, waiting: playing === null ? 0 : owed.length, take, skipTheRest, shownElsewhere };
+  return { playing, position: takenInThisBatch + 1, inThisBatch: takenInThisBatch + owed.length, take, skipTheRest, shownElsewhere };
 }
 
 type EmojiMomentProps = { moments: EmojiMoments; emojiButton: RefObject<HTMLButtonElement | null> };
 
 export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
-  const { playing: emoji, position, waiting, take, skipTheRest } = moments;
+  const { playing: emoji, position, inThisBatch, take, skipTheRest } = moments;
+  const described = useId();
   const [flying, setFlying] = useState(false);
   const [reduced] = useState(prefersReducedMotion);
   const dialog = useRef<HTMLDivElement>(null);
   const picture = useRef<HTMLSpanElement>(null);
-  const takeButton = useRef<HTMLButtonElement>(null);
-  const comeBackTo = useRef<Element | null>(null);
-
-  useLayoutEffect(() => {
-    comeBackTo.current = document.activeElement;
-    takeButton.current?.focus({ preventScroll: true });
-    return () => (comeBackTo.current instanceof HTMLElement && comeBackTo.current.isConnected ? comeBackTo.current : emojiButton.current)?.focus({ preventScroll: true });
-  }, [emojiButton]);
+  useFocusWhileShown(dialog, emojiButton);
 
   const flyIn = useCallback(() => {
     if (flying) return;
@@ -71,24 +72,35 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
 
   if (emoji === null) return null;
   return (
-    <div ref={dialog} className="al-emoji-moment" role="dialog" aria-modal="true" aria-label="New emoji unlocked" data-flying={flying ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={(event) => event.target === event.currentTarget && flyIn()} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
+    <div ref={dialog} tabIndex={-1} className="al-emoji-moment" role="dialog" aria-modal="true" aria-label="New emoji unlocked" aria-describedby={`${described}-name ${described}-why ${described}-use`} data-flying={flying ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={(event) => event.target === event.currentTarget && flyIn()} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
       <div className="al-emoji-moment-card">
         <p className="al-emoji-moment-kicker">
           New emoji unlocked
-          {waiting > 1 && <span className="al-quiet"> · {position} of {position + waiting - 1} new</span>}
+          {inThisBatch > 1 && (
+            <span className="al-quiet">
+              {" "}
+              · {position} of {inThisBatch} new
+            </span>
+          )}
         </p>
         <span ref={picture} className="al-emoji-moment-picture">
           {!reduced && <span className="al-emoji-moment-rays" aria-hidden="true" />}
           <EmojiPicture emoji={emoji} size={momentPictureSize} />
         </span>
-        <h2 className="al-emoji-moment-name ph-no-capture">:{emoji.name}:</h2>
-        <p className="al-emoji-moment-why ph-no-capture">{whyWords(emoji)}</p>
-        <p className="al-emoji-moment-use">{emoji.inSlack ? useItInSlackWords : addItToSlackWords}</p>
+        <h2 id={`${described}-name`} className="al-emoji-moment-name ph-no-capture">
+          :{emoji.name}:
+        </h2>
+        <p id={`${described}-why`} className="al-emoji-moment-why ph-no-capture">
+          {whyWords(emoji)}
+        </p>
+        <p id={`${described}-use`} className="al-emoji-moment-use">
+          {emoji.inSlack ? useItInSlackWords : addItToSlackWords}
+        </p>
         <div className="al-emoji-moment-actions">
-          <button ref={takeButton} type="button" className="al-emoji-moment-take" onClick={flyIn}>
+          <button type="button" className="al-emoji-moment-take" onClick={flyIn}>
             Add to my emojis
           </button>
-          {waiting > 1 && (
+          {position < inThisBatch && (
             <button type="button" className="al-emoji-moment-skip" onClick={skipTheRest} disabled={flying}>
               Skip the rest
             </button>
@@ -97,6 +109,15 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
       </div>
     </div>
   );
+}
+
+function useFocusWhileShown(dialog: RefObject<HTMLDivElement | null>, emojiButton: RefObject<HTMLButtonElement | null>) {
+  const comeBackTo = useRef<Element | null>(null);
+  useLayoutEffect(() => {
+    comeBackTo.current = document.activeElement;
+    dialog.current?.focus({ preventScroll: true });
+  }, [dialog]);
+  useEffect(() => () => (comeBackTo.current instanceof HTMLElement && comeBackTo.current.isConnected ? comeBackTo.current : emojiButton.current)?.focus({ preventScroll: true }), [emojiButton]);
 }
 
 function useEscapeTo(then: () => void) {

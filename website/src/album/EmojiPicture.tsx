@@ -1,5 +1,6 @@
 import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
 import type { AlbumEmoji } from "./answer";
+import { initialsOf } from "./emojiShelf";
 
 type Pictured = Pick<AlbumEmoji, "kind" | "picture" | "from">;
 
@@ -23,11 +24,4 @@ export function EmojiPicture({ emoji, size, locked = false }: { emoji: Pictured;
 
 export function isFacelessHype({ kind, picture }: Pick<AlbumEmoji, "kind" | "picture">) {
   return kind === "hype" && picture === hypeEmblemPicture;
-}
-
-export function initialsOf(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  const first = words[0]?.charAt(0) ?? "";
-  const last = words.length > 1 ? (words.at(-1)?.charAt(0) ?? "") : "";
-  return `${first}${last}`.toUpperCase() || "?";
 }

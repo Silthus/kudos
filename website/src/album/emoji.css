@@ -108,6 +108,10 @@
   flex: none;
 }
 
+.al-shell .al-emoji-search input:focus-visible {
+  outline: none;
+}
+
 .al-emoji-search input {
   min-height: 2.25rem;
   flex: 1;
@@ -199,12 +203,10 @@
 }
 
 .al-emoji-code {
-  overflow: hidden;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.8125rem;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .al-emoji-row[data-locked] .al-emoji-code {
@@ -284,7 +286,7 @@
   background: var(--muted);
 }
 
-.al-add-to-slack-button:disabled {
+.al-add-to-slack-button[aria-disabled="true"] {
   cursor: progress;
   opacity: 0.7;
 }

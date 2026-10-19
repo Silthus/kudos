@@ -34,6 +34,7 @@ export function EmojiPanel({ album, onFollow }: PanelProps) {
 }
 
 function ShelfSection({ album, shelf, onFollow }: { album: Album; shelf: Shelf; onFollow: () => void }) {
+  const moreHype = album.moreEmojis;
   const [all, setAll] = useState(false);
   const title = useId();
   const { kind, earned, locked } = shelf;
@@ -43,15 +44,16 @@ function ShelfSection({ album, shelf, onFollow }: { album: Album; shelf: Shelf; 
   return (
     <section className="al-emoji-shelf" aria-labelledby={title}>
       <h3 id={title} className="al-emoji-shelf-title">
-        <span>{kind.title}</span>
+        <span>{kind.title}</span>{" "}
         <span className="al-quiet">{kind.kind === "hype" ? earned.length : `${earned.length} of ${earned.length + locked.length}`}</span>
       </h3>
       {earned.length === 0 && <p className="al-emoji-none">None yet. {kind.hint}</p>}
       <EmojiRows album={album} emojis={[...earnedShown, ...lockedShown]} onFollow={onFollow} />
       {earned.length > 0 && kind.kind === "hype" && <p className="al-emoji-none">{kind.hint}</p>}
-      {hidden > 0 && (
-        <button type="button" className="al-emoji-more" onClick={() => setAll(true)}>
-          Show all · {hidden} more
+      {kind.kind === "hype" && moreHype && <p className="al-emoji-none">Your newest {earned.length} hype emojis show here.</p>}
+      {(all || hidden > 0) && (
+        <button type="button" className="al-emoji-more" onClick={() => setAll(!all)}>
+          {all ? "Show fewer" : `Show all · ${hidden} more`}
         </button>
       )}
     </section>

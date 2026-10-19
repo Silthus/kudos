@@ -294,7 +294,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
     expect(screen.getByText("Unlocked 15 Oct 2026")).toBeInTheDocument();
     expect(teamEmojiLine()).toHaveTextContent("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
-    expect(screen.queryByRole("button", { name: /to Slack$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
   });
 
   it("AL30, AL31: while Slack doesn't have it, never says it's usable, and Add to Slack saves its picture as <name>.png and opens the workspace's custom emoji page", async () => {
@@ -308,7 +308,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     expect(await screen.findByText(/team emoji\./, undefined, arrival)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
     expect(screen.queryByText(/Use it in Slack/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Add :quiet-harbour: to Slack" }));
+    await user.click(screen.getByRole("button", { name: "Add to Slack: :quiet-harbour:" }));
 
     await waitFor(() => expect(saved).toEqual([{ href: "/emoji/team-support.png", download: "quiet-harbour.png" }]));
     expect(window.open).toHaveBeenCalledExactlyOnceWith("https://hedgehug.slack.com/customize/emoji", "_blank", "noopener,noreferrer");
@@ -324,7 +324,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     const { user } = visit("/book#teams/quiet-harbour", { album });
 
     vi.spyOn(window, "open").mockReturnValue(null);
-    await user.click(await screen.findByRole("button", { name: "Add :quiet-harbour: to Slack" }, arrival));
+    await user.click(await screen.findByRole("button", { name: "Add to Slack: :quiet-harbour:" }, arrival));
 
     await waitFor(() => expect(saved).toEqual(["/emoji/team.png as quiet-harbour.png"]));
   });

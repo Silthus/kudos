@@ -1,10 +1,11 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
+import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures, fixedAlbum, fixturePackOpeningOf } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixturePackOpeningOf, fixtureUnlockOf } from "./albumFixtures";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -109,7 +110,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     const popup = await openTheEmojis(view);
 
     expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Your emojis · 3 of 9");
-    expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Team stickers1 of 4", "Hype1", "Milestones0 of 2", "Levels1 of 2"]);
+    expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Team stickers 1 of 4", "Hype 1", "Milestones 0 of 2", "Levels 1 of 2"]);
     expect(rowsIn(shelf(popup, "Team stickers"))[0]).toBe(":quiet-harbour:You unlocked the Quiet Harbour team sticker · 15 Oct 2026In Slack");
     expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     expect(rowsIn(shelf(popup, "Levels"))[0]).toBe(":level-5:You reached level 5Add to Slack");
@@ -149,8 +150,16 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     await view.user.click(teamShelf.getByRole("button", { name: "Show all · 3 more" }));
 
     expect(rowsIn(teamShelf)).toHaveLength(6);
-    expect(teamShelf.getByRole("heading", { level: 3 }).textContent).toBe("Team stickers0 of 6");
+    expect(teamShelf.getByRole("heading", { level: 3 }).textContent).toBe("Team stickers 0 of 6");
     expect(teamShelf.queryByRole("button", { name: /Show all/ })).not.toBeInTheDocument();
+  });
+
+  it("past the hype emojis getAlbum answers, the popup says it shows the newest ones", async () => {
+    const view = visit("/", { album: { ...midway, moreEmojis: true } });
+
+    const popup = await openTheEmojis(view);
+
+    expect(shelf(popup, "Hype").getByText("Your newest 1 hype emojis show here.")).toBeInTheDocument();
   });
 
   it("a search finds emojis by name, team, milestone or person, and says when none matches", async () => {
@@ -177,7 +186,7 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
     const inSlack = shelf(popup, "Team stickers").getAllByRole("listitem")[0]!;
     expect(within(inSlack).getByText("In Slack")).toHaveAccessibleDescription("Use it in Slack: react with it and put it in the kudos you give.");
     expect(within(inSlack).queryByRole("button", { name: /Add to Slack/ })).not.toBeInTheDocument();
-    expect(within(shelf(popup, "Hype").getByRole("listitem")).getByRole("button", { name: "Add :ines-okafor-hype: to Slack" })).toBeInTheDocument();
+    expect(within(shelf(popup, "Hype").getByRole("listitem")).getByRole("button", { name: "Add to Slack: :ines-okafor-hype:" })).toHaveTextContent("Add to Slack");
   });
 
   it("Add to Slack on a level emoji downloads its static picture as <name>.png, copies the name and opens the workspace's custom emoji page", async () => {
@@ -188,7 +197,7 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
     const popup = await openTheEmojis(view);
     const levelFive = within(shelf(popup, "Levels").getAllByRole("listitem")[0]!);
 
-    await view.user.click(levelFive.getByRole("button", { name: "Add :level-5: to Slack" }));
+    await view.user.click(levelFive.getByRole("button", { name: "Add to Slack: :level-5:" }));
 
     await waitFor(() => expect(saved).toEqual([{ file: "level-5.png", href: "/emoji/level-5.png" }]));
     expect(copied).toHaveBeenCalledExactlyOnceWith(":level-5:");
@@ -204,7 +213,7 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
     const view = visit("/", { album: withAFace });
     const popup = await openTheEmojis(view);
 
-    await view.user.click(shelf(popup, "Hype").getByRole("button", { name: "Add :ines-okafor-hype: to Slack" }));
+    await view.user.click(shelf(popup, "Hype").getByRole("button", { name: "Add to Slack: :ines-okafor-hype:" }));
 
     await waitFor(() => expect(saved).toEqual([{ file: "ines-okafor-hype.png", href: "blob:drawn-emoji" }]));
     expect(drawn).toEqual({ images: [], texts: ["IO"] });
@@ -218,7 +227,7 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
     const view = visit("/", { album: withAFace });
     const popup = await openTheEmojis(view);
 
-    await view.user.click(shelf(popup, "Hype").getByRole("button", { name: "Add :ines-okafor-hype: to Slack" }));
+    await view.user.click(shelf(popup, "Hype").getByRole("button", { name: "Add to Slack: :ines-okafor-hype:" }));
 
     await waitFor(() => expect(saved).toEqual([{ file: "ines-okafor-hype.png", href: "blob:drawn-emoji" }]));
     expect(drawn).toEqual({ images: [facePicture], texts: [] });
@@ -230,7 +239,7 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
     const popup = await openTheEmojis(view);
     const levelFive = within(shelf(popup, "Levels").getAllByRole("listitem")[0]!);
 
-    await view.user.click(levelFive.getByRole("button", { name: "Add :level-5: to Slack" }));
+    await view.user.click(levelFive.getByRole("button", { name: "Add to Slack: :level-5:" }));
 
     await waitFor(() => expect(saved).toEqual([{ file: "level-5.png", href: "/emoji/level-5.png" }]));
     expect(window.open).not.toHaveBeenCalled();
@@ -258,6 +267,57 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     const next = await aMoment();
     await waitFor(() => expect(within(next).getByRole("heading", { level: 2 }).textContent).toBe(":level-5:"));
     expect(next).toHaveTextContent("Add it to Slack from your emojis, then react with it and put it in the kudos you give.");
+  });
+
+  it("the counter counts this batch to its last moment, and the moment takes focus itself and names its emoji, so a keystroke can't take it unread", async () => {
+    preferReducedMotion();
+    const view = visit("/", { album: fresh });
+
+    for (const at of [1, 2, 3]) {
+      const moment = await aMoment();
+      await waitFor(() => expect(moment).toHaveTextContent(`${at} of 4 new`));
+      expect(moment).toHaveFocus();
+      expect(moment).toHaveAccessibleDescription(expect.stringMatching(/^:[a-z0-9-]+: (You|From) /));
+      await view.user.keyboard(" ");
+      expect(view.marked).toHaveBeenCalledTimes(at - 1);
+      await view.user.click(within(moment).getByRole("button", { name: "Add to my emojis" }));
+    }
+
+    const last = await aMoment();
+    await waitFor(() => expect(last).toHaveTextContent("4 of 4 new"));
+    expect(within(last).queryByRole("button", { name: "Skip the rest" })).not.toBeInTheDocument();
+  });
+
+  it("while more packs wait than getAlbum lists, every hype moment waits, since its pack may be one of them", async () => {
+    visit("/", { album: { ...fresh, morePacks: true } });
+
+    const moment = await aMoment();
+    await waitFor(() => expect(within(moment).getByRole("heading", { level: 2 }).textContent).toBe(":quiet-harbour:"));
+    expect(moment).toHaveTextContent("1 of 2 new");
+  });
+
+  it("AL54: a team sticker's unlock moment counts as its team emoji's moment, which never plays a second time", async () => {
+    preferReducedMotion();
+    const live = { album: midway as Album, listeners: new Set<() => void>() };
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.album);
+      return asking ? shown : undefined;
+    };
+    window.history.replaceState(null, "", "/book#teams/kettle-works");
+    const marked = vi.fn(async (ids: string[]) => ({ kind: "seen", ids }) as const);
+    const unlocked = async (team: string) => {
+      live.album = { ...midway, teams: midway.teams.map((page) => (page.team === team ? { ...page, state: "unlocked" as const, unlockedAt: Date.now() } : page)), emojis: midway.emojis.map((emoji) => (emoji.id === `team:${team}` ? { ...emoji, earned: true, earnedAt: Date.now(), progress: null } : emoji)) };
+      return fixtureUnlockOf(midway, team);
+    };
+    const { user } = renderAlbum(memberWithTheAlbum, read, { commands: { unlockTeamSticker: unlocked, markEmojisSeen: marked } });
+
+    await user.click(await screen.findByRole("button", { name: "Ready to unlock the Kettle Works sticker" }, { timeout: 5_000 }));
+    act(() => live.listeners.forEach((listener) => listener()));
+    await user.click(await screen.findByRole("button", { name: "Put it on the page" }));
+
+    await waitFor(() => expect(marked).toHaveBeenCalledExactlyOnceWith(["team:kettle-works"]));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 1_200)));
+    expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument();
   });
 
   it("Skip the rest marks every waiting emoji seen at once and plays no more moments", async () => {

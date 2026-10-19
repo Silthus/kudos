@@ -1,6 +1,6 @@
 import { hypeEmblemPicture, teamEmblemPicture } from "../../../convex/album/emojiCatalogue";
 import type { AlbumEmoji } from "./answer";
-import { initialsOf } from "./EmojiPicture";
+import { initialsOf } from "./emojiShelf";
 
 export type SlackBound = Pick<AlbumEmoji, "kind" | "name" | "picture" | "from">;
 
@@ -79,7 +79,7 @@ async function drawn(draw: Drawing): Promise<Blob> {
 }
 
 async function drawWhole(context: CanvasRenderingContext2D, picture: string) {
-  context.drawImage(await pictureAt(picture), 0, 0, emojiSize, emojiSize);
+  drawFitted(context, await pictureAt(picture), { at: 0, size: emojiSize }, "contain");
 }
 
 async function drawFramedFace(context: CanvasRenderingContext2D, picture: string) {
@@ -96,7 +96,7 @@ async function drawFramedFace(context: CanvasRenderingContext2D, picture: string
   context.beginPath();
   context.arc(centre, centre, centre - frameWidth, 0, Math.PI * 2);
   context.clip();
-  context.drawImage(face, frameWidth, frameWidth, emojiSize - 2 * frameWidth, emojiSize - 2 * frameWidth);
+  drawFitted(context, face, { at: frameWidth, size: emojiSize - 2 * frameWidth }, "cover");
   context.restore();
 }
 
@@ -127,6 +127,17 @@ function drawStar(context: CanvasRenderingContext2D, x: number, y: number, radiu
   }
   context.closePath();
   context.fill();
+}
+
+type Square = { at: number; size: number };
+
+function drawFitted(context: CanvasRenderingContext2D, image: HTMLImageElement, square: Square, fit: "contain" | "cover") {
+  const width = image.naturalWidth || square.size;
+  const height = image.naturalHeight || square.size;
+  const scale = (fit === "contain" ? Math.min : Math.max)(square.size / width, square.size / height);
+  const drawnWidth = width * scale;
+  const drawnHeight = height * scale;
+  context.drawImage(image, square.at + (square.size - drawnWidth) / 2, square.at + (square.size - drawnHeight) / 2, drawnWidth, drawnHeight);
 }
 
 function pictureAt(src: string): Promise<HTMLImageElement> {

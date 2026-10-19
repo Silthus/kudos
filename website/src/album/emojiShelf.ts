@@ -121,13 +121,17 @@ export const useItInSlackWords = `Use it in Slack: ${howToUseIt}.`;
 export const addItToSlackWords = `Add it to Slack from your emojis, then ${howToUseIt}.`;
 
 export function momentsOwedOf(album: Album, shown: ReadonlySet<string>): AlbumEmoji[] {
-  return album.emojis.filter((emoji) => emoji.earned && !emoji.seen && !shown.has(emoji.id) && isShelved(emoji) && !heldForItsPack(album, emoji));
-}
-
-function isShelved({ kind }: Pick<AlbumEmoji, "kind">) {
-  return shelfKinds.some((shelf) => shelf.kind === kind);
+  return album.emojis.filter((emoji) => emoji.earned && !emoji.seen && !shown.has(emoji.id) && !heldForItsPack(album, emoji));
 }
 
 function heldForItsPack(album: Album, emoji: AlbumEmoji) {
-  return emoji.kind === "hype" && album.packs.some(({ person }) => `hype:${person}` === emoji.id);
+  if (emoji.kind !== "hype") return false;
+  return album.morePacks || album.packs.some(({ person }) => `hype:${person}` === emoji.id);
+}
+
+export function initialsOf(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const first = words[0]?.charAt(0) ?? "";
+  const last = words.length > 1 ? (words.at(-1)?.charAt(0) ?? "") : "";
+  return `${first}${last}`.toUpperCase() || "?";
 }
