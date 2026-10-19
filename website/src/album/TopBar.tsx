@@ -1,9 +1,11 @@
 import { IconCrown, IconEmoji, IconGear, IconPulse, IconStack } from "@posthog/icons";
 import { useEffect, useId, type ComponentType, type ReactNode, type RefObject } from "react";
 import { AppLink } from "../AppLink";
+import { useCapturing } from "../browserAnalytics/capturing";
 import { useCountUp } from "../countUp";
 import { prefersReducedMotion } from "../reducedMotion";
 import { MemberFace } from "../Face";
+import { Feedback } from "../Feedback";
 import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
@@ -31,6 +33,7 @@ export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, p
         <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />
         {wide && <PageLinks place={place} />}
         <EmojiButton earned={earnedEmojisOf(album)} popover={popover} />
+        <FeedbackButton />
         {wide ? <MeAndSettings album={album} place={place} /> : <Menu album={album} place={place} popover={popover} />}
       </div>
     </header>
@@ -66,16 +69,18 @@ type PacksButtonProps = { waiting: number; more: boolean; current: boolean; butt
 function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen }: PacksButtonProps) {
   const count = more ? `${waiting}+` : `${waiting}`;
   return (
-    <button type="button" ref={button} onClick={waitsForPuttingIn ? undefined : onOpen} aria-disabled={waitsForPuttingIn || undefined} aria-haspopup="dialog" className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
+    <button type="button" ref={button} onClick={waitsForPuttingIn ? undefined : onOpen} aria-disabled={waitsForPuttingIn || undefined} aria-haspopup="dialog" className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} data-labelled={current ? "" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
       <span className="al-packs-art" aria-hidden="true">
         <span className="al-packs-wrapper" />
         <span className="al-packs-wrapper" />
         {waiting > 0 && <span className="al-packs-count">{count}</span>}
       </span>
-      <span className="al-packs-words" aria-hidden="true">
-        <strong>{waiting === 0 ? "No packs" : more ? `${count} packs` : plural(waiting, "pack", "packs")}</strong>
-        <span>{waiting === 0 ? "Say thanks to earn one" : "Ready to open"}</span>
-      </span>
+      <OpensOut>
+        <span className="al-packs-words" aria-hidden="true">
+          <strong>{waiting === 0 ? "No packs" : more ? `${count} packs` : plural(waiting, "pack", "packs")}</strong>
+          <span>{waiting === 0 ? "Say thanks to earn one" : "Ready to open"}</span>
+        </span>
+      </OpensOut>
     </button>
   );
 }
@@ -105,6 +110,7 @@ function TrayButton({ album, items, popover, button, tray }: TrayButtonProps) {
           {items}
         </span>
       )}
+      <OpensOut>Tray</OpensOut>
     </PopoverButton>
   );
 }
@@ -121,6 +127,7 @@ function EmojiButton({ earned, popover }: { earned: number; popover: Popover<"tr
       <span className="al-emojis-count" aria-hidden="true">
         {earned}
       </span>
+      <OpensOut>Emojis</OpensOut>
     </PopoverButton>
   );
 }
@@ -144,6 +151,20 @@ function PopoverButton({ name, popover, label, panelLabel, className, content, c
   );
 }
 
+function FeedbackButton() {
+  const capturer = useCapturing();
+  if (capturer === null) return null;
+  return <Feedback capturer={capturer} trigger={<button type="button" className="al-top-button" />} label={<OpensOut>Feedback</OpensOut>} />;
+}
+
+function OpensOut({ children }: { children: ReactNode }) {
+  return (
+    <span className="al-opens-out">
+      <span>{children}</span>
+    </span>
+  );
+}
+
 type PageLink = { kind: "activity" | "leaderboard"; label: string; Icon: ComponentType };
 
 const pageLinks: PageLink[] = [
@@ -159,7 +180,7 @@ function PageLinks({ place }: { place: Place }) {
         return (
           <AppLink key={kind} href={hrefOf({ kind })} className="al-icon-link" aria-current={current ? "page" : undefined} data-labelled={current ? "" : undefined}>
             <Icon />
-            <span className="al-icon-label">{label}</span>
+            <OpensOut>{label}</OpensOut>
           </AppLink>
         );
       })}

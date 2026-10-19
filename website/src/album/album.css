@@ -107,13 +107,14 @@
 }
 
 .al-packs {
+  --al-pill: var(--card);
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   background: var(--card);
-  padding: 0.25rem 0.75rem 0.25rem 0.375rem;
+  padding: 0.25rem 0.375rem;
   color: inherit;
   font: inherit;
   font-size: 0.75rem;
@@ -124,8 +125,9 @@
 }
 
 .al-packs[data-waiting] {
+  --al-pill: linear-gradient(var(--al-accent-soft), var(--al-accent-soft)), var(--card);
   border-color: color-mix(in oklab, var(--al-accent) 55%, var(--border));
-  background: var(--al-accent-soft);
+  background: var(--al-pill);
 }
 
 .al-packs[aria-current="page"] {
@@ -177,6 +179,18 @@
   flex-direction: column;
 }
 
+.al-packs .al-opens-out {
+  border-radius: 0 0.75rem 0.75rem 0;
+}
+
+.al-packs .al-opens-out > span {
+  padding-inline: 0.25rem 0.75rem;
+}
+
+.al-top .al-packs[data-labelled] > .al-opens-out > span {
+  padding-inline: 0.5rem 0.375rem;
+}
+
 .al-packs-words span {
   color: var(--al-quiet);
 }
@@ -189,12 +203,13 @@
 .al-top-button,
 .al-icon-link,
 .al-cog {
+  --al-pill: linear-gradient(var(--fill-hover, var(--muted)), var(--fill-hover, var(--muted))), var(--card);
+  position: relative;
   display: inline-flex;
   min-height: 2.25rem;
   min-width: 2.25rem;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
@@ -220,12 +235,18 @@
 .al-icon-link:hover,
 .al-cog:hover,
 .al-top-button[aria-expanded="true"] {
-  background: var(--fill-hover, var(--muted));
+  border-color: var(--border);
+  background: var(--al-pill);
 }
 
 .al-emojis {
   border-color: var(--border);
   background: var(--card);
+}
+
+.al-tray-count,
+.al-emojis-count {
+  margin-inline-start: 0.375rem;
 }
 
 .al-tray-count {
@@ -236,18 +257,71 @@
   font-size: 0.6875rem;
 }
 
-.al-icon-label {
-  display: inline-block;
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: max-width 160ms ease-out;
+.al-opens-out {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 100%;
+  z-index: 1;
+  display: flex;
+  width: max-content;
+  align-items: center;
+  border: inherit;
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: var(--al-pill);
+  box-shadow: 0.25rem 0.125rem 0.5rem rgb(0 0 0 / 0.16);
+  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    clip-path 220ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 180ms ease-out;
 }
 
-.al-icon-link:hover .al-icon-label,
-.al-icon-link:focus-visible .al-icon-label,
-.al-icon-link[data-labelled] .al-icon-label {
-  max-width: 8rem;
+.al-opens-out > span {
+  padding-inline: 0 0.75rem;
+  white-space: nowrap;
+}
+
+.al-top :hover > .al-opens-out,
+.al-top :focus-visible > .al-opens-out {
+  clip-path: inset(-0.75rem -1rem -0.75rem 0);
+  opacity: 1;
+  transition-delay: 150ms;
+}
+
+.al-top [aria-expanded="true"] > .al-opens-out {
+  clip-path: inset(-0.75rem -1rem -0.75rem 0);
+  opacity: 1;
+  transition-delay: 0ms;
+}
+
+.al-top [data-labelled] > .al-opens-out {
+  position: static;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  clip-path: none;
+  opacity: 1;
+  transition-delay: 0ms;
+}
+
+.al-top [data-labelled] > .al-opens-out > span {
+  padding-inline: 0.375rem 0;
+}
+
+@media (min-width: 64rem) {
+  .al-top :is(.al-top-button, .al-icon-link, .al-packs):is(:hover, :focus-visible):not([data-labelled]) {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+    transition: border-radius 0s 150ms;
+  }
+
+  .al-top :is(.al-top-button, .al-packs)[aria-expanded="true"] {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+  }
 }
 
 .al-icon-link[aria-current="page"],
@@ -604,16 +678,6 @@
   font-size: 0.75rem;
 }
 
-.al-side-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: auto;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-}
-
 .al-main {
   min-width: 0;
   flex: 1;
@@ -739,6 +803,15 @@
     display: none;
   }
 
+  .al-top .al-top-end .al-opens-out {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    opacity: 0;
+  }
+
   .al-body {
     flex-direction: column;
   }
@@ -773,7 +846,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .al-icon-label,
+  .al-opens-out {
+    transition-duration: 0s;
+  }
+
   .al-side-toggle svg {
     transition: none;
   }
