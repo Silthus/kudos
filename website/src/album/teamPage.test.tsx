@@ -291,7 +291,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
   it("while Slack has the team emoji: the gold sticker with its date, and how to use the emoji in Slack", async () => {
     visit("/book#teams/quiet-harbour");
 
-    expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
     expect(screen.getByText("Unlocked 15 Oct 2026")).toBeInTheDocument();
     expect(teamEmojiLine()).toHaveTextContent("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
     expect(screen.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
@@ -304,7 +304,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     });
     const { user } = visit("/book#teams/quiet-harbour", { album: withTheTeamEmojiOutOfSlack(midway, "quiet-harbour") });
 
-    expect(await screen.findByText(/team emoji\./)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
+    expect(await screen.findByText(/team emoji\./, undefined, arrival)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
     expect(screen.queryByText(/Use it in Slack/)).not.toBeInTheDocument();
     const add = screen.getByRole("link", { name: "Add to Slack" });
     expect(add).toHaveAttribute("href", "https://my.slack.com/customize/emoji");
@@ -324,7 +324,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     const album: Album = { ...outOfSlack, emojis: outOfSlack.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, picture: "https://pictures.example/quiet-harbour.png" } : emoji)) };
     const { user } = visit("/book#teams/quiet-harbour", { album });
 
-    await user.click(await screen.findByRole("link", { name: "Add to Slack" }));
+    await user.click(await screen.findByRole("link", { name: "Add to Slack" }, arrival));
 
     expect(saved).toEqual(["/emoji/team.png as quiet-harbour.png"]);
   });
