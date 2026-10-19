@@ -35,7 +35,7 @@ export type AlbumPersonAnswer = AlbumPersonFace & {
 
 export type PeopleShown = { people: AlbumPersonFace[]; more: number };
 
-export type AlbumWeekKudos = AlbumKudos & { people: AlbumPersonFace[]; morePeople: number };
+export type AlbumWeekKudos = { message: Message; at: number; people: AlbumPersonFace[]; morePeople: number };
 
 export type AlbumWeekKudosList = { kudos: AlbumWeekKudos[]; more: boolean };
 
@@ -109,7 +109,7 @@ async function kudosOfTheWeekShown(ctx: QueryCtx, workspace: string, mentions: M
 }
 
 async function weekKudosShown(ctx: QueryCtx, workspace: string, mentions: Mentions, { message, at, people, morePeople }: WeekKudos): Promise<AlbumWeekKudos> {
-  return { ...(await kudosShown(ctx, mentions, message, at)), people: await Promise.all(people.map((person) => faceIn(ctx, workspace, person))), morePeople };
+  return { message: await kudosWordsOf(ctx, mentions, message), at, people: await Promise.all(people.map((person) => faceIn(ctx, workspace, person))), morePeople };
 }
 
 async function kudosShown(ctx: QueryCtx, mentions: Mentions, message: MessageRef, at: number): Promise<AlbumKudos> {

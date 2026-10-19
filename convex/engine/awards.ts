@@ -52,7 +52,7 @@ export async function weekTotals(ctx: QueryCtx, member: MemberId, week: Week): P
 
 export type WeekAward = { message: MessageRef; giver: MemberId; recipient: MemberId; at: number };
 
-export async function awardsInWeekNewestFirst(ctx: QueryCtx, member: MemberId, side: "given" | "received", { monday, sunday }: Week, atMost: number): Promise<WeekAward[]> {
+export async function awardsInWeekNewestDaysFirst(ctx: QueryCtx, member: MemberId, side: "given" | "received", { monday, sunday }: Week, atMost: number): Promise<WeekAward[]> {
   const awards =
     side === "given"
       ? ctx.db.query("awards").withIndex("by_giver", (q) => q.eq("giver", member).gte("day", monday).lte("day", sunday))

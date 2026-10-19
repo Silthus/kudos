@@ -198,6 +198,19 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     });
   });
 
+  test("the issue lists the kudos the member got newest first by when they were given, whatever day each giver's time zone filed them on", async () => {
+    await aMember(t, carol.user, "member", "T1", "Pacific/Auckland");
+    await thanks(alice, longerWhy, bob);
+    laterBy(2 * 60 * minuteMs);
+    await thanks(carol, "Thanks for the late handover", alice);
+    await thanks(dana, "Thanks for the morning review", alice);
+
+    const week = await weekOf(alice);
+
+    if (week.kind !== "week" || week.issue === null) throw new Error("no issue");
+    expect(week.issue.received.kudos.map(({ message }) => message), "carol's kudos is filed on her Wednesday, dana's later one on Tuesday").toEqual([wordsSaying("Thanks for the morning review"), wordsSaying("Thanks for the late handover")]);
+  });
+
   test("a week of more kudos than an issue lists shows the newest 50 each way besides the kudos of the week, three people named on each, and says more came, within Convex's limits", async () => {
     for (let message = 0; message < kudosListedAWeek + 2; message += 1) {
       await thanks(alice, `Thanks for fix ${message}`, bob, carol, dana);
@@ -303,7 +316,7 @@ async function weekOf(member: Person, week?: string): Promise<AlbumWeekRead> {
 }
 
 async function kudosIn(words: string, ts: string, ...people: Person[]) {
-  return { message: wordsSaying(words), permalink: permalinkOf(ts), at: atOf(ts), people: await Promise.all(people.map(personIn)), morePeople: 0 };
+  return { message: wordsSaying(words), at: atOf(ts), people: await Promise.all(people.map(personIn)), morePeople: 0 };
 }
 
 function wordsSaying(words: string) {

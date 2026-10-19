@@ -6,6 +6,7 @@ import { AppLink } from "../AppLink";
 import { hoggiePictureOf } from "../crates/Hoggie";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
+import type { Message } from "../shell";
 import { LoadingPage } from "../pages/LoadingPage";
 import { SlackLink } from "../SlackLink";
 import type { AlbumWeek, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
@@ -240,14 +241,16 @@ function KudosOfTheWeekStory({ kudos, me }: { kudos: KudosOfTheWeek; me: string 
 }
 
 function KudosSection({ title, list: { kudos, more } }: { title: string; list: WeekKudosList }) {
-  if (kudos.length === 0) return null;
+  if (kudos.length === 0 && !more) return null;
   return (
     <Section title={title}>
-      <ul className="al-issue-said">
-        {kudos.map((each) => (
-          <SaidLine key={`${each.at}-${each.permalink ?? ""}-${each.people[0]?.person ?? ""}`} kudos={each} />
-        ))}
-      </ul>
+      {kudos.length > 0 && (
+        <ul className="al-issue-said">
+          {kudos.map((each, index) => (
+            <SaidLine key={`${each.at}-${index}`} kudos={each} />
+          ))}
+        </ul>
+      )}
       {more && <p className="al-issue-hint">More kudos came this week than an issue lists.</p>}
     </Section>
   );
@@ -262,12 +265,16 @@ function SaidLine({ kudos: { people, morePeople, message, at } }: { kudos: WeekK
         <p className="al-issue-said-who">
           <Names people={people} more={morePeople} /> <span className="al-issue-hint">· {shortWeekdayOf(at)}</span>
         </p>
-        <blockquote className="al-issue-said-words">
+        <blockquote className="al-issue-said-words" data-quoted={isQuotable(message) || undefined}>
           <KudosMessage message={message} clamped={false} />
         </blockquote>
       </div>
     </li>
   );
+}
+
+function isQuotable(message: Message) {
+  return message.kind === "text" && !message.edited;
 }
 
 function Names({ people, more }: { people: WeekPerson[]; more: number }) {

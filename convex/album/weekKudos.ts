@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { weekOf, type DayKey, type Week } from "../engine/allowance";
-import { awardsInWeekNewestFirst, type WeekAward } from "../engine/awards";
+import { awardsInWeekNewestDaysFirst, type WeekAward } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 
@@ -24,23 +24,30 @@ export async function weekKudosOf(ctx: QueryCtx, member: MemberId, week: DayKey,
 }
 
 async function kudosListOf(ctx: QueryCtx, member: MemberId, side: Side, days: Week, lead: MessageRef | null): Promise<WeekKudosList> {
-  const read = await awardsInWeekNewestFirst(ctx, member, side, days, awardsReadAWeek + 1);
-  const cutShort = read.length > awardsReadAWeek;
+  const read = await awardsInWeekNewestDaysFirst(ctx, member, side, days, awardsReadAWeek + 1);
+  const cutShort = read.at(awardsReadAWeek);
   const messages = messagesOf(read, side);
-  const whole = cutShort ? messages.slice(0, -1) : messages;
-  const listed = whole.filter(({ message }) => lead === null || !isSameMessage(message, lead));
-  return { kudos: listed.slice(0, kudosListedAWeek).map(withAFewNamed), more: cutShort || listed.length > kudosListedAWeek };
+  if (cutShort !== undefined) messages.delete(keyOf(cutShort.message));
+  const listed = newestFirst([...messages.values()]).filter(({ message }) => lead === null || !isSameMessage(message, lead));
+  return { kudos: listed.slice(0, kudosListedAWeek).map(withAFewNamed), more: cutShort !== undefined || listed.length > kudosListedAWeek };
 }
 
-function messagesOf(awards: WeekAward[], side: Side): MessageAwards[] {
+function messagesOf(awards: WeekAward[], side: Side): Map<string, MessageAwards> {
   const messages = new Map<string, MessageAwards>();
   for (const { message, giver, recipient, at } of awards) {
-    const key = `${message.workspace}/${message.conversation}/${message.message}`;
-    const known = messages.get(key) ?? { message, at, people: [] };
+    const known = messages.get(keyOf(message)) ?? { message, at, people: [] };
     known.people.unshift(side === "given" ? recipient : giver);
-    messages.set(key, known);
+    messages.set(keyOf(message), known);
   }
-  return [...messages.values()];
+  return messages;
+}
+
+function newestFirst(messages: MessageAwards[]) {
+  return messages.toSorted((one, other) => other.at - one.at);
+}
+
+function keyOf({ workspace, conversation, message }: MessageRef) {
+  return `${workspace}/${conversation}/${message}`;
 }
 
 function withAFewNamed({ message, at, people }: MessageAwards): WeekKudos {

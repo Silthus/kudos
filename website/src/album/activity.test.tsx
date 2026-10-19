@@ -165,6 +165,14 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(tallies(await issue())[0]).toBe("people you thanked | 21 | 23 kudos, 21 said why");
   });
 
+  it("a list that lists no kudos still says when more came than an issue lists", async () => {
+    visit(fixedWeek({ ...weekFixtures.full, issue: { ...weekFixtures.full.issue!, given: { kudos: [], more: true } } }));
+
+    await issue();
+    expect(section("Who you thanked").getByText("More kudos came this week than an issue lists.")).toBeInTheDocument();
+    expect(section("Who you thanked").queryByRole("listitem")).not.toBeInTheDocument();
+  });
+
   it("a kudos of the week the member gave reads From you, has no Slack link when it has none, and the rest they gave read as everyone else they thanked", async () => {
     const { user } = visit();
 

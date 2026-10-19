@@ -1347,11 +1347,11 @@
   line-height: 1.45;
 }
 
-.al-issue-said-words > p:not(.italic)::before {
+.al-issue-said-words[data-quoted] > p::before {
   content: "\201C";
 }
 
-.al-issue-said-words > p:not(.italic)::after {
+.al-issue-said-words[data-quoted] > p::after {
   content: "\201D";
 }
 

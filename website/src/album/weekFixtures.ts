@@ -20,7 +20,7 @@ function words(text: string): Message {
 }
 
 function kudos(slugs: string[], text: string, at: string, morePeople = 0): WeekKudos {
-  return { people: slugs.map(person), morePeople, message: words(text), permalink: `https://hedgehug.slack.com/archives/C0ABCDEF1/p${Date.parse(at)}000`, at: Date.parse(at) };
+  return { people: slugs.map(person), morePeople, message: words(text), at: Date.parse(at) };
 }
 
 const nobody: PeopleListed = { people: [], more: 0 };
