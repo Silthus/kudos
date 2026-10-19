@@ -262,10 +262,10 @@ describe("AL47: the opening turns one card a beat", () => {
     await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
     await user.click(await dialog.findByRole("button", { name: "Turn the first card" }));
 
-    const badge = dialog.getByRole("img", { name: "Hype emoji :juno-park-hype:" });
-    expect(badge.closest(".ph-no-capture")).not.toBeNull();
-    expect(badge).toHaveTextContent(/^:juno-park-hype:$/);
-    expect(badge.querySelector("img")).toHaveAttribute("src", junoHype.picture);
+    const hype = dialog.getByRole("img", { name: "Hype emoji :juno-park-hype:" });
+    expect(hype.closest(".ph-no-capture")).not.toBeNull();
+    expect(hype).toHaveTextContent(/^:juno-park-hype:$/);
+    expect(hype.querySelector("img")).toHaveAttribute("src", junoHype.picture);
     expect(within(dialog.getByRole("group", { name: "Juno Park's card" })).queryByText(":juno-park-hype:")).not.toBeInTheDocument();
     expect(dialog.queryByText(/unlocked/)).not.toBeInTheDocument();
   });

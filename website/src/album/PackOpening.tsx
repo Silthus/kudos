@@ -264,7 +264,7 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
             <PersonCard thanked={contents.pack.thanked} team={shownTeamOf(contents.sticker)} />
           </CardSlot>
         )}
-        {personUp && contents.sticker?.hype && <HypeBadge hype={contents.sticker.hype} />}
+        {personUp && contents.sticker?.hype && <HypeEmoji hype={contents.sticker.hype} />}
         {contents.hoggie !== null && (
           <CardSlot label={hoggieUp ? `${contents.hoggie.name}, ${rarityWordOf(contents.hoggie.rarity)}` : "The hoggie card, face down"} up={hoggieUp} rarity={contents.hoggie.rarity} glow={beat === "glow" ? contents.hoggie.rarity : null} flourish={celebrating && beat === "hoggie"} back={<CardBack />}>
             <HoggieCard hoggie={contents.hoggie} />
@@ -280,7 +280,7 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
   );
 }
 
-function HypeBadge({ hype }: { hype: AlbumEmoji }) {
+function HypeEmoji({ hype }: { hype: AlbumEmoji }) {
   return (
     <span className="al-hype ph-no-capture" role="img" aria-label={`Hype emoji :${hype.name}:`}>
       <EmojiPicture emoji={hype} size={24} />
