@@ -27,6 +27,7 @@ export function useTitleFocusWhenTheFocusedElementGoes() {
 }
 
 export function focusPageTitle() {
+  if (aLandedSectionHoldsFocus()) return;
   document.querySelector<HTMLElement>("main h1")?.focus();
 }
 
@@ -37,12 +38,15 @@ export function useTitleFocusOnArrival(arrivals = 0) {
   }, [arrivals]);
   useEffect(() => {
     if (!arriving.current) return;
-    const title = document.querySelector<HTMLElement>("main h1");
-    if (title === null) return;
+    if (document.querySelector("main h1") === null) return;
     arriving.current = false;
-    title.focus();
+    focusPageTitle();
   });
   return useCallback(() => {
     arriving.current = true;
   }, []);
+}
+
+function aLandedSectionHoldsFocus() {
+  return document.activeElement?.closest("main [data-panel-target]") != null;
 }

@@ -8,7 +8,7 @@ import { Frame } from "../Frame";
 import { ClosedPage } from "../pages/ClosedPage";
 import { useSectionOnceLanded } from "../linkTarget";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
-import { currentAddress, keepingSignInCode, returnAddressOf, useRoute, type Route } from "../route";
+import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import { rememberSignInStarted } from "../signInAttempt";
 import type { Album } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
@@ -44,9 +44,9 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
   const edition = useWeekEdition(useAlbumWeek, onActivity);
-  useSectionOnceLanded(route, album?.kind === "album" && onSettings && settings?.kind === "settings");
-  const expectArrival = useTitleFocusOnArrival(landsOnASection(route) ? 0 : arrivals);
+  const expectArrival = useTitleFocusOnArrival(arrivals);
   useTitleFocusAfterChange(album === undefined ? "loading" : album.kind);
+  useSectionOnceLanded(route, album?.kind === "album" && onSettings && settings?.kind === "settings");
   const arriveAt = useCallback(
     (href: string) => {
       expectArrival();
@@ -102,8 +102,4 @@ function useCanonicalAddressOnceShown(place: Place, shown: boolean, replaceAddre
   useEffect(() => {
     if (shown && canonical !== currentAddress()) replaceAddress(canonical, landingState);
   });
-}
-
-function landsOnASection(route: Route) {
-  return route.page === "settings" && route.section !== undefined;
 }

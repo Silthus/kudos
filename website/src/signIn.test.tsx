@@ -219,10 +219,13 @@ describe("F28: a link from Slack that asks to sign in", () => {
 
 describe("WS6: a sign-in the album asks for is remembered", () => {
   it("remembers a sign-in started from the album's own signed-out answer, so a failed return says it didn't finish", async () => {
-    sessionStorage.clear();
-    const { user, actions } = renderAlbum(shellFixtures.member, (asking) => (asking ? { kind: "signed-out" } : undefined));
+    const { user, actions, unmount } = renderAlbum(shellFixtures.member, (asking) => (asking ? { kind: "signed-out" } : undefined));
     await user.click(await screen.findByRole("button", { name: "Sign in with Slack" }, { timeout: 10_000 }));
     expect(actions.signIn).toHaveBeenCalledOnce();
-    expect(sessionStorage.getItem("hedgehug.signInStarted")).not.toBeNull();
+    unmount();
+
+    returnFromSlack().showVisitor(shellFixtures.signedOut);
+
+    expect(pageTitle()).toHaveTextContent("Sign-in didn't finish");
   });
 });

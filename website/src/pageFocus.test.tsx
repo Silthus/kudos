@@ -19,8 +19,8 @@ function pageTitle() {
   return screen.getByRole("heading", { level: 1 });
 }
 
-function renderTheSite(visitor: ShellState, album: () => MyAlbum = () => albumFixtures.midway) {
-  return renderAlbum(visitor, (asking) => (asking ? album() : undefined), { profile: fixedProfile(profileFixtures.noted), boards: fixedBoards(boardsFixtures.week), hoggies: fixedHoggies(hoggiesFixtures.midway), settings: fixedSettings(settingsFixtures.everything) });
+function renderTheSite(visitor: ShellState, album: () => MyAlbum = () => albumFixtures.midway, settings = settingsFixtures.everything) {
+  return renderAlbum(visitor, (asking) => (asking ? album() : undefined), { profile: fixedProfile(profileFixtures.noted), boards: fixedBoards(boardsFixtures.week), hoggies: fixedHoggies(hoggiesFixtures.midway), settings: fixedSettings(settings) });
 }
 
 async function theProfile() {
@@ -89,5 +89,35 @@ describe("WS24: focus lands on the page title after a state change, never on fir
     album = { kind: "off" };
     showVisitor({ ...shellFixtures.member });
     expect(await screen.findByRole("heading", { level: 1, name: "Not open yet" }, { timeout: 10_000 })).toHaveFocus();
+  });
+
+  it("lands the profile's Find yourself link on its Settings section, not the page title", async () => {
+    window.history.replaceState(null, "", "/book#me");
+    const { user } = renderTheSite(shellFixtures.member, () => albumFixtures.teamless, settingsFixtures.thisIsMe);
+    await user.click(await screen.findByRole("link", { name: /^Find yourself on posthog\.com/ }, { timeout: 10_000 }));
+    const thisIsMe = await screen.findByRole("heading", { level: 2, name: "This is me on posthog.com" });
+    await waitFor(() => expect(thisIsMe).toHaveFocus());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(thisIsMe).toHaveFocus();
+  });
+
+  it("moves focus to the Settings title when the section a link names isn't shown to the member", async () => {
+    window.history.replaceState(null, "", "/settings?section=workspace");
+    const { showVisitor } = renderTheSite(shellFixtures.verifying);
+    showVisitor(shellFixtures.member);
+    expect(await screen.findByRole("heading", { level: 1, name: "Settings" }, { timeout: 10_000 })).toHaveFocus();
+  });
+
+  it("keeps a landed Settings section's focus when getAlbum arrives after connecting", async () => {
+    window.history.replaceState(null, "", "/settings?section=messages");
+    let album: MyAlbum | { kind: "connecting" } = { kind: "connecting" };
+    const { showVisitor } = renderTheSite(shellFixtures.member, () => album as MyAlbum);
+    await screen.findByRole("heading", { level: 1, name: "Can't reach HedgeHug" }, { timeout: 10_000 });
+    album = albumFixtures.midway;
+    showVisitor({ ...shellFixtures.member });
+    const messages = await screen.findByRole("heading", { level: 2, name: "Messages" }, { timeout: 10_000 });
+    await waitFor(() => expect(messages).toHaveFocus());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(messages).toHaveFocus();
   });
 });
