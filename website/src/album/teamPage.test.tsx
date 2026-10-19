@@ -39,7 +39,7 @@ async function photo() {
   return within(await screen.findByRole("figure", { name: /^Left to right/ }, arrival));
 }
 
-async function unlockOnThePhoto(name = "Unlock the Kettle Works sticker") {
+async function unlockOnThePhoto(name = "Ready to unlock the Kettle Works sticker") {
   return (await photo()).findByRole("button", { name });
 }
 
@@ -112,7 +112,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     const sticker = await unlockOnThePhoto();
     expect(sticker).toHaveTextContent("Ready to unlock");
     expect(sticker).toBeEnabled();
-    expect(screen.getAllByRole("button", { name: /Unlock the Kettle Works sticker/ })).toEqual([sticker]);
+    expect(screen.getAllByRole("button", { name: /Ready to unlock the Kettle Works sticker/ })).toEqual([sticker]);
   });
 
   it("a sticker still being collected or already unlocked is a picture, never a button", async () => {
@@ -184,7 +184,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     await user.click(await unlockOnThePhoto("Waiting for your cards to land…"));
     expect(send).not.toHaveBeenCalled();
 
-    const unlock = await (await photo()).findByRole("button", { name: "Unlock the Kettle Works sticker" }, { timeout: 5_000 });
+    const unlock = await (await photo()).findByRole("button", { name: "Ready to unlock the Kettle Works sticker" }, { timeout: 5_000 });
     expect(unlock).not.toHaveAttribute("aria-disabled");
   });
 
@@ -283,7 +283,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Put it on the page" }));
 
     expect(await screen.findByRole("img", { name: "Kettle Works sticker, unlocked" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Unlock the Kettle Works sticker" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ready to unlock the Kettle Works sticker" })).not.toBeInTheDocument();
   });
 });
 

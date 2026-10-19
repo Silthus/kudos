@@ -119,7 +119,7 @@ function UnlockSeal({ team, unlocking }: { team: AlbumTeam; unlocking: TeamUnloc
       className="al-seal"
       data-state="ready"
       data-al-seal={team.team}
-      aria-label={busyWords ?? `Unlock the ${team.name} sticker`}
+      aria-label={busyWords ?? `Ready to unlock the ${team.name} sticker`}
       aria-disabled={unavailable || undefined}
       onClick={unavailable ? undefined : () => unlocking.start(team.team)}
     >
@@ -145,11 +145,11 @@ function problemWordsOf(reason: "refused" | "unreachable", team: AlbumTeam) {
 
 function TeamEmojiLine({ team, emoji }: { team: AlbumTeam; emoji: AlbumEmoji }) {
   return (
-    <div className="al-emoji-line">
+    <div className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
         <TeamCrest art={team.art} size={32} name={team.name} />
       </span>
-      <p className="ph-no-capture">
+      <p>
         You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji)}
       </p>
       {!emoji.inSlack && <AddToSlack emoji={emoji} />}

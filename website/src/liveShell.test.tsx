@@ -933,7 +933,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     window.history.replaceState(null, "", "/book#teams/comets");
     const { user } = renderLiveSite();
 
-    await user.click(await screen.findByRole("button", { name: "Unlock the Comets sticker" }));
+    await user.click(await screen.findByRole("button", { name: "Ready to unlock the Comets sticker" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:unlockTeamSticker", args: { team: "comets" } });
   });
