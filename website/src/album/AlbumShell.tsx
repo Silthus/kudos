@@ -30,13 +30,14 @@ export type AlbumShellProps = {
   activity: ReactNode;
   person: ReactNode;
   profile: ReactNode;
+  hoggies: ReactNode;
   busy: boolean;
   onSignOut: () => void;
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, busy, onSignOut, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, busy, onSignOut, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
@@ -70,7 +71,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "team" && place.team === null && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} unlocking={unlocking} />
+            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} unlocking={unlocking} />
           </ErrorBoundary>
         </main>
       </div>
