@@ -114,10 +114,9 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
 
     const gated = "a".repeat(40);
     const withRemoteTip = (git: string) => runStep(guard!.run!, { env: { GITHUB_REF: "refs/heads/main", SHA: gated }, git }).status;
-    const answering = (tip: string) => `[ "$*" = "ls-remote origin refs/heads/main" ] && printf '%s\\trefs/heads/main\\n' ${tip}`;
+    const answering = (tip: string) => `[ "$*" = "ls-remote --exit-code origin refs/heads/main" ] && printf '%s\\trefs/heads/main\\n' ${tip}`;
     expect(withRemoteTip(answering(gated))).toBe(0);
     expect(withRemoteTip(answering("b".repeat(40)))).not.toBe(0);
     expect(withRemoteTip("exit 128")).not.toBe(0);
   });
 });
-
