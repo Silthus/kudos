@@ -52,7 +52,14 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   };
   const popover = usePopover<TopBarPopups>();
   const { show } = popover;
-  const showTheEmojis = useCallback(() => show("emojis"), [show]);
+  const [justUnlocked, setJustUnlocked] = useState<string[]>([]);
+  const showTheEmojis = useCallback(
+    (ids: string[]) => {
+      setJustUnlocked(ids);
+      show("emojis");
+    },
+    [show],
+  );
   const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy;
   const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
@@ -66,7 +73,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} popover={popover} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}

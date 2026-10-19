@@ -348,6 +348,31 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument();
   });
 
+  it("#721: +N more opens the emoji popup on a Just unlocked list holding every emoji it marked seen, past what a shelf shows", async () => {
+    preferReducedMotion();
+    const people = ["ada", "bo", "cy", "di", "ed", "fi", "gus", "hal", "ida", "jo", "kai", "lu"];
+    const twelveHype: Album = { ...fresh, emojis: [...midway.emojis, ...people.map((person, index) => anEmoji({ id: `hype:${person}`, kind: "hype", name: `${person}-hype`, from: person, picture: "/emoji/hype.png", earned: true, earnedAt: Date.now() - index * 60_000, progress: null }))] };
+    const view = visit("/", { album: twelveHype });
+    const bundle = await aBundle();
+
+    await view.user.click(within(bundle).getByRole("button", { name: "+7 more" }));
+
+    const justUnlocked = within(await screen.findByRole("region", { name: "Just unlocked" }));
+    expect(rowsIn(justUnlocked).map((row) => row.match(/:[a-z-]+:/)?.[0])).toEqual(people.map((person) => `:${person}-hype:`));
+    expect(view.marked).toHaveBeenCalledExactlyOnceWith(people.map((person) => `hype:${person}`));
+  });
+
+  it("#721: with motion, Escape before the cards have risen waits for them, then flies them in and sends markEmojisSeen", async () => {
+    const view = visit("/", { album: fresh });
+    await aBundle();
+
+    await view.user.keyboard("{Escape}");
+    await act(() => new Promise((resolve) => setTimeout(resolve, 1_400)));
+
+    expect(view.marked).not.toHaveBeenCalled();
+    await waitFor(() => expect(view.marked).toHaveBeenCalledExactlyOnceWith(["team:quiet-harbour", "level:5", "hype:bram-teller", "hype:fen-marlowe"]), { timeout: 5_000 });
+  });
+
   it("#721: taking a bundle of five marks only those five, and the rest come next as one more bundle", async () => {
     preferReducedMotion();
     const view = visit("/", { album: sevenWaiting });
@@ -356,10 +381,11 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
 
     await view.user.click(within(first).getByRole("button", { name: "Add to my emojis" }));
 
-    expect(view.marked.mock.calls[0]?.[0]).toHaveLength(5);
+    expect(shown).toEqual([":quiet-harbour:", ":level-5:", ":bram-teller-hype:", ":fen-marlowe-hype:", ":dax-holm-hype:"]);
+    expect(view.marked).toHaveBeenCalledExactlyOnceWith(["team:quiet-harbour", "level:5", "hype:bram-teller", "hype:fen-marlowe", "hype:dax-holm"]);
     const next = await aBundle();
     await waitFor(() => expect(within(next).getByRole("heading", { level: 2 }).textContent).toBe("2 new emojis unlocked"));
-    expect(cardsIn(next).map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).not.toEqual(expect.arrayContaining(shown));
+    expect(cardsIn(next).map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":eli-roan-hype:", ":ivo-penn-hype:"]);
   });
 
   it("#721: a single waiting emoji keeps its own moment with its picture, its name and why it was earned", async () => {
@@ -453,7 +479,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     await view.user.click(within(bundle).getByRole("button", { name: "Add to my emojis" }));
 
     expect(view.marked).not.toHaveBeenCalled();
-    await waitFor(() => expect(view.marked).toHaveBeenCalledOnce(), { timeout: 3_000 });
+    await waitFor(() => expect(view.marked).toHaveBeenCalledOnce(), { timeout: 5_000 });
   });
 
   it("a hype emoji waits while its person's pack is still unopened, and an emoji seen before never pops", async () => {

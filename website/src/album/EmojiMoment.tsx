@@ -7,7 +7,7 @@ import { keepFocusIn } from "./focusTrap";
 import { MomentSlackLine } from "./MomentSlackLine";
 import "./emoji.css";
 
-export const emojiMomentTiming = { settleMs: 700, flightMs: 850, flightStaggerMs: 90 };
+export const emojiMomentTiming = { settleMs: 700, flightMs: 850, flightStaggerMs: 90, cardsRiseAfterMs: 700, cardStaggerMs: 110, cardRiseMs: 560 };
 
 const momentPictureSize = 128;
 
@@ -15,7 +15,7 @@ const bundlePictureSize = 72;
 
 export type EmojiMoments = { playing: AlbumEmoji[]; more: number; take: () => void; seeThemAll: () => void; shownElsewhere: (ids: string[]) => void };
 
-export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (ids: string[]) => Promise<SeenReply>, showTheEmojis: () => void): EmojiMoments {
+export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (ids: string[]) => Promise<SeenReply>, showTheEmojis: (ids: string[]) => void): EmojiMoments {
   const [shown, setShown] = useState<ReadonlySet<string>>(() => new Set());
   const [playing, setPlaying] = useState<AlbumEmoji[]>([]);
   const owed = useMemo(() => momentsOwedOf(album, shown), [album, shown]);
@@ -40,8 +40,9 @@ export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (i
   );
   const take = useCallback(() => markShown(playing.map(({ id }) => id)), [playing, markShown]);
   const seeThemAll = useCallback(() => {
-    markShown(owed.map(({ id }) => id));
-    showTheEmojis();
+    const ids = owed.map(({ id }) => id);
+    markShown(ids);
+    showTheEmojis(ids);
   }, [owed, markShown, showTheEmojis]);
   const more = owed.filter(({ id }) => !playing.some((emoji) => emoji.id === id)).length;
   return { playing, more, take, seeThemAll, shownElsewhere };
@@ -56,14 +57,22 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
   const [reduced] = useState(prefersReducedMotion);
   const dialog = useRef<HTMLDivElement>(null);
   const backToTheEmojis = useRef(false);
+  const bundled = playing.length > 1;
+  const revealed = useRevealedAfter(bundled && !reduced ? revealMsOf(playing.length) : 0);
+  const [takeAsked, setTakeAsked] = useState(false);
   useFocusWhileShown(dialog, emojiButton, backToTheEmojis);
 
   const flyIn = useCallback(() => {
     if (flying) return;
+    if (!revealed) return setTakeAsked(true);
     if (reduced) return take();
     setFlying(true);
     void flyAllInto(dialog.current, emojiButton.current).then(take);
-  }, [flying, reduced, take, emojiButton]);
+  }, [flying, revealed, reduced, take, emojiButton]);
+
+  useEffect(() => {
+    if (revealed && takeAsked) flyIn();
+  }, [revealed, takeAsked, flyIn]);
 
   const seeThemAllInTheEmojis = () => {
     backToTheEmojis.current = true;
@@ -74,7 +83,6 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
 
   const [only] = playing;
   if (only === undefined) return null;
-  const bundled = playing.length > 1;
   return (
     <div ref={dialog} tabIndex={-1} className="al-emoji-moment" role="dialog" aria-modal="true" aria-label={bundled ? "New emojis unlocked" : "New emoji unlocked"} aria-describedby={bundled ? `${described}-cards` : `${described}-name ${described}-why ${described}-use`} data-flying={flying ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={(event) => event.target === event.currentTarget && flyIn()} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
       <div className="al-emoji-moment-stage">
@@ -124,7 +132,7 @@ function Bundle({ emojis, more, described, reduced, flying, onSeeThemAll }: Bund
       <div className="al-emoji-bundle-row">
         <ul id={`${described}-cards`} className="al-emoji-bundle-cards" aria-label="Your new emojis">
           {emojis.map((emoji, index) => (
-            <li key={emoji.id} className="al-emoji-bundle-card" style={{ "--al-card": index } as CSSProperties}>
+            <li key={emoji.id} className="al-emoji-bundle-card" style={cardRiseOf(index, reduced)}>
               <span className="al-emoji-bundle-picture" data-flies="">
                 <EmojiPicture emoji={emoji} size={bundlePictureSize} />
               </span>
@@ -135,13 +143,34 @@ function Bundle({ emojis, more, described, reduced, flying, onSeeThemAll }: Bund
           ))}
         </ul>
         {more > 0 && (
-          <button type="button" className="al-emoji-bundle-card al-emoji-bundle-more" style={{ "--al-card": emojis.length } as CSSProperties} onClick={onSeeThemAll} disabled={flying}>
+          <button type="button" className="al-emoji-bundle-card al-emoji-bundle-more" style={cardRiseOf(emojis.length, reduced)} onClick={onSeeThemAll} disabled={flying}>
             +{more} more
           </button>
         )}
       </div>
     </div>
   );
+}
+
+function revealMsOf(cards: number) {
+  const { cardsRiseAfterMs, cardStaggerMs, cardRiseMs } = emojiMomentTiming;
+  return cardsRiseAfterMs + (cards - 1) * cardStaggerMs + cardRiseMs;
+}
+
+function cardRiseOf(index: number, reduced: boolean): CSSProperties | undefined {
+  if (reduced) return undefined;
+  const { cardsRiseAfterMs, cardStaggerMs, cardRiseMs } = emojiMomentTiming;
+  return { animationDelay: `${cardsRiseAfterMs + index * cardStaggerMs}ms`, animationDuration: `${cardRiseMs}ms` };
+}
+
+function useRevealedAfter(ms: number) {
+  const [revealed, setRevealed] = useState(ms === 0);
+  useEffect(() => {
+    if (ms === 0) return;
+    const timer = window.setTimeout(() => setRevealed(true), ms);
+    return () => window.clearTimeout(timer);
+  }, [ms]);
+  return revealed;
 }
 
 function useFocusWhileShown(dialog: RefObject<HTMLDivElement | null>, emojiButton: RefObject<HTMLButtonElement | null>, backToTheEmojis: RefObject<boolean>) {
