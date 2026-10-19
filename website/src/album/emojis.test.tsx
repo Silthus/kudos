@@ -136,8 +136,9 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(await screen.findByRole("heading", { level: 1, name: "Kettle Works" })).toBeInTheDocument();
   });
 
-  it("shows the nearest locked emojis of a kind first, then Show all lists the rest", async () => {
-    const teams = Array.from({ length: 6 }, (_, index) => anEmoji({ id: `team:team-${index}`, kind: "team", name: `team-${index}`, from: `Team ${index}`, progress: { have: index, need: 6 } }));
+  it("shows the nearest locked emojis of a kind first, then Show all lists the rest, leaving out a team nobody is matched on yet", async () => {
+    const nobodyMatched = anEmoji({ id: "team:empty", kind: "team", name: "empty", from: "Empty", progress: { have: 0, need: 0 } });
+    const teams = [nobodyMatched, ...Array.from({ length: 6 }, (_, index) => anEmoji({ id: `team:team-${index}`, kind: "team", name: `team-${index}`, from: `Team ${index}`, progress: { have: index, need: 6 } }))];
     const view = visit("/", { album: { ...midway, emojis: teams } });
     const popup = await openTheEmojis(view);
     const teamShelf = shelf(popup, "Team stickers");
@@ -146,6 +147,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     await view.user.click(teamShelf.getByRole("button", { name: "Show all · 3 more" }));
 
     expect(rowsIn(teamShelf)).toHaveLength(6);
+    expect(teamShelf.getByRole("heading", { level: 3 }).textContent).toBe("Team stickers0 of 6");
     expect(teamShelf.queryByRole("button", { name: /Show all/ })).not.toBeInTheDocument();
   });
 

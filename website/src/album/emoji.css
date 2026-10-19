@@ -39,7 +39,7 @@
   opacity: 0.45;
 }
 
-.al-emoji-popover {
+.al-popover.al-emoji-popover {
   width: min(26rem, calc(100vw - 2rem));
   max-width: none;
   max-height: min(36rem, calc(100vh - var(--al-top-height) - 2rem));
@@ -459,7 +459,7 @@
 }
 
 @media (max-width: 63.999rem) {
-  .al-emoji-popover {
+  .al-popover.al-emoji-popover {
     width: auto;
     max-height: calc(100dvh - var(--al-top-height) - 1.5rem);
   }

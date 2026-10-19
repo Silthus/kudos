@@ -4,7 +4,7 @@ import { AppLink } from "../AppLink";
 import type { Album, AlbumEmoji } from "./answer";
 import { AddToSlackButton } from "./AddToSlackButton";
 import { EmojiPicture } from "./EmojiPicture";
-import { earnedCountOf, howToUnlockWords, isReadyToUnlock, matchesSearch, shareOf, shelvesOf, teamOf, useItInSlackWords, whyWords, type Shelf } from "./emojiShelf";
+import { howToUnlockWords, isReadyToUnlock, matchesSearch, shareOf, shelvesOf, teamOf, useItInSlackWords, whyWords, type Shelf } from "./emojiShelf";
 import { hrefOf } from "./place";
 import "./emoji.css";
 
@@ -13,11 +13,14 @@ type PanelProps = { album: Album; onFollow: () => void };
 export function EmojiPanel({ album, onFollow }: PanelProps) {
   const [search, setSearch] = useState("");
   const searching = search.trim() !== "";
+  const shelves = shelvesOf(album.emojis);
+  const earned = shelves.reduce((count, shelf) => count + shelf.earned.length, 0);
+  const shown = shelves.reduce((count, shelf) => count + shelf.earned.length + shelf.locked.length, 0);
   return (
     <div className="al-emoji-panel">
       <div className="al-emoji-panel-head">
         <h2 className="al-emoji-panel-title">
-          Your emojis <span className="al-quiet">· {earnedCountOf(album.emojis)} of {album.emojis.length}</span>
+          Your emojis <span className="al-quiet">· {earned} of {shown}</span>
         </h2>
         <p className="al-emoji-panel-hint">Emojis marked In Slack work there: react with them or put them in a kudos.</p>
         <label className="al-emoji-search">
@@ -25,7 +28,7 @@ export function EmojiPanel({ album, onFollow }: PanelProps) {
           <input type="search" placeholder="Find an emoji, a team or a person" aria-label="Find an emoji" value={search} onChange={(event) => setSearch(event.target.value)} />
         </label>
       </div>
-      {searching ? <Found album={album} search={search} onFollow={onFollow} /> : shelvesOf(album.emojis).map((shelf) => <ShelfSection key={shelf.kind.kind} album={album} shelf={shelf} onFollow={onFollow} />)}
+      {searching ? <Found album={album} search={search} onFollow={onFollow} /> : shelves.map((shelf) => <ShelfSection key={shelf.kind.kind} album={album} shelf={shelf} onFollow={onFollow} />)}
     </div>
   );
 }

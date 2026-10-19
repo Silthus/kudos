@@ -24,9 +24,13 @@ function kindOrder({ kind }: Pick<AlbumEmoji, "kind">) {
 
 export function shelvesOf(emojis: AlbumEmoji[]): Shelf[] {
   return shelfKinds.map((kind) => {
-    const ofKind = emojis.filter((emoji) => emoji.kind === kind.kind);
+    const ofKind = emojis.filter((emoji) => emoji.kind === kind.kind && (emoji.earned || canBeEarned(emoji)));
     return { kind, earned: ofKind.filter(({ earned }) => earned).toSorted(newestFirst), locked: ofKind.filter(({ earned }) => !earned).toSorted(nearestFirst) };
   });
+}
+
+function canBeEarned({ progress }: AlbumEmoji) {
+  return progress === null || progress.need > 0;
 }
 
 function newestFirst(first: AlbumEmoji, second: AlbumEmoji) {
@@ -47,10 +51,6 @@ function levelOf({ kind, id }: AlbumEmoji) {
 
 function causeOf(id: string) {
   return id.slice(id.indexOf(":") + 1);
-}
-
-export function earnedCountOf(emojis: AlbumEmoji[]) {
-  return emojis.filter(({ earned }) => earned).length;
 }
 
 export function matchesSearch(emoji: AlbumEmoji, search: string) {
@@ -119,7 +119,11 @@ function number(value: number) {
 export const useItInSlackWords = "Use it in Slack: react with it or put it in a kudos.";
 
 export function momentsOwedOf(album: Album, shown: ReadonlySet<string>): AlbumEmoji[] {
-  return album.emojis.filter((emoji) => emoji.earned && !emoji.seen && !shown.has(emoji.id) && !heldForItsPack(album, emoji));
+  return album.emojis.filter((emoji) => emoji.earned && !emoji.seen && !shown.has(emoji.id) && isShelved(emoji) && !heldForItsPack(album, emoji));
+}
+
+function isShelved({ kind }: Pick<AlbumEmoji, "kind">) {
+  return shelfKinds.some((shelf) => shelf.kind === kind);
 }
 
 function heldForItsPack(album: Album, emoji: AlbumEmoji) {
