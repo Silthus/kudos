@@ -16,19 +16,20 @@ export const unlockTiming: Timing = { reveal: 1000, named: 3100, emoji: 3900, li
 
 const momentSealSize = 264;
 
-type UnlockMomentProps = { team: AlbumTeam; sticker: TeamSticker; emoji: AlbumEmoji | undefined; onDone: () => void };
+type UnlockMomentProps = { sticker: TeamSticker; collected: number; emoji: AlbumEmoji | undefined; onDone: () => void };
 
-export function UnlockMoment({ team, sticker, emoji, onDone }: UnlockMomentProps) {
+export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMomentProps) {
   const [reduced] = useState(prefersReducedMotion);
   const [phase, setPhaseNow] = useState<Phase>(reduced ? "emoji" : "lift");
   const setPhase = useCallback((next: Phase) => setPhaseNow((current) => (phases.indexOf(next) > phases.indexOf(current) ? next : current)), []);
   const dialog = useRef<HTMLDivElement>(null);
   const sealOnStage = useRef<HTMLDivElement>(null);
   const continueButton = useRef<HTMLButtonElement>(null);
-  const shown = { ...team, name: sticker.name, art: sticker.art, state: "unlocked" as const };
+  const shown = sealOf(sticker, collected);
+  const team = sticker.team;
 
   useLayoutEffect(() => dialog.current?.focus(), []);
-  useLift(sealOnStage, team.team, reduced);
+  useLift(sealOnStage, team, reduced);
   usePhaseClock(reduced, setPhase);
   useEffect(() => {
     if (phase === "emoji") continueButton.current?.focus({ preventScroll: true });
@@ -37,8 +38,8 @@ export function UnlockMoment({ team, sticker, emoji, onDone }: UnlockMomentProps
   const goHome = useCallback(() => {
     setPhase("home");
     if (reduced) return onDone();
-    void flyHome(sealOnStage.current, sealOnThePage(team.team)).then(onDone);
-  }, [reduced, onDone, setPhase, team.team]);
+    void flyHome(sealOnStage.current, sealOnThePage(team)).then(onDone);
+  }, [reduced, onDone, setPhase, team]);
 
   const advance = useCallback(() => {
     if (phase === "lift" || phase === "reveal") return;
@@ -75,7 +76,8 @@ export function UnlockMoment({ team, sticker, emoji, onDone }: UnlockMomentProps
             <div className="al-unlock-words">
               <h2 className="al-unlock-title">{sticker.name} sticker unlocked</h2>
               <p className="al-unlock-sub">
-                {dateOf(sticker.at)} · {team.total} of {team.total} people collected
+                {dateOf(sticker.at)}
+                {collected > 0 && ` · ${collected} of ${collected} people collected`}
               </p>
             </div>
             {phase !== "named" && (
@@ -101,7 +103,12 @@ export function UnlockMoment({ team, sticker, emoji, onDone }: UnlockMomentProps
                   >
                     Put it on the page
                   </button>
-                  <span className="al-unlock-hint">or click anywhere, or press Esc</span>
+                  <span className="al-unlock-hint" data-pointer="fine">
+                    or click anywhere, or press Esc
+                  </span>
+                  <span className="al-unlock-hint" data-pointer="coarse">
+                    or tap anywhere
+                  </span>
                 </div>
               </>
             )}
@@ -110,6 +117,10 @@ export function UnlockMoment({ team, sticker, emoji, onDone }: UnlockMomentProps
       </div>
     </div>
   );
+}
+
+function sealOf({ team, name, art, at }: TeamSticker, collected: number): AlbumTeam {
+  return { team, name, art, mine: false, people: [], unmatched: [], held: collected, total: collected, state: "unlocked", unlockedAt: at };
 }
 
 function emojiLineOf(emoji: AlbumEmoji | undefined) {

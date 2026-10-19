@@ -218,6 +218,20 @@
   font-size: 0.8125rem;
 }
 
+.al-unlock-hint[data-pointer="coarse"] {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .al-unlock-hint[data-pointer="fine"] {
+    display: none;
+  }
+
+  .al-unlock-hint[data-pointer="coarse"] {
+    display: inline;
+  }
+}
+
 .al-unlock-moment[data-phase="home"] :is(.al-unlock-dim, .al-unlock-words, .al-unlock-emoji, .al-unlock-continue, .al-unlock-glow) {
   opacity: 0;
   transition: opacity 400ms ease-in;

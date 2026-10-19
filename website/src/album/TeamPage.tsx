@@ -121,7 +121,7 @@ function Goal({ album, team, emoji, unlocking }: { album: Album; team: AlbumTeam
       <GoalWords album={album} team={team} unlocking={unlocking} />
       {team.state === "unlocked" && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} />}
       <p role="status" className="al-goal-problem">
-        {unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
+        {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
       </p>
     </section>
   );
@@ -160,8 +160,9 @@ function GoalWords({ album, team, unlocking }: { album: Album; team: AlbumTeam; 
 
 function UnlockButton({ team, unlocking }: { team: AlbumTeam; unlocking: TeamUnlocking }) {
   const sending = unlocking.sending === team.team;
+  const unavailable = unlocking.sending !== null || unlocking.waits;
   return (
-    <button type="button" className="al-unlock" disabled={unlocking.sending !== null} aria-label={`Unlock the ${team.name} sticker`} onClick={() => unlocking.start(team.team)}>
+    <button type="button" className="al-unlock" aria-disabled={unavailable || undefined} onClick={unavailable ? undefined : () => unlocking.start(team.team)}>
       <LockOpen />
       {sending ? "Unlocking…" : `Unlock the ${team.name} sticker`}
     </button>

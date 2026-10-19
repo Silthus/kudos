@@ -7,7 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import schema from "../schema";
-import type { AlbumAnswer, AlbumRead } from "../website/album";
+import { mostPeopleShown, type AlbumAnswer, type AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -26,8 +26,9 @@ const lanterns = Array.from({ length: 8 }, (_, index) => person("Lantern", `Wick
 const otters = Array.from({ length: 3 }, (_, index) => person("Otter", `Quillfeather${index + 1}`));
 const newcomer = person("Newt", "Latecomer");
 const nobodyInSlack = person("Ghost", "Unmatchedly");
-const everyone = [alice, ...lanterns, ...otters, newcomer, nobodyInSlack];
-const inSlack = everyone.filter((someone) => someone !== nobodyInSlack);
+const latecomer = person("Lena", "Pastthecap");
+const everyone = [alice, ...lanterns, ...otters, newcomer, nobodyInSlack, latecomer];
+const inSlack = everyone.filter((someone) => someone !== nobodyInSlack && someone !== latecomer);
 const ottersCrest = aCutout("otters-crest");
 
 let postHog: FakePostHog;
@@ -78,6 +79,27 @@ describe("AL18: team pages are company teams", { timeout: 60_000 }, () => {
     expect(people.filter(({ held }) => !held)).toEqual(
       await Promise.all(lanterns.slice(5).map(async (someone) => ({ person: await memberOf(someone), name: someone.name, face: { kind: "initials", initials: "LW" }, held: false }))),
     );
+  });
+
+  test("AL45: a held teammate past the 500 people getAlbum lists still reads held, so the photo never shows them as a silhouette", async () => {
+    const aliceId = await memberOf(alice);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < mostPeopleShown; index += 1) {
+        const filler = await ctx.db.insert("members", { workspace: "T1", user: `U_FILLER_${index}`, kind: "member", asOf: 0 });
+        await ctx.db.insert("albumStickers", { member: aliceId, person: filler, from: "history", at: 0 });
+      }
+    });
+    await memberChanged(t, "team_join", slackUser(latecomer.user, latecomer.name));
+    await settle(t);
+    const latecomerId = await memberOf(latecomer);
+    await t.run((ctx) => ctx.db.insert("albumStickers", { member: aliceId, person: latecomerId, from: "history", at: 0 }));
+    await theCompanyCopyHolds({ slug: "late", name: "Late", profiles: profilesOf(alice, latecomer, otters[0]!) });
+
+    const album = await albumOf(await signedIn(alice));
+
+    expect(album.morePeople).toBe(true);
+    expect(album.people.filter(({ person }) => person === latecomerId)).toEqual([expect.objectContaining({ name: latecomer.name, held: true })]);
+    expect(album.people.filter(({ person }) => person === aliceId)).toEqual([]);
   });
 
   test("pages come in sidebar order: the member's own team first, then pages ready to unlock, then the most held", async () => {

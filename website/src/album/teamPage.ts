@@ -78,6 +78,8 @@ export function firstNameOf(name: string) {
   return name.split(/\s+/, 1)[0] ?? name;
 }
 
+const dayMonthAndYear = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
 export function dateOf(at: number) {
-  return new Date(at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return dayMonthAndYear.format(at);
 }

@@ -40,7 +40,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
   const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
-  const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker);
+  const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker, { waits: puttingIn.busy });
   const { held, hold, release } = useHeld();
   const closeOpening = useCallback(() => {
     release();
@@ -51,15 +51,15 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     puttingIn.putAllIn();
   };
   const playing = opening || moment !== null;
-  const unlockedTeam = moment === null ? undefined : album.teams.find(({ team }) => team === moment.team);
+  const awaitingAMoment = playing || unlocking.sending !== null;
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
   useGoalFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={playing} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} tray={puttingIn} />
+      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
-      {moment !== null && unlockedTeam !== undefined && <UnlockMoment team={unlockedTeam} sticker={moment} emoji={teamEmojiOf(album, moment.team)} onDone={finish} />}
+      {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={finish} />}
       <PutInFlights album={album} flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}

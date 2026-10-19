@@ -80,24 +80,24 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
   const { people: held, morePeople } = await peopleHeldBy(ctx, me);
   const { tray, more: moreTray } = await trayOf(ctx, me.member);
-  const { teams, notYetHeld } = await teamsOf(ctx, me);
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams, people: [...held, ...notYetHeld], morePeople, packs, morePacks, tray, moreTray };
+  const { teams, unlisted } = await teamsOf(ctx, me, new Set(held.map(({ person }) => person)));
+  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray };
 });
 
-async function teamsOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ teams: AlbumTeam[]; notYetHeld: AlbumPerson[] }> {
+async function teamsOf(ctx: QueryCtx, me: VerifiedMember, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
   const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
   const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));
   const teams = pagesAndPeople.pages.map(({ unmatched, ...page }) => ({ ...page, unmatched: unmatched.flatMap((profile) => named.get(profile) ?? []) }));
-  return { teams, notYetHeld: notYetHeldOn(pagesAndPeople, named) };
+  return { teams, unlisted: unlistedPeopleOn(pagesAndPeople, listed, named) };
 }
 
-function notYetHeldOn({ pages, held, profileOf }: TeamPagesAndPeople, named: Map<number, string>): AlbumPerson[] {
+function unlistedPeopleOn({ pages, held, profileOf }: TeamPagesAndPeople, listed: Set<MemberId>, named: Map<number, string>): AlbumPerson[] {
   const onAPage = new Set(pages.flatMap(({ people }) => people));
   const nameOf = (person: MemberId) => {
     const profile = profileOf.get(person);
     return profile === undefined ? undefined : named.get(profile);
   };
-  return [...onAPage].filter((person) => !held.has(person)).map((person) => ({ person, ...teammateOf(nameOf(person), null), held: false }));
+  return [...onAPage].filter((person) => !listed.has(person)).map((person) => ({ person, ...teammateOf(nameOf(person), null), held: held.has(person) }));
 }
 
 async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember) {

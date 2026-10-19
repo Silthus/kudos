@@ -74,11 +74,13 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
           <HypeEmoji person={person} first={first} />
           {!person.held && (
             <div className="al-howto">
-              <p className="al-eyebrow">How to collect {first}</p>
+              <p className="al-eyebrow">
+                How to collect <span className="ph-no-capture">{first}</span>
+              </p>
               <p className="ph-no-capture">{howToCollectWords(album, person.person, person.name)}</p>
             </div>
           )}
-          <History person={person} first={first} />
+          <History person={person} />
           <BestMessage person={person} first={first} />
         </div>
       </div>
@@ -95,17 +97,17 @@ function HypeEmoji({ person, first }: { person: Person; first: string }) {
   return (
     <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
       <span className="al-hype-frame" aria-hidden="true">
-        {earned && person.held ? <MemberFace face={person.face} className="al-hype-face" /> : <Silhouette name={person.name} />}
+        {earned ? <MemberFace face={person.face} className="al-hype-face" /> : <Silhouette name={person.name} />}
       </span>
       <p>
         {name !== null && <code>:{name}:</code>}
-        <span>{earned ? `Unlocked when you first thanked ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
+        <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
       </p>
     </div>
   );
 }
 
-function History({ person, first }: { person: Person; first: string }) {
+function History({ person }: { person: Person }) {
   const facts = [
     { label: "First thanked", value: person.firstThankedAt === null ? "Not yet" : dateOf(person.firstThankedAt) },
     { label: "Kudos you gave", value: String(person.kudosGiven) },
@@ -114,7 +116,7 @@ function History({ person, first }: { person: Person; first: string }) {
     { label: "Hugs they gave you", value: String(person.hugsReceived) },
   ];
   return (
-    <ul className="al-facts" aria-label={`Your history with ${first}`}>
+    <ul className="al-facts" aria-label="Your history together">
       {facts.map(({ label, value }) => (
         <li key={label} className="al-fact">
           <span className="al-fact-label">{label}</span>
@@ -133,7 +135,9 @@ function BestMessage({ person, first }: { person: Person; first: string }) {
         <KudosMessage message={person.best.message} clamped={false} />
       </blockquote>
       <figcaption>
-        <span>Your best message to {first}</span>
+        <span>
+          Your best message to <span className="ph-no-capture">{first}</span>
+        </span>
         {person.best.permalink !== null && (
           <SlackLink chatUrl={person.best.permalink} variant="outline">
             Open in Slack

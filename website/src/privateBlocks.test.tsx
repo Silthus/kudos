@@ -70,7 +70,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
   it("AL56: a person page keeps your best message to them and its Slack link in blocks, so its walk is not vacuous", async () => {
     window.history.replaceState(null, "", "/book#people/ines-okafor");
     const { container } = render(<Root fixture="album" />);
-    await screen.findByText("Your best message to Ines");
+    await screen.findByText(/^Your best message to/);
 
     const words = container.querySelector("[data-testid='kudos-message-words']");
     expect(words?.closest(".ph-no-capture")).not.toBeNull();

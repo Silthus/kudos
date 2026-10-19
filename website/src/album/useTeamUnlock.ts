@@ -3,9 +3,9 @@ import type { Album, TeamSticker, UnlockReply } from "./answer";
 
 export type UnlockProblem = { team: string; reason: "refused" | "unreachable" };
 
-export type TeamUnlocking = { sending: string | null; problem: UnlockProblem | null; start: (team: string) => void };
+export type TeamUnlocking = { sending: string | null; waits: boolean; problem: UnlockProblem | null; start: (team: string) => void };
 
-export function useTeamUnlock(answered: Album, unlockTeamSticker: (team: string) => Promise<UnlockReply>) {
+export function useTeamUnlock(answered: Album, unlockTeamSticker: (team: string) => Promise<UnlockReply>, { waits }: { waits: boolean }) {
   const [sending, setSending] = useState<string | null>(null);
   const [problem, setProblem] = useState<UnlockProblem | null>(null);
   const [moment, setMoment] = useState<TeamSticker | null>(null);
@@ -14,7 +14,7 @@ export function useTeamUnlock(answered: Album, unlockTeamSticker: (team: string)
 
   const start = useCallback(
     (team: string) => {
-      if (inFlight.current) return;
+      if (inFlight.current || waits) return;
       inFlight.current = true;
       setSending(team);
       setProblem(null);
@@ -30,12 +30,12 @@ export function useTeamUnlock(answered: Album, unlockTeamSticker: (team: string)
           setSending(null);
         });
     },
-    [unlockTeamSticker],
+    [unlockTeamSticker, waits],
   );
 
   const finish = useCallback(() => setMoment(null), []);
   const album = useMemo(() => withTheUnlocked(answered, unlocked), [answered, unlocked]);
-  const unlocking: TeamUnlocking = useMemo(() => ({ sending, problem, start }), [sending, problem, start]);
+  const unlocking: TeamUnlocking = useMemo(() => ({ sending, waits, problem, start }), [sending, waits, problem, start]);
   return { album, unlocking, moment, finish };
 }
 
