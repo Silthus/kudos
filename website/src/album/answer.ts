@@ -143,6 +143,18 @@ export type { AlbumHoggie, AlbumRarity };
 
 export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered;
 
+export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };
+
+export type NewestPerson = WeekPerson & { at: number };
+
+export type AlbumProfile = { kind: "profile"; note: KindNote | null; newest: NewestPerson[] };
+
+export type ProfileShown = AlbumProfile | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type ProfileRead = (asking: boolean) => ProfileShown | undefined;
+
+export type FoundHoggie = Pick<AlbumHoggie, "hoggie" | "name" | "rarity" | "firstAt">;
+
 export type HoggiesShown = AlbumHoggies | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type HoggiesRead = (asking: boolean) => HoggiesShown | undefined;

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { activityFixtures } from "./activityFixtures";
 import { albumFixtures, fixturePersonOf } from "./album/albumFixtures";
+import { profileFixtures } from "./album/profileFixtures";
 import { weekFixtures } from "./album/weekFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { recentKudosFixtures } from "./recentKudosFixtures";
@@ -31,7 +32,7 @@ const slackShapedId = /\b[UWCGDT][A-Z0-9]{8,}\b/;
 const emojiName = /:[a-z0-9_+'-]+:/;
 const checkedAttributes = ["href", "src", "srcset", "alt", "title", "aria-label", "aria-description", "data-href"];
 
-const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures, weekFixtures, fixturePersonOf(albumFixtures.midway, "ines-okafor")])].filter((text) => text.trim().length >= 8);
+const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures, weekFixtures, profileFixtures, fixturePersonOf(albumFixtures.midway, "ines-okafor")])].filter((text) => text.trim().length >= 8);
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -130,6 +131,20 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     const slackPictures = [...container.querySelectorAll("img")].filter((image) => slackHost.test(image.getAttribute("src")!));
     expect(slackPictures).toHaveLength(1);
     expect(slackPictures.every((image) => image.closest(".ph-no-capture") !== null)).toBe(true);
+  });
+
+  it("AL56: the profile keeps the kind note, its Slack link and every face and name in blocks, so its walk is not vacuous", async () => {
+    window.history.replaceState(null, "", "/book#me");
+    const { container } = render(<Root fixture="album" />);
+    await screen.findByRole("figure", { name: "Someone wrote to you" });
+
+    const blocked = [...container.querySelectorAll(".ph-no-capture")].map((block) => block.textContent);
+    expect(blocked).toEqual(expect.arrayContaining(["Sam Example", "Sam Example, Lanterns", "PH", "WA", "FM"]));
+    expect(container.querySelector("[data-testid='kudos-message-words']")?.closest(".ph-no-capture")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Ines Okafor, 17 Oct 2026" }).closest(".ph-no-capture")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Perrin Holt, Quiet Harbour, joined 16 Oct 2026" }).closest(".ph-no-capture")).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Open in Slack/ }).closest(".ph-no-capture")).not.toBeNull();
+    expect(exposedIn(container)).toEqual([]);
   });
 
   it("AL56: the album's Activity carries blocks around every face and name, the kudos of the week and its Slack link, so its walk is not vacuous", async () => {

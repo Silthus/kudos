@@ -1,43 +1,71 @@
-import type { LadderId } from "../../../convex/achievements/ladders";
 import { slugOf } from "../../../convex/album/emojiCatalogue";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
+import type { LadderCard } from "../shell";
 import type { Album, AlbumMilestone, MilestoneTierId } from "./answer";
 
 type Tier = AlbumMilestone["tiers"][number];
 
 export type MedalStep = "earned" | "next" | "later";
 
-export type NextMedal = { milestone: AlbumMilestone; tier: Tier; toGo: number; share: number };
+export type MedalGoal = { tier: Tier; toGo: number };
 
-type MilestoneWords = { name: string; ladder: LadderId; counts: (count: number) => string };
+type Counted = { one: string; many: string };
 
-export const milestoneWords: Record<MilestoneId, MilestoneWords> = {
-  people: { name: "Faces in the album", ladder: "connections", counts: (count) => `${count === 1 ? "person" : "people"} in your album` },
-  teams: { name: "Full pages", ladder: "team-spirit", counts: (count) => `team ${count === 1 ? "sticker" : "stickers"} unlocked` },
-  reach: { name: "Across the company", ladder: "old-friends", counts: (count) => `${count === 1 ? "team" : "teams"} you've collected someone from` },
-  hoggies: { name: "Hoggie hunter", ladder: "recognition", counts: (count) => `${count === 1 ? "hoggie" : "hoggies"} found` },
-  thoughtful: { name: "Kind words", ladder: "generosity", counts: () => "thoughtful kudos given" },
+type MilestoneWords = { name: string; counted: Counted; emblem: LadderCard["ladder"] };
+
+const milestoneWords: Record<MilestoneId, MilestoneWords> = {
+  people: { name: "Faces in the album", counted: { one: "person in your album", many: "people in your album" }, emblem: "connections" },
+  teams: { name: "Full pages", counted: { one: "team sticker unlocked", many: "team stickers unlocked" }, emblem: "team-spirit" },
+  reach: { name: "Across the company", counted: { one: "team with someone in your album", many: "teams with someone in your album" }, emblem: "old-friends" },
+  hoggies: { name: "Hoggie hunter", counted: { one: "hoggie found", many: "hoggies found" }, emblem: "recognition" },
+  thoughtful: { name: "Kind words", counted: { one: "thoughtful kudos given", many: "thoughtful kudos given" }, emblem: "generosity" },
 };
 
-export const metalWords: Record<MilestoneTierId, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
+const tierWords: Record<MilestoneTierId, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
+
+export const metalOrder: readonly MilestoneTierId[] = ["bronze", "silver", "gold", "diamond"];
+
+export function milestoneNameOf(milestone: MilestoneId) {
+  return milestoneWords[milestone].name;
+}
+
+export function emblemOf(milestone: MilestoneId) {
+  return milestoneWords[milestone].emblem;
+}
+
+export function tierWordOf(tier: MilestoneTierId) {
+  return tierWords[tier];
+}
+
+export function countedWords(milestone: MilestoneId, count: number) {
+  return `${count} ${unitOf(milestone, count)}`;
+}
+
+export function progressWords(milestone: MilestoneId, count: number, goal: number) {
+  return `${Math.min(count, goal)} of ${goal} ${unitOf(milestone, goal)}`;
+}
+
+export function unitOf(milestone: MilestoneId, count: number) {
+  const { one, many } = milestoneWords[milestone].counted;
+  return count === 1 ? one : many;
+}
 
 export function isEarned(tier: Tier) {
   return tier.earnedAt !== null;
 }
 
-export function nextMedalOf(milestone: AlbumMilestone): NextMedal | null {
+export function goalOf(milestone: AlbumMilestone, tier: Tier): MedalGoal {
+  return { tier, toGo: Math.max(0, tier.at - milestone.count) };
+}
+
+export function nextGoalOf(milestone: AlbumMilestone): MedalGoal | null {
   const tier = milestone.tiers.find((listed) => !isEarned(listed));
-  if (tier === undefined) return null;
-  return { milestone, tier, toGo: Math.max(0, tier.at - milestone.count), share: Math.min(1, milestone.count / tier.at) };
+  return tier === undefined ? null : goalOf(milestone, tier);
 }
 
 export function stepOf(milestone: AlbumMilestone, tier: Tier): MedalStep {
   if (isEarned(tier)) return "earned";
-  return nextMedalOf(milestone)?.tier === tier ? "next" : "later";
-}
-
-export function bestMetalOf(milestone: AlbumMilestone): MilestoneTierId | null {
-  return milestone.tiers.findLast(isEarned)?.tier ?? null;
+  return nextGoalOf(milestone)?.tier === tier ? "next" : "later";
 }
 
 export function climbedShareOf(milestone: AlbumMilestone) {
@@ -52,15 +80,6 @@ export function climbedShareOf(milestone: AlbumMilestone) {
 
 export function medalsInAll(milestones: AlbumMilestone[]) {
   return milestones.flatMap(({ tiers }) => tiers).length;
-}
-
-export function closestNextOf(milestones: AlbumMilestone[]): NextMedal | null {
-  return (
-    milestones
-      .map(nextMedalOf)
-      .filter((next) => next !== null)
-      .toSorted((one, other) => other.share - one.share || one.toGo - other.toGo)[0] ?? null
-  );
 }
 
 export function goldEmojiOf(album: Album, milestone: AlbumMilestone): { name: string; unlocked: boolean } {

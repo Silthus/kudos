@@ -50,7 +50,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals", { 
     expect(faces.getByText("people in your album").parentElement).toHaveTextContent("12 people in your album");
     expect(faces.getByText("13 to go for Full of friends")).toBeInTheDocument();
     expect((await rowOf("Full pages")).getByText("team sticker unlocked").parentElement).toHaveTextContent("1 team sticker unlocked");
-    expect((await rowOf("Across the company")).getByText("teams you've collected someone from").parentElement).toHaveTextContent("6 teams you've collected someone from");
+    expect((await rowOf("Across the company")).getByText("teams with someone in your album").parentElement).toHaveTextContent("6 teams with someone in your album");
     expect((await rowOf("Hoggie hunter")).getByText("hoggies found").parentElement).toHaveTextContent("18 hoggies found");
     expect((await rowOf("Kind words")).getByText("thoughtful kudos given").parentElement).toHaveTextContent("9 thoughtful kudos given");
   });

@@ -17,7 +17,7 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
-import { albumPersonOf, albumWeekOf, type AlbumPersonAnswer, type AlbumWeekAnswer } from "./albumPages";
+import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, type AlbumProfileAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
 import { appliedShownTo } from "./commands";
 import { companyTeammateOf, nameless, storedFaceOf, teammateOf, type Face } from "./faces";
@@ -72,6 +72,8 @@ export type ThoughtfulBoardsRead = { kind: "off" } | ThoughtfulBoardsAnswer;
 export type AlbumPersonRead = { kind: "off" } | { kind: "no-person" } | AlbumPersonAnswer;
 
 export type AlbumWeekRead = { kind: "off" } | AlbumWeekAnswer;
+
+export type AlbumProfileRead = { kind: "off" } | AlbumProfileAnswer;
 
 export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies;
 
@@ -174,6 +176,8 @@ export const getAlbumWeek = memberQuery({
     return albumWeekOf(ctx, me, week);
   },
 });
+
+export const getAlbumProfile = memberQuery(async (ctx, me): Promise<AlbumProfileRead> => ((await albumShownTo(ctx, me.member)) ? albumProfileOf(ctx, me, mostPeopleShown) : { kind: "off" }));
 
 function personRowOf({ member, name, picture, face, teams, thoughtful, viewer, ...standing }: BoardPerson & Standing): BoardPersonRow {
   const teammate = companyTeammateOf(name, picture, face);

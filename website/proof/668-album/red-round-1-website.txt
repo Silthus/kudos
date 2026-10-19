@@ -1,0 +1,7 @@
+     × the profile's level and XP are the top bar's, and its ranks are the board's 65ms
+     × says a tie as the board does, and names your home team's rank when you are on two 50ms
+     × a home team nobody else is in Slack for says so, with no seal to count toward 58ms
+     × keeps the page and leaves the hoggies out while the hoggie read fails 10027ms
+     × coolest finds show your rarest hoggies and the people who joined your album last, each leading to its page 83ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 12 passed (17)

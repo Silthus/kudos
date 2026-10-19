@@ -108,6 +108,22 @@ describe("the album is private", () => {
     expect(await weekListsOf(asCarol)).toEqual({ thanked: [], thankedBy: [bob.name] });
   });
 
+  test("getAlbumProfile answers each signed-in member the kind note sent to them, never one they sent", async () => {
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    await thanks(bob, "Thanks for pairing on the stubborn cache invalidation", carol);
+
+    expect(await kindNoteGiverOf(await signedIn(alice))).toBeNull();
+    expect(await kindNoteGiverOf(await signedIn(bob))).toBe(alice.name);
+    expect(await kindNoteGiverOf(await signedIn(carol))).toBe(bob.name);
+  });
+
+  test("getAlbumProfile rejects an argument that names another member", async () => {
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    const withAnotherMember = { member: await memberOf(bob) } as unknown as Record<string, never>;
+
+    await expect((await signedIn(alice)).query(api.website.album.getAlbumProfile, withAnotherMember)).rejects.toThrow(/member/);
+  });
+
   test("getAlbumPerson and getAlbumWeek reject an argument that names another member", async () => {
     await thanks(alice, "Thanks for the careful review of the billing export", bob);
     const asBob = await signedIn(bob);
@@ -142,18 +158,18 @@ describe("AL40: getAlbum shows the member's face without reading the directory",
 });
 
 describe("website reads pass one guard", () => {
-  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson and getAlbumWeek read closed while the website flag is off, even with album on", async () => {
+  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);
     await switchWebsite(t, postHog, false, "album");
 
     expect(await everyAlbumReadOf(asAlice, await aMember(t, dana.user))).toEqual(everyAnswer({ kind: "closed" }));
   });
 
-  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson and getAlbumWeek read signed out without a session", async () => {
+  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read signed out without a session", async () => {
     expect(await everyAlbumReadOf(t, await aMember(t, dana.user))).toEqual(everyAnswer({ kind: "signed-out" }));
   });
 
-  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson and getAlbumWeek read not-a-member for a former member with a live session", async () => {
+  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read not-a-member for a former member with a live session", async () => {
     const former = await aMember(t, juno.user, "not-a-member");
     const { asSignedIn } = await aSession(t, juno);
 
@@ -171,7 +187,7 @@ function boardsOf(reader: Reader): Promise<ThoughtfulBoardsRead | { kind: string
   return reader.query(api.website.album.getThoughtfulBoards, {});
 }
 
-const everyAlbumRead = [api.website.album.getAlbum, api.website.album.getAlbumHoggies, api.website.album.getThoughtfulBoards, api.website.album.getAlbumWeek];
+const everyAlbumRead = [api.website.album.getAlbum, api.website.album.getAlbumHoggies, api.website.album.getThoughtfulBoards, api.website.album.getAlbumWeek, api.website.album.getAlbumProfile];
 
 function everyAlbumReadOf(reader: Reader, person: MemberId): Promise<Array<{ kind: string }>> {
   return Promise.all([...everyAlbumRead.map((read) => reader.query(read, {})), reader.query(api.website.album.getAlbumPerson, { person })]);
@@ -179,6 +195,11 @@ function everyAlbumReadOf(reader: Reader, person: MemberId): Promise<Array<{ kin
 
 function everyAnswer(answer: { kind: string }) {
   return [...everyAlbumRead, api.website.album.getAlbumPerson].map(() => answer);
+}
+
+async function kindNoteGiverOf(reader: Reader) {
+  const profile = await reader.query(api.website.album.getAlbumProfile, {});
+  return profile.kind === "profile" ? (profile.note?.giver.name ?? null) : profile;
 }
 
 async function weekListsOf(reader: Reader) {
