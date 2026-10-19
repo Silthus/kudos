@@ -1,0 +1,41 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 35
+  },
+  "me": {
+    "face": {
+      "initials": "OM",
+      "kind": "initials"
+    },
+    "name": "Odile Marrow",
+    "person": "js70gsjtz6neeggbyfm3mq1erh8ggfv7"
+  },
+  "morePacks": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1792363685329,
+      "pack": "hn7n3had4h8an8p3z955k7ek0n8ggb8d",
+      "person": "js73qgg9w7679svxv6cqsf8n2d8gh6vh"
+    }
+  ],
+  "people": [],
+  "tray": [
+    {
+      "item": "jn7gngmrkhwm3ahnybbn698wb18gh2s9",
+      "kind": "sticker",
+      "person": "js71xqy5n4cmgthw8nvmh0gx198ggq39"
+    },
+    {
+      "hoggie": "caribana",
+      "isNew": true,
+      "item": "jn7t2yj1tdccgnyd1be82tp0r98gg0z3",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ]
+}

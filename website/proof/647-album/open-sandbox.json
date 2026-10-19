@@ -1,0 +1,33 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 28,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 20
+    },
+    "to": {
+      "coins": 28,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7gngmrkhwm3ahnybbn698wb18gh2s9",
+      "kind": "sticker",
+      "person": "js71xqy5n4cmgthw8nvmh0gx198ggq39"
+    },
+    {
+      "hoggie": "caribana",
+      "isNew": true,
+      "item": "jn7t2yj1tdccgnyd1be82tp0r98gg0z3",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ],
+  "kind": "opened"
+}

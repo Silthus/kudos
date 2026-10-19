@@ -17,7 +17,7 @@ import schema from "../schema";
 import { openUnlock } from "../unlocks/unlocks";
 
 const theAlbum = vi.hoisted(() => ({ removed: false }));
-const albumDecisions = vi.hoisted(() => [] as Array<{ by: string; inAQuery: boolean }>);
+const albumDecisions = vi.hoisted(() => [] as Array<{ by: string }>);
 
 vi.mock("../album/flag", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../album/flag")>();
@@ -42,8 +42,8 @@ vi.mock("../analytics/flags", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../analytics/flags")>();
   const recorded = <F extends (...args: never[]) => unknown>(by: string, decide: F) =>
     ((...args: Parameters<F>) => {
-      const [ctx, read] = args as unknown as [object, { key: string }];
-      if (read.key === "album") albumDecisions.push({ by, inAQuery: !("scheduler" in ctx) });
+      const [, read] = args as unknown as [object, { key: string }];
+      if (read.key === "album") albumDecisions.push({ by });
       return decide(...args);
     }) as F;
   return {
@@ -78,7 +78,7 @@ const minuteMs = 60_000;
 const siteUrl = "https://kudos-site.test";
 const album = "album";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "sticker-book", "team-pages", "team-spirit"];
-const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulTallies", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs"] as const;
+const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulTallies", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "trayItems"] as const;
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -125,11 +125,11 @@ const albumOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () 
 describe("AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it", { timeout: 180_000 }, () => {
   test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies, emoji names and the pair and week tallies it stores and the packs earned events it sends, and getAlbum and getThoughtfulBoards answer off", async ({ flag, turnOff }) => {
     theAlbum.removed = true;
-    const withoutTheAlbum = await walkIn(await fourMembers(flag, turnOff));
+    const withoutTheAlbum = await walkIn(await fourMembers(flag, turnOff), { opening: true });
     freshFakes();
     theAlbum.removed = false;
 
-    const walk = await walkIn(await fourMembers(flag, turnOff));
+    const walk = await walkIn(await fourMembers(flag, turnOff), { opening: true });
 
     expect(walk.seen).toEqual(withoutTheAlbum.seen);
     expect(withoutTheAlbum.albumRows.thoughtfulPacks).toEqual([]);
@@ -147,7 +147,11 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     ]);
     expect(Object.values(walk.albums).every((answer) => !(answer as object).hasOwnProperty("packs"))).toBe(true);
     expect(Object.values(walk.albums)).toEqual(Object.values(withoutTheAlbum.albums));
-    expect(albumDecisions.every(({ inAQuery }) => inAQuery)).toBe(true);
+    expect(walk.opened).toEqual(withoutTheAlbum.opened);
+    expect(walk.opened).not.toHaveProperty("items");
+    expect(walk.albumRows.trayItems).toEqual([]);
+    expect(albumDecisions.filter(({ by }) => by === "exposed")).toEqual([]);
+    expect(albumExposures(walk)).toEqual([]);
     expect(await decidedWithoutTheWebsite(dana)).toBe(false);
   });
 
@@ -165,7 +169,7 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(on.boards.U_CAROL).toMatchObject({ kind: "boards", people: [{ name: alice.name, thoughtful: 2, rank: 1 }, { name: bob.name, thoughtful: 1, rank: 2 }], teams: [{ team: "lanterns", thoughtful: 3, rank: 1 }] });
     expect(albumExposures(on)).toEqual([]);
     expect(albumDecisions.length).toBeGreaterThan(0);
-    expect(albumDecisions.every(({ inAQuery }) => inAQuery)).toBe(true);
+    expect(albumDecisions.filter(({ by }) => by === "exposed")).toEqual([]);
   });
 
   test("with album on for one member's email only, only that member's getAlbum answers their album", async () => {
@@ -227,7 +231,7 @@ async function fourMembers(flag: FlagDefinition[], turnOff?: () => void): Promis
   return t;
 }
 
-async function walkIn(backend: Backend) {
+async function walkIn(backend: Backend, { opening = false } = {}) {
   t = backend;
   namedIds = await idsNamedByTheirMember();
   for (const { user } of members) await openHome(user);
@@ -235,6 +239,7 @@ async function walkIn(backend: Backend) {
   await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
   await settleInTimeOrder(t);
   for (const { user } of members) await openHome(user);
+  const opened = opening ? await aliceOpensHerFirstPack() : null;
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   const albums: Record<string, unknown> = {};
   const boards: Record<string, unknown> = {};
@@ -251,7 +256,23 @@ async function walkIn(backend: Backend) {
     productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isPacksEarned(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheAlbum(),
   };
-  return { seen, albums, boards, albumRows: await albumRows(), postHogEvents: postHog.events() };
+  return { seen, albums, boards, opened, albumRows: await albumRows(), postHogEvents: postHog.events() };
+}
+
+async function aliceOpensHerFirstPack() {
+  nextStep();
+  const alicesMember = await memberOf(alice.user);
+  const first = await t.run(async (ctx) => (await ctx.db.query("thoughtfulPacks").collect()).find(({ giver }) => giver === alicesMember)?._id ?? null);
+  return (await signedIn(alice)).mutation(api.website.album.openThoughtfulPack, { pack: first ?? (await aPackIdNamingNoPack()) });
+}
+
+async function aPackIdNamingNoPack() {
+  const [giver, recipient] = [await memberOf(alice.user), await memberOf(bob.user)];
+  return t.run(async (ctx) => {
+    const pack = await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver, recipient, week: "none", message: { workspace: "T1", conversation: "none", message: "none" }, holdsSticker: false, at: 0 });
+    await ctx.db.delete(pack);
+    return pack;
+  });
 }
 
 async function kudosOfTheWalk() {

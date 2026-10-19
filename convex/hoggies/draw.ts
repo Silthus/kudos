@@ -17,8 +17,8 @@ export async function drawOf({ secret, member, crate, version }: DrawInput): Pro
 }
 
 export async function packBonusOf({ secret, member, crate }: PackDrawInput): Promise<PackBonus> {
-  const digest = await digestOf(`${secret}:${member}:${crate}:pack:${packBands.version}`);
-  const { xp, coins } = packBands.bands[kindOf(crate)];
+  const { xp, coins, version } = packBands[kindOf(crate)];
+  const digest = await digestOf(`${secret}:${member}:${crate}:pack:${version}`);
   const xpSteps = (xp.most - xp.least) / xp.step + 1;
   return { xp: xp.least + xp.step * pickAt(digest, 0, xpSteps), coins: coins.least + pickAt(digest, 4, coins.most - coins.least + 1) };
 }

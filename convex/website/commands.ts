@@ -285,7 +285,7 @@ async function wholeOpenOf(ctx: MutationCtx, me: VerifiedMember, crate: string, 
   return held === undefined ? pack : { xp: held.xp + pack.xp, coins: held.coins + pack.coins, from: held.from, to: pack.to };
 }
 
-async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | null | undefined): Promise<AppliedReward | null> {
+export async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | null | undefined): Promise<AppliedReward | null> {
   if (applied === null || applied === undefined) return null;
   const coinsShown = await coinsVisibleTo(ctx, me.member);
   const skillPointsShown = (await skillPointsOf(ctx, me, await unlockPathOf(ctx, me))) !== null;

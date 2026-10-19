@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { albumShownTo } from "../album/flag";
+import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { albumStickersOf } from "../album/stickers";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
@@ -9,7 +10,10 @@ import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { followTheClock } from "./clock";
+import { appliedShownTo } from "./commands";
 import { companyTeammateOf, nameless, storedFaceOf, type Face } from "./faces";
+import { noLaunchWaitsFor } from "./flag";
+import { memberMutation } from "./memberMutation";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 
 export type AlbumAnswer = {
@@ -20,6 +24,8 @@ export type AlbumAnswer = {
   morePeople: boolean;
   packs: WaitingPack[];
   morePacks: boolean;
+  tray: TrayItem[];
+  moreTray: boolean;
 };
 
 export const mostPeopleShown = 500;
@@ -27,6 +33,8 @@ export const mostPeopleShown = 500;
 export type AlbumPerson = { person: MemberId; name: string; face: Face; held: boolean };
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
+
+export type OpenAnswer = ({ kind: "opened" } & Opening) | { kind: "refused" };
 
 export type BoardPersonRow = { person: MemberId; name: string; face: Face; teams: string[]; thoughtful: number; you: boolean } & Standing;
 
@@ -44,10 +52,27 @@ export type ThoughtfulBoardsRead = { kind: "off" } | ThoughtfulBoardsAnswer;
 
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
-  const { packs, more } = await waitingPacksOf(ctx, me.member);
+  const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
   const { people, morePeople } = await peopleHeldBy(ctx, me);
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), people, morePeople, packs, morePacks: more };
+  const { tray, more: moreTray } = await trayOf(ctx, me.member);
+  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), people, morePeople, packs, morePacks, tray, moreTray };
 });
+
+async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember) {
+  return (await noLaunchWaitsFor(ctx, me)) ? waitingPacksOf(ctx, me.member) : { packs: [], more: false };
+}
+
+export const openThoughtfulPack = memberMutation({
+  args: { pack: v.id("thoughtfulPacks") },
+  handler: async (ctx, me, _person, { pack }): Promise<OpenAnswer> => {
+    const opening = (await opensPacks(ctx, me)) ? await openPack(ctx, me.member, pack, Date.now()) : null;
+    return opening === null ? { kind: "refused" } : { kind: "opened", items: opening.items, applied: await appliedShownTo(ctx, me, opening.applied) };
+  },
+});
+
+async function opensPacks(ctx: QueryCtx, me: VerifiedMember) {
+  return (await albumShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+}
 
 export const getThoughtfulBoards = memberQuery({
   args: { team: v.optional(v.string()) },

@@ -7,6 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
+import schema from "../schema";
 import type { AlbumRead, ThoughtfulBoardsRead } from "./album";
 
 const minuteMs = 60_000;
@@ -54,6 +55,23 @@ describe("the album is private", () => {
     for (const [person, album] of albums) expect(album, `${person.name}'s own album`).toMatchObject({ kind: "album", me: { name: person.name, person: await memberOf(person) } });
     expect(await packedPeopleIn(albums)).toEqual({ [alice.name]: [bob.name], [bob.name]: [carol.name, dana.name], [carol.name]: [alice.name], [dana.name]: [] });
     expect(heldPeopleIn(albums)).toEqual({ [alice.name]: [bob.name], [bob.name]: [carol.name, dana.name], [carol.name]: [alice.name], [dana.name]: [] });
+  });
+
+  test("openThoughtfulPack opens only the signed-in member's own pack: another member's answers the fixed refusal and changes no table", async () => {
+    await switchWebsite(t, postHog, true, "album", "collection", "packs");
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    const asAlice = await signedIn(alice);
+    const before = await albumOf(asAlice);
+    const [forBob] = "packs" in before ? before.packs : [];
+    const asBob = await signedIn(bob);
+    await settle(t);
+    const tables = await everyTable();
+
+    expect(await asBob.mutation(api.website.album.openThoughtfulPack, { pack: forBob!.pack })).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everyTable()).toEqual(tables);
+    expect(await albumOf(asAlice)).toEqual(before);
   });
 
   test("an argument that names another member is rejected by the validator", async () => {
@@ -163,4 +181,12 @@ async function memberOf(person: Person): Promise<MemberId> {
       .unique(),
   );
   return row!._id;
+}
+
+function everyTable() {
+  return t.run(async (ctx) => {
+    const rows: Record<string, unknown[]> = {};
+    for (const table of Object.keys(schema.tables) as Array<keyof typeof schema.tables>) rows[table] = await ctx.db.query(table).collect();
+    return rows;
+  });
 }

@@ -39,6 +39,7 @@ import {
   talliedHugValidator,
   thoughtfulPackValidator,
   thoughtfulTallyValidator,
+  trayItemValidator,
   weekPersonValidator,
   weekTallyValidator,
 } from "./album/records";
@@ -530,7 +531,9 @@ export default defineSchema({
   thoughtfulPacks: defineTable(thoughtfulPackValidator)
     .index("by_giver_recipient_week", ["giver", "recipient", "week"])
     .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
-    .index("by_giver_at", ["giver", "at"]),
+    .index("by_giver_opened_at", ["giver", "openedAt", "at"]),
+
+  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]),
 
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 
