@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contrast } from "../test/themeContrast";
@@ -16,7 +18,20 @@ type Box = { top: number; height: number };
 
 type PageLayout = { bar: { top: number; height: number; sticky: boolean }; groups: Record<string, Box>; pageHeight: number };
 
-const screenHeight = 900;
+const hoggiesCss = readFileSync(join(__dirname, "hoggies.css"), "utf8");
+
+const shellLengths: Record<string, string> = { "--al-top-height": "3.5rem" };
+
+function scrollMarginOfAGroup(collection: HTMLElement) {
+  const rule = [...hoggiesCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(([, selectors]) => selectors!.trim() === ".al-hoggies-group");
+  let margin = /scroll-margin-top:\s*([^;]+);/.exec(rule?.[2] ?? "")?.[1] ?? "0px";
+  const innermostVar = /var\((--[\w-]+)(?:,\s*([^()]*))?\)/;
+  while (innermostVar.test(margin)) margin = margin.replace(innermostVar, (_, name: string, fallback?: string) => collection.style.getPropertyValue(name) || shellLengths[name] || fallback || "0px");
+  const terms = margin.replace(/^calc\((.*)\)$/, "$1").split("+");
+  return terms.reduce((sum, term) => sum + (term.trim().endsWith("rem") ? Number.parseFloat(term) * 16 : Number.parseFloat(term)), 0);
+}
+
+const filteredLineHeight = 30;
 
 const wideLayout: PageLayout = {
   bar: { top: 56, height: 110, sticky: true },
@@ -34,8 +49,9 @@ const nativeBoxes = Element.prototype.getBoundingClientRect;
 
 function layOutThePage(layout: PageLayout) {
   let scrolled = 0;
+  let screenHeight = 900;
   const bottom = () => Math.max(0, layout.pageHeight - screenHeight);
-  Object.defineProperty(window, "innerHeight", { configurable: true, value: screenHeight });
+  Object.defineProperty(window, "innerHeight", { configurable: true, get: () => screenHeight });
   Object.defineProperty(window, "scrollY", { configurable: true, get: () => scrolled });
   Object.defineProperty(document.documentElement, "scrollHeight", { configurable: true, get: () => layout.pageHeight });
   const barElement = screen.getByRole("heading", { level: 2, name: "The collection" }).closest<HTMLElement>(".al-hoggies-bar")!;
@@ -46,7 +62,7 @@ function layOutThePage(layout: PageLayout) {
     return name !== null && name !== undefined && name in layout.groups ? name : null;
   };
   Element.prototype.getBoundingClientRect = function (this: Element) {
-    if (this === barElement) return new DOMRect(0, layout.bar.top, 1000, layout.bar.height);
+    if (this === barElement) return new DOMRect(0, layout.bar.top, 1000, layout.bar.height + (barElement.textContent?.includes("Showing ") ? filteredLineHeight : 0));
     const name = groupNameOf(this);
     if (name === null) return nativeBoxes.call(this);
     const { top, height } = layout.groups[name]!;
@@ -59,8 +75,7 @@ function layOutThePage(layout: PageLayout) {
     scrolledTo.push(this);
     const name = groupNameOf(this);
     if (name === null) return;
-    const margin = Number.parseFloat(collection.style.getPropertyValue("--al-hoggies-line")) || 0;
-    scrollTo(layout.groups[name]!.top - margin);
+    scrollTo(layout.groups[name]!.top - scrollMarginOfAGroup(collection));
     setTimeout(() => window.dispatchEvent(new Event("scroll")));
   };
   const placeTheBar = () => {
@@ -78,6 +93,10 @@ function layOutThePage(layout: PageLayout) {
       this.scrollTo(scrolled + by);
     },
     scrolled: () => scrolled,
+    resizeTheScreen(height: number) {
+      screenHeight = height;
+      act(() => window.dispatchEvent(new Event("resize")));
+    },
     unstick() {
       layout.bar.sticky = false;
       placeTheBar();
@@ -248,6 +267,11 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
 
     page.scrollBy(-20);
     expect(markedInTheStrip(), "20 px above the page's end the bar is over Rare's end again").toEqual(["Rare"]);
+
+    page.scrollTo(4826);
+    expect(markedInTheStrip()).toEqual(["Legendary"]);
+    page.resizeTheScreen(700);
+    expect(markedInTheStrip(), "a shorter screen at the same scroll is no longer at the page's end").toEqual(["Rare"]);
   });
 
   it("a picked rarity is marked at once and stays marked when the scroll lands, for every rarity, the short ones at the page's end too", async () => {
@@ -265,7 +289,7 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
 
     await user.click(stripPart("Uncommon"));
     await letTheScrollLand();
-    expect(page.scrolled(), "Uncommon lands right under the sticky bar").toBe(2424 - 166);
+    expect(page.scrolled(), "Uncommon lands 0.75rem under the sticky bar").toBe(2424 - 166 - 12);
     page.scrollBy(10);
     expect(markedInTheStrip(), "a nudge after landing on Uncommon").toEqual(["Uncommon"]);
 
@@ -275,6 +299,37 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
     expect(markedInTheStrip(), "Epic stays marked at the page's end").toEqual(["Epic"]);
     page.scrollBy(-200);
     expect(markedInTheStrip(), "scrolling away hands the mark back to the rarity in view").toEqual(["Rare"]);
+  });
+
+  it("a pick ends when a filter changes the groups, even with the page where it was", async () => {
+    const { user } = visit("/book#hoggies");
+
+    const bar = await collectionBar();
+    layOutThePage(structuredClone(wideLayout));
+    await user.click(stripPart("Legendary"));
+    await letTheScrollLand();
+    expect(markedInTheStrip()).toEqual(["Legendary"]);
+
+    await user.click(bar.getByRole("button", { name: /^Spares/ }));
+
+    expect(screen.queryByRole("region", { name: "Legendary" })).not.toBeInTheDocument();
+    const lastShown = screen.getAllByRole("region", { name: /^(Common|Uncommon|Rare|Epic)$/ }).at(-1)!.querySelector("h3")!.textContent;
+    expect(markedInTheStrip(), "the page's end now holds the last group Spares keeps").toEqual([lastShown]);
+  });
+
+  it("jumping out of a landed rarity lands under the bar as it is once the landed line goes", async () => {
+    const { user } = visit("/book#hoggies/rare");
+
+    expect(await screen.findByText("Showing rare hoggies.", undefined, { timeout: arrival })).toBeInTheDocument();
+    const page = layOutThePage(structuredClone(wideLayout));
+
+    await user.click(stripPart("Uncommon"));
+    await letTheScrollLand();
+
+    expect(screen.queryByText("Showing rare hoggies.")).not.toBeInTheDocument();
+    expect(page.scrolled(), "Uncommon lands 0.75rem under the bar without its Showing line").toBe(2424 - 166 - 12);
+    page.scrollBy(2);
+    expect(markedInTheStrip()).toEqual(["Uncommon"]);
   });
 
   it("a rarity in the strip jumps to its group, showing every hoggie again when the filter hid that rarity", async () => {
@@ -311,12 +366,12 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
 
     await user.click(stripPart("Rare"));
     await letTheScrollLand();
-    expect(page.scrolled(), "Rare lands under the stuck bar").toBe(3448 - 56 - 110);
+    expect(page.scrolled(), "Rare lands 0.75rem under the stuck bar").toBe(3448 - 56 - 110 - 12);
 
     page.unstick();
     await user.click(stripPart("Uncommon"));
     await letTheScrollLand();
-    expect(page.scrolled(), "Uncommon lands under the top bar").toBe(2424 - 56);
+    expect(page.scrolled(), "Uncommon lands 0.75rem under the top bar").toBe(2424 - 56 - 12);
     page.scrollBy(-30);
     expect(markedInTheStrip(), "30 px above Uncommon, Common's end is under the top bar").toEqual(["Common"]);
   });

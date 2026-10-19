@@ -128,7 +128,7 @@ function Collection({ answer, shown, filter, rarity, onFilter, onShowEveryRarity
   const heading = useRef<HTMLHeadingElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const groups = shelvesOf(answer, shown).filter(({ hoggies }) => hoggies.length > 0);
-  const strip = useRarityStrip(groups.map((group) => group.rarity), bar);
+  const strip = useRarityStrip(groups, bar);
   const jumpTo = (target: Rarity) => {
     if (rarity !== undefined && rarity !== target) onShowEveryRarity();
     if (!keptBy(filter, answer.hoggies).some((hoggie) => hoggie.rarity === target)) onFilter("all");
