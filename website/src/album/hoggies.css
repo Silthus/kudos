@@ -1,0 +1,700 @@
+.al-shell {
+  --al-ink-common: #626760;
+  --al-ink-uncommon: #1a7532;
+  --al-ink-rare: #0a65c0;
+  --al-ink-epic: #7b39eb;
+  --al-ink-legendary: #b43c0b;
+}
+
+.dark .al-shell {
+  --al-ink-common: var(--rarity-common);
+  --al-ink-uncommon: var(--rarity-uncommon);
+  --al-ink-rare: var(--rarity-rare);
+  --al-ink-epic: var(--rarity-epic);
+  --al-ink-legendary: var(--rarity-legendary);
+}
+
+.al-hoggies {
+  --al-hoggies-warm: color-mix(in oklab, #f7a501 10%, var(--card));
+  --al-rarity: var(--al-quiet);
+  --al-rarity-ink: var(--al-quiet);
+  max-width: 75rem;
+  gap: 1.75rem;
+}
+
+.al-hoggies :is(h2, h3, p, ul, dl, dd, figure) {
+  margin: 0;
+}
+
+.al-hoggies ul {
+  padding: 0;
+  list-style: none;
+}
+
+.al-hoggies-quiet {
+  color: var(--al-quiet);
+}
+
+.al-hoggies-head {
+  display: flex;
+  max-width: 40rem;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.al-hoggie-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.al-hoggie-silhouette {
+  background-color: var(--al-track);
+  mask: var(--al-art) center / contain no-repeat;
+}
+
+.dark .al-hoggie-silhouette {
+  background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+}
+
+.al-hoggie-art-unknown {
+  border-radius: 999px;
+  background: var(--al-track);
+}
+
+.al-hoggies-rarity {
+  color: var(--al-rarity-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.al-hoggies-case {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.al-hoggies-glass {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, var(--card), var(--al-hoggies-warm) 140%);
+  padding: 1.375rem 1.5rem 0;
+}
+
+.al-hoggies-glass-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+.al-hoggies-glass-label strong {
+  color: var(--foreground);
+  font-size: 1rem;
+}
+
+.al-hoggies-glass-empty {
+  padding-bottom: 1.375rem;
+  color: var(--al-quiet);
+}
+
+.al-hoggies-plinths {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.al-hoggies-plinth {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  border: 0;
+  border-bottom: 0.625rem solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  border-radius: 0.875rem 0.875rem 0 0;
+  background: none;
+  padding: 0.5rem 0.25rem 0.75rem;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.al-hoggies-plinth:hover {
+  background: color-mix(in oklab, var(--al-rarity) 8%, transparent);
+}
+
+.al-hoggies-plinth-glow {
+  display: grid;
+  width: 100%;
+  max-width: 8rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in oklab, var(--al-rarity) 24%, transparent), transparent 68%);
+  padding: 0.75rem;
+}
+
+.al-hoggies-plinth-name {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.al-hoggies-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.al-hoggies-note {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--card);
+  padding: 0.625rem 0.875rem;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.al-hoggies-note {
+  cursor: pointer;
+}
+
+button.al-hoggies-note:hover {
+  border-color: color-mix(in oklab, var(--foreground) 30%, var(--border));
+}
+
+button.al-hoggies-note .al-hoggie-art {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+}
+
+.al-hoggies-note-total {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.al-hoggies-note-words {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  font-size: 0.8125rem;
+}
+
+.al-hoggies-note-words strong {
+  font-size: 0.875rem;
+}
+
+.al-hoggies-collection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.al-hoggies-bar {
+  position: sticky;
+  top: var(--al-top-height);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 -0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--background) 94%, transparent);
+  padding: 0.625rem 0.75rem 0.5rem;
+  backdrop-filter: blur(8px);
+}
+
+.al-hoggies-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.al-hoggies-bar-title {
+  outline: none;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.al-hoggies-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 0.1875rem;
+}
+
+.al-hoggies-filter {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  padding: 0.375rem 0.75rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.al-hoggies-filter:hover {
+  background: var(--muted);
+}
+
+.al-hoggies-filter[aria-pressed="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.al-hoggies-filter small {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.al-hoggies-strip {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.al-hoggies-strip-part {
+  display: flex;
+  min-width: 5.75rem;
+  flex: var(--al-share, 1) 1 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 0;
+  border-radius: 0.625rem;
+  background: none;
+  padding: 0.25rem 0.5rem 0.375rem;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.al-hoggies-strip-part:hover {
+  background: var(--muted);
+}
+
+.al-hoggies-strip-part[aria-current] {
+  background: color-mix(in oklab, var(--al-rarity) 13%, var(--card));
+  box-shadow: inset 0 0 0 1.5px var(--al-rarity);
+}
+
+.al-hoggies-strip-words {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.al-hoggies-strip-words strong {
+  color: var(--al-rarity-ink);
+}
+
+.al-hoggies-strip-words span {
+  color: var(--al-quiet);
+}
+
+.al-hoggies-strip-part[aria-current] .al-hoggies-strip-words span {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.al-hoggies-share {
+  display: block;
+  height: 0.3125rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--al-track);
+}
+
+.al-hoggies-share > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--al-rarity);
+}
+
+.al-hoggies-filtered {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.al-hoggies-nothing {
+  border: 1px dashed var(--border);
+  border-radius: 1rem;
+  padding: 2rem 1rem;
+  color: var(--al-quiet);
+  text-align: center;
+}
+
+.al-hoggies-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  scroll-margin-top: calc(var(--al-top-height) + 9rem);
+}
+
+.al-hoggies-group-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(6rem, 12rem);
+  align-items: center;
+  gap: 0.25rem 1rem;
+  font-size: 0.8125rem;
+}
+
+.al-hoggies-group-title {
+  color: var(--al-rarity-ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+  outline: none;
+}
+
+.al-hoggies-plates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.al-hoggies-plate {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--border);
+  border-bottom: 4px solid var(--al-rarity);
+  border-radius: 1rem;
+  background: var(--card);
+  padding: 1.625rem 0.5rem 0.75rem;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.al-hoggies-plate:not([data-found]) {
+  border-bottom-color: var(--border);
+  background: color-mix(in oklab, var(--muted) 55%, var(--card));
+}
+
+.al-hoggies-plate:hover {
+  border-color: color-mix(in oklab, var(--foreground) 30%, var(--border));
+}
+
+.al-hoggies-plate-number {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.625rem;
+  color: var(--al-quiet);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.al-hoggies-copies {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.5rem;
+  border-radius: 999px;
+  background: var(--foreground);
+  padding: 0.0625rem 0.4375rem;
+  color: var(--background);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.al-hoggies-plate-art {
+  display: grid;
+  width: 5.5rem;
+  height: 5.5rem;
+  place-items: center;
+}
+
+.al-hoggies-plate-name {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.al-hoggies-plate:not([data-found]) .al-hoggies-plate-name {
+  color: var(--al-quiet);
+  font-weight: 600;
+}
+
+.al-entry-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgb(0 0 0 / 0.45);
+  padding: 1.5rem 1rem;
+}
+
+.al-entry {
+  display: flex;
+  width: min(100%, 40rem);
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-top: 6px solid var(--al-rarity);
+  border-radius: 1.25rem;
+  background: var(--card);
+  padding: 1.25rem 1.5rem 1.375rem;
+  color: var(--foreground);
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.45);
+}
+
+.al-entry-top,
+.al-entry-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.al-entry-steps {
+  border-top: 1px solid var(--border);
+  padding-top: 0.875rem;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.al-entry-close,
+.al-entry-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 0.375rem 0.875rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.al-entry-close {
+  width: 2.25rem;
+  height: 2.25rem;
+  justify-content: center;
+  padding: 0;
+}
+
+.al-entry-close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.al-entry-close:hover,
+.al-entry-step:hover {
+  background: var(--muted);
+}
+
+.al-entry-detail {
+  display: grid;
+  grid-template-columns: 12.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.al-entry-art {
+  display: grid;
+  width: 12.5rem;
+  height: 12.5rem;
+  place-items: center;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in oklab, var(--al-rarity) 20%, transparent), transparent 70%);
+  padding: 1rem;
+}
+
+.al-entry:not([data-found]) .al-entry-art {
+  background: var(--muted);
+}
+
+.al-entry-words {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.al-entry-number {
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.al-entry-name {
+  overflow-wrap: anywhere;
+  font-size: 1.875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.al-entry-pill {
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--al-rarity) 14%, var(--card));
+  padding: 0.125rem 0.625rem;
+  color: var(--al-rarity-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.al-entry-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  font-size: 0.875rem;
+}
+
+.al-entry-facts dt {
+  color: var(--al-quiet);
+}
+
+.al-entry-facts dd {
+  font-weight: 700;
+}
+
+.al-entry-hint {
+  color: var(--al-quiet);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 63.999rem) {
+  .al-hoggies-case {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .al-hoggies-notes {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .al-hoggies-bar {
+    position: static;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+  }
+
+  .al-hoggies-group {
+    scroll-margin-top: var(--al-top-height);
+  }
+
+  .al-hoggies-group-head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .al-hoggies-group-head .al-hoggies-share {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 40rem) {
+  .al-hoggies-glass {
+    padding-inline: 1rem;
+  }
+
+  .al-hoggies-plinths {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .al-hoggies-plinths > li:nth-child(n + 4) {
+    display: none;
+  }
+
+  .al-hoggies-filters {
+    border-radius: 1rem;
+  }
+
+  .al-hoggies-strip {
+    flex-wrap: wrap;
+  }
+
+  .al-hoggies-strip-part {
+    min-width: 0;
+    flex: 1 1 30%;
+  }
+
+  .al-hoggies-plates {
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  .al-hoggies-plate-art {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .al-entry-detail {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 1rem;
+  }
+
+  .al-entry-art {
+    width: 10rem;
+    height: 10rem;
+  }
+
+  .al-entry {
+    padding-inline: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .al-entry {
+    animation: al-entry-in 0.2s ease-out both;
+  }
+}
+
+@keyframes al-entry-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}

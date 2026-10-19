@@ -6,7 +6,8 @@ import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
 import type { Album, BoardsShown, HoggiesShown, ProfileShown, ThoughtfulBoards } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
-import { fixedHoggies, fixedProfile, hoggiesFixtures, profileFixtures } from "./profileFixtures";
+import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
+import { fixedProfile, profileFixtures } from "./profileFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
@@ -19,7 +20,7 @@ afterEach(() => vi.restoreAllMocks());
 
 type Visit = { album?: Album; boards?: BoardsShown; profile?: ProfileShown; hoggies?: HoggiesShown };
 
-function visit({ album = albumFixtures.midway, boards = boardsFixtures.week, profile = profileFixtures.noted, hoggies = hoggiesFixtures.found }: Visit = {}) {
+function visit({ album = albumFixtures.midway, boards = boardsFixtures.week, profile = profileFixtures.noted, hoggies = hoggiesFixtures.glance }: Visit = {}) {
   window.history.replaceState(null, "", "/book#me");
   return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { boards: fixedBoards(boards), profile: fixedProfile(profile), hoggies: fixedHoggies(hoggies) });
 }
@@ -161,6 +162,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
       ["EpicAngelFirst found 15 Oct 2026", "/book#hoggies/angel"],
       ["RareArt ThiefFirst found 13 Oct 2026", "/book#hoggies/art-thief"],
       ["UncommonBurning MoneyFirst found 10 Oct 2026", "/book#hoggies/burning-money"],
+      ["CommonAsleepFirst found 28 Sept 2026", "/book#hoggies/asleep"],
     ]);
     const newest = within(finds.getByRole("list", { name: "New in your album" }));
     expect(newest.getAllByRole("link").map((link) => [link.getAttribute("aria-label"), link.getAttribute("href")])).toEqual([
@@ -172,7 +174,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
   });
 
   it("coolest finds say how to make the first one while you have none", async () => {
-    visit({ album: albumFixtures.newcomer, profile: profileFixtures.quiet, hoggies: hoggiesFixtures.none });
+    visit({ album: albumFixtures.newcomer, profile: profileFixtures.quiet, hoggies: hoggiesFixtures.newcomer });
 
     expect((await section("Coolest finds")).getByText("Give a thoughtful kudos and open its pack: your first person and hoggie show here.")).toBeInTheDocument();
   });
@@ -203,7 +205,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
 
   it("waits for its reads, then shows the page", async () => {
     window.history.replaceState(null, "", "/book#me");
-    renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: fixedBoards(boardsFixtures.week), hoggies: fixedHoggies(hoggiesFixtures.found), profile: () => undefined });
+    renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: fixedBoards(boardsFixtures.week), hoggies: fixedHoggies(hoggiesFixtures.glance), profile: () => undefined });
 
     await screen.findByRole("navigation", { name: "Album" }, arrival);
     expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
