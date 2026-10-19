@@ -1,3 +1,4 @@
+import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { AppliedReward } from "../../../convex/progression/rewards";
@@ -140,6 +141,10 @@ export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } |
 
 export type PersonRead = (asking: boolean, person: string | null) => PersonShown | undefined;
 
+export type { AlbumHoggie, AlbumRarity };
+
+export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered;
+
 export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };
 
 export type NewestPerson = WeekPerson & { at: number };
@@ -150,9 +155,7 @@ export type ProfileShown = AlbumProfile | { kind: "off" } | Denial | { kind: "co
 
 export type ProfileRead = (asking: boolean) => ProfileShown | undefined;
 
-export type FoundHoggie = { hoggie: string; name: string; rarity: Rarity; firstAt: number | null };
-
-export type AlbumHoggies = { kind: "hoggies"; found: number; total: number; rarest: FoundHoggie[] };
+export type FoundHoggie = Pick<AlbumHoggie, "hoggie" | "name" | "rarity" | "firstAt">;
 
 export type HoggiesShown = AlbumHoggies | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 

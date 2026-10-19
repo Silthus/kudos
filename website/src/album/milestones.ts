@@ -1,6 +1,13 @@
+import { slugOf } from "../../../convex/album/emojiCatalogue";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { LadderCard } from "../shell";
-import type { MilestoneTierId } from "./answer";
+import type { Album, AlbumMilestone, MilestoneTierId } from "./answer";
+
+type Tier = AlbumMilestone["tiers"][number];
+
+export type MedalStep = "earned" | "next" | "later";
+
+export type MedalGoal = { tier: Tier; toGo: number };
 
 type Counted = { one: string; many: string };
 
@@ -38,7 +45,45 @@ export function progressWords(milestone: MilestoneId, count: number, goal: numbe
   return `${Math.min(count, goal)} of ${goal} ${unitOf(milestone, goal)}`;
 }
 
-function unitOf(milestone: MilestoneId, count: number) {
+export function unitOf(milestone: MilestoneId, count: number) {
   const { one, many } = milestoneWords[milestone].counted;
   return count === 1 ? one : many;
+}
+
+export function isEarned(tier: Tier) {
+  return tier.earnedAt !== null;
+}
+
+export function goalOf(milestone: AlbumMilestone, tier: Tier): MedalGoal {
+  return { tier, toGo: Math.max(0, tier.at - milestone.count) };
+}
+
+export function nextGoalOf(milestone: AlbumMilestone): MedalGoal | null {
+  const tier = milestone.tiers.find((listed) => !isEarned(listed));
+  return tier === undefined ? null : goalOf(milestone, tier);
+}
+
+export function stepOf(milestone: AlbumMilestone, tier: Tier): MedalStep {
+  if (isEarned(tier)) return "earned";
+  return nextGoalOf(milestone)?.tier === tier ? "next" : "later";
+}
+
+export function climbedShareOf(milestone: AlbumMilestone) {
+  const reached = milestone.tiers.findLastIndex(isEarned);
+  if (reached < 0) return 0;
+  const from = milestone.tiers[reached]!;
+  const to = milestone.tiers[reached + 1];
+  if (to === undefined) return 1;
+  const between = Math.min(1, Math.max(0, (milestone.count - from.at) / (to.at - from.at)));
+  return (reached + between) / (milestone.tiers.length - 1);
+}
+
+export function medalsInAll(milestones: AlbumMilestone[]) {
+  return milestones.flatMap(({ tiers }) => tiers).length;
+}
+
+export function goldEmojiOf(album: Album, milestone: AlbumMilestone): { name: string; unlocked: boolean } {
+  const gold = milestone.tiers.find(({ tier }) => tier === "gold");
+  const earned = album.emojis.find(({ id }) => id === `milestone:${milestone.id}`);
+  return { name: earned?.name ?? slugOf(gold?.name ?? milestone.id), unlocked: gold !== undefined && isEarned(gold) };
 }
