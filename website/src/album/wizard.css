@@ -121,6 +121,10 @@
   background: var(--muted);
 }
 
+.al-wizard-match[aria-disabled="true"] {
+  cursor: progress;
+}
+
 .al-wizard-match:disabled {
   cursor: not-allowed;
   opacity: 0.55;

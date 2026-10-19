@@ -66,7 +66,6 @@ const wizardSlackEmoji = [
 ];
 
 export const fixtureSlackEmojiMatches: SlackEmojiMatchesRead = (near, search) => {
-  if (near === null) return undefined;
   const words = (search.trim() === "" ? near : search).toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 2);
   const found = wizardSlackEmoji.filter(({ name }) => words.some((word) => name.startsWith(word.slice(0, 4))));
   return { kind: "matches", matches: found.slice(0, 24).map(({ name, image, mapping }) => ({ name, image, free: mapping === null })) };
@@ -81,4 +80,4 @@ const appEmojis: AppEmoji[] = [
   { key: "level:25", kind: "level", name: "level-25", from: "Level 25", picture: "/emoji/level-25.png", holders: 0, slack: null, place: { kind: "level", level: 25 } },
 ];
 
-export const fixtureAppEmojis: AppEmojisRead = (asking) => (asking ? { kind: "app-emojis", emojis: appEmojis, emojiPage: "https://hedgehug.slack.com/customize/emoji" } : undefined);
+export const fixtureAppEmojis: AppEmojisRead = (asking) => (asking ? { kind: "app-emojis", emojis: appEmojis, more: false, emojiPage: "https://hedgehug.slack.com/customize/emoji" } : undefined);

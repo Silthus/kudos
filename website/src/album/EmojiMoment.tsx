@@ -3,7 +3,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { addItToSlackWords, findItInSlackWords, momentsOwedOf, useItInSlackWords, whyWords } from "./emojiShelf";
-import { useEmojiWizardOn } from "./findInSlack";
+import { FindInSlackWhileOn, useEmojiWizardOn } from "./findInSlack";
 import { keepFocusIn } from "./focusTrap";
 import "./emoji.css";
 
@@ -103,6 +103,7 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
           <button type="button" className="al-emoji-moment-take" onClick={flyIn}>
             Add to my emojis
           </button>
+          <FindInSlackWhileOn emoji={emoji} />
           {position < inThisBatch && (
             <button type="button" className="al-emoji-moment-skip" onClick={skipTheRest} disabled={flying}>
               Skip the rest

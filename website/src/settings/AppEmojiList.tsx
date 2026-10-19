@@ -1,7 +1,7 @@
 import { Button } from "@posthog/quill";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { AppEmoji, AppEmojis } from "../../../convex/website/emojiWizard";
-import { pickOf } from "../album/findInSlack";
+import { giveFocusBack, pickOf } from "../album/findInSlack";
 import { SlackEmojiWizard } from "../album/SlackEmojiWizard";
 import type { AppEmojisRead, SlackEmojiMatchesRead } from "../emojiWizardReads";
 import { Panel } from "../home/Panel";
@@ -13,6 +13,8 @@ type Tab = "not-mapped" | "mapped";
 
 type Open = { emoji: AppEmoji; opener: HTMLElement };
 
+type Undoing = "idle" | "undoing" | "refused" | "unreachable";
+
 type Reads = { useAppEmojis: AppEmojisRead; useSlackEmojiMatches: SlackEmojiMatchesRead; mapSlackEmoji: MapSlackEmoji };
 
 const sectionId = "app-emojis";
@@ -23,7 +25,7 @@ const emojisShownAtMost = 50;
 
 export function AppEmojiSection({ useAppEmojis, ...reads }: Reads) {
   const answer = useAppEmojis(true);
-  if (answer === undefined || answer.kind === "connecting") return null;
+  if (answer === undefined || answer.kind === "connecting") return <Panel id={sectionId} label={sectionLabel} busy />;
   if (answer.kind === "broken")
     return (
       <Panel id={sectionId} label={sectionLabel}>
@@ -34,10 +36,11 @@ export function AppEmojiSection({ useAppEmojis, ...reads }: Reads) {
   return <AppEmojiList answer={answer} {...reads} />;
 }
 
-function AppEmojiList({ answer: { emojis, emojiPage }, useSlackEmojiMatches, mapSlackEmoji }: { answer: AppEmojis } & Omit<Reads, "useAppEmojis">) {
+function AppEmojiList({ answer: { emojis, more, emojiPage }, useSlackEmojiMatches, mapSlackEmoji }: { answer: AppEmojis } & Omit<Reads, "useAppEmojis">) {
   const [tab, setTab] = useState<Tab>("not-mapped");
   const [shown, setShown] = useState(emojisShownAtMost);
   const [open, setOpen] = useState<Open | null>(null);
+  const tabs = useRef<HTMLDivElement>(null);
   const notMapped = emojis.filter(({ slack }) => slack === null);
   const mapped = emojis.filter(({ slack }) => slack !== null);
   const listed = tab === "not-mapped" ? notMapped : mapped;
@@ -46,13 +49,13 @@ function AppEmojiList({ answer: { emojis, emojiPage }, useSlackEmojiMatches, map
     setShown(emojisShownAtMost);
   };
   const close = () => {
-    if (open?.opener.isConnected) open.opener.focus();
+    if (open !== null) giveFocusBack(open.opener, tabs.current?.querySelector<HTMLElement>('[aria-pressed="true"]') ?? null);
     setOpen(null);
   };
   return (
     <Panel id={sectionId} label={sectionLabel}>
       <p className="text-sm text-muted-foreground">Every emoji members can earn, most held first. Find each one's Slack emoji so everyone who has it can use it in Slack. Members map the ones they hold too; you can change theirs or undo it.</p>
-      <div className="flex flex-wrap gap-2">
+      <div ref={tabs} className="flex flex-wrap gap-2">
         <Button variant={tab === "not-mapped" ? "primary" : "outline"} size="sm" aria-pressed={tab === "not-mapped"} onClick={() => choose("not-mapped")}>
           {`Not mapped · ${notMapped.length}`}
         </Button>
@@ -76,6 +79,7 @@ function AppEmojiList({ answer: { emojis, emojiPage }, useSlackEmojiMatches, map
           </Button>
         </div>
       )}
+      {more && <p className="text-sm text-muted-foreground">There are more app emojis than this list holds. The ones fewest members hold are left out.</p>}
       {open !== null && <SlackEmojiWizard emoji={open.emoji} whose="the" takesAnyEmoji emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapSlackEmoji(slackEmoji, open.emoji.place))} onClose={close} />}
     </Panel>
   );
@@ -83,11 +87,16 @@ function AppEmojiList({ answer: { emojis, emojiPage }, useSlackEmojiMatches, map
 
 function AppEmojiRow({ emoji, onFind, mapSlackEmoji }: { emoji: AppEmoji; onFind: (opener: HTMLElement) => void; mapSlackEmoji: MapSlackEmoji }) {
   const { name, picture, slack } = emoji;
-  const [undo, setUndo] = useState<"idle" | "undoing" | "refused">("idle");
+  const [undo, setUndo] = useState<Undoing>("idle");
   const memberSetIt = slack?.setBy?.by === "member" ? slack.setBy.name : null;
   const undoIt = async () => {
     setUndo("undoing");
-    setUndo(pickOf(await mapSlackEmoji(name, { kind: "unmapped" })) === "mapped" ? "idle" : "refused");
+    try {
+      const answer = pickOf(await mapSlackEmoji(name, { kind: "unmapped" }));
+      setUndo(answer === "mapped" ? "idle" : answer);
+    } catch {
+      setUndo("unreachable");
+    }
   };
   return (
     <li className="flex flex-col gap-1 px-3 py-2.5">
@@ -95,7 +104,7 @@ function AppEmojiRow({ emoji, onFind, mapSlackEmoji }: { emoji: AppEmoji; onFind
         <div className="flex min-w-0 items-center gap-3">
           <img src={slack?.image ?? picture} alt="" loading="lazy" className="size-7 shrink-0 object-contain" />
           <div className="flex min-w-0 flex-col">
-            <h3 className="truncate text-sm font-semibold">{`:${name}:`}</h3>
+            <h3 className="truncate text-sm font-semibold" title={`:${name}:`}>{`:${name}:`}</h3>
             <p className="text-xs text-muted-foreground">{wordsOf(emoji)}</p>
           </div>
         </div>
@@ -110,9 +119,9 @@ function AppEmojiRow({ emoji, onFind, mapSlackEmoji }: { emoji: AppEmoji; onFind
           )}
         </div>
       </div>
-      {undo === "refused" && (
+      {(undo === "refused" || undo === "unreachable") && (
         <p role="alert" className="text-xs text-muted-foreground">
-          That didn't undo. Reload the page to see where it stands.
+          {undo === "refused" ? "That didn't undo. Reload the page to see where it stands." : "Couldn't reach HedgeHug. Try again."}
         </p>
       )}
     </li>

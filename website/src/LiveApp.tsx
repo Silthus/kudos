@@ -214,8 +214,8 @@ function useLiveEmojiMappings(asking: boolean, unreachable: boolean): EmojiMappi
   return mappings;
 }
 
-function useLiveSlackEmojiMatches(near: string | null, search: string, unreachable: boolean): SlackEmojiMatchesShown | undefined {
-  const request = useMemo((): RequestForQueries => (near === null ? {} : { matches: { query: api.website.emojiWizard.findSlackEmojis, args: { near, search } } }), [near, search]);
+function useLiveSlackEmojiMatches(near: string, search: string, unreachable: boolean): SlackEmojiMatchesShown | undefined {
+  const request = useMemo((): RequestForQueries => ({ matches: { query: api.website.emojiWizard.findSlackEmojis, args: { near, search } } }), [near, search]);
   const { matches } = useQueries(request);
   if (matches instanceof Error) return { kind: "broken" };
   if (matches === undefined && unreachable) return { kind: "connecting" };

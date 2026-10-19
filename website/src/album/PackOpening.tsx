@@ -24,6 +24,7 @@ import {
 import { keepFocusIn } from "./focusTrap";
 import { CardBack, Confetti, HoggieCard, PackWrapper, PersonCard, Ring, Shine, Sparkles } from "./PackCards";
 import "./opening.css";
+import { FindInSlackWhileOn } from "./findInSlack";
 
 export type Held = { level: AlbumLevel | null; tray: number | null };
 
@@ -268,6 +269,7 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
                 <span>
                   + <span className="al-emoji-name">:{contents.sticker.hype.name}:</span> unlocked
                 </span>
+                {ended && <FindInSlackWhileOn emoji={contents.sticker.hype} />}
               </span>
             )}
           </CardSlot>

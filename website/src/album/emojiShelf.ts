@@ -141,7 +141,7 @@ export const useItInSlackWords = `Use it in Slack: ${howToUseIt}.`;
 
 export const addItToSlackWords = `Add it to Slack from your emojis, then ${howToUseIt}.`;
 
-export const findItInSlackWords = `Find it in Slack from your emojis, then ${howToUseIt}.`;
+export const findItInSlackWords = `It isn't in Slack yet: find it in Slack, then ${howToUseIt}.`;
 
 export function momentsOwedOf(album: Album, shown: ReadonlySet<string>): AlbumEmoji[] {
   return album.emojis.filter((emoji) => emoji.earned && !emoji.seen && !shown.has(emoji.id) && !heldForItsPack(album, emoji));

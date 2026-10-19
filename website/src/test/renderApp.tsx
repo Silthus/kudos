@@ -43,7 +43,7 @@ const noSettings: SettingsRead = (asking) => (asking ? { kind: "not-found" } : u
 
 const noEmojiMappings: EmojiMappingsRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-const noSlackEmojiMatches: SlackEmojiMatchesRead = (near) => (near === null ? undefined : { kind: "off" });
+const noSlackEmojiMatches: SlackEmojiMatchesRead = () => ({ kind: "off" });
 
 const noAppEmojis: AppEmojisRead = (asking) => (asking ? { kind: "off" } : undefined);
 

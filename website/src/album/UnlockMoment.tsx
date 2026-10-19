@@ -3,7 +3,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import type { AlbumEmoji, AlbumTeam, TeamSticker } from "./answer";
 import { SealArt } from "./Seal";
-import { useEmojiWizardOn } from "./findInSlack";
+import { FindInSlackWhileOn, useEmojiWizardOn } from "./findInSlack";
 import { dateOf, newTeamEmojiWords } from "./teamPage";
 import "./moment.css";
 
@@ -92,6 +92,7 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
                     <code>:{emoji?.name ?? sticker.emoji}:</code>
                     <span>{newTeamEmojiWords(emoji, wizardOn)}</span>
                   </span>
+                  {emoji !== undefined && <FindInSlackWhileOn emoji={emoji} />}
                 </div>
                 <div className="al-unlock-continue">
                   <button

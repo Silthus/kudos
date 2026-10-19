@@ -8,7 +8,8 @@ import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
-import type { Album, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
+import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
+import { FindInSlackWhileOn } from "./findInSlack";
 import { hrefOf } from "./place";
 import { Silhouette } from "./Silhouette";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
@@ -71,7 +72,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
               ))}
             </ul>
           )}
-          <HypeEmoji person={person} first={first} />
+          <HypeEmoji person={person} first={first} earned={album.emojis.find(({ id }) => id === `hype:${person.person}`)} />
           {!person.held && (
             <div className="al-howto">
               <p className="al-eyebrow">
@@ -92,7 +93,7 @@ function teamHrefOf(team: Pick<AlbumTeam, "team">) {
   return hrefOf({ kind: "team", team: team.team });
 }
 
-function HypeEmoji({ person, first }: { person: Person; first: string }) {
+function HypeEmoji({ person, first, earned: held }: { person: Person; first: string; earned: AlbumEmoji | undefined }) {
   const { earned, name } = person.hype;
   return (
     <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
@@ -103,6 +104,7 @@ function HypeEmoji({ person, first }: { person: Person; first: string }) {
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
       </p>
+      {held?.earned && <FindInSlackWhileOn emoji={held} />}
     </div>
   );
 }

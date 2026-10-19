@@ -16,7 +16,7 @@ export function usePopover<Name extends string>(): Popover<Name> {
       close();
     };
     const closeOutside = (event: PointerEvent) => {
-      if (!anchor.current?.contains(event.target as Node)) close();
+      if (!anchor.current?.contains(event.target as Node) && !isInAWizard(event.target)) close();
     };
     document.addEventListener("keydown", closeOnEscape);
     document.addEventListener("pointerdown", closeOutside);
@@ -26,4 +26,8 @@ export function usePopover<Name extends string>(): Popover<Name> {
     };
   }, [open, close]);
   return { open, toggle, show, close, anchor };
+}
+
+function isInAWizard(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(".al-wizard-backdrop") !== null;
 }

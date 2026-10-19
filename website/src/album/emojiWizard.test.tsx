@@ -6,7 +6,7 @@ import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures, type EmojiPlaceChoice, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import type { Album } from "./answer";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -33,12 +33,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-type Asked = { near: string | null; search: string }[];
+type Asked = { near: string; search: string }[];
 
 function slackEmojisFor(found: (near: string, search: string) => typeof nearInes, asked: Asked = []): SlackEmojiMatchesRead {
   return (near, search) => {
     asked.push({ near, search });
-    return near === null ? undefined : { kind: "matches", matches: found(near, search) };
+    return { kind: "matches", matches: found(near, search) };
   };
 }
 
@@ -47,7 +47,7 @@ type Visit = { album?: Album; path?: string; found?: (near: string, search: stri
 function visit({ album = withTheWizard, path = "/", found = () => nearInes, mapMyEmoji = async () => ({ kind: "mapped" }), appEmojis, mapSlackEmoji = async () => ({ kind: "mapped" }) }: Visit = {}) {
   window.history.replaceState(null, "", path);
   const asked: Asked = [];
-  const view = renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.forTheMaintainer), slackEmojiMatches: slackEmojisFor(found, asked), appEmojis, commands: { mapMyEmoji, mapSlackEmoji } });
+  const view = renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.forTheMaintainer), slackEmojiMatches: slackEmojisFor(found, asked), appEmojis, people: fixedPeople(album), commands: { mapMyEmoji, mapSlackEmoji } });
   return { ...view, asked };
 }
 
@@ -104,21 +104,24 @@ describe("#719: with emoji-wizard on, a member finds an earned emoji in Slack in
     await view.user.click(wizard.getByRole("button", { name: "Map to :ines-cheer:" }));
 
     expect(mapMyEmoji).toHaveBeenCalledExactlyOnceWith("hype:ines-okafor", "ines-cheer");
-    expect(await wizard.findByRole("status")).toHaveTextContent("Done. :ines-cheer: is your Ines Okafor emoji in Slack now.");
+    expect(await wizard.findByRole("status")).toHaveTextContent("Done. :ines-cheer: is your hype emoji for Ines Okafor in Slack now.");
+    expect(wizard.getByRole("button", { name: "Done" })).toHaveFocus();
+    expect(wizard.getByRole("button", { name: "Done" })).toHaveAccessibleDescription("Done. :ines-cheer: is your hype emoji for Ines Okafor in Slack now.");
   });
 
-  it("a search that finds no Slack emoji the member can pick ends with Add to Slack, which saves the picture under its name", async () => {
+  it("a search that finds nothing ends with Add to Slack, which saves the picture under its name", async () => {
     const saved: string[] = [];
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
       if (this.download !== "") saved.push(this.download);
     });
-    const view = visit({ found: (_near, search) => (search === "" ? nearInes : [{ name: "zebra-old", image: slackPicture("zebra-old"), free: false }]) });
+    const view = visit({ found: (_near, search) => (search === "" ? nearInes : []) });
     await view.user.click((await openTheEmojis(view)).getByRole("button", { name: "Find :level-5: in Slack" }));
     const wizard = await theWizard("level-5");
 
     await view.user.type(wizard.getByRole("searchbox", { name: "Search Slack's emojis" }), "zebra");
 
     expect(await wizard.findByText("No Slack emoji found for “zebra”. Add this one to Slack under its name.", {}, arrival)).toBeInTheDocument();
+    expect(wizard.queryByRole("list", { name: "Slack emojis" })).not.toBeInTheDocument();
     await view.user.click(wizard.getByRole("button", { name: "Add to Slack: :level-5:" }));
     await waitFor(() => expect(saved).toEqual(["level-5.png"]));
   });
@@ -130,8 +133,40 @@ describe("#719: with emoji-wizard on, a member finds an earned emoji in Slack in
 
     await view.user.click(wizard.getByRole("button", { name: "Map to :ines-cheer:" }));
 
-    expect(await wizard.findByRole("alert")).toHaveTextContent("That didn't save. Someone may have mapped it already. Pick another one.");
+    expect(await wizard.findByRole("alert")).toHaveTextContent("That didn't save. It may be mapped already, or the maintainer set this one. Pick another one.");
     expect(wizard.getByRole("button", { name: "Map to :ines:" })).toBeEnabled();
+    expect(wizard.getByRole("searchbox", { name: "Search Slack's emojis" })).toHaveFocus();
+  });
+
+  it("a search whose every match is in use keeps them in sight and offers Add to Slack beneath", async () => {
+    const view = visit({ found: (_near, search) => (search === "" ? nearInes : [{ name: "piggy", image: slackPicture("piggy"), free: false }]) });
+    await view.user.click((await openTheEmojis(view)).getByRole("button", { name: "Find :level-5: in Slack" }));
+    const wizard = await theWizard("level-5");
+
+    await view.user.type(wizard.getByRole("searchbox", { name: "Search Slack's emojis" }), "pig");
+
+    expect(await wizard.findByText("Every Slack emoji found for “pig” is in use. Add this one to Slack under its name.", {}, arrival)).toBeInTheDocument();
+    expect(matchesIn(wizard)).toEqual(["Map to :piggy:, in use"]);
+    expect(wizard.getByRole("button", { name: "Add to Slack: :level-5:" })).toBeInTheDocument();
+  });
+
+  it("clicking inside a wizard opened from the emoji popup keeps the popup open behind it", async () => {
+    const view = visit();
+    const popup = await openTheEmojis(view);
+    await view.user.click(popup.getByRole("button", { name: "Find :ines-okafor-hype: in Slack" }));
+    const wizard = await theWizard("ines-okafor-hype");
+
+    await view.user.click(wizard.getByRole("searchbox", { name: "Search Slack's emojis" }));
+    await view.user.click(wizard.getByRole("button", { name: "Map to :ines-cheer:" }));
+    await view.user.click(await wizard.findByRole("button", { name: "Done" }));
+
+    expect(screen.getByRole("region", { name: "Your emojis" })).toBeInTheDocument();
+  });
+
+  it("a person page offers Find in Slack for the hype emoji you hold that Slack doesn't have", async () => {
+    visit({ path: "/book#people/ines-okafor" });
+
+    expect(await screen.findByRole("button", { name: "Find :ines-okafor-hype: in Slack" }, arrival)).toBeInTheDocument();
   });
 
   it("Escape closes the wizard and gives focus back to the opener", async () => {
@@ -152,7 +187,7 @@ describe("#719: with emoji-wizard on, a member finds an earned emoji in Slack in
 
     expect(popup.getByRole("button", { name: "Add to Slack: :ines-okafor-hype:" })).toBeInTheDocument();
     expect(popup.queryByRole("button", { name: /in Slack$/ })).not.toBeInTheDocument();
-    expect(view.asked.every(({ near }) => near === null)).toBe(true);
+    expect(view.asked).toEqual([]);
   });
 });
 
@@ -165,7 +200,7 @@ const appEmojis: AppEmoji[] = [
 ];
 
 function fixedAppEmojis(emojis: AppEmoji[]): AppEmojisRead {
-  const answer: AppEmojis = { kind: "app-emojis", emojis, emojiPage: "https://hedgehug.slack.com/customize/emoji" };
+  const answer: AppEmojis = { kind: "app-emojis", emojis, more: false, emojiPage: "https://hedgehug.slack.com/customize/emoji" };
   return (asking) => (asking ? answer : undefined);
 }
 
@@ -195,10 +230,11 @@ describe("#719: the maintainer lists every app emoji, not mapped first, and maps
 
     await view.user.click(list.getByRole("button", { name: "Find :ines-okafor-hype: in Slack" }));
     const wizard = await theWizard("ines-okafor-hype");
+    expect(wizard.getByText("Picking one in use gives it to this emoji, and the emoji that had it moves to a free name.")).toBeInTheDocument();
     await view.user.click(wizard.getByRole("button", { name: "Map to :ines-old:, in use" }));
 
     expect(mapSlackEmoji).toHaveBeenCalledExactlyOnceWith("ines-old", { kind: "hype", person: "k1" });
-    expect(await wizard.findByRole("status")).toHaveTextContent("Done. :ines-old: is the Ines Okafor emoji in Slack now.");
+    expect(await wizard.findByRole("status")).toHaveTextContent("Done. :ines-old: is the hype emoji for Ines Okafor in Slack now.");
   });
 
   it("Mapped shows each app emoji's Slack emoji and who set it; a member's mapping can be undone, which holds the Slack emoji back", async () => {
@@ -212,6 +248,17 @@ describe("#719: the maintainer lists every app emoji, not mapped first, and maps
     await view.user.click(list.getByRole("button", { name: "Undo Bram Teller's mapping of :lantern-glow:" }));
 
     expect(mapSlackEmoji).toHaveBeenCalledExactlyOnceWith("lantern-glow", { kind: "unmapped" });
+  });
+
+  it("an Undo that can't reach HedgeHug says so and can be tried again", async () => {
+    const view = visit({ path: "/settings", appEmojis: fixedAppEmojis(appEmojis), mapSlackEmoji: async () => Promise.reject(new Error("HedgeHug didn't answer in time.")) });
+    const list = await theAppEmojis();
+    await view.user.click(list.getByRole("button", { name: "Mapped · 2" }));
+
+    await view.user.click(list.getByRole("button", { name: "Undo Bram Teller's mapping of :lantern-glow:" }));
+
+    expect(await list.findByRole("alert")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    expect(list.getByRole("button", { name: "Undo Bram Teller's mapping of :lantern-glow:" })).toBeEnabled();
   });
 
   it("the list stays away while the maintainer's read is off", async () => {

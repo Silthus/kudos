@@ -43,7 +43,7 @@ export function teamEmojiUseWords(emoji: AlbumEmoji, wizardOn: boolean) {
 
 export function newTeamEmojiWords(emoji: AlbumEmoji | undefined, wizardOn: boolean) {
   if (emoji?.inSlack === true) return `Your new team emoji. Use it in Slack: ${howToUseIt}.`;
-  return wizardOn ? `Your new team emoji. Find it in Slack from this page, then ${howToUseIt}.` : `Your new team emoji. Add it to Slack from this page, then ${howToUseIt}.`;
+  return wizardOn ? `Your new team emoji. Find it in Slack, then ${howToUseIt}.` : `Your new team emoji. Add it to Slack from this page, then ${howToUseIt}.`;
 }
 
 export function firstNameOf(name: string) {
