@@ -1,0 +1,4 @@
+     × #707: groups milestone emojis by milestone, each tier in order from bronze to diamond with its picture, its Slack name and its date or progress 156ms
+     × each locked emoji is grey with how to unlock it and the progress so far, a team ready to unlock links to its page 92ms
+     × an emoji from a milestone this website doesn't know yet still shows, under its own name 133ms
+      Tests  3 failed | 22 passed (25)

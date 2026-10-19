@@ -117,11 +117,24 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Team stickers 1 of 4", "Hype 1", "Milestones 6 of 20", "Levels 1 of 2"]);
     expect(rowsIn(shelf(popup, "Team stickers"))[0]).toBe(":quiet-harbour:You unlocked the Quiet Harbour team sticker · 15 Oct 2026In Slack");
     expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
-    expect(rowsIn(shelf(popup, "Milestones")).slice(0, 2)).toEqual([":familiar-faces:You reached silver in Faces in the album · 16 Oct 2026Add to Slack", ":first-full-page:You reached bronze in Full pages · 15 Oct 2026Add to Slack"]);
     expect(rowsIn(shelf(popup, "Levels"))[0]).toBe(":level-5:You reached level 5Add to Slack");
     const pictures = [...document.querySelectorAll<HTMLImageElement>(".al-popover .al-emoji-art:not([data-locked]) img")].map((picture) => picture.getAttribute("src"));
     expect(pictures).toEqual(expect.arrayContaining(["/emoji/team-support.png", "/emoji/milestone-people-silver.png", "/emoji/level-5.png"]));
-    expect(pictures).toHaveLength(8);
+    expect(pictures).toHaveLength(5);
+  });
+
+  it("#707: groups milestone emojis by milestone, each tier in order from bronze to diamond with its picture, its Slack name and its date or progress", async () => {
+    const view = visit("/");
+    const milestones = shelf(await openTheEmojis(view), "Milestones");
+
+    expect(milestones.getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent)).toEqual(["Faces in the album 2 of 4", "Full pages 1 of 4"]);
+    const faces = within(milestones.getByRole("region", { name: "Faces in the album 2 of 4" }));
+    expect(rowsIn(faces)).toEqual([":first-face:Bronze · 28 Sept 2026In Slack", ":familiar-faces:Silver · 16 Oct 2026Add to Slack", ":full-of-friends:Gold · 12 of 25", ":everyone-s-album:Diamond · 12 of 50"]);
+    expect([...faces.getAllByRole("listitem")].map((row) => row.querySelector("img")?.getAttribute("src"))).toEqual(["/emoji/milestone-people-bronze.png", "/emoji/milestone-people-silver.png", "/emoji/milestone-people-gold.png", "/emoji/milestone-people-diamond.png"]);
+
+    await view.user.click(milestones.getByRole("button", { name: "Show all · 3 more" }));
+
+    expect(milestones.getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent)).toEqual(["Faces in the album 2 of 4", "Full pages 1 of 4", "Across the company 1 of 4", "Hoggie hunter 1 of 4", "Kind words 1 of 4"]);
   });
 
   it("a hype emoji without a face shows the person's initials in the hype colours", async () => {
@@ -138,9 +151,8 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     const popup = await openTheEmojis(view);
 
     expect(rowsIn(shelf(popup, "Team stickers")).slice(1)).toEqual([":kettle-works:Everyone on Kettle Works is in: unlock the sticker on its page", ":lanterns:Collect all 5 people on Lanterns · 4 of 5", ":copper-kite:Collect all 3 people on Copper Kite · 0 of 3"]);
-    expect(rowsIn(shelf(popup, "Milestones")).slice(6)).toEqual([":bridge-builder:Reach silver in Across the company · 6 of 10", ":full-of-friends:Reach gold in Faces in the album · 12 of 25", ":collector:Reach silver in Hoggie hunter · 18 of 40"]);
     expect(rowsIn(shelf(popup, "Levels"))[1]).toBe(":level-10:Reach level 10 · 1,210 of 4,500 XP");
-    expect(document.querySelectorAll(".al-popover .al-emoji-art[data-locked]")).toHaveLength(7);
+    expect(document.querySelectorAll(".al-popover .al-emoji-art[data-locked]")).toHaveLength(9);
     await view.user.click(shelf(popup, "Team stickers").getByRole("link", { name: /Kettle Works/ }));
     expect(await screen.findByRole("heading", { level: 1, name: "Kettle Works" })).toBeInTheDocument();
   });
@@ -180,7 +192,9 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     const popup = await openTheEmojis(view);
 
-    expect(rowsIn(shelf(popup, "Milestones"))[0]).toBe(":streak-keeper:You reached gold in Streak keeper · 17 Oct 2026Add to Slack");
+    const milestones = shelf(popup, "Milestones");
+    await view.user.click(milestones.getByRole("button", { name: "Show all · 4 more" }));
+    expect(rowsIn(within(milestones.getByRole("region", { name: "Streak keeper 1 of 1" })))).toEqual([":streak-keeper:Gold · 17 Oct 2026Add to Slack"]);
   });
 
   it("random drops show only once one dropped, each with the pack it dropped from", async () => {

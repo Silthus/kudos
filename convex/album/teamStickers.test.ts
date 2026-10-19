@@ -74,8 +74,8 @@ describe("AL18: team pages are company teams", { timeout: 60_000 }, () => {
     ]);
   });
 
-  test("AL45: getAlbum names everyone a page lists, so the class photo can show the people not collected yet as silhouettes: each once, by their posthog.com name, with initials and no picture", async () => {
-    await theCompanyCopyHolds({ slug: "lanterns", name: "Lanterns", profiles: profilesOf(alice, ...lanterns, nobodyInSlack) }, { slug: "beacons", name: "Beacons", profiles: profilesOf(...lanterns.slice(4, 7)) });
+  test("AL45: getAlbum names everyone a page lists, so the class photo can show the people not collected yet greyed out: each once, by their posthog.com name, with their company face", async () => {
+    await theCompanyCopyHolds({ slug: "lanterns", name: "Lanterns", profiles: withCutouts(profilesOf(alice, ...lanterns, nobodyInSlack)) }, { slug: "beacons", name: "Beacons", profiles: withCutouts(profilesOf(...lanterns.slice(4, 7))) });
     await aliceCollects(...lanterns.slice(0, 5));
     const asAlice = await signedIn(alice);
 
@@ -83,8 +83,29 @@ describe("AL18: team pages are company teams", { timeout: 60_000 }, () => {
 
     expect(people.filter(({ held }) => held).map(({ name }) => name)).toEqual(lanterns.slice(0, 5).map(({ name }) => name));
     expect(people.filter(({ held }) => !held)).toEqual(
-      await Promise.all(lanterns.slice(5).map(async (someone) => ({ person: await memberOf(someone), name: someone.name, face: { kind: "initials", initials: "LW" }, held: false }))),
+      await Promise.all(
+        lanterns.slice(5).map(async (someone) => ({
+          person: await memberOf(someone),
+          name: someone.name,
+          face: { kind: "company-profile", image: expect.stringContaining(cutoutNameOf(someone)), colour: expect.any(String), initials: "LW" },
+          held: false,
+        })),
+      ),
     );
+  });
+
+  test("AL45: someone not collected yet whose posthog.com profile has no picture shows their Slack picture, and someone with neither shows initials", async () => {
+    const [withSlackPicture, withNoPicture] = otters as [Person, Person];
+    const user = slackUser(withSlackPicture.user, withSlackPicture.name);
+    await memberChanged(t, "user_change", { ...user, profile: { ...user.profile, image_192: "https://avatars.slack-edge.com/otter-1.png" } });
+    await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(alice, withSlackPicture, withNoPicture) });
+
+    const people = await peopleOf(await signedIn(alice));
+
+    expect(people).toEqual([
+      { person: await memberOf(withSlackPicture), name: withSlackPicture.name, face: { kind: "slack", image: "https://avatars.slack-edge.com/otter-1.png", initials: "OQ" }, held: false },
+      { person: await memberOf(withNoPicture), name: withNoPicture.name, face: { kind: "initials", initials: "OQ" }, held: false },
+    ]);
   });
 
   test("AL45: a held teammate past the 500 people getAlbum lists still reads held, so the photo shows them by their face, never as a silhouette", async () => {
@@ -301,6 +322,14 @@ function profilesOf(...people: Person[]): TeamPage["profiles"] {
     const [firstName, lastName] = name.split(" ") as [string, string];
     return { id: everyone.findIndex((someone) => someone.name === name) + 1, firstName, lastName, colour: "teal" };
   });
+}
+
+function withCutouts(profiles: TeamPage["profiles"]): TeamPage["profiles"] {
+  return profiles.map((profile) => ({ ...profile, cutout: aCutout(`${profile.firstName}-${profile.lastName}`.toLowerCase()) }));
+}
+
+function cutoutNameOf({ name }: Person) {
+  return name.replace(" ", "-").toLowerCase();
 }
 
 async function theCompanyCopyHolds(...teams: TeamPage[]) {
