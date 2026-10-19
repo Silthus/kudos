@@ -115,11 +115,9 @@ function Medal({ milestone, tier, step, ladder, emoji }: { milestone: AlbumMiles
         {step === "next" && <ProgressRing milestone={milestone} tier={tier} />}
         <LadderEmblem ladder={ladder} best={tier.tier} size={60} />
       </span>
-      <span className="al-ms-medal-words">
-        <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
-        <span className="al-ms-medal-name">{tier.name}</span>
-        {note !== null && <span className="al-ms-note">{note}</span>}
-      </span>
+      <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
+      <span className="al-ms-medal-name">{tier.name}</span>
+      {note !== null && <span className="al-ms-note">{note}</span>}
       <MedalEmoji tier={tier} emoji={emoji} />
     </li>
   );

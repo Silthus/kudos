@@ -20,7 +20,7 @@ const metals: Record<MilestoneTier, Metal> = {
   diamond: { glint: "#e2f5fa", mid: "#7cc9de", dark: "#2a7f9e" },
 };
 
-const gold = { light: "#fff1b8", ...metals.gold };
+const levelGold = { light: "#fff1b8", mid: "#e4b520", dark: "#c99400", glint: "#f8e39a" };
 
 const sparkled: ReadonlySet<MilestoneTier> = new Set(["gold", "diamond"]);
 
@@ -102,11 +102,11 @@ function milestoneMedal(milestone: MilestoneId, tier: MilestoneTier) {
 }
 
 function levelEmblem(level: string) {
-  const colour = levelColours[level] ?? gold.dark;
+  const colour = levelColours[level] ?? levelGold.dark;
   return square(`
-    ${goldRosette()}
+    ${rosette(levelGold)}
     <circle cx="64" cy="64" r="46" fill="${colour}" stroke="#ffffff" stroke-width="4"/>
-    <path d="${spark}" transform="translate(52 14) scale(1)" fill="${gold.light}"/>
+    <path d="${spark}" transform="translate(52 14) scale(1)" fill="${levelGold.light}"/>
     ${digits(level)}`);
 }
 
@@ -128,10 +128,6 @@ function hypeEmblem() {
     <defs><linearGradient id="hype" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f9bd2b"/><stop offset="1" stop-color="#f54e00"/></linearGradient></defs>
     <circle cx="64" cy="64" r="62" fill="url(#hype)"/>
     <path d="${spark}" transform="translate(28 28) scale(3)" fill="#ffffff"/>`);
-}
-
-function goldRosette() {
-  return rosette(gold);
 }
 
 function rosette({ glint, mid, dark }: Metal) {

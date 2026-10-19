@@ -52,6 +52,7 @@ export const reserveSharedEmojiNames = internalMutation({
   returns: v.null(),
   handler: async (ctx, { workspace }) => {
     await reserveSharedNamesIn(ctx, workspace);
+    await reserveCatalogueNamesIn(ctx, workspace);
     return null;
   },
 });
@@ -69,9 +70,9 @@ async function fullNameOf(ctx: QueryCtx, person: MemberId): Promise<string> {
 }
 
 async function reserveSharedNamesIn(ctx: MutationCtx, workspace: string) {
-  const opening = (await registeredAs(ctx, workspace, firstUse)) === null;
+  if ((await registeredAs(ctx, workspace, firstUse)) !== null) return;
   await reserveCatalogueNamesIn(ctx, workspace);
-  if (opening) await reserveCompanyTeamNamesIn(ctx, workspace);
+  await reserveCompanyTeamNamesIn(ctx, workspace);
 }
 
 async function reserveCatalogueNamesIn(ctx: MutationCtx, workspace: string) {
