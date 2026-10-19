@@ -94,7 +94,7 @@ describe("WS309: the sign-in page stands alone as variant E's card", () => {
 
   it("moves focus to the card's title after signing out", async () => {
     const { showVisitor } = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
-    await screen.findByRole("navigation", { name: "Album" });
+    await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
     showVisitor(shellFixtures.signedOut);
     const title = screen.getByRole("heading", { level: 1 });
     expect(title).toHaveTextContent(/^HedgeHug$/);

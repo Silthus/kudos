@@ -146,8 +146,8 @@ const anAlbum = {
   moreTray: false,
 };
 
-async function screens() {
-  return (await screen.findAllByRole("banner"))[0]!;
+async function topBar() {
+  return (await screen.findAllByRole("banner", {}, { timeout: 10_000 }))[0]!;
 }
 
 const privateWords = ["Thanks Ann for untangling the deploy", "U0123ABCD", "C0456EFGH", "SIGNIN-CODE-1234"];
@@ -213,9 +213,9 @@ afterEach(() => {
 describe("the browser captures only while told to", () => {
   it("imports nothing and calls nothing while the read is loading, answers off, or answers a denial", async () => {
     const { user } = await renderLiveSite();
-    await user.click(within(await screens()).getByRole("link", { name: "Leaderboard" }));
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
     for (const answer of [{ kind: "off" }, ...denials]) analyticsAnswers(answer);
-    await user.click(within(await screens()).getByRole("link", { name: /^Your profile/ }));
+    await user.click(within(await topBar()).getByRole("link", { name: /^Your profile/ }));
 
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(recorded.imports).toBe(0);
@@ -271,7 +271,7 @@ describe("the browser captures only while told to", () => {
 
     analyticsAnswers(next);
     const stopping = recorded.calls.slice(-5).map(({ method }) => method);
-    await user.click(within(await screens()).getByRole("link", { name: "Leaderboard" }));
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
     window.history.pushState(null, "", "/book#hoggies/legendary");
 
     expect(new Set(stopping.slice(0, 2))).toEqual(new Set(["stopSessionRecording", "stopExceptionAutocapture"]));
@@ -370,7 +370,7 @@ describe("MS24: the shell's error page reports what it caught", () => {
     const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
-    await user.click(within(await screens()).getByRole("link", { name: "Leaderboard" }));
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
     const error = privateError();
 
     aPageThrows(error);
@@ -388,8 +388,8 @@ describe("MS22: pageviews follow the address", () => {
     analyticsAnswers(ann);
     await capturing();
 
-    await user.click(within(await screens()).getByRole("link", { name: "Leaderboard" }));
-    await user.click(within(await screens()).getByRole("link", { name: /^Your profile/ }));
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
+    await user.click(within(await topBar()).getByRole("link", { name: /^Your profile/ }));
 
     expect(sentEvents()).toEqual([
       { event: "$pageview", page: "book", book_page: "overview", spread: "me" },

@@ -10,19 +10,19 @@ import { fixtureWeeks } from "./weekFixtures";
 import type { MyAlbum } from "./answer";
 import type { SettingsRead, SettingsShown } from "../settingsRead";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures, type ShellState } from "../shell";
 import type { Capturer } from "../browserAnalytics/capture";
 import { renderAlbum, renderApp } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
 });
 
-function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum, capturer: Capturer | null = null) {
+function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: ShellState = memberWithTheAlbum, capturer: Capturer | null = null) {
   window.history.replaceState(null, "", path);
   return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway), capturer });
 }

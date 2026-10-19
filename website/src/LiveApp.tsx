@@ -141,9 +141,13 @@ function useLiveAppEmojis(asking: boolean, unreachable: boolean): AppEmojisShown
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };
 
 function visitorOf({ authLoading, redemptionFailed, unreachable, profile }: Answers): Visitor {
-  if (redemptionFailed && profile !== undefined) return profile.kind === "signed-out" ? { kind: "sign-in-unfinished" } : profile;
+  if (redemptionFailed && profile !== undefined) return profile.kind === "signed-out" ? { kind: "sign-in-unfinished" } : visitorShownFor(profile);
   if (authLoading || profile === undefined) return unreachable ? { kind: "connecting" } : { kind: "loading" };
-  return profile;
+  return visitorShownFor(profile);
+}
+
+function visitorShownFor(profile: MyProfile): Visitor {
+  return profile.kind === "member" ? { kind: "member" } : profile;
 }
 
 const commandAnswerBudgetMs = 10_000;

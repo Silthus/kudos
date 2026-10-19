@@ -5,11 +5,11 @@ import { albumFixtures, fixedAlbum } from "./album/albumFixtures";
 import { emojiMappingsFixtures, shipitPicture, withMapping } from "./emojiMappingFixtures";
 import type { EmojiMappingsShown } from "./emojiMappingsRead";
 import { fixedSettings, settingsFixtures } from "./settingsFixtures";
-import { shellFixtures, type EmojiMappingReply, type MemberProfile, type MySettings, type ShellActions } from "./shell";
+import { shellFixtures, type EmojiMappingReply, type MySettings, type ShellActions } from "./shell";
 import { renderAlbum } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);

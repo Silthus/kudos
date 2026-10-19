@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
@@ -9,7 +9,7 @@ import type { Album, AlbumEmoji, AlbumMilestone } from "./answer";
 
 const arrival = 10_000;
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 const midway = albumFixtures.midway;
 

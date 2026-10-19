@@ -8,10 +8,9 @@ import { albumFixtures, fixturePackOpeningOf, fixturePutAllIn, fixturePutInOf, f
 import type { PackOpenReply, PutAllInReply, PutInReply, SeenReply, UnlockReply } from "./album/answer";
 
 export type { Rarity } from "./crates/drops";
-export type { Face, MemberProfile } from "../../convex/website/profile";
+export type { Face } from "../../convex/website/profile";
 export type { LadderCard } from "../../convex/website/book";
 export type { TierId } from "../../convex/achievements/ladders";
-export type { GroupId } from "../../convex/groups/groups";
 export type { Period } from "../../convex/leaderboard/periods";
 export type { AdminProfiles, CompanyProfileSetting, GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings, ProfileChoice, WeeklyPostSetting, WorkspaceSettingsPart } from "../../convex/website/settings";
 export type { Message, Segment } from "../../convex/website/activity";
@@ -52,31 +51,15 @@ export type AppEmojisAnswer = AppEmojisReadAnswer | Denial;
 
 export type MyEmojiMappingReply = MyEmojiMappingAnswer | Denial;
 
-export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
+export type Member = { kind: "member" };
+
+export type Visitor = Exclude<MyProfile, MemberProfile> | Member | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
 export type ShellState = Visitor | { kind: "broken" };
 
 export type ShellActions = { signIn(returnTo: string): void; signOut(): void; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setWeeklyPost(on: boolean): Promise<WeeklyPostReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; mapMyEmoji(emoji: string, to: string): Promise<MyEmojiMappingReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply>; markEmojisSeen(ids: string[]): Promise<SeenReply> };
 
-const member: MemberProfile = {
-  kind: "member",
-  name: "Sam Example",
-  face: { kind: "initials", initials: "SE" },
-  kudosEmoji: "taco",
-  allowance: { left: 1, base: 3, refillsAt: Date.parse("2026-10-14T00:00:00Z") },
-  thisWeek: { given: 2, received: 1 },
-  lifetime: { given: 14, received: 9 },
-  chatUrl: "https://app.slack.com/client/T1",
-  leaderboard: { kind: "off" },
-  features: null,
-  journey: null,
-  progression: null,
-  skillPoints: null,
-  coins: null,
-  inventory: null,
-  groups: false,
-  settings: false,
-};
+const member: Member = { kind: "member" };
 
 export const shellFixtures = {
   loading: { kind: "loading" },

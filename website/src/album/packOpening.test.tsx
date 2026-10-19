@@ -2,13 +2,13 @@ import { Logo } from "@posthog/brand/logo";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, stickerFor } from "./albumFixtures";
 import type { Album, AlbumEmoji, AlbumRead, PackOpenReply, TrayItem } from "./answer";
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 const bonus = { xp: 15, coins: 0, from: { xp: 1210, level: 6, coins: 0, skillPoints: 0 }, to: { xp: 1225, level: 6, coins: 0, skillPoints: 0 } };
 

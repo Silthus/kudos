@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, stickerFor } from "./albumFixtures";
@@ -9,7 +9,7 @@ import type { Album, AlbumRead, PackOpenReply, PutAllInReply, PutInReply, TrayIt
 import { albumWithLanded } from "./tray";
 import { putInFlightMs, putInGapMs } from "./usePuttingIn";
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);

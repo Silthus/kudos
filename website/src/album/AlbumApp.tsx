@@ -7,8 +7,9 @@ import { NavigateProvider } from "../AppLink";
 import { Frame } from "../Frame";
 import { ClosedPage } from "../pages/ClosedPage";
 import { useSectionOnceLanded } from "../linkTarget";
-import { useTitleFocusOnArrival } from "../pageFocus";
-import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
+import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
+import { currentAddress, keepingSignInCode, returnAddressOf, useRoute, type Route } from "../route";
+import { rememberSignInStarted } from "../signInAttempt";
 import type { Album } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
@@ -25,7 +26,7 @@ import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ arrivedFromAnotherPage, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { arrivedFromAnotherPage: boolean }) {
+export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { arrivals: number }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
@@ -44,7 +45,8 @@ export default function AlbumApp({ arrivedFromAnotherPage, actions, useAlbum, us
   const onActivity = place.kind === "activity";
   const edition = useWeekEdition(useAlbumWeek, onActivity);
   useSectionOnceLanded(route, album?.kind === "album" && onSettings && settings?.kind === "settings");
-  const expectArrival = useTitleFocusOnArrival(arrivedFromAnotherPage);
+  const expectArrival = useTitleFocusOnArrival(landsOnASection(route) ? 0 : arrivals);
+  useTitleFocusAfterChange(album === undefined ? "loading" : album.kind);
   const arriveAt = useCallback(
     (href: string) => {
       expectArrival();
@@ -52,7 +54,10 @@ export default function AlbumApp({ arrivedFromAnotherPage, actions, useAlbum, us
     },
     [expectArrival, navigate],
   );
-  const signIn = useCallback(() => actions.signIn(returnAddressOf(route)), [actions, route]);
+  const signIn = useCallback(() => {
+    rememberSignInStarted();
+    actions.signIn(returnAddressOf(route));
+  }, [actions, route]);
   const answers = { onSignIn: signIn, onSignOut: actions.signOut };
   if (album === undefined) return <AlbumWaits />;
   if (album.kind !== "album") return <Frame busy={false}>{album.kind === "off" ? <ClosedPage /> : <AnswerPage answer={album} {...answers} />}</Frame>;
@@ -97,4 +102,8 @@ function useCanonicalAddressOnceShown(place: Place, shown: boolean, replaceAddre
   useEffect(() => {
     if (shown && canonical !== currentAddress()) replaceAddress(canonical, landingState);
   });
+}
+
+function landsOnASection(route: Route) {
+  return route.page === "settings" && route.section !== undefined;
 }

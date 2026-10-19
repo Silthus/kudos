@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { contrast, contrastOnTint, type Mode } from "../test/themeContrast";
@@ -13,7 +13,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 const pages: { path: string; album?: MyAlbum; boards?: BoardsShown; week?: WeekShown; hoggies?: HoggiesShown }[] = [
   { path: "/book#teams/lanterns" },

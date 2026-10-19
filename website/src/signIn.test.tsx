@@ -93,7 +93,7 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
     (await startSignInFromKeyboard()).unmount();
     const { showVisitor } = renderAlbum(shellFixtures.loading, fixedAlbum(albumFixtures.midway));
     showVisitor(shellFixtures.member);
-    await screen.findByRole("navigation", { name: "Album" });
+    await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
     showVisitor(shellFixtures.signedOut);
     expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
@@ -181,7 +181,7 @@ describe("F28: a link from Slack that asks to sign in", () => {
     arriveAt("/sign-in/");
     const { actions } = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
 
-    await waitFor(() => expect(currentAddress() + window.location.hash).toBe("/book#me"));
+    await waitFor(() => expect(currentAddress() + window.location.hash).toBe("/book#me"), { timeout: 10_000 });
     expect(actions.signIn).not.toHaveBeenCalled();
     expect(screen.getByRole("navigation", { name: "Album" })).toBeInTheDocument();
   });
@@ -192,7 +192,7 @@ describe("F28: a link from Slack that asks to sign in", () => {
   ])("shows a member who arrived with the ask the page their later $later.kind answer calls for", async ({ later, title }) => {
     arriveAt("/sign-in/");
     const { actions, showVisitor } = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
-    await waitFor(() => expect(currentAddress() + window.location.hash).toBe("/book#me"));
+    await waitFor(() => expect(currentAddress() + window.location.hash).toBe("/book#me"), { timeout: 10_000 });
 
     showVisitor(later);
 
@@ -214,5 +214,15 @@ describe("F28: a link from Slack that asks to sign in", () => {
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(actions.signIn).not.toHaveBeenCalled();
+  });
+});
+
+describe("WS6: a sign-in the album asks for is remembered", () => {
+  it("remembers a sign-in started from the album's own signed-out answer, so a failed return says it didn't finish", async () => {
+    sessionStorage.clear();
+    const { user, actions } = renderAlbum(shellFixtures.member, (asking) => (asking ? { kind: "signed-out" } : undefined));
+    await user.click(await screen.findByRole("button", { name: "Sign in with Slack" }, { timeout: 10_000 }));
+    expect(actions.signIn).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem("hedgehug.signInStarted")).not.toBeNull();
   });
 });

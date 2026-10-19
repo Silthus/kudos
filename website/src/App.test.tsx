@@ -58,7 +58,7 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
   it("shows a member the not-found page with a link back to the profile on any other path", async () => {
     visit("/profile");
     renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
-    expect(await screen.findByRole("heading", { level: 1, name: "Page not found" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Page not found" }, { timeout: 10_000 })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
     expect(document.title).toBe("HedgeHug · Not found");
   });

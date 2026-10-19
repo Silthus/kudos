@@ -30,8 +30,11 @@ export function focusPageTitle() {
   document.querySelector<HTMLElement>("main h1")?.focus();
 }
 
-export function useTitleFocusOnArrival(arrivingNow = false) {
-  const arriving = useRef(arrivingNow);
+export function useTitleFocusOnArrival(arrivals = 0) {
+  const arriving = useRef(false);
+  useEffect(() => {
+    if (arrivals > 0) arriving.current = true;
+  }, [arrivals]);
   useEffect(() => {
     if (!arriving.current) return;
     const title = document.querySelector<HTMLElement>("main h1");

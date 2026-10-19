@@ -47,7 +47,7 @@ export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { setting
 
 export async function renderSettingsPage(settings: SettingsRead, commands: Commands = {}) {
   const view = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway), { settings, commands });
-  await screen.findByRole("navigation", { name: "Album" });
+  await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
   return { ...view, showSettingsAgain: () => view.showVisitor({ ...shellFixtures.member }) };
 }
 

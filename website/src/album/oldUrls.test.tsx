@@ -9,7 +9,7 @@ import { rarestFirst, spreadHrefOf, type Spread } from "../book/spread/spreads";
 import { pagePropertiesOf } from "../browserAnalytics/pageviews";
 import type { Rarity } from "../crates/drops";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum, renderApp } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
@@ -18,7 +18,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 const site = "https://kudos-site.test";
 

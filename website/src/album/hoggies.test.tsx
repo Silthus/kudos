@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contrast } from "../test/themeContrast";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
@@ -12,7 +12,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 
 const arrival = 10_000;
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 type Box = { top: number; height: number };
 

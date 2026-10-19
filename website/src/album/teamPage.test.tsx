@@ -2,14 +2,14 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { shellFixtures, type Face, type MemberProfile } from "../shell";
+import { shellFixtures, type Face } from "../shell";
 import { drawnPicturesIn } from "../test/pictures";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf, fixtureUnlockOf, stickerFor } from "./albumFixtures";
 import type { Album, AlbumEmoji, PersonPage, PersonRead, PutAllInReply, UnlockReply } from "./answer";
 
-const memberWithTheAlbum: MemberProfile = shellFixtures.member;
+const memberWithTheAlbum = shellFixtures.member;
 
 const midway = albumFixtures.midway;
 
