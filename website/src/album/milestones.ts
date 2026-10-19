@@ -1,7 +1,7 @@
-import { slugOf } from "../../../convex/album/emojiCatalogue";
+import { emojiArtPictureOf, milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { LadderCard } from "../shell";
-import type { Album, AlbumMilestone, MilestoneTierId } from "./answer";
+import type { Album, AlbumEmoji, AlbumMilestone, MilestoneTierId } from "./answer";
 
 type Tier = AlbumMilestone["tiers"][number];
 
@@ -82,8 +82,9 @@ export function medalsInAll(milestones: AlbumMilestone[]) {
   return milestones.flatMap(({ tiers }) => tiers).length;
 }
 
-export function goldEmojiOf(album: Album, milestone: AlbumMilestone): { name: string; unlocked: boolean } {
-  const gold = milestone.tiers.find(({ tier }) => tier === "gold");
-  const earned = album.emojis.find(({ id }) => id === `milestone:${milestone.id}`);
-  return { name: earned?.name ?? slugOf(gold?.name ?? milestone.id), unlocked: gold !== undefined && isEarned(gold) };
+export type TierEmoji = { name: string; picture: string; answered: AlbumEmoji | null };
+
+export function tierEmojiOf(album: Album, milestone: AlbumMilestone, tier: Tier): TierEmoji {
+  const answered = album.emojis.find(({ id }) => id === `milestone:${milestone.id}:${tier.tier}`) ?? null;
+  return { name: answered?.name ?? slugOf(tier.name), picture: answered?.picture ?? emojiArtPictureOf("milestone", milestoneTierArtOf(milestone.id, tier.tier)), answered };
 }

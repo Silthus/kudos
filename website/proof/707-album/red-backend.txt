@@ -1,0 +1,21 @@
+ ❯ |convex| convex/album/emojiNames.test.ts (9 tests | 1 failed) 748ms
+     × the first thoughtful kudos reserves the level, every milestone tier's and the company team names before it names the hype emoji of the person it thanked 318ms
+ ❯ |convex| convex/album/earnedEmojis.test.ts (20 tests | 7 failed) 3845ms
+     × before any cause, a member reads every company team's emoji, every milestone tier's and each level's, locked with their progress, named from the registry and pictured under their catalogue IDs, and no hype emoji 564ms
+     × each tier a milestone reaches earns its own milestone emoji, named after that tier, and the next tier shows the count still to reach 487ms
+     × a registry opened when only gold had an emoji keeps each gold name, and its next reservation names the other tiers, so a member who already holds a tier reads its emoji 148ms
+     × before any grant or unlock a member reads no emoji; once the shared names are reserved by hand, a level-5 member reads their level emoji earned and unseen, and an admin the whole shared list 102ms
+     × reserving the shared names by hand names the tiers it lacks and keeps every name it holds 135ms
+     × an earned emoji reads unseen until markEmojisSeen names it, then seen for good; a locked, unknown or repeated ID records nothing 151ms
+     × an admin and an owner read every team, milestone and level emoji with its name, picture and whether Slack has it, and no hype emoji; another member reads none 147ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/album/earnedEmojis.test.ts > an earned emoji follows its cause > before any cause, a member reads every company team's emoji, every milestone tier's and each level's, locked with their progress, named from the registry and pictured under their catalogue IDs, and no hype emoji
+ FAIL  |convex| convex/album/earnedEmojis.test.ts > an earned emoji follows its cause > each tier a milestone reaches earns its own milestone emoji, named after that tier, and the next tier shows the count still to reach
+ FAIL  |convex| convex/album/earnedEmojis.test.ts > an earned emoji follows its cause > a registry opened when only gold had an emoji keeps each gold name, and its next reservation names the other tiers, so a member who already holds a tier reads its emoji
+ FAIL  |convex| convex/album/earnedEmojis.test.ts > AL25: a workspace's shared emoji names, reserved by hand where nothing opened its registry > before any grant or unlock a member reads no emoji; once the shared names are reserved by hand, a level-5 member reads their level emoji earned and unseen, and an admin the whole shared list
+ FAIL  |convex| convex/album/earnedEmojis.test.ts > AL25: a registry opened before every milestone tier had an emoji > reserving the shared names by hand names the tiers it lacks and keeps every name it holds
+ FAIL  |convex| convex/album/earnedEmojis.test.ts > AL26: each earned emoji is seen once > an earned emoji reads unseen until markEmojisSeen names it, then seen for good; a locked, unknown or repeated ID records nothing
+ FAIL  |convex| convex/album/earnedEmojis.test.ts > AL32: workspace admins and owners get the shared list > an admin and an owner read every team, milestone and level emoji with its name, picture and whether Slack has it, and no hype emoji; another member reads none
+ FAIL  |convex| convex/album/emojiNames.test.ts > an earned emoji's name never moves > the first thoughtful kudos reserves the level, every milestone tier's and the company team names before it names the hype emoji of the person it thanked
+ Test Files  2 failed (2)
+      Tests  8 failed | 21 passed (29)

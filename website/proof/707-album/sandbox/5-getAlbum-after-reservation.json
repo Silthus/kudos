@@ -1,0 +1,298 @@
+{
+ "milestoneEmojis": [
+  {
+   "earned": true,
+   "earnedAt": 1792387198235,
+   "from": "First face",
+   "id": "milestone:people:bronze",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "first-face",
+   "picture": "/emoji/milestone-people-bronze.png",
+   "progress": null,
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Familiar faces",
+   "id": "milestone:people:silver",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "familiar-faces",
+   "picture": "/emoji/milestone-people-silver.png",
+   "progress": {
+    "have": 4,
+    "need": 10
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Full of friends",
+   "id": "milestone:people:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "full-of-friends",
+   "picture": "/emoji/milestone-people-gold.png",
+   "progress": {
+    "have": 4,
+    "need": 25
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Everyone's album",
+   "id": "milestone:people:diamond",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "everyone-s-album",
+   "picture": "/emoji/milestone-people-diamond.png",
+   "progress": {
+    "have": 4,
+    "need": 50
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "First full page",
+   "id": "milestone:teams:bronze",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "first-full-page",
+   "picture": "/emoji/milestone-teams-bronze.png",
+   "progress": {
+    "have": 0,
+    "need": 1
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Five teams strong",
+   "id": "milestone:teams:silver",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "five-teams-strong",
+   "picture": "/emoji/milestone-teams-silver.png",
+   "progress": {
+    "have": 0,
+    "need": 5
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Most of the company",
+   "id": "milestone:teams:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "most-of-the-company",
+   "picture": "/emoji/milestone-teams-gold.png",
+   "progress": {
+    "have": 0,
+    "need": 15
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Every page",
+   "id": "milestone:teams:diamond",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "every-page",
+   "picture": "/emoji/milestone-teams-diamond.png",
+   "progress": {
+    "have": 0,
+    "need": 50
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Next door",
+   "id": "milestone:reach:bronze",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "next-door",
+   "picture": "/emoji/milestone-reach-bronze.png",
+   "progress": {
+    "have": 0,
+    "need": 3
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Bridge builder",
+   "id": "milestone:reach:silver",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "bridge-builder",
+   "picture": "/emoji/milestone-reach-silver.png",
+   "progress": {
+    "have": 0,
+    "need": 10
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Well travelled",
+   "id": "milestone:reach:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "well-travelled",
+   "picture": "/emoji/milestone-reach-gold.png",
+   "progress": {
+    "have": 0,
+    "need": 25
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "All hands",
+   "id": "milestone:reach:diamond",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "all-hands",
+   "picture": "/emoji/milestone-reach-diamond.png",
+   "progress": {
+    "have": 0,
+    "need": 50
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Curious",
+   "id": "milestone:hoggies:bronze",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "curious",
+   "picture": "/emoji/milestone-hoggies-bronze.png",
+   "progress": {
+    "have": 8,
+    "need": 10
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Collector",
+   "id": "milestone:hoggies:silver",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "collector",
+   "picture": "/emoji/milestone-hoggies-silver.png",
+   "progress": {
+    "have": 8,
+    "need": 40
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Hoarder",
+   "id": "milestone:hoggies:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "hoarder",
+   "picture": "/emoji/milestone-hoggies-gold.png",
+   "progress": {
+    "have": 8,
+    "need": 100
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Completionist",
+   "id": "milestone:hoggies:diamond",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "completionist",
+   "picture": "/emoji/milestone-hoggies-diamond.png",
+   "progress": {
+    "have": 8,
+    "need": 151
+   },
+   "seen": false
+  },
+  {
+   "earned": true,
+   "earnedAt": 1792387198235,
+   "from": "First thank-you",
+   "id": "milestone:thoughtful:bronze",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "first-thank-you",
+   "picture": "/emoji/milestone-thoughtful-bronze.png",
+   "progress": null,
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Generous soul",
+   "id": "milestone:thoughtful:silver",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "generous-soul",
+   "picture": "/emoji/milestone-thoughtful-silver.png",
+   "progress": {
+    "have": 5,
+    "need": 25
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Heart of the team",
+   "id": "milestone:thoughtful:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "heart-of-the-team",
+   "picture": "/emoji/milestone-thoughtful-gold.png",
+   "progress": {
+    "have": 5,
+    "need": 100
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Patron of praise",
+   "id": "milestone:thoughtful:diamond",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "patron-of-praise",
+   "picture": "/emoji/milestone-thoughtful-diamond.png",
+   "progress": {
+    "have": 5,
+    "need": 500
+   },
+   "seen": false
+  }
+ ]
+}

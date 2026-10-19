@@ -94,7 +94,7 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
       const { user, container } = visit("/");
       const [bar] = await screen.findAllByRole("banner");
 
-      for (const name of ["Tray, nothing to put in", "Your emojis, 3 earned", "Menu"]) {
+      for (const name of ["Tray, nothing to put in", "Your emojis, 9 earned", "Menu"]) {
         await user.click(within(bar!).getByRole("button", { name }));
         expect(await violationsIn(container)).toEqual([]);
       }
@@ -192,7 +192,7 @@ describe("AL55: the album is usable by keyboard alone", { timeout: 30_000 }, () 
       reached.push(focused.getAttribute("aria-label") ?? focused.textContent ?? "");
     }
 
-    expect(reached).toEqual(["HedgeHug", "Open your packs, 2 waiting", "Tray, nothing to put in", "Activity", "Leaderboard", "Your emojis, 3 earned", "Your profile, Sam Example", "Settings", "Search teams and people", "Lanterns4 of 5 · 1 to go", "Kettle Works Ready to unlock"]);
+    expect(reached).toEqual(["HedgeHug", "Open your packs, 2 waiting", "Tray, nothing to put in", "Activity", "Leaderboard", "Your emojis, 9 earned", "Your profile, Sam Example", "Settings", "Search teams and people", "Lanterns4 of 5 · 1 to go", "Kettle Works Ready to unlock"]);
   });
 
   it("a panel opens with Enter, closes with Escape and hands focus back to its button", async () => {
@@ -216,7 +216,7 @@ describe("AL55: the album is usable by keyboard alone", { timeout: 30_000 }, () 
     const { user } = visit("/");
 
     await user.click(await screen.findByRole("button", { name: "Tray, nothing to put in" }));
-    await user.click(screen.getByRole("button", { name: "Your emojis, 3 earned" }));
+    await user.click(screen.getByRole("button", { name: "Your emojis, 9 earned" }));
 
     expect(screen.queryByRole("region", { name: "Tray" })).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Your emojis" })).toBeInTheDocument();

@@ -1,0 +1,191 @@
+// Ran at a8d06ae9 (the base of #707) as convex/album/baseAnswer.test.ts: `npx vitest run convex/album/baseAnswer.test.ts`; the thrown BASE-ANSWER JSON is website/src/album/milestonesAnsweredBefore707.json.
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
+import { api, internal } from "../_generated/api";
+import { xpToReach } from "../progression/levels";
+import { mostHypeEmojisShown } from "./earnedEmojis";
+import schema from "../schema";
+import type { AlbumAnswer, AlbumRead } from "../website/album";
+import type { MemberId } from "../workspace/directory";
+
+const tuesday = new Date("2026-10-13T10:00:00Z");
+const minuteMs = 60_000;
+const weekMs = 7 * 24 * 60 * minuteMs;
+const why = "Thanks for untangling the flaky migration";
+const albumOpen = ["album", "collection", "packs"];
+
+type Person = { user: string; name: string; picture?: string };
+type Reader = Pick<Backend, "query" | "mutation">;
+type Emoji = AlbumAnswer["emojis"][number];
+
+const alice = person("Alice", "Marchetti");
+const bruno = person("Bruno", "Castellane");
+const otters = Array.from({ length: 3 }, (_, index) => person("Otter", `Quillfeather${index + 1}`));
+const lanterns = Array.from({ length: 2 }, (_, index) => person("Lantern", `Wickfield${index + 1}`));
+const analysts = Array.from({ length: 2 }, (_, index) => person("Analyst", `Funnelwright${index + 1}`));
+const crowd = Array.from({ length: 25 }, (_, index) => person("Crowd", `Merriweather${index + 1}`));
+const pictured = { ...person("Pia", "Snapshot"), picture: "https://avatars.slack-edge.com/pia-snapshot_192.png" };
+const faceless = person("Fen", "Noface");
+const everyone = [alice, bruno, ...otters, ...lanterns, ...analysts, ...crowd, pictured, faceless];
+const ottersCrest = aCutout("otters-crest");
+const otterCutout = aCutout("otter-quillfeather1");
+const ottersCrestPicture = expect.stringMatching(/\/v1\/otters-crest\.png$/) as string;
+const otterFace = expect.stringMatching(/\/v1\/otter-quillfeather1\.png$/) as string;
+
+const levels = [5, 10, 15, 20, 25];
+const milestoneGolds = [
+  ["people", "full-of-friends", 25],
+  ["teams", "most-of-the-company", 15],
+  ["reach", "well-travelled", 25],
+  ["hoggies", "hoarder", 100],
+  ["thoughtful", "heart-of-the-team", 100],
+] as const;
+
+let postHog: FakePostHog;
+let postHogCom: FakePostHogCom;
+let slack: FakeSlack;
+let t: Backend;
+let messages = 0;
+
+beforeEach(async () => {
+  vi.useFakeTimers({ now: tuesday });
+  aDeploymentForWorkspace();
+  postHog = new FakePostHog();
+  postHogCom = new FakePostHogCom();
+  slack = new FakeSlack();
+  for (const { user, name, picture } of everyone) slack.withMember(user, { profile: { display_name: name, real_name: name, ...(picture && { image_192: picture }) } });
+  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slack.fetch(input, init))));
+  t = testBackend({ transactionLimits: true });
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 200 }));
+  await switchWebsite(t, postHog, true, ...albumOpen);
+  for (const someone of everyone) await memberChanged(t, "team_join", slackUser(someone));
+  await settle(t);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+describe("base answer for #707", { timeout: 90_000 }, () => {
+  test("prints getAlbum's milestone answer as base code builds it", async () => {
+    await theCompanyCopyHolds(...threeTeams());
+    await aliceCollects(otters[0]!, ...crowd.slice(0, 9));
+    const album = await albumOf(await signedIn(alice));
+    throw new Error("BASE-ANSWER " + JSON.stringify({ emojis: album.emojis.filter(({ kind }) => kind === "milestone"), milestones: album.milestones }));
+  });
+});
+
+function threeTeams(): TeamPage[] {
+  return [
+    { slug: "otters", name: "Otters", crest: ottersCrest, profiles: profilesOf(...otters).map((profile) => (profile.lastName === "Quillfeather1" ? { ...profile, cutout: otterCutout } : profile)) },
+    { slug: "lanterns", name: "Lanterns", profiles: profilesOf(...lanterns) },
+    { slug: "product-analytics", name: "Product Analytics", profiles: profilesOf(...analysts) },
+  ];
+}
+
+function locked(id: Emoji["id"], kind: Emoji["kind"], name: string, picture: string, progress: Emoji["progress"]): Emoji {
+  return { id, kind, name, picture, earned: false, seen: false, inSlack: false, progress };
+}
+
+function earned(id: Emoji["id"], kind: Emoji["kind"], name: string, picture: string): Emoji {
+  return { id, kind, name, picture, earned: true, seen: false, inSlack: false, progress: null };
+}
+
+function byId<T>(entries: T[], idOf: (entry: T) => string = (entry) => (entry as { id: string }).id): T[] {
+  return entries.toSorted((one, other) => idOf(one).localeCompare(idOf(other)));
+}
+
+async function emojisOf(reader: Reader): Promise<Emoji[]> {
+  return byId((await albumOf(reader)).emojis);
+}
+
+async function emojiWithId(reader: Reader, id: string): Promise<Emoji | undefined> {
+  return (await emojisOf(reader)).find((entry) => entry.id === id);
+}
+
+async function albumOf(reader: Reader): Promise<AlbumAnswer> {
+  const album: AlbumRead | { kind: string } = await reader.query(api.website.album.getAlbum, {});
+  if (album.kind !== "album") throw new Error(`expected an album, got ${JSON.stringify(album)}`);
+  const answer = album as AlbumAnswer;
+  return { ...answer, sharedEmojis: answer.sharedEmojis === null ? null : byId(answer.sharedEmojis) };
+}
+
+async function theCompanyCopyHolds(...teams: TeamPage[]) {
+  postHogCom.withTeams(...teams);
+  await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+  await settle(t);
+}
+
+async function aliceCollects(...people: Person[]) {
+  await thanks(alice, why, ...people);
+  const asAlice = await signedIn(alice);
+  const album = await asAlice.query(api.website.album.getAlbum, {});
+  for (const { pack } of album.kind === "album" ? album.packs : []) await asAlice.mutation(api.website.album.openThoughtfulPack, { pack });
+  for (let placed = await asAlice.mutation(api.website.album.putAllIn, {}); placed.kind === "placed" && placed.more; ) placed = await asAlice.mutation(api.website.album.putAllIn, {});
+  await settle(t);
+}
+
+async function thanks(giver: Person, words: string, ...recipients: Person[]) {
+  messages += 1;
+  vi.setSystemTime(Date.now() + minuteMs);
+  await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}` });
+  await settle(t);
+}
+
+async function reachesXp(someone: Person, xp: number) {
+  const member = await memberOf(someone);
+  await t.run(async (ctx) => {
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    if (progress === null) await ctx.db.insert("memberProgress", { member, xp, pointsSpent: 0 });
+    else await ctx.db.patch(progress._id, { xp });
+  });
+}
+
+async function signedIn(someone: Person) {
+  const { asSignedIn } = await aSignedInSession(t, { user: someone.user, name: someone.name });
+  return asSignedIn;
+}
+
+async function memberOf(someone: Person): Promise<MemberId> {
+  const row = await t.run((ctx) =>
+    ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", someone.user))
+      .unique(),
+  );
+  if (row === null) throw new Error(`${someone.name} is no member`);
+  return row._id;
+}
+
+function person(first: string, last: string): Person {
+  return { user: `U_${first}_${last}`.toUpperCase(), name: `${first} ${last}` };
+}
+
+function slackUser({ user, name, picture }: Person) {
+  return { id: user, team_id: "T1", name, real_name: name, profile: { real_name: name, display_name: name, ...(picture && { image_192: picture }) } };
+}
+
+function profilesOf(...people: Person[]): TeamPage["profiles"] {
+  return people.map(({ name }) => {
+    const [firstName, lastName] = name.split(" ") as [string, string];
+    return { id: everyone.findIndex((someone) => someone.name === name) + 1, firstName, lastName, colour: "teal" };
+  });
+}
+
+function everyTable() {
+  return t.run(async (ctx) => {
+    const rows: Record<string, unknown[]> = {};
+    for (const table of Object.keys(schema.tables) as Array<keyof typeof schema.tables>) rows[table] = await ctx.db.query(table).collect();
+    return rows;
+  });
+}
