@@ -119,25 +119,22 @@ describe("AL40: getAlbum shows the member's face without reading the directory",
 });
 
 describe("website reads pass one guard", () => {
-  test("getAlbum and getThoughtfulBoards read closed while the website flag is off, even with album on", async () => {
+  test("getAlbum, getAlbumHoggies and getThoughtfulBoards read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);
     await switchWebsite(t, postHog, false, "album");
 
-    expect(await albumOf(asAlice)).toEqual({ kind: "closed" });
-    expect(await boardsOf(asAlice)).toEqual({ kind: "closed" });
+    expect(await everyAlbumReadOf(asAlice)).toEqual(everyAlbumRead.map(() => ({ kind: "closed" })));
   });
 
-  test("getAlbum and getThoughtfulBoards read signed out without a session", async () => {
-    expect(await albumOf(t)).toEqual({ kind: "signed-out" });
-    expect(await boardsOf(t)).toEqual({ kind: "signed-out" });
+  test("getAlbum, getAlbumHoggies and getThoughtfulBoards read signed out without a session", async () => {
+    expect(await everyAlbumReadOf(t)).toEqual(everyAlbumRead.map(() => ({ kind: "signed-out" })));
   });
 
-  test("getAlbum and getThoughtfulBoards read not-a-member for a former member with a live session", async () => {
+  test("getAlbum, getAlbumHoggies and getThoughtfulBoards read not-a-member for a former member with a live session", async () => {
     await aMember(t, juno.user, "not-a-member");
     const { asSignedIn } = await aSession(t, juno);
 
-    expect(await albumOf(asSignedIn)).toEqual({ kind: "not-a-member" });
-    expect(await boardsOf(asSignedIn)).toEqual({ kind: "not-a-member" });
+    expect(await everyAlbumReadOf(asSignedIn)).toEqual(everyAlbumRead.map(() => ({ kind: "not-a-member" })));
   });
 });
 
@@ -149,6 +146,12 @@ function albumOf(reader: Reader): Promise<AlbumRead | { kind: string }> {
 
 function boardsOf(reader: Reader): Promise<ThoughtfulBoardsRead | { kind: string }> {
   return reader.query(api.website.album.getThoughtfulBoards, {});
+}
+
+const everyAlbumRead = [api.website.album.getAlbum, api.website.album.getAlbumHoggies, api.website.album.getThoughtfulBoards];
+
+function everyAlbumReadOf(reader: Reader): Promise<Array<{ kind: string }>> {
+  return Promise.all(everyAlbumRead.map((read) => reader.query(read, {})));
 }
 
 async function packedPeopleIn(albums: ReadonlyArray<readonly [Person, AlbumRead | { kind: string }]>) {

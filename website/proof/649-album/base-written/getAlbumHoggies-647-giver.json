@@ -1,0 +1,2017 @@
+{
+  "found": 1,
+  "hoggies": [
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "asleep"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "asleep",
+      "name": "Asleep",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "ball"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "ball",
+      "name": "Ball",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "banana"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "banana",
+      "name": "Banana",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "beaker"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "beaker",
+      "name": "Beaker",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "burger"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "burger",
+      "name": "Burger",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "card"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "card",
+      "name": "Card",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "cereal"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "cereal",
+      "name": "Cereal",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "chart"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "chart",
+      "name": "Chart",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "coconut"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "coconut",
+      "name": "Coconut",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "code-bubble"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "code-bubble",
+      "name": "Code Bubble",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "coffee-cup"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "coffee-cup",
+      "name": "Coffee Cup",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "coffee-run"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "coffee-run",
+      "name": "Coffee Run",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "commuter"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "commuter",
+      "name": "Commuter",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "construction"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "construction",
+      "name": "Construction",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "croissant"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "croissant",
+      "name": "Croissant",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "cursor"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "cursor",
+      "name": "Cursor",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "doll-house"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "doll-house",
+      "name": "Doll House",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "error"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "error",
+      "name": "Error",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "experiment"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "experiment",
+      "name": "Experiment",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "gardener"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "gardener",
+      "name": "Gardener",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "heart"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "heart",
+      "name": "Heart",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "honey"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "honey",
+      "name": "Honey",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "hooligan"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "hooligan",
+      "name": "Hooligan",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "hoot"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "hoot",
+      "name": "Hoot",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "hot-popcorn"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "hot-popcorn",
+      "name": "Hot / Popcorn",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "hourglass"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "hourglass",
+      "name": "Hourglass",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "ipad"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "ipad",
+      "name": "Ipad",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "lemonade"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "lemonade",
+      "name": "Lemonade",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "magnifying-glass"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "magnifying-glass",
+      "name": "Magnifying Glass",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "mailbox"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "mailbox",
+      "name": "Mailbox",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "megaphone"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "megaphone",
+      "name": "Megaphone",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "money"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "money",
+      "name": "Money",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "office-worker"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "office-worker",
+      "name": "Office Worker",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "organized"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "organized",
+      "name": "Organized",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "panic"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "panic",
+      "name": "Panic",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "party"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "party",
+      "name": "Party",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "pearl-necklace"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "pearl-necklace",
+      "name": "Pearl Necklace",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "phone-call"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "phone-call",
+      "name": "Phone Call",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "reading"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "reading",
+      "name": "Reading",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "remote-work"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "remote-work",
+      "name": "Remote Work",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "research"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "research",
+      "name": "Research",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "self-driving"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "self-driving",
+      "name": "Self-driving",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "selfie"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "selfie",
+      "name": "Selfie",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "shocked"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "shocked",
+      "name": "Shocked",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "sitting"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "sitting",
+      "name": "Sitting",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "sleepy"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "sleepy",
+      "name": "Sleepy",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "soccer-coach"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "soccer-coach",
+      "name": "Soccer Coach",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "speaker"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "speaker",
+      "name": "Speaker",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "stamp-approved"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "stamp-approved",
+      "name": "Stamp Approved",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "stamp-denied"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "stamp-denied",
+      "name": "Stamp Denied",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "star"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "star",
+      "name": "Star",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "stop"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "stop",
+      "name": "Stop",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "success"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "success",
+      "name": "Success",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "sunburn"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "sunburn",
+      "name": "Sunburn",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "survey"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "survey",
+      "name": "Survey",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "toilet"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "toilet",
+      "name": "Toilet",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "traffic-police"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "traffic-police",
+      "name": "Traffic Police",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "trenchcoat"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "trenchcoat",
+      "name": "Trenchcoat",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "waiter"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "waiter",
+      "name": "Waiter",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "workflows"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "workflows",
+      "name": "Workflows",
+      "rarity": "common",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "basketball-coach"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "basketball-coach",
+      "name": "Basketball Coach",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "burning-money"
+      },
+      "count": 1,
+      "firstAt": 1792369222838,
+      "found": true,
+      "hoggie": "burning-money",
+      "name": "Burning Money",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "cake"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "cake",
+      "name": "Cake",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "caribana"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "caribana",
+      "name": "Caribana",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "chef"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "chef",
+      "name": "Chef",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "climber"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "climber",
+      "name": "Climber",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "coding-group"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "coding-group",
+      "name": "Coding Group",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "cowboy-lasso"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "cowboy-lasso",
+      "name": "Cowboy Lasso",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "dadd-ai"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "dadd-ai",
+      "name": "Dadd Ai",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "data-thief"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "data-thief",
+      "name": "Data Thief",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "doctor"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "doctor",
+      "name": "Doctor",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "drake-nah"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "drake-nah",
+      "name": "Drake Nah",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "drake-yah"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "drake-yah",
+      "name": "Drake Yah",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "dynamite"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "dynamite",
+      "name": "Dynamite",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "einstein"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "einstein",
+      "name": "Einstein",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "explorer"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "explorer",
+      "name": "Explorer",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "float"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "float",
+      "name": "Float",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "football-coach"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "football-coach",
+      "name": "Football Coach",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "football-player"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "football-player",
+      "name": "Football Player",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "gravedigger"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "gravedigger",
+      "name": "Gravedigger",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "greek"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "greek",
+      "name": "Greek",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "haha-bizzniss"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "haha-bizzniss",
+      "name": "Haha Bizzniss",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "hand-clasp"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "hand-clasp",
+      "name": "Hand Clasp",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "hipster"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "hipster",
+      "name": "Hipster",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "judge"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "judge",
+      "name": "Judge",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "lemon-wrangler"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "lemon-wrangler",
+      "name": "Lemon Wrangler",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "lifeguard"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "lifeguard",
+      "name": "Lifeguard",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "loops"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "loops",
+      "name": "Loops",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "namaste"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "namaste",
+      "name": "Namaste",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "pit-viper"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "pit-viper",
+      "name": "Pit Viper",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "reporter"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "reporter",
+      "name": "Reporter",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "safari"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "safari",
+      "name": "Safari",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "scientist"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "scientist",
+      "name": "Scientist",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "scorpion"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "scorpion",
+      "name": "Scorpion",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "soapbox"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "soapbox",
+      "name": "Soapbox",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "surfer"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "surfer",
+      "name": "Surfer",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "swimmer"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "swimmer",
+      "name": "Swimmer",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "tourist"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "tourist",
+      "name": "Tourist",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "town-crier"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "town-crier",
+      "name": "Town Crier",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "traffic-controller"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "traffic-controller",
+      "name": "Traffic Controller",
+      "rarity": "uncommon",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "70s-dance"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "70s-dance",
+      "name": "70's Dance",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "996"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "996",
+      "name": "996",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "ape"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "ape",
+      "name": "Ape",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "art-thief"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "art-thief",
+      "name": "Art Thief",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "boombox"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "boombox",
+      "name": "Boombox",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "business-evolution"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "business-evolution",
+      "name": "Business Evolution",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "campfire-cowboy"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "campfire-cowboy",
+      "name": "Campfire Cowboy",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "caveman"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "caveman",
+      "name": "Caveman",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "cool-car"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "cool-car",
+      "name": "Cool Car",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "desk-wizard"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "desk-wizard",
+      "name": "Desk Wizard",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "director"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "director",
+      "name": "Director",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "dj"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "dj",
+      "name": "Dj",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "doc-brown"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "doc-brown",
+      "name": "Doc Brown",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "einstein-group"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "einstein-group",
+      "name": "Einstein Group",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "gatsby"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "gatsby",
+      "name": "Gatsby",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "hogpatch"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "hogpatch",
+      "name": "Hogpatch",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "im-the-driver"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "im-the-driver",
+      "name": "I'm The Driver",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "mountie"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "mountie",
+      "name": "Mountie",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "mr-potato-head"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "mr-potato-head",
+      "name": "Mr Potato Head",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "noir"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "noir",
+      "name": "Noir",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "pinata"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "pinata",
+      "name": "Piñata",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "puzzle"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "puzzle",
+      "name": "Puzzle",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "reading-is-magic"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "reading-is-magic",
+      "name": "Reading Is Magic",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "robot"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "robot",
+      "name": "Robot",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "roller-coaster"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "roller-coaster",
+      "name": "Roller Coaster",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "rose"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "rose",
+      "name": "Rose",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "sailor"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "sailor",
+      "name": "Sailor",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "two-player"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "two-player",
+      "name": "Two Player",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "will-smith"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "will-smith",
+      "name": "Will Smith",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "x-ray"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "x-ray",
+      "name": "X-ray",
+      "rarity": "rare",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "angel"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "angel",
+      "name": "Angel",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "back-to-the-future"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "back-to-the-future",
+      "name": "Back To The Future",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "driving-hogzilla"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "driving-hogzilla",
+      "name": "Driving Hogzilla",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "evel"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "evel",
+      "name": "Evel",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "gladiator"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "gladiator",
+      "name": "Gladiator",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "jack-dawson"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "jack-dawson",
+      "name": "Jack Dawson",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "katy-perry"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "katy-perry",
+      "name": "Katy Perry",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "level-up"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "level-up",
+      "name": "Level Up",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "oprah"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "oprah",
+      "name": "Oprah",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "pope"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "pope",
+      "name": "Pope",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "reaper"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "reaper",
+      "name": "Reaper",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "scott-pilgrim"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "scott-pilgrim",
+      "name": "Scott Pilgrim",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "steve-jobs"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "steve-jobs",
+      "name": "Steve Jobs",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "terminator"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "terminator",
+      "name": "Terminator",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "the-bride"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "the-bride",
+      "name": "The Bride",
+      "rarity": "epic",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "dr-manhattan"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "dr-manhattan",
+      "name": "Dr. Manhattan",
+      "rarity": "legendary",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "final-evolution"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "final-evolution",
+      "name": "Final Evolution",
+      "rarity": "legendary",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "rocket"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "rocket",
+      "name": "Rocket",
+      "rarity": "legendary",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "superhero"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "superhero",
+      "name": "Superhero",
+      "rarity": "legendary",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "transformer"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "transformer",
+      "name": "Transformer",
+      "rarity": "legendary",
+      "spares": 0
+    },
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "wizard"
+      },
+      "count": 0,
+      "firstAt": null,
+      "found": false,
+      "hoggie": "wizard",
+      "name": "Wizard",
+      "rarity": "legendary",
+      "spares": 0
+    }
+  ],
+  "kind": "hoggies",
+  "rarest": [
+    {
+      "art": {
+        "kind": "hoggie",
+        "slug": "burning-money"
+      },
+      "count": 1,
+      "firstAt": 1792369222838,
+      "found": true,
+      "hoggie": "burning-money",
+      "name": "Burning Money",
+      "rarity": "uncommon",
+      "spares": 0
+    }
+  ],
+  "rarities": [
+    {
+      "chance": 50,
+      "found": 0,
+      "rarity": "common",
+      "total": 60
+    },
+    {
+      "chance": 28,
+      "found": 1,
+      "rarity": "uncommon",
+      "total": 40
+    },
+    {
+      "chance": 14,
+      "found": 0,
+      "rarity": "rare",
+      "total": 30
+    },
+    {
+      "chance": 6,
+      "found": 0,
+      "rarity": "epic",
+      "total": 15
+    },
+    {
+      "chance": 2,
+      "found": 0,
+      "rarity": "legendary",
+      "total": 6
+    }
+  ],
+  "total": 151
+}
