@@ -340,49 +340,72 @@ describe("#708: the sidebar stays in view", () => {
   });
 
   it("no scroll box lets the hidden text it scrolls stretch the page past the album, so the sidebar never runs out of room to stick", () => {
-    const rules = desktopAlbumRules();
-    const loose = new Set(rules.filter(scrolls).flatMap(({ selectors }) => selectors.filter((selector) => positionOf(selector, rules) === "static")));
+    const albumCss = readdirSync(__dirname)
+      .filter((file) => file.endsWith(".css"))
+      .map((file) => readFileSync(join(__dirname, file), "utf8"))
+      .join("\n");
 
-    expect([...loose]).toEqual([]);
+    expect(looseScrollBoxesIn(albumCss)).toEqual([]);
   });
 
-  it("reads the album's stylesheets the way the browser does: the last position wins, either overflow axis scrolls, and each selector of a list counts", () => {
-    const rules = desktopRulesOf(".a, .b { overflow: hidden auto }\n.a { position: relative }\n.b { position: sticky; top: 0 }\n.b { position: static }\n@media (min-width: 64rem) { .c { overflow-x: scroll; position: absolute } }\n@media (max-width: 63.999rem) { .a { position: static } }");
+  it("reads the stylesheets as a desktop browser does: the last position wins, a condition can only take a position away, the phone drawer is left out, and each selector of a list counts", () => {
+    const css = [
+      ".a, .b { overflow: hidden auto }",
+      ".a { position: relative }",
+      ".b { position: sticky }",
+      ".b { position: static }",
+      "@media (min-width: 64rem) { .c { overflow-x: scroll; position: absolute } }",
+      "@supports (display: grid) { .c { position: static } }",
+      ".d { overflow: auto; position: static }",
+      "@media (prefers-reduced-motion: reduce) { .d { position: relative } }",
+      ".e { overflow-y: auto; position: relative }",
+      "@media (prefers-reduced-motion: reduce) { .e { position: static } }",
+      "@media (max-width: 63.999rem) { @keyframes fade { from { opacity: 0 } } .a { position: static } .f { overflow: auto } }",
+    ].join("\n");
 
-    expect(rules.filter(scrolls).map(({ selectors }) => selectors)).toEqual([[".a", ".b"], [".c"]]);
-    expect([".a", ".b", ".c"].map((selector) => positionOf(selector, rules))).toEqual(["relative", "static", "absolute"]);
+    expect(looseScrollBoxesIn(css)).toEqual([".b", ".c", ".d", ".e"]);
   });
 });
 
-type CssRule = { selectors: string[]; declarations: Record<string, string> };
+type DesktopRule = { selectors: string[]; style: CSSStyleDeclaration; conditional: boolean };
 
 const phoneWidths = "(max-width: 63.999rem)";
+const everyDesktopWidth = "(min-width: 64rem)";
 
-function desktopAlbumRules(): CssRule[] {
-  return readdirSync(__dirname)
-    .filter((file) => file.endsWith(".css"))
-    .flatMap((file) => desktopRulesOf(readFileSync(join(__dirname, file), "utf8")));
+function looseScrollBoxesIn(css: string) {
+  const rules = desktopRulesOf(css);
+  const scrollBoxes = rules.filter(scrolls).flatMap(({ selectors }) => selectors);
+  return [...new Set(scrollBoxes)].filter((selector) => !holdsWhatItScrolls(selector, rules));
 }
 
-function desktopRulesOf(css: string): CssRule[] {
-  const uncommented = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  return [...uncommented.matchAll(/@([^{;]+)\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}|([^{}@]+)\{([^{}]*)\}/g)].flatMap(([, atRule, inside, selectors, body]) => {
-    if (selectors !== undefined) return [ruleOf(selectors, body!)];
-    if (!atRule!.startsWith("media") || atRule!.includes(phoneWidths)) return [];
-    return [...inside!.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, nested, nestedBody]) => ruleOf(nested!, nestedBody!));
+function desktopRulesOf(css: string): DesktopRule[] {
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.append(style);
+  try {
+    return rulesWithin(style.sheet!.cssRules, false);
+  } finally {
+    style.remove();
+  }
+}
+
+function rulesWithin(rules: CSSRuleList, conditional: boolean): DesktopRule[] {
+  return [...rules].flatMap((rule) => {
+    if (rule instanceof CSSStyleRule) return [{ selectors: rule.selectorText.split(",").map((selector) => selector.trim()), style: rule.style, conditional }];
+    if (rule instanceof CSSMediaRule) return rule.media.mediaText.includes(phoneWidths) ? [] : rulesWithin(rule.cssRules, conditional || !rule.media.mediaText.includes(everyDesktopWidth));
+    if (rule instanceof CSSSupportsRule) return rulesWithin(rule.cssRules, conditional);
+    return [];
   });
 }
 
-function ruleOf(selectors: string, body: string): CssRule {
-  return { selectors: selectors.split(",").map((selector) => selector.trim()), declarations: Object.fromEntries([...body.matchAll(/([\w-]+)\s*:\s*([^;]+?)\s*(?:;|$)/g)].map(([, name, value]) => [name!, value!])) };
+function scrolls({ style }: DesktopRule) {
+  return ["overflow", "overflow-x", "overflow-y"].some((property) => /\b(auto|scroll)\b/.test(style.getPropertyValue(property)));
 }
 
-function scrolls({ declarations }: CssRule) {
-  return ["overflow", "overflow-x", "overflow-y"].some((property) => /\b(auto|scroll)\b/.test(declarations[property] ?? ""));
-}
-
-function positionOf(selector: string, rules: CssRule[]) {
-  return rules.findLast((rule) => rule.selectors.includes(selector) && rule.declarations.position !== undefined)?.declarations.position ?? "static";
+function holdsWhatItScrolls(selector: string, rules: DesktopRule[]) {
+  const positions = rules.filter(({ selectors, style }) => selectors.includes(selector) && style.position !== "");
+  const always = positions.findLast(({ conditional }) => !conditional)?.style.position ?? "static";
+  return always !== "static" && !positions.some(({ conditional, style }) => conditional && style.position === "static");
 }
 
 describe("AL42: Getting started", () => {
