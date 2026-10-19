@@ -8,6 +8,17 @@ export function teamsByProgress(teams: AlbumTeam[]): AlbumTeam[] {
   return teams.filter(({ mine }) => !mine).toSorted((first, second) => readyFirst(first) - readyFirst(second) || second.held - first.held || first.name.localeCompare(second.name));
 }
 
+export function closestToCompleteOf(teams: AlbumTeam[], count: number): AlbumTeam[] {
+  return teams
+    .filter(({ state, total }) => state !== "unlocked" && total > 0)
+    .toSorted((first, second) => readyFirst(first) - readyFirst(second) || leftToCollectOf(first) - leftToCollectOf(second) || progressOf(second) - progressOf(first) || first.name.localeCompare(second.name))
+    .slice(0, count);
+}
+
+function leftToCollectOf({ held, total }: AlbumTeam) {
+  return total - held;
+}
+
 function readyFirst({ state }: AlbumTeam) {
   return state === "ready" ? 0 : 1;
 }

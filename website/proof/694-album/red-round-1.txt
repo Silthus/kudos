@@ -1,0 +1,8 @@
+     × closing the packs before a rip gives focus back to the overview's Open a pack 1164ms
+     × the overview's Open a pack opens nothing while the cards are being put in 426ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+Error: [2mexpect([22m[31melement[39m[2m).toHaveFocus()[22m
+Expected element with focus:
+Received element with focus:
+    367|     expect(open).toHaveAttribute("aria-disabled", "true");
+      Tests  2 failed | 26 passed (28)

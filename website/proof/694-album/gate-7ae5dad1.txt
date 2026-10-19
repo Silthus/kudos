@@ -1,0 +1,4 @@
+ Test Files  334 passed (334)
+      Tests  6581 passed (6581)
+lacking: enforcement 0, refutation 3, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-19T09:22:48.048Z (1783 runs)
+exit=0
