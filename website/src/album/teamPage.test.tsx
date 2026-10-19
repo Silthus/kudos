@@ -92,7 +92,7 @@ describe("AL45: the team page is the team's class photo", () => {
   });
 });
 
-describe("AL45: the class photo stands alone, with no box under it", () => {
+describe("AL45: a team sticker unlocks only on the member's own click", () => {
   it.each([
     { path: "/book#teams/tin-orchard", state: "collecting" },
     { path: "/book#teams/kettle-works", state: "ready" },
@@ -133,9 +133,7 @@ describe("AL45: the class photo stands alone, with no box under it", () => {
     expect(send).toHaveBeenCalledExactlyOnceWith("kettle-works");
     expect(await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" })).toBeInTheDocument();
   });
-});
 
-describe("AL45: a team sticker unlocks only on the member's own click", () => {
   it("visiting a ready page sends nothing, and one click sends unlockTeamSticker once for that team however often it is pressed", async () => {
     preferReducedMotion();
     let answer: (reply: UnlockReply) => void = () => undefined;
@@ -154,7 +152,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" })).toBeInTheDocument();
   });
 
-  it("a refusal says so beside the action and plays no moment", async () => {
+  it("a refusal says so under the photo and plays no moment", async () => {
     visit("/book#teams/kettle-works", { unlockTeamSticker: async () => ({ kind: "refused" }) });
 
     await userEvent.click(await unlockOnThePhoto());
@@ -163,7 +161,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("an unreachable server says so and the action stays to try again", async () => {
+  it("an unreachable server says so and the sticker stays to try again", async () => {
     visit("/book#teams/kettle-works", { unlockTeamSticker: async () => Promise.reject(new Error("no answer within 10 s")) });
 
     await userEvent.click(await unlockOnThePhoto());
@@ -172,7 +170,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(await unlockOnThePhoto()).not.toHaveAttribute("aria-disabled");
   });
 
-  it("AL54: while Put them all in waits for its answer and while its cards fly in, the action says it waits and sends nothing, then comes back once they land", async () => {
+  it("AL54: while Put them all in waits for its answer and while its cards fly in, the sticker says it waits and sends nothing, then comes back once they land", async () => {
     const trayed: Album = { ...midway, tray: [{ item: "tray-juno", kind: "sticker", person: "juno-park" }, { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] };
     let answer: (reply: PutAllInReply) => void = () => undefined;
     const { user, send } = visit("/book#teams/kettle-works", { album: trayed, putAllIn: () => new Promise((resolve) => (answer = resolve)) });
@@ -202,7 +200,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" })).toBeInTheDocument();
   });
 
-  it("a refusal said beside the action goes once getAlbum reads the page unlocked, as when another tab unlocked it first", async () => {
+  it("a refusal said under the photo goes once getAlbum reads the page unlocked, as when another tab unlocked it first", async () => {
     const live = { album: midway, listeners: new Set<() => void>() };
     const read = (asking: boolean) => {
       const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.album);
