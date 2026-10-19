@@ -1,4 +1,4 @@
-import type { AlbumHoggies, AlbumProfile, HoggiesRead, HoggiesShown, ProfileRead, ProfileShown } from "./answer";
+import type { AlbumProfile, ProfileRead, ProfileShown } from "./answer";
 
 const day = 86_400_000;
 
@@ -22,25 +22,7 @@ const quiet: AlbumProfile = { kind: "profile", note: null, newest: [] };
 
 export const profileFixtures = { noted, quiet } satisfies Record<string, AlbumProfile>;
 
-const found: AlbumHoggies = {
-  kind: "hoggies",
-  found: 18,
-  total: 151,
-  rarest: [
-    { hoggie: "angel", name: "Angel", rarity: "epic", firstAt: now - 3 * day },
-    { hoggie: "art-thief", name: "Art Thief", rarity: "rare", firstAt: now - 5 * day },
-    { hoggie: "burning-money", name: "Burning Money", rarity: "uncommon", firstAt: now - 8 * day },
-  ],
-};
-
-const none: AlbumHoggies = { kind: "hoggies", found: 0, total: 151, rarest: [] };
-
-export const hoggiesFixtures = { found, none } satisfies Record<string, AlbumHoggies>;
 
 export function fixedProfile(answer: ProfileShown): ProfileRead {
-  return (asking) => (asking ? answer : undefined);
-}
-
-export function fixedHoggies(answer: HoggiesShown): HoggiesRead {
   return (asking) => (asking ? answer : undefined);
 }

@@ -2,7 +2,8 @@ import { fixtureActivityWatch, fixtureReadActivity } from "./activityFixtures";
 import type { AppReads } from "./App";
 import { fixedAlbum, fixedPeople, albumFixtures } from "./album/albumFixtures";
 import { boardsFixtures, fixedBoards } from "./album/boardsFixtures";
-import { fixedHoggies, fixedProfile, hoggiesFixtures, profileFixtures } from "./album/profileFixtures";
+import { fixedHoggies, hoggiesFixtures } from "./album/hoggiesFixtures";
+import { fixedProfile, profileFixtures } from "./album/profileFixtures";
 import { fixtureWeeks } from "./album/weekFixtures";
 import { fixtureBookFor } from "./bookFixtures";
 import { fixtureCollectionFor } from "./collectionFixtures";
@@ -25,12 +26,14 @@ const fixtureAlbum = fixedAlbum(albumFixtures.trayed);
 
 const fixtureBoards = fixedBoards(boardsFixtures.week);
 
+const withoutATeam = "album-without-a-team";
+
 const fixturePeople = fixedPeople(albumFixtures.midway);
 const fixtureWeek = fixtureWeeks();
 
 const fixtureProfile = fixedProfile(profileFixtures.noted);
 
-const fixtureHoggies = fixedHoggies(hoggiesFixtures.found);
+const fixtureHoggies = fixedHoggies(hoggiesFixtures.midway);
 
 export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads {
   return {
@@ -45,8 +48,8 @@ export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads
     readActivity: fixtureReadActivity,
     drawSpotlight: fixtureSpotlight,
     useSettings: fixtureSettings,
-    useAlbum: fixtureAlbum,
-    useThoughtfulBoards: fixtureBoards,
+    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixtureAlbum,
+    useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
     useAlbumProfile: fixtureProfile,

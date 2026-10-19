@@ -2,7 +2,8 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
-import { fixedHoggies, fixedProfile, hoggiesFixtures, profileFixtures } from "./profileFixtures";
+import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
+import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 import type { MyAlbum } from "./answer";
 import type { SettingsRead, SettingsShown } from "../settingsRead";
@@ -20,7 +21,7 @@ beforeEach(() => {
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.found) });
+  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway) });
 }
 
 async function topBar() {
@@ -211,13 +212,13 @@ describe("AL42: the sidebar", () => {
     expect(more.getByRole("link", { name: /^Milestones/ })).toHaveTextContent("6 medals");
   });
 
-  it("an album that holds no teams yet lists no Teams section, and its home says only how a team page arrives", async () => {
+  it("an album that holds no teams yet lists no Teams section, and its home leads to finding your team", async () => {
     visit("/", { ...albumFixtures.newcomer, teams: [], people: [] });
     const side = await sidebar();
 
     expect(side.queryByRole("list", { name: "Teams" })).not.toBeInTheDocument();
     expect(side.queryByRole("heading", { name: /^Teams/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1, name: "Your album" }).nextElementSibling).toHaveTextContent(/^Your team's page shows here once you're matched to a team on posthog\.com\.$/);
+    expect(screen.getByRole("region", { name: "Find your team" })).toBeInTheDocument();
   });
 
   it("a member with no team of their own sees no team card", async () => {
