@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -332,6 +332,38 @@ describe("AL42: the sidebar", () => {
     expect((await sidebar()).queryByRole("region", { name: "Your team" })).not.toBeInTheDocument();
   });
 });
+
+describe("#708: the sidebar stays in view", () => {
+  it("stays below the top bar at desktop widths and scrolls its own content, and becomes the drawer on a phone", () => {
+    expect(declarationsOf(".al-side")).toMatchObject({ position: "sticky", top: "var(--al-top-height)", height: "calc(100vh - var(--al-top-height))", "overflow-y": "auto" });
+    expect(declarationsOf(".al-side", cssFrom("@media (max-width: 63.999rem)"))).toMatchObject({ position: "static", height: "auto" });
+  });
+
+  it("no scroll box lets the hidden text it scrolls stretch the page past the album, so the sidebar never runs out of room to stick", () => {
+    const rules = everyAlbumRule();
+    const positioned = new Set(rules.filter(({ declarations }) => /^(relative|absolute|fixed|sticky)$/.test(declarations.position ?? "")).map(({ selector }) => selector));
+    const loose = rules.filter(scrolls).filter(({ selector }) => !positioned.has(selector)).map(({ selector }) => selector);
+
+    expect(loose).toEqual([]);
+  });
+});
+
+type CssRule = { selector: string; declarations: Record<string, string> };
+
+function everyAlbumRule(): CssRule[] {
+  return readdirSync(__dirname)
+    .filter((file) => file.endsWith(".css"))
+    .flatMap((file) => topLevelRulesOf(readFileSync(join(__dirname, file), "utf8")));
+}
+
+function topLevelRulesOf(css: string): CssRule[] {
+  const outsideAtRules = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@[^{;]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
+  return [...outsideAtRules.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({ selector: selector!.trim(), declarations: Object.fromEntries([...body!.matchAll(/([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name!, value!.trim()])) }));
+}
+
+function scrolls({ declarations }: CssRule) {
+  return ["overflow", "overflow-x", "overflow-y"].some((property) => /^(auto|scroll)$/.test(declarations[property] ?? ""));
+}
 
 describe("AL42: Getting started", () => {
   it("shows on the home page while unfinished, counting what's done and naming the next step", async () => {
