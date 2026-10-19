@@ -74,7 +74,7 @@ const fullIssue: WeekIssue = {
   },
   given: {
     kudos: [
-      kudos(["wren-alder", "perrin-holt"], "Thanks for pairing on the flaky deploy until it went green.", "2026-10-17T16:00:00Z"),
+      kudos(["perrin-holt", "wren-alder"], "Thanks for pairing on the flaky deploy until it went green.", "2026-10-17T16:00:00Z"),
       kudos(["juno-park"], "Your onboarding doc answered every question I had.", "2026-10-13T10:15:00Z"),
     ],
     more: false,

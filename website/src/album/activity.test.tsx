@@ -74,8 +74,8 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(lead.getByText("3 hugs · Friday")).toBeInTheDocument();
     expect(lead.getByRole("link", { name: "Open in Slack (opens in a new tab)" })).toHaveAttribute("href", "https://hedgehug.slack.com/archives/C0ABCDEF1/p1760600000000100");
 
-    expect(saidLines(section("Who you thanked"))).toEqual(["Wren Alder and Perrin Holt · Sat | Thanks for pairing on the flaky deploy until it went green.", "Juno Park · Tue | Your onboarding doc answered every question I had."]);
-    expect(linksIn(section("Who you thanked"))).toEqual(["Wren Alder /book#people/wren-alder", "Perrin Holt /book#people/perrin-holt", "Juno Park /book#people/juno-park"]);
+    expect(saidLines(section("Who you thanked"))).toEqual(["Perrin Holt and Wren Alder · Sat | Thanks for pairing on the flaky deploy until it went green.", "Juno Park · Tue | Your onboarding doc answered every question I had."]);
+    expect(linksIn(section("Who you thanked"))).toEqual(["Perrin Holt /book#people/perrin-holt", "Wren Alder /book#people/wren-alder", "Juno Park /book#people/juno-park"]);
     expect(saidLines(section("Said to you"))).toEqual(["Fen Marlowe · Thu | The demo today was brilliant, the way you explained the data model clicked for everyone.", "Oren Pike · Mon | ty for the quick review"]);
     expect(linksIn(section("Said to you"))).toEqual(["Fen Marlowe /book#people/fen-marlowe", "Oren Pike /book#people/oren-pike"]);
     expect(linksIn(section("New in your album"))).toEqual(["Juno Park /book#people/juno-park", "Kit Sorrel /book#people/kit-sorrel"]);
