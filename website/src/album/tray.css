@@ -37,6 +37,7 @@
 }
 
 .al-tray-rows {
+  position: relative;
   display: flex;
   max-height: min(22rem, 55vh);
   flex-direction: column;
