@@ -114,6 +114,19 @@ describe("AL19: unlocking a team sticker", { timeout: 60_000 }, () => {
     expect(await everyTable()).toEqual(before);
   });
 
+  test("a page completed from the album's history alone, before any thoughtful pack opened the emoji name registry, unlocks with its team's name reserved in the registry's order", async () => {
+    await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(...otters) }, { slug: "lanterns", name: "Lanterns", profiles: profilesOf(...lanterns) });
+    await thanks(alice, "ty", ...otters);
+    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
+    await settle(t);
+    const asAlice = await signedIn(alice);
+    expect(await emojiNamesIn("T1"), "no name before the unlock").toEqual([]);
+
+    expect(await unlock(asAlice, "otters")).toMatchObject({ kind: "unlocked", sticker: { team: "otters", emoji: "otters" } });
+
+    expect(await emojiNamesIn("T1")).toEqual(expect.arrayContaining(["level-5", "lanterns", "otters"]));
+  });
+
   test("a page with nobody to collect is never complete", async () => {
     await theCompanyCopyHolds({ slug: "soloists", name: "Soloists", profiles: profilesOf(alice, nobodyInSlack) });
     const asAlice = await signedIn(alice);
@@ -303,6 +316,10 @@ async function memberOf(someone: Person): Promise<MemberId> {
 
 function membersOf(people: Person[]) {
   return Promise.all(people.map(memberOf));
+}
+
+function emojiNamesIn(workspace: string) {
+  return t.run(async (ctx) => (await ctx.db.query("emojiNames").collect()).filter((row) => row.workspace === workspace).map(({ name }) => name));
 }
 
 function everyTable() {

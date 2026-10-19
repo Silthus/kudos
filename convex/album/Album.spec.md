@@ -116,6 +116,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: a complete page with a crest image unlocked and read before and after a newcomer joins the team, a teammate's Slack name changes so their match is lost, and the team leaves the company copy, then clicked again; a team renamed on posthog.com, which comes back as a new slug beside the unlocked page; read through getAlbum's teams and unlockTeamSticker's answers
   via: a team sticker stays unlocked
   because: unlocking a team sticker is a moment the member chooses and keeps (AL19, AL20, user stories 14 and 15): a page that went back to progress when someone joined the team or a match was lost, or vanished when the team left posthog.com, would take back what the member earned and the emoji it earns, and a second unlock would earn it twice
+  refuted: an unlocked page read unlocked only while it was still complete -> 1 of 2 tests failed: a newcomer joining the team took the unlocked page back to its progress (2026-10-19)
   kinds: storage, state
   checklist: revalidated-permission dismissed: the unlock reads the member's page and decides `album` in the same mutation that records the sticker
   checklist: legal-state-succession dismissed: a page goes from ready to unlocked once, by the insert of its team sticker, and nothing writes the sticker again
@@ -141,6 +142,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   refuted: getAlbum's waiting packs read every giver's packs from the signed-in member's ID on, a gte instead of eq -> 1 of 2 tests failed: a member's getAlbum answered packs other members earned (2026-10-18)
   refuted: openThoughtfulPack opened any member's waiting pack, never checking it was the signed-in member's own -> 1 of 3 tests failed: a member opened another member's pack (2026-10-18)
   refuted: putItemIn put in any waiting tray item, never checking it was the signed-in member's own -> 1 of 6 tests failed: a member putting in another member's item answered placed instead of refused (2026-10-19)
+  refuted: the team pages read every member's team stickers, an index range without eq on the member -> 1 of 7 tests failed: a member's page read unlocked by the team sticker another member unlocked (2026-10-19)
   refuted: getThoughtfulBoards pinned the board's first row as the member's own, whoever it belonged to -> 1 of 4 tests failed: a member's pinned row named another member (2026-10-18)
   kinds: read
   checklist: scoped-reads declared as the album is private
@@ -152,6 +154,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   refuted: albumShownTo answered true for every member whatever album decided -> 5 of 7 tests failed: in all four off states getAlbum answered an album with packs, and with it on for one email only every other member's getAlbum answered theirs (2026-10-18)
   refuted: openThoughtfulPack opened the pack whatever album decided -> 3 of 7 tests failed: with album off, missing, and sandbox-only in production, the walk's open filled the tray and changed what the walk leaves (2026-10-18)
   refuted: putIn put the item in whatever album decided for the member -> 1 of 8 tests failed: with album turned off after a member opened their packs, putting an item in answered placed instead of refused (2026-10-19)
+  refuted: unlockTeamSticker unlocked the team sticker whatever album decided for the member -> 1 of 9 tests failed: with album turned off once a page was complete, unlocking answered unlocked instead of refused (2026-10-19)
   refuted: albumOnProfileOf answered album true for every member whatever album decided -> 2 of 7 tests failed: with album on for one email only, every other member's getMyProfile carried album, and the on walk's profiles no longer matched (2026-10-18)
   refuted: getThoughtfulBoards answered the boards without deciding album for the member -> 3 of 7 tests failed: in three off states getThoughtfulBoards answered its boards (2026-10-18)
   kinds: state, output
