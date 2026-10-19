@@ -106,7 +106,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: revision-preservation declared as a drop never changes
   checklist: supersession-safety dismissed: nothing stored records the flag's value but the exposure
   checklist: commit-ordered-effects dismissed: turning a flag off issues no effect
-  checklist: declared-target-coverage dismissed: the surfaces are App Home, getCollection and getActivity, each read by the oracle
+  checklist: declared-target-coverage dismissed: the surfaces are App Home, getCollection, getActivity and getAlbumHoggies, each read by the oracle
   checklist: destination-confinement dismissed: turning the flag off withholds lines, fields and entries; where Slack calls and answers go is unchanged
   checklist: redaction dismissed: the decision removes the whole line, collection or entry rather than scrubbing content inside it
   checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment

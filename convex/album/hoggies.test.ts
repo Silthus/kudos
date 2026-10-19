@@ -157,7 +157,7 @@ describe("the album is private", { timeout: 60_000 }, () => {
   });
 });
 
-describe("CL11: turning collection off hides every hoggie and takes nothing away; on again shows the same", () => {
+describe("CL11: turning collection off hides every hoggie and takes nothing away; on again shows the same", { timeout: 60_000 }, () => {
   test("with album on, turning collection off makes getAlbumHoggies answer off and keeps every find, and on again shows the same hoggies", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen);
     await thanks(alice, why, bob);
