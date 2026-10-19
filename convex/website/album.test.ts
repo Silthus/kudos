@@ -42,15 +42,18 @@ afterEach(() => {
 });
 
 describe("the album is private", () => {
-  test("getAlbum answers each signed-in member their own name, level and waiting packs, never another member's", async () => {
+  test("getAlbum answers each signed-in member their own name, level, waiting packs and people, never another member's", async () => {
     await thanks(alice, "Thanks for the careful review of the billing export", bob);
     await thanks(bob, "Thanks for pairing on the stubborn cache invalidation", carol, dana);
     await thanks(carol, "Thanks for the thorough onboarding notes you wrote", alice);
+    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
+    await settle(t);
 
     const albums = await Promise.all([alice, bob, carol, dana].map(async (person) => [person, await albumOf(await signedIn(person))] as const));
 
     for (const [person, album] of albums) expect(album, `${person.name}'s own album`).toMatchObject({ kind: "album", me: { name: person.name, person: await memberOf(person) } });
     expect(await packedPeopleIn(albums)).toEqual({ [alice.name]: [bob.name], [bob.name]: [carol.name, dana.name], [carol.name]: [alice.name], [dana.name]: [] });
+    expect(heldPeopleIn(albums)).toEqual({ [alice.name]: [bob.name], [bob.name]: [carol.name, dana.name], [carol.name]: [alice.name], [dana.name]: [] });
   });
 
   test("an argument that names another member is rejected by the validator", async () => {
@@ -134,6 +137,10 @@ async function packedPeopleIn(albums: ReadonlyArray<readonly [Person, AlbumRead 
   const names = new Map<string, string>();
   for (const person of [alice, bob, carol, dana]) names.set(await memberOf(person), person.name);
   return Object.fromEntries(albums.map(([person, album]) => [person.name, "packs" in album ? (album as Extract<AlbumRead, { kind: "album" }>).packs.map(({ person: packed }) => names.get(packed)) : null]));
+}
+
+function heldPeopleIn(albums: ReadonlyArray<readonly [Person, AlbumRead | { kind: string }]>) {
+  return Object.fromEntries(albums.map(([person, album]) => [person.name, "people" in album ? (album as Extract<AlbumRead, { kind: "album" }>).people.map(({ name }) => name).toSorted() : null]));
 }
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {

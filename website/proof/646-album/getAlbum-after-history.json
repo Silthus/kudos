@@ -1,0 +1,45 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 26
+  },
+  "me": {
+    "face": {
+      "initials": "OM",
+      "kind": "initials"
+    },
+    "name": "Odile Marsh",
+    "person": "js7adyj4bgdjn50shpa0z1ef818ggczc"
+  },
+  "morePacks": false,
+  "packs": [
+    {
+      "earnedAt": 1792103313842,
+      "pack": "hn7hyxkjr3468hdfvysmpnpqch8gh2g3",
+      "person": "js70vehner93gs2pe2fbp7b95h8ggbgs"
+    }
+  ],
+  "people": [
+    {
+      "face": {
+        "initials": "PL",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Pim Larch",
+      "person": "js70vehner93gs2pe2fbp7b95h8ggbgs"
+    },
+    {
+      "face": {
+        "initials": "QF",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Quill Fen",
+      "person": "js7bj7p5gnbfqfa2hmarmxe9an8ggvb5"
+    }
+  ]
+}
