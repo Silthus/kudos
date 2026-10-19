@@ -2,6 +2,7 @@ import { IconCrown, IconEmoji, IconGear, IconPulse, IconStack } from "@posthog/i
 import { useId, type ComponentType, type ReactNode, type RefObject } from "react";
 import { AppLink } from "../AppLink";
 import { useCountUp } from "../countUp";
+import { prefersReducedMotion } from "../reducedMotion";
 import { MemberFace } from "../Face";
 import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
@@ -34,7 +35,7 @@ export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, p
 
 function XpBar({ level: settled, moving }: { level: AlbumLevel; moving: boolean }) {
   const counted = useCountUp(settled.xp);
-  const level = moving ? { ...settled, xp: counted } : settled;
+  const level = moving && !prefersReducedMotion() ? { ...settled, xp: counted } : settled;
   return (
     <div className="al-xp">
       <span className="al-level">Level {level.level}</span>
