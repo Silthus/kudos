@@ -13,7 +13,7 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
-import type { AlbumShown, BoardsShown, PersonShown, WeekShown } from "./album/answer";
+import type { AlbumShown, BoardsShown, HoggiesShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
 import { albumOf } from "./album/liveAlbum";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
@@ -68,6 +68,8 @@ function LiveApp() {
       useThoughtfulBoards={(asking) => useLiveThoughtfulBoards(asking, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
+      useAlbumProfile={(asking) => useLiveAlbumProfile(asking, unreachable)}
+      useAlbumHoggies={(asking) => useLiveAlbumHoggies(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
@@ -146,6 +148,22 @@ function useLiveAlbumPerson(asking: boolean, person: string | null, unreachable:
 function useLiveAlbumWeek(asking: boolean, week: string | undefined, unreachable: boolean): WeekShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { week: { query: api.website.album.getAlbumWeek, args: week === undefined ? {} : { week } } } : {}), [asking, week]);
   const { week: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
+}
+
+function useLiveAlbumProfile(asking: boolean, unreachable: boolean): ProfileShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { profile: { query: api.website.album.getAlbumProfile, args: {} } } : {}), [asking]);
+  const { profile: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
+}
+
+function useLiveAlbumHoggies(asking: boolean, unreachable: boolean): HoggiesShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { hoggies: { query: api.website.album.getAlbumHoggies, args: {} } } : {}), [asking]);
+  const { hoggies: answer } = useQueries(request);
   if (answer instanceof Error) return { kind: "broken" };
   if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return answer;

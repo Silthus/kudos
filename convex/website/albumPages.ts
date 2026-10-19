@@ -2,6 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import type { Message } from "../activity/entries";
 import { kudosWordsOf, mentionsOfOnePage, permalinkOfMessage, type Mentions } from "../activity/kudos";
 import { personPageOf, type HypeEmoji, type PersonTeam } from "../album/personPage";
+import { lastKindNoteTo, newestStickersOf, type KindNote } from "../album/profile";
 import type { HoggieFound } from "../album/records";
 import { weekEditionOf, type Issue, type WeekTab } from "../album/weekIssue";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
@@ -43,6 +44,10 @@ export type AlbumIssue = Omit<Issue, "kudosOfWeek" | "thanked" | "thankedBy" | "
 
 export type AlbumWeekAnswer = { kind: "week"; week: DayKey; weeks: WeekTab[]; issue: AlbumIssue | null };
 
+export type AlbumKindNote = AlbumKudos & { giver: AlbumPersonFace };
+
+export type AlbumProfileAnswer = { kind: "profile"; note: AlbumKindNote | null; newest: (AlbumPersonFace & { at: number })[] };
+
 export async function albumPersonOf(ctx: QueryCtx, me: VerifiedMember, person: MemberId): Promise<AlbumPersonAnswer | { kind: "no-person" }> {
   const page = await personPageOf(ctx, me, person);
   if (page === null) return { kind: "no-person" };
@@ -54,6 +59,20 @@ export async function albumPersonOf(ctx: QueryCtx, me: VerifiedMember, person: M
 export async function albumWeekOf(ctx: QueryCtx, me: VerifiedMember, asked: DayKey | undefined): Promise<AlbumWeekAnswer> {
   const { week, weeks, issue } = await weekEditionOf(ctx, me.member, asked, Date.now());
   return { kind: "week", week, weeks, issue: issue === null ? null : await issueShown(ctx, me.workspace, issue) };
+}
+
+export async function albumProfileOf(ctx: QueryCtx, me: VerifiedMember, peopleSearched: number): Promise<AlbumProfileAnswer> {
+  const note = await lastKindNoteTo(ctx, me.member);
+  const newest = await newestStickersOf(ctx, me.member, peopleSearched);
+  return {
+    kind: "profile",
+    note: note === null ? null : await kindNoteShown(ctx, me.workspace, note),
+    newest: await Promise.all(newest.map(async ({ person, at }) => ({ ...(await faceIn(ctx, me.workspace, person)), at }))),
+  };
+}
+
+async function kindNoteShown(ctx: QueryCtx, workspace: string, { giver, message, at }: KindNote): Promise<AlbumKindNote> {
+  return { giver: await faceIn(ctx, workspace, giver), ...(await kudosShown(ctx, mentionsOfOnePage(ctx), message, at)) };
 }
 
 async function issueShown(ctx: QueryCtx, workspace: string, { kudosOfWeek, thanked, thankedBy, hugged, huggedBy, newFaces, hoggiesFound, ...counts }: Issue): Promise<AlbumIssue> {

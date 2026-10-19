@@ -4,7 +4,7 @@ import { StrictMode } from "react";
 import { vi } from "vitest";
 import { App, type AppReads } from "../App";
 import type { ActivityRead, ActivityWatch } from "../activityRead";
-import type { AlbumRead, BoardsRead, PersonRead, WeekRead } from "../album/answer";
+import type { AlbumRead, BoardsRead, HoggiesRead, PersonRead, ProfileRead, WeekRead } from "../album/answer";
 import type { BoardRead } from "../boardRead";
 import type { BookRead } from "../bookRead";
 import type { CollectionRead } from "../collectionRead";
@@ -47,16 +47,20 @@ const noWeeks: WeekRead = (asking) => (asking ? { kind: "off" } : undefined);
 
 const noPeople: PersonRead = (asking) => (asking ? { kind: "off" } : undefined);
 
+const noProfile: ProfileRead = (asking) => (asking ? { kind: "off" } : undefined);
+
+const noHoggies: HoggiesRead = (asking) => (asking ? { kind: "off" } : undefined);
+
 type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker">>;
 
-const noReads: AppReads = { useLeaderboard: noBoard, useQuests: noQuests, useBook: noBook, useCollection: noCollection, useSkillTree: noSkillTree, useProfileCard: noProfileCard, useRecentKudos: noRecentKudos, useActivityWatch: noActivity.watch, readActivity: noActivity.read, drawSpotlight: noSpotlight, useSettings: noSettings, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople };
+const noReads: AppReads = { useLeaderboard: noBoard, useQuests: noQuests, useBook: noBook, useCollection: noCollection, useSkillTree: noSkillTree, useProfileCard: noProfileCard, useRecentKudos: noRecentKudos, useActivityWatch: noActivity.watch, readActivity: noActivity.read, drawSpotlight: noSpotlight, useSettings: noSettings, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies };
 
 export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook, readSkillTree: SkillTreeRead = noSkillTree, readProfileCard: ProfileCardRead = noProfileCard, readRecentKudos: RecentKudosRead = noRecentKudos, activity: ActivityReads = noActivity, drawSpotlight: SpotlightDraw = noSpotlight, readSettings: SettingsRead = noSettings, readCollection: CollectionRead = noCollection) {
-  return renderAppWith(visitor, { useLeaderboard: readLeaderboard, useQuests: readQuests, useBook: readBook, useSkillTree: readSkillTree, useProfileCard: readProfileCard, useRecentKudos: readRecentKudos, useActivityWatch: activity.watch, readActivity: activity.read, drawSpotlight, useSettings: readSettings, useCollection: readCollection, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople }, commands);
+  return renderAppWith(visitor, { useLeaderboard: readLeaderboard, useQuests: readQuests, useBook: readBook, useSkillTree: readSkillTree, useProfileCard: readProfileCard, useRecentKudos: readRecentKudos, useActivityWatch: activity.watch, readActivity: activity.read, drawSpotlight, useSettings: readSettings, useCollection: readCollection, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies }, commands);
 }
 
-export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, boards = noBoards, weeks = noWeeks, people = noPeople, commands = {} }: { settings?: SettingsRead; boards?: BoardsRead; weeks?: WeekRead; people?: PersonRead; commands?: Commands } = {}) {
-  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useThoughtfulBoards: boards, useAlbumWeek: weeks, useAlbumPerson: people }, commands);
+export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, boards = noBoards, weeks = noWeeks, people = noPeople, profile = noProfile, hoggies = noHoggies, commands = {} }: { settings?: SettingsRead; boards?: BoardsRead; weeks?: WeekRead; people?: PersonRead; profile?: ProfileRead; hoggies?: HoggiesRead; commands?: Commands } = {}) {
+  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useThoughtfulBoards: boards, useAlbumWeek: weeks, useAlbumPerson: people, useAlbumProfile: profile, useAlbumHoggies: hoggies }, commands);
 }
 
 function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands) {
