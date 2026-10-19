@@ -1,0 +1,5 @@
+     × a home team nobody else is in Slack for says so, with no seal to count toward 64ms
+     × an unlocked home team says when it was unlocked, even with nobody else in Slack 49ms
+     × a profile read that fails shows the error page in the frame 27ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed | 15 passed (18)

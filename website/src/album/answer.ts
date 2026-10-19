@@ -137,3 +137,21 @@ export type PersonPage = {
 export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type PersonRead = (asking: boolean, person: string | null) => PersonShown | undefined;
+
+export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };
+
+export type NewestPerson = WeekPerson & { at: number };
+
+export type AlbumProfile = { kind: "profile"; note: KindNote | null; newest: NewestPerson[] };
+
+export type ProfileShown = AlbumProfile | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type ProfileRead = (asking: boolean) => ProfileShown | undefined;
+
+export type FoundHoggie = { hoggie: string; name: string; rarity: Rarity; firstAt: number | null };
+
+export type AlbumHoggies = { kind: "hoggies"; found: number; total: number; rarest: FoundHoggie[] };
+
+export type HoggiesShown = AlbumHoggies | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type HoggiesRead = (asking: boolean) => HoggiesShown | undefined;

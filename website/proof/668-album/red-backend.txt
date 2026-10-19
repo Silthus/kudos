@@ -1,0 +1,25 @@
+ ❯ convex/website/albumProfile.test.ts:90:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  |convex| convex/website/albumProfile.test.ts > AL52: getAlbumProfile reads the profile's kind note and newest people > with album off for the member, the profile reads off
+Error: Expected a Convex function exported from module "website/album" as `getAlbumProfile`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2501:15
+    2499|     const func = module[exportName];
+    2500|     if (func === undefined) {
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2502|     }
+    2503|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2167:34
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2254:20
+ ❯ convex/website/albumProfile.test.ts:97:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  07:01:29
+   Duration  1.87s (tests 42%, transform 41%, import 15%, environment 2%)
+

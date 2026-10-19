@@ -1,0 +1,31 @@
+- Expected
++ Received
+
+  {
+    "kind": "profile",
+    "note": {
+-     "at": 1791885660000,
++     "at": 1791885720000,
+      "giver": {
+-       "name": "Bob Okonkwo",
++       "name": "Carol Lindqvist",
+      },
+-     "permalink": "https://kudos-test.slack.com/archives/C1/p1791885660000001",
++     "permalink": "https://kudos-test.slack.com/archives/C1/p1791885720000002",
+    },
+  }
+
+ ❯ convex/website/albumProfile.test.ts:75:36
+     73|     await settle(t);
+     74|
+     75|     expect(await profileOf(alice)).toMatchObject({ kind: "profile", no…
+       |                                    ^
+     76|   });
+     77|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 skipped (5)
+   Start at  07:43:21
