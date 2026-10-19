@@ -10,7 +10,7 @@ import { attemptCall, isRefusedForItsBlocks, slackTextOf, type Attempt } from ".
 
 const attemptsAtMost = 3;
 const teamRowsShown = 10;
-const otherTeamsNamed = 40;
+const otherTeamsCharactersAtMost = 2_900;
 const refusedInChannel = new Set(["no_permission", "restricted_action", "restricted_action_read_only_channel", "restricted_action_thread_only_channel", "ekm_access_denied"]);
 
 export const postMondayPost = observedAction({
@@ -68,9 +68,21 @@ function teamBlockOf(row: TeamRow) {
 
 function otherTeamsOf(rows: TeamRow[]) {
   if (rows.length === 0) return [];
-  const named = rows.slice(0, otherTeamsNamed).map(teamWordsOf).join(" · ");
-  const more = rows.length - otherTeamsNamed;
-  return [{ type: "context", elements: [mrkdwn(more > 0 ? `${named} and ${more} more ${more === 1 ? "team" : "teams"}` : named)] }];
+  const named = namedWithinTheLimit(rows.map(teamWordsOf));
+  const more = rows.length - named.length;
+  const line = named.join(" · ");
+  return [{ type: "context", elements: [mrkdwn(more > 0 ? `${line} and ${more} more ${more === 1 ? "team" : "teams"}` : line)] }];
+}
+
+function namedWithinTheLimit(names: string[]): string[] {
+  const named: string[] = [];
+  let length = 0;
+  for (const name of names) {
+    length += name.length + " · ".length;
+    if (length > otherTeamsCharactersAtMost) break;
+    named.push(name);
+  }
+  return named;
 }
 
 function teamWordsOf({ team, count, emoji }: TeamRow) {

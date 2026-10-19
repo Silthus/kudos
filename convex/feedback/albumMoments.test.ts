@@ -245,14 +245,25 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
     expect(blocks.at(-1)).toEqual({ type: "context", elements: [{ type: "mrkdwn", text: "*Team 10* ×1 · *Team 11* ×1" }] });
   });
 
-  test("sixty teams: the first ten with their pictures, the next forty with their counts, the rest counted", async () => {
+  test("sixty teams with short names: the first ten with their pictures, then all fifty others with their counts in one line", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     await teamStickersUnlocked(alice, 60);
 
     await mondayPostSent();
 
-    const listed = Array.from({ length: 40 }, (_, index) => `*Team ${index + 10}* ×1`).join(" · ");
-    expect(mondayPost()?.blocks?.at(-1)).toEqual({ type: "context", elements: [{ type: "mrkdwn", text: `${listed} and 10 more teams` }] });
+    const listed = Array.from({ length: 50 }, (_, index) => `*Team ${index + 10}* ×1`).join(" · ");
+    expect(mondayPost()?.blocks?.at(-1)).toEqual({ type: "context", elements: [{ type: "mrkdwn", text: listed }] });
+  });
+
+  test("sixty teams with long names: the line of other teams stays within Slack's 3,000 characters and counts the rest", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    await teamStickersUnlocked(alice, 60, " of the Very Long Department Name That Goes On and On Past Every Reasonable Length");
+
+    await mondayPostSent();
+
+    const otherTeams = mondayPost()?.blocks?.at(-1)?.elements?.[0]?.text ?? "";
+    expect(otherTeams.length).toBeLessThanOrEqual(3_000);
+    expect(otherTeams).toMatch(/^\*Team 10 of the Very Long Department Name That Goes On and On Past Every Reasonable Length\* ×1 · .+ and \d+ more teams$/);
   });
 
   test("a kudos that starts with many blank lines still quotes its words", async () => {
@@ -444,11 +455,11 @@ async function levelsReached(someone: Person, level: number) {
   });
 }
 
-async function teamStickersUnlocked(someone: Person, teams: number) {
+async function teamStickersUnlocked(someone: Person, teams: number, nameEnding = "") {
   await t.run(async (ctx) => {
     const member = (await ctx.db.query("members").collect()).find(({ user }) => user === someone.user)!._id;
     for (let index = 0; index < teams; index += 1) {
-      const name = `Team ${String(index).padStart(2, "0")}`;
+      const name = `Team ${String(index).padStart(2, "0")}${nameEnding}`;
       await ctx.db.insert("teamStickers", { member, workspace: "T1", team: `team-${index}`, at: Date.now(), name, art: null, emoji: `team-${index}` });
     }
   });
