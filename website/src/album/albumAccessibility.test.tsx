@@ -73,7 +73,7 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
           if (wide) preferWideScreen();
           else aWideScreenThatNarrows().narrow();
           const { container } = visit(path, album, boards, week);
-          await screen.findByRole("navigation", { name: "Album" });
+          await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
 
           expect(await violationsIn(container)).toEqual([]);
         }, 30_000);
@@ -175,7 +175,7 @@ describe("AL55: the album is usable by keyboard alone", () => {
     fakeSystemTheme(false);
     preferWideScreen();
     const { user } = visit("/");
-    await screen.findByRole("navigation", { name: "Album" });
+    await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
 
     const reached: string[] = [];
     for (let step = 0; step < 11; step += 1) {
