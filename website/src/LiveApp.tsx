@@ -14,7 +14,7 @@ import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
 import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
-import { albumOf, putAllInShown, putInShown } from "./album/liveAlbum";
+import { albumOf, openShown, putAllInShown, putInShown } from "./album/liveAlbum";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
 import type { CollectionShown } from "./collectionRead";
@@ -291,7 +291,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
       mapSlackEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapSlackEmoji({ emoji, to })),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
-      openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
+      openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })).then(openShown),
       unlockTeamSticker: (team) => answerWithin(commandAnswerBudgetMs, unlockTeamSticker({ team })),
       putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })).then(putInShown),
       putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})).then(putAllInShown),

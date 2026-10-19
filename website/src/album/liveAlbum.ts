@@ -1,6 +1,6 @@
 import type { AlbumPerson as HeldPerson, AlbumRead as GetAlbumAnswer } from "../../../convex/website/album";
 import type { Denial } from "../../../convex/website/memberQuery";
-import type { AlbumEmoji, AlbumPerson, AlbumTeam, MyAlbum, PutAllInReply, PutInReply, SharedEmoji, Thanked, TrayItem, WaitingPack } from "./answer";
+import type { AlbumEmoji, AlbumPerson, AlbumTeam, MyAlbum, PackOpenReply, PutAllInReply, PutInReply, SharedEmoji, Thanked, TrayItem, WaitingPack } from "./answer";
 
 export function albumOf(answer: GetAlbumAnswer | Denial): MyAlbum {
   if (answer.kind !== "album") return answer;
@@ -22,6 +22,10 @@ function itemShown(item: AnsweredItem): TrayItem {
   if (item.kind === "hoggie") return item;
   const { thanked = nobodyNamed, ...sticker } = item;
   return { ...sticker, thanked };
+}
+
+export function openShown(reply: PackOpenReply): PackOpenReply {
+  return reply.kind === "opened" ? { ...reply, items: reply.items.map(itemShown) } : reply;
 }
 
 export function putInShown(reply: PutInReply): PutInReply {

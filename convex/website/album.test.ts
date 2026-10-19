@@ -200,7 +200,7 @@ describe("AL47: each waiting pack names the person it thanks, with the face the 
 });
 
 describe("AL11: the open, Put in and Put them all in answer each sticker with the person it brings", () => {
-  test("openThoughtfulPack, putIn and putAllIn name the person and show their stored face, as getAlbum's tray does", async () => {
+  test("openThoughtfulPack, putIn and putAllIn name the person, with their initials when no picture is stored, as getAlbum's tray does", async () => {
     await switchWebsite(t, postHog, true, "album", "collection", "packs");
     await thanks(alice, "Thanks for the careful review of the billing export", carol, dana);
     const asAlice = await signedIn(alice);
