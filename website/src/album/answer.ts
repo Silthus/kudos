@@ -15,9 +15,11 @@ export type AlbumTeam = { team: string; name: string; art: TeamArt; mine: boolea
 
 export type AlbumPerson = { person: string; name: string; face: Face; teams: string[]; held: boolean; packedThisWeek: boolean };
 
-export type WaitingPack = { pack: string; person: string; earnedAt: number };
+export type Thanked = { name: string | null; face: Face | null };
 
-export type TrayItem = { item: string; kind: "sticker"; person: string } | { item: string; kind: "hoggie"; hoggie: string; rarity: Rarity; isNew: boolean };
+export type WaitingPack = { pack: string; person: string; earnedAt: number; thanked: Thanked };
+
+export type TrayItem = { item: string; kind: "sticker"; person: string; thanked: Thanked } | { item: string; kind: "hoggie"; hoggie: string; rarity: Rarity; isNew: boolean };
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 

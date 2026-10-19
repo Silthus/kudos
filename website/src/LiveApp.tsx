@@ -10,7 +10,7 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
-import { albumOf } from "./album/liveAlbum";
+import { albumOf, openShown, putAllInShown, putInShown } from "./album/liveAlbum";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
@@ -156,6 +156,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const linkMyCompanyProfile = useSentOnce(api.website.commands.linkMyCompanyProfile);
   const linkCompanyProfile = useSentOnce(api.website.commands.linkCompanyProfile);
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
+  const setWeeklyPost = useSentOnce(api.website.commands.setWeeklyPost);
   const mapSlackEmoji = useSentOnce(api.website.emojiMappings.mapSlackEmoji);
   const mapMyEmoji = useSentOnce(api.website.emojiWizard.mapMyEmoji);
   const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
@@ -171,12 +172,13 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       linkMyCompanyProfile: (profile) => answerWithin(commandAnswerBudgetMs, linkMyCompanyProfile({ profile })),
       linkCompanyProfile: (member, profile) => answerWithin(commandAnswerBudgetMs, linkCompanyProfile({ member, profile })),
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
+      setWeeklyPost: (on) => answerWithin(commandAnswerBudgetMs, setWeeklyPost({ on })),
       mapSlackEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapSlackEmoji({ emoji, to })),
       mapMyEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapMyEmoji({ emoji, to })),
-      openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
+      openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })).then(openShown),
       unlockTeamSticker: (team) => answerWithin(commandAnswerBudgetMs, unlockTeamSticker({ team })),
-      putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })),
-      putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})),
+      putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })).then(putInShown),
+      putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})).then(putAllInShown),
       markEmojisSeen: (ids) => answerWithin(commandAnswerBudgetMs, markEmojisSeen({ ids })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
@@ -185,7 +187,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, mapSlackEmoji, mapMyEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, mapSlackEmoji, mapMyEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, onSignInFailure],
   );
 }
 

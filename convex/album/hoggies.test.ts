@@ -8,7 +8,7 @@ import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { catalogue, hoggieNamed, hoggiesOfRarity, rarities } from "../hoggies/catalogue";
-import type { AlbumAnswer, AlbumHoggiesAnswer, AlbumRead } from "../website/album";
+import type { AlbumAnswer, AlbumHoggiesAnswer, AlbumRead, OpenAnswer } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 
 const theDraw = vi.hoisted(() => ({ pinned: [] as string[] }));
@@ -192,8 +192,10 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
   await settle(t);
 }
 
+type OpenAnswerItems = Extract<OpenAnswer, { kind: "opened" }>["items"];
+
 async function openEvery(reader: Reader) {
-  const items: AlbumAnswer["tray"] = [];
+  const items: OpenAnswerItems = [];
   for (const { pack } of (await albumOf(reader)).packs) {
     vi.setSystemTime(Date.now() + 1_000);
     const opened = await reader.mutation(api.website.album.openThoughtfulPack, { pack });
@@ -203,7 +205,7 @@ async function openEvery(reader: Reader) {
   return items;
 }
 
-function hoggiesIn(items: AlbumAnswer["tray"]) {
+function hoggiesIn(items: OpenAnswerItems) {
   return items.flatMap((item) => (item.kind === "hoggie" ? [item] : []));
 }
 

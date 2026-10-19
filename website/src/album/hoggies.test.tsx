@@ -393,7 +393,7 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
 
     act(() => window.history.back());
     await waitFor(() => expect(screen.queryByText("Showing epic hoggies.")).not.toBeInTheDocument());
-    expect(markedInTheStrip(), "Back to every rarity").toEqual(["Uncommon"]);
+    await waitFor(() => expect(markedInTheStrip(), "Back to every rarity").toEqual(["Uncommon"]));
   });
 
   it("waits on its own read and shows the album's loading page meanwhile", async () => {
