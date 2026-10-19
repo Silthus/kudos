@@ -3,12 +3,13 @@ import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
+import { AddToSlack } from "./AddToSlack";
 import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
 import { plural } from "./facts";
 import { hrefOf } from "./place";
 import { SealArt } from "./Seal";
 import { Silhouette } from "./Silhouette";
-import { dateOf, inSlackWords, nameOnThePhoto, nextStepOf, nextStepWords, onThePhotoOf, teamEmojiOf, type OnThePhoto } from "./teamPage";
+import { dateOf, nameOnThePhoto, onThePhotoOf, teamEmojiOf, teamEmojiUseWords, type OnThePhoto } from "./teamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
 import "./team.css";
 
@@ -36,9 +37,12 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
         <figcaption id={caption} className="al-photo-caption">
           <span className="al-photo-caption-label">Left to right</span> <Caption onThePhoto={onThePhoto} />
         </figcaption>
-        <Seal team={team} emoji={emoji} />
+        <Seal team={team} emoji={emoji} unlocking={unlocking} />
       </figure>
-      <Goal album={album} team={team} emoji={emoji} unlocking={unlocking} />
+      <p role="status" className="al-unlock-problem">
+        {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
+      </p>
+      {team.state === "unlocked" && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} />}
     </article>
   );
 }
@@ -83,21 +87,21 @@ function Caption({ onThePhoto }: { onThePhoto: OnThePhoto[] }) {
   );
 }
 
-function Seal({ team, emoji }: { team: AlbumTeam; emoji: AlbumEmoji | undefined }) {
+function Seal({ team, emoji, unlocking }: { team: AlbumTeam; emoji: AlbumEmoji | undefined; unlocking: TeamUnlocking }) {
   return (
     <div className="al-seal-spot">
-      <div className="al-seal" data-state={team.state} data-al-seal={team.team} role="img" aria-label={sealLabelOf(team)}>
-        <SealArt team={team} coloured={team.state === "unlocked"} size={sealSize} />
-        {team.state === "ready" && (
-          <>
-            <span className="al-seal-shimmer" aria-hidden="true" />
-            <span className="al-seal-ribbon">Ready to unlock</span>
-          </>
-        )}
-      </div>
+      {team.state === "ready" ? (
+        <UnlockSeal team={team} unlocking={unlocking} />
+      ) : (
+        <div className="al-seal" data-state={team.state} data-al-seal={team.team} role="img" aria-label={sealLabelOf(team)}>
+          <SealArt team={team} coloured={team.state === "unlocked"} size={sealSize} />
+        </div>
+      )}
       {team.state === "unlocked" && (
         <p className="al-seal-tag">
-          <span>Unlocked {dateOf(team.unlockedAt ?? 0)}</span>
+          <span tabIndex={-1} data-al-unlocked="">
+            Unlocked {dateOf(team.unlockedAt ?? 0)}
+          </span>
           {emoji !== undefined && <code className="ph-no-capture">:{emoji.name}:</code>}
         </p>
       )}
@@ -105,82 +109,34 @@ function Seal({ team, emoji }: { team: AlbumTeam; emoji: AlbumEmoji | undefined 
   );
 }
 
-function sealLabelOf(team: AlbumTeam) {
-  if (team.state === "unlocked") return `${team.name} sticker, unlocked`;
-  if (team.state === "ready") return `${team.name} sticker, ready to unlock`;
-  return `${team.name} sticker, ${team.held} of ${team.total}`;
-}
-
-function Goal({ album, team, emoji, unlocking }: { album: Album; team: AlbumTeam; emoji: AlbumEmoji | undefined; unlocking: TeamUnlocking }) {
-  const heading = useId();
-  return (
-    <section className="al-goal" data-state={team.state} data-al-goal="" aria-labelledby={heading}>
-      <h2 id={heading} tabIndex={-1} className="al-eyebrow al-goal-heading">
-        {goalHeadingOf(team)}
-      </h2>
-      <GoalWords album={album} team={team} unlocking={unlocking} />
-      {team.state === "unlocked" && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} />}
-      <p role="status" className="al-goal-problem">
-        {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
-      </p>
-    </section>
-  );
-}
-
-function goalHeadingOf(team: AlbumTeam) {
-  if (team.state === "unlocked") return `Unlocked ${dateOf(team.unlockedAt ?? 0)}`;
-  return team.state === "ready" ? "Ready to unlock" : "Collect the whole team";
-}
-
-function GoalWords({ album, team, unlocking }: { album: Album; team: AlbumTeam; unlocking: TeamUnlocking }) {
-  if (team.state === "unlocked") return <p className="al-goal-words">The {team.name} sticker is yours.</p>;
-  if (team.state === "ready")
-    return (
-      <>
-        <p className="al-goal-words">
-          {team.total} of {team.total} in your album. Everyone is in.
-        </p>
-        <div className="al-goal-next">
-          <p>Every {team.name} card is in. Unlock your team sticker!</p>
-          <UnlockButton team={team} unlocking={unlocking} />
-        </div>
-      </>
-    );
-  if (team.total === 0) return <p className="al-goal-words">Nobody else on {team.name} is in Slack yet, so there's nobody to collect.</p>;
-  const step = nextStepOf(album, team);
-  return (
-    <>
-      <p className="al-goal-words">
-        {team.held} of {team.total} in your album. Collect all {team.total} to unlock the {team.name} sticker.
-      </p>
-      {step !== null && <p className="al-goal-next ph-no-capture">{nextStepWords(step, team)}</p>}
-    </>
-  );
-}
-
-function UnlockButton({ team, unlocking }: { team: AlbumTeam; unlocking: TeamUnlocking }) {
+function UnlockSeal({ team, unlocking }: { team: AlbumTeam; unlocking: TeamUnlocking }) {
   const sending = unlocking.sending === team.team;
   const unavailable = unlocking.sending !== null || unlocking.waits;
+  const busyWords = busyWordsOf(sending, unlocking.waits);
   return (
-    <button type="button" className="al-unlock" aria-disabled={unavailable || undefined} onClick={unavailable ? undefined : () => unlocking.start(team.team)}>
-      <LockOpen />
-      {unlockWordsOf(team, sending, unlocking.waits)}
+    <button
+      type="button"
+      className="al-seal"
+      data-state="ready"
+      data-al-seal={team.team}
+      aria-label={busyWords ?? `Ready to unlock the ${team.name} sticker`}
+      aria-disabled={unavailable || undefined}
+      onClick={unavailable ? undefined : () => unlocking.start(team.team)}
+    >
+      <SealArt team={team} coloured={false} size={sealSize} />
+      <span className="al-seal-shimmer" aria-hidden="true" />
+      <span className="al-seal-ribbon">{busyWords ?? "Ready to unlock"}</span>
     </button>
   );
 }
 
-function unlockWordsOf(team: AlbumTeam, sending: boolean, waits: boolean) {
+function busyWordsOf(sending: boolean, waits: boolean) {
   if (sending) return "Unlocking…";
-  return waits ? "Waiting for your cards to land…" : `Unlock the ${team.name} sticker`;
+  return waits ? "Waiting for your cards to land…" : null;
 }
 
-function LockOpen() {
-  return (
-    <svg viewBox="0 0 24 24" className="al-unlock-icon" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="10" rx="2.5" />
-      <path d="M8 11V7.5a4 4 0 0 1 7.6-1.8" fill="none" />
-    </svg>
-  );
+function sealLabelOf(team: AlbumTeam) {
+  return team.state === "unlocked" ? `${team.name} sticker, unlocked` : `${team.name} sticker, ${team.held} of ${team.total}`;
 }
 
 function problemWordsOf(reason: "refused" | "unreachable", team: AlbumTeam) {
@@ -188,14 +144,15 @@ function problemWordsOf(reason: "refused" | "unreachable", team: AlbumTeam) {
 }
 
 function TeamEmojiLine({ team, emoji }: { team: AlbumTeam; emoji: AlbumEmoji }) {
-  const inSlack = inSlackWords(emoji);
   return (
-    <p className="al-emoji-line ph-no-capture">
+    <div className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
         <TeamCrest art={team.art} size={32} name={team.name} />
       </span>
-      <code>:{emoji.name}:</code>
-      <span> is your team emoji.{inSlack === null ? "" : ` ${inSlack.charAt(0).toUpperCase()}${inSlack.slice(1)}.`}</span>
-    </p>
+      <p>
+        You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji)}
+      </p>
+      {!emoji.inSlack && <AddToSlack emoji={emoji} />}
+    </div>
   );
 }

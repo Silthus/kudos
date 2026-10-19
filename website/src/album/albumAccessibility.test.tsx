@@ -157,7 +157,7 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
         preferWideScreen();
         if (reduced) preferReducedMotion();
         const { user, container } = visit("/book#teams/kettle-works");
-        const unlock = await screen.findByRole("button", { name: "Unlock the Kettle Works sticker" });
+        const unlock = await screen.findByRole("button", { name: "Ready to unlock the Kettle Works sticker" });
 
         unlock.focus();
         await user.keyboard("{Enter}");
