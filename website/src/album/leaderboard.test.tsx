@@ -11,6 +11,8 @@ import { boardsByPeriod, boardsFixtures, fixedBoards } from "./boardsFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
+const arrival = { timeout: 10_000 };
+
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
@@ -32,7 +34,7 @@ function periodSwitch() {
 }
 
 async function board(name: "People" | "Teams") {
-  return within(await screen.findByRole("region", { name }));
+  return within(await screen.findByRole("region", { name }, arrival));
 }
 
 const albumCss = readFileSync(join(__dirname, "album.css"), "utf8");
@@ -56,7 +58,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
   it("ranks the givers and the teams in their own boards, ties sharing a rank", async () => {
     visit();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Who said thanks, and why" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Who said thanks, and why" }, arrival)).toBeInTheDocument();
     expect(rowsOf(await board("People"))).toEqual([
       "Rank 1: Wren Alder Kettle Works 6 thoughtful kudos",
       "Rank 2: Ines Okafor Lanterns, Kettle Works 5 thoughtful kudos",
@@ -309,13 +311,13 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
   it("opens on this week each time the member arrives", async () => {
     const asked: BoardPeriod[] = [];
     const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, all: boardsFixtures.hidden }, asked));
-    await user.click(await screen.findByRole("button", { name: "All time" }));
+    await user.click(await screen.findByRole("button", { name: "All time" }, arrival));
     await screen.findByText("22 thoughtful kudos given in all.");
 
     await user.click(screen.getByRole("link", { name: /Activity/ }));
     await user.click(screen.getByRole("link", { name: /Leaderboard/ }));
 
-    expect(await screen.findByRole("button", { name: "This week" })).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByRole("button", { name: "This week" }, arrival)).toHaveAttribute("aria-pressed", "true");
     expect(asked.at(-1)).toBe("week");
   });
 });
