@@ -1,0 +1,28 @@
+ ❯ |website| src/album/leaderboard.test.tsx (20 tests | 3 failed) 1485ms
+     × ranks the givers and the teams in their own boards, ties sharing a rank 443ms
+     × a member without a team still sees every team on the team board, and it says how to find theirs 44ms
+     × pins the member's row after the board while they haven't given one this week 35ms
+ ❯ |website| src/album/albumShell.test.tsx (42 tests | 1 failed) 2459ms
+     × an album that holds no teams yet lists no Teams section, and its home leads to finding your team 112ms
+ ❯ |website| src/album/overview.test.tsx (8 tests | 7 failed) 7579ms
+     × says their team's page comes once they're matched, and leads to finding themselves on posthog.com in Settings 1400ms
+     × names the three teams closest to complete, a page ready to unlock first, then the fewest people to go, each linking to its page 1029ms
+     × counts the waiting packs, and Open a pack opens them 1027ms
+     × with no pack waiting says how to earn one, and offers nothing to open 1024ms
+     × lists the newest people in the album, each linking to their page 1026ms
+     × with nobody in the album yet says how the first person comes 1022ms
+     × an album that holds no teams yet still leads to finding your team and to the waiting packs 1014ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/album/albumShell.test.tsx > AL42: the sidebar > an album that holds no teams yet lists no Teams section, and its home leads to finding your team
+ FAIL  |website| src/album/leaderboard.test.tsx > AL49: the Leaderboard shows people and teams side by side by thoughtful kudos this week > ranks the givers and the teams in their own boards, ties sharing a rank
+ FAIL  |website| src/album/leaderboard.test.tsx > AL49: the Leaderboard shows people and teams side by side by thoughtful kudos this week > a member without a team still sees every team on the team board, and it says how to find theirs
+ FAIL  |website| src/album/leaderboard.test.tsx > AL49: the Leaderboard shows people and teams side by side by thoughtful kudos this week > pins the member's row after the board while they haven't given one this week
+ FAIL  |website| src/album/overview.test.tsx > AL43: a member without a team lands on the album overview, never an empty home > says their team's page comes once they're matched, and leads to finding themselves on posthog.com in Settings
+ FAIL  |website| src/album/overview.test.tsx > AL43: a member without a team lands on the album overview, never an empty home > names the three teams closest to complete, a page ready to unlock first, then the fewest people to go, each linking to its page
+ FAIL  |website| src/album/overview.test.tsx > AL43: a member without a team lands on the album overview, never an empty home > counts the waiting packs, and Open a pack opens them
+ FAIL  |website| src/album/overview.test.tsx > AL43: a member without a team lands on the album overview, never an empty home > with no pack waiting says how to earn one, and offers nothing to open
+ FAIL  |website| src/album/overview.test.tsx > AL43: a member without a team lands on the album overview, never an empty home > lists the newest people in the album, each linking to their page
+ FAIL  |website| src/album/overview.test.tsx > AL43: a member without a team lands on the album overview, never an empty home > with nobody in the album yet says how the first person comes
+ FAIL  |website| src/album/overview.test.tsx > AL43: a member without a team lands on the album overview, never an empty home > an album that holds no teams yet still leads to finding your team and to the waiting packs
+ Test Files  3 failed (3)
+      Tests  11 failed | 59 passed (70)

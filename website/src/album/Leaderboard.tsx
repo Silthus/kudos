@@ -5,15 +5,25 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
-import type { BoardPerson, BoardsShown, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
-import { hrefOf } from "./place";
+import type { AlbumTeam, BoardPerson, BoardsShown, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
+import { findYourselfHref, hrefOf } from "./place";
 
-type LeaderboardAnswerProps = { boards: BoardsShown | undefined; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
+type LeaderboardAnswerProps = { boards: BoardsShown | undefined; teams: AlbumTeam[]; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards, homeTeam, ...answers }: LeaderboardAnswerProps) {
+export function LeaderboardAnswerPage({ boards, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
   if (boards === undefined || boards.kind === "off") return <LoadingPage shape="column" />;
   if (boards.kind !== "boards") return <AnswerPage answer={boards} {...answers} />;
-  return <LeaderboardPage boards={boards} homeTeam={homeTeam} />;
+  return <LeaderboardPage boards={boards} teamRows={teamRowsOf(boards, teams)} homeTeam={homeTeam} />;
+}
+
+function teamRowsOf(boards: ThoughtfulBoards, albumTeams: AlbumTeam[]): BoardTeam[] {
+  const listed = [...boards.teams, ...boards.pinned.teams.filter(({ rank }) => rank === null)];
+  const onTheBoard = new Set(listed.map(({ team }) => team));
+  const unscored = albumTeams
+    .filter(({ team }) => !onTheBoard.has(team))
+    .toSorted((first, second) => first.name.localeCompare(second.name))
+    .map(({ team, name, art }): BoardTeam => ({ team, name, art, thoughtful: 0, mine: false, rank: null, tied: false }));
+  return [...listed, ...unscored];
 }
 
 export function isWaitingForTheBoards(boards: BoardsShown | undefined) {
@@ -22,14 +32,14 @@ export function isWaitingForTheBoards(boards: BoardsShown | undefined) {
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-function LeaderboardPage({ boards, homeTeam }: { boards: ThoughtfulBoards; homeTeam: string | null }) {
+function LeaderboardPage({ boards, teamRows, homeTeam }: { boards: ThoughtfulBoards; teamRows: BoardTeam[]; homeTeam: string | null }) {
   const [picked, setPicked] = useState<string | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
   const showEveryone = () => {
     if (picked !== null) pickButtons.current.get(picked)?.focus();
     setPicked(null);
   };
-  const teams: TeamsByKey = new Map([...boards.teams, ...boards.pinned.teams].map((team) => [team.team, team]));
+  const teams: TeamsByKey = new Map(teamRows.map((team) => [team.team, team]));
   const pickedTeam = picked === null ? undefined : teams.get(picked);
   return (
     <div className="al-page-body al-leaderboard">
@@ -39,7 +49,7 @@ function LeaderboardPage({ boards, homeTeam }: { boards: ThoughtfulBoards; homeT
       </PageTitle>
       <div className="al-boards">
         <PeopleBoard boards={boards} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
-        <TeamBoard boards={boards} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
+        <TeamBoard boards={boards} rows={teamRows} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
@@ -72,9 +82,7 @@ function PeopleBoard({ boards, teams, picked, onShowEveryone }: { boards: Though
   );
 }
 
-function TeamBoard({ boards, homeTeam, pickButtons, picked, onPick }: { boards: ThoughtfulBoards; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: string) => void }) {
-  const unrankedMine = boards.pinned.teams.filter(({ rank }) => rank === null);
-  const rows = [...boards.teams, ...unrankedMine];
+function TeamBoard({ boards, rows, homeTeam, pickButtons, picked, onPick }: { boards: ThoughtfulBoards; rows: BoardTeam[]; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: string) => void }) {
   const pinned = rows.find(({ mine, team }) => mine && team === homeTeam) ?? rows.find(({ mine }) => mine);
   const { clearance, pinnedRef } = usePinnedClearance();
   return (
@@ -129,9 +137,17 @@ function myStandingWords(me: BoardPerson | null) {
 
 function TeamStory({ boards }: { boards: ThoughtfulBoards }) {
   const leaders = leadersOf(boards.teams);
-  const mine = boards.pinned.teams.map(teamStandingWords).join(" ");
+  const mine = boards.pinned.teams.length === 0 ? <NoTeamYet /> : boards.pinned.teams.map(teamStandingWords).join(" ");
   if (leaders.length === 0) return <Story headline="No team has said thanks with a why yet this week.">{mine}</Story>;
   return <Story headline={leadWords(leaders.map(({ name }) => name), leaders[0]!.thoughtful)}>{mine}</Story>;
+}
+
+function NoTeamYet() {
+  return (
+    <>
+      Your thoughtful kudos count for your team once you're matched to your profile. <AppLink href={findYourselfHref}>Find yourself on posthog.com</AppLink>
+    </>
+  );
 }
 
 function teamStandingWords({ name, rank, tied }: BoardTeam) {
