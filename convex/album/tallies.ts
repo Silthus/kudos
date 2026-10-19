@@ -11,6 +11,7 @@ import { hugsOnTheMessage } from "../hugs/weeks";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { givingWeekOf } from "../progression/progress";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
+import { countOnTheBoardsOnce } from "./boards";
 import { recordMilestonesOf } from "./milestones";
 import { pairTallyValidator, weekTallyValidator, type HoggieFound, type HugPick, type KudosPick, type WeekList } from "./records";
 
@@ -144,7 +145,7 @@ export async function storedKudosWeightOf(ctx: QueryCtx, message: MessageRef): P
 }
 
 export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, thoughtful, hugs }: KudosWeight) {
-  if (await isAwardTallied(ctx, award.award)) return;
+  if ((await talliedAwardOf(ctx, award.award)) !== null) return;
   await ctx.db.insert("talliedAwards", { award: award.award });
   const { message, giver, recipient, kudos, day, at } = award;
   const week = givingWeekOf(day);
@@ -153,6 +154,7 @@ export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, t
   await changePair(ctx, recipient, giver, { kudosReceived: kudos });
   await changeWeek(ctx, giver, week, { kudosGiven: kudos, thoughtfulGiven: thoughtful ? 1 : 0, listed: { list: "thanked", person: recipient }, pick, on: day });
   await changeWeek(ctx, recipient, week, { kudosReceived: kudos, thoughtfulReceived: thoughtful ? 1 : 0, listed: { list: "thankedBy", person: giver }, pick, on: day });
+  if (thoughtful) await countOnTheBoardsOnce(ctx, { award: award.award, workspace: message.workspace, giver, day });
 }
 
 export type HugPeopleTallied = { tallied: number; last: MemberId | null };
@@ -320,12 +322,11 @@ export function weekRowOf(ctx: QueryCtx, member: MemberId, week: DayKey) {
     .unique();
 }
 
-async function isAwardTallied(ctx: QueryCtx, award: AwardId) {
-  const tallied = await ctx.db
+export function talliedAwardOf(ctx: QueryCtx, award: AwardId) {
+  return ctx.db
     .query("talliedAwards")
     .withIndex("by_award", (q) => q.eq("award", award))
     .unique();
-  return tallied !== null;
 }
 
 async function isHugTallied(ctx: QueryCtx, hug: Hug, person: MemberId) {

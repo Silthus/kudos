@@ -10,9 +10,10 @@ import type { MemberProfile } from "../shell";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
+import { isWaitingForTheBoards, useBoardsOfPeriod } from "./boardPeriods";
 import { useHoggieAddress } from "./hoggieAddress";
 import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
-import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
+import { LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
@@ -27,7 +28,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
   const settings = useSettings(onSettings);
   const onLeaderboard = place.kind === "leaderboard";
   const onProfile = place.kind === "profile";
-  const boards = useThoughtfulBoards(onLeaderboard || onProfile);
+  const boards = useBoardsOfPeriod(useThoughtfulBoards, onLeaderboard, onProfile);
   const onOverview = place.kind === "team" && place.team === null && album?.kind === "album" && myTeamOf(album) === undefined;
   const profile = useAlbumProfile(onProfile || onOverview);
   const onHoggies = place.kind === "hoggies";
@@ -60,12 +61,12 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} withThemeAndSignOut {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
-        profile={<ProfileAnswerPage album={album} profile={profile} boards={boards} hoggies={hoggies} {...answers} />}
+        profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} {...answers} />}
         newest={profile?.kind === "profile" ? profile.newest : null}
         openThoughtfulPack={actions.openThoughtfulPack}

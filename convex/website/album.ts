@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
-import { thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
+import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { albumShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
@@ -168,11 +168,11 @@ async function albumHoggiesShownTo(ctx: QueryCtx, member: MemberId) {
 }
 
 export const getThoughtfulBoards = memberQuery({
-  args: { team: v.optional(v.string()) },
-  handler: async (ctx, me, { team }): Promise<ThoughtfulBoardsRead> => {
+  args: { team: v.optional(v.string()), period: v.optional(boardPeriodValidator) },
+  handler: async (ctx, me, { team, period }): Promise<ThoughtfulBoardsRead> => {
     if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
     await followTheClock(ctx);
-    const { people, teams, pinned, onTheBoards } = await thoughtfulBoardsOf(ctx, me, team ?? null);
+    const { people, teams, pinned, onTheBoards } = await thoughtfulBoardsOf(ctx, me, { whoGave: team ?? null, period: period ?? "week" });
     return { kind: "boards", people: people.map(personRowOf), teams, pinned: { me: pinned.me === null ? null : personRowOf(pinned.me), teams: pinned.teams }, onTheBoards };
   },
 });
