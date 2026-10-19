@@ -132,7 +132,15 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     const glance = await section("Your album at a glance");
     expect(glance.getByText("Nobody else on Lanterns is in Slack yet")).toBeInTheDocument();
     expect(glance.queryByText(/to go for the seal/)).toBeNull();
+    expect(glance.getByRole("link", { name: "Your team, Lanterns" })).not.toHaveTextContent(/of 0/);
     expect(screen.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/");
+  });
+
+  it("an unlocked home team says when it was unlocked, even with nobody else in Slack", async () => {
+    const unlocked = { ...albumFixtures.midway, teams: albumFixtures.midway.teams.map((team) => (team.team === "lanterns" ? { ...team, people: [], held: 0, total: 0, state: "unlocked" as const, unlockedAt: Date.parse("2026-10-15T10:00:00Z") } : team)) };
+    visit({ album: unlocked });
+
+    expect((await section("Your album at a glance")).getByText("Unlocked 15 Oct 2026")).toBeInTheDocument();
   });
 
   it("keeps the page and leaves the hoggies out while the hoggie read fails", async () => {
@@ -203,8 +211,10 @@ describe("AL52: the profile page shows you, your week and your album at a glance
   });
 
   it("a profile read that fails shows the error page in the frame", async () => {
-    visit({ profile: { kind: "broken" } });
+    window.history.replaceState(null, "", "/book#me");
+    renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: () => undefined, hoggies: () => undefined, profile: fixedProfile({ kind: "broken" }) });
 
     expect(await screen.findByRole("heading", { level: 1, name: "Something went wrong" }, arrival)).toBeInTheDocument();
+    expect(screen.getByRole("main")).not.toHaveAttribute("aria-busy");
   });
 });

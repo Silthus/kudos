@@ -19,8 +19,8 @@ export function peopleGlanceOf(album: Album) {
 }
 
 export function teamFootnoteOf({ name, state, held, total, unlockedAt }: AlbumTeam) {
-  if (total === 0) return `Nobody else on ${name} is in Slack yet`;
   if (state === "unlocked" && unlockedAt !== null) return `Unlocked ${dateOf(unlockedAt)}`;
+  if (total === 0) return `Nobody else on ${name} is in Slack yet`;
   if (state === "ready") return "Ready to unlock";
   return `${total - held} to go for the seal`;
 }

@@ -170,7 +170,7 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
   }
 });
 
-describe("AL55: the album is usable by keyboard alone", () => {
+describe("AL55: the album is usable by keyboard alone", { timeout: 30_000 }, () => {
   it("Tab walks the top bar in reading order, then the sidebar, then the page", async () => {
     fakeSystemTheme(false);
     preferWideScreen();

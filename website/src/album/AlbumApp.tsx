@@ -55,7 +55,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile(profile, boards, hoggies))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies }))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}

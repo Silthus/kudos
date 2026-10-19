@@ -22,23 +22,34 @@ import "./profile.css";
 
 type ProfileAnswerProps = { album: Album; profile: ProfileShown | undefined; boards: BoardsShown | undefined; hoggies: HoggiesShown | undefined; onSignIn: () => void; onSignOut: () => void };
 
+type ProfileReads = { profile: ProfileShown | undefined; boards: BoardsShown | undefined; hoggies: HoggiesShown | undefined };
+
+type Answered = { profile: AlbumProfile; boards: ThoughtfulBoards; hoggies: AlbumHoggies | null };
+
 export function ProfileAnswerPage({ album, profile, boards, hoggies, ...answers }: ProfileAnswerProps) {
-  if (profile?.kind === "profile" && boards?.kind === "boards" && hoggies !== undefined) return <ProfilePage album={album} profile={profile} standing={standingOf(boards, myTeamOf(album)?.team ?? null)} hoggies={hoggies.kind === "hoggies" ? hoggies : null} />;
-  const failed = [profile, boards].find(isAFailure);
+  const reads = { profile, boards, hoggies };
+  const answered = answeredOf(reads);
+  if (answered !== null) return <ProfilePage album={album} profile={answered.profile} standing={standingOf(answered.boards, myTeamOf(album)?.team ?? null)} hoggies={answered.hoggies} />;
+  const failed = failureOf(reads);
   if (failed !== undefined) return <AnswerPage answer={failed} {...answers} />;
   return <LoadingPage shape="column" />;
 }
 
-export function isWaitingForTheProfile(profile: ProfileShown | undefined, boards: BoardsShown | undefined, hoggies: HoggiesShown | undefined) {
-  return isWaitingFor(profile) || isWaitingFor(boards) || hoggies === undefined;
+export function isWaitingForTheProfile(reads: ProfileReads) {
+  return answeredOf(reads) === null && failureOf(reads) === undefined;
 }
 
-function isWaitingFor(read: ProfileShown | BoardsShown | undefined) {
-  return read === undefined || read.kind === "off";
+function answeredOf({ profile, boards, hoggies }: ProfileReads): Answered | null {
+  if (profile?.kind !== "profile" || boards?.kind !== "boards" || hoggies === undefined) return null;
+  return { profile, boards, hoggies: hoggies.kind === "hoggies" ? hoggies : null };
+}
+
+function failureOf({ profile, boards }: ProfileReads) {
+  return [profile, boards].find(isAFailure);
 }
 
 function isAFailure(read: ProfileShown | BoardsShown | undefined): read is Exclude<ProfileShown | BoardsShown, AlbumProfile | ThoughtfulBoards | { kind: "off" }> {
-  return !isWaitingFor(read) && read?.kind !== "profile" && read?.kind !== "boards";
+  return read !== undefined && read.kind !== "off" && read.kind !== "profile" && read.kind !== "boards";
 }
 
 function ProfilePage({ album, profile, standing, hoggies }: { album: Album; profile: AlbumProfile; standing: Standing; hoggies: AlbumHoggies | null }) {
@@ -229,16 +240,20 @@ function Tile({ href, label, held, total, footnote, art }: { href: string; label
   const foot = useId();
   return (
     <li>
-      <AppLink href={href} className="al-profile-tile" aria-label={`${label}: ${held} of ${total}`} aria-describedby={foot}>
+      <AppLink href={href} className="al-profile-tile" aria-label={total === 0 ? label : `${label}: ${held} of ${total}`} aria-describedby={foot}>
         <span className="al-profile-tile-top">
           <span className="al-profile-tile-label">{label}</span>
           {art}
         </span>
-        <span className="al-profile-tile-count">
-          <strong>{held}</strong>
-          <span className="al-quiet"> of {total}</span>
-        </span>
-        <Bar share={total === 0 ? 0 : held / total} />
+        {total > 0 && (
+          <>
+            <span className="al-profile-tile-count">
+              <strong>{held}</strong>
+              <span className="al-quiet"> of {total}</span>
+            </span>
+            <Bar share={held / total} />
+          </>
+        )}
         <span id={foot} className="al-profile-tile-foot al-quiet">
           {footnote}
         </span>
