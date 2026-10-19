@@ -149,6 +149,18 @@ export async function* levelUpsByDecision(ctx: QueryCtx, member: MemberId, below
   for await (const { level, at, _creationTime } of rows) yield { level, at, created: _creationTime };
 }
 
+export async function levelFirstReachedAt(ctx: QueryCtx, member: MemberId, level: number): Promise<number | null> {
+  const reached = await ctx.db
+    .query("levelUps")
+    .withIndex("by_member_level", (q) => q.eq("member", member).gte("level", level))
+    .first();
+  const lowest = await ctx.db
+    .query("levelUps")
+    .withIndex("by_member_level", (q) => q.eq("member", member))
+    .first();
+  return reached !== null && lowest !== null && lowest.level <= level ? reached.at : null;
+}
+
 function levelUpOf(ctx: QueryCtx, member: MemberId, level: number) {
   return ctx.db
     .query("levelUps")

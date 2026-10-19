@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, memberDecision, workspaceDecision, type Flag } from "../analytics/flags";
 import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowance";
+import { albumSlackAppliesToWorkspace } from "../feedback/albumSlack";
 import { availableIn } from "../groups/groups";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import type { MemberId } from "../workspace/directory";
@@ -12,6 +13,7 @@ import { workspaceGroupsBoardOf } from "./groupBoards";
 import { mondayPostOutcomeValidator } from "./mondayPostOutcome";
 import { wholeWeekBefore } from "./periods";
 import { isTimeZone } from "./timeZones";
+import { topKudosPostOf, type TopKudosPost } from "./topKudos";
 import { giversIn } from "./totals";
 
 export const mondayPostFlag = { key: "monday-post", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -22,9 +24,11 @@ export type MondayPostSwitch = { channel: string; on: boolean; timeZone: string;
 
 export type PostedGroup = { rank: number; name: string; perMember: number };
 
-export type MondayPost = { groups: PostedGroup[]; mostImproved: string | null; givers: number };
+export type MondayPost = { kind: "groups"; groups: PostedGroup[]; mostImproved: string | null; givers: number };
 
-export type ClaimedWeek = { claim: Id<"mondayPostClaims">; channel: string; post: MondayPost };
+export type WeeklyPost = MondayPost | TopKudosPost;
+
+export type ClaimedWeek = { claim: Id<"mondayPostClaims">; channel: string; post: WeeklyPost };
 
 type Admin = { member: MemberId; admin: boolean; timeZone: string | undefined };
 
@@ -80,9 +84,9 @@ export const claimWeek = internalMutation({
     if (Date.now() < postingTimeOf(thisMonday, settings.timeZone) || (await claimOf(ctx, workspace, thisMonday)) !== null) return null;
     const channel = await postableChannelIn(ctx, workspace);
     if (channel === null) return null;
-    const post = await lastWeeksPostOf(ctx, workspace, thisMonday);
-    const claim = await ctx.db.insert("mondayPostClaims", { workspace, week: thisMonday, claimedAt: Date.now(), channel, outcome: post.givers === 0 ? "nobody-gave" : "claimed" });
-    return post.givers === 0 ? null : { claim, channel, post };
+    const post = await weeklyPostOf(ctx, workspace, thisMonday, settings.timeZone);
+    const claim = await ctx.db.insert("mondayPostClaims", { workspace, week: thisMonday, claimedAt: Date.now(), channel, outcome: hasNothingToSay(post) ? "nobody-gave" : "claimed" });
+    return hasNothingToSay(post) ? null : { claim, channel, post };
   },
 });
 
@@ -152,11 +156,20 @@ async function switchableChannelIn(ctx: QueryCtx, workspace: string) {
   return (await settingsOf(ctx, workspace)).announcementChannel;
 }
 
+async function weeklyPostOf(ctx: QueryCtx, workspace: string, thisMonday: DayKey, timeZone: string): Promise<WeeklyPost> {
+  if (!(await albumSlackAppliesToWorkspace(ctx, workspace))) return lastWeeksPostOf(ctx, workspace, thisMonday);
+  return topKudosPostOf(ctx, workspace, { from: wallClockAt(dayAfter(thisMonday, -7), 0, timeZone), to: wallClockAt(thisMonday, 0, timeZone) });
+}
+
+function hasNothingToSay(post: WeeklyPost) {
+  return post.kind === "groups" ? post.givers === 0 : post.kudos.length === 0 && post.teams.length === 0;
+}
+
 async function lastWeeksPostOf(ctx: QueryCtx, workspace: string, thisMonday: DayKey): Promise<MondayPost> {
   const compared = wholeWeekBefore(thisMonday);
   const board = await workspaceGroupsBoardOf(ctx, workspace, compared);
   const groups = board.rows.filter(({ position, kudos }) => position <= groupsPosted && kudos > 0).map(({ rank, name, perMember }) => ({ rank, name, perMember }));
-  return { groups, mostImproved: board.mostImproved?.name ?? null, givers: await giversIn(ctx, workspace, compared.now) };
+  return { kind: "groups", groups, mostImproved: board.mostImproved?.name ?? null, givers: await giversIn(ctx, workspace, compared.now) };
 }
 
 async function couldNotPostIn(ctx: QueryCtx, workspace: string, channel: string) {

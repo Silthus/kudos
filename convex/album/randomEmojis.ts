@@ -6,6 +6,7 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { mostRandomEmojis, randomEmojiNamesIn } from "./emojiClasses";
 import { randomEmojisShownTo } from "./flag";
 import { emojiRollOf } from "./emojiRoll";
+import type { Instants } from "./packs";
 
 export { mostRandomEmojis };
 
@@ -37,6 +38,16 @@ export async function randomEmojisHeldBy(ctx: QueryCtx, workspace: string, membe
     if (image !== undefined) held.push({ id: `random:${name}`, name, image });
   }
   return held;
+}
+
+export async function randomEmojisDroppedBetween(ctx: QueryCtx, workspace: string, member: MemberId, { from, to }: Instants): Promise<HeldRandomEmoji[]> {
+  const dropped: HeldRandomEmoji[] = [];
+  if (!(await randomEmojisShownTo(ctx, member))) return dropped;
+  for (const { name, at } of await dropsOf(ctx, member)) {
+    const image = at >= from && at < to ? await customEmojiImageOf(ctx, workspace, name) : undefined;
+    if (image !== undefined) dropped.push({ id: `random:${name}`, name, image });
+  }
+  return dropped;
 }
 
 export async function holdsRandomEmoji(ctx: QueryCtx, member: MemberId, name: string): Promise<boolean> {

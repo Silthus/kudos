@@ -46,6 +46,10 @@ export async function drawFrom(ctx: QueryCtx, workspace: string, walk: DrawWalk)
   return { kind: "empty" };
 }
 
+export async function publicThoughtfulKudosOf(ctx: QueryCtx, ref: MessageRef): Promise<DrawableKudos | null> {
+  return drawableAmong(ctx, ref, await awardsOfMessage(ctx, ref));
+}
+
 export async function keepSpotlightUpToDate(ctx: MutationCtx, ref: MessageRef) {
   const awards = await awardsOfMessage(ctx, ref);
   if (peopleOf(awards).length > peopleCheckedRightAway) await ctx.scheduler.runAfter(0, internal.engine.spotlight.recomputeSpotlightOfMessage, { ref });

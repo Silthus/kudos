@@ -3,7 +3,7 @@ import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
 import type { AlbumReply, AlbumReplyButton, AlbumReplyRecipient } from "../feedback/albumReplies";
-import { mrkdwn, urlButtonOf } from "./blocks";
+import { escaped, mrkdwn, urlButtonOf } from "./blocks";
 import { attemptArgs, attemptCall, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
 
 const rateLimitErrors = new Set(["ratelimited", "rate_limited"]);
@@ -75,8 +75,4 @@ function recipientBlocksOf({ headline, lines, hype }: AlbumReplyRecipient) {
 
 function buttonOf({ label, url, id }: AlbumReplyButton) {
   return urlButtonOf({ label, url, actionId: id });
-}
-
-function escaped(text: string) {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }

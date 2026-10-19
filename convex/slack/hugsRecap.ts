@@ -1,8 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
+import type { RecapEmojiLine } from "../feedback/albumRecap";
 import type { Recap, RecapLine } from "../hugs/recap";
 import { settingsFooterText } from "./appHomeLinks";
+import { mrkdwn } from "./blocks";
 import { attemptCall, retryAfter, slackLink, tryAtMostThreeTimes } from "./delivery";
 
 export const sendHugsRecap = observedAction({
@@ -13,7 +15,7 @@ export const sendHugsRecap = observedAction({
       async (attempt) => {
         const recap = await ctx.runMutation(internal.hugs.recap.startRecap, { week, attempt });
         if (recap === null) return null;
-        const sent = await attemptCall(ctx, recap.workspace, "chat.postMessage", { channel: recap.user, text: textOf(recap) });
+        const sent = await attemptCall(ctx, recap.workspace, "chat.postMessage", messageOf(recap));
         if (sent.kind !== "delivered" && sent.kind !== "gone") return retryAfter(sent, attempt);
         await ctx.runMutation(internal.hugs.recap.recapEnded, { week, attempt, sent: sent.kind === "delivered" });
         return null;
@@ -24,8 +26,24 @@ export const sendHugsRecap = observedAction({
   },
 });
 
-function textOf({ workspace, lines, footer }: Recap) {
-  return [...lines.map(lineTextOf), ...(footer === null ? [] : [settingsFooterText(workspace, footer)])].join("\n");
+const mostPicturesInALine = 9;
+
+function messageOf(recap: Recap) {
+  const { user, emojiLine } = recap;
+  return emojiLine === null ? { channel: user, text: textOf(recap) } : { channel: user, text: textOf(recap), blocks: blocksOf(recap, emojiLine) };
+}
+
+function textOf({ lines, emojiLine, ...recap }: Recap) {
+  return [...lines.map(lineTextOf), ...(emojiLine === null ? [] : [emojiLine.text]), ...footerOf(recap)].join("\n");
+}
+
+function blocksOf({ lines, ...recap }: Recap, { text, pictures }: RecapEmojiLine) {
+  const emojiLine = { type: "context", elements: [...pictures.slice(0, mostPicturesInALine).map(({ url, name }) => ({ type: "image", image_url: url, alt_text: name })), mrkdwn(text)] };
+  return [{ type: "section", text: mrkdwn(lines.map(lineTextOf).join("\n")) }, emojiLine, ...footerOf(recap).map((footer) => ({ type: "context", elements: [mrkdwn(footer)] }))];
+}
+
+function footerOf({ workspace, footer }: Pick<Recap, "workspace" | "footer">) {
+  return footer === null ? [] : [settingsFooterText(workspace, footer)];
 }
 
 function lineTextOf(line: RecapLine) {

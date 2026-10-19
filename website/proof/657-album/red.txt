@@ -1,0 +1,332 @@
+
+ RUN  v5.0.3 /home/coder/.t3/worktrees/kudos/t3-ba47d45c
+
+ ❯ |convex| convex/feedback/albumMoments.test.ts (14 tests | 7 failed) 6854ms
+   ❯ AL60: the Monday hug recap names the emojis earned last week (3)
+     × a member who unlocked a team sticker and two hype emojis last week gets one more line in their recap, each emoji's picture with its name, Slack's own where Slack has it, and a member who earned none gets today's recap 706ms
+     × more than nine emojis show their first nine pictures and every name 211ms
+   ❯ AL61: the Monday post becomes the week's top thoughtful kudos (2)
+     × the three most hugged public thoughtful kudos are quoted, then by recipients, then newest, each with giver, recipients, its first 200 characters and a link, and the week's team stickers by count 1052ms
+     × a week with no public thoughtful kudos and no team sticker posts nothing 114ms
+   ❯ AL61 AL63: a weekly post quotes only public kudos (2)
+     × a thoughtful kudos in a private channel, in a group DM or in a DM, or one deleted since, is never quoted however hugged, and a public one is 503ms
+     × a kudos whose giver or recipient left the leaderboards is not quoted 233ms
+   ❯ AL58: album moments are dark where album-slack is off (7)
+     × with album-slack on for one member's email, only that member's recap gains the line, and the Monday post stays the groups post 318ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/feedback/albumMoments.test.ts > AL60: the Monday hug recap names the emojis earned last week > a member who unlocked a team sticker and two hype emojis last week gets one more line in their recap, each emoji's picture with its name, Slack's own where Slack has it, and a member who earned none gets today's recap
+AssertionError: expected { channel: 'U_ALICE_MARCHETTI', …(1) } to deeply equal { channel: 'U_ALICE_MARCHETTI', …(2) }
+
+- Expected
++ Received
+
+  {
+-   "blocks": [
+-     {
+-       "text": {
+-         "text": ":taco: Your week in hugs
+- You reacted :taco: and gave 1 hug (+1 XP).
+- Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.",
+-         "type": "mrkdwn",
+-       },
+-       "type": "section",
+-     },
+-     {
+-       "elements": [
+-         {
+-           "alt_text": "lanterns",
+-           "image_url": "https://kudos-site.test/emoji/team.png",
+-           "type": "image",
+-         },
+-         {
+-           "alt_text": "bob-okonkwo-hype",
+-           "image_url": "https://kudos-site.test/emoji/hype.png",
+-           "type": "image",
+-         },
+-         {
+-           "alt_text": "carol-lindqvist-hype",
+-           "image_url": "https://emoji.slack-edge.com/T1/carol-lindqvist-hype/1.png",
+-           "type": "image",
+-         },
+-         {
+-           "alt_text": "first-face",
+-           "image_url": "https://kudos-site.test/emoji/milestone-people-bronze.png",
+-           "type": "image",
+-         },
+-         {
+-           "alt_text": "first-full-page",
+-           "image_url": "https://kudos-site.test/emoji/milestone-teams-bronze.png",
+-           "type": "image",
+-         },
+-         {
+-           "alt_text": "first-thank-you",
+-           "image_url": "https://kudos-site.test/emoji/milestone-thoughtful-bronze.png",
+-           "type": "image",
+-         },
+-         {
+-           "text": "Emojis you earned last week: lanterns, bob-okonkwo-hype, :carol-lindqvist-hype:, first-face, first-full-page, first-thank-you",
+-           "type": "mrkdwn",
+-         },
+-       ],
+-       "type": "context",
+-     },
+-     {
+-       "elements": [
+-         {
+-           "text": "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
+-           "type": "mrkdwn",
+-         },
+-       ],
+-       "type": "context",
+-     },
+-   ],
+    "channel": "U_ALICE_MARCHETTI",
+    "text": ":taco: Your week in hugs
+  You reacted :taco: and gave 1 hug (+1 XP).
+  Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.
+- Emojis you earned last week: lanterns, bob-okonkwo-hype, :carol-lindqvist-hype:, first-face, first-full-page, first-thank-you
+  <slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
+  }
+
+ ❯ convex/feedback/albumMoments.test.ts:82:28
+     80|     await recapsSentOnMonday();
+     81|
+     82|     expect(recapTo(alice)).toEqual({
+       |                            ^
+     83|       channel: alice.user,
+     84|       text: [...alicesWeekInHugs, "Emojis you earned last week: lanter…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  |convex| convex/feedback/albumMoments.test.ts > AL60: the Monday hug recap names the emojis earned last week > more than nine emojis show their first nine pictures and every name
+AssertionError: expected [] to have a length of 9 but got +0
+
+- Expected
++ Received
+
+- 9
++ 0
+
+ ❯ convex/feedback/albumMoments.test.ts:133:62
+    131|
+    132|     const emojiLine = contextOf(recapTo(alice));
+    133|     expect(emojiLine.filter(({ type }) => type === "image")).toHaveLen…
+       |                                                              ^
+    134|     expect(emojiLine.at(-1)).toEqual({
+    135|       type: "mrkdwn",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  |convex| convex/feedback/albumMoments.test.ts > AL61: the Monday post becomes the week's top thoughtful kudos > the three most hugged public thoughtful kudos are quoted, then by recipients, then newest, each with giver, recipients, its first 200 characters and a link, and the week's team stickers by count
+AssertionError: expected { channel: 'C_KUDOS', …(1) } to deeply equal { channel: 'C_KUDOS', …(4) }
+
+- Expected
++ Received
+
+  {
+-   "blocks": [
+-     {
+-       "text": {
+-         "text": "*🏆 Last week's top thoughtful kudos*",
+-         "type": "mrkdwn",
+-       },
+-       "type": "section",
+-     },
+-     {
+-       "text": {
+-         "text": "*1. Alice Marchetti* thanked *Bob Okonkwo*
+- >Thanks for staying late to pair on the release checklist, Thanks for staying late to pair on the release checklist, Thanks for staying late to pair on the release checklist, Thanks for staying late to…
+- <https://t1.slack.com/archives/C_TEAM/p1791885660000004|Open in Slack>",
+-         "type": "mrkdwn",
+-       },
+-       "type": "section",
+-     },
+-     {
+-       "text": {
+-         "text": "*2. Carol Lindqvist* thanked *Dana Ferreira* and *Alice Marchetti*
+- >Thanks for the careful design review today @Dana Ferreira @Alice Marchetti :taco:
+- <https://t1.slack.com/archives/C_TEAM/p1791885840000005|Open in Slack>",
+-         "type": "mrkdwn",
+-       },
+-       "type": "section",
+-     },
+-     {
+-       "text": {
+-         "text": "*3. Dana Ferreira* thanked *Carol Lindqvist*
+- >Thanks for covering the support rotation @Carol Lindqvist :taco:
+- <https://t1.slack.com/archives/C_TEAM/p1791886020000006|Open in Slack>",
+-         "type": "mrkdwn",
+-       },
+-       "type": "section",
+-     },
+-     {
+-       "text": {
+-         "text": "*Team stickers unlocked last week*",
+-         "type": "mrkdwn",
+-       },
+-       "type": "section",
+-     },
+-     {
+-       "elements": [
+-         {
+-           "alt_text": "otters",
+-           "image_url": "https://kudos-site.test/emoji/team.png",
+-           "type": "image",
+-         },
+-         {
+-           "text": "*Otters* ×2",
+-           "type": "mrkdwn",
+-         },
+-       ],
+-       "type": "context",
+-     },
+-     {
+-       "elements": [
+-         {
+-           "alt_text": "lanterns",
+-           "image_url": "https://kudos-site.test/emoji/team.png",
+-           "type": "image",
+-         },
+-         {
+-           "text": "*Lanterns* ×1",
+-           "type": "mrkdwn",
+-         },
+-       ],
+-       "type": "context",
+-     },
+-   ],
+    "channel": "C_KUDOS",
+-   "text": "🏆 Last week's top thoughtful kudos
+- 1. Alice Marchetti thanked Bob Okonkwo: Thanks for staying late to pair on the release checklist, Thanks for staying late to pair on the release checklist, Thanks for staying late to pair on the release checklist, Thanks for staying late to… https://t1.slack.com/archives/C_TEAM/p1791885660000004
+- 2. Carol Lindqvist thanked Dana Ferreira and Alice Marchetti: Thanks for the careful design review today @Dana Ferreira @Alice Marchetti :taco: https://t1.slack.com/archives/C_TEAM/p1791885840000005
+- 3. Dana Ferreira thanked Carol Lindqvist: Thanks for covering the support rotation @Carol Lindqvist :taco: https://t1.slack.com/archives/C_TEAM/p1791886020000006
+- Team stickers unlocked last week: Otters ×2, Lanterns ×1",
+-   "unfurl_links": false,
+-   "unfurl_media": false,
++   "text": "🏆 Last week in kudos
++ 🥇 Lanterns · 1.7 per person
++ 📈 Most improved: Lanterns
++ 4 people gave kudos last week. Thank you!",
+  }
+
+ ❯ convex/feedback/albumMoments.test.ts:167:26
+    165|     const quote = `${long.slice(0, 200)}…`;
+    166|     expect(Array.from(quote.slice(0, -1))).toHaveLength(200);
+    167|     expect(mondayPost()).toEqual({
+       |                          ^
+    168|       channel: announcementChannel,
+    169|       text: [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  |convex| convex/feedback/albumMoments.test.ts > AL61: the Monday post becomes the week's top thoughtful kudos > a week with no public thoughtful kudos and no team sticker posts nothing
+AssertionError: expected [ { channel: 'C_KUDOS', …(1) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "channel": "C_KUDOS",
++     "text": "🏆 Last week in kudos
++ 🥇 Lanterns · 0.3 per person
++ 📈 Most improved: Lanterns
++ 1 person gave kudos last week. Thank you!",
++   },
++ ]
+
+ ❯ convex/feedback/albumMoments.test.ts:200:27
+    198|     await mondayPostSent();
+    199|
+    200|     expect(mondayPosts()).toEqual([]);
+       |                           ^
+    201|   });
+    202| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  |convex| convex/feedback/albumMoments.test.ts > AL61 AL63: a weekly post quotes only public kudos > a thoughtful kudos in a private channel, in a group DM or in a DM, or one deleted since, is never quoted however hugged, and a public one is
+AssertionError: expected [] to deeply equal [ { channel: 'C_TEAM', …(1) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "channel": "C_TEAM",
+-     "ts": "1791886623.000005",
+-   },
+- ]
++ []
+
+ ❯ convex/feedback/albumMoments.test.ts:221:44
+    219|     await mondayPostSent();
+    220|
+    221|     expect(quotedMessagesOf(mondayPost())).toEqual([shown]);
+       |                                            ^
+    222|     expect(JSON.stringify(mondayPost()), "no word of a private kudos")…
+    223|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  |convex| convex/feedback/albumMoments.test.ts > AL61 AL63: a weekly post quotes only public kudos > a kudos whose giver or recipient left the leaderboards is not quoted
+AssertionError: expected [] to deeply equal [ { channel: 'C_TEAM', …(1) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "channel": "C_TEAM",
+-     "ts": "1791886083.000002",
+-   },
+- ]
++ []
+
+ ❯ convex/feedback/albumMoments.test.ts:237:44
+    235|     await mondayPostSent();
+    236|
+    237|     expect(quotedMessagesOf(mondayPost())).toEqual([shown]);
+       |                                            ^
+    238|   });
+    239| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  |convex| convex/feedback/albumMoments.test.ts > AL58: album moments are dark where album-slack is off > with album-slack on for one member's email, only that member's recap gains the line, and the Monday post stays the groups post
+AssertionError: expected [ { …(2) }, { …(2) } ] to deeply equal [ { …(2) }, { …(2) } ]
+
+- Expected
++ Received
+
+@@ -1,9 +1,9 @@
+  [
+    {
+      "channel": "U_ALICE_MARCHETTI",
+-     "emojiLine": true,
++     "emojiLine": false,
+    },
+    {
+      "channel": "U_DANA_FERREIRA",
+      "emojiLine": false,
+    },
+
+ ❯ convex/feedback/albumMoments.test.ts:267:165
+    265|     const walk = await mondayWalkWith(albumOn, [onForEmails(albumSlack…
+    266|
+    267|     expect(walk.recaps.map(({ channel, blocks }) => ({ channel, emojiL…
+       |                                                                                                                                                                     ^
+    268|       { channel: alice.user, emojiLine: true },
+    269|       { channel: dana.user, emojiLine: false },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 7 passed (14)
+   Start at  13:47:08
+   Duration  7.97s (tests 87%, transform 9%, import 3%, environment 1%)
+

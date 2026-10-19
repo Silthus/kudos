@@ -540,13 +540,14 @@ export default defineSchema({
   thoughtfulPacks: defineTable(thoughtfulPackValidator)
     .index("by_giver_recipient_week", ["giver", "recipient", "week"])
     .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
-    .index("by_giver_opened_at", ["giver", "openedAt", "at"]),
+    .index("by_giver_opened_at", ["giver", "openedAt", "at"])
+    .index("by_giver_at", ["giver", "at"]),
 
   trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]),
 
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 
-  grantsTold: defineTable(grantToldValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]),
+  grantsTold: defineTable(grantToldValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]).index("by_workspace_at", ["message.workspace", "at"]),
 
   thoughtfulTallies: defineTable(thoughtfulTallyValidator).index("by_workspace_week_giver", ["workspace", "week", "giver"]),
 
@@ -556,7 +557,7 @@ export default defineSchema({
 
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 
-  teamStickers: defineTable(teamStickerValidator).index("by_member_team", ["member", "team"]),
+  teamStickers: defineTable(teamStickerValidator).index("by_member_team", ["member", "team"]).index("by_workspace_at", ["workspace", "at"]),
 
   milestoneTiers: defineTable(milestoneTierRecordValidator).index("by_member_milestone_tier", ["member", "milestone", "tier"]),
 

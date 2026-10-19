@@ -5,6 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { reportHugsRecapSent } from "../analytics/isolatedUsage";
 import { wallClockAt, type DayKey } from "../engine/allowance";
 import { threadRootOf } from "../engine/engine";
+import { emojiLineOf, type RecapEmojiLine } from "../feedback/albumRecap";
 import { settingsFooterFor, type SettingsFooter } from "../feedback/settingsFooter";
 import { placeOf } from "../messageSettings/messageSettings";
 import { xpLevelsOnFor } from "../progression/xpLevels";
@@ -18,7 +19,7 @@ import type { MostHugged, HugWeek } from "./weeks";
 
 export type RecapLine = string | { text: string; link: { url: string; label: string } };
 
-export type Recap = { workspace: string; user: string; lines: RecapLine[]; footer: SettingsFooter | null };
+export type Recap = { workspace: string; user: string; lines: RecapLine[]; emojiLine: RecapEmojiLine | null; footer: SettingsFooter | null };
 
 const recapsPerSweep = 100;
 const recapHour = 9;
@@ -61,7 +62,7 @@ export const startRecap = internalMutation({
     }
     await ctx.db.patch(week, { tries: attempt, dueAt: Date.now() });
     const { workspace, user } = await chatUserOf(ctx, row.member);
-    return { workspace, user, lines: await recapLinesOf(ctx, row), footer: await settingsFooterFor(ctx, row.member) };
+    return { workspace, user, lines: await recapLinesOf(ctx, row), emojiLine: await emojiLineOf(ctx, row, await weekInstantsOf(ctx, row)), footer: await settingsFooterFor(ctx, row.member) };
   },
 });
 
@@ -95,6 +96,11 @@ async function scheduleTry(ctx: MutationCtx, week: HugWeek, dueAt: number, attem
 
 async function recapDueAtOf(ctx: QueryCtx, week: HugWeek) {
   return wallClockAt(mondayAfter(week.week), recapHour, (await timeZoneOf(ctx, week.member)) ?? undefined);
+}
+
+async function weekInstantsOf(ctx: QueryCtx, week: HugWeek) {
+  const timeZone = (await timeZoneOf(ctx, week.member)) ?? undefined;
+  return { from: wallClockAt(week.week, 0, timeZone), to: wallClockAt(mondayAfter(week.week), 0, timeZone) };
 }
 
 async function tryAgainAfterConvexStopped(ctx: MutationCtx, week: HugWeek) {
