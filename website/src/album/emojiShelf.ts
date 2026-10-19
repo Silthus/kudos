@@ -1,4 +1,4 @@
-import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
+import { milestoneCatalogue, type MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Album, AlbumEmoji, EarnedEmojiKind } from "./answer";
 import { milestoneNameOf } from "./milestones";
 import { dateOf, firstNameOf, howToUseIt } from "./teamPage";
@@ -115,8 +115,13 @@ export function howToUnlockWords(emoji: AlbumEmoji): string {
   }
 }
 
-function milestoneOf({ id }: Pick<AlbumEmoji, "id">) {
-  return milestoneNameOf(causeOf(id) as MilestoneId);
+function milestoneOf({ id, from }: Pick<AlbumEmoji, "id" | "from">) {
+  const milestone = causeOf(id);
+  return isMilestone(milestone) ? milestoneNameOf(milestone) : from;
+}
+
+function isMilestone(id: string): id is MilestoneId {
+  return milestoneCatalogue.milestones.some((milestone) => milestone.id === id);
 }
 
 function number(value: number) {

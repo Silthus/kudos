@@ -168,6 +168,15 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(popup.getByText("You have more hype emojis than the popup lists.")).toBeInTheDocument();
   });
 
+  it("an emoji from a milestone this website doesn't know yet still shows, under its own name", async () => {
+    const unknown = anEmoji({ id: "milestone:people:bronze", kind: "milestone", name: "first-face", from: "First face", progress: { have: 3, need: 1 }, earned: true, earnedAt: Date.parse("2026-10-16T10:00:00Z") });
+    const view = visit("/", { album: { ...midway, emojis: [...midway.emojis, unknown] } });
+
+    const popup = await openTheEmojis(view);
+
+    expect(rowsIn(shelf(popup, "Milestones"))[0]).toBe(":first-face:You reached gold in First face · 16 Oct 2026Add to Slack");
+  });
+
   it("random drops show only once one dropped, each with the pack it dropped from", async () => {
     const drop = anEmoji({ id: "random:shipit", kind: "random", name: "shipit", from: "Ines Okafor", picture: "https://emoji.slack-edge.com/T1/shipit/1.png", earned: true, earnedAt: Date.parse("2026-10-17T10:00:00Z"), inSlack: true, progress: null });
     const view = visit("/");
