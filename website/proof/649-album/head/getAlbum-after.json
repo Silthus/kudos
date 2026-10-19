@@ -1,0 +1,41 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "IV",
+      "kind": "initials"
+    },
+    "name": "Ilsabet Varga B",
+    "person": "js72e92nq1fqkbfcaeys94p7x58gkvcg"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [],
+  "people": [],
+  "tray": [
+    {
+      "item": "jn7j4hhkwczwqnr1k3xgpkhrgx8gjjf5",
+      "kind": "sticker",
+      "person": "js722f3m0kqg02q6bmjppa3d658gk9df"
+    },
+    {
+      "item": "jn7zscvne1j0s7pxyewha938a58gjpt8",
+      "kind": "sticker",
+      "person": "js748rph63bfwk75k1sgatqjrs8gj737"
+    },
+    {
+      "hoggie": "hogpatch",
+      "isNew": true,
+      "item": "jn7ma5n6dmgbmz8rjvjpx0j7p58gjzgk",
+      "kind": "hoggie",
+      "rarity": "rare"
+    }
+  ]
+}

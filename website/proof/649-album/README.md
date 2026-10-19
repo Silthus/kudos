@@ -10,3 +10,10 @@ Branch `album/5` at `06c2be66` (`main` at `121c7427` merged in), hand-deployed a
 6. `getCollection.json`: the Book's read answers `ready` for this member, whose Book is not opened, while `getAlbumHoggies` answered throughout (AL73: whatever the Book says).
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/649-album/drive.mts`
+
+## Rerun on the round-1 fixes, over data the base code wrote and data this head creates
+
+After qa-swarm round 1 (the read now also answers `off` while `collection` is off), the head `9bc78092` (`main` at `7dcb093d` merged in) was deployed at 03:06 UTC from a throwaway proof tree merged with #654's live sandbox commit `cc4386c5`, so that lane's `getAlbumPerson` and `getAlbumWeek` stayed deployed; the deploy deleted no index.
+
+7. **Base-written finds** (`base-written/`): the givers of #648's rerun and #647's base-opened tray hold tallies `main`'s code wrote (`stored-tallies.jsonl`, members redacted). `getAlbumHoggies` answers them as stored: `panic` and `trenchcoat` found, count 1, first found at their put-in instant (`getAlbumHoggies-648-giver.json`); `burning-money`, which the base open counted at once, found with its original first find (`getAlbumHoggies-647-giver.json`).
+8. **Head-created finds** (`head/`, `KUDOS_CAST=B`): two packs drew `ball` (common) and `hogpatch` (rare). Before any put-in, `found: 0` (`getAlbumHoggies-opened.json`). After putting in only `ball` (`putIn.json`, `put-in-at.txt`), `getAlbumHoggies-after.json` answers `ball` alone as found, `firstAt` the put-in instant, common 1 of 60, the rarest finds `[ball]`; `hogpatch`, still in the tray, is hidden and left out of the rarest finds although it is rarer.
