@@ -943,6 +943,25 @@
   }
 }
 
+.al-board-more {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: none;
+  padding: 0.75rem 1.25rem;
+  color: var(--al-quiet);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.al-board-more:hover {
+  background: var(--fill-hover, var(--muted));
+  color: var(--foreground);
+}
+
 .al-board-offer {
   font-size: 0.8125rem;
 }
