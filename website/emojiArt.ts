@@ -67,7 +67,7 @@ function pictures(): Picture[] {
   return [
     ...catalogue.team.map((crest) => ({ path: emojiArtPictureOf("team", crest), svg: () => teamCrest(crest) })),
     ...catalogue.milestone.map((milestone) => ({ path: emojiArtPictureOf("milestone", milestone), svg: () => milestoneEmblem(milestone) })),
-    ...catalogue.level.map((level) => ({ path: emojiArtPictureOf("level", level), svg: () => levelBadge(level) })),
+    ...catalogue.level.map((level) => ({ path: emojiArtPictureOf("level", level), svg: () => levelEmblem(level) })),
     { path: teamEmblemPicture, svg: teamEmblem },
     { path: hypeEmblemPicture, svg: hypeEmblem },
   ];
@@ -85,7 +85,7 @@ function milestoneEmblem(milestone: MilestoneId) {
     <image href="${pngData(brandFolder("hoggies/png"), milestoneHoggies[milestone])}" x="18" y="24" width="92" height="92" clip-path="url(#face)"/>`);
 }
 
-function levelBadge(level: string) {
+function levelEmblem(level: string) {
   const colour = levelColours[level] ?? gold.dark;
   return square(`
     ${goldRosette()}

@@ -9,7 +9,7 @@ Branch `album/8` at `0caebaa8` (`main` at `2a0ded78`), hand-deployed at 07:42 UT
 5. `slack/customEmoji:syncCustomEmoji` ran by hand: `emoji.list` answered and listing 8 was written (`customEmojiListings-after-sync.jsonl`), re-listing `piggy` (`customEmoji-piggy.jsonl`). `getAlbum-2-after-sync.json` reads the same: `piggy` in Slack, `lanternfolk-a` not.
 6. `markEmojisSeen` with the hype emoji, `level:5` (not reached) and the `Piggy` team emoji (not unlocked) answered `seen` with **the hype emoji only** (`markEmojisSeen.json`). `getAlbum-3-hype-seen.json` reads it `seen: true`; `seenEmojis-sandbox.jsonl` holds the one stored row.
 7. The real `companyProfiles/sync:syncCompanyProfiles` replaced the copy again, so the seeded teams are gone from the sandbox; their registry names stay, as AL25 orders.
-8. `build-listing.txt`: a local `pnpm website:build` wrote 66 pictures under `website/dist/emoji/`, each a 128 × 128 PNG, the largest about 18 KB. `emoji-art-sheet.png` shows two team crests, the team and hype emblems, the five milestone emblems and the five level badges.
+8. `build-listing.txt`: a local `pnpm website:build` wrote 66 pictures under `website/dist/emoji/`, each a 128 × 128 PNG, the largest about 18 KB. `emoji-art-sheet.png` shows two team crests, the team and hype emblems, the five milestone emblems and the five level emblems.
 
 The `getAlbum` files keep the seeded teams' emojis, the hype, milestone and level emojis, and a count of the other team emojis; `me`, `teams` and `people` are left out, since they list posthog.com's teams and the names of their people.
 
