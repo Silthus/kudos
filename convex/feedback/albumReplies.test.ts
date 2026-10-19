@@ -4,7 +4,7 @@ import { offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly } from "
 import type { FlagDefinition } from "../../testing/fakePostHog";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
-import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor, timesOut, type SlackCall } from "../../testing/fakeSlack";
 import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
@@ -63,11 +63,13 @@ let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
 let weeksLater = 0;
+const albumPostAnswers: Array<"lands without an answer" | "rate limited"> = [];
 
 beforeEach(() => {
   theBus.holdingGrants = false;
   theBus.heldGrants = [];
   theBus.withoutTheReply = false;
+  albumPostAnswers.length = 0;
   for (const level of ["log", "info", "warn", "error", "debug"] as const) vi.spyOn(console, level).mockImplementation(() => {});
 });
 
@@ -179,6 +181,17 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     expect(threadRepliesTo(ts)).toHaveLength(1);
   });
 
+  test("a reply whose post lands without Slack's answer is never posted again, and one Slack rate-limits is posted once it may", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    albumPostAnswers.push("lands without an answer");
+    const lost = await thanks(alice, why, bob);
+    albumPostAnswers.push("rate limited");
+    const limited = await thanks(carol, why, dana);
+
+    expect(threadRepliesTo(lost), "the post whose answer was lost").toHaveLength(1);
+    expect(threadRepliesTo(limited), "the post Slack rate-limited once").toHaveLength(1);
+  });
+
   test("a message to more people than one reply can name names the first ten and counts the rest", async () => {
     const crowd = Array.from({ length: 12 }, (_, index) => person("Guest", `Number${index + 1}`, 10 + index));
     await fourMembers([onForEveryone(albumSlack)], crowd);
@@ -248,7 +261,7 @@ async function fourMembers(flags: FlagDefinition[], more: Person[] = [], albumFl
   postHogCom = new FakePostHogCom().withTeams(lanterns, otters, ...(more.length > 0 ? [{ slug: "guests", name: "Guests", profiles: more.map((guest) => profileOf(guest)) }] : []));
   slack = new FakeSlack();
   for (const someone of [...everyone, ...more]) slack.withMember(someone.user, { profile: { display_name: someone.name, real_name: someone.name, email: someone.email } });
-  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slack.fetch(input, init))));
+  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : chatAnswering(input, init))));
   t = testBackend();
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 200 }));
   postHog.withFlags(...albumFlags.map(onForEveryone), ...flags);
@@ -260,6 +273,14 @@ async function fourMembers(flags: FlagDefinition[], more: Person[] = [], albumFl
   await settle(t);
   turnOff?.();
   slack.calls.length = 0;
+}
+
+async function chatAnswering(input: string | URL | Request, init?: RequestInit) {
+  const isAnAlbumPost = String(input instanceof Request ? input.url : input).endsWith("/chat.postMessage") && String(init?.body ?? "").includes("album-");
+  const answer = isAnAlbumPost ? albumPostAnswers.shift() : undefined;
+  if (answer === "rate limited") return rateLimitedFor(5)(() => new Response());
+  const answered = await slack.fetch(input, init);
+  return answer === "lands without an answer" ? timesOut(() => answered) : answered;
 }
 
 async function thanks(giver: Person, words: string, ...recipientsAndOptions: Array<Person | { threadTs: string }>) {
