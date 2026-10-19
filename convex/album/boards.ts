@@ -4,6 +4,7 @@ import type { CompanyFace } from "../companyProfiles/faces";
 import { storedCompanyMatchOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
+import type { AwardId } from "../engine/awards";
 import { ranking } from "../leaderboard/board";
 import { keyOf, periods, wholeWeekBefore, type PeriodKey } from "../leaderboard/periods";
 import { isOnTheBoards } from "../leaderboard/visibility";
@@ -30,7 +31,7 @@ export type BoardViewer = { workspace: string; member: MemberId };
 
 export type BoardsAsked = { whoGave: string | null; period: BoardPeriod };
 
-export type ThoughtfulAward = { workspace: string; giver: MemberId; day: DayKey };
+export type ThoughtfulAward = { award: AwardId; workspace: string; giver: MemberId; day: DayKey };
 
 type Profile = number | null;
 
@@ -38,7 +39,9 @@ type Giver = { person: BoardPerson; profile: Profile };
 
 const unranked = { rank: null, tied: false } as const;
 
-export async function countOnTheBoards(ctx: MutationCtx, { workspace, giver, day }: ThoughtfulAward) {
+export async function countOnTheBoardsOnce(ctx: MutationCtx, { award, workspace, giver, day }: ThoughtfulAward) {
+  if ((await boardCountOf(ctx, award)) !== null) return;
+  await ctx.db.insert("boardCountedAwards", { award });
   for (const period of periods) {
     const key = keyOf(period, day);
     const tally = await tallyOf(ctx, workspace, key, giver);
@@ -114,6 +117,13 @@ function teamsOf(companyTeams: CompanyTeam[], profile: Profile): string[] {
 
 async function profileOf(ctx: QueryCtx, { workspace, member }: BoardViewer): Promise<Profile> {
   return (await storedCompanyMatchOf(ctx, workspace, member))?.profile ?? null;
+}
+
+function boardCountOf(ctx: QueryCtx, award: AwardId) {
+  return ctx.db
+    .query("boardCountedAwards")
+    .withIndex("by_award", (q) => q.eq("award", award))
+    .unique();
 }
 
 function tallyOf(ctx: QueryCtx, workspace: string, period: PeriodKey, giver: MemberId) {

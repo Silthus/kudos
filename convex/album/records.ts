@@ -131,6 +131,8 @@ export const weekTallyValidator = v.object({
 
 export const weekPersonValidator = v.object({ member: v.id("members"), week: v.string(), list: weekListValidator, person: v.id("members") });
 
-export const talliedAwardValidator = v.object({ award: awardIdValidator, countedOnTheBoards: v.optional(v.literal(true)) });
+export const talliedAwardValidator = v.object({ award: awardIdValidator });
+
+export const boardCountedAwardValidator = v.object({ award: awardIdValidator });
 
 export const talliedHugValidator = v.object({ hug: v.id("hugs"), person: v.id("members") });

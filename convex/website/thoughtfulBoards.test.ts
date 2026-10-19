@@ -341,7 +341,7 @@ async function boardsOf(person: Person, asked: Asked = {}) {
 async function asIfTheBoardsNeverCountedThem() {
   await t.run(async (ctx) => {
     for (const tally of await ctx.db.query("thoughtfulBoardTallies").collect()) await ctx.db.delete(tally._id);
-    for (const tallied of await ctx.db.query("talliedAwards").collect()) await ctx.db.replace(tallied._id, { award: tallied.award });
+    for (const counted of await ctx.db.query("boardCountedAwards").collect()) await ctx.db.delete(counted._id);
   });
 }
 
