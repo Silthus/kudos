@@ -16,3 +16,10 @@ The `getAlbum` files keep the seeded teams' emojis, the hype, milestone and leve
 The `curl` of `/emoji/team-<slug>.png` runs on production after the merge deploys the website, rather than by uploading this branch's build over the shared sandbox website, which UI lanes are proving on.
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> KUDOS_CAST=A SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/652-album/drive.mts`, then `KUDOS_CAST=A bun website/proof/652-album/seed.mts <companyProfiles.jsonl> <companyTeams.jsonl> seed > args.json` and `convex run companyProfiles/sync:replaceCompanyProfiles "$(cat args.json)"`.
+
+## Rerun on the round-1 fixes
+
+`album/8` at `d2adcf51` (the round-1 fixes: unseen hype emojis first, the shared list without gone teams, and the hand-run `reserveSharedEmojiNames`) was deployed to the sandbox at 07:59 UTC from the same proof tree, merged again. The dry run changed no index, and no sandbox function was missing from the tree.
+
+9. `head/reserveSharedEmojiNames.txt`: the hand-run reservation over the sandbox workspace succeeded and added no name, since a grant had already opened its registry (393 rows before and after).
+10. `head/getAlbum-after-fixes.json`: the cast-A giver reads the same emojis through the new code: the hype emoji still `seen: true`, every milestone and level emoji locked with its progress.

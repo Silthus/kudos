@@ -1,0 +1,148 @@
+{
+  "kind": "album",
+  "emojis": [
+    {
+      "earned": true,
+      "id": "hype:js7awm3qedr5ymzkehbctewrex8gj710",
+      "inSlack": false,
+      "kind": "hype",
+      "name": "caspian-thornea-hype",
+      "picture": "https://avatars.slack-edge.com/2026-10-19/proof-652-caspian_192.png",
+      "progress": null,
+      "seen": true
+    },
+    {
+      "earned": false,
+      "id": "milestone:people",
+      "inSlack": false,
+      "kind": "milestone",
+      "name": "full-of-friends",
+      "picture": "/emoji/milestone-people.png",
+      "progress": {
+        "have": 0,
+        "need": 25
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "milestone:teams",
+      "inSlack": false,
+      "kind": "milestone",
+      "name": "most-of-the-company",
+      "picture": "/emoji/milestone-teams.png",
+      "progress": {
+        "have": 0,
+        "need": 15
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "milestone:reach",
+      "inSlack": false,
+      "kind": "milestone",
+      "name": "well-travelled",
+      "picture": "/emoji/milestone-reach.png",
+      "progress": {
+        "have": 0,
+        "need": 25
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "milestone:hoggies",
+      "inSlack": false,
+      "kind": "milestone",
+      "name": "hoarder",
+      "picture": "/emoji/milestone-hoggies.png",
+      "progress": {
+        "have": 0,
+        "need": 100
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "milestone:thoughtful",
+      "inSlack": false,
+      "kind": "milestone",
+      "name": "heart-of-the-team",
+      "picture": "/emoji/milestone-thoughtful.png",
+      "progress": {
+        "have": 1,
+        "need": 100
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "level:5",
+      "inSlack": false,
+      "kind": "level",
+      "name": "level-5",
+      "picture": "/emoji/level-5.png",
+      "progress": {
+        "have": 10,
+        "need": 600
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "level:10",
+      "inSlack": false,
+      "kind": "level",
+      "name": "level-10",
+      "picture": "/emoji/level-10.png",
+      "progress": {
+        "have": 10,
+        "need": 3600
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "level:15",
+      "inSlack": false,
+      "kind": "level",
+      "name": "level-15",
+      "picture": "/emoji/level-15.png",
+      "progress": {
+        "have": 10,
+        "need": 9100
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "level:20",
+      "inSlack": false,
+      "kind": "level",
+      "name": "level-20",
+      "picture": "/emoji/level-20.png",
+      "progress": {
+        "have": 10,
+        "need": 17100
+      },
+      "seen": false
+    },
+    {
+      "earned": false,
+      "id": "level:25",
+      "inSlack": false,
+      "kind": "level",
+      "name": "level-25",
+      "picture": "/emoji/level-25.png",
+      "progress": {
+        "have": 10,
+        "need": 27600
+      },
+      "seen": false
+    }
+  ],
+  "teamEmojis": 57,
+  "moreEmojis": false,
+  "sharedEmojis": null
+}
