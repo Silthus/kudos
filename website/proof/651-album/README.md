@@ -14,3 +14,13 @@ The catalogue's diamond step `D` for Full pages and Across the company is **50**
 The `getAlbum` files keep the packs, the tray, the held people's IDs and the milestones. `me`, `level` and `teams` are left out: `teams` lists every posthog.com team and its people.
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> KUDOS_CAST=A bun website/proof/651-album/drive.mts`
+
+## Rerun on the reviewed head
+
+After qa-swarm's two rounds changed when tiers are recorded, `album/7` at `4e8fae42` was deployed to the sandbox at 06:02 UTC on 2026-10-19. The dry run deleted no index, and no live lane served a function outside the tree. The run used a fresh cast (`KUDOS_CAST=B`, `head/drive-output.txt`):
+
+7. `head/getAlbum-1-after-kudos.json`: Kind words at bronze, earned at the kudos tally (`1792389741049`); nothing else earned.
+8. `head/open.json`, `head/putAllIn.json`, then `head/getAlbum-2-after-put-in.json`: Faces in the album at bronze, earned at `1792389766019`, inside the put-in call's window `1792389765335`–`1792389766215`. Kind words kept its date. `head/milestoneTiers-giver.jsonl` holds the two stored tiers.
+9. `head/sync-pass.txt`: the real posthog.com sync ran by hand. Company Profiles stored each workspace's matches and published `companyMatchesKept`. Album's holders pass then ran over every sticker holder of each workspace, and every page succeeded. No tier changed or was stored twice.
+
+The hoggie drop path (a crate outside the album) has no sandbox run: the sandbox member who could open a crate is the one human, whose own crates stay theirs. `convex/album/milestones.test.ts` drives it through `buyCrate` and `openCrate`.
