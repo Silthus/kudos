@@ -178,8 +178,38 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     const before = await weekOf(alice, "2026-10-05");
 
     expect(thisWeek).toMatchObject({ kind: "week", week: "2026-10-26", weeks: [{ week: "2026-10-26" }, { week: "2026-10-19", days: [0, 0, 0, 0, 0, 0, 0] }, { week: theWeek }], issue: { kudosReceived: 1, thankedBy: { people: [await personIn(carol)] } } });
+    expect(thisWeek).toMatchObject({ issue: { packsOpened: 0, newFaces: { people: [], more: 0 }, hoggies: { hoggies: [], more: 0 } } });
     expect(quiet).toMatchObject({ kind: "week", week: "2026-10-19", weeks: thisWeek.kind === "week" ? thisWeek.weeks : [], issue: { kudosGiven: 0, kudosReceived: 0, kudosOfWeek: null, thanked: { people: [], more: 0 }, newFaces: { people: [], more: 0 }, hoggies: { hoggies: [], more: 0 } } });
     expect(before).toMatchObject({ kind: "week", week: "2026-10-05", issue: null });
+  });
+
+  test("a Monday after the newest tab reads no issue", async () => {
+    await thanks(alice, why, bob);
+
+    expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", week: "2026-10-19", weeks: [{ week: theWeek }], issue: null });
+  });
+
+  test("a kudos a giver east of the member sent on their Monday shows in its week's tab while it is still Sunday for the member", async () => {
+    await aMember(t, carol.user, "member", "T1", "Pacific/Auckland");
+    vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
+    clock = Date.now();
+    await thanks(carol, why, alice);
+
+    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, weeks: [{ week: "2026-10-19" }], issue: null });
+    expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", issue: { kudosReceived: 1, thankedBy: { people: [{ person: await memberOf(carol) }] } } });
+  });
+
+  test("a pack opened in one week and put in the next counts as opened in the first and its new face and hoggie in the second", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const album = await asAlice.query(api.website.album.getAlbum, {});
+    for (const { pack } of "packs" in album ? album.packs : []) await asAlice.mutation(api.website.album.openThoughtfulPack, { pack });
+    laterBy(weekMs);
+    await (await signedIn(alice)).mutation(api.website.album.putAllIn, {});
+    await settle(t);
+
+    expect(await weekOf(alice, theWeek)).toMatchObject({ issue: { packsOpened: 1, newFaces: { people: [], more: 0 }, hoggies: { hoggies: [], more: 0 } } });
+    expect(await weekOf(alice, "2026-10-19")).toMatchObject({ issue: { packsOpened: 0, newFaces: { people: [await personIn(bob)], more: 0 }, hoggies: { hoggies: [{ hoggie: expect.any(String) }], more: 0 } } });
   });
 
   test("a member with no history yet reads this week with no issue and no tabs", async () => {

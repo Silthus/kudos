@@ -1,0 +1,3 @@
+- Deploying to https://different-dog-467.convex.cloud... [dry run]
+✖ Schema validation failed.
+Document with ID "jd7hy55t32sm12afbgrgv9txk58gjgrc" in table "weekTallies" does not match the schema: Object contains extra field `hoggiesFound` that is not in the validator.

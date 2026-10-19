@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { storedCompanyMatchOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
-import type { MemberId } from "../workspace/directory";
+import { isAPersonOf, type MemberId } from "../workspace/directory";
 import { emojiNameOf } from "./emojiNames";
 import type { PageOwner } from "./teamPages";
 import { inTheAlbumOf } from "./stickers";
@@ -14,8 +14,7 @@ export type HypeEmoji = { earned: boolean; name: string | null };
 export type PersonPage = PairTally & { held: boolean; teams: PersonTeam[]; hype: HypeEmoji };
 
 export async function personPageOf(ctx: QueryCtx, owner: PageOwner, person: MemberId): Promise<PersonPage | null> {
-  const row = await ctx.db.get(person);
-  if (row === null || row.workspace !== owner.workspace || row.kind === "bot") return null;
+  if (!(await isAPersonOf(ctx, owner.workspace, person))) return null;
   return {
     ...((await pairTallyFor(ctx, owner.member, person)) ?? anEmptyPair()),
     held: owner.member === person || (await inTheAlbumOf(ctx, owner.member, person)),

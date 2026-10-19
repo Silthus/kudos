@@ -26,3 +26,5 @@ The reverse direction is an accepted failure: a week tally this branch wrote wit
 ## Prod shape
 
 Read-only from production's Convex data on 2026-10-19: production holds no pair or week tally yet, so every member's person page reads an empty history and every week no issue until a kudos, a hug or the history writes one. Rows written there before this deploy carry none of the new fields and read as none.
+
+The reverse direction, captured (`base-written/main-dry-run-refuses-head-row.txt`): a `convex deploy --dry-run` of `main` at `7dcb093d` to the sandbox, after this branch's put-in wrote Marlowe's week, fails with `Schema validation failed … Object contains extra field hoggiesFound`. That is the accepted failure: until this branch merges, a sandbox deploy needs it merged in. Production can't reach it while `album` is off. The automated check of base-shaped rows is the tabs test in `albumPersonWeek.test.ts`: it reads weeks the subscribers wrote without the new fields, and they read as none.

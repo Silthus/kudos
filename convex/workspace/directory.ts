@@ -58,6 +58,11 @@ export async function currentNameAndPictureOf(ctx: QueryCtx, member: MemberId): 
   return row?.kind === "member" ? { name: row.name, picture: row.picture ?? null } : null;
 }
 
+export async function isAPersonOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<boolean> {
+  const row = await ctx.db.get(member);
+  return row !== null && row.workspace === workspace && row.kind !== "bot";
+}
+
 export async function timeZoneOf(ctx: QueryCtx, member: MemberId): Promise<string | null> {
   const row = await ctx.db.get(member);
   return row?.kind === "member" ? (row.timeZone ?? null) : null;

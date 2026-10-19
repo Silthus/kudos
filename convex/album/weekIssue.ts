@@ -21,12 +21,14 @@ type WeekRow = Doc<"weekTallies">;
 export async function weekEditionOf(ctx: QueryCtx, member: MemberId, asked: DayKey | undefined, now: number): Promise<WeekEdition> {
   const thisWeek = await weekAt(ctx, member, now);
   const week = asked ?? thisWeek;
-  const first = await weekRows(ctx, member).first();
-  if (first === null) return { week, weeks: [], issue: null };
-  const oldestShown = laterOf(first.week, weeksBefore(thisWeek, weeksShown - 1));
-  const shown = new Map((await weekRowsBetween(ctx, member, oldestShown, thisWeek)).map((row) => [row.week, row]));
-  const weeks = weeksBetween(oldestShown, thisWeek).map((each) => ({ week: each, days: shown.get(each)?.days ?? anEmptyWeek().days }));
-  return { week, weeks, issue: isAWeek(week) && week >= first.week ? issueOf(shown.get(week) ?? (await weekRowOf(ctx, member, week))) : null };
+  const [first, newest] = [await weekRows(ctx, member).first(), await weekRows(ctx, member).order("desc").first()];
+  if (first === null || newest === null) return { week, weeks: [], issue: null };
+  const newestShown = laterOf(thisWeek, newest.week);
+  const oldestShown = laterOf(first.week, weeksBefore(newestShown, weeksShown - 1));
+  const shown = new Map((await weekRowsBetween(ctx, member, oldestShown, newestShown)).map((row) => [row.week, row]));
+  const weeks = weeksBetween(oldestShown, newestShown).map((each) => ({ week: each, days: shown.get(each)?.days ?? anEmptyWeek().days }));
+  const hasAnIssue = isAWeek(week) && week >= first.week && week <= newestShown;
+  return { week, weeks, issue: hasAnIssue ? issueOf(shown.get(week) ?? (await weekRowOf(ctx, member, week))) : null };
 }
 
 function issueOf(row: WeekRow | null): Issue {
