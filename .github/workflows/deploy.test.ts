@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
 
 type Step = { id?: string; name?: string; if?: string; run?: string; uses?: string; with?: Record<string, unknown>; env?: Record<string, string> };
-type Job = { env?: Record<string, string>; steps: Step[] };
+type Job = { env?: Record<string, string>; needs?: string | string[]; uses?: string; with?: Record<string, unknown>; outputs?: Record<string, string>; steps?: Step[] };
 type Workflow = {
   on: unknown;
   env?: Record<string, string>;
@@ -34,7 +34,9 @@ const deployments = [
 
 describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret, backfill }) => {
   const workflow = parse(readFileSync(new URL(`./${file}`, import.meta.url), "utf8")) as Workflow;
-  const steps = Object.values(workflow.jobs).flatMap((job) => job.steps);
+  const deployJob = Object.values(workflow.jobs).find((job) => job.steps?.some((step) => step.run?.includes("convex deploy")));
+  const steps = deployJob?.steps ?? [];
+  const checkoutOf = (job: Job | undefined) => job?.steps?.find((step) => step.uses?.startsWith("actions/checkout@"));
   const deployStep = steps.find((step) => step.run?.includes("convex deploy"));
   const uploadStep = steps.find((step) => step.run?.includes("static-hosting upload"));
   const prepareStep = steps.find((step) => step.run?.includes("website/flag:prepareWebsiteFlag"));
@@ -48,8 +50,8 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
 
   test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the pending-crate backfill, the website upload, prepareWebsiteFlag and the face sync", () => {
     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_DEPLOY_KEY: `\${{ secrets.${secret} }}` });
-    const elsewhere = [workflow.env, ...Object.values(workflow.jobs).map((job) => job.env), ...steps.filter((step) => !keyedSteps.includes(step))];
-    expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
+    const elsewhere = JSON.stringify(workflow, (_, value) => (keyedSteps.includes(value) ? undefined : value));
+    expect(elsewhere).not.toContain("secrets");
   });
 
   test("P85: every deploy backfills the pending-crate index last, so a failing backfill never holds back the website, and runs it whenever the backend deployed", () => {
@@ -77,14 +79,16 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
 
   test("the workflow reads the repository and nothing more, and keeps no git credentials", () => {
     expect(workflow.permissions).toEqual({ contents: "read" });
-    const checkout = steps.find((step) => step.uses?.startsWith("actions/checkout@"));
-    expect(checkout?.with).toMatchObject({ "persist-credentials": false });
+    const jobsWithSteps = Object.values(workflow.jobs).filter((job) => job.steps);
+    expect(jobsWithSteps.length).toBeGreaterThan(1);
+    for (const job of jobsWithSteps) expect(checkoutOf(job)?.with).toMatchObject({ "persist-credentials": false });
   });
 
-  test("the gate passes before the deploy runs", () => {
-    const gate = steps.findIndex((step) => step.run === "pnpm gate");
-    expect(gate).toBeGreaterThanOrEqual(0);
-    expect(steps.indexOf(deployStep!)).toBeGreaterThan(gate);
+  test("the gate suite passes on the very commit the deploy job then deploys", () => {
+    const [suiteJob, suite] = Object.entries(workflow.jobs).find(([, job]) => job.uses === "./.github/workflows/gate-suite.yml") ?? [];
+    expect(suite?.with).toEqual({ ref: "${{ needs.tip.outputs.sha }}" });
+    expect(deployJob?.needs).toEqual(expect.arrayContaining(["tip", suiteJob]));
+    expect(checkoutOf(deployJob)?.with).toMatchObject({ ref: "${{ needs.tip.outputs.sha }}" });
   });
 
   test("deploys run one at a time and a running deploy is never cancelled", () => {
@@ -92,9 +96,18 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   });
 
   test("every run deploys the branch's tip as it stands when the run starts, so a burst of pushes never leaves the deployment behind", () => {
-    const checkout = steps.find((step) => step.uses?.startsWith("actions/checkout@"));
-    expect(checkout?.with).toMatchObject({ ref: "${{ github.ref }}" });
-    expect(steps.some((step) => step.run?.includes("git ls-remote"))).toBe(false);
+    const tip = workflow.jobs.tip;
+    expect(checkoutOf(tip)?.with).toMatchObject({ ref: "${{ github.ref }}" });
+    expect(tip?.steps?.find((step) => step.id === "tip")?.run).toBe('echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"');
+    expect(tip?.outputs?.sha).toBe("${{ steps.tip.outputs.sha }}");
     for (const step of keyedSteps.filter((step) => step !== pendingCratesStep)) expect(step?.if).toBeUndefined();
+  });
+
+  test("re-running only the failed jobs keeps the first attempt's commit, so it deploys only while that commit is still the branch's tip and never rolls the deployment back", () => {
+    expect(workflow.jobs.tip?.outputs?.attempt).toBe("${{ github.run_attempt }}");
+    const guard = steps.find((step) => step.if === "${{ needs.tip.outputs.attempt != github.run_attempt }}");
+    expect(steps.indexOf(guard!)).toBeLessThan(steps.indexOf(deployStep!));
+    expect(guard?.run).toContain('git ls-remote origin "$GITHUB_REF"');
+    expect(guard?.env).toEqual({ SHA: "${{ needs.tip.outputs.sha }}" });
   });
 });
