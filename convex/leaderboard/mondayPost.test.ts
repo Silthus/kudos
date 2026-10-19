@@ -4,6 +4,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 const mondayAtNine = new Date("2026-10-19T09:00:00Z");
 const lastWeek = "week:2026-10-12";
@@ -41,10 +42,56 @@ describe("GB35: the Monday post at scale", () => {
 
     expect(claimed?.post).toEqual(topGroupsPostedWith(4_200));
   }, 600_000);
+
+  test("a week of 500 thoughtful kudos whose 197 most hugged are private and thank 20 people each, and 100 team stickers: claiming the week quotes the three public kudos after them within Convex's transaction limits", async () => {
+    postHog.withFlags(onForEveryone("monday-post"), onForEveryone("xp-levels"), onForEveryone("album"), onForEveryone("album-slack"));
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    await sixtyGroupsWhoGaveForTwoWeeks(t, 1);
+    await aWeekOfThoughtfulKudos(t, { kudos: 500, privateOnTop: 197, teamStickers: 100 });
+
+    const claimed = await t.mutation(internal.leaderboard.mondayPost.claimWeek, { workspace: "T1", generation: 1 });
+
+    const post = claimed?.post;
+    expect(post?.kind === "topKudos" && post.kudos.map(({ words }) => words)).toEqual([[{ kind: "text", text: "public kudos 197" }], [{ kind: "text", text: "public kudos 198" }], [{ kind: "text", text: "public kudos 199" }]]);
+    expect(post?.kind === "topKudos" && post.teams.map(({ name, count }) => `${name} ×${count}`)).toEqual(Array.from({ length: 20 }, (_, team) => `Team ${String(team).padStart(2, "0")} ×5`));
+  }, 600_000);
 });
+
+async function aWeekOfThoughtfulKudos(t: Backend, { kudos, privateOnTop, teamStickers }: { kudos: number; privateOnTop: number; teamStickers: number }) {
+  const tuesday = Date.parse("2026-10-13T10:00:00Z");
+  for (let first = 0; first < kudos; first += 50) {
+    await t.run(async (ctx) => {
+      for (let index = first; index < Math.min(kudos, first + 50); index += 1) {
+        const visibility = index < privateOnTop ? ("private" as const) : ("public" as const);
+        const giver = await aMember(ctx, `UG${index}`);
+        const message = { workspace: "T1", conversation: "C_TEAM", message: `${tuesday / 1000 + index}.000100` };
+        const at = tuesday + index * 1_000;
+        for (let thanked = 0; thanked < (visibility === "private" ? 20 : 1); thanked += 1) {
+          await ctx.db.insert("awards", { ...message, giver, recipient: await aMember(ctx, `UR${index}x${thanked}`), kudos: 1, day: "2026-10-13", at });
+        }
+        const segments = [{ kind: "text" as const, text: `${visibility} kudos ${index}` }];
+        await ctx.db.insert("kudosTexts", { ...message, kind: "words", revision: 1n, author: `UG${index}`, edited: false, segments, visibility, gate: { version: 1, thoughtful: true } });
+        await ctx.db.insert("hugCounts", { ...message, hugs: kudos - index });
+        await ctx.db.insert("grantsTold", { message, at, recipients: 1 });
+      }
+    });
+  }
+  await t.run(async (ctx) => {
+    for (let index = 0; index < teamStickers; index += 1) {
+      const member = await aMember(ctx, `UT${index}`);
+      const name = `Team ${String(index % 20).padStart(2, "0")}`;
+      await ctx.db.insert("teamStickers", { member, workspace: "T1", team: name.toLowerCase().replace(" ", "-"), at: tuesday + index, name, art: null, emoji: name.toLowerCase() });
+    }
+  });
+}
+
+function aMember(ctx: { db: { insert: (table: "members", row: { workspace: string; user: string; kind: "member"; asOf: number }) => Promise<Id<"members">> } }, user: string) {
+  return ctx.db.insert("members", { workspace: "T1", user, kind: "member", asOf: 0 });
+}
 
 function topGroupsPostedWith(givers: number) {
   return {
+    kind: "groups",
     groups: [
       { rank: 1, name: "Group 04", perMember: 5 },
       { rank: 1, name: "Group 09", perMember: 5 },

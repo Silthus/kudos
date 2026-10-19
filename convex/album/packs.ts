@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
@@ -15,6 +15,10 @@ export const recipientsPerMutation = 50;
 export const mostWaitingPacksShown = 50;
 
 export type WaitingPack = { pack: Id<"thoughtfulPacks">; person: MemberId; earnedAt: number };
+
+export type Instants = { from: number; to: number };
+
+export type ThoughtfulKudos = { message: MessageRef; at: number; recipients: number };
 
 export const grantThoughtfulPacks = internalMutation({
   args: { event: kudosGivenEventValidator, from: v.optional(v.number()) },
@@ -38,13 +42,36 @@ export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<{
   return { packs, more: oldestFirst.length > mostWaitingPacksShown };
 }
 
+export async function thoughtfulKudosBetween(ctx: QueryCtx, workspace: string, { from, to }: Instants, most: number): Promise<ThoughtfulKudos[]> {
+  const told = await ctx.db
+    .query("grantsTold")
+    .withIndex("by_workspace_at", (q) => q.eq("message.workspace", workspace).gte("at", from).lt("at", to))
+    .take(most);
+  return told.map(({ message, at, recipients }) => ({ message, at: at ?? from, recipients: recipients ?? 0 }));
+}
+
+export async function packsEarnedBetween(ctx: QueryCtx, giver: MemberId, { from, to }: Instants, most: number) {
+  return ctx.db
+    .query("thoughtfulPacks")
+    .withIndex("by_giver_at", (q) => q.eq("giver", giver).gte("at", from).lt("at", to))
+    .take(most);
+}
+
+export async function isFirstPackFor(ctx: QueryCtx, { _id, giver, recipient }: Doc<"thoughtfulPacks">): Promise<boolean> {
+  return (await firstPackGrantedFor(ctx, giver, recipient))?._id === _id;
+}
+
 export async function isFirstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId, message: MessageRef): Promise<boolean> {
+  const first = await firstPackGrantedFor(ctx, giver, recipient);
+  return first !== null && isTheSameMessage(first.message, message);
+}
+
+async function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
   const packs = await ctx.db
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
     .collect();
-  const first = packs.reduce<(typeof packs)[number] | null>((earliest, pack) => (earliest === null || pack._creationTime < earliest._creationTime ? pack : earliest), null);
-  return first !== null && isTheSameMessage(first.message, message);
+  return packs.reduce<Doc<"thoughtfulPacks"> | null>((earliest, pack) => (earliest === null || pack._creationTime < earliest._creationTime ? pack : earliest), null);
 }
 
 function isTheSameMessage(one: MessageRef, other: MessageRef) {
@@ -105,7 +132,7 @@ async function tellOnceEveryoneIsGranted(ctx: MutationCtx, event: KudosGivenEven
     .withIndex("by_message_recipient", (q) => q.eq("message.workspace", event.message.workspace).eq("message.conversation", event.message.conversation).eq("message.message", event.message.message))
     .collect();
   if (records.length < recipients.length || (await toldAlready(ctx, event.message))) return;
-  await ctx.db.insert("grantsTold", { message: event.message });
+  await ctx.db.insert("grantsTold", { message: event.message, at: event.at, recipients: recipients.length });
   const outcomeOf = new Map(records.map(({ recipient, outcome }) => [recipient, outcome]));
   const outcomes = recipients.map((recipient) => ({ recipient, outcome: outcomeOf.get(recipient)! }));
   await publish(ctx, { type: "thoughtfulPacksGranted", workspace: event.workspace, giver: event.giver, message: event.message, outcomes, at: event.at });

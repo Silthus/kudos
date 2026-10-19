@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "newest": [
+    {
+      "ts": "1792419921.191919",
+      "text": ":trophy: Last week's top thoughtful kudos 1. Ines Varga thanked Theo Brandt: Thanks for staying late to pair on the release checklist, it saved the launch @Theo Brandt :hedgehog: <https://<sandbox>.slack.com/archives/C0C9N9A4SE4/p1791968400000001> 2. Theo Brandt thanked Mira Solberg and Ines Varga: Thanks for the careful design review of the onboarding flow @Mira Solberg @Ines Varga :hedgehog: <https://<sandbox>.slack.com/archives/C0C9N9A4SE4/p1791969000000002>",
+      "blocks": [
+        {
+          "type": "section",
+          "block_id": "RutpK",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*:trophy: Last week's top thoughtful kudos*",
+            "verbatim": false
+          }
+        },
+        {
+          "type": "section",
+          "block_id": "E6jSY",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*1. Ines Varga* thanked *Theo Brandt*\n&gt;Thanks for staying late to pair on the release checklist, it saved the launch @Theo Brandt :hedgehog:\n<https://<sandbox>.slack.com/archives/C0C9N9A4SE4/p1791968400000001|Open in Slack>",
+            "verbatim": false
+          }
+        },
+        {
+          "type": "section",
+          "block_id": "fOIwS",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*2. Theo Brandt* thanked *Mira Solberg* and *Ines Varga*\n&gt;Thanks for the careful design review of the onboarding flow @Mira Solberg @Ines Varga :hedgehog:\n<https://<sandbox>.slack.com/archives/C0C9N9A4SE4/p1791969000000002|Open in Slack>",
+            "verbatim": false
+          }
+        }
+      ]
+    }
+  ]
+}

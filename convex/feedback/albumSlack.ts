@@ -1,5 +1,5 @@
-import { memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
-import { albumShownTo } from "../album/flag";
+import { memberDecisionWithoutWriting, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import { albumFlag, albumShownTo } from "../album/flag";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
@@ -7,4 +7,13 @@ export const albumSlackFlag = { key: "album-slack", safeDefault: false, values: 
 
 export async function albumSlackAppliesTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return (await albumShownTo(ctx, member)) && (await memberDecisionWithoutWriting(ctx, albumSlackFlag, member));
+}
+
+export async function albumSlackAppliesToWorkspace(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await workspaceDecisionWithoutWriting(ctx, albumFlag, workspace)) && (await workspaceDecisionWithoutWriting(ctx, albumSlackFlag, workspace));
+}
+
+export function publicPictureOf(picture: string, origin: string | null): string | null {
+  if (!picture.startsWith("/")) return picture;
+  return origin === null ? null : `${origin}${picture}`;
 }

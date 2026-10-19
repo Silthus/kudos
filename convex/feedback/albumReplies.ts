@@ -9,7 +9,7 @@ import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent 
 import { placeOf } from "../messageSettings/messageSettings";
 import { websiteOrigin } from "../website/link";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
-import { albumSlackAppliesTo } from "./albumSlack";
+import { albumSlackAppliesTo, publicPictureOf } from "./albumSlack";
 import { gainsLineWithoutQuestsOf, givenReplyOf } from "./replies";
 import type { Line } from "./segments";
 
@@ -103,7 +103,7 @@ async function unlockedHypeOf(ctx: QueryCtx, { workspace, giver, message }: Thou
 }
 
 function pictureOf({ picture }: HypeEmoji, first: string, origin: string | null): AlbumReplyPicture | null {
-  const url = picture.startsWith("/") ? (origin === null ? null : `${origin}${picture}`) : picture;
+  const url = publicPictureOf(picture, origin);
   return url === null ? null : { url, label: `${first}'s hype emoji` };
 }
 

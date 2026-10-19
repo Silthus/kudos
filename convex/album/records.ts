@@ -29,7 +29,7 @@ export const thoughtfulTallyValidator = v.object({ workspace: v.string(), week: 
 
 export const thoughtfulBoardTallyValidator = v.object({ workspace: v.string(), period: v.string(), giver: v.id("members"), awards: v.number() });
 
-export const grantToldValidator = v.object({ message: messageRefValidator });
+export const grantToldValidator = v.object({ message: messageRefValidator, at: v.optional(v.number()), recipients: v.optional(v.number()) });
 
 export const albumStickerValidator = v.object({
   member: v.id("members"),
@@ -48,9 +48,9 @@ export const trayItemValidator = v.union(
 
 export const teamArtValidator = v.union(v.object({ kind: v.literal("crest"), slug: v.string() }), v.object({ kind: v.literal("image"), url: v.string() }), v.null());
 
-export const teamStickerValidator = v.object({ member: v.id("members"), team: v.string(), at: v.number(), name: v.string(), art: teamArtValidator, emoji: v.string() });
+export const teamStickerValidator = v.object({ member: v.id("members"), workspace: v.optional(v.string()), team: v.string(), at: v.number(), name: v.string(), art: teamArtValidator, emoji: v.string() });
 
-export type TeamSticker = Omit<Infer<typeof teamStickerValidator>, "member">;
+export type TeamSticker = Omit<Infer<typeof teamStickerValidator>, "member" | "workspace">;
 
 export const milestoneTierValidator = v.union(v.literal("bronze"), v.literal("silver"), v.literal("gold"), v.literal("diamond"));
 
