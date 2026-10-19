@@ -846,9 +846,11 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   it("AL48: /activity reads this week's issue from one getAlbumWeek subscription with no week, then the picked week's, which no other album page opens", async () => {
     preferWideScreen();
     profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
-    const quiet = { kudosGiven: 0, kudosReceived: 0, thoughtfulGiven: 0, thoughtfulReceived: 0, hugsGiven: 0, hugsReceived: 0, packsOpened: 0, days: [0, 0, 0, 0, 0, 0, 0], kudosOfWeek: null, thanked: { people: [], more: 0 }, thankedBy: { people: [], more: 0 }, hugged: { people: [], more: 0 }, huggedBy: { people: [], more: 0 }, newFaces: { people: [], more: 0 }, hoggies: { hoggies: [], more: 0 } };
+    const quiet = { kudosGiven: 0, kudosReceived: 0, thoughtfulGiven: 0, thoughtfulReceived: 0, hugsGiven: 0, hugsReceived: 0, packsOpened: 0, days: [0, 0, 0, 0, 0, 0, 0], kudosOfWeek: null, thanked: { people: [], more: 0 }, thankedBy: { people: [], more: 0 }, hugged: { people: [], more: 0 }, huggedBy: { people: [], more: 0 }, newFaces: { people: [], more: 0 }, hoggies: { hoggies: [], more: 0 }, given: { kudos: [], more: false }, received: { kudos: [], more: false } };
     const weeks = [{ week: "2026-10-12", days: [0, 1, 0, 0, 0, 0, 0] }, { week: "2026-10-05", days: quiet.days }];
-    const thisWeek = { kind: "week", week: "2026-10-12", weeks, issue: { ...quiet, kudosGiven: 1, thoughtfulGiven: 1, days: weeks[0]!.days, thanked: { people: [{ person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" } }], more: 0 } } };
+    const ines = { person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" } };
+    const thanksToInes = { people: [ines], morePeople: 0, message: { kind: "text", segments: [{ kind: "text", text: "Thanks for the review" }], edited: false }, at: Date.parse("2026-10-13T10:00:00Z") };
+    const thisWeek = { kind: "week", week: "2026-10-12", weeks, issue: { ...quiet, kudosGiven: 1, thoughtfulGiven: 1, days: weeks[0]!.days, thanked: { people: [ines], more: 0 }, given: { kudos: [thanksToInes], more: false } } };
     const lastWeek = { kind: "week", week: "2026-10-05", weeks, issue: quiet };
     const weekAnswer = (args: { week?: string }) => (args.week === "2026-10-05" ? lastWeek : thisWeek);
     boardRead.mockImplementation((query: string, args: unknown) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : undefined));
