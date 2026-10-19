@@ -75,9 +75,9 @@ describe("AL37: with album and album-slack on and every retired flag off, a memb
     const withTheRetiredOn = await walkWith("on");
     const endState = await walkWith("off");
 
-    expect(endState.album).toEqual(withoutCoinsAndSkillPoints(withTheRetiredOn.album));
-    expect(endState.moments).toEqual(withoutCoinsAndSkillPoints(withTheRetiredOn.moments));
-    expect(endState.albumEvents).toEqual(withTheRetiredOn.albumEvents);
+    expect(endState.album, "every album read and command").toEqual(withoutCoinsAndSkillPoints(withTheRetiredOn.album));
+    expect(endState.moments, "the thread replies, the recaps and the weekly post").toEqual(withoutCoinsAndSkillPoints(withTheRetiredOn.moments));
+    expect(endState.albumEvents, "every product event outside the retired features' own").toEqual(withTheRetiredOn.albumEvents);
     expect(coinsAndSkillPointsShownIn(withTheRetiredOn), "the difference is real: the walk with the retired flags on shows coins and skill points").toEqual({ coins: true, skillPoints: true });
     expect(coinsAndSkillPointsShownIn(endState)).toEqual({ coins: false, skillPoints: false });
     expectTheAlbumsWholeLoop(endState);
