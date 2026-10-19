@@ -27,6 +27,8 @@ export const grantRecordValidator = v.object({
 
 export const thoughtfulTallyValidator = v.object({ workspace: v.string(), week: v.string(), giver: v.id("members"), awards: v.number() });
 
+export const thoughtfulBoardTallyValidator = v.object({ workspace: v.string(), period: v.string(), giver: v.id("members"), awards: v.number() });
+
 export const grantToldValidator = v.object({ message: messageRefValidator });
 
 export const albumStickerValidator = v.object({
@@ -134,5 +136,7 @@ export const weekTallyValidator = v.object({
 export const weekPersonValidator = v.object({ member: v.id("members"), week: v.string(), list: weekListValidator, person: v.id("members") });
 
 export const talliedAwardValidator = v.object({ award: awardIdValidator });
+
+export const boardCountedAwardValidator = v.object({ award: awardIdValidator });
 
 export const talliedHugValidator = v.object({ hug: v.id("hugs"), person: v.id("members") });

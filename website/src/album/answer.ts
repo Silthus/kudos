@@ -82,7 +82,9 @@ export type ThoughtfulBoards = { kind: "boards"; people: BoardPerson[]; teams: B
 
 export type BoardsShown = ThoughtfulBoards | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
-export type BoardsRead = (asking: boolean) => BoardsShown | undefined;
+export type BoardPeriod = "week" | "last-week" | "month" | "all";
+
+export type BoardsRead = (asking: boolean, period: BoardPeriod) => BoardsShown | undefined;
 
 export type WeekPerson = { person: string; name: string; face: Face };
 
