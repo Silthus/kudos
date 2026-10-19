@@ -1,3 +1,4 @@
+Round 1 red run: `npx --no -- vitest run convex/website/albumPersonWeek.test.ts -t AL48` on 76314188 plus the three new tests (before the fix in 03168696). The two failures are the giver-east tab and the Monday after the newest tab; the cross-week open/put-in test passed (coverage only).
      × a Monday after the newest tab reads no issue 47ms
      × a kudos a giver east of the member sent on their Monday shows in its week's tab while it is still Sunday for the member 39ms
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯

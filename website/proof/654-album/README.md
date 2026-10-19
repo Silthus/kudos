@@ -12,7 +12,7 @@ Branch `album/10` at `cc4386c5` (`main` at `7dcb093d` merged in), hand-deployed 
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/654-album/drive.mts`
 
-Tests: `red.txt` (all 10 new tests failing before the reads existed), `green.txt`, and `gate.txt` (`fleet heavy -- pnpm gate` on the merged head).
+Tests: `red.txt` (all 10 new tests failing before the reads existed), `red-round-1.txt` (the two review-round reds before `03168696`), `green.txt`, and `gate.txt` (`fleet heavy -- pnpm gate` on `fb69397e`).
 
 ## Cross-version: tallies the base code wrote, read by this branch
 

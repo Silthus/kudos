@@ -1,6 +1,6 @@
-HEAD 0d09a5109bddd083f924653899c7e9646971c46d — ~/dev/fleet/fleet heavy -- pnpm gate, exit 0
+HEAD fb69397e24a515d3b98957509efa120bea868506 — ~/dev/fleet/fleet heavy -- pnpm gate, exit 0
  Test Files  322 passed (322)
-      Tests  6325 passed (6325)
-   Duration  422.73s (tests 89%, import 6%, environment 2%, transform 2%)
+      Tests  6328 passed (6328)
+   Duration  286.70s (tests 84%, import 9%, environment 4%, transform 3%, setup 1%)
 lacking: enforcement 0, refutation 3, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-19T02:51:43.046Z (1696 runs)
 0 rejected names, 0 unknown nouns (1353 files), 191 in records
