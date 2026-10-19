@@ -16,14 +16,18 @@ The sandbox's registry was opened before #707, when gold alone had a milestone e
 8. `7-giver-tiers.jsonl` and `8-giver-getAlbum.json`: the kudos recorded Kind words bronze, so `:first-thank-you:` reads earned and silver, gold and diamond read locked at 1 of 25, 100 and 500.
 9. `9-markEmojisSeen.json`: given the earned bronze, the locked silver and the old `milestone:thoughtful` ID, `markEmojisSeen` records only the bronze.
 
-Browser, signed in as Cy Pebble through a short-lived session. Faces are blurred in the page before capture.
-- `shots/sandbox-light.png` and `shots/sandbox-dark.png`, 1440×900: an emoji under every medal, with `:first-face:` in colour and Add to Slack, and the rest greyed out with "Unlocks at N".
-- `shots/sandbox-phone-dark.png`, 390×844: no sideways scroll. The Add to Slack pill fits its medal: the link spans 31–108.5px inside the medal's 29–110.5px.
-- `shots/sandbox-add-to-slack.mp4`: Add to Slack downloads `first-face.png` (16,892 bytes, from `/emoji/milestone-people-bronze.png`) and opens Slack's `/customize/emoji` in a new tab.
+Browser, signed in through short-lived sessions as synthetic sandbox members. Faces are blurred in the page before capture.
+- `shots/sandbox-add-to-slack.mp4` (website at `5255b5a1`, as Cy Pebble): Add to Slack downloads `first-face.png` (16,892 bytes, from `/emoji/milestone-people-bronze.png`) and opens Slack's `/customize/emoji` in a new tab.
+- `shots/sandbox-light.png`, `shots/sandbox-dark.png` (1440×900) and `shots/sandbox-phone.png` (390×844): the website re-uploaded at 12:18 UTC from `545e950b` (review round 2), shown as #645's synthetic member, whom another lane's session had signed into the shared browser profile by then. Every medal has its emoji: earned ones in colour with Add to Slack, locked ones greyed out with "Unlocks at N". The four emoji blocks in every row start at the same height (measured in the page on desktop and phone). On the phone nothing scrolls sideways and every Add to Slack pill sits inside its medal.
 
 ## Fixture build and prototype
 
-`shots/comparison-fixture.png` sets the accepted prototype's Milestones (round 6, `0ac9e96d`, light only, gold named as text) beside the fixture build of this branch at 1440×900, in light and dark, plus the phone view. The fixture holds one earned emoji in Slack, one not in Slack and locked ones.
+`shots/comparison.png` sets the accepted prototype's Milestones (round 6, `0ac9e96d`, light only, gold named as text) beside this branch at `545e950b`: the fixture build in light, and the sandbox in dark and on a phone, at the same viewport. `shots/fixture-light.png` and `shots/fixture-phone.png` are the fixture build alone. The fixture holds one earned emoji in Slack, one not in Slack and locked ones.
+
+## Cross-version
+
+- Base website, HEAD backend: `shots/sandbox-base-website-on-head-backend.png` (step 3 above).
+- Base backend, HEAD website: `website/src/album/milestonesAnsweredBefore707.json` is `getAlbum`'s milestone answer as the code before #707 (`a8d06ae9`) built it, produced by that code in `convex-test`. The page test "#707: getAlbum's answer as the code before #707 built it…" renders HEAD's Milestones on it: every medal shows its own picture under its tier's slug and nothing to add.
 
 ## Integration note for #664
 
