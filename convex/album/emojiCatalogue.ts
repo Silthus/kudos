@@ -20,3 +20,16 @@ export const hypeEmblemPicture = "/emoji/hype.png";
 export function emojiArtPictureOf(kind: EmojiArtKind, catalogueId: string | number): string {
   return `/emoji/${kind}-${catalogueId}.png`;
 }
+
+const longestSlug = 80;
+
+export function slugOf(source: string): string {
+  return source
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, longestSlug)
+    .replace(/-+$/, "");
+}

@@ -2,17 +2,18 @@ import type { ReactNode } from "react";
 import { PageTitle } from "../PageTitle";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import type { Album, AlbumTeam, NewestPerson } from "./answer";
-import { medalsOf, myTeamOf, plural } from "./facts";
+import { myTeamOf, plural } from "./facts";
+import { MilestonesPage } from "./Milestones";
 import { Overview } from "./Overview";
 import type { Place } from "./place";
 import { TeamPage } from "./TeamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; profile: ReactNode; unlocking: TeamUnlocking; home: HomeProps };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; profile: ReactNode; hoggies: ReactNode; unlocking: TeamUnlocking; home: HomeProps };
 
 type HomeProps = { newest: NewestPerson[] | null; onOpenPacks: () => void };
 
-export function AlbumPage({ album, place, settings, leaderboard, activity, person, profile, unlocking, home }: PageProps) {
+export function AlbumPage({ album, place, settings, leaderboard, activity, person, profile, hoggies, unlocking, home }: PageProps) {
   switch (place.kind) {
     case "team":
       return place.team === null ? <Home album={album} unlocking={unlocking} {...home} /> : <TeamOrNotFound album={album} team={album.teams.find(({ team }) => team === place.team)} unlocking={unlocking} />;
@@ -21,17 +22,9 @@ export function AlbumPage({ album, place, settings, leaderboard, activity, perso
     case "profile":
       return profile;
     case "hoggies":
-      return (
-        <Page tab="Hoggies" title="Hoggies">
-          {place.rarity === undefined ? "Every hoggie you've found, and the ones still hidden." : `Showing ${place.rarity} hoggies.`}
-        </Page>
-      );
+      return hoggies;
     case "milestones":
-      return (
-        <Page tab="Milestones" title="Milestones">
-          {plural(medalsOf(album), "medal", "medals")} earned across {plural(album.milestones.length, "milestone", "milestones")}.
-        </Page>
-      );
+      return <MilestonesPage album={album} />;
     case "packs":
       return (
         <Page tab="Packs" title="Your packs">

@@ -167,8 +167,8 @@ export function useRoute() {
     return () => window.removeEventListener("popstate", follow);
   }, []);
 
-  const navigate = useCallback((href: string) => {
-    window.history.pushState(null, "", href);
+  const navigate = useCallback((href: string, state: unknown = null) => {
+    window.history.pushState(state, "", href);
     setRoute(currentRoute());
   }, []);
 

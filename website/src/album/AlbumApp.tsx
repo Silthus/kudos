@@ -10,6 +10,8 @@ import type { MemberProfile } from "../shell";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
+import { useHoggieAddress } from "./hoggieAddress";
+import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
 import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
@@ -28,9 +30,11 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
   const boards = useThoughtfulBoards(onLeaderboard || onProfile);
   const onOverview = place.kind === "team" && place.team === null && album?.kind === "album" && myTeamOf(album) === undefined;
   const profile = useAlbumProfile(onProfile || onOverview);
-  const hoggies = useAlbumHoggies(onProfile);
+  const onHoggies = place.kind === "hoggies";
+  const hoggies = useAlbumHoggies(onProfile || onHoggies);
   const onPerson = place.kind === "person";
   const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
+  const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
   const edition = useWeekEdition(useAlbumWeek, onActivity);
   useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: album?.kind === "album" && onSettings && settings?.kind === "settings" });
@@ -56,12 +60,13 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies }))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards} hoggies={hoggies} {...answers} />}
+        hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} {...answers} />}
         newest={profile?.kind === "profile" ? profile.newest : null}
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
