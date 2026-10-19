@@ -1,0 +1,33 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 20
+  },
+  "me": {
+    "face": {
+      "initials": "OM",
+      "kind": "initials"
+    },
+    "name": "Odile Marrow",
+    "person": "js70gsjtz6neeggbyfm3mq1erh8ggfv7"
+  },
+  "morePacks": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1792363685329,
+      "pack": "hn7waqjwmpj2wp8wh10npcm6a98ghkjz",
+      "person": "js71xqy5n4cmgthw8nvmh0gx198ggq39"
+    },
+    {
+      "earnedAt": 1792363685329,
+      "pack": "hn7n3had4h8an8p3z955k7ek0n8ggb8d",
+      "person": "js73qgg9w7679svxv6cqsf8n2d8gh6vh"
+    }
+  ],
+  "people": [],
+  "tray": []
+}

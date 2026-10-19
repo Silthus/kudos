@@ -1,0 +1,66 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "IQ",
+      "kind": "initials"
+    },
+    "name": "Imogen Quarry",
+    "person": "js7dg5b5q8exn81c59n7wx7kp98ggdzd"
+  },
+  "morePacks": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1792184657676,
+      "pack": "hn7tk1f2q2p30m6s8bf8fzeyvh8ggr0c",
+      "person": "js7fk9jrbcgxn5sg9nh1959q518gg238"
+    },
+    {
+      "earnedAt": 1792184657676,
+      "pack": "hn7jxv8dgtgy7dj9p49aajad718gh721",
+      "person": "js7fwvkhe28yd1hjbzm4bn7b898gghp4"
+    },
+    {
+      "earnedAt": 1792184657676,
+      "pack": "hn7s7trhc2wvb87qjf05tk1jys8ggk94",
+      "person": "js73ehkkk3xms6keb6w2k04f418ggzdw"
+    }
+  ],
+  "people": [
+    {
+      "face": {
+        "initials": "RT",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Rowan Thistle",
+      "person": "js73ehkkk3xms6keb6w2k04f418ggzdw"
+    },
+    {
+      "face": {
+        "initials": "FB",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Fennel Brook",
+      "person": "js7fk9jrbcgxn5sg9nh1959q518gg238"
+    },
+    {
+      "face": {
+        "initials": "JV",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Juniper Vale",
+      "person": "js7fwvkhe28yd1hjbzm4bn7b898gghp4"
+    }
+  ],
+  "tray": []
+}

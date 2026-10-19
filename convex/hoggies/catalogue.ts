@@ -249,14 +249,13 @@ export const catalogue = {
 
 export const firstVersionWithCrests = 2;
 
-export type PackBand = { xp: { least: number; most: number; step: number }; coins: { least: number; most: number } };
+export type PackBand = { xp: { least: number; most: number; step: number }; coins: { least: number; most: number }; version: number };
 
-const everyKindsFirstBand: PackBand = { xp: { least: 5, most: 25, step: 5 }, coins: { least: 1, most: 5 } };
+const everyKindsFirstBand: PackBand = { xp: { least: 5, most: 25, step: 5 }, coins: { least: 1, most: 5 }, version: 1 };
 
-export const packBands: { version: number; bands: Record<CrateKind, PackBand> } = {
-  version: 1,
-  bands: { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand },
-};
+const thoughtfulBand: PackBand = { xp: { least: 15, most: 15, step: 5 }, coins: { least: 0, most: 0 }, version: 2 };
+
+export const packBands: Record<CrateKind, PackBand> = { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand, thoughtful: thoughtfulBand };
 
 export function rarityLabel(rarity: Rarity): string {
   return labels[rarity];

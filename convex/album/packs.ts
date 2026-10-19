@@ -35,7 +35,7 @@ export const grantThoughtfulPacks = internalMutation({
 export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<{ packs: WaitingPack[]; more: boolean }> {
   const oldestFirst = await ctx.db
     .query("thoughtfulPacks")
-    .withIndex("by_giver_at", (q) => q.eq("giver", member))
+    .withIndex("by_giver_opened_at", (q) => q.eq("giver", member).eq("openedAt", undefined))
     .take(mostWaitingPacksShown + 1);
   const packs = oldestFirst.slice(0, mostWaitingPacksShown).map(({ _id, recipient, at }) => ({ pack: _id, person: recipient, earnedAt: at }));
   return { packs, more: oldestFirst.length > mostWaitingPacksShown };

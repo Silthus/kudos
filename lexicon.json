@@ -721,6 +721,10 @@
       "definition": "The pack a thoughtful kudos earns its giver for the person it thanked, at most once per giver, person and week (AL1, AL2); it holds that person's album sticker the first time and a hoggie every time (AL5)."
     },
     {
+      "name": "tray",
+      "definition": "A member's opened album stickers and hoggies not yet put in, in opening order, stored so a reload or another device shows the same (AL10); opening a thoughtful pack adds its sticker, where its grant decided it holds one, and its hoggie (AL8)."
+    },
+    {
       "name": "album sticker",
       "definition": "A person in a member's album: put in from a thoughtful pack, or brought by the album's history for someone the member gave a kudos award to before it began (AL13, AL14); never added by being thanked, kept for good, and not a Book sticker."
     }
