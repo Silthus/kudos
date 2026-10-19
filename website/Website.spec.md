@@ -168,6 +168,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: `/` for a member without a team over an album with teams in progress, a page ready to unlock and one unlocked, two packs waiting and none, the packs closed by `Escape` before a rip, the newest people and none, an album holding no teams, and `/` for a member with a team
   via: AL43: a member without a team lands on the album overview, never an empty home
   refuted: Home rendered the not-found page for a member getAlbum names no team of their own instead of the album overview -> 7 of 8 tests red, each unable to find the overview's title or parts (2026-10-19)
+  refuted: the overview's Open a pack opened the packs whatever packsWait said -> while Put them all in was still putting cards in, the pack opening appeared over it, 1 of 10 tests red (2026-10-19)
   because: a member posthog.com lists on no team, or one the matcher can't match yet, landed on a home holding one line; the album's home always shows where the member stands and the next thing to do (AL43, #694)
   kinds: output
   checklist: destination-confinement dismissed: the overview reads getAlbum and getAlbumProfile and sends nothing on arrival; `Open a pack` opens the same pack opening the packs button opens
