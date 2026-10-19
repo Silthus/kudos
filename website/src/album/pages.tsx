@@ -6,9 +6,9 @@ import type { Album, AlbumPerson, AlbumTeam } from "./answer";
 import { medalsOf, myTeamOf, plural, xpToNextOf } from "./facts";
 import { hrefOf, type Place } from "./place";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode };
 
-export function AlbumPage({ album, place, settings }: PageProps) {
+export function AlbumPage({ album, place, settings, leaderboard }: PageProps) {
   switch (place.kind) {
     case "team":
       return <TeamPage album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} />;
@@ -47,11 +47,7 @@ export function AlbumPage({ album, place, settings }: PageProps) {
         </Page>
       );
     case "leaderboard":
-      return (
-        <Page tab="Leaderboard" title="Leaderboard">
-          Thoughtful kudos given this week, by people and by team.
-        </Page>
-      );
+      return leaderboard;
     case "settings":
       return settings;
     case "elsewhere":

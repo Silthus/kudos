@@ -16,9 +16,9 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import "./album.css";
 
-export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; busy: boolean; onSignOut: () => void };
+export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; busy: boolean; onSignOut: () => void };
 
-export function AlbumShell({ album, place, settings, busy, onSignOut }: AlbumShellProps) {
+export function AlbumShell({ album, place, settings, leaderboard, busy, onSignOut }: AlbumShellProps) {
   const wide = useWideScreen();
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
   useTitleFocusWhenTheFocusedElementGoes();
@@ -30,7 +30,7 @@ export function AlbumShell({ album, place, settings, busy, onSignOut }: AlbumShe
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "team" && place.team === null && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} />
+            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} />
           </ErrorBoundary>
         </main>
       </div>

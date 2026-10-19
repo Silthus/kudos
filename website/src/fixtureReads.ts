@@ -1,6 +1,7 @@
 import { fixtureActivityWatch, fixtureReadActivity } from "./activityFixtures";
 import type { AppReads } from "./App";
 import { fixedAlbum, albumFixtures } from "./album/albumFixtures";
+import { boardsFixtures, fixedBoards } from "./album/boardsFixtures";
 import { fixtureBookFor } from "./bookFixtures";
 import { fixtureCollectionFor } from "./collectionFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
@@ -20,6 +21,8 @@ const fixtureSettings = fixedSettings(settingsFixtures.everything);
 
 const fixtureAlbum = fixedAlbum(albumFixtures.midway);
 
+const fixtureBoards = fixedBoards(boardsFixtures.week);
+
 export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads {
   return {
     useLeaderboard: fixtureLeaderboard,
@@ -34,5 +37,6 @@ export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads
     drawSpotlight: fixtureSpotlight,
     useSettings: fixtureSettings,
     useAlbum: fixtureAlbum,
+    useThoughtfulBoards: fixtureBoards,
   };
 }
