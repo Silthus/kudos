@@ -7,12 +7,14 @@ import { useLinkTargetOnceLanded } from "../linkTarget";
 import { useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import type { MemberProfile } from "../shell";
+import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
+import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards, useAlbumWeek }: AppProps & { member: MemberProfile }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   useCanonicalAddress(place, replaceAddress);
@@ -21,6 +23,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
   const settings = useSettings(onSettings);
   const onLeaderboard = place.kind === "leaderboard";
   const boards = useThoughtfulBoards(onLeaderboard);
+  const onActivity = place.kind === "activity";
+  const edition = useWeekEdition(useAlbumWeek, onActivity);
   useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: album?.kind === "album" && onSettings && settings?.kind === "settings" });
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -44,9 +48,10 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
+        activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
       />

@@ -17,9 +17,9 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import "./album.css";
 
-export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; busy: boolean; onSignOut: () => void; openThoughtfulPack: (pack: string) => Promise<PackOpenReply> };
+export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; busy: boolean; onSignOut: () => void; openThoughtfulPack: (pack: string) => Promise<PackOpenReply> };
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, busy, onSignOut, openThoughtfulPack }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, busy, onSignOut, openThoughtfulPack }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album, rememberOpened } = usePackOpening(answered);
   const { held, hold, release } = useHeld();
@@ -39,7 +39,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, busy
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "team" && place.team === null && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} />
+            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} />
           </ErrorBoundary>
         </main>
       </div>
