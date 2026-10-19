@@ -1,31 +1,23 @@
 import { hoggieNamed } from "../../../convex/hoggies/catalogue";
 import type { TeamArt } from "../crates/TeamCrest";
-import type { Face, Rarity } from "../shell";
-import type { Album, AlbumEmoji, AlbumPerson, PackOpenAnswer, WaitingPack } from "./answer";
+import type { Rarity } from "../shell";
+import type { Album, AlbumEmoji, AlbumPerson, PackOpenAnswer, Thanked, WaitingPack } from "./answer";
 
 export type Beat = "stack" | "person" | "glow" | "hoggie";
 
 export type TeamTick = { team: string; name: string; art: TeamArt; before: number; after: number; total: number; completes: boolean };
 
-export type Thanked = { name: string | null; face: Face | null };
-
 export type OpenedSticker = { teams: TeamTick[]; hype: AlbumEmoji | null };
 
 export type OpenedHoggie = { hoggie: string; name: string; rarity: Rarity; isNew: boolean };
 
-export type PackContents = { pack: WaitingPack; thanked: Thanked; sticker: OpenedSticker | null; hoggie: OpenedHoggie | null; xp: number };
-
-export function thankedFor(album: Album, pack: WaitingPack): Thanked {
-  const person = personIn(album, pack.person);
-  return { name: person?.name ?? null, face: person?.face ?? null };
-}
+export type PackContents = { pack: WaitingPack; sticker: OpenedSticker | null; hoggie: OpenedHoggie | null; xp: number };
 
 export function contentsOf(before: Album, pack: WaitingPack, { items, applied }: Extract<PackOpenAnswer, { kind: "opened" }>): PackContents {
   const sticker = items.some((item) => item.kind === "sticker") ? stickerOf(before, pack.person) : null;
   const hoggie = items.find((item) => item.kind === "hoggie");
   return {
     pack,
-    thanked: thankedFor(before, pack),
     sticker,
     hoggie: hoggie === undefined ? null : { hoggie: hoggie.hoggie, name: hoggieNamed(hoggie.hoggie)?.name ?? hoggie.hoggie, rarity: hoggie.rarity, isNew: hoggie.isNew },
     xp: applied?.xp ?? 0,
@@ -81,9 +73,9 @@ export function confettiFor(contents: PackContents): "gold" | "modest" | null {
 }
 
 export function heldSaying(contents: PackContents): string {
-  const cards = [contents.sticker === null ? null : `${cardNameOf(contents.thanked)}, new in your album`, contents.hoggie === null ? null : `${contents.hoggie.name}, ${rarityWordOf(contents.hoggie.rarity)}, ${contents.hoggie.isNew ? "new" : "a spare"}`].filter((card) => card !== null);
+  const cards = [contents.sticker === null ? null : `${cardNameOf(contents.pack.thanked)}, new in your album`, contents.hoggie === null ? null : `${contents.hoggie.name}, ${rarityWordOf(contents.hoggie.rarity)}, ${contents.hoggie.isNew ? "new" : "a spare"}`].filter((card) => card !== null);
   const xp = contents.xp > 0 ? ` +${contents.xp} XP.` : "";
-  return `You opened the pack for thanking ${nameOf(contents.thanked)}: ${cards.join(", and ")}.${xp}`;
+  return `You opened the pack for thanking ${nameOf(contents.pack.thanked)}: ${cards.join(", and ")}.${xp}`;
 }
 
 function personIn(album: Album, person: string): AlbumPerson | undefined {

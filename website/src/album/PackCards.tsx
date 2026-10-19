@@ -3,7 +3,8 @@ import { MemberFace } from "../Face";
 import { hoggiePictureOf } from "../crates/Hoggie";
 import { TeamCrest } from "../crates/TeamCrest";
 import { HedgehogSitting } from "../hoggies";
-import { nameOf, rarityWordOf, type OpenedHoggie, type TeamTick, type Thanked } from "./opening";
+import type { Thanked } from "./answer";
+import { nameOf, rarityWordOf, type OpenedHoggie, type TeamTick } from "./opening";
 
 export function PackWrapper({ thanked, size }: { thanked: Thanked; size: "big" | "mini" }) {
   return (

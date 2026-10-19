@@ -104,9 +104,38 @@ describe("AL47: the packs button opens the oldest waiting pack, sealed, and only
     expect(send.mock.calls).toEqual([["pack-1"]]);
   });
 
-  it("a pack for someone without a name in the album still opens, for thanking a teammate", async () => {
-    const strangers: Album = { ...albumFixtures.midway, packs: [{ pack: "pack-9", person: "someone-unlisted", earnedAt: 1 }] };
-    const { user } = visit(strangers, async () => opened([{ item: "tray-h", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }]));
+  it("a pack names the person it thanks with their stored face, on the wrapper and on their card, though they're on no team page the album lists", async () => {
+    const ivo = { name: "Ivo Strand", face: { kind: "slack", image: "https://pictures.example/ivo.png", initials: "IS" } } as const;
+    const onNoPage: Album = { ...albumFixtures.midway, packs: [{ pack: "pack-9", person: "ivo-strand", earnedAt: 1, thanked: ivo }] };
+    const { user } = visit(onNoPage, async () => opened(stickerAndHoggie("ivo-strand")));
+    const dialog = await openThePacks(user);
+
+    expect(dialog.getByText("For thanking Ivo Strand")).toBeInTheDocument();
+    await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Ivo Strand" }));
+    await user.click(await dialog.findByRole("button", { name: "Turn the first card" }));
+
+    const card = dialog.getByRole("group", { name: "Ivo Strand's card" });
+    expect(within(card).getByText("Ivo Strand")).toBeInTheDocument();
+    expect(card.querySelector(".al-card-portrait img")).toHaveAttribute("src", ivo.face.image);
+    expect(dialog.getByText("Ivo Strand", { selector: ".al-opening-title *" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Open your packs" }).textContent).not.toMatch(/teammate/i);
+  });
+
+  it("a person with no stored picture shows their name and initials on their card", async () => {
+    const onNoPage: Album = { ...albumFixtures.midway, packs: [{ pack: "pack-9", person: "ivo-strand", earnedAt: 1, thanked: { name: "Ivo Strand", face: { kind: "initials", initials: "IS" } } }] };
+    const { user } = visit(onNoPage, async () => opened(stickerAndHoggie("ivo-strand")));
+    const dialog = await openThePacks(user);
+    await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Ivo Strand" }));
+    await user.click(await dialog.findByRole("button", { name: "Turn the first card" }));
+
+    const card = dialog.getByRole("group", { name: "Ivo Strand's card" });
+    expect(within(card).getByText("IS")).toBeInTheDocument();
+    expect(within(card).getByText("Ivo Strand")).toBeInTheDocument();
+  });
+
+  it("only a pack whose read holds no name at all opens for thanking a teammate", async () => {
+    const nameless: Album = { ...albumFixtures.midway, packs: [{ pack: "pack-9", person: "someone-unlisted", earnedAt: 1, thanked: { name: null, face: null } }] };
+    const { user } = visit(nameless, async () => opened([{ item: "tray-h", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }]));
 
     const dialog = await openThePacks(user);
 
@@ -227,14 +256,18 @@ describe("AL47: the opening turns one card a beat", () => {
     expect(dialog.queryByTestId("confetti")).not.toBeInTheDocument();
   });
 
-  it("a first-time person's hype emoji shows under their card as + :name: unlocked", async () => {
+  it("a first-time person's hype emoji shows under their card as its picture and Slack name alone, outside the card", async () => {
     const { user } = visit({ ...notCompleting, emojis: [...notCompleting.emojis, junoHype] }, async () => opened(stickerAndHoggie("juno-park")));
     const dialog = await openThePacks(user);
     await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
     await user.click(await dialog.findByRole("button", { name: "Turn the first card" }));
 
-    expect(dialog.getByText(":juno-park-hype:").closest(".ph-no-capture")).not.toBeNull();
-    expect(dialog.getByText(":juno-park-hype:").parentElement).toHaveTextContent("+ :juno-park-hype: unlocked");
+    const badge = dialog.getByRole("img", { name: "Hype emoji :juno-park-hype:" });
+    expect(badge.closest(".ph-no-capture")).not.toBeNull();
+    expect(badge).toHaveTextContent(/^:juno-park-hype:$/);
+    expect(badge.querySelector("img")).toHaveAttribute("src", junoHype.picture);
+    expect(within(dialog.getByRole("group", { name: "Juno Park's card" })).queryByText(":juno-park-hype:")).not.toBeInTheDocument();
+    expect(dialog.queryByText(/unlocked/)).not.toBeInTheDocument();
   });
 
   it("a pack that holds no sticker shows no hype emoji, even for a person who has one", async () => {

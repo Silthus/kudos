@@ -168,6 +168,24 @@ describe("AL40: getAlbum shows the member's face without reading the directory",
   });
 });
 
+describe("AL47: each waiting pack names the person it thanks, with the face the opening shows", () => {
+  test("a person on a team page shows their stored company face, a person on no page their name and initials, though neither is in the album yet", async () => {
+    await switchWebsite(t, postHog, true, "album", "team-pages");
+    postHogCom.withTeams({ slug: "lanterns", name: "Lanterns", profiles: [{ id: 8, firstName: "Bob", lastName: "Okonkwo", colour: "teal", cutout: aCutout("bob") }] });
+    await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+    await thanks(alice, "Thanks for the careful review of the billing export", bob, carol);
+    await settle(t);
+
+    const album = await albumOf(await signedIn(alice));
+
+    expect(album.kind === "album" ? album.people.filter(({ held }) => held) : album).toEqual([]);
+    expect(album.kind === "album" ? album.packs.map(({ thanked }) => thanked) : album).toEqual([
+      { name: bob.name, face: expect.objectContaining({ kind: "company-profile", image: expect.stringContaining("bob"), initials: "BO" }) },
+      { name: carol.name, face: { kind: "initials", initials: "CL" } },
+    ]);
+  });
+});
+
 describe("website reads pass one guard", () => {
   test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);
