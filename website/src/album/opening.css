@@ -2,9 +2,8 @@
   --al-scrim: color-mix(in oklab, var(--background) 92%, transparent);
   --al-card-frame: #1d4aff;
   --al-card-frame-ink: #ffffff;
-  --al-card-back: #23308f;
+  --al-card-back: #f00008;
   --al-card-back-ink: #ffffff;
-  --al-card-back-line: color-mix(in oklab, var(--al-card-back-ink) 16%, transparent);
   --al-light: #ffffff;
   --al-gold: #e4b520;
   --al-gold-ink: #1f1a05;
@@ -25,7 +24,7 @@
   --al-light: #f4f4f0;
   --al-card-frame: #5b7bff;
   --al-card-frame-ink: #0b1030;
-  --al-card-back: #2b3aa8;
+  --al-card-back-ink: #f4f4f0;
   --al-gold: #f2cd4a;
   --al-ribbon-ink: #141414;
   --al-confetti-modest-3: #7d97ff;
@@ -411,18 +410,24 @@
 }
 
 .al-card-back {
-  justify-content: center;
-  background: repeating-linear-gradient(135deg, var(--al-card-back) 0 10px, color-mix(in oklab, var(--al-card-back) 85%, var(--al-card-frame-ink)) 10px 20px);
+  background: var(--al-card-back-ink);
   color: var(--al-card-back-ink);
 }
 
-.al-card-back-mark {
-  border: 2px solid var(--al-card-back-line);
-  border-radius: 999px;
-  padding: 0.375rem 0.875rem;
-  font-family: RoundHog, var(--font-sans);
-  font-size: 1.125rem;
-  font-weight: 800;
+.al-card-back-art {
+  width: 100%;
+  height: 100%;
+}
+
+.al-card-back-field {
+  fill: var(--al-card-back);
+}
+
+.al-card-back-lines {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
 }
 
 .al-person-card {

@@ -1,3 +1,4 @@
+import { Logo } from "@posthog/brand/logo";
 import { useMemo, type CSSProperties } from "react";
 import { MemberFace } from "../Face";
 import { hoggiePictureOf } from "../crates/Hoggie";
@@ -73,12 +74,33 @@ export function HoggieCard({ hoggie }: { hoggie: OpenedHoggie }) {
   );
 }
 
+const backLinesInOneQuarter =
+  "M22 44A22 22 0 0 0 44 22M22 54A32 32 0 0 0 54 22M22 64A42 42 0 0 0 64 22M22 93L103.6 22M22 120.1L125 30.5M22 133.6L125 44M112.5 54.9L125 65.8M106.7 60A20 20 0 0 0 125 72M98.9 66.7A30 30 0 0 0 125 82M33 124V175M43.5 114.9V175M54 105.8V175";
+
+const quarterMirrors = ["", "matrix(-1 0 0 1 250 0)", "matrix(1 0 0 -1 0 350)", "rotate(180 125 175)"];
+
 export function CardBack() {
   return (
     <span className="al-card al-card-back">
-      <span className="al-card-back-mark">HedgeHug</span>
+      <svg className="al-card-back-art" viewBox="0 0 250 350" aria-hidden="true">
+        <rect className="al-card-back-field" x="13" y="13" width="224" height="324" rx="8" />
+        <g className="al-card-back-lines">
+          <rect x="22" y="22" width="206" height="306" rx="6" />
+          {quarterMirrors.map((mirror) => (
+            <path key={mirror} d={backLinesInOneQuarter} transform={mirror || undefined} />
+          ))}
+        </g>
+        <BackLogo />
+        <g transform="rotate(180 125 175)">
+          <BackLogo />
+        </g>
+      </svg>
     </span>
   );
+}
+
+function BackLogo() {
+  return <Logo layout="stacked" variant="mono" x={93.5} y={112} width={63} height={56.44} />;
 }
 
 function NewRibbon() {
