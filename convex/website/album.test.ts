@@ -94,6 +94,29 @@ describe("the album is private", () => {
     }
   });
 
+  test("getAlbumPerson and getAlbumWeek answer each signed-in member their own side of a history, never the other's", async () => {
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    await thanks(bob, "Thanks for pairing on the stubborn cache invalidation", carol);
+    const [asAlice, asBob, asCarol] = [await signedIn(alice), await signedIn(bob), await signedIn(carol)];
+    const [aliceId, bobId, carolId] = [await memberOf(alice), await memberOf(bob), await memberOf(carol)];
+
+    expect(await asAlice.query(api.website.album.getAlbumPerson, { person: bobId })).toMatchObject({ kind: "person", person: bobId, kudosGiven: 1, kudosReceived: 0, hype: { earned: true } });
+    expect(await asBob.query(api.website.album.getAlbumPerson, { person: aliceId })).toMatchObject({ kind: "person", person: aliceId, kudosGiven: 0, kudosReceived: 1, best: null, hype: { earned: false } });
+    expect(await asCarol.query(api.website.album.getAlbumPerson, { person: bobId })).toMatchObject({ kind: "person", kudosGiven: 0, kudosReceived: 1, best: null });
+    expect(await weekListsOf(asAlice)).toEqual({ thanked: [bob.name], thankedBy: [] });
+    expect(await weekListsOf(asBob)).toEqual({ thanked: [carol.name], thankedBy: [alice.name] });
+    expect(await weekListsOf(asCarol)).toEqual({ thanked: [], thankedBy: [bob.name] });
+  });
+
+  test("getAlbumPerson and getAlbumWeek reject an argument that names another member", async () => {
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    const asBob = await signedIn(bob);
+    const member = await memberOf(alice);
+
+    await expect(asBob.query(api.website.album.getAlbumPerson, { person: member, member } as never)).rejects.toThrow(/member/);
+    await expect(asBob.query(api.website.album.getAlbumWeek, { member } as never)).rejects.toThrow(/member/);
+  });
+
   test("getThoughtfulBoards rejects an argument that names another member", async () => {
     await thanks(alice, "Thanks for the careful review of the billing export", bob);
     const asBob = await signedIn(bob);
@@ -119,25 +142,22 @@ describe("AL40: getAlbum shows the member's face without reading the directory",
 });
 
 describe("website reads pass one guard", () => {
-  test("getAlbum and getThoughtfulBoards read closed while the website flag is off, even with album on", async () => {
+  test("getAlbum, getThoughtfulBoards, getAlbumPerson and getAlbumWeek read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);
     await switchWebsite(t, postHog, false, "album");
 
-    expect(await albumOf(asAlice)).toEqual({ kind: "closed" });
-    expect(await boardsOf(asAlice)).toEqual({ kind: "closed" });
+    expect(await everyAlbumReadOf(asAlice, await aMember(t, dana.user))).toEqual(Array.from({ length: 4 }, () => ({ kind: "closed" })));
   });
 
-  test("getAlbum and getThoughtfulBoards read signed out without a session", async () => {
-    expect(await albumOf(t)).toEqual({ kind: "signed-out" });
-    expect(await boardsOf(t)).toEqual({ kind: "signed-out" });
+  test("getAlbum, getThoughtfulBoards, getAlbumPerson and getAlbumWeek read signed out without a session", async () => {
+    expect(await everyAlbumReadOf(t, await aMember(t, dana.user))).toEqual(Array.from({ length: 4 }, () => ({ kind: "signed-out" })));
   });
 
-  test("getAlbum and getThoughtfulBoards read not-a-member for a former member with a live session", async () => {
-    await aMember(t, juno.user, "not-a-member");
+  test("getAlbum, getThoughtfulBoards, getAlbumPerson and getAlbumWeek read not-a-member for a former member with a live session", async () => {
+    const former = await aMember(t, juno.user, "not-a-member");
     const { asSignedIn } = await aSession(t, juno);
 
-    expect(await albumOf(asSignedIn)).toEqual({ kind: "not-a-member" });
-    expect(await boardsOf(asSignedIn)).toEqual({ kind: "not-a-member" });
+    expect(await everyAlbumReadOf(asSignedIn, former)).toEqual(Array.from({ length: 4 }, () => ({ kind: "not-a-member" })));
   });
 });
 
@@ -149,6 +169,16 @@ function albumOf(reader: Reader): Promise<AlbumRead | { kind: string }> {
 
 function boardsOf(reader: Reader): Promise<ThoughtfulBoardsRead | { kind: string }> {
   return reader.query(api.website.album.getThoughtfulBoards, {});
+}
+
+function everyAlbumReadOf(reader: Reader, person: MemberId) {
+  return Promise.all([albumOf(reader), boardsOf(reader), reader.query(api.website.album.getAlbumPerson, { person }), reader.query(api.website.album.getAlbumWeek, {})]);
+}
+
+async function weekListsOf(reader: Reader) {
+  const week = await reader.query(api.website.album.getAlbumWeek, {});
+  if (week.kind !== "week" || week.issue === null) return week;
+  return { thanked: week.issue.thanked.people.map(({ name }) => name), thankedBy: week.issue.thankedBy.people.map(({ name }) => name) };
 }
 
 async function packedPeopleIn(albums: ReadonlyArray<readonly [Person, AlbumRead | { kind: string }]>) {

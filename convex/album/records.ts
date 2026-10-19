@@ -83,6 +83,12 @@ const hugPickValidator = v.object({ message: messageRefValidator, hugs: v.number
 
 export type HugPick = Infer<typeof hugPickValidator>;
 
+const hoggieFoundValidator = v.object({ hoggie: v.string(), rarity: rarityValidator });
+
+export type HoggieFound = Infer<typeof hoggieFoundValidator>;
+
+const hoggiesListValidator = v.object({ hoggies: v.array(hoggieFoundValidator), more: v.number() });
+
 export const weekTallyValidator = v.object({
   member: v.id("members"),
   week: v.string(),
@@ -98,6 +104,9 @@ export const weekTallyValidator = v.object({
   huggedBy: peopleListValidator,
   kudosOfWeek: v.union(hugPickValidator, v.null()),
   days: v.array(v.number()),
+  packsOpened: v.optional(v.number()),
+  newFaces: v.optional(peopleListValidator),
+  hoggiesFound: v.optional(hoggiesListValidator),
 });
 
 export const weekPersonValidator = v.object({ member: v.id("members"), week: v.string(), list: weekListValidator, person: v.id("members") });

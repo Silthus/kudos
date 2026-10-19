@@ -10,6 +10,7 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
+import { albumPersonOf, albumWeekOf, type AlbumPersonAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
 import { appliedShownTo } from "./commands";
 import { companyTeammateOf, nameless, storedFaceOf, type Face } from "./faces";
@@ -55,6 +56,10 @@ export type ThoughtfulBoardsAnswer = {
 
 export type ThoughtfulBoardsRead = { kind: "off" } | ThoughtfulBoardsAnswer;
 
+export type AlbumPersonRead = { kind: "off" } | { kind: "no-person" } | AlbumPersonAnswer;
+
+export type AlbumWeekRead = { kind: "off" } | AlbumWeekAnswer;
+
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
   const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
@@ -99,6 +104,20 @@ export const getThoughtfulBoards = memberQuery({
     await followTheClock(ctx);
     const { people, teams, pinned, onTheBoards } = await thoughtfulBoardsOf(ctx, me, team ?? null);
     return { kind: "boards", people: people.map(personRowOf), teams, pinned: { me: pinned.me === null ? null : personRowOf(pinned.me), teams: pinned.teams }, onTheBoards };
+  },
+});
+
+export const getAlbumPerson = memberQuery({
+  args: { person: v.id("members") },
+  handler: async (ctx, me, { person }): Promise<AlbumPersonRead> => ((await albumShownTo(ctx, me.member)) ? albumPersonOf(ctx, me, person) : { kind: "off" }),
+});
+
+export const getAlbumWeek = memberQuery({
+  args: { week: v.optional(v.string()) },
+  handler: async (ctx, me, { week }): Promise<AlbumWeekRead> => {
+    if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
+    await followTheClock(ctx);
+    return albumWeekOf(ctx, me, week);
   },
 });
 

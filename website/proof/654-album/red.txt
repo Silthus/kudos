@@ -1,0 +1,40 @@
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  |convex| convex/website/albumPersonWeek.test.ts > AL48: getAlbumWeek reads one week's issue from its week tally > this week is the member's own week in their time zone
+Error: Expected a Convex function exported from module "website/album" as `getAlbumWeek`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2501:15
+    2499|     const func = module[exportName];
+    2500|     if (func === undefined) {
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2502|     }
+    2503|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2167:34
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2254:20
+ ❯ weekOf convex/website/albumPersonWeek.test.ts:213:18
+ ❯ convex/website/albumPersonWeek.test.ts:194:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  |convex| convex/website/albumPersonWeek.test.ts > AL48: getAlbumWeek reads one week's issue from its week tally > a week with 800 recipients reads 12 people a list with the rest counted, within Convex's limits
+Error: Expected a Convex function exported from module "website/album" as `getAlbumWeek`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2501:15
+    2499|     const func = module[exportName];
+    2500|     if (func === undefined) {
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2502|     }
+    2503|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2167:34
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:2254:20
+ ❯ weekOf convex/website/albumPersonWeek.test.ts:213:18
+ ❯ convex/website/albumPersonWeek.test.ts:201:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed (10)
+   Start at  02:31:37
+   Duration  50.72s (tests 98%, transform 2%, import 1%)
+

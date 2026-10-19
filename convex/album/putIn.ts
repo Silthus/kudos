@@ -5,6 +5,7 @@ import { putDropIn } from "../hoggies/drops";
 import type { MemberId } from "../workspace/directory";
 import { crateKeyOf, shownTrayItem, type TrayItem } from "./opening";
 import { recordPackSticker } from "./stickers";
+import { tallyHoggieFound, tallyNewFace } from "./tallies";
 import { teamPagesOf, type PageOwner, type TeamPage } from "./teamPages";
 
 export const mostPutInACall = 25;
@@ -53,6 +54,13 @@ function byTeamPage(stickers: StoredSticker[], pages: TeamPage[]): StoredSticker
 
 async function place(ctx: MutationCtx, workspace: string, item: Stored, at: number) {
   await ctx.db.patch(item._id, { putInAt: at });
-  if (item.kind === "hoggie") return putDropIn(ctx, item.member, crateKeyOf(item.pack), at);
-  if (await recordPackSticker(ctx, item.member, item.person, item.pack, at)) await publish(ctx, { type: "stickerPutIn", workspace, member: item.member, person: item.person, at });
+  if (item.kind === "hoggie") return putHoggieIn(ctx, item, at);
+  if (!(await recordPackSticker(ctx, item.member, item.person, item.pack, at))) return;
+  await tallyNewFace(ctx, item.member, item.person, at);
+  await publish(ctx, { type: "stickerPutIn", workspace, member: item.member, person: item.person, at });
+}
+
+async function putHoggieIn(ctx: MutationCtx, { member, pack, hoggie, rarity }: Extract<Stored, { kind: "hoggie" }>, at: number) {
+  await putDropIn(ctx, member, crateKeyOf(pack), at);
+  await tallyHoggieFound(ctx, member, { hoggie, rarity }, at);
 }
