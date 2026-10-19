@@ -647,6 +647,10 @@ button.al-hoggies-note .al-hoggie-art {
     display: none;
   }
 
+  .al-hoggies-filters {
+    border-radius: 1rem;
+  }
+
   .al-hoggies-strip {
     flex-wrap: wrap;
   }
