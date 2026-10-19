@@ -25,6 +25,7 @@ import {
 import { keepFocusIn } from "./focusTrap";
 import { CardBack, Confetti, HoggieCard, PackWrapper, PersonCard, Ring, Shine, Sparkles } from "./PackCards";
 import "./opening.css";
+import { FindInSlackWhileOn, useLiveEmoji } from "./findInSlack";
 
 export type Held = { level: AlbumLevel | null; tray: number | null };
 
@@ -275,16 +276,18 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
       <div className="al-turn-caption" key={beat}>
         <Caption contents={contents} beat={beat} />
         {ended ? <EndActions waitingAfter={waitingAfter} disabled={flying} onFinish={onFinish} onPutAllIn={onPutAllIn} /> : <TurnActions contents={contents} beat={beat} onTurn={onTurn} onSkip={onSkip} />}
+        {ended && contents.sticker?.hype && <HypeInSlack hype={contents.sticker.hype} />}
       </div>
     </div>
   );
 }
 
 function HypeEmoji({ hype }: { hype: AlbumEmoji }) {
+  const live = useLiveEmoji(hype);
   return (
-    <span className="al-hype ph-no-capture" role="img" aria-label={`Hype emoji :${hype.name}:`}>
-      <EmojiPicture emoji={hype} size={24} />
-      <span className="al-emoji-name">:{hype.name}:</span>
+    <span className="al-hype ph-no-capture" role="img" aria-label={`Hype emoji :${live.name}:`}>
+      <EmojiPicture emoji={live} size={24} />
+      <span className="al-emoji-name">:{live.name}:</span>
     </span>
   );
 }
@@ -356,6 +359,16 @@ function TeamLines({ contents }: { contents: PackContents }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function HypeInSlack({ hype }: { hype: AlbumEmoji }) {
+  const live = useLiveEmoji(hype);
+  if (live.inSlack) return null;
+  return (
+    <p className="al-opening-in-slack">
+      <FindInSlackWhileOn emoji={live} />
+    </p>
   );
 }
 

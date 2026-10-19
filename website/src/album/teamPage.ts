@@ -36,13 +36,14 @@ export function teamEmojiOf(album: Album, team: string): AlbumEmoji | undefined 
 
 export const howToUseIt = "react with it and put it in the kudos you give";
 
-export function teamEmojiUseWords(emoji: AlbumEmoji) {
-  return emoji.inSlack ? `Use it in Slack: ${howToUseIt}.` : `It isn't in Slack yet: add it, then ${howToUseIt}.`;
+export function teamEmojiUseWords(emoji: AlbumEmoji, wizardOn: boolean) {
+  if (emoji.inSlack) return `Use it in Slack: ${howToUseIt}.`;
+  return wizardOn ? `It isn't in Slack yet: find it in Slack, then ${howToUseIt}.` : `It isn't in Slack yet: add it, then ${howToUseIt}.`;
 }
 
-export function newTeamEmojiWords(emoji: AlbumEmoji | undefined) {
+export function newTeamEmojiWords(emoji: AlbumEmoji | undefined, wizardOn: boolean) {
   if (emoji?.inSlack === true) return `Your new team emoji. Use it in Slack: ${howToUseIt}.`;
-  return `Your new team emoji. Add it to Slack from this page, then ${howToUseIt}.`;
+  return wizardOn ? `Your new team emoji. Find it in Slack, then ${howToUseIt}.` : `Your new team emoji. Add it to Slack from this page, then ${howToUseIt}.`;
 }
 
 export function firstNameOf(name: string) {

@@ -35,7 +35,7 @@ export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, ran
   };
 }
 
-export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace, randomDrops: boolean): Promise<boolean> {
+export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace, randomDrops: boolean, maintainer: MemberId): Promise<boolean> {
   if ((await customEmojiImageOf(ctx, workspace, name)) === undefined || (place.kind === "random" && !randomDrops)) return false;
   await openTheRegistryIn(ctx, workspace);
   if (place.kind === "unmapped" || place.kind === "random") {
@@ -46,11 +46,11 @@ export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name:
   const emoji = await earnedEmojiAt(ctx, workspace, place);
   if (emoji === null) return false;
   await unclassEmoji(ctx, workspace, name);
-  await giveEmojiTheName(ctx, workspace, emoji, name);
+  await giveEmojiTheName(ctx, workspace, emoji, name, { member: maintainer, as: "maintainer" });
   return true;
 }
 
-function targetOf(emoji: EarnedEmojiId | undefined): MappingTarget | null {
+export function targetOf(emoji: EarnedEmojiId | undefined): MappingTarget | null {
   if (emoji === undefined) return null;
   const colon = emoji.indexOf(":");
   const [kind, cause] = [emoji.slice(0, colon), emoji.slice(colon + 1)];

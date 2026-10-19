@@ -86,7 +86,7 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
         { team: "lanterns", name: "Lanterns", art: null },
         { team: "otters", name: "Otters", art: null },
       ],
-      hype: { earned: true, name: "bob-okonkwo-hype" },
+      hype: { earned: true, name: "bob-okonkwo-hype", picture: expect.any(String), inSlack: false },
     });
   });
 
