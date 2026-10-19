@@ -212,7 +212,7 @@ function YourPlace({ standing: { me, onTheBoards } }: { standing: Standing }) {
   );
 }
 
-export function MoreLink({ href, children }: { href: string; children: string }) {
+function MoreLink({ href, children }: { href: string; children: string }) {
   return (
     <AppLink href={href} className="al-profile-more">
       {children} <span aria-hidden="true">→</span>
@@ -248,7 +248,7 @@ function Glance({ album, team, hoggies }: { album: Album; team: AlbumTeam | unde
   );
 }
 
-export function Tile({ href, label, held, total, footnote, art }: { href: string; label: string; held: number; total: number; footnote: string; art?: ReactNode }) {
+function Tile({ href, label, held, total, footnote, art }: { href: string; label: string; held: number; total: number; footnote: string; art?: ReactNode }) {
   const foot = useId();
   return (
     <li>
@@ -322,7 +322,7 @@ function HoggieCard({ hoggie: { hoggie, name, rarity, firstAt } }: { hoggie: Fou
   );
 }
 
-export function NewestRow({ album, person: { person, name, face, at } }: { album: Album; person: NewestPerson }) {
+function NewestRow({ album, person: { person, name, face, at } }: { album: Album; person: NewestPerson }) {
   const team = teamNameOf(album, person);
   return (
     <li>
