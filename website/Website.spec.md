@@ -167,6 +167,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
 - a thoughtful pack opens only on the member's own rip: While the album shell shows, its packs button opens a modal dialog on the oldest waiting thoughtful pack, sealed, with the face and name of the person it thanks, or "a teammate" for someone getAlbum doesn't name, how many packs still wait and the next ones; nothing is sent until the member rips the pack, which sends openThoughtfulPack once for that pack; `Escape` before the rip closes the dialog, sends nothing and gives focus back to the packs button; with no pack waiting the dialog says how a pack is earned and sends nothing.
   over: the packs button over an album with two waiting packs, one with a pack for someone getAlbum doesn't name and one with none waiting, a rip, and `Escape` before the rip
   via: AL47: the packs button opens the oldest waiting pack, sealed, and only the member's rip opens it
+  refuted: PackOpening ripped its pack in an effect as soon as the dialog opened -> the dialog showed the turns with no rip and openThoughtfulPack was sent unasked, 4 of 5 tests red (2026-10-19)
   because: a pack's opening starts only from the member's own act, never from following a link or opening the dialog (VA26), and an open is for good: it draws the hoggie and pays the bonus once (AL8, AL47, #627, #662)
   kinds: output
   checklist: destination-confinement dismissed: the dialog sends only openThoughtfulPack, once per rip, and nothing when it opens or closes
