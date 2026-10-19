@@ -1,27 +1,30 @@
 import { IconCrown, IconEmoji, IconGear, IconPulse, IconStack } from "@posthog/icons";
-import { useId, type ComponentType, type ReactNode } from "react";
+import { useId, type ComponentType, type ReactNode, type RefObject } from "react";
 import { AppLink } from "../AppLink";
+import { useCountUp } from "../countUp";
+import { prefersReducedMotion } from "../reducedMotion";
 import { MemberFace } from "../Face";
 import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
+import type { Held } from "./PackOpening";
 import { hrefOf, type Place } from "./place";
 import { usePopover, type Popover } from "./usePopover";
 
-type TopBarProps = { album: Album; place: Place; wide: boolean };
+type TopBarProps = { album: Album; place: Place; wide: boolean; held: Held; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null> };
 
-export function TopBar({ album, place, wide }: TopBarProps) {
+export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, packsButton, trayButton }: TopBarProps) {
   const popover = usePopover<"tray" | "emojis" | "menu">();
   return (
-    <header className="al-top">
+    <header className="al-top" inert={inert}>
       <AppLink href="/" className="al-brand">
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
       </AppLink>
-      <XpBar level={album.level} />
+      <XpBar level={held.level ?? album.level} moving={moving} />
       <div className="al-top-end">
-        <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} />
-        <TrayButton items={album.tray.length} popover={popover} />
+        <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} onOpen={onOpenPacks} />
+        <TrayButton items={held.tray ?? album.tray.length} popover={popover} button={trayButton} />
         {wide && <PageLinks place={place} />}
         <EmojiButton earned={earnedEmojisOf(album)} popover={popover} />
         {wide ? <MeAndSettings album={album} place={place} /> : <Menu album={album} place={place} popover={popover} />}
@@ -30,7 +33,9 @@ export function TopBar({ album, place, wide }: TopBarProps) {
   );
 }
 
-function XpBar({ level }: { level: AlbumLevel }) {
+function XpBar({ level: settled, moving }: { level: AlbumLevel; moving: boolean }) {
+  const counted = useCountUp(settled.xp);
+  const level = moving && !prefersReducedMotion() ? { ...settled, xp: counted } : settled;
   return (
     <div className="al-xp">
       <span className="al-level">Level {level.level}</span>
@@ -44,10 +49,12 @@ function XpBar({ level }: { level: AlbumLevel }) {
   );
 }
 
-function PacksButton({ waiting, more, current }: { waiting: number; more: boolean; current: boolean }) {
+type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; onOpen: () => void };
+
+function PacksButton({ waiting, more, current, button, onOpen }: PacksButtonProps) {
   const count = more ? `${waiting}+` : `${waiting}`;
   return (
-    <AppLink href={hrefOf({ kind: "packs" })} className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
+    <button type="button" ref={button} onClick={onOpen} aria-haspopup="dialog" className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
       <span className="al-packs-art" aria-hidden="true">
         <span className="al-packs-wrapper" />
         <span className="al-packs-wrapper" />
@@ -57,13 +64,13 @@ function PacksButton({ waiting, more, current }: { waiting: number; more: boolea
         <strong>{waiting === 0 ? "No packs" : more ? `${count} packs` : plural(waiting, "pack", "packs")}</strong>
         <span>{waiting === 0 ? "Say thanks to earn one" : "Ready to open"}</span>
       </span>
-    </AppLink>
+    </button>
   );
 }
 
-function TrayButton({ items, popover }: { items: number; popover: Popover<"tray" | "emojis" | "menu"> }) {
+function TrayButton({ items, popover, button }: { items: number; popover: Popover<"tray" | "emojis" | "menu">; button: RefObject<HTMLButtonElement | null> }) {
   return (
-    <PopoverButton name="tray" popover={popover} label={items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`} panelLabel="Tray" className="al-tray" content={<p>Open a pack and what it holds waits here to be put in.</p>}>
+    <PopoverButton name="tray" popover={popover} button={button} label={items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`} panelLabel="Tray" className="al-tray" content={<p>Open a pack and what it holds waits here to be put in.</p>}>
       <IconStack />
       {items > 0 && <span className="al-tray-count">{items}</span>}
     </PopoverButton>
@@ -81,14 +88,14 @@ function EmojiButton({ earned, popover }: { earned: number; popover: Popover<"tr
   );
 }
 
-type PopoverButtonProps = { name: "tray" | "emojis" | "menu"; popover: Popover<"tray" | "emojis" | "menu">; label: string; panelLabel: string; className: string; content: ReactNode; children: ReactNode };
+type PopoverButtonProps = { name: "tray" | "emojis" | "menu"; popover: Popover<"tray" | "emojis" | "menu">; label: string; panelLabel: string; className: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null> };
 
-function PopoverButton({ name, popover, label, panelLabel, className, content, children }: PopoverButtonProps) {
+function PopoverButton({ name, popover, label, panelLabel, className, content, children, button }: PopoverButtonProps) {
   const panel = useId();
   const open = popover.open === name;
   return (
     <span className="al-popover-anchor" ref={open ? popover.anchor : undefined}>
-      <button type="button" className={`al-top-button ${className}`} aria-label={label} aria-expanded={open} aria-controls={open ? panel : undefined} onClick={() => popover.toggle(name)}>
+      <button type="button" ref={button} className={`al-top-button ${className}`} aria-label={label} aria-expanded={open} aria-controls={open ? panel : undefined} onClick={() => popover.toggle(name)}>
         {children}
       </button>
       {open && (

@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { activityFixtures } from "./activityFixtures";
@@ -62,6 +63,22 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     await screen.findByRole("navigation", { name: "Album" });
 
     expect([...container.querySelectorAll(".ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["SE", "Sam Example", "Ines Okafor"]));
+  });
+
+  it("AL56: the pack opening, sealed and opened from the fixture build, keeps every face, name and Slack picture in blocks", async () => {
+    window.history.replaceState(null, "", "/");
+    const { container } = render(<Root fixture="album" />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Open your packs, 2 waiting" }));
+
+    expect(exposedIn(container)).toEqual([]);
+    await user.click(screen.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
+    await user.click(await screen.findByRole("button", { name: "Turn the first card" }));
+    expect(exposedIn(container)).toEqual([]);
+    await user.click(screen.getByRole("button", { name: "Skip" }));
+
+    expect(exposedIn(container)).toEqual([]);
+    expect([...container.querySelectorAll(".al-opening .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["Juno Park", "For thanking Rook Dale"]));
   });
 
   it("AL56: the album's Leaderboard carries blocks around every giver's face and name, so its walk is not vacuous", async () => {
