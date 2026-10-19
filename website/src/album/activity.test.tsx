@@ -121,7 +121,16 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", tabs.getByRole("tab", { name: /^This week/ }).id);
     tabs.getByRole("tab", { name: /^This week/ }).focus();
     await user.tab();
-    expect(document.activeElement?.closest("[role=tabpanel]")).not.toBeNull();
+    expect(screen.getByRole("tabpanel"), "Tab from the chosen week lands on its issue").toHaveFocus();
+  });
+
+  it("a quiet week's issue, which holds nothing focusable, is still reached by Tab from its week", async () => {
+    const { user } = visit();
+
+    await user.click((await weekTabs()).getByRole("tab", { name: /^Last week/ }));
+    await user.tab();
+
+    expect(screen.getByRole("tabpanel"), "Tab from a quiet week lands on its issue").toHaveFocus();
   });
 
   it("an empty week shows its tallies at nothing and says it was quiet", async () => {
@@ -198,6 +207,23 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect((await issue()).getByRole("heading", { level: 2, name: "Last week in your album" })).toBeInTheDocument();
     expect(screen.getByRole("tabpanel")).not.toHaveAttribute("aria-busy");
     expect(picked).toHaveFocus();
+  });
+
+  it("while a picked week loads, the issue on screen is the newest answer the read gave, not an earlier one", async () => {
+    const loaded = new Set<string | undefined>([undefined]);
+    let thisWeek: WeekShown = weekFixtures.full;
+    const { read } = recordingWeeks((week) => (!loaded.has(week) ? undefined : week === undefined ? thisWeek : fixtureWeeks()(true, week)));
+    const { user, showVisitor } = visit(read);
+    await issue();
+
+    thisWeek = { ...weekFixtures.full, issue: { ...weekFixtures.full.issue!, hugsGiven: 9 } };
+    act(() => showVisitor(memberWithTheAlbum));
+    expect(tallies(await issue())[3]).toBe("hugs | 14 | 9 given · 5 received");
+
+    await user.click((await weekTabs()).getByRole("tab", { name: /^Last week/ }));
+
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-busy", "true");
+    expect(tallies(await issue())[3], "the kept issue carries the live update, not the first answer").toBe("hugs | 14 | 9 given · 5 received");
   });
 
   it("opens on this week again after the member leaves Activity and comes back", async () => {

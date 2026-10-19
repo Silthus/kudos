@@ -127,7 +127,7 @@ type IssuePanelProps = { answer: AlbumWeek; labelledBy: string; ids: string; thi
 
 function IssuePanel({ answer: { week, issue }, labelledBy, ids, thisWeek, loading, me }: IssuePanelProps) {
   return (
-    <section role="tabpanel" id={`${ids}-panel`} aria-labelledby={labelledBy} aria-busy={loading || undefined} className="al-issue">
+    <section role="tabpanel" id={`${ids}-panel`} tabIndex={0} aria-labelledby={labelledBy} aria-busy={loading || undefined} className="al-issue">
       <header className="al-issue-head">
         <p className="al-eyebrow">{weekSpanOf(week)}</p>
         <h2 id={`${ids}-issue`} className="al-issue-title">
