@@ -13,3 +13,16 @@ Branch `album/10` at `cc4386c5` (`main` at `7dcb093d` merged in), hand-deployed 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/654-album/drive.mts`
 
 Tests: `red.txt` (all 10 new tests failing before the reads existed), `green.txt`, and `gate.txt` (`fleet heavy -- pnpm gate` on the merged head).
+
+## Cross-version: tallies the base code wrote, read by this branch
+
+Ticket 2's sandbox member Odile Marsh (`website/proof/646-album/`) has week and pair tallies that `main`'s subscribers wrote on 2026-10-18, before this branch existed, so the row has none of the new fields (`base-written/stored-week-tallies.jsonl`).
+
+8. `getAlbumWeek {"week":"2026-10-12"}` as Odile (`base-written/getAlbumWeek-2026-10-12.json`): 2 kudos given, 1 received, Pim and Quill thanked, the days as stored, and `packsOpened: 0`, no new faces and no hoggies, read from the missing fields.
+9. `getAlbumPerson` of Pim (`base-written/getAlbumPerson-pim.json`): 1 kudos given, 1 hug received, the best message, held (the history put him in), the hype emoji earned.
+
+The reverse direction is an accepted failure: a week tally this branch wrote with the new fields fails `main`'s schema, so a rollback deploy to the sandbox is refused until those rows lose the fields. Production writes none of them while `album` is off there, since only opening and putting in write them.
+
+## Prod shape
+
+Read-only from production's Convex data on 2026-10-19: production holds no pair or week tally yet, so every member's person page reads an empty history and every week no issue until a kudos, a hug or the history writes one. Rows written there before this deploy carry none of the new fields and read as none.

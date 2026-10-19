@@ -1,0 +1,47 @@
+{
+  "best": {
+    "at": 1792103313842,
+    "message": {
+      "edited": false,
+      "kind": "text",
+      "segments": [
+        {
+          "kind": "person",
+          "name": "Pim Larch"
+        },
+        {
+          "kind": "text",
+          "text": " "
+        },
+        {
+          "kind": "emoji",
+          "name": "hedgehog",
+          "unicode": "🦔"
+        },
+        {
+          "kind": "text",
+          "text": " for walking the new joiners through the deploy pipeline so patiently"
+        }
+      ]
+    },
+    "permalink": "https://posthogtestgroup.slack.com/archives/C0C9N9A4SE4/p1792103313842000"
+  },
+  "face": {
+    "initials": "PL",
+    "kind": "initials"
+  },
+  "firstThankedAt": 1792103313842,
+  "held": true,
+  "hugsGiven": 0,
+  "hugsReceived": 1,
+  "hype": {
+    "earned": true,
+    "name": "pim-larch-hype"
+  },
+  "kind": "person",
+  "kudosGiven": 1,
+  "kudosReceived": 0,
+  "name": "Pim Larch",
+  "person": "js70vehner93gs2pe2fbp7b95h8ggbgs",
+  "teams": []
+}
