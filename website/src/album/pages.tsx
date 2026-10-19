@@ -2,14 +2,15 @@ import type { ReactNode } from "react";
 import { PageTitle } from "../PageTitle";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import type { Album, AlbumTeam } from "./answer";
-import { medalsOf, myTeamOf, plural, xpToNextOf } from "./facts";
+import { myTeamOf, plural, xpToNextOf } from "./facts";
+import { MilestonesPage } from "./Milestones";
 import type { Place } from "./place";
 import { TeamPage } from "./TeamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; unlocking: TeamUnlocking };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; person: ReactNode; hoggies: ReactNode; unlocking: TeamUnlocking };
 
-export function AlbumPage({ album, place, settings, leaderboard, activity, person, unlocking }: PageProps) {
+export function AlbumPage({ album, place, settings, leaderboard, activity, person, hoggies, unlocking }: PageProps) {
   switch (place.kind) {
     case "team":
       return <TeamOrHome album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} unlocking={unlocking} />;
@@ -22,17 +23,9 @@ export function AlbumPage({ album, place, settings, leaderboard, activity, perso
         </Page>
       );
     case "hoggies":
-      return (
-        <Page tab="Hoggies" title="Hoggies">
-          {place.rarity === undefined ? "Every hoggie you've found, and the ones still hidden." : `Showing ${place.rarity} hoggies.`}
-        </Page>
-      );
+      return hoggies;
     case "milestones":
-      return (
-        <Page tab="Milestones" title="Milestones">
-          {plural(medalsOf(album), "medal", "medals")} earned across {plural(album.milestones.length, "milestone", "milestones")}.
-        </Page>
-      );
+      return <MilestonesPage album={album} />;
     case "packs":
       return (
         <Page tab="Packs" title="Your packs">

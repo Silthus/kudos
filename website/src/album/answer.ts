@@ -1,3 +1,4 @@
+import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { AppliedReward } from "../../../convex/progression/rewards";
@@ -137,3 +138,11 @@ export type PersonPage = {
 export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type PersonRead = (asking: boolean, person: string | null) => PersonShown | undefined;
+
+export type { AlbumHoggie, AlbumRarity };
+
+export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered;
+
+export type HoggiesShown = AlbumHoggies | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type HoggiesRead = (asking: boolean) => HoggiesShown | undefined;

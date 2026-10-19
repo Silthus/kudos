@@ -3,25 +3,13 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { companyTeamsReplacedEventValidator } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
-import { emojiLevels, milestoneGoldNames } from "./emojiCatalogue";
+import { emojiLevels, milestoneGoldNames, slugOf } from "./emojiCatalogue";
 import { standardEmojiNames } from "./standardEmojiNames";
 
 export type EarnedEmojiId = `level:${number}` | `milestone:${string}` | `team:${string}` | `hype:${MemberId}`;
 
-const longestSlug = 80;
 const hypeSuffix = "-hype";
 const firstUse: EarnedEmojiId = `level:${emojiLevels[0]}`;
-
-function slugOf(source: string): string {
-  return source
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, longestSlug)
-    .replace(/-+$/, "");
-}
 
 export async function emojiNameOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId): Promise<string | null> {
   return (await registeredAs(ctx, workspace, emoji))?.name ?? null;

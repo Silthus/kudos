@@ -15,7 +15,7 @@ import { PacksProvider } from "./book/packs/PacksContext";
 import { waitingPacksOf } from "./book/packs/packs";
 import { usePackSession } from "./book/packs/usePackSession";
 import type { ActivityRead, ActivityShown, ActivityWatch } from "./activityRead";
-import type { AlbumRead, BoardsRead, PersonRead, WeekRead } from "./album/answer";
+import type { AlbumRead, BoardsRead, HoggiesRead, PersonRead, WeekRead } from "./album/answer";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
 import type { CollectionRead, CollectionShown } from "./collectionRead";
@@ -57,7 +57,7 @@ import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./s
 
 export type AppReads = Omit<AppProps, "visitor" | "actions">;
 
-export type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead };
+export type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumHoggies: HoggiesRead };
 
 const AlbumApp = lazy(() => import("./album/AlbumApp"));
 
