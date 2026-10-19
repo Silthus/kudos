@@ -1,0 +1,30 @@
+{
+  "packs": [
+    {
+      "earnedAt": 1792430460221,
+      "pack": "hn7k8e1egpr4rsbvmm0ec4m2x58gje8k",
+      "person": "js78hxnkbet5yxxhxtr5t6w44d8gkgma",
+      "thanked": {
+        "face": {
+          "image": "https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50.jpg?s=192",
+          "initials": "MA",
+          "kind": "slack"
+        },
+        "name": "Maximiliane Aurelia Konstantinopoulou-Wetherington"
+      }
+    },
+    {
+      "earnedAt": 1792430460221,
+      "pack": "hn7qtv2w33t2df7e895n3gzw4n8gj69h",
+      "person": "js729xb33c93arcaqx2htf1j498gke3f",
+      "thanked": {
+        "face": {
+          "initials": "PL",
+          "kind": "initials"
+        },
+        "name": "Pim Lark"
+      }
+    }
+  ],
+  "tray": []
+}
