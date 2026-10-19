@@ -1,0 +1,165 @@
+{
+  "kind": "album",
+  "packs": [
+    {
+      "earnedAt": 1792387136846,
+      "pack": "hn7wzaz9mcff1qdcqx7k0c9pxd8gjrr3",
+      "person": "js742kw1jxmqfh37qgnw6zndy18gkdnr"
+    }
+  ],
+  "tray": [],
+  "peopleHeld": [],
+  "otherFields": "me, level and teams left out: teams lists every posthog.com team and its people",
+  "milestones": [
+    {
+      "count": 0,
+      "id": "people",
+      "tiers": [
+        {
+          "at": 1,
+          "earnedAt": null,
+          "name": "First face",
+          "tier": "bronze"
+        },
+        {
+          "at": 10,
+          "earnedAt": null,
+          "name": "Familiar faces",
+          "tier": "silver"
+        },
+        {
+          "at": 25,
+          "earnedAt": null,
+          "name": "Full of friends",
+          "tier": "gold"
+        },
+        {
+          "at": 50,
+          "earnedAt": null,
+          "name": "Everyone's album",
+          "tier": "diamond"
+        }
+      ]
+    },
+    {
+      "count": 0,
+      "id": "teams",
+      "tiers": [
+        {
+          "at": 1,
+          "earnedAt": null,
+          "name": "First full page",
+          "tier": "bronze"
+        },
+        {
+          "at": 5,
+          "earnedAt": null,
+          "name": "Five teams strong",
+          "tier": "silver"
+        },
+        {
+          "at": 15,
+          "earnedAt": null,
+          "name": "Most of the company",
+          "tier": "gold"
+        },
+        {
+          "at": 50,
+          "earnedAt": null,
+          "name": "Every page",
+          "tier": "diamond"
+        }
+      ]
+    },
+    {
+      "count": 0,
+      "id": "reach",
+      "tiers": [
+        {
+          "at": 3,
+          "earnedAt": null,
+          "name": "Next door",
+          "tier": "bronze"
+        },
+        {
+          "at": 10,
+          "earnedAt": null,
+          "name": "Bridge builder",
+          "tier": "silver"
+        },
+        {
+          "at": 25,
+          "earnedAt": null,
+          "name": "Well travelled",
+          "tier": "gold"
+        },
+        {
+          "at": 50,
+          "earnedAt": null,
+          "name": "All hands",
+          "tier": "diamond"
+        }
+      ]
+    },
+    {
+      "count": 0,
+      "id": "hoggies",
+      "tiers": [
+        {
+          "at": 10,
+          "earnedAt": null,
+          "name": "Curious",
+          "tier": "bronze"
+        },
+        {
+          "at": 40,
+          "earnedAt": null,
+          "name": "Collector",
+          "tier": "silver"
+        },
+        {
+          "at": 100,
+          "earnedAt": null,
+          "name": "Hoarder",
+          "tier": "gold"
+        },
+        {
+          "at": 151,
+          "earnedAt": null,
+          "name": "Completionist",
+          "tier": "diamond"
+        }
+      ]
+    },
+    {
+      "count": 1,
+      "id": "thoughtful",
+      "tiers": [
+        {
+          "at": 1,
+          "earnedAt": 1792387137263,
+          "name": "First thank-you",
+          "tier": "bronze"
+        },
+        {
+          "at": 25,
+          "earnedAt": null,
+          "name": "Generous soul",
+          "tier": "silver"
+        },
+        {
+          "at": 100,
+          "earnedAt": null,
+          "name": "Heart of the team",
+          "tier": "gold"
+        },
+        {
+          "at": 500,
+          "earnedAt": null,
+          "name": "Patron of praise",
+          "tier": "diamond"
+        }
+      ]
+    }
+  ]
+}
