@@ -36,6 +36,10 @@ export function shortened(text: string, limit: number) {
   return text.length <= limit ? text : `${text.slice(0, limit - 1)}…`;
 }
 
+export function escaped(text: string) {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
 export function mrkdwn(text: string) {
   return { type: "mrkdwn", text };
 }

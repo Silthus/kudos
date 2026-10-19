@@ -1,0 +1,2 @@
+     × sixty teams with long names: the line of other teams stays within Slack's 3,000 characters and counts the rest 361ms
+AssertionError: expected 3895 to be less than or equal to 3000

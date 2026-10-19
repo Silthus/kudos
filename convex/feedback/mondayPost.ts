@@ -1,4 +1,8 @@
+import type { Segment } from "../activity/entries";
 import type { MondayPost, PostedGroup } from "../leaderboard/mondayPost";
+import type { ShownEmoji } from "../album/earnedEmojis";
+import type { QuotedKudos, TopKudosPost } from "../leaderboard/topKudos";
+import { publicPictureOf } from "./albumSlack";
 import { asWritten } from "./groupCopy";
 import { medalOf } from "./leaderboard";
 import type { Line } from "./segments";
@@ -14,4 +18,61 @@ function groupLine(group: PostedGroup): Line {
 
 function peopleCount(givers: number) {
   return givers === 1 ? "1 person" : `${givers} people`;
+}
+
+export const quotedCharactersAtMost = 200;
+
+export type Words = { text: string; strong?: true };
+
+export type TopKudosEntry = { lead: Words[]; quote: string; permalink: string | null };
+
+export type PublicEmoji = Omit<ShownEmoji, "picture"> & { picture: string | null };
+
+export type TeamRow = { team: string; count: string; emoji: PublicEmoji | null };
+
+export type TopKudosMessage = { headline: string; kudos: TopKudosEntry[]; teams: { headline: string; rows: TeamRow[] } | null };
+
+export function renderTopKudosPost({ kudos, teams, origin }: TopKudosPost): TopKudosMessage {
+  return {
+    headline: "🏆 Last week's top thoughtful kudos",
+    kudos: kudos.map((entry, index) => ({ lead: leadOf(entry, index + 1), quote: quoteOf(entry.words), permalink: entry.permalink })),
+    teams: teams.length === 0 ? null : { headline: "Team stickers unlocked last week", rows: teams.map(({ name, count, emoji }) => ({ team: name, count: `×${count}`, emoji: emoji === null ? null : { ...emoji, picture: publicPictureOf(emoji.picture, origin) } })) },
+  };
+}
+
+function leadOf({ giver, recipients, moreRecipients }: QuotedKudos, place: number): Words[] {
+  return [{ text: `${place}. ${giver}`, strong: true }, { text: " thanked " }, ...listedNames(recipients, moreRecipients)];
+}
+
+function listedNames(names: string[], more: number): Words[] {
+  const listed: Words[] = names.map((name) => ({ text: name, strong: true }));
+  const last = more > 0 ? { text: `${more} more` } : listed.pop();
+  const joined = listed.flatMap((name, index) => (index === 0 ? [name] : [{ text: ", " }, name]));
+  return last === undefined ? joined : [...joined, ...(joined.length > 0 ? [{ text: " and " }] : []), last];
+}
+
+function quoteOf(words: Segment[]): string {
+  const characters = Array.from(words.map(plainTextOf).join("").replace(/\s+/g, " ").trim());
+  return characters.length <= quotedCharactersAtMost ? characters.join("") : `${characters.slice(0, quotedCharactersAtMost).join("")}…`;
+}
+
+function plainTextOf(segment: Segment): string {
+  switch (segment.kind) {
+    case "text":
+      return segment.text;
+    case "person":
+      return `@${segment.name}`;
+    case "group":
+      return `@${segment.handle}`;
+    case "channel":
+      return "#channel";
+    case "broadcast":
+      return `@${segment.range}`;
+    case "emoji":
+      return `:${segment.name}:`;
+    case "link":
+      return segment.label ?? segment.url;
+    case "break":
+      return " ";
+  }
 }
