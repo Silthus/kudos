@@ -1,8 +1,19 @@
+.al-popover:has(> .al-tray-panel) {
+  width: min(24rem, calc(100vw - 2rem));
+  max-width: none;
+}
+
 .al-tray-panel {
   display: flex;
-  width: min(24rem, calc(100vw - 2rem));
+  min-width: 0;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+@media (max-width: 63.999rem) {
+  .al-popover:has(> .al-tray-panel) {
+    width: auto;
+  }
 }
 
 .al-tray-title {
