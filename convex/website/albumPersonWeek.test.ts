@@ -7,6 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
+import { kudosListedAWeek } from "../album/weekKudos";
 import type { AlbumPersonRead, AlbumWeekRead } from "./album";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -136,7 +137,7 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
 describe("AL48: getAlbumWeek reads one week's issue from its week tally", { timeout: 180_000 }, () => {
   test("this week's issue holds its counts, the kudos of the week with its words, who you thanked, who thanked you, who you hugged and who hugged you, the packs you opened, the new faces and hoggies you put in, and each day's count", async () => {
     const thanked = await thanks(alice, longerWhy, bob);
-    await thanks(carol, "ty", alice);
+    const thankedBy = await thanks(carol, "ty", alice);
     await hugs(dana, alice, thanked);
     await hugs(dana, alice, nextTs());
     await hugs(alice, carol, nextTs());
@@ -170,9 +171,61 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
         huggedBy: { people: [await personIn(dana)], more: 0 },
         newFaces: { people: [await personIn(bob)], more: 0 },
         hoggies: { hoggies: [{ hoggie: expect.any(String), rarity: expect.any(String) }], more: 0 },
+        given: { kudos: [], more: false },
+        received: { kudos: [await kudosIn("ty", thankedBy, carol)], more: false },
         days: [0, 4, 0, 0, 0, 0, 0],
       },
     });
+  });
+
+  test("the issue lists every other kudos the member gave and got that week, newest first, each with its words, Slack link, day and people", async () => {
+    await thanks(alice, "ty for last week", bob);
+    laterBy(weekMs);
+    const lead = await thanks(alice, longerWhy, bob);
+    const review = await thanks(alice, "Thanks for the careful review", carol, dana);
+    const pairing = await thanks(carol, "Thanks for pairing on the flaky test", alice);
+    const docs = await thanks(alice, "Thanks for the docs", dana);
+    const ready = await thanks(dana, "Thanks for getting the release ready", alice, bob);
+
+    const week = await weekOf(alice);
+
+    expect(week).toMatchObject({ issue: { kudosOfWeek: { permalink: permalinkOf(lead) } } });
+    expect(week).toMatchObject({
+      issue: {
+        given: { kudos: [await kudosIn("Thanks for the docs", docs, dana), await kudosIn("Thanks for the careful review", review, carol, dana)], more: false },
+        received: { kudos: [await kudosIn("Thanks for getting the release ready", ready, dana), await kudosIn("Thanks for pairing on the flaky test", pairing, carol)], more: false },
+      },
+    });
+  });
+
+  test("the issue lists the kudos the member got newest first by when they were given, whatever day each giver's time zone filed them on", async () => {
+    await aMember(t, carol.user, "member", "T1", "Pacific/Auckland");
+    await thanks(alice, longerWhy, bob);
+    laterBy(2 * 60 * minuteMs);
+    await thanks(carol, "Thanks for the late handover", alice);
+    await thanks(dana, "Thanks for the morning review", alice);
+
+    const week = await weekOf(alice);
+
+    if (week.kind !== "week" || week.issue === null) throw new Error("no issue");
+    expect(week.issue.received.kudos.map(({ message }) => message), "carol's kudos is filed on her Wednesday, dana's later one on Tuesday").toEqual([wordsSaying("Thanks for the morning review"), wordsSaying("Thanks for the late handover")]);
+  });
+
+  test("a week of more kudos than an issue lists shows the newest 50 each way besides the kudos of the week, three people named on each, and says more came, within Convex's limits", async () => {
+    for (let message = 0; message < kudosListedAWeek + 2; message += 1) {
+      await thanks(alice, `Thanks for fix ${message}`, bob, carol, dana);
+      await thanks(carol, `Thanks for review ${message}`, alice);
+    }
+
+    const week = await weekOf(alice);
+
+    if (week.kind !== "week" || week.issue === null) throw new Error("no issue");
+    expect(week.issue.given.more).toBe(true);
+    expect(week.issue.received.more).toBe(true);
+    expect(week.issue.given.kudos).toHaveLength(kudosListedAWeek);
+    expect(week.issue.received.kudos).toHaveLength(kudosListedAWeek);
+    expect(week.issue.given.kudos[0]).toMatchObject({ message: wordsSaying(`Thanks for fix ${kudosListedAWeek + 1}`) });
+    expect(week.issue.received.kudos.at(-1)).toMatchObject({ message: wordsSaying("Thanks for review 1") });
   });
 
   test("the week tabs start at the first week with an issue and run to this week, newest first; a quiet week between them reads an empty issue and a week before them none", async () => {
@@ -241,6 +294,14 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
 
     expect(week).toMatchObject({ kind: "week", issue: { kudosGiven: 800, thanked: { more: 788 } } });
     expect(week.kind === "week" && week.issue?.thanked.people).toHaveLength(12);
+    if (week.kind !== "week" || week.issue === null) throw new Error("no issue");
+    expect(week.issue.given.more, "the awards read stop at 500, so the message cut short there is left out").toBe(true);
+    expect(week.issue.given.kudos.map(({ people, morePeople }) => [people.length, morePeople])).toEqual([
+      [3, 97],
+      [3, 97],
+      [3, 97],
+      [3, 97],
+    ]);
   });
 });
 
@@ -252,6 +313,14 @@ async function weekOf(member: Person, week?: string): Promise<AlbumWeekRead> {
   const answer = await (await signedIn(member)).query(api.website.album.getAlbumWeek, week === undefined ? {} : { week });
   if (answer.kind !== "week" && answer.kind !== "off") throw new Error(`getAlbumWeek answered ${answer.kind}`);
   return answer;
+}
+
+async function kudosIn(words: string, ts: string, ...people: Person[]) {
+  return { message: wordsSaying(words), at: atOf(ts), people: await Promise.all(people.map(personIn)), morePeople: 0 };
+}
+
+function wordsSaying(words: string) {
+  return { kind: "text", segments: expect.arrayContaining([expect.objectContaining({ kind: "text", text: expect.stringMatching(new RegExp(`^${words}\\s*$`)) })]), edited: false };
 }
 
 async function personIn(person: Person) {

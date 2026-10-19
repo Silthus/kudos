@@ -1,5 +1,5 @@
 import type { Message } from "../shell";
-import type { AlbumWeek, HoggiesFound, PeopleListed, WeekIssue, WeekPerson, WeekRead, WeekShown, WeekTab } from "./answer";
+import type { AlbumWeek, HoggiesFound, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekRead, WeekShown, WeekTab } from "./answer";
 
 const thisWeek = "2026-10-12";
 
@@ -19,7 +19,13 @@ function words(text: string): Message {
   return { kind: "text", segments: [{ kind: "text", text }], edited: false };
 }
 
+function kudos(slugs: string[], text: string, at: string, morePeople = 0): WeekKudos {
+  return { people: slugs.map(person), morePeople, message: words(text), at: Date.parse(at) };
+}
+
 const nobody: PeopleListed = { people: [], more: 0 };
+
+const noKudos: WeekKudosList = { kudos: [], more: false };
 
 const noHoggies: HoggiesFound = { hoggies: [], more: 0 };
 
@@ -39,6 +45,8 @@ const quietIssue: WeekIssue = {
   huggedBy: nobody,
   newFaces: nobody,
   hoggies: noHoggies,
+  given: noKudos,
+  received: noKudos,
 };
 
 const fullIssue: WeekIssue = {
@@ -64,6 +72,17 @@ const fullIssue: WeekIssue = {
     ],
     more: 0,
   },
+  given: {
+    kudos: [
+      kudos(["perrin-holt", "wren-alder"], "Thanks for pairing on the flaky deploy until it went green.", "2026-10-17T16:00:00Z"),
+      kudos(["juno-park"], "Your onboarding doc answered every question I had.", "2026-10-13T10:15:00Z"),
+    ],
+    more: false,
+  },
+  received: {
+    kudos: [kudos(["fen-marlowe"], "The demo today was brilliant, the way you explained the data model clicked for everyone.", "2026-10-15T14:00:00Z"), kudos(["oren-pike"], "ty for the quick review", "2026-10-12T09:00:00Z")],
+    more: false,
+  },
 };
 
 const crowd = ["ada-quill", "bram-teller", "cass-vey", "della-crane", "eli-brask", "fen-marlowe", "gus-marrow", "hale-wren", "ivo-lark", "juno-park", "kit-sorrel", "lys-amber"];
@@ -80,6 +99,8 @@ const overflowingIssue: WeekIssue = {
   thankedBy: listed(crowd.slice(0, 7)),
   newFaces: listed(crowd, 3),
   hoggies: { hoggies: crowd.map((_, index) => ({ hoggie: ["banana", "coffee-run", "asleep", "ball"][index % 4]!, rarity: "common" as const })), more: 3 },
+  given: { kudos: [kudos(crowd.slice(0, 3), "Thanks for carrying the migration weekend.", "2026-10-02T11:00:00Z", 6)], more: true },
+  received: { kudos: [kudos(["cass-vey"], "Thanks for the late-night fix.", "2026-09-30T20:00:00Z")], more: false },
 };
 
 const ownKudosIssue: WeekIssue = {
@@ -88,7 +109,8 @@ const ownKudosIssue: WeekIssue = {
   thoughtfulGiven: 1,
   days: [0, 0, 1, 0, 0, 0, 0],
   kudosOfWeek: { giver: person("sam-example"), message: { kind: "unavailable", reason: "not-captured" }, permalink: null, at: Date.parse("2026-09-23T15:00:00Z"), hugs: 0 },
-  thanked: listed(["oren-pike"]),
+  thanked: listed(["oren-pike", "ada-quill"]),
+  given: { kudos: [kudos(["ada-quill"], "Thanks for the warm welcome on my first day.", "2026-09-22T08:30:00Z")], more: false },
 };
 
 const tabs: WeekTab[] = [

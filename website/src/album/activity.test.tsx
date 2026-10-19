@@ -45,6 +45,10 @@ function tallies(panel: ReturnType<typeof within>) {
   return panel.getAllByRole("term").map((term: HTMLElement) => [term.textContent, ...[...term.parentElement!.querySelectorAll("dd")].map((detail) => detail.textContent)].join(" | "));
 }
 
+function saidLines(region: ReturnType<typeof within>) {
+  return region.getAllByRole("listitem").map((line: HTMLElement) => [...line.querySelectorAll("p")].map((part) => (part.textContent ?? "").replace(/\s+/g, " ").trim()).join(" | "));
+}
+
 function linksIn(region: ReturnType<typeof within>) {
   return region.getAllByRole("link").map((link: HTMLElement) => `${spokenTextOf(link)} ${link.getAttribute("href")}`);
 }
@@ -55,7 +59,7 @@ function spokenTextOf(element: Element): string {
 }
 
 describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 30_000 }, () => {
-  it("opens on this week's issue: its tallies, the kudos of the week, who you thanked, who thanked you, new faces, hoggies from packs and quiet hugs", async () => {
+  it("opens on this week's issue: its tallies, the kudos of the week, every other kudos you gave and got with its words, new faces, hoggies from packs and quiet hugs", async () => {
     visit();
 
     expect(await screen.findByRole("heading", { level: 1, name: "Weekly edition" })).toBeInTheDocument();
@@ -70,8 +74,10 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(lead.getByText("3 hugs · Friday")).toBeInTheDocument();
     expect(lead.getByRole("link", { name: "Open in Slack (opens in a new tab)" })).toHaveAttribute("href", "https://hedgehug.slack.com/archives/C0ABCDEF1/p1760600000000100");
 
-    expect(linksIn(section("Who you thanked"))).toEqual(["Ines Okafor /book#people/ines-okafor", "Wren Alder /book#people/wren-alder", "Perrin Holt /book#people/perrin-holt", "Juno Park /book#people/juno-park"]);
-    expect(linksIn(section("Who thanked you"))).toEqual(["Ines Okafor /book#people/ines-okafor", "Fen Marlowe /book#people/fen-marlowe", "Oren Pike /book#people/oren-pike"]);
+    expect(saidLines(section("Who you thanked"))).toEqual(["Perrin Holt and Wren Alder · Sat | Thanks for pairing on the flaky deploy until it went green.", "Juno Park · Tue | Your onboarding doc answered every question I had."]);
+    expect(linksIn(section("Who you thanked"))).toEqual(["Perrin Holt /book#people/perrin-holt", "Wren Alder /book#people/wren-alder", "Juno Park /book#people/juno-park"]);
+    expect(saidLines(section("Said to you"))).toEqual(["Fen Marlowe · Thu | The demo today was brilliant, the way you explained the data model clicked for everyone.", "Oren Pike · Mon | ty for the quick review"]);
+    expect(linksIn(section("Said to you"))).toEqual(["Fen Marlowe /book#people/fen-marlowe", "Oren Pike /book#people/oren-pike"]);
     expect(linksIn(section("New in your album"))).toEqual(["Juno Park /book#people/juno-park", "Kit Sorrel /book#people/kit-sorrel"]);
     expect(linksIn(section("Hoggies from your packs"))).toEqual(["Dr. Manhattan Legendary /book#hoggies/dr-manhattan", "Basketball Coach Uncommon /book#hoggies/basketball-coach", "Banana Common /book#hoggies/banana"]);
     const hugs = section("Quiet hugs");
@@ -144,22 +150,41 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(panel.queryByRole("region")).not.toBeInTheDocument();
   });
 
-  it("an overflowing week shows twelve in each list and counts the rest", async () => {
+  it("an overflowing week shows twelve in each list and counts the rest, names three people a kudos with the rest counted, and says when more kudos came than it lists", async () => {
     const { user } = visit();
 
     await user.click((await weekTabs()).getByRole("tab", { name: /^Week of 28 Sept/ }));
 
     await issue();
-    expect(section("Who you thanked").getAllByRole("listitem")).toHaveLength(12);
-    expect(section("Who you thanked").getByText("and 9 more")).toBeInTheDocument();
-    expect(section("Who thanked you").queryByText(/more$/)).not.toBeInTheDocument();
+    expect(saidLines(section("Who you thanked"))).toEqual(["Ada Quill, Bram Teller, Cass Vey and 6 more · Fri | Thanks for carrying the migration weekend."]);
+    expect(section("Who you thanked").getByText("More kudos came this week than an issue lists.")).toBeInTheDocument();
+    expect(section("Said to you").queryByText(/than an issue lists/)).not.toBeInTheDocument();
     expect(section("New in your album").getByText("and 3 more")).toBeInTheDocument();
     expect(section("Hoggies from your packs").getAllByRole("listitem")).toHaveLength(12);
     expect(section("Hoggies from your packs").getByText("and 3 more")).toBeInTheDocument();
     expect(tallies(await issue())[0]).toBe("people you thanked | 21 | 23 kudos, 21 said why");
   });
 
-  it("a kudos of the week the member gave reads From you, and has no Slack link when it has none", async () => {
+  it("quotes a kudos's words unless they were edited or are no longer readable", async () => {
+    const [plain] = weekFixtures.full.issue!.received.kudos;
+    const edited = { ...plain!, at: plain!.at - 1, message: { kind: "text" as const, segments: [{ kind: "text" as const, text: "Thanks again, edited" }], edited: true } };
+    const gone = { ...plain!, at: plain!.at - 2, message: { kind: "unavailable" as const, reason: "deleted" as const } };
+    visit(fixedWeek({ ...weekFixtures.full, issue: { ...weekFixtures.full.issue!, received: { kudos: [plain!, edited, gone], more: false } } }));
+
+    await issue();
+    const quotes = section("Said to you").getAllByRole("listitem").map((line: HTMLElement) => line.querySelector("blockquote")!.hasAttribute("data-quoted"));
+    expect(quotes).toEqual([true, false, false]);
+  });
+
+  it("a list that lists no kudos still says when more came than an issue lists", async () => {
+    visit(fixedWeek({ ...weekFixtures.full, issue: { ...weekFixtures.full.issue!, given: { kudos: [], more: true } } }));
+
+    await issue();
+    expect(section("Who you thanked").getByText("More kudos came this week than an issue lists.")).toBeInTheDocument();
+    expect(section("Who you thanked").queryByRole("listitem")).not.toBeInTheDocument();
+  });
+
+  it("a kudos of the week the member gave reads From you, has no Slack link when it has none, and the rest they gave read as everyone else they thanked", async () => {
     const { user } = visit();
 
     await user.click((await weekTabs()).getByRole("tab", { name: /^Week of 21 Sept/ }));
@@ -170,6 +195,8 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(lead.getByText("The words of this kudos are from before HedgeHug kept them.")).toBeInTheDocument();
     expect(lead.getByText("Wednesday")).toBeInTheDocument();
     expect(lead.queryByRole("link")).not.toBeInTheDocument();
+    expect(saidLines(section("Everyone else you thanked"))).toEqual(["Ada Quill · Tue | Thanks for the warm welcome on my first day."]);
+    expect(screen.queryByRole("region", { name: "Said to you" })).not.toBeInTheDocument();
     expect(section("New in your album").getByText("No new faces this week. A thoughtful kudos to someone new brings their card.")).toBeInTheDocument();
   });
 

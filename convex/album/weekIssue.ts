@@ -4,6 +4,7 @@ import type { DayKey } from "../engine/allowance";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
 import { anEmptyWeek, weekAt, weekRowOf, weekTallyIn, type WeekTally } from "./tallies";
+import { weekKudosOf, type WeekKudosLists } from "./weekKudos";
 
 export const weeksShown = 52;
 
@@ -12,7 +13,7 @@ const dayKeyShape = /^\d{4}-\d{2}-\d{2}$/;
 
 export type WeekTab = { week: DayKey; days: number[] };
 
-export type Issue = Required<WeekTally>;
+export type Issue = Required<WeekTally> & WeekKudosLists;
 
 export type WeekEdition = { week: DayKey; weeks: WeekTab[]; issue: Issue | null };
 
@@ -28,12 +29,12 @@ export async function weekEditionOf(ctx: QueryCtx, member: MemberId, asked: DayK
   const shown = new Map((await weekRowsBetween(ctx, member, oldestShown, newestShown)).map((row) => [row.week, row]));
   const weeks = weeksBetween(oldestShown, newestShown).map((each) => ({ week: each, days: shown.get(each)?.days ?? anEmptyWeek().days }));
   const hasAnIssue = isAWeek(week) && week >= first.week && week <= newestShown;
-  return { week, weeks, issue: hasAnIssue ? issueOf(shown.get(week) ?? (await weekRowOf(ctx, member, week))) : null };
+  return { week, weeks, issue: hasAnIssue ? await issueOf(ctx, member, week, shown.get(week) ?? (await weekRowOf(ctx, member, week))) : null };
 }
 
-function issueOf(row: WeekRow | null): Issue {
+async function issueOf(ctx: QueryCtx, member: MemberId, week: DayKey, row: WeekRow | null): Promise<Issue> {
   const { packsOpened = 0, newFaces = { people: [], more: 0 }, hoggiesFound = { hoggies: [], more: 0 }, ...tally } = row === null ? anEmptyWeek() : weekTallyIn(row);
-  return { ...tally, packsOpened, newFaces, hoggiesFound };
+  return { ...tally, packsOpened, newFaces, hoggiesFound, ...(await weekKudosOf(ctx, member, week, tally.kudosOfWeek?.message ?? null)) };
 }
 
 function isAWeek(day: DayKey) {
