@@ -8,6 +8,8 @@ import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
 import type { BoardPeriod, BoardsRead, BoardsShown } from "./answer";
 import { boardsByPeriod, boardsFixtures, fixedBoards } from "./boardsFixtures";
+import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
+import { fixedProfile, profileFixtures } from "./profileFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
@@ -289,6 +291,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     await user.click(people.getByRole("button", { name: "See last week" }));
 
     expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
+    expect(periodSwitch().getByRole("button", { name: "Last week" }), "focus moves to the period the offer picked").toHaveFocus();
     expect(rowsOf(await board("People"))).toEqual(["Rank 1: Oren Pike Salt and Sparrow 4 thoughtful kudos", "Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
   });
 
@@ -344,6 +347,37 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(rowsOf(await board("People"))).toHaveLength(7);
     expect(screen.getByRole("region", { name: "People" }).closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
     expect(periodSwitch().getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("while a picked period loads, the boards on screen keep their own period's words and the quiet offer stays put", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.quiet }));
+
+    await user.click((await board("People")).getByRole("button", { name: "See last week" }));
+
+    const people = await board("People");
+    expect(people.getByText("Nobody has said thanks with a why yet this week.")).toBeInTheDocument();
+    expect(people.getByRole("button", { name: "See last week" })).toBeInTheDocument();
+    expect(people.queryByRole("button", { name: "See all time" })).not.toBeInTheDocument();
+    expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("the profile waits for this week's boards after the Leaderboard showed another period, never showing that period's standing", async () => {
+    const reads = { weekAnswered: true };
+    const boards: BoardsRead = (asking, period) => {
+      if (!asking) return undefined;
+      if (period === "all") return boardsFixtures.hidden;
+      return reads.weekAnswered ? boardsFixtures.week : undefined;
+    };
+    window.history.replaceState(null, "", "/leaderboard");
+    const { user } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.glance) });
+    await user.click(await screen.findByRole("button", { name: "All time" }, arrival));
+    await screen.findByText("22 thoughtful kudos given in all.");
+    reads.weekAnswered = false;
+
+    await user.click(screen.getByRole("link", { name: /Your profile/ }));
+
+    expect(await screen.findByRole("main")).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText(/off the boards by choice/), "all time's standing never reaches the profile").not.toBeInTheDocument();
   });
 
   it("opens on this week each time the member arrives", async () => {

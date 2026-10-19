@@ -836,7 +836,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const people = within(await screen.findByRole("region", { name: "People" }));
     expect(people.getByText("Ines Okafor leads with 4.")).toBeInTheDocument();
     expect(people.getByText("Juno Park")).toBeInTheDocument();
-    expect([...subscriptions].filter(({ query }) => query === "website/album:getThoughtfulBoards")).toEqual([{ query: "website/album:getThoughtfulBoards", args: { period: "week" } }]);
+    expect([...subscriptions].filter(({ query }) => query === "website/album:getThoughtfulBoards")).toEqual([{ query: "website/album:getThoughtfulBoards", args: {} }]);
 
     await user.click(within(screen.getByRole("group", { name: "Period" })).getByRole("button", { name: "Last week" }));
 

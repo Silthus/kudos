@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { BoardPeriod, BoardsRead, BoardsShown, ThoughtfulBoards } from "./answer";
 
-export type BoardsOfPeriod = { shown: BoardsShown | undefined; period: BoardPeriod; loading: boolean; choose: (period: BoardPeriod) => void };
+export type BoardsOfPeriod = { shown: BoardsShown | undefined; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; choose: (period: BoardPeriod) => void };
+
+type Answered = { boards: ThoughtfulBoards; period: BoardPeriod };
 
 export function useBoardsOfPeriod(read: BoardsRead, onLeaderboard: boolean, onProfile: boolean): BoardsOfPeriod {
   const [chosen, setChosen] = useState<BoardPeriod>("week");
@@ -12,17 +14,17 @@ export function useBoardsOfPeriod(read: BoardsRead, onLeaderboard: boolean, onPr
   }
   const period = onLeaderboard ? chosen : "week";
   const answer = read(onLeaderboard || onProfile, period);
-  const lastAnswered = useLastAnswered(answer, onLeaderboard);
-  const loading = isWaitingForTheBoards(answer) && lastAnswered !== undefined;
-  return { shown: loading ? lastAnswered : answer, period, loading, choose: setChosen };
+  const lastAnswered = useLastAnswered(answer, period, onLeaderboard);
+  if (onLeaderboard && isWaitingForTheBoards(answer) && lastAnswered !== undefined) return { shown: lastAnswered.boards, shownPeriod: lastAnswered.period, period, loading: true, choose: setChosen };
+  return { shown: answer, shownPeriod: period, period, loading: false, choose: setChosen };
 }
 
-function useLastAnswered(answer: BoardsShown | undefined, onLeaderboard: boolean): ThoughtfulBoards | undefined {
-  const last = useRef<ThoughtfulBoards>(undefined);
+function useLastAnswered(answer: BoardsShown | undefined, period: BoardPeriod, onLeaderboard: boolean): Answered | undefined {
+  const last = useRef<Answered>(undefined);
   useEffect(() => {
     if (!onLeaderboard) last.current = undefined;
-    else if (answer?.kind === "boards") last.current = answer;
-  }, [answer, onLeaderboard]);
+    else if (answer?.kind === "boards") last.current = { boards: answer, period };
+  }, [answer, period, onLeaderboard]);
   return last.current;
 }
 

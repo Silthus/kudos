@@ -130,7 +130,7 @@ function useLiveAlbum(asking: boolean, unreachable: boolean): AlbumShown | undef
 }
 
 function useLiveThoughtfulBoards(asking: boolean, period: BoardPeriod, unreachable: boolean): BoardsShown | undefined {
-  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.album.getThoughtfulBoards, args: { period } } } : {}), [asking, period]);
+  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.album.getThoughtfulBoards, args: period === "week" ? {} : { period } } } : {}), [asking, period]);
   const { boards } = useQueries(request);
   if (boards instanceof Error) return { kind: "broken" };
   if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;

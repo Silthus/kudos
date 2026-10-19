@@ -11,10 +11,10 @@ import { findYourselfHref, hrefOf } from "./place";
 
 type LeaderboardAnswerProps = { boards: BoardsOfPeriod; teams: AlbumTeam[]; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards: { shown, period, loading, choose }, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
+export function LeaderboardAnswerPage({ boards: { shown, shownPeriod, period, loading, choose }, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "boards") return <AnswerPage answer={shown} {...answers} />;
-  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
+  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} shownPeriod={shownPeriod} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
 }
 
 function teamRowsOf(boards: ThoughtfulBoards, albumTeams: AlbumTeam[]): BoardTeam[] {
@@ -42,9 +42,9 @@ const quietOffers: Record<BoardPeriod, BoardPeriod | null> = { week: "last-week"
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: BoardTeam[]; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
+type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: BoardTeam[]; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
 
-function LeaderboardPage({ boards, teamRows, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
+function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
   const [picked, setPicked] = useState<BoardTeam | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
   const showEveryone = () => {
@@ -53,7 +53,12 @@ function LeaderboardPage({ boards, teamRows, period, loading, onChoosePeriod, ho
   };
   const teams: TeamsByKey = new Map(teamRows.map((team) => [team.team, team]));
   const pickedTeam = picked === null ? undefined : (teams.get(picked.team) ?? picked);
-  const words = periodWords[period];
+  const words = periodWords[shownPeriod];
+  const periodButtons = useRef(new Map<BoardPeriod, HTMLButtonElement>());
+  const chooseFromTheOffer = (offered: BoardPeriod) => {
+    onChoosePeriod(offered);
+    periodButtons.current.get(offered)?.focus();
+  };
   return (
     <div className="al-page-body al-leaderboard">
       <header className="al-leaderboard-head">
@@ -63,10 +68,10 @@ function LeaderboardPage({ boards, teamRows, period, loading, onChoosePeriod, ho
             Who said thanks, and why
           </PageTitle>
         </div>
-        <PeriodSwitch period={period} onChoose={onChoosePeriod} />
+        <PeriodSwitch period={period} buttons={periodButtons.current} onChoose={onChoosePeriod} />
       </header>
       <div className="al-boards" aria-busy={loading || undefined}>
-        <PeopleBoard boards={boards} words={words} offer={quietOffers[period]} onChoosePeriod={onChoosePeriod} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
+        <PeopleBoard boards={boards} words={words} offer={quietOffers[shownPeriod]} onChoosePeriod={chooseFromTheOffer} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
         <TeamBoard boards={boards} rows={teamRows} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
@@ -81,11 +86,11 @@ function LeaderboardPage({ boards, teamRows, period, loading, onChoosePeriod, ho
   );
 }
 
-function PeriodSwitch({ period, onChoose }: { period: BoardPeriod; onChoose: (period: BoardPeriod) => void }) {
+function PeriodSwitch({ period, buttons, onChoose }: { period: BoardPeriod; buttons: Map<BoardPeriod, HTMLButtonElement>; onChoose: (period: BoardPeriod) => void }) {
   return (
     <div role="group" aria-label="Period" className="al-period-switch">
       {boardPeriods.map((each) => (
-        <button key={each} type="button" aria-pressed={each === period} onClick={() => onChoose(each)}>
+        <button key={each} ref={(button) => keepPeriodButton(buttons, each, button)} type="button" aria-pressed={each === period} onClick={() => onChoose(each)}>
           {periodWords[each].label}
         </button>
       ))}
@@ -314,6 +319,11 @@ function usePinnedClearance(): { clearance: CSSProperties; pinnedRef: PinnedRef 
     observer.current.observe(row);
   }, []);
   return { clearance: { "--al-pinned-height": `${height}px` } as CSSProperties, pinnedRef };
+}
+
+function keepPeriodButton(buttons: Map<BoardPeriod, HTMLButtonElement>, period: BoardPeriod, button: HTMLButtonElement | null) {
+  if (button === null) buttons.delete(period);
+  else buttons.set(period, button);
 }
 
 function keepPickButton(pickButtons: Map<string, HTMLButtonElement>, team: string, button: HTMLButtonElement | null) {

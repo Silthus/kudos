@@ -850,6 +850,13 @@
   color: var(--card);
 }
 
+@media (max-width: 22rem) {
+  .al-period-switch {
+    flex-wrap: wrap;
+    border-radius: 1rem;
+  }
+}
+
 .al-boards[aria-busy] {
   opacity: 0.6;
 }
