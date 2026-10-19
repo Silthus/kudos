@@ -189,22 +189,18 @@ async function readsOf(someone: Person) {
 
 async function opensAndPutsIn(someone: Person) {
   nextStep();
-  await packsNamedByGiverAndRecipient();
   const asMember = await signedIn(someone);
   const album = await asMember.query(api.website.album.getAlbum, {});
+  const packs = album.kind === "album" ? album.packs : [];
+  for (const { pack, person: recipient } of packs) namedIds.set(pack, `<pack of ${someone.user} to ${namedIds.get(recipient)}>`);
   const opened = [];
-  for (const { pack } of album.kind === "album" ? album.packs : []) opened.push(await asMember.mutation(api.website.album.openThoughtfulPack, { pack }));
+  for (const { pack } of packs) opened.push(await asMember.mutation(api.website.album.openThoughtfulPack, { pack }));
   const tray = await asMember.query(api.website.album.getAlbum, {});
   const [first] = tray.kind === "album" ? tray.tray : [];
   const placed = first === undefined ? null : await asMember.mutation(api.website.album.putIn, { item: first.item });
   const placedAll = await asMember.mutation(api.website.album.putAllIn, {});
   await settleInTimeOrder(t);
   return [...opened, ...(placed === null ? [] : [placed]), placedAll] as Answer[];
-}
-
-async function packsNamedByGiverAndRecipient() {
-  const packs = await t.run((ctx) => ctx.db.query("thoughtfulPacks").take(100));
-  for (const { _id, giver, recipient } of packs) namedIds.set(_id, `<pack ${namedIds.get(giver)} to ${namedIds.get(recipient)}>`);
 }
 
 async function mapsTheLanternsEmoji(maintainer: Person) {
