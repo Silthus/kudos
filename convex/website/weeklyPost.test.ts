@@ -1,0 +1,232 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { signedRequest } from "../../testing/signedSlack";
+import { memberChanged, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
+import { blockActions, staleButtonOf } from "../../testing/slackInteractions";
+import { emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
+import { api, internal } from "../_generated/api";
+import schema from "../schema";
+
+const wednesday = new Date("2026-10-14T10:00:00Z");
+const mondayAtNineInBerlin = Date.parse("2026-10-19T07:00:00Z");
+const maintainer = "U_MAINTAINER";
+const announcementChannel = "C_ANNOUNCE";
+const owls = ["U_ANN", "U_BOB"];
+const form = { contentType: "application/x-www-form-urlencoded" };
+const everyFlag = ["workspace-settings", "monday-post", "xp-levels", "groups"];
+
+const switchedOff = { on: false, timeZone: "Europe/Berlin", channelLink: "https://hedgehug.slack.com/archives/C_ANNOUNCE", cantPost: false, posts: "groups" };
+
+let postHog: FakePostHog;
+let slack: FakeSlack;
+let t: Backend;
+let sentMessages = 0;
+
+beforeEach(() => {
+  vi.useFakeTimers({ now: wednesday });
+  aDeploymentForWorkspace();
+  vi.stubEnv("KUDOS_EMOJI", "");
+  vi.stubEnv("KUDOS_MAINTAINER", maintainer);
+  postHog = new FakePostHog();
+  slack = new FakeSlack().withMember(maintainer, { tz: "Europe/Berlin" }).withMember("U_ADMIN", { is_admin: true, tz: "America/New_York" });
+  for (const user of owls) slack.withMember(user);
+  slack.withUserGroup("S_OWL", { name: "Owls", users: owls });
+  vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  t = testBackend();
+  sentMessages = 0;
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+describe("the maintainer switches the weekly post on and off from Settings", { timeout: 60_000 }, () => {
+  test("the maintainer's Settings show the weekly post switched off, with the announcement channel it posts in and their own time zone", async () => {
+    const owner = await aWorkspaceWithGroups();
+
+    expect(await owner.weeklyPost()).toEqual(switchedOff);
+  });
+
+  test("before Slack has told me the workspace's address, the channel has no link", async () => {
+    const owner = await aWorkspaceWithGroups({ url: null });
+
+    expect(await owner.weeklyPost()).toEqual({ ...switchedOff, channelLink: null });
+  });
+
+  test("switching on books the post for next Monday 9:00 in the maintainer's time zone, the read shows it on, and the post goes out then", async () => {
+    const owner = await aWorkspaceWithGroups();
+
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "set", on: true });
+
+    expect(await owner.weeklyPost()).toEqual({ ...switchedOff, on: true });
+    expect(await mondayPostSettings()).toMatchObject({ on: true, timeZone: "Europe/Berlin", nextPostAt: mondayAtNineInBerlin });
+    await giveKudos("U_ANN", "U_BOB");
+    await settleUpTo(t, mondayAtNineInBerlin);
+    expect(weeklyPostTimes()).toEqual([mondayAtNineInBerlin]);
+  });
+
+  test("switching off stops the booked post, and the read shows it off", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await owner.switchWeeklyPost(true);
+
+    expect(await owner.switchWeeklyPost(false)).toEqual({ kind: "set", on: false });
+
+    expect(await owner.weeklyPost()).toEqual(switchedOff);
+    await giveKudos("U_ANN", "U_BOB");
+    await settleUpTo(t, mondayAtNineInBerlin + 60_000);
+    expect(weeklyPostTimes()).toEqual([]);
+  });
+
+  test("switching on what is already on answers on and books no second post", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await owner.switchWeeklyPost(true);
+
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "set", on: true });
+
+    expect(await weeklyPostJobs()).toHaveLength(1);
+  });
+
+  test("the command decides workspace-settings and monday-post with exposure for the maintainer, and the read decides them without", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await owner.weeklyPost();
+    expect(await exposuresOf("workspace-settings", "monday-post")).toEqual([]);
+
+    await owner.switchWeeklyPost(true);
+
+    expect(await exposuresOf("workspace-settings", "monday-post")).toEqual([
+      { flag: "workspace-settings", member: owner.member, value: true },
+      { flag: "monday-post", member: owner.member, value: true },
+    ]);
+  });
+});
+
+describe("only an admin or the maintainer switches the Monday post", { timeout: 60_000 }, () => {
+  test("a switch the maintainer makes shows in the admins' App Home switch, which keeps working", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await owner.switchWeeklyPost(true);
+
+    await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ADMIN", staleButtonOf({ type: "setMondayPost", on: false })), form));
+    await settleUpTo(t, Date.now() + 60_000);
+
+    expect(await owner.weeklyPost()).toEqual(switchedOff);
+  });
+
+  test("a workspace admin who isn't the maintainer sees no weekly post in Settings, and their switch is refused and writes nothing", async () => {
+    await aWorkspaceWithGroups();
+    const admin = await signedIn("U_ADMIN");
+
+    expect(await admin.weeklyPost()).toBeUndefined();
+    expect(await admin.switchWeeklyPost(true)).toEqual({ kind: "refused" });
+    expect(await mondayPostSettings()).toBeNull();
+  });
+
+  test("while workspace-settings is off for the maintainer, there is no weekly post in Settings, and the switch is refused and writes nothing", async () => {
+    const owner = await aWorkspaceWithGroups({ flags: ["monday-post", "xp-levels", "groups"] });
+
+    expect(await owner.weeklyPost()).toBeUndefined();
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "refused" });
+    expect(await mondayPostSettings()).toBeNull();
+  });
+
+  test("while monday-post is off for the maintainer, there is no weekly post in Settings, and the switch is refused and writes nothing", async () => {
+    const owner = await aWorkspaceWithGroups({ flags: ["workspace-settings", "xp-levels", "groups"] });
+
+    expect(await owner.weeklyPost()).toBeUndefined();
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "refused" });
+    expect(await mondayPostSettings()).toBeNull();
+  });
+
+  test("without an announcement channel there is no weekly post in Settings, and switching on is refused", async () => {
+    const owner = await aWorkspaceWithGroups({ channel: null });
+
+    expect(await owner.weeklyPost()).toBeUndefined();
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "refused" });
+    expect(await mondayPostSettings()).toBeNull();
+  });
+
+});
+
+describe("website commands pass one guard", { timeout: 60_000 }, () => {
+  test("WS61: with the website flag off setWeeklyPost answers closed, without a session signed-out, and for a member who left not-a-member, writing nothing at all", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await switchWebsite(t, postHog, false, ...everyFlag);
+    const closed = await everyTable();
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "closed" });
+    expect(await everyTable()).toEqual(closed);
+    await switchWebsite(t, postHog, true, ...everyFlag);
+    const open = await everyTable();
+    expect(await t.mutation(api.website.commands.setWeeklyPost, { on: true })).toEqual({ kind: "signed-out" });
+    expect(await everyTable()).toEqual(open);
+    await memberChanged(t, "user_change", { id: maintainer, team_id: "T1", deleted: true });
+    await settleUpTo(t, Date.now() + 60_000);
+    const left = await everyTable();
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "not-a-member" });
+    expect(await everyTable()).toEqual(left);
+  });
+
+  test("WS61: on is setWeeklyPost's only argument, so no call names a member", async () => {
+    const owner = await aWorkspaceWithGroups();
+    const before = await everyTable();
+
+    await expect(owner.switchWeeklyPost(true, { member: owner.member })).rejects.toThrow(/member/);
+    expect(await everyTable()).toEqual(before);
+  });
+});
+
+type Setup = { channel?: string | null; url?: string | null; flags?: string[] };
+
+async function aWorkspaceWithGroups({ channel = announcementChannel, url = "https://hedgehug.slack.com/", flags = everyFlag }: Setup = {}) {
+  await switchWebsite(t, postHog, true, ...flags);
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, ...(channel !== null && { announcementChannel: channel }), ...(url !== null && { url }) }));
+  await memberChanged(t, "team_join", { id: maintainer, tz: "Europe/Berlin", real_name: "Mae Maintainer" });
+  await memberChanged(t, "team_join", { id: "U_ADMIN", is_admin: true, tz: "America/New_York", real_name: "Ada Admin" });
+  for (const user of owls) await memberChanged(t, "team_join", { id: user, real_name: `${user} Example` });
+  await t.action(internal.slack.userGroups.syncUserGroups, {});
+  await settle(t);
+  return signedIn(maintainer);
+}
+
+async function signedIn(user: string) {
+  const { asSignedIn } = await aSignedInSession(t, { user, name: user });
+  const member = await t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
+  return {
+    member,
+    weeklyPost: async () => ((await asSignedIn.query(api.website.settings.getSettings, {})) as { weeklyPost?: unknown }).weeklyPost,
+    switchWeeklyPost: (on: boolean, extra = {}) => asSignedIn.mutation(api.website.commands.setWeeklyPost, { on, ...extra } as { on: boolean }),
+  };
+}
+
+async function giveKudos(giver: string, recipient: string) {
+  sentMessages += 1;
+  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), emoji("taco"))], { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
+  await settleUpTo(t, Date.now() + 60_000);
+}
+
+function mondayPostSettings() {
+  return t.run((ctx) => ctx.db.query("mondayPostSettings").unique());
+}
+
+async function weeklyPostJobs() {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.filter(({ name, state }) => name.includes("mondayPost") && state.kind === "pending");
+}
+
+function weeklyPostTimes() {
+  return slack.timesOf("chat.postMessage", (args) => args.channel === announcementChannel && String(args.text).startsWith("🏆 Last week in kudos"));
+}
+
+function everyTable() {
+  return t.run(async (ctx) => {
+    const rows: Record<string, unknown[]> = {};
+    for (const table of Object.keys(schema.tables) as Array<keyof typeof schema.tables>) rows[table] = await ctx.db.query(table).collect();
+    return rows;
+  });
+}
+
+function exposuresOf(...flags: string[]) {
+  return t.run(async (ctx) => (await ctx.db.query("flagExposures").collect()).filter(({ flag }) => flags.includes(flag)).map(({ flag, member, value }) => ({ flag, member, value })));
+}

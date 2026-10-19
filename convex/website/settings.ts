@@ -5,10 +5,13 @@ import { companyProfileSettingOf, type CompanyProfileSetting, type ProfileChoice
 import type { MatchedBy } from "../companyProfiles/matcher";
 import { groupsShownTo } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
+import { mondayPostSwitchReadBy, type MondayPostSwitch } from "../leaderboard/mondayPost";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageSettingsOf, type MessageSetting } from "../messageSettings/messageSettings";
-import { personFactsOf } from "../workspace/directory";
+import { channelLinkOf } from "../slack/permalink";
+import { personFactsOf, timeZoneOf } from "../workspace/directory";
+import { workspaceUrlOf } from "../workspace/url";
 import { workspaceSettingsPartOf, workspaceSettingsShownTo, type WorkspaceSettingsPart } from "../workspace/workspaceSettings";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 import { settingsSections, type SettingsSection } from "./routes";
@@ -28,7 +31,9 @@ export type AdminProfiles = {
   profiles: Array<ProfileChoice & { heldBy: string | null; by: MatchedBy | null }>;
 };
 
-export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles; workspace?: WorkspaceSettingsPart } & SectionSettings;
+export type WeeklyPostSetting = Omit<MondayPostSwitch, "channel"> & { channelLink: string | null };
+
+export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles; workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting } & SectionSettings;
 
 export type SettingsAnswer = MySettings | { kind: "not-found" };
 
@@ -46,8 +51,18 @@ async function settingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<MySettings
   return { kind: "settings", ...(await sectionSettingsOf(ctx, me)), ...(await companyProfileSectionOf(ctx, me)), ...(await adminPartOf(ctx, me)), ...(await workspacePartOf(ctx, me)) };
 }
 
-async function workspacePartOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ workspace?: WorkspaceSettingsPart }> {
-  return (await workspaceSettingsShownTo(ctx, me.member)) ? { workspace: await workspaceSettingsPartOf(ctx, me.workspace) } : {};
+async function workspacePartOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting }> {
+  if (!(await workspaceSettingsShownTo(ctx, me.member))) return {};
+  const weeklyPost = await weeklyPostSettingOf(ctx, me);
+  return { workspace: await workspaceSettingsPartOf(ctx, me.workspace), ...(weeklyPost !== null && { weeklyPost }) };
+}
+
+async function weeklyPostSettingOf(ctx: QueryCtx, me: VerifiedMember): Promise<WeeklyPostSetting | null> {
+  const shown = await mondayPostSwitchReadBy(ctx, me.workspace, { member: me.member, timeZone: (await timeZoneOf(ctx, me.member)) ?? undefined });
+  if (shown === null) return null;
+  const { channel, ...setting } = shown;
+  const workspaceUrl = await workspaceUrlOf(ctx, me.workspace);
+  return { ...setting, channelLink: workspaceUrl === null ? null : channelLinkOf(workspaceUrl, channel) };
 }
 
 async function sectionSettingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<SectionSettings> {

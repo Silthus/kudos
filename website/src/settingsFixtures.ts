@@ -1,5 +1,5 @@
 import type { SettingsRead, SettingsShown } from "./settingsRead";
-import type { AdminProfiles, CompanyProfileSetting, MessageSetting, MySettings, ProfileChoice, WorkspaceSettingsPart } from "./shell";
+import type { AdminProfiles, CompanyProfileSetting, MessageSetting, MySettings, ProfileChoice, WeeklyPostSetting, WorkspaceSettingsPart } from "./shell";
 
 const kudosReply: MessageSetting = { kind: "kudos-reply", label: "After-kudos reply", description: "What a kudos you gave earned you, right after you send it.", applies: true, on: true, place: "channel", places: ["channel", "dm", "none"] };
 
@@ -75,11 +75,16 @@ export const workspaceParts = {
   customEmoji: { baseAllowance: 3, kudosEmoji: "hoggo", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hoggo/1.png", hugBudget: 10 },
 } as const satisfies Record<string, WorkspaceSettingsPart>;
 
+export const weeklyPostParts = {
+  off: { on: false, timeZone: "Europe/Berlin", channelLink: "https://hedgehug.slack.com/archives/C_ANNOUNCE", cantPost: false, posts: "topKudos" },
+  on: { on: true, timeZone: "Europe/Berlin", channelLink: "https://hedgehug.slack.com/archives/C_ANNOUNCE", cantPost: false, posts: "topKudos" },
+} as const satisfies Record<string, WeeklyPostSetting>;
+
 export const settingsFixtures = {
   everything,
   thisIsMe: { ...everything, companyProfile: unmatched },
   forAnAdmin: { ...everything, companyProfile: companyProfiles.byName, admin: teammates },
-  forTheMaintainer: { ...everything, workspace: workspaceParts.defaults },
+  forTheMaintainer: { ...everything, workspace: workspaceParts.defaults, weeklyPost: weeklyPostParts.off },
 } as const satisfies Record<string, MySettings>;
 
 export function fixedSettings(settings: SettingsShown): SettingsRead {

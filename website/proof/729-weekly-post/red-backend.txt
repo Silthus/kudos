@@ -1,0 +1,44 @@
+     × the maintainer's Settings show the weekly post switched off, with the announcement channel it posts in and their own time zone 223ms
+     × switching on books the post for next Monday 9:00 in the maintainer's time zone, the read shows it on, and the post goes out then 47ms
+     × switching off stops the booked post, and the read shows it off 22ms
+     × switching on what is already on answers on and books no second post 17ms
+     × a switch the maintainer makes shows in the admins' App Home switch, which keeps working 20ms
+     × the command decides workspace-settings and monday-post with exposure for the maintainer, and the read decides them without 15ms
+     × a workspace admin who isn't the maintainer sees no weekly post in Settings, and their switch is refused and writes nothing 17ms
+     × while workspace-settings is off for the maintainer, there is no weekly post in Settings, and the switch is refused and writes nothing 15ms
+     × while monday-post is off for the maintainer, there is no weekly post in Settings, and the switch is refused and writes nothing 15ms
+     × without an announcement channel there is no weekly post in Settings, and switching on is refused 14ms
+     × before Slack has told me the workspace's address, the channel has no link 14ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/website/weeklyPost.test.ts > the maintainer switches the weekly post on and off from Settings > the maintainer's Settings show the weekly post switched off, with the announcement channel it posts in and their own time zone
+AssertionError: expected undefined to deeply equal { on: false, …(4) }
+ FAIL  |convex| convex/website/weeklyPost.test.ts > the maintainer switches the weekly post on and off from Settings > switching on books the post for next Monday 9:00 in the maintainer's time zone, the read shows it on, and the post goes out then
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > the maintainer switches the weekly post on and off from Settings > switching off stops the booked post, and the read shows it off
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > the maintainer switches the weekly post on and off from Settings > switching on what is already on answers on and books no second post
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > the maintainer switches the weekly post on and off from Settings > a switch the maintainer makes shows in the admins' App Home switch, which keeps working
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > the maintainer switches the weekly post on and off from Settings > the command decides workspace-settings and monday-post with exposure for the maintainer, and the read decides them without
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > only the maintainer switches the weekly post from Settings, by the Monday post's own rules > a workspace admin who isn't the maintainer sees no weekly post in Settings, and their switch is refused and writes nothing
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > only the maintainer switches the weekly post from Settings, by the Monday post's own rules > while workspace-settings is off for the maintainer, there is no weekly post in Settings, and the switch is refused and writes nothing
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > only the maintainer switches the weekly post from Settings, by the Monday post's own rules > while monday-post is off for the maintainer, there is no weekly post in Settings, and the switch is refused and writes nothing
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > only the maintainer switches the weekly post from Settings, by the Monday post's own rules > without an announcement channel there is no weekly post in Settings, and switching on is refused
+Error: Expected a Convex function exported from module "website/commands" as `setWeeklyPost`, but there is no such export.
+    2501|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  |convex| convex/website/weeklyPost.test.ts > only the maintainer switches the weekly post from Settings, by the Monday post's own rules > before Slack has told me the workspace's address, the channel has no link
+AssertionError: expected undefined to deeply equal { on: false, …(4) }
+      Tests  11 failed (11)

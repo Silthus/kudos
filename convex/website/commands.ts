@@ -28,7 +28,8 @@ import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { coinsVisibleTo } from "../wallet/visibility";
 import { userGroupsOf } from "../workspace/userGroups";
-import type { WorkspaceSettingsRefusal } from "../workspace/workspaceSettings";
+import { workspaceSettingsShownTo, type WorkspaceSettingsRefusal } from "../workspace/workspaceSettings";
+import { mondayPostIsOnIn } from "../leaderboard/mondayPost";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
@@ -66,6 +67,8 @@ export type CompanyProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; r
 export type AdminProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; reason: AdminLinkRefusal | null };
 
 export type WorkspaceSettingsAnswer = { kind: "set" } | { kind: "refused"; reason: WorkspaceSettingsRefusal | null };
+
+export type WeeklyPostAnswer = { kind: "set"; on: boolean } | { kind: "refused" };
 
 export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
 
@@ -331,6 +334,15 @@ export const setWorkspaceSettings = memberMutation({
     const outcome = await runFromWebsite(ctx, me, person, { type: "setWorkspaceSettings", ...settings }, `website:setWorkspaceSettings:${me.member}`);
     if (outcome === null || !("saved" in outcome)) return { kind: "refused", reason: null };
     return outcome.kind === "set" ? { kind: "set" } : { kind: "refused", reason: outcome.reason };
+  },
+});
+
+export const setWeeklyPost = memberMutation({
+  args: { on: v.boolean() },
+  handler: async (ctx, me, person, { on }): Promise<WeeklyPostAnswer> => {
+    if (!(await workspaceSettingsShownTo(ctx, me.member))) return refused;
+    await runFromWebsite(ctx, me, person, { type: "setMondayPost", on }, `website:setWeeklyPost:${me.member}`);
+    return (await mondayPostIsOnIn(ctx, me.workspace)) === on ? { kind: "set", on } : refused;
   },
 });
 

@@ -1,0 +1,33 @@
+     × says what it posts, where and when, and links the announcement channel in Slack 425ms
+     × names the channel without a link until Slack has told me the workspace's address 267ms
+     × names the groups post where the album's weekly post isn't on, and a time zone with spaces 260ms
+     × sends the switch once, holds it until it answers, and says so once the read shows it on 640ms
+     × switches it off and says nothing goes out until it is on again 319ms
+     × says when the switch was refused and leaves it as the read shows it 286ms
+     × says when I couldn't post in the channel last time 1894ms
+     × has no accessibility violations 106ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > says what it posts, where and when, and links the announcement channel in Slack
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > names the channel without a link until Slack has told me the workspace's address
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > names the groups post where the album's weekly post isn't on, and a time zone with spaces
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > sends the switch once, holds it until it answers, and says so once the read shows it on
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > switches it off and says nothing goes out until it is on again
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > says when the switch was refused and leaves it as the read shows it
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > says when I couldn't post in the channel last time
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/weeklyPost.test.tsx > the maintainer switches the weekly post only through setWeeklyPost > has no accessibility violations
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Weekly post"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-lib
