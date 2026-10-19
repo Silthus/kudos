@@ -799,7 +799,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbum")).toEqual([{ query: "website/album:getAlbum", args: {} }]);
   });
 
-  it("AL23: the emoji button counts the earned emojis getAlbum answers, and none of its locked ones", async () => {
+  it("AL23: the emoji button counts the earned emojis getAlbum answers, and none of its locked ones; an answer that doesn't say what earns each yet still lists them, named after themselves", async () => {
     preferWideScreen();
     profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const emojis = [
@@ -808,23 +808,11 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
       { id: "level:10", kind: "level", name: "level-10", picture: "/emoji/level-10.png", earned: false, seen: false, inSlack: false, progress: { have: 700, need: 3600 } },
     ];
     boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, emojis, moreEmojis: false, sharedEmojis: null } : undefined));
-
-    renderLiveSite();
-
-    const bar = within((await screen.findAllByRole("banner"))[0]!);
-    expect(await bar.findByRole("button", { name: "Your emojis, 2 earned" })).toBeInTheDocument();
-  });
-
-  it("#664: an emoji from a backend that doesn't say what earns it yet still shows in the popup, named after itself", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
-    const emojis = [{ id: "level:5", kind: "level", name: "level-5", picture: "/emoji/level-5.png", earned: true, seen: true, inSlack: false, progress: null }];
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, emojis, moreEmojis: false, sharedEmojis: null } : undefined));
     const { user } = renderLiveSite();
 
-    await user.click(await within((await screen.findAllByRole("banner"))[0]!).findByRole("button", { name: "Your emojis, 1 earned" }));
-
-    expect(within(screen.getByRole("region", { name: "Levels 1 of 1" })).getByRole("listitem")).toHaveTextContent(":level-5:You reached level-5");
+    const bar = within((await screen.findAllByRole("banner"))[0]!);
+    await user.click(await bar.findByRole("button", { name: "Your emojis, 2 earned" }));
+    expect(within(screen.getByRole("region", { name: "Levels 1 of 2" })).getAllByRole("listitem")[0]).toHaveTextContent(":level-5:You reached level-5");
   });
 
   it("AL49: /leaderboard reads the boards from one getThoughtfulBoards subscription, which no other album page opens", async () => {
