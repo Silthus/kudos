@@ -6,7 +6,9 @@
 - `red-website.txt`: `website/src/weeklyPost.test.tsx` before the component. 8 of 9 fail: there is no `Weekly post` region.
 - Green: both files, plus `publicSurface`, `workspaceSettings`, `emojiMapping` and the Slack Monday post suites, pass on the branch.
 
-## Sandbox (`different-dog-467`, head af31cf77, deployed by hand, no index dropped)
+## Sandbox (`different-dog-467`, deployed by hand, no index dropped)
+
+First run on af31cf77; re-captured on the final head 1a855994 after the review fixes (shots, recordings and rows 2–3 are from that run).
 
 Nobody here can sign in to the sandbox's Slack, so the proof uses a synthetic member:
 
@@ -25,4 +27,4 @@ Nobody here can sign in to the sandbox's Slack, so the proof uses a synthetic me
 
 The prototype at `0ac9e96d` has no weekly post setting; the section follows the existing Settings panels: the Workspace panel above it and the emoji mapping below it.
 
-After this proof, the privacy oracle found the channel link outside `ph-no-capture` (df-57f6ecc6). The fix only adds that class, so the page looks the same.
+The privacy oracle found the channel link outside `ph-no-capture` after the first run (df-57f6ecc6); the final head carries the fix.
