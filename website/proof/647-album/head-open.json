@@ -1,0 +1,33 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 20
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7rpprh68s70j8bkw337c27p98gkqhw",
+      "kind": "sticker",
+      "person": "js736vvncamgq53mq1m1awrwq18gkvx4"
+    },
+    {
+      "hoggie": "burning-money",
+      "isNew": true,
+      "item": "jn7nb9y4wvyp8zzx4j4z76rvyd8gj2p3",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ],
+  "kind": "opened"
+}

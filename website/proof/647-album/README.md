@@ -19,3 +19,12 @@ Ticket 1's second-cast giver from `website/proof/645-album/` holds three packs t
 8. `openThoughtfulPack` on the first answered `opened` with the sticker and the hoggie and 15 XP (`base-granted-open.json`); `getAlbum` then shows two waiting and the two tray items (`base-granted-getAlbum-after.json`); the stored pack now has `openedAt`.
 
 The reverse direction is an accepted failure: once a pack is opened, the base schema refuses its `openedAt`, so rolling the code back after an open needs this branch's validators kept. Production stores no opened pack while `album` is off there.
+
+## Rerun on the reviewed head
+
+After qa-swarm's two rounds changed the open's guard (`noLaunchWaitsFor`), its answer (`appliedShownTo`) and `getAlbum`'s packs, the branch at `45eaa36b` (with `main` and #675 merged in, so no other lane's tree was needed) was deployed to the sandbox at 00:19 UTC on 2026-10-19 and run again with a fresh cast (`KUDOS_CAST=H`, `head-drive-output.txt`):
+
+9. `getAlbum` before: two waiting packs, an empty tray, 20 XP (`head-getAlbum-before.json`).
+10. `openThoughtfulPack`: `opened` with the sticker, then `burning-money` (uncommon, new), 15 XP applied, coins shown as the member sees them (`head-open.json`). The same open again: `{ kind: "refused" }` (`head-open-again.json`).
+11. `getAlbum` after: one waiting pack, the two tray items, `moreTray: false`, 35 XP (`head-getAlbum-after.json`).
+12. PostHog: `posthog-hoggie-dropped.txt` gains this open's `hoggie dropped` (`crate_kind: thoughtful`, `surface: website`, `pack_xp: 15`, `pack_coins: 0`).
