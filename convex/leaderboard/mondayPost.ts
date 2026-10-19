@@ -56,7 +56,7 @@ async function mondayPostSwitchIn(ctx: QueryCtx, workspace: string, person: Swit
   if (channel === null) return null;
   const settings = await settingsRow(ctx, workspace);
   const posts = (await albumSlackAppliesToWorkspace(ctx, workspace)) ? "topKudos" : "groups";
-  return { channel, on: settings?.on ?? false, timeZone: settings?.on ? settings.timeZone : zoneOf(person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
+  return { channel, on: settings?.on ?? false, timeZone: zoneASwitchOnUses(settings, person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
 }
 
 export async function setMondayPost(ctx: MutationCtx, workspace: string, person: Admin, change: MondayPostChange): Promise<boolean> {
@@ -65,7 +65,7 @@ export async function setMondayPost(ctx: MutationCtx, workspace: string, person:
   if (!change.on) return switchOff(ctx, settings);
   if (change.timeZone !== undefined && !isTimeZone(change.timeZone)) return false;
   if ((await switchableChannelIn(ctx, workspace)) === null) return false;
-  const timeZone = change.timeZone ?? (settings?.on ? settings.timeZone : zoneOf(person));
+  const timeZone = change.timeZone ?? zoneASwitchOnUses(settings, person);
   if (settings?.on && settings.timeZone === timeZone) return false;
   await scheduleNextPost(ctx, await switchOn(ctx, workspace, settings, timeZone));
   return true;
@@ -206,6 +206,10 @@ function settingsRow(ctx: QueryCtx, workspace: string) {
     .query("mondayPostSettings")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
     .unique();
+}
+
+function zoneASwitchOnUses(settings: Settings | null, person: Switcher) {
+  return settings?.on ? settings.timeZone : zoneOf(person);
 }
 
 function zoneOf({ timeZone }: Switcher) {

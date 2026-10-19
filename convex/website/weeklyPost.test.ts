@@ -152,6 +152,16 @@ describe("only an admin or the maintainer switches the Monday post", { timeout: 
     expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "refused" });
   });
 
+  test("once the announcement channel is gone, switching off a post that is still stored on is refused and writes nothing", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await owner.switchWeeklyPost(true);
+    await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").unique())!._id, { announcementChannel: undefined }));
+    const stored = await mondayPostSettings();
+
+    expect(await owner.switchWeeklyPost(false)).toEqual({ kind: "refused" });
+    expect(await mondayPostSettings()).toEqual(stored);
+  });
+
   test("a workspace admin who isn't the maintainer sees no weekly post in Settings, and their switch is refused and writes nothing", async () => {
     await aWorkspaceWithGroups();
     const admin = await signedIn("U_ADMIN");

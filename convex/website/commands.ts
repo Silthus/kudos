@@ -340,7 +340,7 @@ export const setWorkspaceSettings = memberMutation({
 export const setWeeklyPost = memberMutation({
   args: { on: v.boolean() },
   handler: async (ctx, me, person, { on }): Promise<WeeklyPostAnswer> => {
-    if (!(await maintainerSettingsApplyTo(ctx, me.member))) return refused;
+    if (!(await maintainerSettingsApplyTo(ctx, me.member)) || (await mondayPostSwitchReadBy(ctx, me.workspace, person)) === null) return refused;
     await runFromWebsite(ctx, me, person, { type: "setMondayPost", on }, `website:setWeeklyPost:${me.member}`);
     return (await mondayPostSwitchReadBy(ctx, me.workspace, person))?.on === on ? { kind: "set" } : refused;
   },
