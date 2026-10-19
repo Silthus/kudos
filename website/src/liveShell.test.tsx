@@ -775,7 +775,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     teams: [],
     people: [],
     morePeople: false,
-    packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z") }],
+    packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z"), thanked: { name: "Ines Okafor", face: { kind: "initials", initials: "IO" } } }],
     morePacks: false,
     tray: [{ item: "t-1", kind: "sticker", person: "m-ines" }],
     moreTray: false,
@@ -953,7 +953,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const { user } = renderLiveSite();
 
     await user.click(await within((await screen.findAllByRole("banner"))[0]!).findByRole("button", { name: "Open your packs, 1 waiting" }));
-    await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking a teammate" }));
+    await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking Ines Okafor" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:openThoughtfulPack", args: { pack: "p-1" } });
   });
