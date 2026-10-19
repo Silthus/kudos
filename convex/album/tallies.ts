@@ -1,16 +1,17 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { hugGivenEventValidator, kudosGivenEventValidator } from "../bus/events";
-import type { DayKey } from "../engine/allowance";
+import { allowanceDay, type DayKey } from "../engine/allowance";
 import { givenFactsOf, storedAnnotationsOf, type AwardId } from "../engine/awards";
 import type { Annotations, MessageRef } from "../engine/messageEvent";
 import { hugOf, hugPeopleAfter, hugWithId, type Hug } from "../hugs/records";
 import { hugsOnTheMessage } from "../hugs/weeks";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { givingWeekOf } from "../progression/progress";
-import type { MemberId } from "../workspace/directory";
-import { pairTallyValidator, weekTallyValidator, type HugPick, type KudosPick, type WeekList } from "./records";
+import { timeZoneOf, type MemberId } from "../workspace/directory";
+import { pairTallyValidator, weekTallyValidator, type HoggieFound, type HugPick, type KudosPick, type WeekList } from "./records";
 
 export const awardsPerTally = 50;
 export const peoplePerHugTally = 50;
@@ -40,11 +41,20 @@ type WeekChange = {
   listed?: { list: WeekList; person: MemberId };
   pick?: HugPick;
   on?: DayKey;
+  opened?: number;
+  newFace?: MemberId;
+  hoggie?: HoggieFound;
 };
+
+type PeopleList = { people: MemberId[]; more: number };
+
+type HoggiesList = { hoggies: HoggieFound[]; more: number };
 
 type KudosOfTheWeek = { giver: MemberId; week: DayKey; pick: HugPick };
 
 const daysInAWeek = 7;
+const nobody: PeopleList = { people: [], more: 0 };
+const noHoggies: HoggiesList = { hoggies: [], more: 0 };
 const dayMs = 24 * 60 * 60 * 1000;
 
 export const tallyKudosGiven = internalMutation({
@@ -84,12 +94,7 @@ export const tallyHug = internalMutation({
 export const pairTallyOf = internalQuery({
   args: { member: v.id("members"), person: v.id("members") },
   returns: v.union(pairTallyAnswer, v.null()),
-  handler: async (ctx, { member, person }): Promise<PairTally | null> => {
-    const row = await pairRowOf(ctx, member, person);
-    if (row === null) return null;
-    const { _id, _creationTime, member: _member, person: _person, ...tally } = row;
-    return tally;
-  },
+  handler: (ctx, { member, person }) => pairTallyFor(ctx, member, person),
 });
 
 export const weekTallyOf = internalQuery({
@@ -97,11 +102,36 @@ export const weekTallyOf = internalQuery({
   returns: v.union(weekTallyAnswer, v.null()),
   handler: async (ctx, { member, week }): Promise<WeekTally | null> => {
     const row = await weekRowOf(ctx, member, week);
-    if (row === null) return null;
-    const { _id, _creationTime, member: _member, week: _week, ...tally } = row;
-    return tally;
+    return row === null ? null : weekTallyIn(row);
   },
 });
+
+export async function pairTallyFor(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<PairTally | null> {
+  const row = await pairRowOf(ctx, member, person);
+  if (row === null) return null;
+  const { _id, _creationTime, member: _member, person: _person, ...tally } = row;
+  return tally;
+}
+
+export function weekTallyIn({ _id, _creationTime, member: _member, week: _week, ...tally }: Doc<"weekTallies">): WeekTally {
+  return tally;
+}
+
+export async function tallyPackOpened(ctx: MutationCtx, member: MemberId, at: number) {
+  await changeWeek(ctx, member, await weekAt(ctx, member, at), { opened: 1 });
+}
+
+export async function tallyNewFace(ctx: MutationCtx, member: MemberId, person: MemberId, at: number) {
+  await changeWeek(ctx, member, await weekAt(ctx, member, at), { newFace: person });
+}
+
+export async function tallyHoggieFound(ctx: MutationCtx, member: MemberId, hoggie: HoggieFound, at: number) {
+  await changeWeek(ctx, member, await weekAt(ctx, member, at), { hoggie });
+}
+
+export async function weekAt(ctx: QueryCtx, member: MemberId, at: number): Promise<DayKey> {
+  return givingWeekOf(allowanceDay(at, (await timeZoneOf(ctx, member)) ?? undefined));
+}
 
 async function kudosWeightOf(ctx: QueryCtx, message: MessageRef, annotations: Annotations): Promise<KudosWeight> {
   return { words: wordCountOf(annotations) ?? 0, thoughtful: gateDecisionOf(annotations)?.thoughtful === true, hugs: await hugsOnTheMessage(ctx, message) };
@@ -167,7 +197,7 @@ async function tallyHugTo(ctx: MutationCtx, hug: Hug, person: MemberId, kudos: K
 
 async function changePair(ctx: MutationCtx, member: MemberId, person: MemberId, change: PairChange) {
   const row = await pairRowOf(ctx, member, person);
-  const tally = row ?? { member, person, firstThankedAt: null, kudosGiven: 0, kudosReceived: 0, hugsGiven: 0, hugsReceived: 0, best: null };
+  const tally = row ?? { member, person, ...anEmptyPair() };
   const changed = {
     ...tally,
     kudosGiven: tally.kudosGiven + (change.kudosGiven ?? 0),
@@ -195,16 +225,24 @@ async function changeWeek(ctx: MutationCtx, member: MemberId, week: DayKey, chan
     ...(change.listed !== undefined && { [change.listed.list]: await listedIn(ctx, tally, change.listed) }),
     kudosOfWeek: change.pick === undefined ? tally.kudosOfWeek : kudosOfTheWeek(tally.kudosOfWeek, change.pick),
     days: change.on === undefined ? tally.days : countedOn(tally.days, week, change.on),
+    ...(change.opened !== undefined && { packsOpened: (tally.packsOpened ?? 0) + change.opened }),
+    ...(change.newFace !== undefined && { newFaces: withOneMore(tally.newFaces ?? nobody, change.newFace) }),
+    ...(change.hoggie !== undefined && { hoggiesFound: withHoggie(tally.hoggiesFound ?? noHoggies, change.hoggie) }),
   };
   if (row === null) await ctx.db.insert("weekTallies", changed);
   else await ctx.db.replace(row._id, changed);
 }
 
+export function anEmptyPair(): PairTally {
+  return { firstThankedAt: null, kudosGiven: 0, kudosReceived: 0, hugsGiven: 0, hugsReceived: 0, best: null };
+}
+
 function emptyWeekOf(member: MemberId, week: DayKey) {
-  const nobody = { people: [], more: 0 };
+  return { member, week, ...anEmptyWeek() };
+}
+
+export function anEmptyWeek(): WeekTally {
   return {
-    member,
-    week,
     kudosGiven: 0,
     kudosReceived: 0,
     thoughtfulGiven: 0,
@@ -228,7 +266,15 @@ async function listedIn(ctx: MutationCtx, tally: { member: MemberId; week: DayKe
     .unique();
   if (already !== null) return listed;
   await ctx.db.insert("weekPeople", { member: tally.member, week: tally.week, list, person });
-  return listed.people.length < peopleListed ? { ...listed, people: [...listed.people, person] } : { ...listed, more: listed.more + 1 };
+  return withOneMore(listed, person);
+}
+
+function withOneMore({ people, more }: PeopleList, person: MemberId): PeopleList {
+  return people.length < peopleListed ? { people: [...people, person], more } : { people, more: more + 1 };
+}
+
+function withHoggie({ hoggies, more }: HoggiesList, hoggie: HoggieFound): HoggiesList {
+  return hoggies.length < peopleListed ? { hoggies: [...hoggies, hoggie], more } : { hoggies, more: more + 1 };
 }
 
 function earliestOf(current: number | null, at: number | undefined) {
@@ -265,7 +311,7 @@ function pairRowOf(ctx: QueryCtx, member: MemberId, person: MemberId) {
     .unique();
 }
 
-function weekRowOf(ctx: QueryCtx, member: MemberId, week: DayKey) {
+export function weekRowOf(ctx: QueryCtx, member: MemberId, week: DayKey) {
   return ctx.db
     .query("weekTallies")
     .withIndex("by_member_week", (q) => q.eq("member", member).eq("week", week))

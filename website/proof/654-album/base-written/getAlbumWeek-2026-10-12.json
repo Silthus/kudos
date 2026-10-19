@@ -1,0 +1,134 @@
+{
+  "issue": {
+    "days": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1
+    ],
+    "hoggies": {
+      "hoggies": [],
+      "more": 0
+    },
+    "hugged": {
+      "more": 0,
+      "people": []
+    },
+    "huggedBy": {
+      "more": 0,
+      "people": []
+    },
+    "hugsGiven": 0,
+    "hugsReceived": 0,
+    "kudosGiven": 2,
+    "kudosOfWeek": {
+      "at": 1792276122379,
+      "giver": {
+        "face": {
+          "initials": "SW",
+          "kind": "initials"
+        },
+        "name": "Sorrel Wick",
+        "person": "js7b2ekn3nbc6mcmdfnbeq2vtx8ggmj5"
+      },
+      "hugs": 0,
+      "message": {
+        "edited": false,
+        "kind": "text",
+        "segments": [
+          {
+            "kind": "person",
+            "name": "Odile Marsh"
+          },
+          {
+            "kind": "text",
+            "text": " "
+          },
+          {
+            "kind": "emoji",
+            "name": "hedgehog",
+            "unicode": "🦔"
+          },
+          {
+            "kind": "text",
+            "text": " for catching the off-by-one in the export before the release went out"
+          }
+        ]
+      },
+      "permalink": "https://posthogtestgroup.slack.com/archives/C0C9N9A4SE4/p1792276122379000"
+    },
+    "kudosReceived": 1,
+    "newFaces": {
+      "more": 0,
+      "people": []
+    },
+    "packsOpened": 0,
+    "thanked": {
+      "more": 0,
+      "people": [
+        {
+          "face": {
+            "initials": "PL",
+            "kind": "initials"
+          },
+          "name": "Pim Larch",
+          "person": "js70vehner93gs2pe2fbp7b95h8ggbgs"
+        },
+        {
+          "face": {
+            "initials": "QF",
+            "kind": "initials"
+          },
+          "name": "Quill Fen",
+          "person": "js7bj7p5gnbfqfa2hmarmxe9an8ggvb5"
+        }
+      ]
+    },
+    "thankedBy": {
+      "more": 0,
+      "people": [
+        {
+          "face": {
+            "initials": "SW",
+            "kind": "initials"
+          },
+          "name": "Sorrel Wick",
+          "person": "js7b2ekn3nbc6mcmdfnbeq2vtx8ggmj5"
+        }
+      ]
+    },
+    "thoughtfulGiven": 1,
+    "thoughtfulReceived": 1
+  },
+  "kind": "week",
+  "week": "2026-10-12",
+  "weeks": [
+    {
+      "days": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "week": "2026-10-19"
+    },
+    {
+      "days": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "week": "2026-10-12"
+    }
+  ]
+}

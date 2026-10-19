@@ -1,0 +1,21 @@
+{
+  "best": null,
+  "face": {
+    "initials": "OB",
+    "kind": "initials"
+  },
+  "firstThankedAt": null,
+  "held": false,
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "hype": {
+    "earned": false,
+    "name": null
+  },
+  "kind": "person",
+  "kudosGiven": 0,
+  "kudosReceived": 1,
+  "name": "Ottilie Brack",
+  "person": "js79qm0pdcr13a9c0k1bap09s98gksqf",
+  "teams": []
+}
