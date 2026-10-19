@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 
-export type Popover<Name extends string> = { open: Name | null; toggle(name: Name): void; close(): void; anchor: RefObject<HTMLElement | null> };
+export type Popover<Name extends string> = { open: Name | null; toggle(name: Name): void; show(name: Name): void; close(): void; anchor: RefObject<HTMLElement | null> };
 
 export function usePopover<Name extends string>(): Popover<Name> {
   const [open, setOpen] = useState<Name | null>(null);
   const anchor = useRef<HTMLElement | null>(null);
   const close = useCallback(() => setOpen(null), []);
   const toggle = useCallback((name: Name) => setOpen((current) => (current === name ? null : name)), []);
+  const show = useCallback((name: Name) => setOpen(name), []);
   useEffect(() => {
     if (open === null) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -24,5 +25,5 @@ export function usePopover<Name extends string>(): Popover<Name> {
       document.removeEventListener("pointerdown", closeOutside);
     };
   }, [open, close]);
-  return { open, toggle, close, anchor };
+  return { open, toggle, show, close, anchor };
 }

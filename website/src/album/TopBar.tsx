@@ -1,5 +1,5 @@
 import { IconCrown, IconEmoji, IconGear, IconPulse, IconStack } from "@posthog/icons";
-import { useId, type ComponentType, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, type ComponentType, type ReactNode, type RefObject } from "react";
 import { AppLink } from "../AppLink";
 import { useCountUp } from "../countUp";
 import { prefersReducedMotion } from "../reducedMotion";
@@ -9,22 +9,26 @@ import type { Album, AlbumLevel } from "./answer";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
 import { hrefOf, type Place } from "./place";
+import { TrayPanel } from "./TrayPanel";
 import { usePopover, type Popover } from "./usePopover";
 
-type TopBarProps = { album: Album; place: Place; wide: boolean; held: Held; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null> };
+export type TrayActions = { busy: boolean; trouble: string | null; putIn: (item: string) => void; putAllIn: () => void };
 
-export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, packsButton, trayButton }: TopBarProps) {
+type TopBarProps = { album: Album; place: Place; wide: boolean; held: Held; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+
+export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, packsButton, trayButton, tray }: TopBarProps) {
   const popover = usePopover<"tray" | "emojis" | "menu">();
+  useTrayOpenOnThePacksPage(place, popover);
   return (
     <header className="al-top" inert={inert}>
-      <AppLink href="/" className="al-brand">
+      <AppLink href="/" className="al-brand" data-slot="home">
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
       </AppLink>
       <XpBar level={held.level ?? album.level} moving={moving} />
       <div className="al-top-end">
-        <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} onOpen={onOpenPacks} />
-        <TrayButton items={held.tray ?? album.tray.length} popover={popover} button={trayButton} />
+        <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />
+        <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />
         {wide && <PageLinks place={place} />}
         <EmojiButton earned={earnedEmojisOf(album)} popover={popover} />
         {wide ? <MeAndSettings album={album} place={place} /> : <Menu album={album} place={place} popover={popover} />}
@@ -49,12 +53,20 @@ function XpBar({ level: settled, moving }: { level: AlbumLevel; moving: boolean 
   );
 }
 
-type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; onOpen: () => void };
+function useTrayOpenOnThePacksPage(place: Place, popover: Popover<"tray" | "emojis" | "menu">) {
+  const onThePacksPage = place.kind === "packs";
+  const { show } = popover;
+  useEffect(() => {
+    if (onThePacksPage) show("tray");
+  }, [onThePacksPage, show]);
+}
 
-function PacksButton({ waiting, more, current, button, onOpen }: PacksButtonProps) {
+type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; waitsForPuttingIn: boolean; onOpen: () => void };
+
+function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen }: PacksButtonProps) {
   const count = more ? `${waiting}+` : `${waiting}`;
   return (
-    <button type="button" ref={button} onClick={onOpen} aria-haspopup="dialog" className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
+    <button type="button" ref={button} onClick={waitsForPuttingIn ? undefined : onOpen} aria-disabled={waitsForPuttingIn || undefined} aria-haspopup="dialog" className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
       <span className="al-packs-art" aria-hidden="true">
         <span className="al-packs-wrapper" />
         <span className="al-packs-wrapper" />
@@ -68,13 +80,38 @@ function PacksButton({ waiting, more, current, button, onOpen }: PacksButtonProp
   );
 }
 
-function TrayButton({ items, popover, button }: { items: number; popover: Popover<"tray" | "emojis" | "menu">; button: RefObject<HTMLButtonElement | null> }) {
+type TrayButtonProps = { album: Album; items: number; popover: Popover<"tray" | "emojis" | "menu">; button: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+
+function TrayButton({ album, items, popover, button, tray }: TrayButtonProps) {
+  const putting = (send: () => void) => {
+    popover.close();
+    button.current?.focus();
+    send();
+  };
   return (
-    <PopoverButton name="tray" popover={popover} button={button} label={items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`} panelLabel="Tray" className="al-tray" content={<p>Open a pack and what it holds waits here to be put in.</p>}>
+    <PopoverButton
+      name="tray"
+      popover={popover}
+      button={button}
+      label={trayLabelOf(items, tray.busy)}
+      panelLabel="Tray"
+      className="al-tray"
+      busy={tray.busy}
+      content={<TrayPanel album={album} trouble={tray.trouble} onPutIn={(item) => putting(() => tray.putIn(item))} onPutAllIn={() => putting(tray.putAllIn)} />}
+    >
       <IconStack />
-      {items > 0 && <span className="al-tray-count">{items}</span>}
+      {items > 0 && (
+        <span key={items} className="al-tray-count">
+          {items}
+        </span>
+      )}
     </PopoverButton>
   );
+}
+
+function trayLabelOf(items: number, busy: boolean) {
+  if (busy) return `Tray, putting in, ${items} to go`;
+  return items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`;
 }
 
 function EmojiButton({ earned, popover }: { earned: number; popover: Popover<"tray" | "emojis" | "menu"> }) {
@@ -88,14 +125,14 @@ function EmojiButton({ earned, popover }: { earned: number; popover: Popover<"tr
   );
 }
 
-type PopoverButtonProps = { name: "tray" | "emojis" | "menu"; popover: Popover<"tray" | "emojis" | "menu">; label: string; panelLabel: string; className: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null> };
+type PopoverButtonProps = { name: "tray" | "emojis" | "menu"; popover: Popover<"tray" | "emojis" | "menu">; label: string; panelLabel: string; className: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };
 
-function PopoverButton({ name, popover, label, panelLabel, className, content, children, button }: PopoverButtonProps) {
+function PopoverButton({ name, popover, label, panelLabel, className, content, children, button, busy = false }: PopoverButtonProps) {
   const panel = useId();
-  const open = popover.open === name;
+  const open = popover.open === name && !busy;
   return (
     <span className="al-popover-anchor" ref={open ? popover.anchor : undefined}>
-      <button type="button" ref={button} className={`al-top-button ${className}`} aria-label={label} aria-expanded={open} aria-controls={open ? panel : undefined} onClick={() => popover.toggle(name)}>
+      <button type="button" ref={button} className={`al-top-button ${className}`} aria-label={label} aria-expanded={open} aria-controls={open ? panel : undefined} aria-disabled={busy || undefined} onClick={busy ? undefined : () => popover.toggle(name)}>
         {children}
       </button>
       {open && (

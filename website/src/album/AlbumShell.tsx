@@ -13,27 +13,39 @@ import { GettingStarted } from "./GettingStarted";
 import { PackOpening, useHeld } from "./PackOpening";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
+import { PutInFlights } from "./PutInFlights";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import "./album.css";
 
-export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; busy: boolean; onSignOut: () => void; openThoughtfulPack: (pack: string) => Promise<PackOpenReply> };
+export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; busy: boolean; onSignOut: () => void; openThoughtfulPack: (pack: string) => Promise<PackOpenReply> } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, busy, onSignOut, openThoughtfulPack }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, busy, onSignOut, openThoughtfulPack, putIn, putAllIn }: AlbumShellProps) {
   const wide = useWideScreen();
-  const { opening, open, close, packsButton, album, rememberOpened } = usePackOpening(answered);
-  const { held, hold, release } = useHeld();
+  const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
+  const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
+  const { album } = puttingIn;
+  const { held, hold, release } = useHeld();
   const closeOpening = useCallback(() => {
     release();
     close();
   }, [release, close]);
+  const putEverythingIn = () => {
+    closeOpening();
+    puttingIn.putAllIn();
+  };
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={opening} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} />
-      {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} />}
+      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={opening} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} tray={puttingIn} />
+      {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
+      <PutInFlights album={album} flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
+      <p role="status" aria-label="Putting in" className="al-sr">
+        {puttingIn.said}
+      </p>
       <div className="al-body" inert={opening}>
         <Sidebar album={album} place={place} wide={wide} footer={<Footer onSignOut={onSignOut} />} />
         <main className="al-main" aria-busy={busy || undefined}>

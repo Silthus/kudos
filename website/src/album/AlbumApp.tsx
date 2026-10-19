@@ -54,6 +54,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
+        putIn={actions.putIn}
+        putAllIn={actions.putAllIn}
       />
     </NavigateProvider>
   );

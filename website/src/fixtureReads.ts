@@ -20,7 +20,7 @@ const fixtureQuests = fixedQuests(questsFixtures.weekWithLastWeeksCrate);
 
 const fixtureSettings = fixedSettings(settingsFixtures.everything);
 
-const fixtureAlbum = fixedAlbum(albumFixtures.midway);
+const fixtureAlbum = fixedAlbum(albumFixtures.trayed);
 
 const fixtureBoards = fixedBoards(boardsFixtures.week);
 
