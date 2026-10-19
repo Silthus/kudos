@@ -52,8 +52,8 @@ jobs:
       - name: Refuse an earlier attempt's commit once the branch moved on
         if: ${{ needs.tip.outputs.attempt != github.run_attempt }}
         run: |
-          tip=$(git ls-remote --exit-code origin "$GITHUB_REF")
-          tip=${tip%%[[:space:]]*}
+          refs=$(git ls-remote --exit-code origin "$GITHUB_REF")
+          tip=$(awk -v ref="$GITHUB_REF" '$2 == ref { print $1 }' <<< "$refs")
           test "$tip" = "$SHA" || { echo "::error::$GITHUB_REF moved from $SHA to $tip since the first attempt, and this rerun may have replaced a newer run waiting to deploy; re-run all jobs to gate and deploy the tip"; exit 1; }
         env:
           SHA: ${{ needs.tip.outputs.sha }}

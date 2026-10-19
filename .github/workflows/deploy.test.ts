@@ -118,5 +118,7 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(withRemoteTip(answering(gated))).toBe(0);
     expect(withRemoteTip(answering("b".repeat(40)))).not.toBe(0);
     expect(withRemoteTip("exit 128")).not.toBe(0);
+    const nestedBranchFirst = `printf '%s\\trefs/heads/x/refs/heads/main\\n%s\\trefs/heads/main\\n' ${gated} ${"b".repeat(40)}`;
+    expect(withRemoteTip(nestedBranchFirst)).not.toBe(0);
   });
 });
