@@ -12,7 +12,7 @@ const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeat
 
 const midway = albumFixtures.midway;
 
-const kettleWorksEmoji: AlbumEmoji = { id: "team:kettle-works", kind: "team", name: "kettle-works", picture: "/emoji/team-kettle-works.png", earned: false, seen: false, inSlack: true, progress: { have: 3, need: 3 } };
+const kettleWorksEmoji: AlbumEmoji = { id: "team:kettle-works", kind: "team", name: "kettle-works", from: "Kettle Works", picture: "/emoji/team-kettle-works.png", earned: false, earnedAt: null, seen: false, inSlack: true, progress: { have: 3, need: 3 } };
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -44,7 +44,7 @@ async function unlockOnThePhoto(name = "Ready to unlock the Kettle Works sticker
 }
 
 async function unlockSays() {
-  return within(screen.getByRole("article")).findByRole("status");
+  return within(screen.getByRole("article")).findByRole("status", { name: "Unlocking the sticker" });
 }
 
 function withTheTray(album: Album, person: string): Album {
@@ -52,8 +52,8 @@ function withTheTray(album: Album, person: string): Album {
 }
 
 describe("AL45: the team page is the team's class photo", () => {
-  it("/ shows the member's own team in one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
-    visit("/");
+  it("the member's own team page is one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
+    visit("/book#teams/lanterns");
 
     expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" }, arrival)).toBeInTheDocument();
     const shown = await photo();
@@ -71,7 +71,7 @@ describe("AL45: the team page is the team's class photo", () => {
   });
 
   it("the seal is ringed by one segment per person to collect, filled for each one in the album", async () => {
-    visit("/");
+    visit("/book#teams/lanterns");
 
     const seal = await screen.findByRole("img", { name: "Lanterns sticker, 4 of 5" }, arrival);
     expect(seal.querySelectorAll("[data-segment]")).toHaveLength(5);
@@ -218,7 +218,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
   });
 
   it("dims the page, lifts the sticker, colours it, names it and its team emoji, then flies it back to an unlocked page, in about five seconds", async () => {
-    visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis, kettleWorksEmoji] } });
+    visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis.filter(({ id }) => id !== kettleWorksEmoji.id), kettleWorksEmoji] } });
     const unlock = await unlockOnThePhoto();
     vi.useFakeTimers();
     await act(async () => fireEvent.click(unlock));
@@ -294,10 +294,11 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
     expect(screen.getByText("Unlocked 15 Oct 2026")).toBeInTheDocument();
     expect(teamEmojiLine()).toHaveTextContent("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
-    expect(screen.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
   });
 
-  it("AL30, AL31: while Slack doesn't have it, never says it's usable, and Add to Slack saves its picture as <name>.png and opens Slack's custom emoji page", async () => {
+  it("AL30, AL31: while Slack doesn't have it, never says it's usable, and Add to Slack saves its picture as <name>.png and opens the workspace's custom emoji page", async () => {
+    vi.spyOn(window, "open").mockReturnValue(null);
     const saved: { href: string; download: string }[] = [];
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
       if (this.download !== "") saved.push({ href: this.getAttribute("href") ?? "", download: this.download });
@@ -306,13 +307,11 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
 
     expect(await screen.findByText(/team emoji\./, undefined, arrival)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
     expect(screen.queryByText(/Use it in Slack/)).not.toBeInTheDocument();
-    const add = screen.getByRole("link", { name: "Add to Slack" });
-    expect(add).toHaveAttribute("href", "https://my.slack.com/customize/emoji");
-    expect(add).toHaveAttribute("target", "_blank");
 
-    await user.click(add);
+    await user.click(screen.getByRole("button", { name: "Add to Slack: :quiet-harbour:" }));
 
-    expect(saved).toEqual([{ href: "/emoji/team-quiet-harbour.png", download: "quiet-harbour.png" }]);
+    await waitFor(() => expect(saved).toEqual([{ href: "/emoji/team-support.png", download: "quiet-harbour.png" }]));
+    expect(window.open).toHaveBeenCalledExactlyOnceWith("https://hedgehug.slack.com/customize/emoji", "_blank", "noopener,noreferrer");
   });
 
   it("AL31: a team picture from another host saves the team emblem, which the browser can download", async () => {
@@ -324,9 +323,10 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     const album: Album = { ...outOfSlack, emojis: outOfSlack.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, picture: "https://pictures.example/quiet-harbour.png" } : emoji)) };
     const { user } = visit("/book#teams/quiet-harbour", { album });
 
-    await user.click(await screen.findByRole("link", { name: "Add to Slack" }, arrival));
+    vi.spyOn(window, "open").mockReturnValue(null);
+    await user.click(await screen.findByRole("button", { name: "Add to Slack: :quiet-harbour:" }, arrival));
 
-    expect(saved).toEqual(["/emoji/team.png as quiet-harbour.png"]);
+    await waitFor(() => expect(saved).toEqual(["/emoji/team.png as quiet-harbour.png"]));
   });
 });
 
@@ -342,7 +342,7 @@ describe("AL74: a team emoji mapped to a Slack emoji", () => {
   const mappedPicture = "https://emoji.slack-edge.com/T1/harbour-hogs/1.png";
 
   it("shows the Slack emoji's name and picture on the unlocked page", async () => {
-    const mapped: AlbumEmoji = { id: "team:quiet-harbour", kind: "team", name: "harbour-hogs", picture: mappedPicture, earned: true, seen: true, inSlack: true, progress: null };
+    const mapped: AlbumEmoji = { id: "team:quiet-harbour", kind: "team", name: "harbour-hogs", from: "Quiet Harbour", picture: mappedPicture, earned: true, earnedAt: Date.parse("2026-10-15T10:00:00Z"), seen: true, inSlack: true, progress: null };
     visit("/book#teams/quiet-harbour", { album: { ...midway, emojis: [...midway.emojis.filter(({ id }) => id !== "team:quiet-harbour"), mapped] } });
 
     expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
@@ -353,7 +353,7 @@ describe("AL74: a team emoji mapped to a Slack emoji", () => {
 
   it("names the Slack emoji, not the name stored at the unlock, in the unlock moment", async () => {
     preferReducedMotion();
-    visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis, { ...kettleWorksEmoji, name: "kettle-crew", picture: mappedPicture }] } });
+    visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis.filter(({ id }) => id !== kettleWorksEmoji.id), { ...kettleWorksEmoji, name: "kettle-crew", picture: mappedPicture }] } });
     await userEvent.click(await unlockOnThePhoto());
 
     const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
@@ -375,7 +375,7 @@ describe("AL46: the person page", () => {
       .getAllByRole("link")
       .map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Kettle Works3 of 3", "/book#teams/kettle-works"],
-      ["Lanterns4 of 5", "/"],
+      ["Lanterns4 of 5", "/book#teams/lanterns"],
     ]);
     expect(screen.getByText(":ines-okafor-hype:")).toBeInTheDocument();
     expect(screen.getByText("Unlocked by your first thoughtful kudos to Ines")).toBeInTheDocument();
@@ -420,7 +420,7 @@ describe("AL46: the person page", () => {
 
   it("a team page never asks for a person", async () => {
     const asked: boolean[] = [];
-    visit("/", {
+    visit("/book#teams/lanterns", {
       people: (asking) => {
         asked.push(asking);
         return undefined;

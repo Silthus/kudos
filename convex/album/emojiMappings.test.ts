@@ -107,7 +107,7 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
 
     expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "hedgehog-otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
 
-    expect(await emojiWithId(asAlice, "team:otters")).toEqual({ id: "team:otters", kind: "team", name: "hedgehog-otters", picture: slackPicture("hedgehog-otters"), earned: true, seen: false, inSlack: true, progress: null });
+    expect(await emojiWithId(asAlice, "team:otters")).toEqual({ id: "team:otters", kind: "team", name: "hedgehog-otters", from: "Otters", picture: slackPicture("hedgehog-otters"), earned: true, earnedAt: expect.any(Number), seen: false, inSlack: true, progress: null });
     expect((await mappingsOf(asOwner)).emoji).toEqual([{ name: "hedgehog-otters", image: slackPicture("hedgehog-otters"), mapping: { kind: "team", team: "otters" } }]);
   });
 
@@ -253,7 +253,7 @@ describe("AL23: a random emoji drops from a thoughtful pack", { timeout: 90_000 
 
     theRoll.next = { chance: 0, pick: 0.9 };
     await aliceCollects(otters[1]!);
-    expect(await randomEmojisOf(await signedIn(alice))).toEqual([{ id: "random:party-parrot", kind: "random", name: "party-parrot", picture: slackPicture("party-parrot"), earned: true, seen: false, inSlack: true, progress: null }]);
+    expect(await randomEmojisOf(await signedIn(alice))).toEqual([{ id: "random:party-parrot", kind: "random", name: "party-parrot", from: "Otter Quillfeather2", picture: slackPicture("party-parrot"), earned: true, earnedAt: expect.any(Number), seen: false, inSlack: true, progress: null }]);
 
     await aliceCollects(otters[2]!);
     expect((await randomEmojisOf(await signedIn(alice))).map(({ id }) => id), "the next hit drops the one left").toEqual(["random:dancing-hog", "random:party-parrot"]);
@@ -274,7 +274,7 @@ describe("AL23: a random emoji drops from a thoughtful pack", { timeout: 90_000 
 
     await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "party-parrot", to: { kind: "team", team: "lanterns" } });
 
-    expect(await randomEmojisOf(asAlice)).toEqual([{ id: "random:party-parrot", kind: "random", name: "party-parrot", picture: slackPicture("party-parrot"), earned: true, seen: true, inSlack: true, progress: null }]);
+    expect(await randomEmojisOf(asAlice)).toEqual([{ id: "random:party-parrot", kind: "random", name: "party-parrot", from: "Otter Quillfeather2", picture: slackPicture("party-parrot"), earned: true, earnedAt: expect.any(Number), seen: true, inSlack: true, progress: null }]);
     expect((await albumOf(asAlice)).sharedEmojis).toBeNull();
   });
 

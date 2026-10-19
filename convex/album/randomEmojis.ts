@@ -6,7 +6,6 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { mostRandomEmojis, randomEmojiNamesIn } from "./emojiClasses";
 import { randomEmojisShownTo } from "./flag";
 import { emojiRollOf } from "./emojiRoll";
-import type { Instants } from "./packs";
 
 export { mostRandomEmojis };
 
@@ -16,7 +15,7 @@ export const mostRandomEmojisShown = 200;
 
 export type RandomEmojiId = `random:${string}`;
 
-export type HeldRandomEmoji = { id: RandomEmojiId; name: string; image: string };
+export type HeldRandomEmoji = { id: RandomEmojiId; name: string; image: string; from: MemberId; at: number };
 
 export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pack: Id<"thoughtfulPacks">, crate: string, at: number): Promise<void> {
   if (!(await randomEmojisShownTo(ctx, member))) return;
@@ -33,21 +32,12 @@ export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pa
 export async function randomEmojisHeldBy(ctx: QueryCtx, workspace: string, member: MemberId): Promise<HeldRandomEmoji[]> {
   const held: HeldRandomEmoji[] = [];
   if (!(await randomEmojisShownTo(ctx, member))) return held;
-  for (const { name } of await dropsOf(ctx, member)) {
+  for (const { name, pack, at } of await dropsOf(ctx, member)) {
     const image = await customEmojiImageOf(ctx, workspace, name);
-    if (image !== undefined) held.push({ id: `random:${name}`, name, image });
+    const packed = await ctx.db.get(pack);
+    if (image !== undefined && packed !== null) held.push({ id: `random:${name}`, name, image, from: packed.recipient, at });
   }
   return held;
-}
-
-export async function randomEmojisDroppedBetween(ctx: QueryCtx, workspace: string, member: MemberId, { from, to }: Instants): Promise<HeldRandomEmoji[]> {
-  const dropped: HeldRandomEmoji[] = [];
-  if (!(await randomEmojisShownTo(ctx, member))) return dropped;
-  for (const { name, at } of await dropsOf(ctx, member)) {
-    const image = at >= from && at < to ? await customEmojiImageOf(ctx, workspace, name) : undefined;
-    if (image !== undefined) dropped.push({ id: `random:${name}`, name, image });
-  }
-  return dropped;
 }
 
 export async function holdsRandomEmoji(ctx: QueryCtx, member: MemberId, name: string): Promise<boolean> {

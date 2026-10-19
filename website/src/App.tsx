@@ -362,10 +362,10 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
 
 export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "mapSlackEmoji">;
 
-type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; useEmojiMappings: EmojiMappingsRead; withThemeAndSignOut?: boolean; onSignIn: () => void; onSignOut: () => void };
+type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; useEmojiMappings: EmojiMappingsRead; withThemeAndSignOut?: boolean; albumSections?: ReactNode; onSignIn: () => void; onSignOut: () => void };
 
-export function SettingsAnswerPage({ settings, actions, useEmojiMappings, withThemeAndSignOut = false, ...answers }: SettingsAnswerPageProps) {
-  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} />;
+export function SettingsAnswerPage({ settings, actions, useEmojiMappings, withThemeAndSignOut = false, albumSections, ...answers }: SettingsAnswerPageProps) {
+  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} albumSections={albumSections} />;
   const answered = <SettingsElsewhere settings={settings} {...answers} />;
   if (!withThemeAndSignOut || !settingsStillMissing(settings)) return answered;
   return (

@@ -4,7 +4,7 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
-import { AddToSlack } from "./AddToSlack";
+import { AddToSlackButton } from "./AddToSlackButton";
 import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
 import { plural } from "./facts";
 import { hrefOf } from "./place";
@@ -40,10 +40,10 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
         </figcaption>
         <Seal team={team} emoji={emoji} unlocking={unlocking} />
       </figure>
-      <p role="status" className="al-unlock-problem">
+      <p role="status" aria-label="Unlocking the sticker" className="al-unlock-problem">
         {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
       </p>
-      {team.state === "unlocked" && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} />}
+      {team.state === "unlocked" && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} emojiPage={album.emojiPage} />}
     </article>
   );
 }
@@ -144,7 +144,7 @@ function problemWordsOf(reason: "refused" | "unreachable", team: AlbumTeam) {
   return reason === "refused" ? `The ${team.name} sticker couldn't be unlocked. Reload the page to see where it stands.` : "Couldn't reach HedgeHug. Try again.";
 }
 
-function TeamEmojiLine({ team, emoji }: { team: AlbumTeam; emoji: AlbumEmoji }) {
+function TeamEmojiLine({ team, emoji, emojiPage }: { team: AlbumTeam; emoji: AlbumEmoji; emojiPage: string | null }) {
   return (
     <div className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
@@ -153,7 +153,7 @@ function TeamEmojiLine({ team, emoji }: { team: AlbumTeam; emoji: AlbumEmoji }) 
       <p>
         You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji)}
       </p>
-      {!emoji.inSlack && <AddToSlack emoji={emoji} />}
+      {!emoji.inSlack && <AddToSlackButton emoji={emoji} emojiPage={emojiPage} />}
     </div>
   );
 }

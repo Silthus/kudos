@@ -1,5 +1,5 @@
 import { milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
-import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, TrayItem, UnlockAnswer } from "./answer";
+import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, SharedEmoji, TrayItem, UnlockAnswer } from "./answer";
 
 const day = 86_400_000;
 
@@ -86,18 +86,30 @@ const milestoneEmojisOf = (listed: AlbumMilestone[]): AlbumEmoji[] =>
     tiers.map(({ tier, at, name, earnedAt }) => {
       const emoji = `milestone:${id}:${tier}`;
       const earned = earnedAt !== null;
-      return { id: emoji, kind: "milestone", name: slugOf(name), picture: `/emoji/milestone-${milestoneTierArtOf(id, tier)}.png`, earned, seen: earned, inSlack: milestoneEmojisInSlack.has(emoji), progress: earned ? null : { have: count, need: at } };
+      return { id: emoji, kind: "milestone", name: slugOf(name), from: name, picture: `/emoji/milestone-${milestoneTierArtOf(id, tier)}.png`, earned, earnedAt, seen: earned, inSlack: milestoneEmojisInSlack.has(emoji), progress: earned ? null : { have: count, need: at } };
     }),
   );
 
 const emojis: AlbumEmoji[] = [
-  { id: "team:quiet-harbour", kind: "team", name: "quiet-harbour", picture: "/emoji/team-quiet-harbour.png", earned: true, seen: true, inSlack: true, progress: null },
-  { id: "hype:ines-okafor", kind: "hype", name: "ines-okafor-hype", picture: "/emoji/hype-ines-okafor.png", earned: true, seen: true, inSlack: false, progress: null },
-  { id: "level:5", kind: "level", name: "level-5", picture: "/emoji/level-5.png", earned: true, seen: false, inSlack: false, progress: null },
-  { id: "team:lanterns", kind: "team", name: "lanterns", picture: "/emoji/team-lanterns.png", earned: false, seen: false, inSlack: false, progress: { have: 4, need: 5 } },
-  { id: "level:10", kind: "level", name: "level-10", picture: "/emoji/level-10.png", earned: false, seen: false, inSlack: false, progress: { have: 1210, need: 4500 } },
+  { id: "team:quiet-harbour", kind: "team", name: "quiet-harbour", from: "Quiet Harbour", picture: "/emoji/team-support.png", earned: true, earnedAt: now - 3 * day, seen: true, inSlack: true, progress: null },
+  { id: "hype:ines-okafor", kind: "hype", name: "ines-okafor-hype", from: "Ines Okafor", picture: "/emoji/hype.png", earned: true, earnedAt: now - 9 * day, seen: true, inSlack: false, progress: null },
+  { id: "level:5", kind: "level", name: "level-5", from: "Level 5", picture: "/emoji/level-5.png", earned: true, earnedAt: null, seen: true, inSlack: false, progress: null },
+  { id: "team:lanterns", kind: "team", name: "lanterns", from: "Lanterns", picture: "/emoji/team-workflows.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 4, need: 5 } },
+  { id: "team:kettle-works", kind: "team", name: "kettle-works", from: "Kettle Works", picture: "/emoji/team-experiments.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 3, need: 3 } },
+  { id: "team:copper-kite", kind: "team", name: "copper-kite", from: "Copper Kite", picture: "/emoji/team-apm.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 0, need: 3 } },
+  { id: "level:10", kind: "level", name: "level-10", from: "Level 10", picture: "/emoji/level-10.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 1210, need: 4500 } },
   ...milestoneEmojisOf(milestones),
 ];
+
+const newEmojis: AlbumEmoji[] = [
+  ...emojis.map((emoji) => (emoji.id === "team:quiet-harbour" || emoji.id === "level:5" ? { ...emoji, seen: false } : emoji)),
+  { id: "hype:bram-teller", kind: "hype", name: "bram-teller-hype", from: "Bram Teller", picture: "/emoji/hype.png", earned: true, earnedAt: now - day, seen: false, inSlack: false, progress: null },
+  { id: "hype:fen-marlowe", kind: "hype", name: "fen-marlowe-hype", from: "Fen Marlowe", picture: "/emoji/hype.png", earned: true, earnedAt: now - day, seen: false, inSlack: false, progress: null },
+];
+
+const sharedEmojis: SharedEmoji[] = emojis.filter(({ kind }) => kind !== "hype").map(({ id, kind, name, from, picture, inSlack }) => ({ id, kind, name, from, picture, inSlack }));
+
+const emojiPage = "https://hedgehug.slack.com/customize/emoji";
 
 const me = { name: "Sam Example", face: { kind: "initials", initials: "SE" }, person: "sam-example" } as const;
 
@@ -117,6 +129,9 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugge
     morePacks: false,
     tray: [],
     emojis,
+    moreEmojis: false,
+    sharedEmojis: null,
+    emojiPage,
     milestones,
     gettingStarted,
   };
@@ -139,6 +154,8 @@ export const albumFixtures = {
   onePack: albumOf({ packs: 1 }),
   fewTeams: albumOf({ cast: castTeams.slice(0, 3) }),
   trayed: { ...albumOf(), tray: midwayTray },
+  newEmojis: { ...albumOf(), emojis: newEmojis },
+  admin: { ...albumOf(), sharedEmojis },
 } satisfies Record<string, Album>;
 
 export function fixedAlbum(answer: MyAlbum): AlbumRead {
