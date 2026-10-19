@@ -18,7 +18,8 @@ export function peopleGlanceOf(album: Album) {
   return { held: album.people.filter(({ held }) => held).length, total: album.people.length, unlocked: album.teams.filter(({ state }) => state === "unlocked").length, teams: album.teams.length };
 }
 
-export function teamFootnoteOf({ state, held, total, unlockedAt }: AlbumTeam) {
+export function teamFootnoteOf({ name, state, held, total, unlockedAt }: AlbumTeam) {
+  if (total === 0) return `Nobody else on ${name} is in Slack yet`;
   if (state === "unlocked" && unlockedAt !== null) return `Unlocked ${dateOf(unlockedAt)}`;
   if (state === "ready") return "Ready to unlock";
   return `${total - held} to go for the seal`;
@@ -34,7 +35,7 @@ export function bestMedalsOf(album: Album): BestMedal[] {
     .slice(0, bestMedalsShown);
 }
 
-function highestEarnedOf({ tiers }: AlbumMilestone) {
+export function highestEarnedOf({ tiers }: AlbumMilestone) {
   return tiers.findLast((tier): tier is BestMedal["tier"] => tier.earnedAt !== null);
 }
 
@@ -61,5 +62,5 @@ export function rankWords({ rank, tied }: { rank: number; tied: boolean }) {
 }
 
 export function teamRankWords({ name, rank, tied, thoughtful }: BoardTeam) {
-  return rank === null ? `${name} hasn't given one yet this week.` : `${name} is ${rankWords({ rank, tied })} with ${thoughtful}.`;
+  return rank === null ? `${name} hasn't given one yet this week.` : `${name} is ${rankWords({ rank, tied })} with ${thoughtful} thoughtful kudos.`;
 }

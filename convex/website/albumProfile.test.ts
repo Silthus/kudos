@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { deleteMessage, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api } from "../_generated/api";
@@ -64,6 +64,15 @@ describe("AL52: getAlbumProfile reads the profile's kind note and newest people"
         at: atOf(kind),
       },
     });
+  });
+
+  test("a kind note whose words are gone, deleted in Slack, gives way to the thoughtful kudos before it", async () => {
+    const kept = await thanks(bob, why, alice);
+    const deleted = await thanks(carol, "Thanks for the thorough onboarding notes you wrote", alice);
+    await deleteMessage(t, { user: carol.user, ts: deleted, previous: thanksBlocks("Thanks for the thorough onboarding notes you wrote", alice) });
+    await settle(t);
+
+    expect(await profileOf(alice)).toMatchObject({ kind: "profile", note: { giver: { name: bob.name }, permalink: permalinkOf(kept), at: atOf(kept) } });
   });
 
   test("the newest people are the four who joined your album last, newest first, with when each joined", async () => {
@@ -132,9 +141,13 @@ function permalinkOf(ts: string) {
   return `${workspaceUrl}archives/C1/p${ts.replace(".", "")}`;
 }
 
+function thanksBlocks(words: string, ...recipients: Person[]) {
+  return [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))];
+}
+
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
   const ts = nextTs();
-  await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
+  await post(t, thanksBlocks(words, ...recipients), { user: giver.user, ts });
   await settle(t);
   return ts;
 }

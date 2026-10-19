@@ -142,7 +142,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     expect(blocked).toEqual(expect.arrayContaining(["Sam Example", "Sam Example, Lanterns", "PH", "WA", "FM"]));
     expect(container.querySelector("[data-testid='kudos-message-words']")?.closest(".ph-no-capture")).not.toBeNull();
     expect(screen.getByRole("link", { name: "Ines Okafor, 17 Oct 2026" }).closest(".ph-no-capture")).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Perrin Holt, joined 16 Oct 2026" }).closest(".ph-no-capture")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Perrin Holt, Quiet Harbour, joined 16 Oct 2026" }).closest(".ph-no-capture")).not.toBeNull();
     expect(screen.getByRole("link", { name: /Open in Slack/ }).closest(".ph-no-capture")).not.toBeNull();
     expect(exposedIn(container)).toEqual([]);
   });

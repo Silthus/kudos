@@ -79,7 +79,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     expect(screen.getByRole("main")).toHaveTextContent(/Level 6/);
     expect(rank.getByText(`No. ${me.rank}`)).toBeInTheDocument();
     expect(rank.getByText(`${me.thoughtful} thoughtful kudos given`)).toBeInTheDocument();
-    expect(rank.getByText(`Lanterns is No. ${team.rank} with ${team.thoughtful}.`)).toBeInTheDocument();
+    expect(rank.getByText(`Lanterns is No. ${team.rank} with ${team.thoughtful} thoughtful kudos.`)).toBeInTheDocument();
     expect(rank.getByRole("link", { name: "See the leaderboard" })).toHaveAttribute("href", "/leaderboard");
   });
 
@@ -89,7 +89,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
 
     const rank = await section("This week's thoughtful kudos");
     expect(rank.getByText("No. 4, tied")).toBeInTheDocument();
-    expect(rank.getByText("Lanterns is No. 2 with 8.")).toBeInTheDocument();
+    expect(rank.getByText("Lanterns is No. 2 with 8 thoughtful kudos.")).toBeInTheDocument();
     expect(rank.queryByText(/Tin Orchard/)).toBeNull();
   });
 
@@ -108,14 +108,12 @@ describe("AL52: the profile page shows you, your week and your album at a glance
 
   it("your album at a glance counts the people, your team and the hoggies, each leading to its page", async () => {
     visit();
-    const album = albumFixtures.midway;
-    const held = album.people.filter((person) => person.held).length;
 
     const glance = await section("Your album at a glance");
-    expect(glance.getByRole("link", { name: `People in your album: ${held} of ${album.people.length}` })).toHaveAttribute("href", "/book#milestones");
+    expect(glance.getByRole("link", { name: "People in your album: 18 of 38" })).toHaveAttribute("href", "/book#milestones");
     expect(glance.getByRole("link", { name: "Your team, Lanterns: 4 of 5" })).toHaveAttribute("href", "/");
     expect(glance.getByRole("link", { name: "Hoggies found: 18 of 151" })).toHaveAttribute("href", "/book#hoggies");
-    expect(glance.getByText(`1 of ${album.teams.length} team stickers unlocked`)).toBeInTheDocument();
+    expect(glance.getByText("1 of 13 team stickers unlocked")).toBeInTheDocument();
     expect(glance.getByText("1 to go for the seal")).toBeInTheDocument();
     expect(glance.getByText("133 still hiding in packs")).toBeInTheDocument();
   });
@@ -124,7 +122,26 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     visit({ album: albumFixtures.newcomer, hoggies: { kind: "off" } });
 
     const glance = await section("Your album at a glance");
-    expect(glance.getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual([`People in your album: 0 of ${albumFixtures.newcomer.people.length}`]);
+    expect(glance.getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual(["People in your album: 0 of 13"]);
+  });
+
+  it("a home team nobody else is in Slack for says so, with no seal to count toward", async () => {
+    const alone = { ...albumFixtures.midway, teams: albumFixtures.midway.teams.map((team) => (team.team === "lanterns" ? { ...team, people: [], held: 0, total: 0 } : team)) };
+    visit({ album: alone });
+
+    const glance = await section("Your album at a glance");
+    expect(glance.getByText("Nobody else on Lanterns is in Slack yet")).toBeInTheDocument();
+    expect(glance.queryByText(/to go for the seal/)).toBeNull();
+    expect(screen.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/");
+  });
+
+  it("keeps the page and leaves the hoggies out while the hoggie read fails", async () => {
+    visit({ hoggies: { kind: "broken" } });
+
+    const glance = await section("Your album at a glance");
+    expect(glance.queryByRole("link", { name: /Hoggies found/ })).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Sam Example" })).toBeInTheDocument();
+    expect((await section("Coolest finds")).queryByRole("list", { name: "Your rarest hoggies" })).toBeNull();
   });
 
   it("coolest finds show your rarest hoggies and the people who joined your album last, each leading to its page", async () => {
@@ -139,9 +156,9 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     ]);
     const newest = within(finds.getByRole("list", { name: "New in your album" }));
     expect(newest.getAllByRole("link").map((link) => [link.getAttribute("aria-label"), link.getAttribute("href")])).toEqual([
-      ["Perrin Holt, joined 16 Oct 2026", "/book#people/perrin-holt"],
-      ["Wren Alder, joined 14 Oct 2026", "/book#people/wren-alder"],
-      ["Fen Marlowe, joined 12 Oct 2026", "/book#people/fen-marlowe"],
+      ["Perrin Holt, Quiet Harbour, joined 16 Oct 2026", "/book#people/perrin-holt"],
+      ["Wren Alder, Kettle Works, joined 14 Oct 2026", "/book#people/wren-alder"],
+      ["Fen Marlowe, Paper Moons, joined 12 Oct 2026", "/book#people/fen-marlowe"],
     ]);
     expect(finds.getByRole("link", { name: "All your hoggies" })).toHaveAttribute("href", "/book#hoggies");
   });

@@ -10,12 +10,12 @@ import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import { SlackLink } from "../SlackLink";
-import type { Album, AlbumHoggies, AlbumLevel, AlbumProfile, AlbumTeam, BoardsShown, FoundHoggie, HoggiesShown, KindNote, NewestPerson, ProfileShown } from "./answer";
+import type { Album, AlbumHoggies, AlbumLevel, AlbumProfile, AlbumTeam, BoardsShown, FoundHoggie, HoggiesShown, KindNote, NewestPerson, ProfileShown, ThoughtfulBoards } from "./answer";
 import { levelShareOf, myTeamOf, xpToNextOf } from "./facts";
 import { countedWords, emblemOf, milestoneNameOf, progressWords, tierWordOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { hrefOf } from "./place";
-import { bestMedalsOf, closestNextOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, type BestMedal, type NextMedal, type Standing } from "./profile";
+import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, type BestMedal, type NextMedal, type Standing } from "./profile";
 import { dateOf } from "./teamPage";
 import "./team.css";
 import "./profile.css";
@@ -23,15 +23,22 @@ import "./profile.css";
 type ProfileAnswerProps = { album: Album; profile: ProfileShown | undefined; boards: BoardsShown | undefined; hoggies: HoggiesShown | undefined; onSignIn: () => void; onSignOut: () => void };
 
 export function ProfileAnswerPage({ album, profile, boards, hoggies, ...answers }: ProfileAnswerProps) {
-  if (profile === undefined || profile.kind === "off" || boards === undefined || boards.kind === "off" || hoggies === undefined) return <LoadingPage shape="column" />;
-  if (profile.kind !== "profile") return <AnswerPage answer={profile} {...answers} />;
-  if (boards.kind !== "boards") return <AnswerPage answer={boards} {...answers} />;
-  if (hoggies.kind !== "hoggies" && hoggies.kind !== "off") return <AnswerPage answer={hoggies} {...answers} />;
-  return <ProfilePage album={album} profile={profile} standing={standingOf(boards, myTeamOf(album)?.team ?? null)} hoggies={hoggies.kind === "hoggies" ? hoggies : null} />;
+  if (profile?.kind === "profile" && boards?.kind === "boards" && hoggies !== undefined) return <ProfilePage album={album} profile={profile} standing={standingOf(boards, myTeamOf(album)?.team ?? null)} hoggies={hoggies.kind === "hoggies" ? hoggies : null} />;
+  const failed = [profile, boards].find(isAFailure);
+  if (failed !== undefined) return <AnswerPage answer={failed} {...answers} />;
+  return <LoadingPage shape="column" />;
 }
 
 export function isWaitingForTheProfile(profile: ProfileShown | undefined, boards: BoardsShown | undefined, hoggies: HoggiesShown | undefined) {
-  return profile === undefined || profile.kind === "off" || boards === undefined || boards.kind === "off" || hoggies === undefined;
+  return isWaitingFor(profile) || isWaitingFor(boards) || hoggies === undefined;
+}
+
+function isWaitingFor(read: ProfileShown | BoardsShown | undefined) {
+  return read === undefined || read.kind === "off";
+}
+
+function isAFailure(read: ProfileShown | BoardsShown | undefined): read is Exclude<ProfileShown | BoardsShown, AlbumProfile | ThoughtfulBoards | { kind: "off" }> {
+  return !isWaitingFor(read) && read?.kind !== "profile" && read?.kind !== "boards";
 }
 
 function ProfilePage({ album, profile, standing, hoggies }: { album: Album; profile: AlbumProfile; standing: Standing; hoggies: AlbumHoggies | null }) {
@@ -71,10 +78,15 @@ function Entry({ album, team, note }: { album: Album; team: AlbumTeam | undefine
         {team !== undefined && (
           <AppLink href={hrefOf({ kind: "team", team: null })} className="al-person-team al-profile-team">
             <TeamCrest art={team.art} size={32} name={team.name} collected={team.held > 0} />
-            <strong>{team.name}</strong>{" "}
-            <span className="al-quiet">
-              · {team.held} of {team.total} in your album
-            </span>
+            <strong>{team.name}</strong>
+            {team.total > 0 && (
+              <>
+                {" "}
+                <span className="al-quiet">
+                  · {team.held} of {team.total} in your album
+                </span>
+              </>
+            )}
           </AppLink>
         )}
         <Level level={album.level} />
@@ -284,13 +296,14 @@ function HoggieCard({ hoggie: { hoggie, name, rarity, firstAt } }: { hoggie: Fou
 }
 
 function NewestRow({ album, person: { person, name, face, at } }: { album: Album; person: NewestPerson }) {
+  const team = teamNameOf(album, person);
   return (
     <li>
-      <AppLink href={hrefOf({ kind: "person", person })} className="al-profile-person ph-no-capture" aria-label={`${name}, joined ${dateOf(at)}`}>
+      <AppLink href={hrefOf({ kind: "person", person })} className="al-profile-person ph-no-capture" aria-label={`${name}, ${team}, joined ${dateOf(at)}`}>
         <MemberFace face={face} className="al-profile-face" />
         <span className="al-profile-person-words">
           <strong>{name}</strong>
-          <span className="al-quiet">{teamNameOf(album, person)}</span>
+          <span className="al-quiet">{team}</span>
         </span>
         <span className="al-quiet al-profile-small">{dateOf(at)}</span>
       </AppLink>
@@ -345,7 +358,7 @@ function ClosestNext({ next }: { next: NextMedal }) {
   const label = useId();
   const { milestone, tier } = next;
   const words = progressWords(milestone.id, milestone.count, tier.at);
-  const best = milestone.tiers.findLast(({ earnedAt }) => earnedAt !== null)?.tier ?? null;
+  const best = highestEarnedOf(milestone)?.tier ?? null;
   return (
     <div role="group" aria-labelledby={label} className="al-profile-next">
       <p id={label} className="al-eyebrow">
