@@ -793,6 +793,30 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbum")).toEqual([{ query: "website/album:getAlbum", args: {} }]);
   });
 
+  it("AL49: /leaderboard reads the boards from one getThoughtfulBoards subscription, which no other album page opens", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    const boards = {
+      kind: "boards",
+      people: [{ person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" }, teams: ["lanterns"], thoughtful: 4, you: false, rank: 1, tied: false }],
+      teams: [{ team: "lanterns", name: "Lanterns", art: null, thoughtful: 4, mine: true, rank: 1, tied: false }],
+      pinned: { me: { person: "m-juno", name: "Juno Park", face: { kind: "initials", initials: "JP" }, teams: ["lanterns"], thoughtful: 0, you: true, rank: null, tied: false }, teams: [{ team: "lanterns", name: "Lanterns", art: null, thoughtful: 4, mine: true, rank: 1, tied: false }] },
+      onTheBoards: true,
+    };
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getThoughtfulBoards" ? boards : undefined));
+    window.history.replaceState(null, "", "/");
+    const { user } = renderLiveSite();
+    await screen.findByRole("heading", { level: 1, name: "Your album" });
+    expect([...subscriptions].map(({ query }) => query)).not.toContain("website/album:getThoughtfulBoards");
+
+    await user.click(within((await screen.findAllByRole("banner"))[0]!).getByRole("link", { name: "Leaderboard" }));
+
+    const people = within(await screen.findByRole("region", { name: "People" }));
+    expect(people.getByText("Ines Okafor leads with 4.")).toBeInTheDocument();
+    expect(people.getByText("Juno Park")).toBeInTheDocument();
+    expect([...subscriptions].filter(({ query }) => query === "website/album:getThoughtfulBoards")).toEqual([{ query: "website/album:getThoughtfulBoards", args: {} }]);
+  });
+
   it("while getAlbum answers off, the album waits, and a member without album never subscribes to getAlbum", async () => {
     profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { kind: "off" } : undefined));

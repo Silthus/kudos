@@ -1,6 +1,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import type { MyAlbum } from "./answer";
 import type { SettingsRead, SettingsShown } from "../settingsRead";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
@@ -17,7 +18,7 @@ beforeEach(() => {
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything) });
+  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week) });
 }
 
 async function topBar() {
@@ -257,7 +258,7 @@ describe("AL43: every album route has its page", () => {
     { path: "/book#milestones", title: "Milestones" },
     { path: "/book#packs", title: "Your packs" },
     { path: "/activity", title: "Activity" },
-    { path: "/leaderboard", title: "Leaderboard" },
+    { path: "/leaderboard", title: "Who said thanks, and why" },
     { path: "/settings", title: "Settings" },
   ];
 

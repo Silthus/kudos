@@ -7,13 +7,16 @@ import { useTitleFocusOnArrival } from "../pageFocus";
 import { returnAddressOf, useRoute } from "../route";
 import type { MemberProfile } from "../shell";
 import { AlbumShell } from "./AlbumShell";
+import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
 import { placeOf } from "./place";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards }: AppProps & { member: MemberProfile }) {
   const { route, navigate } = useRoute();
   const album = useAlbum(true);
   const onSettings = route.page === "settings";
   const settings = useSettings(onSettings);
+  const onLeaderboard = route.page === "leaderboard";
+  const boards = useThoughtfulBoards(onLeaderboard);
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
     (href: string) => {
@@ -33,7 +36,9 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings }: App
     );
   return (
     <NavigateProvider value={arriveAt}>
-      <AlbumShell album={album} place={placeOf(route, window.location.hash)} busy={onSettings && settings === undefined} settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />} onSignOut={actions.signOut} />
+      <AlbumShell album={album} place={placeOf(route, window.location.hash)} busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards))}
+        settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
+        leaderboard={<LeaderboardAnswerPage boards={boards} setBoardVisibility={actions.setBoardVisibility} {...answers} />} onSignOut={actions.signOut} />
     </NavigateProvider>
   );
 }

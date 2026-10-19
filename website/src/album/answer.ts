@@ -47,3 +47,15 @@ export type MyAlbum = AlbumAnswer | Denial;
 export type AlbumShown = MyAlbum | { kind: "connecting" } | { kind: "broken" };
 
 export type AlbumRead = (asking: boolean) => AlbumShown | undefined;
+
+export type Standing = { rank: number; tied: boolean } | { rank: null; tied: false };
+
+export type BoardPerson = { person: string; name: string; face: Face; teams: string[]; thoughtful: number; you: boolean } & Standing;
+
+export type BoardTeam = { team: string; name: string; art: TeamArt; thoughtful: number; mine: boolean } & Standing;
+
+export type ThoughtfulBoards = { kind: "boards"; people: BoardPerson[]; teams: BoardTeam[]; pinned: { me: BoardPerson | null; teams: BoardTeam[] }; onTheBoards: boolean };
+
+export type BoardsShown = ThoughtfulBoards | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type BoardsRead = (asking: boolean) => BoardsShown | undefined;

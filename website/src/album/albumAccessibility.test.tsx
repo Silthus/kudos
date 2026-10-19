@@ -7,11 +7,12 @@ import { renderAlbum } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { contrast, contrastOnTint, type Mode } from "../test/themeContrast";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
-import type { MyAlbum } from "./answer";
+import type { BoardsShown, MyAlbum } from "./answer";
+import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
-const pages: { path: string; album?: MyAlbum }[] = [
+const pages: { path: string; album?: MyAlbum; boards?: BoardsShown }[] = [
   { path: "/" },
   { path: "/", album: albumFixtures.newcomer },
   { path: "/book#teams/kettle-works" },
@@ -23,8 +24,16 @@ const pages: { path: string; album?: MyAlbum }[] = [
   { path: "/book#packs" },
   { path: "/activity" },
   { path: "/leaderboard" },
+  { path: "/leaderboard", boards: boardsFixtures.quiet },
+  { path: "/leaderboard", boards: boardsFixtures.hidden },
   { path: "/settings" },
 ];
+
+function boardsNameOf(boards: BoardsShown | undefined) {
+  if (boards === boardsFixtures.quiet) return " before anyone gave";
+  if (boards === boardsFixtures.hidden) return " for a member off the boards";
+  return "";
+}
 
 const wcag22AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -33,20 +42,20 @@ async function violationsIn(container: Element) {
   return results.violations.map((violation) => `${violation.id}: ${violation.help}`);
 }
 
-function visit(path: string, album: MyAlbum = albumFixtures.midway) {
+function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything) });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards) });
 }
 
 describe("AL55: every album page passes axe in light and dark, wide and on a phone", () => {
   for (const dark of [false, true]) {
     for (const wide of [true, false]) {
-      for (const { path, album } of pages) {
-        it(`${path}${album === albumFixtures.newcomer ? " for a newcomer" : ""} in ${dark ? "dark" : "light"}, ${wide ? "wide" : "on a phone"}`, async () => {
+      for (const { path, album, boards } of pages) {
+        it(`${path}${album === albumFixtures.newcomer ? " for a newcomer" : ""}${boardsNameOf(boards)} in ${dark ? "dark" : "light"}, ${wide ? "wide" : "on a phone"}`, async () => {
           fakeSystemTheme(dark);
           if (wide) preferWideScreen();
           else aWideScreenThatNarrows().narrow();
-          const { container } = visit(path, album);
+          const { container } = visit(path, album, boards);
           await screen.findByRole("navigation", { name: "Album" });
 
           expect(await violationsIn(container)).toEqual([]);
@@ -67,6 +76,16 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
       await user.click(screen.getByRole("button", { name: "Teams and pages" }));
       expect(await violationsIn(container)).toEqual([]);
     }, 60_000);
+
+    it(`the Leaderboard narrowed to one team passes axe in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      preferWideScreen();
+      const { user, container } = visit("/leaderboard");
+
+      await user.click(await screen.findByRole("button", { name: "Who gave in Kettle Works" }));
+
+      expect(await violationsIn(container)).toEqual([]);
+    }, 30_000);
   }
 });
 
