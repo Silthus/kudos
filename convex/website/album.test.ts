@@ -108,6 +108,17 @@ describe("the album is private", () => {
     expect(await weekListsOf(asCarol)).toEqual({ thanked: [], thankedBy: [bob.name] });
   });
 
+  test("getAlbumWeek lists each signed-in member the kudos they gave and got that week, never another member's", async () => {
+    await thanks(alice, "Thanks for the careful review of the billing export and the notes", bob);
+    await thanks(bob, "Thanks for pairing on the stubborn cache invalidation", carol);
+    await thanks(carol, "Thanks for the quick unblock", alice);
+    await thanks(alice, "Thanks for the docs", carol);
+
+    expect(await weekKudosOf(await signedIn(alice)), "alice's issue, led by her kudos to bob").toEqual({ given: [[carol.name]], received: [[carol.name]] });
+    expect(await weekKudosOf(await signedIn(bob)), "bob's issue, led by alice's kudos to him").toEqual({ given: [[carol.name]], received: [] });
+    expect(await weekKudosOf(await signedIn(carol)), "carol's issue, led by bob's kudos to her").toEqual({ given: [[alice.name]], received: [[alice.name]] });
+  });
+
   test("getAlbumProfile answers each signed-in member the kind note sent to them, never one they sent", async () => {
     await thanks(alice, "Thanks for the careful review of the billing export", bob);
     await thanks(bob, "Thanks for pairing on the stubborn cache invalidation", carol);
@@ -206,6 +217,13 @@ async function weekListsOf(reader: Reader) {
   const week = await reader.query(api.website.album.getAlbumWeek, {});
   if (week.kind !== "week" || week.issue === null) return week;
   return { thanked: week.issue.thanked.people.map(({ name }) => name), thankedBy: week.issue.thankedBy.people.map(({ name }) => name) };
+}
+
+async function weekKudosOf(reader: Reader) {
+  const week = await reader.query(api.website.album.getAlbumWeek, {});
+  if (week.kind !== "week" || week.issue === null) return week;
+  const namesIn = ({ kudos }: { kudos: Array<{ people: Array<{ name: string }> }> }) => kudos.map(({ people }) => people.map(({ name }) => name));
+  return { given: namesIn(week.issue.given), received: namesIn(week.issue.received) };
 }
 
 async function packedPeopleIn(albums: ReadonlyArray<readonly [Person, AlbumRead | { kind: string }]>) {
