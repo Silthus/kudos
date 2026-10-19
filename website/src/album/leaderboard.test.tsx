@@ -133,7 +133,9 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     await user.click(people.getByRole("button", { name: "Show everyone" }));
 
     expect(rowsOf(await board("People"))).toHaveLength(7);
-    expect((await board("Teams")).getByRole("button", { name: "Who gave in Kettle Works" })).toHaveAttribute("aria-pressed", "false");
+    const pick = (await board("Teams")).getByRole("button", { name: "Who gave in Kettle Works" });
+    expect(pick).toHaveAttribute("aria-pressed", "false");
+    expect(pick, "focus returns to the team's Who gave once Show everyone goes").toHaveFocus();
   });
 
   it("pressing Who gave on the picked team again shows everyone", async () => {

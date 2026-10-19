@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { AnswerPage } from "../App";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -24,6 +24,11 @@ type TeamsByKey = Map<string, BoardTeam>;
 
 function LeaderboardPage({ boards, homeTeam }: { boards: ThoughtfulBoards; homeTeam: string | null }) {
   const [picked, setPicked] = useState<string | null>(null);
+  const pickButtons = useRef(new Map<string, HTMLButtonElement>());
+  const showEveryone = () => {
+    if (picked !== null) pickButtons.current.get(picked)?.focus();
+    setPicked(null);
+  };
   const teams: TeamsByKey = new Map([...boards.teams, ...boards.pinned.teams].map((team) => [team.team, team]));
   const pickedTeam = picked === null ? undefined : teams.get(picked);
   return (
@@ -33,8 +38,8 @@ function LeaderboardPage({ boards, homeTeam }: { boards: ThoughtfulBoards; homeT
         Who said thanks, and why
       </PageTitle>
       <div className="al-boards">
-        <PeopleBoard boards={boards} teams={teams} picked={pickedTeam} onShowEveryone={() => setPicked(null)} />
-        <TeamBoard boards={boards} homeTeam={homeTeam} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
+        <PeopleBoard boards={boards} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
+        <TeamBoard boards={boards} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
@@ -66,7 +71,7 @@ function PeopleBoard({ boards, teams, picked, onShowEveryone }: { boards: Though
   );
 }
 
-function TeamBoard({ boards, homeTeam, picked, onPick }: { boards: ThoughtfulBoards; homeTeam: string | null; picked: string | null; onPick: (team: string) => void }) {
+function TeamBoard({ boards, homeTeam, pickButtons, picked, onPick }: { boards: ThoughtfulBoards; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: string) => void }) {
   const unrankedMine = boards.pinned.teams.filter(({ rank }) => rank === null);
   const rows = [...boards.teams, ...unrankedMine];
   return (
@@ -74,7 +79,7 @@ function TeamBoard({ boards, homeTeam, picked, onPick }: { boards: ThoughtfulBoa
       {rows.length > 0 && (
         <ol className="al-board-rows">
           {rows.map((row) => (
-            <TeamRow key={row.team} row={row} home={row.team === homeTeam} picked={row.team === picked} onPick={() => onPick(row.team)} />
+            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row.team)} />
           ))}
         </ol>
       )}
@@ -192,7 +197,7 @@ function PersonLink({ person, name }: { person: string; name: string }) {
   );
 }
 
-function TeamRow({ row, home, picked, onPick }: { row: BoardTeam; home: boolean; picked: boolean; onPick: () => void }) {
+function TeamRow({ row, home, pickButtons, picked, onPick }: { row: BoardTeam; home: boolean; pickButtons: Map<string, HTMLButtonElement>; picked: boolean; onPick: () => void }) {
   return (
     <li className="al-board-row" data-you={row.mine ? "" : undefined} data-picked={picked ? "" : undefined}>
       <RankMark standing={row} />
@@ -205,12 +210,17 @@ function TeamRow({ row, home, picked, onPick }: { row: BoardTeam; home: boolean;
           {row.mine && <span className="al-board-tag">Your team</span>}
         </span>
       </span>
-      <button type="button" className="al-board-pick" aria-pressed={picked} aria-label={`Who gave in ${row.name}`} onClick={onPick}>
+      <button ref={(button) => keepPickButton(pickButtons, row.team, button)} type="button" className="al-board-pick" aria-pressed={picked} aria-label={`Who gave in ${row.name}`} onClick={onPick}>
         Who gave
       </button>
       <Score thoughtful={row.thoughtful} />
     </li>
   );
+}
+
+function keepPickButton(pickButtons: Map<string, HTMLButtonElement>, team: string, button: HTMLButtonElement | null) {
+  if (button === null) pickButtons.delete(team);
+  else pickButtons.set(team, button);
 }
 
 function RankMark({ standing }: { standing: Standing }) {
