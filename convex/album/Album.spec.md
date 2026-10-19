@@ -241,6 +241,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: a thoughtful kudos received before a short one received and one the member gave, a thoughtful kudos received before a newer one deleted in Slack, five people put in on five days, a member nobody thanked with a why and whose album holds nobody, and the album off for the member
   via: AL52: getAlbumProfile reads the profile's kind note and newest people
   refuted: lastKindNoteTo took the newest kudos received with any gate decision, thoughtful or not -> 2 of 4 tests failed: a brief kudos received since was quoted as the kind note (2026-10-19)
+  refuted: lastKindNoteTo accepted a thoughtful kudos whatever its words, deleted ones included -> 1 of 5 tests failed: a kind note deleted in Slack was quoted over the readable one before it (2026-10-19)
   because: the profile quotes the last kind words a member got and shows who joined their album last (AL52, #627, #668): a short thank-you, a kudos the member gave, or an older person shown as the newest would misquote what the page tells the member about themselves
   kinds: read
   checklist: scoped-reads declared as the album is private
