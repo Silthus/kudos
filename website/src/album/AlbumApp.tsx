@@ -61,14 +61,13 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         album={album}
         place={place}
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
-        settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
+        settings={<SettingsAnswerPage settings={settings} actions={actions} withThemeAndSignOut {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards} hoggies={hoggies} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} {...answers} />}
         newest={profile?.kind === "profile" ? profile.newest : null}
-        onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}
         putIn={actions.putIn}
