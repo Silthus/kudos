@@ -102,6 +102,7 @@ describe("a tray item is put in once", { timeout: 120_000 }, () => {
     await thanks(alice, why, bob);
     await theBookOpensFor(alice);
     const asAlice = await signedIn(alice);
+    const beforeTheOpen = await collectionOf(asAlice);
     const [, hoggie] = await openEvery(asAlice);
     if (hoggie?.kind !== "hoggie") throw new Error("expected the pack's hoggie");
     const inTheTray = await collectionOf(asAlice);
@@ -111,6 +112,7 @@ describe("a tray item is put in once", { timeout: 120_000 }, () => {
 
     const putInAt = Date.now();
     const found = await collectionOf(asAlice);
+    expect(inTheTray, "the collection while the hoggie waits in the tray").toEqual(beforeTheOpen);
     const [waiting, putInHoggie] = [countOf(inTheTray, hoggie.hoggie), countOf(found, hoggie.hoggie)];
     expect(putInHoggie.count, "the hoggie's count once put in").toBe(waiting.count + 1);
     expect(found.owned, "the hoggies found").toBe(inTheTray.owned + (waiting.count === 0 ? 1 : 0));
