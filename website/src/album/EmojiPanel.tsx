@@ -38,6 +38,7 @@ function ShelfSection({ album, shelf, onFollow }: { album: Album; shelf: Shelf; 
   const [all, setAll] = useState(false);
   const title = useId();
   const { kind, earned, locked } = shelf;
+  if (kind.kind === "random" && earned.length === 0) return null;
   const earnedShown = all ? earned : earned.slice(0, kind.earnedShown);
   const lockedShown = all ? locked : locked.slice(0, kind.lockedShown);
   const hidden = earned.length + locked.length - earnedShown.length - lockedShown.length;
@@ -45,12 +46,12 @@ function ShelfSection({ album, shelf, onFollow }: { album: Album; shelf: Shelf; 
     <section className="al-emoji-shelf" aria-labelledby={title}>
       <h3 id={title} className="al-emoji-shelf-title">
         <span>{kind.title}</span>{" "}
-        <span className="al-quiet">{kind.kind === "hype" ? earned.length : `${earned.length} of ${earned.length + locked.length}`}</span>
+        <span className="al-quiet">{kind.onlyEarned ? earned.length : `${earned.length} of ${earned.length + locked.length}`}</span>
       </h3>
       {earned.length === 0 && <p className="al-emoji-none">None yet. {kind.hint}</p>}
       <EmojiRows album={album} emojis={[...earnedShown, ...lockedShown]} onFollow={onFollow} />
-      {earned.length > 0 && kind.kind === "hype" && <p className="al-emoji-none">{kind.hint}</p>}
-      {kind.kind === "hype" && moreHype && <p className="al-emoji-none">Your newest {earned.length} hype emojis show here.</p>}
+      {earned.length > 0 && kind.onlyEarned && <p className="al-emoji-none">{kind.hint}</p>}
+      {kind.kind === "hype" && moreHype && <MoreHype />}
       {(all || hidden > 0) && (
         <button type="button" className="al-emoji-more" onClick={() => setAll(!all)}>
           {all ? "Show fewer" : `Show all · ${hidden} more`}
@@ -62,12 +63,16 @@ function ShelfSection({ album, shelf, onFollow }: { album: Album; shelf: Shelf; 
 
 function Found({ album, search, onFollow }: { album: Album; search: string; onFollow: () => void }) {
   const found = shelvesOf(album.emojis.filter((emoji) => matchesSearch(emoji, search))).flatMap(({ earned, locked }) => [...earned, ...locked]);
-  if (found.length === 0) return <p className="al-emoji-none ph-no-capture">No emoji matches “{search.trim()}”.</p>;
   return (
     <section className="al-emoji-shelf" aria-label="Matches">
-      <EmojiRows album={album} emojis={found} onFollow={onFollow} />
+      {found.length === 0 ? <p className="al-emoji-none ph-no-capture">No emoji matches “{search.trim()}”.</p> : <EmojiRows album={album} emojis={found} onFollow={onFollow} />}
+      {album.moreEmojis && <MoreHype />}
     </section>
   );
+}
+
+function MoreHype() {
+  return <p className="al-emoji-none">You have more hype emojis than the popup lists.</p>;
 }
 
 function EmojiRows({ album, emojis, onFollow }: { album: Album; emojis: AlbumEmoji[]; onFollow: () => void }) {

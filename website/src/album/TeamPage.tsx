@@ -1,6 +1,7 @@
 import { Fragment, useId } from "react";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
+import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { AddToSlackButton } from "./AddToSlackButton";
@@ -147,7 +148,7 @@ function TeamEmojiLine({ team, emoji, emojiPage }: { team: AlbumTeam; emoji: Alb
   return (
     <div className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
-        <TeamCrest art={team.art} size={32} name={team.name} />
+        <TeamEmojiPicture art={team.art} name={team.name} emoji={emoji} size={32} />
       </span>
       <p>
         You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji)}

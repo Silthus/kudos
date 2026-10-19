@@ -47,7 +47,8 @@ export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (i
     markShown([playing.id]);
   }, [playing, markShown]);
   const skipTheRest = useCallback(() => markShown(owed.map(({ id }) => id)), [owed, markShown]);
-  return { playing, position: takenInThisBatch + 1, inThisBatch: takenInThisBatch + owed.length, take, skipTheRest, shownElsewhere };
+  const stillOwed = owed.filter(({ id }) => id !== playing?.id).length;
+  return { playing, position: takenInThisBatch + 1, inThisBatch: takenInThisBatch + (playing === null ? 0 : 1) + stillOwed, take, skipTheRest, shownElsewhere };
 }
 
 type EmojiMomentProps = { moments: EmojiMoments; emojiButton: RefObject<HTMLButtonElement | null> };

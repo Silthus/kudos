@@ -28,6 +28,14 @@ export async function originalCustomEmojiStartingWith(ctx: QueryCtx, workspace: 
   return [...originals.values()].toSorted((first, second) => first.name.localeCompare(second.name)).slice(0, limit);
 }
 
+export async function customEmojiListedIn(ctx: QueryCtx, workspace: string, most: number): Promise<ListedEmoji[]> {
+  const rows = await ctx.db
+    .query("customEmoji")
+    .withIndex("by_name", (q) => q.eq("workspace", workspace))
+    .take(most);
+  return rows.map(({ name, image }) => ({ name, image }));
+}
+
 export async function customEmojiScopeMissingIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
   return (await listingsRow(ctx, workspace))?.scopeMissing === true;
 }

@@ -151,15 +151,34 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     expect(rowsIn(teamShelf)).toHaveLength(6);
     expect(teamShelf.getByRole("heading", { level: 3 }).textContent).toBe("Team stickers 0 of 6");
-    expect(teamShelf.queryByRole("button", { name: /Show all/ })).not.toBeInTheDocument();
+    const fewer = teamShelf.getByRole("button", { name: "Show fewer" });
+    expect(fewer).toHaveFocus();
+    await view.user.keyboard("{Enter}");
+    expect(rowsIn(teamShelf)).toHaveLength(3);
+    expect(teamShelf.getByRole("button", { name: "Show all · 3 more" })).toHaveFocus();
   });
 
-  it("past the hype emojis getAlbum answers, the popup says it shows the newest ones", async () => {
+  it("past the hype emojis getAlbum answers, the popup and its search say there are more", async () => {
     const view = visit("/", { album: { ...midway, moreEmojis: true } });
 
     const popup = await openTheEmojis(view);
 
-    expect(shelf(popup, "Hype").getByText("Your newest 1 hype emojis show here.")).toBeInTheDocument();
+    expect(shelf(popup, "Hype").getByText("You have more hype emojis than the popup lists.")).toBeInTheDocument();
+    await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "zebra");
+    expect(popup.getByText("You have more hype emojis than the popup lists.")).toBeInTheDocument();
+  });
+
+  it("random drops show only once one dropped, each with the pack it dropped from", async () => {
+    const drop = anEmoji({ id: "random:shipit", kind: "random", name: "shipit", from: "Ines Okafor", picture: "https://emoji.slack-edge.com/T1/shipit/1.png", earned: true, earnedAt: Date.parse("2026-10-17T10:00:00Z"), inSlack: true, progress: null });
+    const view = visit("/");
+    const popup = await openTheEmojis(view);
+    expect(popup.queryByRole("region", { name: /^Random drops/ })).not.toBeInTheDocument();
+    view.unmount();
+
+    const withADrop = visit("/", { album: { ...midway, emojis: [...midway.emojis, drop] } });
+    const again = await openTheEmojis(withADrop);
+
+    expect(rowsIn(shelf(again, "Random drops"))).toEqual([":shipit:A random drop in your thoughtful pack for Ines Okafor · 17 Oct 2026In Slack"]);
   });
 
   it("a search finds emojis by name, team, milestone or person, and says when none matches", async () => {
@@ -286,6 +305,20 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     const last = await aMoment();
     await waitFor(() => expect(last).toHaveTextContent("4 of 4 new"));
     expect(within(last).queryByRole("button", { name: "Skip the rest" })).not.toBeInTheDocument();
+  });
+
+  it("when the last moment goes, focus returns to where the member was", async () => {
+    preferReducedMotion();
+    const view = visit("/", { album: { ...fresh, emojis: fresh.emojis.filter(({ id }) => id !== "level:5" && !id.startsWith("hype:")) } });
+    const search = await screen.findByRole("searchbox", { name: "Search teams and people" }, { timeout: 5_000 });
+    search.focus();
+    const moment = await aMoment();
+    expect(moment).toHaveFocus();
+
+    await view.user.click(within(moment).getByRole("button", { name: "Add to my emojis" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument());
+    await waitFor(() => expect(search).toHaveFocus());
   });
 
   it("while more packs wait than getAlbum lists, every hype moment waits, since its pack may be one of them", async () => {
