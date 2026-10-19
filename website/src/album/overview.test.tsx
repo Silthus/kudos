@@ -1,10 +1,10 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
-import type { Album, ProfileRead } from "./answer";
+import type { Album, ProfileRead, PutAllInReply, TrayItem } from "./answer";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -18,10 +18,18 @@ beforeEach(() => {
   preferWideScreen();
 });
 
-function visit(album: Album = albumFixtures.teamless, profile: ProfileRead = fixedProfile(profileFixtures.noted)) {
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+function visit(album: Album = albumFixtures.teamless, profile: ProfileRead = fixedProfile(profileFixtures.noted), putAllIn?: () => Promise<PutAllInReply>) {
   window.history.replaceState(null, "", "/");
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { profile });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { profile, commands: putAllIn === undefined ? {} : { putAllIn } });
 }
+
+const juno: TrayItem = { item: "tray-juno", kind: "sticker", person: "juno-park" };
+
+const banana: TrayItem = { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true };
 
 async function part(name: string) {
   return within(await screen.findByRole("region", { name }));
@@ -61,6 +69,21 @@ describe("AL43: a member without a team lands on the album overview, never an em
     await user.click(packs.getByRole("button", { name: "Open a pack" }));
 
     expect(await screen.findByRole("dialog", { name: "Open your packs" })).toBeInTheDocument();
+  });
+
+  it("Open a pack opens nothing while the cards are being put in, as the packs button doesn't", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { user } = visit({ ...albumFixtures.teamless, tray: [juno, banana] }, fixedProfile(profileFixtures.noted), async () => ({ kind: "placed", items: [banana, juno], more: false }));
+    const [bar] = await screen.findAllByRole("banner");
+    await user.click(within(bar!).getByRole("button", { name: /^Tray/ }));
+    await user.click(within(await screen.findByRole("region", { name: "Tray" })).getByRole("button", { name: "Put them all in · 2" }));
+    await within(bar!).findByRole("button", { name: "Tray, putting in, 2 to go" });
+
+    const open = (await part("Waiting packs")).getByRole("button", { name: "Open a pack" });
+    await user.click(open);
+
+    expect(screen.queryByRole("dialog", { name: "Open your packs" })).not.toBeInTheDocument();
+    expect(open).toHaveAttribute("aria-disabled", "true");
   });
 
   it("closing the packs before a rip gives focus back to the overview's Open a pack", async () => {
