@@ -772,6 +772,8 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     kind: "album",
     me: { name: "Juno Park", face: { kind: "initials", initials: "JP" }, person: "m-juno" },
     level: { level: 6, xp: 1210, startsAt: 1000, nextAt: 1500 },
+    people: [],
+    morePeople: false,
     packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z") }],
     morePacks: false,
     tray: [{ item: "t-1", kind: "sticker", person: "m-ines" }],
@@ -794,6 +796,20 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     expect(screen.getByRole("heading", { level: 1, name: "Your album" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbum")).toEqual([{ query: "website/album:getAlbum", args: {} }]);
+  });
+
+  it("the people getAlbum holds are found in the sidebar, before their teams are answered", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    const ines = { person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" }, held: true };
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, people: [ines] } : undefined));
+    const user = userEvent.setup();
+
+    renderLiveSite();
+
+    const side = within(await screen.findByRole("navigation", { name: "Album" }));
+    await user.type(side.getByRole("searchbox", { name: "Search teams and people" }), "ines");
+    expect(within(side.getByRole("list", { name: "People" })).getByRole("link", { name: "Ines Okafor" })).toBeInTheDocument();
   });
 
   it("while getAlbum answers off, the album waits, and a member without album never subscribes to getAlbum", async () => {

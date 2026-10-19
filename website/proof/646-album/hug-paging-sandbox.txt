@@ -1,0 +1,37 @@
+albumHistoryOf before: 
+start 23:21:49
+poll 1: {"done":false,"startedAt":1792365710132}
+poll 2: {"done":false,"startedAt":1792365710132}
+poll 3: {"done":false,"startedAt":1792365710132}
+poll 4: {"done":false,"startedAt":1792365710132}
+poll 5: {"done":false,"startedAt":1792365710132}
+poll 6: {"done":false,"startedAt":1792365710132}
+poll 7: {"done":false,"startedAt":1792365710132}
+poll 8: {"done":false,"startedAt":1792365710132}
+poll 9: {"done":false,"startedAt":1792365710132}
+poll 10: {"done":false,"startedAt":1792365710132}
+poll 11: {"done":true,"startedAt":1792365710132}
+{ "_creationTime": 1792365710132.7483, "_id": "hs7wsxdryb5pbpb0230ezf13ex8gg7r6", "cursor": "…", "done": true, "phase": "hugs", "startedAt": 1792365710132, "workspace": "T0PRF646B" }
+Tamsin=js7dkvxm25bv0n2gb5x7x12wbs8gg14p Wren=js78cvmrpk3gz5yem1bya3r6bx8gg206 Crowd0=js7fnczts1x9haedvhe584ckp58gg5bm Crowd54=js7drgz8hzfn0gmgs7accvtj618gga27
+pairTallyOf Tamsin -> Proof Crowd 54 (one of the hugged people; NOT the last in index order, see README):
+{
+  "best": null,
+  "firstThankedAt": null,
+  "hugsGiven": 1,
+  "hugsReceived": 0,
+  "kudosGiven": 0,
+  "kudosReceived": 0
+}
+pairTallyOf Tamsin -> Proof Crowd 0:
+{
+  "best": null,
+  "firstThankedAt": null,
+  "hugsGiven": 1,
+  "hugsReceived": 0,
+  "kudosGiven": 0,
+  "kudosReceived": 0
+}
+weekTallyOf Tamsin 2026-10-19 (hugged: 12 shown + 43 more = 55):
+ "hugged": { "more": 43, "people": [ -- "hugsGiven": 1, "hugsReceived": 0, "kudosGiven": 0, 
+history stickers of Wren: 55
+failed album jobs since the deploy: 0

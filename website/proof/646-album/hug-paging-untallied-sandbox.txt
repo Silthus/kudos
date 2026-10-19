@@ -1,0 +1,23 @@
+# Workspace T0PRF646C, driven 23:26 UTC while a variant without the tally subscribers (tallyKudosGiven, tallyHugGiven) was deployed (23:25:46), so nothing tallied the kudos or the hug.
+hug: g57kfwgkk98a6mhbgg6k05gm2d8ggvbz; Tamsin: js72j7vr5ems9tbzpvk0zjj5xn8ggx3y
+BEFORE the history:
+talliedHugs rows for the hug: 0
+weekTallyOf Tamsin 2026-10-19: 
+albumHistoryOf: 
+(an empty answer above is null)
+full tree redeployed 23:26:54; history started:
+poll 1: {"done":false,"startedAt":1792366016205}
+poll 2: {"done":false,"startedAt":1792366016205}
+poll 3: {"done":false,"startedAt":1792366016205}
+poll 4: {"done":false,"startedAt":1792366016205}
+poll 5: {"done":false,"startedAt":1792366016205}
+poll 6: {"done":false,"startedAt":1792366016205}
+poll 7: {"done":true,"startedAt":1792366016205}
+AFTER done:
+albumHistory record: { "_creationTime": 1792366016205.0122, "_id": "hs7xhhesjesdsnxr0k91t9ske58gg6jx", "cursor": "…", "done": true, "phase": "hugs", "startedAt": 1792366016205, "workspace": "T0PRF646C" }
+talliedHugs rows for the hug: 56 (55 people + the giver side)
+last recipient in by_message_recipient order: js7fsmeg1vx78zh6m2qmmm8eed8ggs8t (U0PRF646C00); its pair tally with Tamsin: {"best":null,"firstThankedAt":null,"hugsGiven":1,"hugsReceived":0,"kudosGiven":0,"kudosReceived":0}
+pair tallies of Tamsin with hugsGiven 1: 55 of 55
+weekTallyOf Tamsin 2026-10-19: "hugged":{"more":43
+"hugsGiven":1
+failed album jobs: 0

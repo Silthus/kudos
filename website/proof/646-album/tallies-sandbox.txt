@@ -1,0 +1,121 @@
+pairTallyOf js7adyj4bgdjn50shpa0z1ef818ggczc js70vehner93gs2pe2fbp7b95h8ggbgs:
+{
+  "best": {
+    "at": 1792103313842,
+    "message": {
+      "conversation": "C0C9N9A4SE4",
+      "message": "1792103313.842000",
+      "workspace": "T0C3US298SH"
+    },
+    "words": 11
+  },
+  "firstThankedAt": 1792103313842,
+  "hugsGiven": 0,
+  "hugsReceived": 1,
+  "kudosGiven": 1,
+  "kudosReceived": 0
+}
+pairTallyOf js7adyj4bgdjn50shpa0z1ef818ggczc js7bj7p5gnbfqfa2hmarmxe9an8ggvb5:
+{
+  "best": null,
+  "firstThankedAt": 1792189718159,
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "kudosGiven": 1,
+  "kudosReceived": 0
+}
+pairTallyOf js7adyj4bgdjn50shpa0z1ef818ggczc js7b2ekn3nbc6mcmdfnbeq2vtx8ggmj5:
+{
+  "best": null,
+  "firstThankedAt": null,
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "kudosGiven": 0,
+  "kudosReceived": 1
+}
+weekTallyOf js7adyj4bgdjn50shpa0z1ef818ggczc 2026-10-12:
+{
+  "days": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1
+  ],
+  "hugged": {
+    "more": 0,
+    "people": []
+  },
+  "huggedBy": {
+    "more": 0,
+    "people": []
+  },
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "kudosGiven": 2,
+  "kudosOfWeek": {
+    "at": 1792276122379,
+    "hugs": 0,
+    "message": {
+      "conversation": "C0C9N9A4SE4",
+      "message": "1792276122.379000",
+      "workspace": "T0C3US298SH"
+    },
+    "words": 12
+  },
+  "kudosReceived": 1,
+  "thanked": {
+    "more": 0,
+    "people": [
+      "js70vehner93gs2pe2fbp7b95h8ggbgs",
+      "js7bj7p5gnbfqfa2hmarmxe9an8ggvb5"
+    ]
+  },
+  "thankedBy": {
+    "more": 0,
+    "people": [
+      "js7b2ekn3nbc6mcmdfnbeq2vtx8ggmj5"
+    ]
+  },
+  "thoughtfulGiven": 1,
+  "thoughtfulReceived": 1
+}
+weekTallyOf js7adyj4bgdjn50shpa0z1ef818ggczc 2026-10-19:
+{
+  "days": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "hugged": {
+    "more": 0,
+    "people": []
+  },
+  "huggedBy": {
+    "more": 0,
+    "people": [
+      "js70vehner93gs2pe2fbp7b95h8ggbgs"
+    ]
+  },
+  "hugsGiven": 0,
+  "hugsReceived": 1,
+  "kudosGiven": 0,
+  "kudosOfWeek": null,
+  "kudosReceived": 0,
+  "thanked": {
+    "more": 0,
+    "people": []
+  },
+  "thankedBy": {
+    "more": 0,
+    "people": []
+  },
+  "thoughtfulGiven": 0,
+  "thoughtfulReceived": 0
+}

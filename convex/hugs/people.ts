@@ -1,11 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import { hugGivenEventValidator } from "../bus/events";
-import { recipientsPageOf } from "../engine/awards";
 import { recordReward } from "../progression/progression";
 import { isMember, type MemberId } from "../workspace/directory";
-import { countReceivedOnTheMessage, insertPaid, isPaid, hugOf, type Hug } from "./records";
+import { countReceivedOnTheMessage, insertPaid, isPaid, hugOf, hugPeoplePageOf, type Hug } from "./records";
 import { countHugReceived } from "./weeks";
 import { hugXp, hugsCatalogueVersion } from "./xp";
 
@@ -16,19 +15,11 @@ export const payHugPeople = internalMutation({
   handler: async (ctx, { event, cursor }): Promise<void> => {
     const hug = await hugOf(ctx, event.message, event.giver);
     if (hug === null) return;
-    const { people, next } = await peoplePageOf(ctx, hug, cursor ?? null);
+    const { people, next } = await hugPeoplePageOf(ctx, hug, cursor ?? null, peopleAPage);
     for (const person of people) await payPerson(ctx, hug, person);
     if (next !== null) await ctx.scheduler.runAfter(0, internal.hugs.people.payHugPeople, { event, cursor: next });
   },
 });
-
-type PeoplePage = { people: MemberId[]; next: string | null };
-
-async function peoplePageOf(ctx: QueryCtx, hug: Hug, cursor: string | null): Promise<PeoplePage> {
-  if (hug.author !== undefined) return { people: [hug.author], next: null };
-  const { page, isDone, continueCursor } = await recipientsPageOf(ctx, hug, { cursor, numItems: peopleAPage });
-  return { people: page, next: isDone ? null : continueCursor };
-}
 
 async function payPerson(ctx: MutationCtx, hug: Hug, person: MemberId) {
   if (!(await isMember(ctx, person)) || (await isPaid(ctx, hug, person))) return;

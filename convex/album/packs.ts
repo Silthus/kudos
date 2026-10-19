@@ -10,6 +10,7 @@ import type { MemberId } from "../workspace/directory";
 import { countThoughtfulAwards } from "./boards";
 import { nameHypeEmojiOf } from "./emojiNames";
 import type { GrantOutcome } from "./records";
+import { inTheAlbumOf } from "./stickers";
 
 export const recipientsPerMutation = 50;
 export const mostWaitingPacksShown = 50;
@@ -72,14 +73,6 @@ async function packEarnedIn(ctx: QueryCtx, giver: MemberId, recipient: MemberId,
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient).eq("week", week))
     .first();
   return pack !== null;
-}
-
-async function inTheAlbumOf(ctx: QueryCtx, member: MemberId, person: MemberId) {
-  const sticker = await ctx.db
-    .query("albumStickers")
-    .withIndex("by_member_person", (q) => q.eq("member", member).eq("person", person))
-    .unique();
-  return sticker !== null;
 }
 
 async function stickerWaitingFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId) {

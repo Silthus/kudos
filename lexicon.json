@@ -723,6 +723,10 @@
     {
       "name": "tray",
       "definition": "A member's opened album stickers and hoggies not yet put in, in opening order, stored so a reload or another device shows the same (AL10); opening a thoughtful pack adds its sticker, where its grant decided it holds one, and its hoggie (AL8)."
+    },
+    {
+      "name": "album sticker",
+      "definition": "A person in a member's album: put in from a thoughtful pack, or brought by the album's history for someone the member gave a kudos award to before it began (AL13, AL14); never added by being thanked, kept for good, and not a Book sticker."
     }
   ],
   "retired": [
