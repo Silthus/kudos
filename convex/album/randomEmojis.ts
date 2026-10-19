@@ -15,7 +15,7 @@ export const mostRandomEmojisShown = 200;
 
 export type RandomEmojiId = `random:${string}`;
 
-export type HeldRandomEmoji = { id: RandomEmojiId; name: string; image: string };
+export type HeldRandomEmoji = { id: RandomEmojiId; name: string; image: string; from: MemberId; at: number };
 
 export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pack: Id<"thoughtfulPacks">, crate: string, at: number): Promise<void> {
   if (!(await randomEmojisShownTo(ctx, member))) return;
@@ -32,9 +32,10 @@ export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pa
 export async function randomEmojisHeldBy(ctx: QueryCtx, workspace: string, member: MemberId): Promise<HeldRandomEmoji[]> {
   const held: HeldRandomEmoji[] = [];
   if (!(await randomEmojisShownTo(ctx, member))) return held;
-  for (const { name } of await dropsOf(ctx, member)) {
+  for (const { name, pack, at } of await dropsOf(ctx, member)) {
     const image = await customEmojiImageOf(ctx, workspace, name);
-    if (image !== undefined) held.push({ id: `random:${name}`, name, image });
+    const packed = await ctx.db.get(pack);
+    if (image !== undefined && packed !== null) held.push({ id: `random:${name}`, name, image, from: packed.recipient, at });
   }
   return held;
 }

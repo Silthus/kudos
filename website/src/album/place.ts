@@ -3,7 +3,7 @@ import type { Rarity } from "../crates/drops";
 import type { BookPageId, Route, SettingsSection } from "../route";
 
 export type Place =
-  | { kind: "team"; team: string | null }
+  | { kind: "team"; team: string }
   | { kind: "person"; person: string }
   | { kind: "profile" }
   | { kind: "hoggies"; hoggie: string | null; rarity?: Rarity }
@@ -14,12 +14,12 @@ export type Place =
   | { kind: "settings"; section?: SettingsSection }
   | { kind: "elsewhere" };
 
-export const home: Place = { kind: "team", team: null };
+export const home: Place = { kind: "profile" };
 
 export function placeOf(route: Route, hash: string, landingState: unknown): Place {
   switch (route.page) {
     case "home":
-      return route.panel === "inventory" ? { kind: "profile" } : home;
+      return home;
     case "book":
       return albumPlaceIn(hash, landingState) ?? spreadPlaceIn(hash) ?? bookPagePlaceOf(route.bookPage);
     case "activity":
@@ -99,7 +99,7 @@ function decoded(segment: string) {
 export function hrefOf(place: Place): string {
   switch (place.kind) {
     case "team":
-      return place.team === null ? "/" : `/book#teams/${encodeURIComponent(place.team)}`;
+      return `/book#teams/${encodeURIComponent(place.team)}`;
     case "person":
       return `/book#people/${encodeURIComponent(place.person)}`;
     case "profile":

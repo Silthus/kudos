@@ -349,16 +349,19 @@ button.al-seal[aria-disabled] {
   flex: 1 1 18rem;
 }
 
-.al-add-to-slack {
-  display: inline-flex;
-  align-items: center;
+.al-emoji-line .al-add-to-slack-button {
+  min-height: 2.25rem;
+  border: 0;
   border-radius: 0.625rem;
   background: var(--al-accent-ink);
   padding: 0.5rem 0.875rem;
   color: var(--al-count-ink);
   font-weight: 800;
-  text-decoration: none;
   white-space: nowrap;
+}
+
+.al-emoji-line .al-add-to-slack-said {
+  padding-left: 0;
 }
 
 .al-emoji-line code,

@@ -134,7 +134,7 @@ function TeamBoard({ boards, rows: { listed, unscored }, foldToggle, words, home
       {rows.length > 0 && (
         <ol className="al-board-rows" style={clearance}>
           {rows.map((row) => (
-            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pinnedRef={pinnedRef} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row)} />
+            <TeamRow key={row.team} row={row} pinned={row === pinned} pinnedRef={pinnedRef} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row)} />
           ))}
         </ol>
       )}
@@ -298,14 +298,14 @@ function PersonLink({ person, name }: { person: string; name: string }) {
   );
 }
 
-function TeamRow({ row, home, pinned, pinnedRef, pickButtons, picked, onPick }: { row: BoardTeam; home: boolean; pinned: boolean; pinnedRef: PinnedRef; pickButtons: Map<string, HTMLButtonElement>; picked: boolean; onPick: () => void }) {
+function TeamRow({ row, pinned, pinnedRef, pickButtons, picked, onPick }: { row: BoardTeam; pinned: boolean; pinnedRef: PinnedRef; pickButtons: Map<string, HTMLButtonElement>; picked: boolean; onPick: () => void }) {
   return (
     <li ref={pinned ? pinnedRef : undefined} className="al-board-row" data-you={row.mine ? "" : undefined} data-pinned={pinned ? "" : undefined} data-picked={picked ? "" : undefined}>
       <RankMark standing={row} />
       <TeamCrest art={row.art} size={32} name={row.name} />
       <span className="al-board-who">
         <span className="al-board-name">
-          <AppLink href={hrefOf({ kind: "team", team: home ? null : row.team })} className="al-board-link">
+          <AppLink href={hrefOf({ kind: "team", team: row.team })} className="al-board-link">
             {row.name}
           </AppLink>
           {row.mine && <span className="al-board-tag">Your team</span>}

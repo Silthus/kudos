@@ -34,7 +34,7 @@ export function teamEmojiOf(album: Album, team: string): AlbumEmoji | undefined 
   return album.emojis.find(({ id }) => id === `team:${team}`);
 }
 
-const howToUseIt = "react with it and put it in the kudos you give";
+export const howToUseIt = "react with it and put it in the kudos you give";
 
 export function teamEmojiUseWords(emoji: AlbumEmoji) {
   return emoji.inSlack ? `Use it in Slack: ${howToUseIt}.` : `It isn't in Slack yet: add it, then ${howToUseIt}.`;

@@ -143,7 +143,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(within(myRow).queryByRole("link")).not.toBeInTheDocument();
     expect(people.getByRole("link", { name: "Ines Okafor" })).toHaveAttribute("href", "/book#people/ines-okafor");
     const teams = await board("Teams");
-    expect(teams.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/");
+    expect(teams.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/book#teams/lanterns");
     expect(teams.getByRole("link", { name: "Kettle Works" })).toHaveAttribute("href", "/book#teams/kettle-works");
     expect(teams.getByRole("link", { name: "Lanterns" }).closest("li")).toHaveAttribute("data-you");
   });
@@ -199,11 +199,11 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect((await peopleList()).style.getPropertyValue("--al-pinned-height"), "no stuck row, no clearance").toBe("0px");
   });
 
-  it("links only the member's home team to the home page, and their other team to its own page", async () => {
+  it("links each of the member's teams to its own page", async () => {
     visit(boardsFixtures.twoTeams);
 
     const teams = await board("Teams");
-    expect(teams.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/");
+    expect(teams.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/book#teams/lanterns");
     expect(teams.getByRole("link", { name: "Tin Orchard" })).toHaveAttribute("href", "/book#teams/tin-orchard");
   });
 
@@ -446,7 +446,7 @@ describe("AL40: the Leaderboard reads getThoughtfulBoards only while it is open"
       asked.push(`${window.location.pathname}:${asking}`);
       return asking ? boardsFixtures.week : undefined;
     };
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/book#teams/lanterns");
     renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: read });
     await screen.findByRole("navigation", { name: "Album" });
 

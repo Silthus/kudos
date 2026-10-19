@@ -1,0 +1,494 @@
+.al-emoji-art {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
+
+.al-emoji-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.al-emoji-art[data-kind="hype"] {
+  border-radius: 999px;
+  background: conic-gradient(from 210deg, #f54e00, #f7a501, #f54e00);
+  padding: 3px;
+}
+
+.al-emoji-art[data-kind="hype"] img {
+  border-radius: 999px;
+  background: var(--card);
+  object-fit: cover;
+}
+
+.al-emoji-art[data-faceless] {
+  background: linear-gradient(135deg, #e25a12, #a33a0c);
+}
+
+.al-emoji-star {
+  position: absolute;
+  top: 2%;
+  right: 2%;
+  width: 30%;
+  height: 30%;
+  background: #ffd23f;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.al-emoji-initials {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
+.al-emoji-art[data-locked] {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.al-popover.al-emoji-popover {
+  position: absolute;
+  width: min(26rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: min(36rem, calc(100vh - var(--al-top-height) - 2rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+}
+
+.al-emoji-panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: 0.875rem 1rem 0.75rem;
+}
+
+.al-emoji-panel-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.al-emoji-panel-hint {
+  margin: 0;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+.al-emoji-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  padding: 0 0.625rem;
+  color: var(--al-quiet);
+}
+
+.al-emoji-search:focus-within {
+  outline: 2px solid var(--ring, var(--al-accent));
+  outline-offset: 1px;
+}
+
+.al-emoji-search svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.al-shell .al-emoji-search input:focus-visible {
+  outline: none;
+}
+
+.al-emoji-search input {
+  min-height: 2.25rem;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  outline: none;
+}
+
+.al-emoji-shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+}
+
+.al-emoji-shelf:last-child {
+  border-bottom: 0;
+}
+
+.al-emoji-shelf-title {
+  display: flex;
+  margin: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--al-quiet);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.al-emoji-shelf-title .al-quiet {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.al-emoji-none {
+  margin: 0;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+.al-emoji-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.al-emoji-row,
+.al-emoji-ready {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.25rem;
+}
+
+.al-emoji-row:has(.al-emoji-ready) {
+  padding: 0;
+}
+
+.al-emoji-ready {
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+  background: var(--al-accent-soft);
+}
+
+.al-emoji-ready:hover {
+  background: color-mix(in oklab, var(--al-accent) 22%, transparent);
+}
+
+.al-emoji-words {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.al-emoji-code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.al-emoji-row[data-locked] .al-emoji-code {
+  color: var(--al-quiet);
+}
+
+.al-emoji-why {
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.al-emoji-ready .al-emoji-why {
+  color: var(--al-accent-ink);
+  font-weight: 700;
+}
+
+.al-emoji-bar {
+  display: block;
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--al-track);
+  margin-top: 0.125rem;
+}
+
+.al-emoji-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--al-accent);
+}
+
+.al-emoji-in-slack {
+  flex: none;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--al-done) 16%, transparent);
+  padding: 0.125rem 0.5rem;
+  color: var(--al-done);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: help;
+}
+
+.dark .al-emoji-in-slack {
+  background: color-mix(in oklab, var(--al-done) 20%, transparent);
+}
+
+.al-emoji-row {
+  flex-wrap: wrap;
+}
+
+.al-add-to-slack {
+  display: contents;
+}
+
+.al-add-to-slack-button {
+  flex: none;
+}
+
+.al-add-to-slack-button,
+.al-emoji-more {
+  min-height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+  padding: 0 0.625rem;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.al-add-to-slack-button:hover,
+.al-emoji-more:hover {
+  background: var(--muted);
+}
+
+.al-add-to-slack-button[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.al-add-to-slack-said {
+  flex-basis: 100%;
+  padding-left: calc(36px + 0.75rem);
+  color: var(--al-quiet);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.al-add-to-slack-said:empty {
+  display: none;
+}
+
+.al-emoji-more {
+  align-self: flex-start;
+  border-color: transparent;
+  background: transparent;
+  padding: 0 0.25rem;
+  color: var(--al-accent-ink);
+}
+
+.al-emoji-moment {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: color-mix(in oklab, #000000 58%, transparent);
+  color: #ffffff;
+  animation: al-emoji-moment-in 260ms ease-out both;
+}
+
+.dark .al-emoji-moment {
+  background: color-mix(in oklab, #000000 78%, transparent);
+}
+
+.al-emoji-moment[data-flying] {
+  animation: al-emoji-moment-out 850ms ease-in both;
+}
+
+.al-emoji-moment-card {
+  display: flex;
+  max-width: min(28rem, calc(100vw - 2rem));
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  text-align: center;
+}
+
+.al-emoji-moment[data-flying] .al-emoji-moment-card > :not(.al-emoji-moment-picture) {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+
+.al-emoji-moment-kicker {
+  margin: 0;
+  border-radius: 999px;
+  background: #b83d0a;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.al-emoji-moment-kicker .al-quiet {
+  color: color-mix(in oklab, #ffffff 82%, transparent);
+  font-weight: 600;
+}
+
+.al-emoji-moment-picture {
+  position: relative;
+  display: grid;
+  width: 12rem;
+  height: 12rem;
+  place-items: center;
+  animation: al-emoji-pop 520ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.al-emoji-moment-rays {
+  position: absolute;
+  inset: -2rem;
+  border-radius: 999px;
+  background: repeating-conic-gradient(from 0deg, rgb(247 165 1 / 0.38) 0deg 9deg, transparent 9deg 22deg);
+  mask-image: radial-gradient(circle, #000000 30%, transparent 70%);
+  animation: al-emoji-rays 9s linear infinite;
+}
+
+.al-emoji-moment-name {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 1.5rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.al-emoji-moment-why,
+.al-emoji-moment-use {
+  margin: 0;
+  color: color-mix(in oklab, #ffffff 88%, transparent);
+}
+
+.al-emoji-moment-why {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.al-emoji-moment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.al-emoji-moment-take {
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.625rem;
+  background: #b83d0a;
+  padding: 0 1.25rem;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.al-emoji-moment-take:hover {
+  background: #9e3408;
+}
+
+.al-emoji-moment-skip {
+  min-height: 2.75rem;
+  border: 0;
+  background: transparent;
+  padding: 0 0.5rem;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.al-emoji-moment :focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+
+@keyframes al-emoji-moment-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes al-emoji-moment-out {
+  60% {
+    background: color-mix(in oklab, #000000 30%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes al-emoji-pop {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes al-emoji-rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .al-emoji-moment,
+  .al-emoji-moment-picture {
+    animation: al-emoji-moment-in 200ms ease-out both;
+  }
+
+  .al-emoji-moment-rays {
+    display: none;
+  }
+}
+
+@media (max-width: 63.999rem) {
+  .al-popover.al-emoji-popover {
+    width: auto;
+    max-height: calc(100dvh - var(--al-top-height) - 1.5rem);
+  }
+}
+
+@media (max-width: 30rem) {
+  .al-emoji-moment-picture {
+    width: 9rem;
+    height: 9rem;
+  }
+}

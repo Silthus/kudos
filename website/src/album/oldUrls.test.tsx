@@ -1,6 +1,6 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import type { GenericValidator } from "convex/values";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { pageValidator } from "../../../convex/website/link";
 import { routeList, signInEntry, urlOf, type Page } from "../../../convex/website/routes";
 import { activityHref } from "../route";
@@ -25,13 +25,16 @@ const site = "https://kudos-site.test";
 
 type Landing = { address: string; title: string; rarity?: Rarity };
 
-const home: Landing = { address: "/", title: "Lanterns" };
-const profile: Landing = { address: "/book#me", title: "Sam Example" };
+const home: Landing = { address: "/book#me", title: "Sam Example" };
 const milestones: Landing = { address: "/book#milestones", title: "Milestones" };
 const hoggies: Landing = { address: "/book#hoggies", title: "Hoggies" };
 const leaderboard: Landing = { address: "/leaderboard", title: "Who said thanks, and why" };
 const activity: Landing = { address: "/activity", title: "Weekly edition" };
 const settings: Landing = { address: "/settings", title: "Settings" };
+
+beforeAll(async () => {
+  await import("./AlbumApp");
+});
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -88,7 +91,7 @@ function withoutUndefinedFields(object: Record<string, unknown>) {
 function albumPageFor(page: Page): Landing {
   switch (page.page) {
     case "home":
-      return page.panel === "inventory" ? profile : home;
+      return home;
     case "leaderboard":
       return leaderboard;
     case "quests":
@@ -164,7 +167,7 @@ describe("AL44: every URL Slack sends lands in the album", () => {
 
   it("a landing keeps the one-time sign-in code until Convex Auth has redeemed it", async () => {
     visit("/sign-in/quests?quest=2&code=one-time");
-    await expectToLand({ ...home, address: "/?code=one-time" });
+    await expectToLand({ ...home, address: "/book?code=one-time#me" });
   });
 
   it.each(slackLinks)("%s", async (link, landing) => {
@@ -237,12 +240,13 @@ describe("AL44: how a landing changes the address", () => {
     window.history.replaceState(null, "", "/sign-in/settings?section=messages");
     let albumArrived = false;
     const { showVisitor } = renderAlbum(memberWithTheAlbum, (asking) => (asking && albumArrived ? albumFixtures.midway : undefined), { settings: fixedSettings(settingsFixtures.everything) });
-    await waitFor(() => expect(addressNow()).toBe("/settings?section=messages"));
+    await screen.findByRole("main");
 
     albumArrived = true;
     showVisitor({ ...memberWithTheAlbum });
 
     expect(await screen.findByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
+    await waitFor(() => expect(addressNow()).toBe("/settings?section=messages"));
     await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Messages" })).toHaveFocus());
   });
 
@@ -258,7 +262,7 @@ describe("MS22: the pageview seam reads each landing as the album page it shows"
     ["/book/earned", { page: "book", book_page: "overview", spread: "milestones" }],
     ["/?panel=inventory", { page: "book", book_page: "overview", spread: "me" }],
     ["/book/collection?crate=bought%3A2", { page: "book", book_page: "overview", spread: "hoggies" }],
-    ["/sign-in/skills?perk=spark", { page: "home" }],
+    ["/sign-in/skills?perk=spark", { page: "book", book_page: "overview", spread: "me" }],
     ["/leaderboard?period=month&crate=leaderboard", { page: "leaderboard" }],
   ])("%s", async (link, properties) => {
     visit(link);
