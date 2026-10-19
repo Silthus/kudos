@@ -772,6 +772,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     kind: "album",
     me: { name: "Juno Park", face: { kind: "initials", initials: "JP" }, person: "m-juno" },
     level: { level: 6, xp: 1210, startsAt: 1000, nextAt: 1500 },
+    teams: [],
     people: [],
     morePeople: false,
     packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z") }],
