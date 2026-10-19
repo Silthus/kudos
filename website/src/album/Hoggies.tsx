@@ -39,7 +39,7 @@ function HoggiesPage({ answer, place, address }: { answer: AlbumHoggies; place: 
       <Header answer={answer} />
       <RarestFinds answer={answer} onOpen={open} />
       <Collection answer={answer} shown={shown} filter={filter} rarity={place.rarity} onFilter={setFilter} onShowEveryRarity={address.showEveryRarity} onOpen={open} />
-      {chosen !== null && <HoggieEntry hoggie={chosen} answer={answer} steps={shown.includes(chosen) ? shown : answer.hoggies} onStep={(hoggie) => address.step(hoggie.hoggie)} onClose={address.close} />}
+      {chosen !== null && <HoggieEntry hoggie={chosen} answer={answer} steps={answer.hoggies.filter((hoggie) => hoggie === chosen || shown.includes(hoggie))} onStep={(hoggie) => address.step(hoggie.hoggie)} onClose={address.close} />}
     </article>
   );
 }

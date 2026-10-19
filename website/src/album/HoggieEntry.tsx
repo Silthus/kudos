@@ -97,12 +97,17 @@ function useFocusWhileOpen(hoggie: AlbumHoggie) {
   const shown = useRef(hoggie.hoggie);
   shown.current = hoggie.hoggie;
   useEffect(() => {
+    const opener = document.activeElement;
     closeButton.current?.focus({ preventScroll: true });
-    return () => plateOf(shown.current)?.focus({ preventScroll: true });
+    return () => (plateOf(shown.current) ?? stillShown(opener))?.focus({ preventScroll: true });
   }, []);
   return closeButton;
 }
 
 function plateOf(hoggie: string) {
   return [...document.querySelectorAll<HTMLElement>("[data-hoggie]")].find((plate) => plate.dataset.hoggie === hoggie);
+}
+
+function stillShown(element: Element | null) {
+  return element instanceof HTMLElement && element.isConnected ? element : undefined;
 }

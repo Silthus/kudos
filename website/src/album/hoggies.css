@@ -1,6 +1,23 @@
+.al-shell {
+  --al-ink-common: #626760;
+  --al-ink-uncommon: #1a7532;
+  --al-ink-rare: #0a65c0;
+  --al-ink-epic: #7b39eb;
+  --al-ink-legendary: #b43c0b;
+}
+
+.dark .al-shell {
+  --al-ink-common: var(--rarity-common);
+  --al-ink-uncommon: var(--rarity-uncommon);
+  --al-ink-rare: var(--rarity-rare);
+  --al-ink-epic: var(--rarity-epic);
+  --al-ink-legendary: var(--rarity-legendary);
+}
+
 .al-hoggies {
   --al-hoggies-warm: color-mix(in oklab, #f7a501 10%, var(--card));
   --al-rarity: var(--al-quiet);
+  --al-rarity-ink: var(--al-quiet);
   max-width: 75rem;
   gap: 1.75rem;
 }
@@ -47,7 +64,7 @@
 }
 
 .al-hoggies-rarity {
-  color: var(--al-rarity);
+  color: var(--al-rarity-ink);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -300,7 +317,7 @@ button.al-hoggies-note .al-hoggie-art {
 }
 
 .al-hoggies-strip-words strong {
-  color: var(--al-rarity);
+  color: var(--al-rarity-ink);
 }
 
 .al-hoggies-strip-words span {
@@ -359,7 +376,7 @@ button.al-hoggies-note .al-hoggie-art {
 }
 
 .al-hoggies-group-title {
-  color: var(--al-rarity);
+  color: var(--al-rarity-ink);
   font-size: 1.125rem;
   font-weight: 800;
   outline: none;
@@ -562,7 +579,7 @@ button.al-hoggies-note .al-hoggie-art {
   border-radius: 999px;
   background: color-mix(in oklab, var(--al-rarity) 14%, var(--card));
   padding: 0.125rem 0.625rem;
-  color: var(--al-rarity);
+  color: var(--al-rarity-ink);
   font-size: 0.75rem;
   font-weight: 800;
 }

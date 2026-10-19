@@ -1,5 +1,6 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { contrast } from "../test/themeContrast";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
@@ -15,9 +16,15 @@ type Report = { rarity: string; under: boolean };
 
 function watchTheRarityGroups() {
   const watched: { target: Element; callback: IntersectionObserverCallback; watching: boolean }[] = [];
+  const lines: string[] = [];
   window.IntersectionObserver = class {
     private readonly mine: typeof watched = [];
-    constructor(private readonly callback: IntersectionObserverCallback) {}
+    constructor(
+      private readonly callback: IntersectionObserverCallback,
+      options?: IntersectionObserverInit,
+    ) {
+      lines.push(options?.rootMargin ?? "");
+    }
     observe(target: Element) {
       const watch = { target, callback: this.callback, watching: true };
       this.mine.push(watch);
@@ -28,6 +35,7 @@ function watchTheRarityGroups() {
     }
   } as unknown as typeof IntersectionObserver;
   return {
+    lines,
     report(...reports: Report[]) {
       act(() => {
         for (const { rarity, under } of reports) {
@@ -204,6 +212,25 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
     expect(screen.getByRole("heading", { level: 2, name: "The collection" })).toHaveFocus();
   });
 
+  it("the rarity under the bar is read below the sticky bar, and from the top of the screen once a narrower screen stops the bar sticking", async () => {
+    const groups = watchTheRarityGroups();
+    visit("/book#hoggies");
+
+    const bar = (await collectionBar()).getByRole("heading", { level: 2, name: "The collection" }).closest<HTMLElement>(".al-hoggies-bar")!;
+    expect(groups.lines.at(-1)).toBe("-0px 0px 0px 0px");
+
+    bar.style.position = "sticky";
+    bar.style.top = "56px";
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(groups.lines.at(-1)).toBe("-56px 0px 0px 0px");
+
+    bar.style.position = "static";
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(groups.lines.at(-1)).toBe("-0px 0px 0px 0px");
+    groups.report({ rarity: "Rare", under: true });
+    expect(screen.getByRole("button", { name: "Rare: 10 of 30 found. Jump there" })).toHaveAttribute("aria-current", "location");
+  });
+
   it("waits on its own read and shows the album's loading page meanwhile", async () => {
     visit("/book#hoggies", () => undefined);
 
@@ -277,6 +304,28 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
     expect(shown.getByRole("button", { name: "Close" })).toHaveFocus();
   });
 
+  it("a hoggie opened from the shelf under a rarity it isn't in steps through the plates shown, and closing returns focus to the shelf", async () => {
+    const { user } = visit("/book#hoggies/epic");
+
+    const shelf = within(await screen.findByRole("region", { name: "Rarest finds" }, { timeout: arrival }));
+    const wizard = shelf.getByRole("button", { name: "Wizard, Legendary, one copy" });
+    await user.click(wizard);
+    expect((await entry()).getByText("16 of 16")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(wizard).toHaveFocus();
+
+    await user.click(wizard);
+    const shown = await entry();
+    await user.keyboard("{ArrowLeft}");
+    expect(shown.getByText("15 of 15")).toBeInTheDocument();
+    expect(shown.getByText("Epic")).toBeInTheDocument();
+    const steppedTo = addressNow().replace("/book#hoggies/", "");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(document.activeElement).toHaveAttribute("data-hoggie", steppedTo);
+  });
+
   it("a hidden hoggie's detail keeps its name secret and tells how to find one", async () => {
     visit("/book#hoggies/ball");
 
@@ -319,4 +368,13 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
     expect(await screen.findByRole("heading", { level: 1, name: "Hoggies" }, { timeout: arrival })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+});
+
+describe("AL55: the hoggie page's rarity words meet 4.5:1 on its surfaces in both themes", () => {
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = ["common", "uncommon", "rare", "epic", "legendary"].flatMap((rarity) => ["card", "background", "muted"].map((surface) => ({ rarity, surface, ratio: contrast(mode, `al-ink-${rarity}`, surface) })));
+      expect(measured.filter(({ ratio }) => ratio < 4.5)).toEqual([]);
+    });
+  }
 });

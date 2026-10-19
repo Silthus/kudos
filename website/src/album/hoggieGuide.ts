@@ -29,7 +29,7 @@ export function groupIdOf(rarity: Rarity) {
 }
 
 export function rarityTintOf(rarity: Rarity) {
-  return { "--al-rarity": `var(--rarity-${rarity})` } as CSSProperties;
+  return { "--al-rarity": `var(--rarity-${rarity})`, "--al-rarity-ink": `var(--al-ink-${rarity})` } as CSSProperties;
 }
 
 export function numberOf(hoggie: AlbumHoggie, answer: AlbumHoggies) {
