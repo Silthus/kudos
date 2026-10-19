@@ -245,6 +245,16 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
     expect(blocks.at(-1)).toEqual({ type: "context", elements: [{ type: "mrkdwn", text: "*Team 10* ×1 · *Team 11* ×1" }] });
   });
 
+  test("sixty teams: the first ten with their pictures, the next forty with their counts, the rest counted", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    await teamStickersUnlocked(alice, 60);
+
+    await mondayPostSent();
+
+    const listed = Array.from({ length: 40 }, (_, index) => `*Team ${index + 10}* ×1`).join(" · ");
+    expect(mondayPost()?.blocks?.at(-1)).toEqual({ type: "context", elements: [{ type: "mrkdwn", text: `${listed} and 10 more teams` }] });
+  });
+
   test("a kudos that starts with many blank lines still quotes its words", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     messages += 1;

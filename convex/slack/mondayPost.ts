@@ -10,6 +10,7 @@ import { attemptCall, isRefusedForItsBlocks, slackTextOf, type Attempt } from ".
 
 const attemptsAtMost = 3;
 const teamRowsShown = 10;
+const otherTeamsNamed = 40;
 const refusedInChannel = new Set(["no_permission", "restricted_action", "restricted_action_read_only_channel", "restricted_action_thread_only_channel", "ekm_access_denied"]);
 
 export const postMondayPost = observedAction({
@@ -66,7 +67,10 @@ function teamBlockOf(row: TeamRow) {
 }
 
 function otherTeamsOf(rows: TeamRow[]) {
-  return rows.length === 0 ? [] : [{ type: "context", elements: [mrkdwn(rows.map(teamWordsOf).join(" · "))] }];
+  if (rows.length === 0) return [];
+  const named = rows.slice(0, otherTeamsNamed).map(teamWordsOf).join(" · ");
+  const more = rows.length - otherTeamsNamed;
+  return [{ type: "context", elements: [mrkdwn(more > 0 ? `${named} and ${more} more ${more === 1 ? "team" : "teams"}` : named)] }];
 }
 
 function teamWordsOf({ team, count, emoji }: TeamRow) {

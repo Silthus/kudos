@@ -1,3 +1,4 @@
+(Round 1 red run. The test named "thirty-six emojis…" here was renamed "thirty-seven emojis…" before green: thirty thoughtful awards also reach the thoughtful milestone's silver tier, so the expected count became "and 12 more".)
      × thirty-six emojis show their first nine pictures and their first twenty-five names, the rest counted 1422ms
      × a member who jumps past level 5 in one award earns the level-5 emoji, recorded only at the level they reached 81ms
      × a recap whose pictures Slack refuses goes once more without them, its emoji line as words 167ms

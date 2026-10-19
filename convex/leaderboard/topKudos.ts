@@ -15,10 +15,10 @@ export const kudosQuoted = 3;
 export const mostKudosRanked = 500;
 export const mostKudosChecked = 200;
 export const mostTeamStickersRead = 500;
-export const wordsQuotedAtMost = 200;
+export const wordedSegmentsQuotedAtMost = 200;
 export const recipientsNamed = 3;
 
-const mentionLookupsAtMost = 3 * wordsQuotedAtMost;
+const mentionLookupsAtMost = 3 * wordedSegmentsQuotedAtMost;
 
 export type QuotedKudos = { giver: string; recipients: string[]; moreRecipients: number; words: Segment[]; permalink: string | null };
 
@@ -65,7 +65,7 @@ function quotedSegmentsOf(segments: WordSegment[]): WordSegment[] {
   const quoted: WordSegment[] = [];
   let worded = 0;
   for (const segment of segments) {
-    if (worded === wordsQuotedAtMost) break;
+    if (worded === wordedSegmentsQuotedAtMost) break;
     quoted.push(segment);
     if (!isBlank(segment)) worded += 1;
   }

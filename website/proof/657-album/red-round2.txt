@@ -1,0 +1,4 @@
+     × sixty teams: the first ten with their pictures, the next forty with their counts, the rest counted 359ms
+AssertionError: expected { type: 'context', …(1) } to deeply equal { type: 'context', …(1) }
+-       "text": "*Team 10* ×1 · *Team 11* ×1 · *Team 12* ×1 · *Team 13* ×1 · *Team 14* ×1 · *Team 15* ×1 · *Team 16* ×1 · *Team 17* ×1 · *Team 18* ×1 · *Team 19* ×1 · *Team 20* ×1
++       "text": "*Team 10* ×1 · *Team 11* ×1 · *Team 12* ×1 · *Team 13* ×1 · *Team 14* ×1 · *Team 15* ×1 · *Team 16* ×1 · *Team 17* ×1 · *Team 18* ×1 · *Team 19* ×1 · *Team 20* ×1
