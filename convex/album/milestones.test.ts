@@ -103,21 +103,22 @@ describe("AL21: five milestones count album facts and record each tier once with
     });
   });
 
-  test("a hoggie found outside the album records Hoggie hunter's tier at its drop, with no album write", async () => {
+  test("hoggies found outside the album record Hoggie hunter's tier dated at the tenth distinct find, however late the drops' subscribers run", async () => {
     const asShopper = await aCrateShopper();
-    let found = 0;
-    let openedAt = 0;
+    const found = new Set<string>();
+    let tenthFoundAt = 0;
 
-    for (let next = 1; found < 10; next += 1) {
+    for (let next = 1; found.size < 10; next += 1) {
       vi.setSystemTime(Date.now() + minuteMs);
       await asShopper.mutation(api.website.commands.buyCrate, { next });
-      openedAt = Date.now();
-      await asShopper.mutation(api.website.commands.openCrate, { crate: `bought:${next}` });
-      await settle(t);
-      found = (await countsOf(asShopper)).hoggies!;
+      const opened = await asShopper.mutation(api.website.commands.openCrate, { crate: `bought:${next}` });
+      if (opened.kind === "opened" && opened.drop !== null) found.add(opened.drop.hoggie);
+      if (found.size === 10 && tenthFoundAt === 0) tenthFoundAt = Date.now();
     }
+    vi.setSystemTime(Date.now() + 2 * minuteMs);
+    await settle(t);
 
-    expect(await earnedOf(asShopper)).toMatchObject({ hoggies: { bronze: openedAt }, people: {}, thoughtful: {} });
+    expect(await earnedOf(asShopper)).toMatchObject({ hoggies: { bronze: tenthFoundAt }, people: {}, thoughtful: {} });
   });
 
   test("a company sync that brings a held person's team records Across the company's tier, with no album write", async () => {

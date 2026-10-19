@@ -84,24 +84,33 @@ export function recordMilestonesOf(ctx: MutationCtx, owner: PageOwner, at: numbe
 }
 
 async function recordTiersOf(ctx: MutationCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>, at: number): Promise<void> {
-  const counts = await countsOf(ctx, member, pagesOf);
+  const { counts, hoggieFirstFinds } = await factsOf(ctx, member, pagesOf);
   const earned = await earnedTiersOf(ctx, member);
   for (const { id, steps } of milestoneCatalogue.milestones) {
-    for (const { tier } of steps.filter((step) => counts[id] >= step.at && !earned.has(tierKey(id, step.tier)))) {
-      await ctx.db.insert("milestoneTiers", { member, milestone: id, tier, at, catalogue: milestoneCatalogue.version });
+    for (const step of steps.filter(({ at: needed, tier }) => counts[id] >= needed && !earned.has(tierKey(id, tier)))) {
+      const reachedAt = id === "hoggies" ? (hoggieFirstFinds[step.at - 1] ?? at) : at;
+      await ctx.db.insert("milestoneTiers", { member, milestone: id, tier: step.tier, at: reachedAt, catalogue: milestoneCatalogue.version });
     }
   }
 }
 
 async function countsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>): Promise<Counts> {
+  return (await factsOf(ctx, member, pagesOf)).counts;
+}
+
+async function factsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>): Promise<{ counts: Counts; hoggieFirstFinds: number[] }> {
   const people = (await peopleHeldBy(ctx, member)).size;
   const pages = people === 0 ? [] : await pagesOf();
+  const hoggieFirstFinds = (await collectionOf(ctx, member, { crests: false })).hoggies.flatMap(({ count, firstAt }) => (count > 0 && firstAt !== null ? [firstAt] : [])).toSorted((one, other) => one - other);
   return {
-    people,
-    teams: pages.filter(({ state }) => state === "unlocked").length,
-    reach: pages.filter(({ held }) => held > 0).length,
-    hoggies: (await collectionOf(ctx, member, { crests: false })).owned,
-    thoughtful: await thoughtfulAwardsGivenBy(ctx, member),
+    counts: {
+      people,
+      teams: pages.filter(({ state }) => state === "unlocked").length,
+      reach: pages.filter(({ held }) => held > 0).length,
+      hoggies: hoggieFirstFinds.length,
+      thoughtful: await thoughtfulAwardsGivenBy(ctx, member),
+    },
+    hoggieFirstFinds,
   };
 }
 
