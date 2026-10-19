@@ -1,0 +1,6 @@
+The real companyProfiles/sync:syncCompanyProfiles, run by hand on the sandbox at 06:04 UTC on 2026-10-19, on the head deployed at 06:02:
+- keepCompanyFacesIn ran in every workspace and succeeded
+- each run published companyMatchesKept, and recordMilestonesAfterTheMatches ran once per workspace and succeeded
+- every recordMilestonesOfStickerHolders page they scheduled succeeded; none failed or stayed pending
+- milestoneTiers before and after: no row changed, no (member, milestone, tier) stored twice
+(job counts withheld)

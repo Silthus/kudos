@@ -1,3 +1,4 @@
+import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
@@ -23,7 +24,7 @@ export type AlbumEmoji = { id: string; kind: EarnedEmojiKind; name: string; pict
 
 export type MilestoneTierId = "bronze" | "silver" | "gold" | "diamond";
 
-export type AlbumMilestone = { id: string; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null }[] };
+export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null }[] };
 
 export type GettingStarted = { hugged: boolean; thoughtful: boolean; opened: boolean; completed: boolean };
 

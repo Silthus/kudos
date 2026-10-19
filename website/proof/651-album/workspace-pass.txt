@@ -1,0 +1,6 @@
+recordMilestonesInWorkspace on the sandbox workspace, run by hand at 05:24 UTC on 2026-10-19 (its history was done before this branch was deployed):
+- every page of the pass succeeded; none failed or stayed pending
+- the pass added bronze tiers of Kind words, Faces in the album and Full pages for the members whose history, week tallies and team stickers reach them
+- no member holds two rows for one milestone and tier
+- the proof giver's two tiers are unchanged, with their original dates
+(counts withheld)

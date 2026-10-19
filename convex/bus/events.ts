@@ -269,6 +269,10 @@ export const companyTeamsReplacedEventValidator = v.object({ type: v.literal("co
 
 export type CompanyTeamsReplacedEvent = Infer<typeof companyTeamsReplacedEventValidator>;
 
+export const companyMatchesKeptEventValidator = v.object({ type: v.literal("companyMatchesKept"), workspace: v.string(), at: v.number() });
+
+export type CompanyMatchesKeptEvent = Infer<typeof companyMatchesKeptEventValidator>;
+
 export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
 
 export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
@@ -314,7 +318,8 @@ export type DomainEvent =
   | StickersCollectedEvent
   | ThoughtfulPacksGrantedEvent
   | StickerPutInEvent
-  | CompanyTeamsReplacedEvent;
+  | CompanyTeamsReplacedEvent
+  | CompanyMatchesKeptEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

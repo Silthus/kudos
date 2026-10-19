@@ -3,6 +3,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import { putDropIn } from "../hoggies/drops";
 import type { MemberId } from "../workspace/directory";
+import { recordMilestonesOf } from "./milestones";
 import { crateKeyOf, shownTrayItem, type TrayItem } from "./opening";
 import { recordPackSticker } from "./stickers";
 import { tallyHoggieFound, tallyNewFace } from "./tallies";
@@ -20,6 +21,7 @@ export async function putItemIn(ctx: MutationCtx, owner: PageOwner, item: Id<"tr
   const stored = await ctx.db.get(item);
   if (stored?.member !== owner.member || stored.putInAt !== undefined) return null;
   await place(ctx, owner.workspace, stored, at);
+  await recordMilestonesOf(ctx, owner, at);
   return shownTrayItem(stored);
 }
 
@@ -27,6 +29,7 @@ export async function putEveryItemIn(ctx: MutationCtx, owner: PageOwner, at: num
   const inPutInOrder = await putInOrderOf(ctx, owner);
   const placing = inPutInOrder.slice(0, mostPutInACall);
   for (const item of placing) await place(ctx, owner.workspace, item, at);
+  if (placing.length > 0) await recordMilestonesOf(ctx, owner, at);
   return { items: placing.map(shownTrayItem), more: inPutInOrder.length > placing.length };
 }
 

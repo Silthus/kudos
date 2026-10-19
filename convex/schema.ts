@@ -34,6 +34,7 @@ import {
   emojiNameValidator,
   grantRecordValidator,
   grantToldValidator,
+  milestoneTierRecordValidator,
   pairTallyValidator,
   talliedAwardValidator,
   talliedHugValidator,
@@ -547,6 +548,8 @@ export default defineSchema({
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 
   teamStickers: defineTable(teamStickerValidator).index("by_member_team", ["member", "team"]),
+
+  milestoneTiers: defineTable(milestoneTierRecordValidator).index("by_member_milestone_tier", ["member", "milestone", "tier"]),
 
   emojiNames: defineTable(emojiNameValidator)
     .index("by_workspace_emoji", ["workspace", "emoji", "person"])

@@ -95,7 +95,7 @@ const everyOtherFlag = [
   "book-spread",
 ];
 const companyTables = ["companyProfiles", "companyTeams", "companyProfileLinks", "companyFaces"] as const;
-const companyJobs = ["companyProfiles/storedFaces:keepCompanyFacesIn"];
+const companyJobs = ["companyProfiles/storedFaces:keepCompanyFacesIn", "album/milestones:recordMilestonesAfterTheMatches", "album/milestones:recordMilestonesOfStickerHolders"];
 const exposureDelivery = ["analytics/drain:drain", "analytics/drain:recover", "analytics/person:identifyNewPeople"];
 const deliveringMore = ["analytics/drain:drain", "analytics/drain:recover"];
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };

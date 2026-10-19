@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { albumShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
+import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
@@ -35,6 +36,7 @@ export type AlbumAnswer = {
   morePacks: boolean;
   tray: TrayItem[];
   moreTray: boolean;
+  milestones: MilestoneAnswer[];
 };
 
 export const mostPeopleShown = 500;
@@ -80,11 +82,11 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
   const { people, morePeople } = await peopleHeldBy(ctx, me);
   const { tray, more: moreTray } = await trayOf(ctx, me.member);
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams: await teamsOf(ctx, me), people, morePeople, packs, morePacks, tray, moreTray };
+  const pages = await teamPagesOf(ctx, me);
+  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams: await teamsOf(ctx, pages), people, morePeople, packs, morePacks, tray, moreTray, milestones: await milestonesOf(ctx, me, pages) };
 });
 
-async function teamsOf(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumTeam[]> {
-  const pages = await teamPagesOf(ctx, me);
+async function teamsOf(ctx: QueryCtx, pages: TeamPage[]): Promise<AlbumTeam[]> {
   const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));
   return pages.map(({ unmatched, ...page }) => ({ ...page, unmatched: unmatched.flatMap((profile) => named.get(profile) ?? []) }));
 }

@@ -73,4 +73,3 @@ function workspaceRow(ctx: QueryCtx, workspace: string) {
 export function defaultKudosEmoji() {
   return emojiNameOf(process.env.KUDOS_EMOJI ?? "") || fallbackKudosEmoji;
 }
-
