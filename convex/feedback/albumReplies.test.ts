@@ -125,7 +125,7 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     expect(hypeLinesOf(threadRepliesTo(nextWeek))).toEqual([]);
   });
 
-  test("AL29 AL30: a hype emoji Slack has is named beside its picture, one Slack doesn't have only shows its picture, falling back to the hype emblem without a face", async () => {
+  test("AL29 AL30: a hype emoji Slack has shows Slack's picture with its name, one Slack doesn't have only shows its picture, falling back to the hype emblem without a face", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     slack.withCustomEmoji("bob-okonkwo-hype", "https://emoji.slack-edge.com/T1/bob-okonkwo-hype/1.png");
     await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
@@ -134,7 +134,7 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     const ts = await thanks(alice, why, bob, dana);
 
     expect(contextsOf(threadRepliesTo(ts))).toEqual([
-      [{ type: "image", image_url: bobsStoredFace, alt_text: "Bob's hype emoji" }, { type: "mrkdwn", text: "Bob's hype emoji is unlocked: :bob-okonkwo-hype:" }],
+      [{ type: "image", image_url: "https://emoji.slack-edge.com/T1/bob-okonkwo-hype/1.png", alt_text: "Bob's hype emoji" }, { type: "mrkdwn", text: "Bob's hype emoji is unlocked: :bob-okonkwo-hype:" }],
       [{ type: "image", image_url: `${site}/emoji/hype.png`, alt_text: "Dana's hype emoji" }, { type: "mrkdwn", text: "Dana's hype emoji is unlocked" }],
       [{ type: "mrkdwn", text: "+20 XP" }],
     ]);

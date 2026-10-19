@@ -56,7 +56,8 @@ export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }
 export async function hypeEmojiOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<HypeEmoji | null> {
   const name = await emojiNameOf(ctx, workspace, `hype:${person}`);
   if (name === null) return null;
-  return { name, picture: await hypePictureOf(ctx, workspace, person), inSlack: await isInSlack(ctx, workspace, name) };
+  const slackPicture = await customEmojiImageOf(ctx, workspace, name);
+  return { name, picture: slackPicture ?? (await hypePictureOf(ctx, workspace, person)), inSlack: slackPicture !== undefined };
 }
 
 export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: string[], at: number): Promise<string[] | null> {
@@ -74,10 +75,6 @@ export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: 
 async function emojiOf(ctx: QueryCtx, workspace: string, { id, kind, picture, earned, progress }: Cause, name: string, seen: Set<string>): Promise<EarnedEmoji> {
   const slackPicture = await customEmojiImageOf(ctx, workspace, name);
   return { id, kind, name, picture: slackPicture ?? picture, earned, seen: earned && seen.has(id), inSlack: slackPicture !== undefined, progress: earned ? null : progress };
-}
-
-async function isInSlack(ctx: QueryCtx, workspace: string, name: string) {
-  return (await customEmojiImageOf(ctx, workspace, name)) !== undefined;
 }
 
 function teamCausesOf(pages: TeamPage[]): Cause[] {
