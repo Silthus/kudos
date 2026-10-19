@@ -836,7 +836,11 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const people = within(await screen.findByRole("region", { name: "People" }));
     expect(people.getByText("Ines Okafor leads with 4.")).toBeInTheDocument();
     expect(people.getByText("Juno Park")).toBeInTheDocument();
-    expect([...subscriptions].filter(({ query }) => query === "website/album:getThoughtfulBoards")).toEqual([{ query: "website/album:getThoughtfulBoards", args: {} }]);
+    expect([...subscriptions].filter(({ query }) => query === "website/album:getThoughtfulBoards")).toEqual([{ query: "website/album:getThoughtfulBoards", args: { period: "week" } }]);
+
+    await user.click(within(screen.getByRole("group", { name: "Period" })).getByRole("button", { name: "Last week" }));
+
+    expect([...subscriptions].filter(({ query }) => query === "website/album:getThoughtfulBoards"), "picking a period moves the one subscription to it").toEqual([{ query: "website/album:getThoughtfulBoards", args: { period: "last-week" } }]);
   });
 
   it("AL48: /activity reads this week's issue from one getAlbumWeek subscription with no week, then the picked week's, which no other album page opens", async () => {

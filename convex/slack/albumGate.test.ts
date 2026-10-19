@@ -79,7 +79,7 @@ const minuteMs = 60_000;
 const siteUrl = "https://kudos-site.test";
 const album = "album";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "sticker-book", "team-pages", "team-spirit"];
-const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulTallies", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "trayItems", "milestoneTiers"] as const;
+const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulBoardTallies", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "trayItems", "milestoneTiers"] as const;
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -138,7 +138,14 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(walk.albumRows.emojiNames.length).toBeGreaterThan(0);
     expect(withoutTheAlbum.albumRows.pairTallies).toEqual([]);
     expect(walk.albumRows.pairTallies.length).toBeGreaterThan(0);
-    expect(walk.albumRows.thoughtfulTallies).toEqual([expect.objectContaining({ awards: 2 }), expect.objectContaining({ awards: 1 })]);
+    expect((walk.albumRows.thoughtfulBoardTallies as Array<{ period: string; awards: number }>).map(({ period, awards }) => ({ period: period.split(":")[0], awards })), "each giver's week, month and all-time tallies").toEqual([
+      { period: "week", awards: 2 },
+      { period: "month", awards: 2 },
+      { period: "all", awards: 2 },
+      { period: "week", awards: 1 },
+      { period: "month", awards: 1 },
+      { period: "all", awards: 1 },
+    ]);
     expect(withoutTheAlbum.albumRows.milestoneTiers).toEqual([]);
     expect(walk.albumRows.milestoneTiers, "each thoughtful giver's Kind words bronze").toEqual([expect.objectContaining({ milestone: "thoughtful", tier: "bronze" }), expect.objectContaining({ milestone: "thoughtful", tier: "bronze" })]);
     expect(Object.values(walk.boards).every((answer) => !(answer as object).hasOwnProperty("people"))).toBe(true);

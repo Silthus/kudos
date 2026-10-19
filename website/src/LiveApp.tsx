@@ -13,7 +13,7 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
-import type { AlbumShown, BoardsShown, HoggiesShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
+import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
 import { albumOf } from "./album/liveAlbum";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
@@ -65,7 +65,7 @@ function LiveApp() {
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
-      useThoughtfulBoards={(asking) => useLiveThoughtfulBoards(asking, unreachable)}
+      useThoughtfulBoards={(asking, period) => useLiveThoughtfulBoards(asking, period, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
       useAlbumProfile={(asking) => useLiveAlbumProfile(asking, unreachable)}
@@ -129,8 +129,8 @@ function useLiveAlbum(asking: boolean, unreachable: boolean): AlbumShown | undef
   return albumOf(album);
 }
 
-function useLiveThoughtfulBoards(asking: boolean, unreachable: boolean): BoardsShown | undefined {
-  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.album.getThoughtfulBoards, args: {} } } : {}), [asking]);
+function useLiveThoughtfulBoards(asking: boolean, period: BoardPeriod, unreachable: boolean): BoardsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.album.getThoughtfulBoards, args: { period } } } : {}), [asking, period]);
   const { boards } = useQueries(request);
   if (boards instanceof Error) return { kind: "broken" };
   if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;

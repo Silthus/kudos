@@ -42,6 +42,7 @@ import {
   teamStickerValidator,
   thoughtfulPackValidator,
   thoughtfulTallyValidator,
+  thoughtfulBoardTallyValidator,
   trayItemValidator,
   weekPersonValidator,
   weekTallyValidator,
@@ -545,6 +546,8 @@ export default defineSchema({
   grantsTold: defineTable(grantToldValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]),
 
   thoughtfulTallies: defineTable(thoughtfulTallyValidator).index("by_workspace_week_giver", ["workspace", "week", "giver"]),
+
+  thoughtfulBoardTallies: defineTable(thoughtfulBoardTallyValidator).index("by_workspace_period_giver", ["workspace", "period", "giver"]),
 
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 

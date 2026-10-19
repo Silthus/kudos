@@ -804,6 +804,61 @@
   max-width: 76rem;
 }
 
+.al-leaderboard-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.al-period-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 3px;
+}
+
+.al-period-switch button {
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  padding: 0.25rem 0.875rem;
+  color: var(--al-quiet);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.al-period-switch button:hover {
+  background: var(--fill-hover, var(--muted));
+  color: var(--foreground);
+}
+
+.al-period-switch button[aria-pressed="true"] {
+  background: var(--foreground);
+  color: var(--card);
+}
+
+.al-boards[aria-busy] {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .al-boards {
+    transition: opacity 150ms ease;
+  }
+}
+
+.al-board-offer {
+  font-size: 0.8125rem;
+}
+
 .al-boards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

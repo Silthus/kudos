@@ -1,13 +1,17 @@
+import { v, type Infer } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { KudosGivenEvent } from "../bus/events";
 import type { CompanyFace } from "../companyProfiles/faces";
 import { storedCompanyMatchOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
-import { allowanceDay } from "../engine/allowance";
+import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
 import { ranking } from "../leaderboard/board";
+import { keyOf, periods, wholeWeekBefore, type PeriodKey } from "../leaderboard/periods";
 import { isOnTheBoards } from "../leaderboard/visibility";
-import { givingWeekOf } from "../progression/progress";
 import { currentNameAndPictureOf, timeZoneOf, type MemberId } from "../workspace/directory";
+
+export const boardPeriodValidator = v.union(v.literal("week"), v.literal("last-week"), v.literal("month"), v.literal("all"));
+
+export type BoardPeriod = Infer<typeof boardPeriodValidator>;
 
 export type Standing = { rank: number; tied: boolean } | { rank: null; tied: false };
 
@@ -24,23 +28,28 @@ export type ThoughtfulBoards = {
 
 export type BoardViewer = { workspace: string; member: MemberId };
 
+export type BoardsAsked = { whoGave: string | null; period: BoardPeriod };
+
+export type ThoughtfulAward = { workspace: string; giver: MemberId; day: DayKey };
+
 type Profile = number | null;
 
 type Giver = { person: BoardPerson; profile: Profile };
 
 const unranked = { rank: null, tied: false } as const;
 
-export async function countThoughtfulAwards(ctx: MutationCtx, { workspace, giver, day }: KudosGivenEvent, awards: number) {
-  if (awards === 0) return;
-  const week = givingWeekOf(day);
-  const tally = await tallyOf(ctx, workspace, week, giver);
-  if (tally === null) await ctx.db.insert("thoughtfulTallies", { workspace, week, giver, awards });
-  else await ctx.db.patch(tally._id, { awards: tally.awards + awards });
+export async function countOnTheBoards(ctx: MutationCtx, { workspace, giver, day }: ThoughtfulAward) {
+  for (const period of periods) {
+    const key = keyOf(period, day);
+    const tally = await tallyOf(ctx, workspace, key, giver);
+    if (tally === null) await ctx.db.insert("thoughtfulBoardTallies", { workspace, period: key, giver, awards: 1 });
+    else await ctx.db.patch(tally._id, { awards: tally.awards + 1 });
+  }
 }
 
-export async function thoughtfulBoardsOf(ctx: QueryCtx, viewer: BoardViewer, whoGave: string | null): Promise<ThoughtfulBoards> {
+export async function thoughtfulBoardsOf(ctx: QueryCtx, viewer: BoardViewer, { whoGave, period }: BoardsAsked): Promise<ThoughtfulBoards> {
   const companyTeams = await companyTeamsOf(ctx);
-  const givers = await giversThisWeekOf(ctx, viewer, companyTeams);
+  const givers = await giversOf(ctx, viewer, period, companyTeams);
   const people = placed(givers.map(({ person }) => person));
   const totals = teamTotalsOf(companyTeams, givers, await profileOf(ctx, viewer));
   const teams = placed(totals);
@@ -53,14 +62,18 @@ export async function thoughtfulBoardsOf(ctx: QueryCtx, viewer: BoardViewer, who
   };
 }
 
-async function giversThisWeekOf(ctx: QueryCtx, viewer: BoardViewer, companyTeams: CompanyTeam[]): Promise<Giver[]> {
-  const week = givingWeekOf(allowanceDay(Date.now(), (await timeZoneOf(ctx, viewer.member)) ?? undefined));
+async function giversOf(ctx: QueryCtx, viewer: BoardViewer, period: BoardPeriod, companyTeams: CompanyTeam[]): Promise<Giver[]> {
+  const today = allowanceDay(Date.now(), (await timeZoneOf(ctx, viewer.member)) ?? undefined);
   const tallies = await ctx.db
-    .query("thoughtfulTallies")
-    .withIndex("by_workspace_week_giver", (q) => q.eq("workspace", viewer.workspace).eq("week", week))
+    .query("thoughtfulBoardTallies")
+    .withIndex("by_workspace_period_giver", (q) => q.eq("workspace", viewer.workspace).eq("period", periodKeyOf(period, today)))
     .collect();
   const givers = await Promise.all(tallies.map(async ({ giver, awards }) => ((await isOnTheBoards(ctx, giver)) ? giverOf(ctx, viewer, giver, awards, companyTeams) : null)));
   return givers.filter((giver) => giver !== null);
+}
+
+function periodKeyOf(period: BoardPeriod, today: DayKey): PeriodKey {
+  return period === "last-week" ? wholeWeekBefore(weekOf(today).monday).now : keyOf(period, today);
 }
 
 async function giverOf(ctx: QueryCtx, viewer: BoardViewer, member: MemberId, thoughtful: number, companyTeams: CompanyTeam[]): Promise<Giver | null> {
@@ -103,9 +116,9 @@ async function profileOf(ctx: QueryCtx, { workspace, member }: BoardViewer): Pro
   return (await storedCompanyMatchOf(ctx, workspace, member))?.profile ?? null;
 }
 
-function tallyOf(ctx: QueryCtx, workspace: string, week: string, giver: MemberId) {
+function tallyOf(ctx: QueryCtx, workspace: string, period: PeriodKey, giver: MemberId) {
   return ctx.db
-    .query("thoughtfulTallies")
-    .withIndex("by_workspace_week_giver", (q) => q.eq("workspace", workspace).eq("week", week).eq("giver", giver))
+    .query("thoughtfulBoardTallies")
+    .withIndex("by_workspace_period_giver", (q) => q.eq("workspace", workspace).eq("period", period).eq("giver", giver))
     .unique();
 }

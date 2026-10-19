@@ -6,8 +6,8 @@ import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
-import type { BoardsRead, BoardsShown } from "./answer";
-import { boardsFixtures, fixedBoards } from "./boardsFixtures";
+import type { BoardPeriod, BoardsRead, BoardsShown } from "./answer";
+import { boardsByPeriod, boardsFixtures, fixedBoards } from "./boardsFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
@@ -19,8 +19,16 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 function visit(boards: BoardsShown = boardsFixtures.week) {
+  return visitWith(fixedBoards(boards));
+}
+
+function visitWith(boards: BoardsRead) {
   window.history.replaceState(null, "", "/leaderboard");
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: fixedBoards(boards) });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards });
+}
+
+function periodSwitch() {
+  return within(screen.getByRole("group", { name: "Period" }));
 }
 
 async function board(name: "People" | "Teams") {
@@ -44,7 +52,7 @@ function spokenTextOf(element: Element): string {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
-describe("AL49: the Leaderboard shows people and teams side by side by thoughtful kudos this week", { timeout: 30_000 }, () => {
+describe("AL49: the Leaderboard shows people and teams side by side by thoughtful kudos in the period picked", { timeout: 30_000 }, () => {
   it("ranks the givers and the teams in their own boards, ties sharing a rank", async () => {
     visit();
 
@@ -218,6 +226,97 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     visit();
     await board("People");
     expect(screen.queryByText(/off the boards/)).not.toBeInTheDocument();
+  });
+
+  it("switches between This week, Last week, This month and All time, reading each period's boards and naming the period in their stories", async () => {
+    const asked: BoardPeriod[] = [];
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.lastWeek, month: boardsFixtures.twoTeams, all: boardsFixtures.hidden }, asked));
+    await board("People");
+
+    expect(periodSwitch().getAllByRole("button").map((button) => [button.textContent, button.getAttribute("aria-pressed")])).toEqual([
+      ["This week", "true"],
+      ["Last week", "false"],
+      ["This month", "false"],
+      ["All time", "false"],
+    ]);
+    expect(screen.getByText("Leaderboard · thoughtful kudos given")).toBeInTheDocument();
+
+    await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
+
+    expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
+    expect(periodSwitch().getByRole("button", { name: "Last week" }), "focus stays on the switch").toHaveFocus();
+    expect(rowsOf(await board("People"))).toEqual(["Rank 1: Oren Pike Salt and Sparrow 4 thoughtful kudos", "Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
+    expect((await board("People")).getByText("6 thoughtful kudos given last week. You're No. 2 with 2.")).toBeInTheDocument();
+    expect((await board("Teams")).getByText("Salt and Sparrow leads with 4.")).toBeInTheDocument();
+
+    await user.click(periodSwitch().getByRole("button", { name: "This month" }));
+    expect((await board("People")).getByText("25 thoughtful kudos given this month. You're No. 5 with 3.")).toBeInTheDocument();
+
+    await user.click(periodSwitch().getByRole("button", { name: "All time" }));
+    expect((await board("People")).getByText("22 thoughtful kudos given in all.")).toBeInTheDocument();
+    expect(new Set(asked)).toEqual(new Set(["week", "last-week", "month", "all"]));
+  });
+
+  it("a quiet week says so and offers last week, which shows last week's boards", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.quiet, "last-week": boardsFixtures.lastWeek }));
+
+    const people = await board("People");
+    expect(people.getByText("Nobody has said thanks with a why yet this week.")).toBeInTheDocument();
+    await user.click(people.getByRole("button", { name: "See last week" }));
+
+    expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
+    expect(rowsOf(await board("People"))).toEqual(["Rank 1: Oren Pike Salt and Sparrow 4 thoughtful kudos", "Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
+  });
+
+  it("a quiet past period says so in the past and offers all time, and a quiet all time offers nothing", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.quiet, all: boardsFixtures.quiet }));
+    await board("People");
+
+    await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
+
+    const people = await board("People");
+    expect(people.getByText("Nobody said thanks with a why last week.")).toBeInTheDocument();
+    expect(people.getByText("You didn't give one last week.")).toBeInTheDocument();
+    expect((await board("Teams")).getByText("No team said thanks with a why last week.")).toBeInTheDocument();
+    expect((await board("Teams")).getByText("Lanterns didn't give one last week. Tin Orchard didn't give one last week.")).toBeInTheDocument();
+    await user.click(people.getByRole("button", { name: "See all time" }));
+
+    expect((await board("People")).getByText("Nobody has said thanks with a why yet.")).toBeInTheDocument();
+    expect((await board("People")).queryByRole("button", { name: /^See / })).not.toBeInTheDocument();
+  });
+
+  it("Who gave keeps its team when the period changes", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.lastWeek }));
+
+    await user.click((await board("Teams")).getByRole("button", { name: "Who gave in Lanterns" }));
+    await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
+
+    expect((await board("People")).getByText("Only Lanterns")).toBeInTheDocument();
+    expect(rowsOf(await board("People"))).toEqual(["Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
+  });
+
+  it("keeps the boards on screen, marked busy, while a picked period loads", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week }));
+    await board("People");
+
+    await user.click(periodSwitch().getByRole("button", { name: "This month" }));
+
+    expect(rowsOf(await board("People"))).toHaveLength(7);
+    expect(screen.getByRole("region", { name: "People" }).closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
+    expect(periodSwitch().getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("opens on this week each time the member arrives", async () => {
+    const asked: BoardPeriod[] = [];
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, all: boardsFixtures.hidden }, asked));
+    await user.click(await screen.findByRole("button", { name: "All time" }));
+    await screen.findByText("22 thoughtful kudos given in all.");
+
+    await user.click(screen.getByRole("link", { name: /Activity/ }));
+    await user.click(screen.getByRole("link", { name: /Leaderboard/ }));
+
+    expect(await screen.findByRole("button", { name: "This week" })).toHaveAttribute("aria-pressed", "true");
+    expect(asked.at(-1)).toBe("week");
   });
 });
 

@@ -5,10 +5,12 @@ import { awardsInWorkspace, type WorkspaceAward } from "../engine/awards";
 import { hugsInWorkspace, hugWithId, type Hug } from "../hugs/records";
 import type { MemberId } from "../workspace/directory";
 import { recordHistorySticker } from "./stickers";
-import { storedKudosWeightOf, tallyAward, tallyHugPeople, type KudosWeight } from "./tallies";
+import { countOnTheBoards } from "./boards";
+import { storedKudosWeightOf, talliedAwardOf, tallyAward, tallyHugPeople, type KudosWeight } from "./tallies";
 import type { Doc } from "../_generated/dataModel";
 
 export const awardsPerHistoryPage = 50;
+export const awardsPerBoardsFillPage = 50;
 export const hugPeoplePerHistoryPage = 50;
 
 type AlbumHistory = Doc<"albumHistory">;
@@ -38,6 +40,18 @@ export const recordAlbumHistory = internalMutation({
   },
 });
 
+export const fillThoughtfulBoards = internalMutation({
+  args: { workspace: v.string(), cursor: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { workspace, cursor }) => {
+    const { page, continueCursor, isDone } = await awardsInWorkspace(ctx, workspace, { cursor: cursor ?? null, numItems: awardsPerBoardsFillPage });
+    const weightOf = wordsOfEachMessage(ctx);
+    for (const award of page) await countOnTheBoardsOnce(ctx, award, weightOf);
+    if (!isDone) await ctx.scheduler.runAfter(0, internal.album.history.fillThoughtfulBoards, { workspace, cursor: continueCursor });
+    return null;
+  },
+});
+
 export const albumHistoryOf = internalQuery({
   args: { workspace: v.string() },
   returns: v.union(v.object({ startedAt: v.number(), done: v.boolean() }), v.null()),
@@ -57,6 +71,13 @@ async function recordAwardsPage(ctx: MutationCtx, history: AlbumHistory): Promis
     await tallyAward(ctx, award, await wordsOf(award));
   }
   return isDone ? { phase: "hugs", cursor: null, done: false } : { phase: "kudos", cursor: continueCursor, done: false };
+}
+
+async function countOnTheBoardsOnce(ctx: MutationCtx, award: WorkspaceAward, weightOf: (award: WorkspaceAward) => Promise<KudosWeight>) {
+  const tallied = await talliedAwardOf(ctx, award.award);
+  if (tallied === null || tallied.countedOnTheBoards) return;
+  await ctx.db.patch(tallied._id, { countedOnTheBoards: true });
+  if ((await weightOf(award)).thoughtful) await countOnTheBoards(ctx, { workspace: award.message.workspace, giver: award.giver, day: award.day });
 }
 
 async function tallyHugsPage(ctx: MutationCtx, history: AlbumHistory): Promise<Moved> {

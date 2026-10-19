@@ -67,7 +67,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: getAlbumHoggies in convex/website/album.ts
   trust: browser
 
-- query getThoughtfulBoards: a browser asks for this week's thoughtful boards with the signed-in member's own row and teams pinned, optionally narrowing the people board to one company team
+- query getThoughtfulBoards: a browser asks for the thoughtful boards of this week, last week, this month or all time with the signed-in member's own row and teams pinned, optionally narrowing the people board to one company team
   handler: getThoughtfulBoards in convex/website/album.ts
   trust: browser
 

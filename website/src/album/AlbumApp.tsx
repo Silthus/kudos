@@ -10,7 +10,8 @@ import type { MemberProfile } from "../shell";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
-import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
+import { isWaitingForTheBoards, useBoardsOfPeriod } from "./boardPeriods";
+import { LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
@@ -25,7 +26,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
   const settings = useSettings(onSettings);
   const onLeaderboard = place.kind === "leaderboard";
   const onProfile = place.kind === "profile";
-  const boards = useThoughtfulBoards(onLeaderboard || onProfile);
+  const boards = useBoardsOfPeriod(useThoughtfulBoards, onLeaderboard, onProfile);
   const profile = useAlbumProfile(onProfile);
   const hoggies = useAlbumHoggies(onProfile);
   const onPerson = place.kind === "person";
@@ -55,12 +56,12 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies }))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies }))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
-        profile={<ProfileAnswerPage album={album} profile={profile} boards={boards} hoggies={hoggies} {...answers} />}
+        profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}
