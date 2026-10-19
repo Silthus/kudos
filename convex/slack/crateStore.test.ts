@@ -185,14 +185,14 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     await click();
     await click();
     await openTheWebsite();
-    const crates = `section: 2 crates you bought [link: Open ${siteUrl}/book/collection?crate=bought%3A1]`;
+    const crates = `section: 2 crates you bought [link: Open ${siteUrl}/book#hoggies]`;
     const published = publishedViews(slack, juno).length;
 
     expect(publishedHome(slack, juno)).toContain(crates);
     expect(accessoryBeside("2 crates you bought")).toEqual({
       type: "button",
       text: { type: "plain_text", text: "Open" },
-      url: `${siteUrl}/book/collection?crate=bought%3A1`,
+      url: `${siteUrl}/book#hoggies`,
       action_id: "website-link:bought:1",
       accessibility_label: "Open a crate you bought on HedgeHug's Collection page",
     });
@@ -200,7 +200,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(response.status).toBe(200);
     expect(publishedViews(slack, juno)).toHaveLength(published);
     await openHome();
-    expect(publishedHome(slack, juno)).toEqual(expect.arrayContaining([crates, `${hoggiesLine} [link: View ${siteUrl}/book/collection]`]));
+    expect(publishedHome(slack, juno)).toEqual(expect.arrayContaining([crates, `${hoggiesLine} [link: View ${siteUrl}/book#hoggies]`]));
     expect(await coinsOf(member)).toBe(0);
   });
 
@@ -224,14 +224,14 @@ describe("the crate store's Buy in Slack links to the Collection page while the 
     await openTheWebsite();
     const published = publishedViews(slack, juno).length;
 
-    expect(linesAfter(`${hoggiesLine} [link: View ${siteUrl}/book/collection]`, 2)).toEqual([
-      `${hoggiesLine} [link: View ${siteUrl}/book/collection]`,
-      `section: A crate drops one hoggie when you open it. [link: Buy a crate · 50 🪙 ${siteUrl}/book/collection?crate=store]`,
+    expect(linesAfter(`${hoggiesLine} [link: View ${siteUrl}/book#hoggies]`, 2)).toEqual([
+      `${hoggiesLine} [link: View ${siteUrl}/book#hoggies]`,
+      `section: A crate drops one hoggie when you open it. [link: Buy a crate · 50 🪙 ${siteUrl}/book#hoggies]`,
     ]);
     expect(accessoryBeside("A crate drops one hoggie")).toEqual({
       type: "button",
       text: { type: "plain_text", text: "Buy a crate · 50 🪙" },
-      url: `${siteUrl}/book/collection?crate=store`,
+      url: `${siteUrl}/book#hoggies`,
       action_id: "website-link:crate-store",
       accessibility_label: "Buy a crate for 50 coins on HedgeHug's Collection page",
     });

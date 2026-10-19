@@ -92,6 +92,17 @@ const pathOf: Record<Page["page"], string> = {
   settings: "/settings",
 };
 
+const albumAddressOf: Record<Page["page"], string> = {
+  home: "/",
+  leaderboard: "/leaderboard",
+  quests: "/",
+  skillTree: "/",
+  book: "/",
+  bookEarned: "/book#milestones",
+  bookCollection: "/book#hoggies",
+  settings: "/settings",
+};
+
 const featurePages: Partial<Record<Feature, CratePage>> = {
   quests: { page: "quests" },
   leaderboard: { page: "leaderboard", period: "week" },
@@ -104,21 +115,8 @@ export function listed(page: Page): boolean {
 }
 
 export function routeOf(page: Page): string {
-  if (!listed(page)) return pathOf.home;
-  return `${pathOf[page.page]}${searchOf(page)}`;
-}
-
-function searchOf(page: Page) {
-  const search = new URLSearchParams();
-  if (page.page === "leaderboard" && page.period !== "week") search.set("period", page.period);
-  if (page.page === "quests" && page.quest !== undefined) search.set("quest", String(page.quest));
-  if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
-  if (page.page === "home" && page.panel !== undefined) search.set("panel", page.panel);
-  if (page.page === "settings" && page.section !== undefined) search.set("section", page.section);
-  const crate = "crate" in page && page.crate !== undefined ? crateParamOf(page.crate) : undefined;
-  if (crate !== undefined) search.set("crate", crate);
-  const query = search.toString();
-  return query === "" ? "" : `?${query}`;
+  if (page.page === "settings" && page.section !== undefined) return `${albumAddressOf.settings}?section=${page.section}`;
+  return albumAddressOf[page.page];
 }
 
 export function listedPageOf(feature: Feature): CratePage | null {

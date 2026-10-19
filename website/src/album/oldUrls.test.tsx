@@ -108,11 +108,228 @@ function albumPageFor(page: Page): Landing {
 
 const doors = [site, `${site}${signInEntry}`];
 
-const slackLinks = [
+const linksSlackAlreadySent: [string, Landing][] = [
+  ["/", home],
+  ["/sign-in/", home],
+  ["/?panel=inventory", home],
+  ["/sign-in/?panel=inventory", home],
+  ["/?crate=quests", home],
+  ["/sign-in/?crate=quests", home],
+  ["/?crate=leaderboard", home],
+  ["/sign-in/?crate=leaderboard", home],
+  ["/?crate=book", home],
+  ["/sign-in/?crate=book", home],
+  ["/?crate=skillTree", home],
+  ["/sign-in/?crate=skillTree", home],
+  ["/?crate=coins", home],
+  ["/sign-in/?crate=coins", home],
+  ["/?crate=journey", home],
+  ["/sign-in/?crate=journey", home],
+  ["/?crate=group", home],
+  ["/sign-in/?crate=group", home],
+  ["/?crate=store", home],
+  ["/sign-in/?crate=store", home],
+  ["/?crate=weekly%3A2026-10-05%3A2", home],
+  ["/sign-in/?crate=weekly%3A2026-10-05%3A2", home],
+  ["/?crate=group%3A2026-10-05", home],
+  ["/sign-in/?crate=group%3A2026-10-05", home],
+  ["/?crate=bought%3A2", home],
+  ["/sign-in/?crate=bought%3A2", home],
+  ["/leaderboard", leaderboard],
+  ["/sign-in/leaderboard", leaderboard],
+  ["/leaderboard?period=month", leaderboard],
+  ["/sign-in/leaderboard?period=month", leaderboard],
+  ["/leaderboard?period=all", leaderboard],
+  ["/sign-in/leaderboard?period=all", leaderboard],
+  ["/leaderboard?crate=quests", leaderboard],
+  ["/sign-in/leaderboard?crate=quests", leaderboard],
+  ["/leaderboard?crate=leaderboard", leaderboard],
+  ["/sign-in/leaderboard?crate=leaderboard", leaderboard],
+  ["/leaderboard?crate=book", leaderboard],
+  ["/sign-in/leaderboard?crate=book", leaderboard],
+  ["/leaderboard?crate=skillTree", leaderboard],
+  ["/sign-in/leaderboard?crate=skillTree", leaderboard],
+  ["/leaderboard?crate=coins", leaderboard],
+  ["/sign-in/leaderboard?crate=coins", leaderboard],
+  ["/leaderboard?crate=journey", leaderboard],
+  ["/sign-in/leaderboard?crate=journey", leaderboard],
+  ["/leaderboard?crate=group", leaderboard],
+  ["/sign-in/leaderboard?crate=group", leaderboard],
+  ["/leaderboard?crate=store", leaderboard],
+  ["/sign-in/leaderboard?crate=store", leaderboard],
+  ["/leaderboard?crate=weekly%3A2026-10-05%3A2", leaderboard],
+  ["/sign-in/leaderboard?crate=weekly%3A2026-10-05%3A2", leaderboard],
+  ["/leaderboard?crate=group%3A2026-10-05", leaderboard],
+  ["/sign-in/leaderboard?crate=group%3A2026-10-05", leaderboard],
+  ["/leaderboard?crate=bought%3A2", leaderboard],
+  ["/sign-in/leaderboard?crate=bought%3A2", leaderboard],
+  ["/quests", home],
+  ["/sign-in/quests", home],
+  ["/quests?quest=2", home],
+  ["/sign-in/quests?quest=2", home],
+  ["/quests?crate=quests", home],
+  ["/sign-in/quests?crate=quests", home],
+  ["/quests?crate=leaderboard", home],
+  ["/sign-in/quests?crate=leaderboard", home],
+  ["/quests?crate=book", home],
+  ["/sign-in/quests?crate=book", home],
+  ["/quests?crate=skillTree", home],
+  ["/sign-in/quests?crate=skillTree", home],
+  ["/quests?crate=coins", home],
+  ["/sign-in/quests?crate=coins", home],
+  ["/quests?crate=journey", home],
+  ["/sign-in/quests?crate=journey", home],
+  ["/quests?crate=group", home],
+  ["/sign-in/quests?crate=group", home],
+  ["/quests?crate=store", home],
+  ["/sign-in/quests?crate=store", home],
+  ["/quests?crate=weekly%3A2026-10-05%3A2", home],
+  ["/sign-in/quests?crate=weekly%3A2026-10-05%3A2", home],
+  ["/quests?crate=group%3A2026-10-05", home],
+  ["/sign-in/quests?crate=group%3A2026-10-05", home],
+  ["/quests?crate=bought%3A2", home],
+  ["/sign-in/quests?crate=bought%3A2", home],
+  ["/skills", home],
+  ["/sign-in/skills", home],
+  ["/skills?perk=spark", home],
+  ["/sign-in/skills?perk=spark", home],
+  ["/skills?perk=rhythm", home],
+  ["/sign-in/skills?perk=rhythm", home],
+  ["/skills?perk=circle", home],
+  ["/sign-in/skills?perk=circle", home],
+  ["/skills?perk=flame", home],
+  ["/sign-in/skills?perk=flame", home],
+  ["/skills?perk=cadence", home],
+  ["/sign-in/skills?perk=cadence", home],
+  ["/skills?perk=bridge", home],
+  ["/sign-in/skills?perk=bridge", home],
+  ["/skills?perk=treasurer", home],
+  ["/sign-in/skills?perk=treasurer", home],
+  ["/skills?perk=banker", home],
+  ["/sign-in/skills?perk=banker", home],
+  ["/skills?crate=quests", home],
+  ["/sign-in/skills?crate=quests", home],
+  ["/skills?crate=leaderboard", home],
+  ["/sign-in/skills?crate=leaderboard", home],
+  ["/skills?crate=book", home],
+  ["/sign-in/skills?crate=book", home],
+  ["/skills?crate=skillTree", home],
+  ["/sign-in/skills?crate=skillTree", home],
+  ["/skills?crate=coins", home],
+  ["/sign-in/skills?crate=coins", home],
+  ["/skills?crate=journey", home],
+  ["/sign-in/skills?crate=journey", home],
+  ["/skills?crate=group", home],
+  ["/sign-in/skills?crate=group", home],
+  ["/skills?crate=store", home],
+  ["/sign-in/skills?crate=store", home],
+  ["/skills?crate=weekly%3A2026-10-05%3A2", home],
+  ["/sign-in/skills?crate=weekly%3A2026-10-05%3A2", home],
+  ["/skills?crate=group%3A2026-10-05", home],
+  ["/sign-in/skills?crate=group%3A2026-10-05", home],
+  ["/skills?crate=bought%3A2", home],
+  ["/sign-in/skills?crate=bought%3A2", home],
+  ["/book", home],
+  ["/sign-in/book", home],
+  ["/book?crate=quests", home],
+  ["/sign-in/book?crate=quests", home],
+  ["/book?crate=leaderboard", home],
+  ["/sign-in/book?crate=leaderboard", home],
+  ["/book?crate=book", home],
+  ["/sign-in/book?crate=book", home],
+  ["/book?crate=skillTree", home],
+  ["/sign-in/book?crate=skillTree", home],
+  ["/book?crate=coins", home],
+  ["/sign-in/book?crate=coins", home],
+  ["/book?crate=journey", home],
+  ["/sign-in/book?crate=journey", home],
+  ["/book?crate=group", home],
+  ["/sign-in/book?crate=group", home],
+  ["/book?crate=store", home],
+  ["/sign-in/book?crate=store", home],
+  ["/book?crate=weekly%3A2026-10-05%3A2", home],
+  ["/sign-in/book?crate=weekly%3A2026-10-05%3A2", home],
+  ["/book?crate=group%3A2026-10-05", home],
+  ["/sign-in/book?crate=group%3A2026-10-05", home],
+  ["/book?crate=bought%3A2", home],
+  ["/sign-in/book?crate=bought%3A2", home],
+  ["/book/earned", milestones],
+  ["/sign-in/book/earned", milestones],
+  ["/book/earned?crate=quests", milestones],
+  ["/sign-in/book/earned?crate=quests", milestones],
+  ["/book/earned?crate=leaderboard", milestones],
+  ["/sign-in/book/earned?crate=leaderboard", milestones],
+  ["/book/earned?crate=book", milestones],
+  ["/sign-in/book/earned?crate=book", milestones],
+  ["/book/earned?crate=skillTree", milestones],
+  ["/sign-in/book/earned?crate=skillTree", milestones],
+  ["/book/earned?crate=coins", milestones],
+  ["/sign-in/book/earned?crate=coins", milestones],
+  ["/book/earned?crate=journey", milestones],
+  ["/sign-in/book/earned?crate=journey", milestones],
+  ["/book/earned?crate=group", milestones],
+  ["/sign-in/book/earned?crate=group", milestones],
+  ["/book/earned?crate=store", milestones],
+  ["/sign-in/book/earned?crate=store", milestones],
+  ["/book/earned?crate=weekly%3A2026-10-05%3A2", milestones],
+  ["/sign-in/book/earned?crate=weekly%3A2026-10-05%3A2", milestones],
+  ["/book/earned?crate=group%3A2026-10-05", milestones],
+  ["/sign-in/book/earned?crate=group%3A2026-10-05", milestones],
+  ["/book/earned?crate=bought%3A2", milestones],
+  ["/sign-in/book/earned?crate=bought%3A2", milestones],
+  ["/book/collection", hoggies],
+  ["/sign-in/book/collection", hoggies],
+  ["/book/collection?crate=quests", hoggies],
+  ["/sign-in/book/collection?crate=quests", hoggies],
+  ["/book/collection?crate=leaderboard", hoggies],
+  ["/sign-in/book/collection?crate=leaderboard", hoggies],
+  ["/book/collection?crate=book", hoggies],
+  ["/sign-in/book/collection?crate=book", hoggies],
+  ["/book/collection?crate=skillTree", hoggies],
+  ["/sign-in/book/collection?crate=skillTree", hoggies],
+  ["/book/collection?crate=coins", hoggies],
+  ["/sign-in/book/collection?crate=coins", hoggies],
+  ["/book/collection?crate=journey", hoggies],
+  ["/sign-in/book/collection?crate=journey", hoggies],
+  ["/book/collection?crate=group", hoggies],
+  ["/sign-in/book/collection?crate=group", hoggies],
+  ["/book/collection?crate=store", hoggies],
+  ["/sign-in/book/collection?crate=store", hoggies],
+  ["/book/collection?crate=weekly%3A2026-10-05%3A2", hoggies],
+  ["/sign-in/book/collection?crate=weekly%3A2026-10-05%3A2", hoggies],
+  ["/book/collection?crate=group%3A2026-10-05", hoggies],
+  ["/sign-in/book/collection?crate=group%3A2026-10-05", hoggies],
+  ["/book/collection?crate=bought%3A2", hoggies],
+  ["/sign-in/book/collection?crate=bought%3A2", hoggies],
+  ["/settings", settings],
+  ["/sign-in/settings", settings],
+  ["/settings?section=visibility", { ...settings, address: "/settings?section=visibility" }],
+  ["/sign-in/settings?section=visibility", { ...settings, address: "/settings?section=visibility" }],
+  ["/settings?section=messages", { ...settings, address: "/settings?section=messages" }],
+  ["/sign-in/settings?section=messages", { ...settings, address: "/settings?section=messages" }],
+  ["/settings?section=group", { ...settings, address: "/settings?section=group" }],
+  ["/sign-in/settings?section=group", { ...settings, address: "/settings?section=group" }],
+  ["/settings?section=company-profile", { ...settings, address: "/settings?section=company-profile" }],
+  ["/sign-in/settings?section=company-profile", { ...settings, address: "/settings?section=company-profile" }],
+  ["/settings?section=admin", { ...settings, address: "/settings?section=admin" }],
+  ["/sign-in/settings?section=admin", { ...settings, address: "/settings?section=admin" }],
+  ["/settings?section=workspace", { ...settings, address: "/settings?section=workspace" }],
+  ["/sign-in/settings?section=workspace", { ...settings, address: "/settings?section=workspace" }],
+];
+
+const linksBuiltNow = [
   ...new Map(
     (samplesOf(pageValidator) as Page[]).flatMap((page) => doors.map((door) => [urlOf(door, page).slice(site.length), albumPageFor(page)] as const)),
   ).entries(),
 ];
+
+function withoutTheDoor(link: string) {
+  return link.startsWith(signInEntry) ? link.slice(signInEntry.length) : link;
+}
+
+function albumAddressFor(landing: Landing) {
+  return landing === home ? "/" : landing.address;
+}
 
 const listedPaths: Record<string, Landing> = {
   "/": home,
@@ -169,7 +386,7 @@ describe("AL44: every URL Slack sends lands in the album", () => {
     await expectToLand({ ...home, address: "/book?code=one-time#me" });
   });
 
-  it.each(slackLinks)("%s", async (link, landing) => {
+  it.each(linksSlackAlreadySent)("%s", async (link, landing) => {
     visit(link);
     await expectToLand(landing);
   });
@@ -253,6 +470,24 @@ describe("AL44: how a landing changes the address", () => {
     visit("/sign-in/settings?section=messages");
     await expectToLand({ ...settings, address: "/settings?section=messages" });
     await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Messages" })).toHaveFocus());
+  });
+});
+
+describe("AL67: every link the backend builds is the album address it lands on", () => {
+  it.each(linksBuiltNow)("%s", async (link, landing) => {
+    expect(withoutTheDoor(link)).toBe(albumAddressFor(landing));
+    visit(link);
+    await expectToLand(landing);
+  });
+
+  it("a sign-in link to a Book page keeps its hash and the one-time code Convex Auth adds", async () => {
+    const link = urlOf(`${site}${signInEntry}`, { page: "bookEarned" }).slice(site.length);
+    const withTheCode = new URL(link, site);
+    withTheCode.searchParams.set("code", "one-time");
+
+    visit(withTheCode.pathname + withTheCode.search + withTheCode.hash);
+
+    await expectToLand({ ...milestones, address: "/book?code=one-time#milestones" });
   });
 });
 
