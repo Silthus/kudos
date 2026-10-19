@@ -193,7 +193,7 @@ describe("#695: a top bar label opens out calmly", () => {
   it("opens about 150 ms after the pointer or keyboard focus arrives, so a pointer passing across the bar opens nothing", () => {
     const opening = declarationsOf(".al-top :hover > .al-opens-out");
 
-    expect(opening["clip-path"]).toBe("inset(0 0 0 0)");
+    expect(opening["clip-path"]).toBe("inset(-0.75rem -1rem -0.75rem 0)");
     expect(opening["transition-delay"]).toBe("150ms");
     expect(declarationsOf(".al-top :focus-visible > .al-opens-out")).toEqual(opening);
   });
@@ -218,7 +218,7 @@ describe("#695: a top bar label opens out calmly", () => {
   it("opens at once, with no delay, while its panel is open", () => {
     const expanded = declarationsOf(".al-top [aria-expanded=\"true\"] > .al-opens-out");
 
-    expect(expanded["clip-path"]).toBe("inset(0 0 0 0)");
+    expect(expanded["clip-path"]).toBe("inset(-0.75rem -1rem -0.75rem 0)");
     expect(expanded["transition-delay"]).toBe("0ms");
   });
 
