@@ -779,7 +779,6 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     morePacks: false,
     tray: [{ item: "t-1", kind: "sticker", person: "m-ines" }],
     moreTray: false,
-    milestones: [],
   };
 
   it("a member getMyProfile says album for gets the album from one getAlbum subscription, with what the read doesn't answer yet left empty", async () => {

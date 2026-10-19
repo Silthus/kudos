@@ -1,7 +1,7 @@
 import { catalogue as hoggieCatalogue } from "../hoggies/catalogue";
-import type { MilestoneTier } from "./records";
+import type { MilestoneId, MilestoneTier } from "./records";
 
-export type MilestoneId = "people" | "teams" | "reach" | "hoggies" | "thoughtful";
+export type { MilestoneId };
 
 export type Step = { tier: MilestoneTier; at: number; name: string };
 

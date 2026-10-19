@@ -70,11 +70,11 @@ const milestoneTiers = (names: [string, string, string, string], steps: [number,
   (["bronze", "silver", "gold", "diamond"] as const).map((tier, index) => ({ tier, at: steps[index]!, name: names[index]!, earnedAt: earned[index] ?? null }));
 
 const milestones: AlbumMilestone[] = [
-  { id: "faces", count: 12, tiers: milestoneTiers(["First face", "Familiar faces", "Full room", "Everyone's friend"], [1, 10, 25, 50], [now - 20 * day, now - 2 * day]) },
-  { id: "full-pages", count: 1, tiers: milestoneTiers(["First seal", "Page turner", "Bound volume", "Complete works"], [1, 5, 15, 40], [now - 3 * day]) },
-  { id: "across", count: 6, tiers: milestoneTiers(["Wanderer", "Bridge builder", "Cartographer", "Atlas"], [3, 10, 25, 40], [now - 9 * day]) },
-  { id: "hoggie-hunter", count: 18, tiers: milestoneTiers(["Spotter", "Tracker", "Naturalist", "Field guide"], [10, 40, 100, 151], [now - 5 * day]) },
-  { id: "kind-words", count: 9, tiers: milestoneTiers(["Kind word", "Warm voice", "Generous pen", "Lighthouse"], [1, 25, 100, 500], [now - 30 * day]) },
+  { id: "people", count: 12, tiers: milestoneTiers(["First face", "Familiar faces", "Full of friends", "Everyone's album"], [1, 10, 25, 50], [now - 20 * day, now - 2 * day]) },
+  { id: "teams", count: 1, tiers: milestoneTiers(["First full page", "Five teams strong", "Most of the company", "Every page"], [1, 5, 15, 50], [now - 3 * day]) },
+  { id: "reach", count: 6, tiers: milestoneTiers(["Next door", "Bridge builder", "Well travelled", "All hands"], [3, 10, 25, 50], [now - 9 * day]) },
+  { id: "hoggies", count: 18, tiers: milestoneTiers(["Curious", "Collector", "Hoarder", "Completionist"], [10, 40, 100, 151], [now - 5 * day]) },
+  { id: "thoughtful", count: 9, tiers: milestoneTiers(["First thank-you", "Generous soul", "Heart of the team", "Patron of praise"], [1, 25, 100, 500], [now - 30 * day]) },
 ];
 
 const emojis: AlbumEmoji[] = [

@@ -2,11 +2,15 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { bookShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
-import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
+import { opens, reachesLevel } from "../../testing/unlocks";
+import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { catalogue } from "../hoggies/catalogue";
+import { recordReward } from "../progression/progression";
+import { membersPerMilestonePage } from "./milestones";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -23,7 +27,9 @@ type Earned = Partial<Record<"bronze" | "silver" | "gold" | "diamond", number>>;
 const alice = person("Alice", "Marchetti");
 const lanterns = Array.from({ length: 4 }, (_, index) => person("Lantern", `Wickfield${index + 1}`));
 const otters = Array.from({ length: 3 }, (_, index) => person("Otter", `Quillfeather${index + 1}`));
-const everyone = [alice, ...lanterns, ...otters];
+const crowd = Array.from({ length: 25 }, (_, index) => person("Crowd", `Merriweather${index + 1}`));
+const everyone = [alice, ...lanterns, ...otters, ...crowd];
+const shopper = person("Juniper", "Coinpurse");
 
 let postHog: FakePostHog;
 let postHogCom: FakePostHogCom;
@@ -62,7 +68,7 @@ describe("AL21: five milestones count album facts and record each tier once with
     ]);
   });
 
-  test("a first thoughtful kudos records Kind words at bronze, and the first put-in Faces in the album and the hoggie found, each dated when its count got there", async () => {
+  test("a first thoughtful kudos records Kind words at bronze, and the first put-in Faces in the album, each dated when its count got there", async () => {
     await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(...otters) });
     const thankedAt = await thanks(alice, why, otters[0]!);
     const asAlice = await signedIn(alice);
@@ -76,6 +82,56 @@ describe("AL21: five milestones count album facts and record each tier once with
 
     expect(await countsOf(later)).toEqual({ people: 1, teams: 0, reach: 1, hoggies: 1, thoughtful: 1 });
     expect(await earnedOf(later)).toEqual({ people: { bronze: putInAt }, teams: {}, reach: {}, hoggies: {}, thoughtful: { bronze: thankedAt } });
+  });
+
+  test("one write that passes several steps records each tier it passed with that write's date, and Hoggie hunter counts the distinct hoggies put in", async () => {
+    const thankedAt = await thanks(alice, why, ...crowd);
+    const asAlice = await signedIn(alice);
+    const opened = await opensEveryPack(asAlice);
+
+    const putInAt = await putsEverythingIn(asAlice);
+
+    const distinct = new Set(opened.flatMap((item) => (item.kind === "hoggie" ? [item.hoggie] : []))).size;
+    expect(distinct).toBeGreaterThanOrEqual(10);
+    expect(await countsOf(asAlice)).toEqual({ people: 25, teams: 0, reach: 0, hoggies: distinct, thoughtful: 25 });
+    expect(await earnedOf(asAlice)).toEqual({
+      people: { bronze: putInAt, silver: putInAt, gold: putInAt },
+      teams: {},
+      reach: {},
+      hoggies: { bronze: putInAt },
+      thoughtful: { bronze: thankedAt, silver: thankedAt },
+    });
+  });
+
+  test("a hoggie found outside the album records Hoggie hunter's tier at its drop, with no album write", async () => {
+    const asShopper = await aCrateShopper();
+    let found = 0;
+    let openedAt = 0;
+
+    for (let next = 1; found < 10; next += 1) {
+      vi.setSystemTime(Date.now() + minuteMs);
+      await asShopper.mutation(api.website.commands.buyCrate, { next });
+      openedAt = Date.now();
+      await asShopper.mutation(api.website.commands.openCrate, { crate: `bought:${next}` });
+      await settle(t);
+      found = (await countsOf(asShopper)).hoggies!;
+    }
+
+    expect(await earnedOf(asShopper)).toMatchObject({ hoggies: { bronze: openedAt }, people: {}, thoughtful: {} });
+  });
+
+  test("a company sync that brings a held person's team records Across the company's tier, with no album write", async () => {
+    const beacons = { slug: "beacons", name: "Beacons", profiles: profilesOf(lanterns[0]!) };
+    const comets = { slug: "comets", name: "Comets", profiles: profilesOf(lanterns[1]!) };
+    await theCompanyCopyHolds(beacons, comets);
+    await aliceCollects(lanterns[0]!, lanterns[1]!, otters[0]!);
+    expect(await countsOf(await signedIn(alice))).toMatchObject({ reach: 2 });
+    vi.setSystemTime(Date.now() + dayMs);
+    const syncedAt = Date.now();
+
+    await theCompanyCopyHolds(beacons, comets, { slug: "otters", name: "Otters", profiles: profilesOf(...otters) });
+
+    expect(await earnedOf(await signedIn(alice))).toMatchObject({ reach: { bronze: syncedAt } });
   });
 
   test("a short kudos counts no kind words", async () => {
@@ -134,8 +190,10 @@ describe("AL21: five milestones count album facts and record each tier once with
     expect(await earnedOf(await signedIn(alice))).toMatchObject({ thoughtful: { bronze: thankedAt } });
   });
 
-  test("the album's history records the tiers its stickers reach once it is done", async () => {
+  test("the album's history records the tiers its stickers reach once it is done, for members on every page of the pass", async () => {
+    expect(everyone.length).toBeGreaterThan(membersPerMilestonePage);
     await thanks(alice, "ty", otters[0]!, otters[1]!);
+    await thanks(crowd.at(-1)!, "ty", otters[0]!);
     vi.setSystemTime(Date.now() + dayMs);
 
     await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
@@ -144,6 +202,7 @@ describe("AL21: five milestones count album facts and record each tier once with
     const asAlice = await signedIn(alice);
     expect(await countsOf(asAlice)).toMatchObject({ people: 2 });
     expect(await earnedOf(asAlice)).toMatchObject({ people: { bronze: Date.now() } });
+    expect(await earnedOf(await signedIn(crowd.at(-1)!)), "the member who joined last").toMatchObject({ people: { bronze: Date.now() } });
   });
 });
 
@@ -196,8 +255,27 @@ async function aliceCollects(...people: Person[]) {
 
 async function opensEveryPack(reader: Reader) {
   const album = await reader.query(api.website.album.getAlbum, {});
-  for (const { pack } of album.kind === "album" ? album.packs : []) await reader.mutation(api.website.album.openThoughtfulPack, { pack });
+  const items = [];
+  for (const { pack } of album.kind === "album" ? album.packs : []) {
+    const opened = await reader.mutation(api.website.album.openThoughtfulPack, { pack });
+    if (opened.kind === "opened") items.push(...opened.items);
+  }
   await settle(t);
+  return items;
+}
+
+async function aCrateShopper() {
+  const shopping = ["xp-levels", "unlocks", "achievements", "coins", "crate-store"];
+  await switchWebsite(t, postHog, true, ...shopping);
+  await bookShippedBeforeAnyoneJoined(t);
+  const member = await aMember(t, shopper.user);
+  await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: 1000, pointsSpent: 0 }));
+  await reachesLevel(t, member, 6);
+  await opens(t, member, "book");
+  await opens(t, member, "coins");
+  await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:earned:coins", xp: 0, coins: 5000, item: null, catalogueVersion: "2", at: 0 }));
+  await switchWebsite(t, postHog, true, ...shopping, "collection", "album");
+  return signedIn(shopper);
 }
 
 async function putsEverythingIn(reader: Reader) {
