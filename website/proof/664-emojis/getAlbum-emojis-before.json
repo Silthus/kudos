@@ -1,0 +1,38 @@
+{
+  "emojiPage": "https://posthogtestgroup.slack.com/customize/emoji",
+  "hype": [
+    {
+      "id": "hype:js73ehkkk3xms6keb6w2k04f418ggzdw",
+      "kind": "hype",
+      "name": "rowan-thistle-2-hype",
+      "from": "Rowan Thistle",
+      "earned": true,
+      "earnedAt": 1792184657676,
+      "seen": false,
+      "inSlack": false,
+      "picture": "/emoji/hype.png"
+    },
+    {
+      "id": "hype:js7fk9jrbcgxn5sg9nh1959q518gg238",
+      "kind": "hype",
+      "name": "fennel-brook-2-hype",
+      "from": "Fennel Brook",
+      "earned": true,
+      "earnedAt": 1792184657676,
+      "seen": false,
+      "inSlack": false,
+      "picture": "/emoji/hype.png"
+    },
+    {
+      "id": "hype:js7fwvkhe28yd1hjbzm4bn7b898gghp4",
+      "kind": "hype",
+      "name": "juniper-vale-2-hype",
+      "from": "Juniper Vale",
+      "earned": true,
+      "earnedAt": 1792184657676,
+      "seen": false,
+      "inSlack": false,
+      "picture": "/emoji/hype.png"
+    }
+  ]
+}

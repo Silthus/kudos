@@ -1,0 +1,2185 @@
+
+ RUN  v5.0.3 /home/coder/.t3/worktrees/kudos/t3-7615c8d7
+
+ ❯ |website| src/album/emojis.test.tsx (17 tests | 15 failed) 14651ms
+   ❯ #664 AL29: the emoji popup shows every emoji by kind, each earned one with its picture, its name and what earned it (5)
+     × groups the emojis as Team stickers, Hype, Milestones and Levels, each earned one in colour with its picture, its name and where it came from 1122ms
+     × a hype emoji without a face shows the hype emblem with the person's initials 1155ms
+     × each locked emoji is grey with how to unlock it and the progress so far, a team ready to unlock links to its page 734ms
+     × shows the nearest locked emojis of a kind first, then Show all lists the rest 321ms
+     × a search finds emojis by name, team, milestone or person, and says when none matches 154ms
+   ❯ #664 AL30 AL31: use it in Slack only when Slack has it, and Add to Slack is the member's own download (5)
+     × an emoji Slack has says to use it in Slack and offers no Add to Slack; one Slack lacks offers Add to Slack 348ms
+     × Add to Slack on a level emoji downloads its static picture as <name>.png, copies the name and opens the workspace's custom emoji page 282ms
+     × Add to Slack on a hype emoji draws the face in its frame; where the face can't be drawn it saves the hype emblem with the person's initials 198ms
+     × Add to Slack on a hype emoji whose face draws saves the framed face 148ms
+     × without the workspace's Slack address, Add to Slack still saves the picture and says where to add it 153ms
+   ❯ AL26: an earned emoji is marked seen only once its moment has shown (5)
+     × each new emoji pops as a moment with its picture, its name and why it was earned, one at a time, and only taking it sends markEmojisSeen for it 1191ms
+     × Skip the rest marks every waiting emoji seen at once and plays no more moments 1056ms
+     × Escape takes the moment like its button, and a refused or unreachable markEmojisSeen still moves on to the next one 2130ms
+     × AL54: no moment plays while a pack opening is open; it waits until the opening closes 2581ms
+   ❯ #664 AL32: the Settings page shows workspace admins the shared list (2)
+     × an admin sees every team, milestone and level emoji with its picture, its name, what earns it and whether Slack has it 1141ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL29: the emoji popup shows every emoji by kind, each earned one with its picture, its name and what earned it > groups the emojis as Team stickers, Hype, Milestones and Levels, each earned one in colour with its picture, its name and where it came from
+TestingLibraryElementError: Unable to find role="banner"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      aria-busy="true"
+      class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+    >
+      <div
+        aria-hidden="true"
+        class="grid gap-6 lg:items-start lg:grid-cols-[minmax(0,1fr)_21rem]"
+        data-loading-placeholder="home"
+      >
+        <div
+          class="flex min-w-0 flex-col gap-6 "
+        >
+          <div
+            class="rounded-md bg-muted h-9 w-44"
+          />
+          <div
+            class="flex flex-col gap-3 py-4"
+          >
+            <div
+              class="rounded-md bg-muted h-3 w-20"
+            />
+            <div
+              class="rounded-md bg-muted h-9 w-64 max-w-full"
+            />
+            <div
+              class="rounded-md bg-muted h-4 w-full max-w-xl"
+            />
+            <div
+              class="rounded-md bg-muted mt-1 h-10 w-52"
+            />
+          </div>
+          <div
+            class="rounded-lg border bg-card h-36"
+          />
+        </div>
+        <div
+          class="hidden flex-col gap-6 lg:flex"
+        >
+          <div
+            class="rounded-lg border bg-card h-64"
+          />
+          <div
+            class="rounded-lg border bg-card h-48"
+          />
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      aria-busy="true"
+      class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+    >
+      <div
+        aria-hidden="true"
+        class="grid gap-6 lg:items-start lg:grid-cols-[minmax(0,1fr)_21rem]"
+        data-loading-placeholder="home"
+      >
+        <div
+          class="flex min-w-0 flex-col gap-6 "
+        >
+          <div
+            class="rounded-md bg-muted h-9 w-44"
+          />
+          <div
+            class="flex flex-col gap-3 py-4"
+          >
+            <div
+              class="rounded-md bg-muted h-3 w-20"
+            />
+            <div
+              class="rounded-md bg-muted h-9 w-64 max-w-full"
+            />
+            <div
+              class="rounded-md bg-muted h-4 w-full max-w-xl"
+            />
+            <div
+              class="rounded-md bg-muted mt-1 h-10 w-52"
+            />
+          </div>
+          <div
+            class="rounded-lg border bg-card h-36"
+          />
+        </div>
+        <div
+          class="hidden flex-col gap-6 lg:flex"
+        >
+          <div
+            class="rounded-lg border bg-card h-64"
+          />
+          <div
+            class="rounded-lg border bg-card h-48"
+          />
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ openTheEmojis src/album/emojis.test.tsx:37:30
+     35|
+     36| async function openTheEmojis(view: ReturnType<typeof visit>) {
+     37|   const [bar] = await screen.findAllByRole("banner");
+       |                              ^
+     38|   await view.user.click(within(bar!).getByRole("button", { name: /^You…
+     39|   return within(screen.getByRole("region", { name: "Your emojis" }));
+ ❯ src/album/emojis.test.tsx:102:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL29: the emoji popup shows every emoji by kind, each earned one with its picture, its name and what earned it > a hype emoji without a face shows the hype emblem with the person's initials
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Hype/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_5_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:118:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL29: the emoji popup shows every emoji by kind, each earned one with its picture, its name and what earned it > each locked emoji is grey with how to unlock it and the progress so far, a team ready to unlock links to its page
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Team stickers/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_b_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:126:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL29: the emoji popup shows every emoji by kind, each earned one with its picture, its name and what earned it > shows the nearest locked emojis of a kind first, then Show all lists the rest
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Team stickers/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_h_"
+>
+  <p>
+    Unlock a team sticker, a milestone or a level to earn your first emoji.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:138:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL29: the emoji popup shows every emoji by kind, each earned one with its picture, its name and what earned it > a search finds emojis by name, team, milestone or person, and says when none matches
+TestingLibraryElementError: Unable to find an accessible element with the role "searchbox" and name "Find an emoji"
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_n_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/album/emojis.test.tsx:151:32
+    149|     const popup = await openTheEmojis(view);
+    150|
+    151|     await view.user.type(popup.getByRole("searchbox", { name: "Find an…
+       |                                ^
+    152|
+    153|     expect(rowsIn(popup)).toEqual([":ines-okafor-hype:From your first …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL30 AL31: use it in Slack only when Slack has it, and Add to Slack is the member's own download > an emoji Slack has says to use it in Slack and offers no Add to Slack; one Slack lacks offers Add to Slack
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Team stickers/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_t_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:168:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL30 AL31: use it in Slack only when Slack has it, and Add to Slack is the member's own download > Add to Slack on a level emoji downloads its static picture as <name>.png, copies the name and opens the workspace's custom emoji page
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Levels/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_13_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:181:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL30 AL31: use it in Slack only when Slack has it, and Add to Slack is the member's own download > Add to Slack on a hype emoji draws the face in its frame; where the face can't be drawn it saves the hype emblem with the person's initials
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Hype/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_19_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:197:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL30 AL31: use it in Slack only when Slack has it, and Add to Slack is the member's own download > Add to Slack on a hype emoji whose face draws saves the framed face
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Hype/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_1f_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:211:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL30 AL31: use it in Slack only when Slack has it, and Add to Slack is the member's own download > without the workspace's Slack address, Add to Slack still saves the picture and says where to add it
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name `/^Levels/`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-label="Your emojis"
+  class="al-popover"
+  id="_r_1l_"
+>
+  <p>
+    You've earned 3 emojis.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ shelf src/album/emojis.test.tsx:43:23
+     41|
+     42| function shelf(popup: ReturnType<typeof within>, title: string) {
+     43|   return within(popup.getByRole("region", { name: new RegExp(`^${title…
+       |                       ^
+     44| }
+     45|
+ ❯ src/album/emojis.test.tsx:222:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > each new emoji pops as a moment with its picture, its name and why it was earned, one at a time, and only taking it sends markEmojisSeen for it
+TestingLibraryElementError: Unable to find role="dialog" and name "New emoji unlocked"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/album/emojis.test.tsx:237:33
+    235|     const view = visit("/", { album: fresh });
+    236|
+    237|     const moment = await screen.findByRole("dialog", { name: "New emoj…
+       |                                 ^
+    238|
+    239|     expect(view.marked).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > Skip the rest marks every waiting emoji seen at once and plays no more moments
+TestingLibraryElementError: Unable to find role="dialog" and name "New emoji unlocked"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/album/emojis.test.tsx:255:33
+    253|     preferReducedMotion();
+    254|     const view = visit("/", { album: fresh });
+    255|     const moment = await screen.findByRole("dialog", { name: "New emoj…
+       |                                 ^
+    256|
+    257|     await view.user.click(within(moment).getByRole("button", { name: "…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > Escape takes the moment like its button, and a refused or unreachable markEmojisSeen still moves on to the next one
+TestingLibraryElementError: Unable to find role="dialog" and name "New emoji unlocked"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/album/emojis.test.tsx:267:18
+    265|     preferReducedMotion();
+    266|     const view = visit("/", { album: { ...fresh, emojis: fresh.emojis.…
+    267|     await screen.findByRole("dialog", { name: "New emoji unlocked" });
+       |                  ^
+    268|
+    269|     await view.user.keyboard("{Escape}");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > AL54: no moment plays while a pack opening is open; it waits until the opening closes
+TestingLibraryElementError: Unable to find role="dialog" and name "New emoji unlocked"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/album/emojis.test.tsx:299:25
+    297|     expect(screen.queryByRole("dialog", { name: "New emoji unlocked" }…
+    298|     await view.user.keyboard("{Escape}");
+    299|     expect(await screen.findByRole("dialog", { name: "New emoji unlock…
+       |                         ^
+    300|   });
+    301| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/15]⎯
+
+ FAIL  |website| src/album/emojis.test.tsx > #664 AL32: the Settings page shows workspace admins the shared list > an admin sees every team, milestone and level emoji with its picture, its name, what earns it and whether Slack has it
+TestingLibraryElementError: Unable to find role="region" and name "Shared emojis"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="al-shell"
+    >
+      <header
+        class="al-top"
+      >
+        <a
+          class="al-brand"
+          data-slot="home"
+          href="/"
+        >
+          <img
+            alt=""
+            class="h-auto "
+            draggable="false"
+            height="30"
+            src="file:///home/coder/.t3/worktrees/kudos/t3-7615c8d7/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/sitting.png"
+            width="30"
+          />
+          <span
+            class="al-brand-word"
+          >
+            HedgeHug
+          </span>
+        </a>
+        <div
+          class="al-xp"
+        >
+          <span
+            class="al-level"
+          >
+            Level 
+            6
+          </span>
+          <span
+            aria-hidden="true"
+            class="al-xp-track"
+          >
+            <span
+              class="al-xp-fill"
+              style="width: 42%;"
+            />
+          </span>
+          <span
+            class="al-xp-words"
+          >
+            290
+             XP to level 
+            7
+          </span>
+        </div>
+        <div
+          class="al-top-end"
+        >
+          <button
+            aria-haspopup="dialog"
+            aria-label="Open your packs, 2 waiting"
+            class="al-packs"
+            data-waiting=""
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="al-packs-art"
+            >
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-wrapper"
+              />
+              <span
+                class="al-packs-count"
+              >
+                2
+              </span>
+            </span>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                <span
+                  aria-hidden="true"
+                  class="al-packs-words"
+                >
+                  <strong>
+                    2 packs
+                  </strong>
+                  <span>
+                    Ready to open
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            class="al-popover-anchor"
+          >
+            <button
+              aria-expanded="false"
+              aria-label="Tray, nothing to put in"
+              class="al-top-button al-tray"
+              type="button"
+            >
+              <svg
+                class="LemonIcon"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M12.11 4.526a.245.245 0 0 0-.22 0L3.643 8.63a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-8.25-4.104Zm-.887-1.343a1.744 1.744 0 0 1 1.554 0l8.25 4.104c1.297.646 1.297 2.505 0 3.15L17.887 12l3.14 1.562c1.297.646 1.297 2.505 0 3.15l-8.25 4.105a1.745 1.745 0 0 1-1.554 0l-8.25-4.105c-1.297-.645-1.297-2.504 0-3.15L6.113 12l-3.14-1.562c-1.297-.646-1.297-2.505 0-3.15l8.25-4.105Zm-3.426 9.655-4.155 2.067a.261.261 0 0 0 0 .465l8.249 4.104c.069.035.15.035.218 0l8.25-4.104a.261.261 0 0 0 0-.465l-4.156-2.067-3.426 1.705a1.745 1.745 0 0 1-1.554 0l-3.426-1.705Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+              <span
+                class="al-opens-out"
+              >
+                <span>
+                  Tray
+                </span>
+              </span>
+            </button>
+          </span>
+          <a
+            class="al-icon-link"
+            href="/activity"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6.936 11.277 8.99 4.77l5.05 16.414c.29.945 1.63.94 1.914-.007l2.55-8.499a.25.25 0 0 1 .239-.178h3.506a.75.75 0 0 0 0-1.5h-3.506a1.75 1.75 0 0 0-1.676 1.247L14.99 19.17 9.953 2.796c-.289-.938-1.614-.943-1.91-.007l-2.537 8.036a.25.25 0 0 1-.239.175H1.75a.75.75 0 0 0 0 1.5h3.517a1.75 1.75 0 0 0 1.669-1.223Z"
+              />
+            </svg>
+            <span
+              class="al-opens-out"
+            >
+              <span>
+                Activity
+              </span>
+            </span>
+          </a>
+          <a
+            class="al-icon-link"
+            href="/leaderboard"
+          >
+            <svg
+              class="LemonIcon"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+             ...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/album/emojis.test.tsx:307:38
+    305|     visit("/settings", { album: albumFixtures.admin });
+    306|
+    307|     const list = within(await screen.findByRole("region", { name: "Sha…
+       |                                      ^
+    308|
+    309|     expect(rowsIn(list)).toEqual([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/15]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  15 failed | 2 passed (17)
+   Start at  10:56:03
+   Duration  26.39s (tests 56%, transform 21%, import 16%, environment 6%, setup 2%)
+
