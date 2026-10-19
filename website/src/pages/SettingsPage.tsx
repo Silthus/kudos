@@ -2,18 +2,20 @@ import { Panel } from "../home/Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
 import { PageTitle } from "../PageTitle";
+import type { EmojiMappingsRead } from "../emojiMappingsRead";
 import { SignOutButton } from "../SignOutButton";
 import { ThemeChoices } from "../ThemeControl";
 import { CompanyProfileSection } from "../settings/CompanyProfileSection";
+import { EmojiMappingSection } from "../settings/EmojiMapping";
 import { GroupPicker } from "../settings/GroupPicker";
 import { MessageSettingRow } from "../settings/MessageSettingRow";
 import { TeammateMatching } from "../settings/TeammateMatching";
 import { WorkspaceSettings } from "../settings/WorkspaceSettings";
 import type { MessageSetting, MySettings, ShellActions } from "../shell";
 
-type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">; themeAndSignOut?: { onSignOut: () => void } };
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "mapSlackEmoji">; useEmojiMappings: EmojiMappingsRead; themeAndSignOut?: { onSignOut: () => void } };
 
-export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace }, actions, themeAndSignOut }: SettingsPageProps) {
+export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace }, actions, useEmojiMappings, themeAndSignOut }: SettingsPageProps) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -42,6 +44,7 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
       {companyProfile !== undefined && <CompanyProfileSection setting={companyProfile} linkMyCompanyProfile={actions.linkMyCompanyProfile} />}
       {admin !== undefined && <TeammateMatching admin={admin} linkCompanyProfile={actions.linkCompanyProfile} />}
       {workspace !== undefined && <WorkspaceSettings workspace={workspace} setWorkspaceSettings={actions.setWorkspaceSettings} />}
+      {workspace !== undefined && <EmojiMappingSection useEmojiMappings={useEmojiMappings} mapSlackEmoji={actions.mapSlackEmoji} />}
       {themeAndSignOut !== undefined && <AccountPanel onSignOut={themeAndSignOut.onSignOut} />}
     </div>
   );

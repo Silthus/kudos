@@ -2,8 +2,10 @@ import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyTeamsReplacedEventValidator } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
+import { customEmojiImageOf } from "../workspace/customEmoji";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
-import { emojiLevels, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
+import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
+import { isClassed } from "./emojiClasses";
 import type { MilestoneId, MilestoneTier } from "./records";
 import { standardEmojiNames } from "./standardEmojiNames";
 
@@ -33,6 +35,50 @@ export async function teamEmojiNameOf(ctx: MutationCtx, workspace: string, team:
 async function openTheRegistryOrNameItsTeamsIn(ctx: MutationCtx, workspace: string) {
   if ((await registeredAs(ctx, workspace, firstUse)) === null) await reserveSharedNamesIn(ctx, workspace);
   else await reserveCompanyTeamNamesIn(ctx, workspace);
+}
+
+export async function namesHeldIn(ctx: QueryCtx, workspace: string): Promise<Map<string, EarnedEmojiId>> {
+  const rows = await ctx.db
+    .query("emojiNames")
+    .withIndex("by_workspace_name", (q) => q.eq("workspace", workspace))
+    .collect();
+  return new Map(rows.map((row) => [row.name, emojiIdOf(row)]));
+}
+
+export async function openTheRegistryIn(ctx: MutationCtx, workspace: string): Promise<void> {
+  await reserveSharedNamesIn(ctx, workspace);
+}
+
+export async function giveEmojiTheName(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiId, name: string): Promise<void> {
+  const named = await registeredAs(ctx, workspace, emoji);
+  if (named?.name === name) return;
+  await freeTheName(ctx, workspace, name);
+  if (named === null) await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name });
+  else await ctx.db.patch(named._id, { name });
+}
+
+export async function freeTheName(ctx: MutationCtx, workspace: string, name: string): Promise<void> {
+  const holder = await holderOf(ctx, workspace, name);
+  if (holder === null) return;
+  const shape = await naturalShapeOf(ctx, emojiIdOf(holder));
+  await ctx.db.patch(holder._id, { name: await firstFreeName(ctx, workspace, shape, (candidate) => slackHas(ctx, workspace, candidate)) });
+}
+
+async function slackHas(ctx: QueryCtx, workspace: string, name: string) {
+  return (await customEmojiImageOf(ctx, workspace, name)) !== undefined;
+}
+
+async function naturalShapeOf(ctx: QueryCtx, emoji: EarnedEmojiId): Promise<NameShape> {
+  const [kind, cause] = splitOnce(emoji);
+  if (kind === "level") return { slug: `level-${cause}`, empty: "level", suffix: "" };
+  if (kind === "milestone") return { slug: slugOf(milestoneTierEmojiOf(cause)?.name ?? cause), empty: "milestone", suffix: "" };
+  if (kind === "team") return { slug: slugOf((await companyTeamsOf(ctx)).find(({ team }) => team === cause)?.name ?? cause), empty: "team", suffix: "" };
+  return { slug: slugOf(await fullNameOf(ctx, cause as MemberId)), empty: "person", suffix: hypeSuffix };
+}
+
+function splitOnce(id: string): [string, string] {
+  const colon = id.indexOf(":");
+  return [id.slice(0, colon), id.slice(colon + 1)];
 }
 
 export const reserveTeamNamesAfterTheSync = internalMutation({
@@ -96,14 +142,17 @@ async function allocate(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiI
   await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name: await firstFreeName(ctx, workspace, shape) });
 }
 
-async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty, suffix }: NameShape): Promise<string> {
+type AlsoTaken = (name: string) => Promise<boolean>;
+
+async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty, suffix }: NameShape, alsoTaken: AlsoTaken = async () => false): Promise<string> {
+  const isFreeHere = async (name: string) => (await isFree(ctx, workspace, name)) && !(await alsoTaken(name));
   const plain = `${slug}${suffix}`;
-  if (slug !== "" && (await isFree(ctx, workspace, plain))) return plain;
+  if (slug !== "" && (await isFreeHere(plain))) return plain;
   const stem = slug === "" ? empty : slug;
   const numbering = await numberingOf(ctx, workspace, `${stem}${suffix}`);
   for (let n = (numbering?.last ?? (slug === "" ? 0 : 1)) + 1; ; n += 1) {
     const name = `${stem}-${n}${suffix}`;
-    if (!(await isFree(ctx, workspace, name))) continue;
+    if (!(await isFreeHere(name))) continue;
     if (numbering === null) await ctx.db.insert("emojiNameNumbers", { workspace, stem: `${stem}${suffix}`, last: n });
     else await ctx.db.patch(numbering._id, { last: n });
     return name;
@@ -111,7 +160,7 @@ async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty,
 }
 
 async function isFree(ctx: QueryCtx, workspace: string, name: string) {
-  return !standardEmojiNames.has(name) && !(await nameTaken(ctx, workspace, name));
+  return !standardEmojiNames.has(name) && !(await nameTaken(ctx, workspace, name)) && !(await isClassed(ctx, workspace, name));
 }
 
 function numberingOf(ctx: QueryCtx, workspace: string, stem: string) {
@@ -138,10 +187,21 @@ function goldKeepsTheKeyItHadAlone(emoji: EarnedEmojiId): string {
   return emoji.replace(/^(milestone:[a-z]+):gold$/, "$1");
 }
 
-async function nameTaken(ctx: QueryCtx, workspace: string, name: string) {
-  const owner = await ctx.db
+function goldOfTheKeyItHadAlone(storedKey: string): string {
+  return storedKey.replace(/^(milestone:[a-z]+)$/, "$1:gold");
+}
+
+function emojiIdOf({ emoji, person }: { emoji: string; person?: MemberId }): EarnedEmojiId {
+  return (person === undefined ? goldOfTheKeyItHadAlone(emoji) : `hype:${person}`) as EarnedEmojiId;
+}
+
+function holderOf(ctx: QueryCtx, workspace: string, name: string) {
+  return ctx.db
     .query("emojiNames")
     .withIndex("by_workspace_name", (q) => q.eq("workspace", workspace).eq("name", name))
     .unique();
-  return owner !== null;
+}
+
+async function nameTaken(ctx: QueryCtx, workspace: string, name: string) {
+  return (await holderOf(ctx, workspace, name)) !== null;
 }

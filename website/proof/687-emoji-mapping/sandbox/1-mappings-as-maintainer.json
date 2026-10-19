@@ -1,0 +1,350 @@
+{
+ "emoji": [
+  {
+   "image": "https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-large/1f6a8.png",
+   "mapping": {
+    "kind": "team",
+    "team": "proof-696-beaconsa"
+   },
+   "name": "beacons-a"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/bowtie/f3ec6f2bb0.png",
+   "mapping": null,
+   "name": "bowtie"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/cubimal_chick/85961c43d7.png",
+   "mapping": null,
+   "name": "cubimal_chick"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/dusty_stick/6177a62312.png",
+   "mapping": null,
+   "name": "dusty_stick"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/glitch_crab/db049f1f9c.png",
+   "mapping": null,
+   "name": "glitch_crab"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/piggy/b7762ee8cd.png",
+   "mapping": {
+    "kind": "team",
+    "team": "proof-652-inslacka"
+   },
+   "name": "piggy"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/pride/56b1bd3388.png",
+   "mapping": null,
+   "name": "pride"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/squirrel/465f40c0e0.png",
+   "mapping": null,
+   "name": "shipit"
+  },
+  {
+   "image": "https://a.slack-edge.com/80588/img/emoji_2017_12_06/apple/simple_smile.png",
+   "mapping": null,
+   "name": "simple_smile"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/slack/7d462d2443.png",
+   "mapping": null,
+   "name": "slack"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/slack_call/b81fffd6dd.png",
+   "mapping": null,
+   "name": "slack_call"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/slackbot/61c7997146.png",
+   "mapping": null,
+   "name": "slackbot"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/squirrel/465f40c0e0.png",
+   "mapping": null,
+   "name": "squirrel"
+  },
+  {
+   "image": "https://emoji.slack-edge.com/T0C3US298SH/thumbsup_all/50096a1020.png",
+   "mapping": null,
+   "name": "thumbsup_all"
+  }
+ ],
+ "kind": "mappings",
+ "levels": [
+  5,
+  10,
+  15,
+  20,
+  25
+ ],
+ "milestones": [
+  {
+   "milestone": "people",
+   "name": "Full of friends"
+  },
+  {
+   "milestone": "teams",
+   "name": "Most of the company"
+  },
+  {
+   "milestone": "reach",
+   "name": "Well travelled"
+  },
+  {
+   "milestone": "hoggies",
+   "name": "Hoarder"
+  },
+  {
+   "milestone": "thoughtful",
+   "name": "Heart of the team"
+  }
+ ],
+ "more": false,
+ "people": "152 people, names left out",
+ "teams": [
+  {
+   "name": "Agent Infrastructure",
+   "team": "agent-infrastructure"
+  },
+  {
+   "name": "AI Observability",
+   "team": "ai-observability"
+  },
+  {
+   "name": "AI Research",
+   "team": "ai-research"
+  },
+  {
+   "name": "APM",
+   "team": "apm"
+  },
+  {
+   "name": "Batch Exports",
+   "team": "batch-exports"
+  },
+  {
+   "name": "Beacons A",
+   "team": "proof-696-beaconsa"
+  },
+  {
+   "name": "Beacons B",
+   "team": "proof-696-beaconsb"
+  },
+  {
+   "name": "Billing",
+   "team": "billing"
+  },
+  {
+   "name": "Blitzscale",
+   "team": "blitzscale"
+  },
+  {
+   "name": "Builder Relations",
+   "team": "builder-relations"
+  },
+  {
+   "name": "ClickHouse",
+   "team": "clickhouse"
+  },
+  {
+   "name": "Client Libraries",
+   "team": "client-libraries"
+  },
+  {
+   "name": "Cloud Foundations",
+   "team": "cloud-foundations"
+  },
+  {
+   "name": "Cloud Platform",
+   "team": "cloud-platform"
+  },
+  {
+   "name": "Context & MCP",
+   "team": "context-and-mcp"
+  },
+  {
+   "name": "Conversations",
+   "team": "conversations"
+  },
+  {
+   "name": "Customer Analytics",
+   "team": "customer-analytics"
+  },
+  {
+   "name": "Customer Success EU",
+   "team": "customer-success-eu"
+  },
+  {
+   "name": "Customer Success NA North",
+   "team": "customer-success-na-north"
+  },
+  {
+   "name": "Customer Success NA West",
+   "team": "customer-success-na-west"
+  },
+  {
+   "name": "Data Modeling",
+   "team": "data-modeling"
+  },
+  {
+   "name": "Data Tools",
+   "team": "data-tools"
+  },
+  {
+   "name": "Demand Gen",
+   "team": "demand-gen"
+  },
+  {
+   "name": "Developer Experience",
+   "team": "developer-experience"
+  },
+  {
+   "name": "Developer Marketing",
+   "team": "developer-marketing"
+  },
+  {
+   "name": "Editorial",
+   "team": "editorial"
+  },
+  {
+   "name": "Error Tracking",
+   "team": "error-tracking"
+  },
+  {
+   "name": "Experiments",
+   "team": "experiments"
+  },
+  {
+   "name": "Feature Flags",
+   "team": "feature-flags"
+  },
+  {
+   "name": "Finance",
+   "team": "finance"
+  },
+  {
+   "name": "Forward Deployed Engineering",
+   "team": "forward-deployed-engineering"
+  },
+  {
+   "name": "Graphics",
+   "team": "graphics"
+  },
+  {
+   "name": "Growth",
+   "team": "growth"
+  },
+  {
+   "name": "GTM Engineering",
+   "team": "gtm-engineering"
+  },
+  {
+   "name": "Ingestion",
+   "team": "ingestion"
+  },
+  {
+   "name": "MCP Analytics",
+   "team": "mcp-analytics"
+  },
+  {
+   "name": "New Business Sales",
+   "team": "sales-cs"
+  },
+  {
+   "name": "Onboarding",
+   "team": "onboarding"
+  },
+  {
+   "name": "People & Ops",
+   "team": "people"
+  },
+  {
+   "name": "Platform Features",
+   "team": "platform-features"
+  },
+  {
+   "name": "Platform UX",
+   "team": "platform-ux"
+  },
+  {
+   "name": "Product Analytics",
+   "team": "product-analytics"
+  },
+  {
+   "name": "Product-Led Sales East",
+   "team": "sales-product-led"
+  },
+  {
+   "name": "Product-Led Sales West",
+   "team": "product-led-sales-west"
+  },
+  {
+   "name": "Query Performance",
+   "team": "query-performance"
+  },
+  {
+   "name": "Replay",
+   "team": "replay"
+  },
+  {
+   "name": "RevOps",
+   "team": "revops"
+  },
+  {
+   "name": "Security",
+   "team": "security"
+  },
+  {
+   "name": "Self-Driving",
+   "team": "self-driving"
+  },
+  {
+   "name": "Support",
+   "team": "support"
+  },
+  {
+   "name": "Surfaces",
+   "team": "surfaces"
+  },
+  {
+   "name": "Talent",
+   "team": "talent"
+  },
+  {
+   "name": "Video",
+   "team": "youtube"
+  },
+  {
+   "name": "Warehouse",
+   "team": "warehouse"
+  },
+  {
+   "name": "Warehouse Sources",
+   "team": "warehouse-sources"
+  },
+  {
+   "name": "Web Analytics",
+   "team": "web-analytics"
+  },
+  {
+   "name": "Website",
+   "team": "website"
+  },
+  {
+   "name": "Wizard & Docs",
+   "team": "wizard-and-docs"
+  },
+  {
+   "name": "Workflows",
+   "team": "workflows"
+  }
+ ]
+}
