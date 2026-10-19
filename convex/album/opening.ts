@@ -6,6 +6,7 @@ import { dropFor, dropOf, packOf, type Drop } from "../hoggies/drops";
 import { hoggiesShownTo } from "../hoggies/flag";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
+import { dropRandomEmojiFrom } from "./randomEmojis";
 import { tallyPackOpened } from "./tallies";
 
 export const mostTrayItemsShown = 100;
@@ -25,6 +26,7 @@ export async function openThoughtfulPack(ctx: MutationCtx, member: MemberId, pac
   if (drop === null) return null;
   await ctx.db.patch(pack, { openedAt: at });
   await tallyPackOpened(ctx, member, at);
+  await dropRandomEmojiFrom(ctx, member, pack, crate, at);
   return { items: await intoTheTray(ctx, waiting, drop, at), applied: await packOf(ctx, member, crate) };
 }
 
