@@ -14,6 +14,12 @@ export function randomEmojisShownTo(ctx: QueryCtx, member: MemberId): Promise<bo
   return memberDecisionWithoutWriting(ctx, randomEmojisFlag, member);
 }
 
+export const emojiWizardFlag = { key: "emoji-wizard", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function emojiWizardShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, emojiWizardFlag, member);
+}
+
 export type AlbumShown = { album?: true };
 
 export async function albumOnProfileOf(ctx: QueryCtx, member: MemberId): Promise<AlbumShown> {

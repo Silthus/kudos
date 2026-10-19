@@ -25,6 +25,7 @@ import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
 import type { Direction, RecentKudosShown } from "./recentKudosRead";
 import type { EmojiMappingsShown } from "./emojiMappingsRead";
+import type { AppEmojisShown, SlackEmojiMatchesShown } from "./emojiWizardReads";
 import type { SettingsShown } from "./settingsRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { ActivityFilter } from "./route";
@@ -66,6 +67,8 @@ function LiveApp() {
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useEmojiMappings={(asking) => useLiveEmojiMappings(asking, unreachable)}
+      useSlackEmojiMatches={(near, search) => useLiveSlackEmojiMatches(near, search, unreachable)}
+      useAppEmojis={(asking) => useLiveAppEmojis(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking, period) => useLiveThoughtfulBoards(asking, period, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
@@ -211,6 +214,22 @@ function useLiveEmojiMappings(asking: boolean, unreachable: boolean): EmojiMappi
   return mappings;
 }
 
+function useLiveSlackEmojiMatches(near: string, search: string, unreachable: boolean): SlackEmojiMatchesShown | undefined {
+  const request = useMemo((): RequestForQueries => ({ matches: { query: api.website.emojiWizard.findSlackEmojis, args: { near, search } } }), [near, search]);
+  const { matches } = useQueries(request);
+  if (matches instanceof Error) return { kind: "broken" };
+  if (matches === undefined && unreachable) return { kind: "connecting" };
+  return matches;
+}
+
+function useLiveAppEmojis(asking: boolean, unreachable: boolean): AppEmojisShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { emojis: { query: api.website.emojiWizard.getAppEmojis, args: {} } } : {}), [asking]);
+  const { emojis } = useQueries(request);
+  if (emojis instanceof Error) return { kind: "broken" };
+  if (emojis === undefined && unreachable) return { kind: "connecting" };
+  return emojis;
+}
+
 function useLiveProfileCard(asking: boolean): ProfileCardShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { card: { query: api.website.profileCard.getProfileCard, args: {} } } : {}), [asking]);
   const { card } = useQueries(request);
@@ -268,6 +287,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const linkCompanyProfile = useSentOnce(api.website.commands.linkCompanyProfile);
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
   const mapSlackEmoji = useSentOnce(api.website.emojiMappings.mapSlackEmoji);
+  const mapMyEmoji = useSentOnce(api.website.emojiWizard.mapMyEmoji);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
   const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
   const unlockTeamSticker = useSentOnce(api.website.album.unlockTeamSticker);
@@ -290,6 +310,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       linkCompanyProfile: (member, profile) => answerWithin(commandAnswerBudgetMs, linkCompanyProfile({ member, profile })),
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
       mapSlackEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapSlackEmoji({ emoji, to })),
+      mapMyEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapMyEmoji({ emoji, to })),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
       openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
       unlockTeamSticker: (team) => answerWithin(commandAnswerBudgetMs, unlockTeamSticker({ team })),
@@ -303,7 +324,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, mapSlackEmoji, setAvatar, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, mapSlackEmoji, mapMyEmoji, setAvatar, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, onSignInFailure],
   );
 }
 

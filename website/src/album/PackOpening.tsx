@@ -2,7 +2,7 @@ import { IconX } from "@posthog/icons";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Rarity } from "../shell";
-import type { Album, AlbumLevel, PackOpenReply, WaitingPack } from "./answer";
+import type { Album, AlbumLevel, PackOpenReply, WaitingPack, AlbumEmoji } from "./answer";
 import { plural } from "./facts";
 import {
   beatAfter,
@@ -24,6 +24,7 @@ import {
 import { keepFocusIn } from "./focusTrap";
 import { CardBack, Confetti, HoggieCard, PackWrapper, PersonCard, Ring, Shine, Sparkles } from "./PackCards";
 import "./opening.css";
+import { FindInSlackWhileOn, useLiveEmoji } from "./findInSlack";
 
 export type Held = { level: AlbumLevel | null; tray: number | null };
 
@@ -263,12 +264,7 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
           <CardSlot label={personUp ? cardNameOf(contents.thanked) : "The person card, face down"} up={personUp} glow={null} flourish={celebrating && beat === "person"} back={<CardBack />}>
             <PersonCard thanked={contents.thanked} team={shownTeamOf(contents.sticker)} />
             {personUp && contents.sticker.hype !== null && (
-              <span className="al-hype ph-no-capture">
-                <img src={contents.sticker.hype.picture} alt="" className="al-hype-picture" />
-                <span>
-                  + <span className="al-emoji-name">:{contents.sticker.hype.name}:</span> unlocked
-                </span>
-              </span>
+              <HypeUnlocked hype={contents.sticker.hype} />
             )}
           </CardSlot>
         )}
@@ -282,6 +278,7 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
       <div className="al-turn-caption" key={beat}>
         <Caption contents={contents} beat={beat} />
         {ended ? <EndActions waitingAfter={waitingAfter} disabled={flying} onFinish={onFinish} onPutAllIn={onPutAllIn} /> : <TurnActions contents={contents} beat={beat} onTurn={onTurn} onSkip={onSkip} />}
+        {ended && contents.sticker?.hype && <HypeInSlack hype={contents.sticker.hype} />}
       </div>
     </div>
   );
@@ -354,6 +351,28 @@ function TeamLines({ contents }: { contents: PackContents }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function HypeUnlocked({ hype }: { hype: AlbumEmoji }) {
+  const { name, picture } = useLiveEmoji(hype);
+  return (
+    <span className="al-hype ph-no-capture">
+      <img src={picture} alt="" className="al-hype-picture" />
+      <span>
+        + <span className="al-emoji-name">:{name}:</span> unlocked
+      </span>
+    </span>
+  );
+}
+
+function HypeInSlack({ hype }: { hype: AlbumEmoji }) {
+  const live = useLiveEmoji(hype);
+  if (live.inSlack) return null;
+  return (
+    <p className="al-opening-in-slack">
+      <FindInSlackWhileOn emoji={live} />
+    </p>
   );
 }
 

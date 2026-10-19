@@ -3,6 +3,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { bundleSize, earnedFromWords, momentsOwedOf, whyWords } from "./emojiShelf";
+import { FindInSlackWhileOn, useLiveEmoji } from "./findInSlack";
 import { keepFocusIn } from "./focusTrap";
 import { MomentSlackLine } from "./MomentSlackLine";
 import "./emoji.css";
@@ -97,7 +98,8 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
   );
 }
 
-function OneEmoji({ emoji, described, reduced }: { emoji: AlbumEmoji; described: string; reduced: boolean }) {
+function OneEmoji({ emoji: playing, described, reduced }: { emoji: AlbumEmoji; described: string; reduced: boolean }) {
+  const emoji = useLiveEmoji(playing);
   return (
     <div className="al-emoji-moment-card">
       <p className="al-emoji-moment-kicker">New emoji unlocked</p>
@@ -112,6 +114,7 @@ function OneEmoji({ emoji, described, reduced }: { emoji: AlbumEmoji; described:
         {whyWords(emoji)}
       </p>
       <MomentSlackLine emoji={emoji} short={false} id={`${described}-use`} className="al-emoji-moment-use" />
+      <FindInSlackWhileOn emoji={emoji} />
     </div>
   );
 }

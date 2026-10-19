@@ -44,6 +44,7 @@ export type Album = {
   moreEmojis: boolean;
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
+  emojiWizard: boolean;
   milestones: AlbumMilestone[];
   gettingStarted: GettingStarted | null;
 };
@@ -149,7 +150,7 @@ export type PersonPage = {
   hugsReceived: number;
   best: AlbumKudos | null;
   teams: PersonTeam[];
-  hype: { earned: boolean; name: string | null };
+  hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean };
 };
 
 export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };

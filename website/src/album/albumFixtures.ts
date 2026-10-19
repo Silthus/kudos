@@ -132,6 +132,7 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugge
     moreEmojis: false,
     sharedEmojis: null,
     emojiPage,
+    emojiWizard: false,
     milestones,
     gettingStarted,
   };
@@ -211,7 +212,7 @@ export function fixturePersonOf(album: Album, person: string): PersonPage | { ki
       .filter(({ team }) => listed.teams.includes(team))
       .map(({ team, name, art }) => ({ team, name, art }))
       .toSorted((one, other) => one.name.localeCompare(other.name)),
-    hype: { earned: album.emojis.some(({ id, earned }) => earned && id === `hype:${person}`), name: `${person}-hype` },
+    hype: { earned: album.emojis.some(({ id, earned }) => earned && id === `hype:${person}`), name: `${person}-hype`, picture: "/emoji/hype.png", inSlack: album.emojis.find(({ id }) => id === `hype:${person}`)?.inSlack ?? false },
   };
 }
 
