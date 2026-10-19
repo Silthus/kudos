@@ -781,10 +781,14 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     moreTray: false,
   };
 
-  it("a member getMyProfile says album for gets the album from one getAlbum subscription, with what the read doesn't answer yet left empty", async () => {
+  function showTheAlbum(album: unknown, otherReads: (query: string, args: unknown) => unknown = () => undefined) {
     preferWideScreen();
     profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : undefined));
+    boardRead.mockImplementation((query: string, args: unknown) => (query === "website/album:getAlbum" ? album : otherReads(query, args)));
+  }
+
+  it("a member getMyProfile says album for gets the album from one getAlbum subscription, with what the read doesn't answer yet left empty", async () => {
+    showTheAlbum(albumV1);
     window.history.replaceState(null, "", "/");
 
     renderLiveSite();
@@ -801,14 +805,12 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL23: the emoji button counts the earned emojis getAlbum answers, and none of its locked ones; an answer that doesn't say what earns each yet still lists them, named after themselves", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const emojis = [
       { id: "level:5", kind: "level", name: "level-5", picture: "/emoji/level-5.png", earned: true, seen: false, inSlack: false, progress: null },
       { id: "hype:m-ines", kind: "hype", name: "ines-okafor-hype", picture: "/emoji/hype.png", earned: true, seen: true, inSlack: true, progress: null },
       { id: "level:10", kind: "level", name: "level-10", picture: "/emoji/level-10.png", earned: false, seen: false, inSlack: false, progress: { have: 700, need: 3600 } },
     ];
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, emojis, moreEmojis: false, sharedEmojis: null } : undefined));
+    showTheAlbum({ ...albumV1, emojis, moreEmojis: false, sharedEmojis: null });
     const { user } = renderLiveSite();
 
     const bar = within((await screen.findAllByRole("banner"))[0]!);
@@ -817,8 +819,6 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL49: /leaderboard reads the boards from one getThoughtfulBoards subscription, which no other album page opens", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const boards = {
       kind: "boards",
       people: [{ person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" }, teams: ["lanterns"], thoughtful: 4, you: false, rank: 1, tied: false }],
@@ -826,7 +826,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
       pinned: { me: { person: "m-juno", name: "Juno Park", face: { kind: "initials", initials: "JP" }, teams: ["lanterns"], thoughtful: 0, you: true, rank: null, tied: false }, teams: [{ team: "lanterns", name: "Lanterns", art: null, thoughtful: 4, mine: true, rank: 1, tied: false }] },
       onTheBoards: true,
     };
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getThoughtfulBoards" ? boards : undefined));
+    showTheAlbum(albumV1, (query) => (query === "website/album:getThoughtfulBoards" ? boards : undefined));
     window.history.replaceState(null, "", "/book#milestones");
     const { user } = renderLiveSite();
     await screen.findByRole("heading", { level: 1, name: "Milestones" });
@@ -845,8 +845,6 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL48: /activity reads this week's issue from one getAlbumWeek subscription with no week, then the picked week's, which no other album page opens", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const quiet = { kudosGiven: 0, kudosReceived: 0, thoughtfulGiven: 0, thoughtfulReceived: 0, hugsGiven: 0, hugsReceived: 0, packsOpened: 0, days: [0, 0, 0, 0, 0, 0, 0], kudosOfWeek: null, thanked: { people: [], more: 0 }, thankedBy: { people: [], more: 0 }, hugged: { people: [], more: 0 }, huggedBy: { people: [], more: 0 }, newFaces: { people: [], more: 0 }, hoggies: { hoggies: [], more: 0 }, given: { kudos: [], more: false }, received: { kudos: [], more: false } };
     const weeks = [{ week: "2026-10-12", days: [0, 1, 0, 0, 0, 0, 0] }, { week: "2026-10-05", days: quiet.days }];
     const ines = { person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" } };
@@ -854,7 +852,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const thisWeek = { kind: "week", week: "2026-10-12", weeks, issue: { ...quiet, kudosGiven: 1, thoughtfulGiven: 1, days: weeks[0]!.days, thanked: { people: [ines], more: 0 }, given: { kudos: [thanksToInes], more: false } } };
     const lastWeek = { kind: "week", week: "2026-10-05", weeks, issue: quiet };
     const weekAnswer = (args: { week?: string }) => (args.week === "2026-10-05" ? lastWeek : thisWeek);
-    boardRead.mockImplementation((query: string, args: unknown) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : undefined));
+    showTheAlbum(albumV1, (query, args) => (query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : undefined));
     window.history.replaceState(null, "", "/book#milestones");
     const { user } = renderLiveSite();
     await screen.findByRole("heading", { level: 1, name: "Milestones" });
@@ -872,10 +870,8 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("the people getAlbum holds are found in the sidebar, before their teams are answered", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const ines = { person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" }, held: true };
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, people: [ines] } : undefined));
+    showTheAlbum({ ...albumV1, people: [ines] });
     const user = userEvent.setup();
 
     renderLiveSite();
@@ -886,13 +882,11 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL18: the member's team page counts the held people getAlbum's team pages name, and none on another team", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const face = { kind: "initials", initials: "XX" };
     const people = ["m-ines", "m-omar", "m-pia"].map((person) => ({ person, name: person, face, held: true }));
     const lanterns = { team: "lanterns", name: "Lanterns", art: null, mine: true, people: ["m-ines", "m-omar", "m-sol"], unmatched: [], held: 2, total: 3, state: "progress", unlockedAt: null };
     const comets = { ...lanterns, team: "comets", name: "Comets", mine: false, people: ["m-pia"], held: 1, total: 1, state: "ready" };
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [lanterns, comets], people } : undefined));
+    showTheAlbum({ ...albumV1, teams: [lanterns, comets], people });
     window.history.replaceState(null, "", "/book#teams/lanterns");
 
     renderLiveSite();
@@ -902,14 +896,12 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL45: the class photo names the people getAlbum lists as not held yet, as silhouettes", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const people = [
       { person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" }, held: true },
       { person: "m-omar", name: "Omar Siddiqui", face: { kind: "initials", initials: "OS" }, held: false },
     ];
     const lanterns = { team: "lanterns", name: "Lanterns", art: null, mine: true, people: ["m-ines", "m-omar"], unmatched: [], held: 1, total: 2, state: "progress", unlockedAt: null };
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [lanterns], people } : undefined));
+    showTheAlbum({ ...albumV1, teams: [lanterns], people });
     window.history.replaceState(null, "", "/book#teams/lanterns");
 
     renderLiveSite();
@@ -919,10 +911,8 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL46: a person page subscribes to getAlbumPerson for the person in its address, and only there", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const omar = { kind: "person", person: "m-omar", name: "Omar Siddiqui", face: { kind: "initials", initials: "OS" }, held: true, firstThankedAt: null, kudosGiven: 2, kudosReceived: 1, hugsGiven: 0, hugsReceived: 3, best: null, teams: [], hype: { earned: false, name: "omar-siddiqui-hype" } };
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getAlbumPerson" ? omar : undefined));
+    showTheAlbum(albumV1, (query) => (query === "website/album:getAlbumPerson" ? omar : undefined));
     window.history.replaceState(null, "", "/book#people/m-omar");
 
     renderLiveSite();
@@ -932,10 +922,8 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL45: unlocking a team sticker sends its one unlockTeamSticker over HTTP with the session's token, never through the socket's queue", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     const comets = { team: "comets", name: "Comets", art: null, mine: false, people: ["m-pia"], unmatched: [], held: 1, total: 1, state: "ready", unlockedAt: null };
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [comets], people: [{ person: "m-pia", name: "Pia Lund", face: { kind: "initials", initials: "PL" }, held: true }] } : undefined));
+    showTheAlbum({ ...albumV1, teams: [comets], people: [{ person: "m-pia", name: "Pia Lund", face: { kind: "initials", initials: "PL" }, held: true }] });
     sentOverHttp.mockReturnValue(new Promise(() => undefined));
     window.history.replaceState(null, "", "/book#teams/comets");
     const { user } = renderLiveSite();
@@ -946,22 +934,18 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
   });
 
   it("AL47: ripping a pack sends its one openThoughtfulPack over HTTP with the session's token, never through the socket's queue", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : undefined));
+    showTheAlbum({ ...albumV1, packs: albumV1.packs.map((pack) => ({ ...pack, thanked: { name: "Ines Okafor", face: { kind: "initials", initials: "IO" } } })) });
     sentOverHttp.mockReturnValue(new Promise(() => undefined));
     const { user } = renderLiveSite();
 
     await user.click(await within((await screen.findAllByRole("banner"))[0]!).findByRole("button", { name: "Open your packs, 1 waiting" }));
-    await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking a teammate" }));
+    await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking Ines Okafor" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:openThoughtfulPack", args: { pack: "p-1" } });
   });
 
   it("AL11: Put in and Put them all in send putIn and putAllIn over HTTP with the session's token, never through the socket's queue", async () => {
-    preferWideScreen();
-    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
-    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, tray: [...albumV1.tray, { item: "t-2", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] } : undefined));
+    showTheAlbum({ ...albumV1, tray: [...albumV1.tray, { item: "t-2", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] });
     sentOverHttp.mockResolvedValue({ kind: "refused" });
     const { user } = renderLiveSite();
     const bar = within((await screen.findAllByRole("banner"))[0]!);
@@ -976,6 +960,24 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
       [{ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:putIn", args: { item: "t-2" } }],
       [{ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:putAllIn", args: {} }],
     ]);
+  });
+
+  it("#718: an answer from a getAlbum and a putIn without the thanked person, as an older backend sends during a rollback, still lists and puts in the card, and opens the pack, for a teammate", async () => {
+    showTheAlbum(albumV1);
+    sentOverHttp.mockResolvedValueOnce({ kind: "placed", item: albumV1.tray[0] }).mockResolvedValueOnce({ kind: "opened", items: [{ item: "t-9", kind: "sticker", person: "m-ines" }], applied: null });
+    const { user } = renderLiveSite();
+    const bar = within((await screen.findAllByRole("banner"))[0]!);
+
+    await user.click(await bar.findByRole("button", { name: "Tray, 1 to put in" }));
+    expect(screen.getByRole("region", { name: "Tray" })).toHaveTextContent("A teammate");
+    await user.click(screen.getByRole("button", { name: "Put your teammate's card in" }));
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledOnce());
+    expect(await bar.findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await user.click(bar.getByRole("button", { name: "Open your packs, 1 waiting" }));
+    expect(screen.getByText("For thanking a teammate")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Rip open the pack for thanking a teammate" }));
+    expect(await screen.findByRole("button", { name: "Turn the card" })).toBeInTheDocument();
   });
 
   it("while getAlbum answers off, the album waits, and a member without album never subscribes to getAlbum", async () => {

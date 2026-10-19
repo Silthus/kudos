@@ -1,0 +1,44 @@
+{
+  "packs": [],
+  "tray": [
+    {
+      "item": "jn7ppcfg4jq81rk1jn9z9g0xp58gkjdr",
+      "kind": "sticker",
+      "person": "js78hxnkbet5yxxhxtr5t6w44d8gkgma",
+      "thanked": {
+        "face": {
+          "image": "https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50.jpg?s=192",
+          "initials": "MA",
+          "kind": "slack"
+        },
+        "name": "Maximiliane Aurelia Konstantinopoulou-Wetherington"
+      }
+    },
+    {
+      "hoggie": "greek",
+      "isNew": true,
+      "item": "jn7n5rbsx4eghfttbdq86t3e9x8gk0gk",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    },
+    {
+      "item": "jn7k1nrp1zj6rcj7g5fd8g5x298gkxdq",
+      "kind": "sticker",
+      "person": "js729xb33c93arcaqx2htf1j498gke3f",
+      "thanked": {
+        "face": {
+          "initials": "PL",
+          "kind": "initials"
+        },
+        "name": "Pim Lark"
+      }
+    },
+    {
+      "hoggie": "terminator",
+      "isNew": true,
+      "item": "jn7gmjpba6sjckaw9afmse9ck58gkrty",
+      "kind": "hoggie",
+      "rarity": "epic"
+    }
+  ]
+}

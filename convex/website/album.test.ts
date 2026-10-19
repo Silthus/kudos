@@ -168,6 +168,60 @@ describe("AL40: getAlbum shows the member's face without reading the directory",
   });
 });
 
+describe("AL47: each waiting pack names the person it thanks, with the face the opening shows", () => {
+  test("a person on a team page shows their stored company face, a person on no page their name and initials, though neither is in the album yet", async () => {
+    await switchWebsite(t, postHog, true, "album", "team-pages");
+    postHogCom.withTeams({ slug: "lanterns", name: "Lanterns", profiles: [{ id: 8, firstName: "Bob", lastName: "Okonkwo", colour: "teal", cutout: aCutout("bob") }] });
+    await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+    await thanks(alice, "Thanks for the careful review of the billing export", bob, carol);
+    await settle(t);
+
+    const album = (await albumOf(await signedIn(alice))) as AlbumRead;
+
+    expect(album.kind === "album" ? album.people.filter(({ held }) => held) : album).toEqual([]);
+    expect(album.kind === "album" ? album.packs.map(({ thanked }) => thanked) : album).toEqual([
+      { name: bob.name, face: expect.objectContaining({ kind: "company-profile", image: expect.stringContaining("bob"), initials: "BO" }) },
+      { name: carol.name, face: { kind: "initials", initials: "CL" } },
+    ]);
+  });
+
+  test("an opened pack's sticker waits in the tray naming the person, with the same face", async () => {
+    await switchWebsite(t, postHog, true, "album", "collection", "packs");
+    await thanks(alice, "Thanks for the careful review of the billing export", carol);
+    const asAlice = await signedIn(alice);
+    const before = (await albumOf(asAlice)) as AlbumRead;
+    for (const { pack } of before.kind === "album" ? before.packs : []) await asAlice.mutation(api.website.album.openThoughtfulPack, { pack });
+    await settle(t);
+
+    const album = (await albumOf(asAlice)) as AlbumRead;
+
+    expect(album.kind === "album" ? album.tray.filter(({ kind }) => kind === "sticker") : album).toEqual([expect.objectContaining({ person: await memberOf(carol), thanked: { name: carol.name, face: { kind: "initials", initials: "CL" } } })]);
+  });
+});
+
+describe("AL11: the open, Put in and Put them all in answer each sticker with the person it brings", () => {
+  test("openThoughtfulPack, putIn and putAllIn name the person, with their initials when no picture is stored, as getAlbum's tray does", async () => {
+    await switchWebsite(t, postHog, true, "album", "collection", "packs");
+    await thanks(alice, "Thanks for the careful review of the billing export", carol, dana);
+    const asAlice = await signedIn(alice);
+    const before = (await albumOf(asAlice)) as AlbumRead;
+    const opened = [];
+    for (const { pack } of before.kind === "album" ? before.packs : []) opened.push(await asAlice.mutation(api.website.album.openThoughtfulPack, { pack }));
+    await settle(t);
+    const carolId = await memberOf(carol);
+    const [carolShown, danaShown] = [{ name: carol.name, face: { kind: "initials", initials: "CL" } }, { name: dana.name, face: { kind: "initials", initials: "DF" } }];
+    const stickers = opened.flatMap((answer) => (answer.kind === "opened" ? answer.items.filter((item) => item.kind === "sticker") : []));
+    const carolsSticker = stickers.find(({ person }) => person === carolId);
+
+    const placed = await asAlice.mutation(api.website.album.putIn, { item: carolsSticker!.item });
+    const placedAll = await asAlice.mutation(api.website.album.putAllIn, {});
+
+    expect(stickers.map(({ thanked }) => thanked)).toEqual([carolShown, danaShown]);
+    expect(placed).toMatchObject({ kind: "placed", item: { person: carolId, thanked: carolShown } });
+    expect(placedAll.kind === "placed" ? placedAll.items.filter((item) => item.kind === "sticker").map(({ thanked }) => thanked) : placedAll).toEqual([danaShown]);
+  });
+});
+
 describe("website reads pass one guard", () => {
   test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);
