@@ -1,0 +1,66 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 20
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7syjfhns2aqby7hp8bkhrwa58gjd7h",
+      "kind": "sticker",
+      "person": "js73p5gc3gx81kkmsqdzr8j6q58gjy05"
+    },
+    {
+      "hoggie": "safari",
+      "isNew": true,
+      "item": "jn7m849twsvhxrkpxdbexf5rjd8gknq0",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ],
+  "kind": "opened"
+}
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 50
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7tn5vq4x9aeqeay53qbsdfgn8gj0rp",
+      "kind": "sticker",
+      "person": "js7df50sjf3ggxanckyadn6eqh8gjmg9"
+    },
+    {
+      "hoggie": "heart",
+      "isNew": true,
+      "item": "jn7jtgpmjqzm753gj59k7k3h2s8gkhp9",
+      "kind": "hoggie",
+      "rarity": "common"
+    }
+  ],
+  "kind": "opened"
+}
