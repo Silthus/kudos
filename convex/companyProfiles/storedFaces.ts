@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { publish } from "../bus/publish";
 import { memberRowsIn, type MemberId } from "../workspace/directory";
 import type { CompanyFace } from "./faces";
 import { companyProfilesIn } from "./matcher";
@@ -47,6 +48,7 @@ export const keepCompanyFacesIn = internalMutation({
   returns: v.null(),
   handler: async (ctx, { workspace }) => {
     await keepCompanyFaces(ctx, workspace);
+    await publish(ctx, { type: "companyMatchesKept", workspace, at: Date.now() });
     return null;
   },
 });

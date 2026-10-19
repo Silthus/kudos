@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { journeyStepOpenedBy } from "../quests/step";
 import { earnsPacks } from "../album/earns";
+import { crateKindOf } from "../hoggies/crateKey";
 import type { DomainEvent } from "./events";
 
 type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
@@ -51,14 +52,15 @@ export const subscribers: Registry = {
   memberRejoined: [internal.quests.journey.recheckRejoined],
   primaryGroupChanged: [],
   awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
-  hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped, internal.album.milestones.recordMilestonesAfterAHoggieDrop],
+  hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped, { subscriber: internal.album.milestones.recordMilestonesAfterAHoggieDrop, only: ({ crate }) => crateKindOf(crate) !== "thoughtful" }],
   crateBought: [],
   hugGiven: [internal.hugs.people.payHugPeople, internal.album.tallies.tallyHugGiven, internal.analytics.subscribers.recordHugGiven],
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
   thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned],
   stickerPutIn: [internal.analytics.subscribers.recordAlbumStickerCollected],
-  companyTeamsReplaced: [internal.album.emojiNames.reserveTeamNamesAfterTheSync, internal.album.milestones.recordMilestonesAfterTheSync],
+  companyTeamsReplaced: [internal.album.emojiNames.reserveTeamNamesAfterTheSync],
+  companyMatchesKept: [internal.album.milestones.recordMilestonesAfterTheMatches],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

@@ -22,19 +22,11 @@ export type TeamPage = {
 
 export type PageOwner = { workspace: string; member: MemberId };
 
-export type CompanyCopy = { holders: Map<number, MemberId>; teams: CompanyTeam[] };
-
-export async function companyCopyIn(ctx: QueryCtx, workspace: string): Promise<CompanyCopy> {
-  return { holders: await storedHoldersIn(ctx, workspace), teams: await companyTeamsOf(ctx) };
-}
-
-export async function teamPagesOf(ctx: QueryCtx, owner: PageOwner): Promise<TeamPage[]> {
-  return teamPagesIn(ctx, owner.member, await companyCopyIn(ctx, owner.workspace));
-}
-
-export async function teamPagesIn(ctx: QueryCtx, member: MemberId, { holders, teams }: CompanyCopy): Promise<TeamPage[]> {
+export async function teamPagesOf(ctx: QueryCtx, { workspace, member }: PageOwner): Promise<TeamPage[]> {
+  const holders = await storedHoldersIn(ctx, workspace);
   const held = await peopleHeldBy(ctx, member);
   const unlocked = await teamStickersOf(ctx, member);
+  const teams = await companyTeamsOf(ctx);
   const onPostHogCom = new Set(teams.map(({ team }) => team));
   const listed = teams.map((team) => pageOf(team, member, holders, held, unlocked.get(team.team)));
   const gone = [...unlocked.values()].filter(({ team }) => !onPostHogCom.has(team)).map(goneTeamPageOf);

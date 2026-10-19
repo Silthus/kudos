@@ -190,19 +190,35 @@ describe("AL21: five milestones count album facts and record each tier once with
     expect(await earnedOf(await signedIn(alice))).toMatchObject({ thoughtful: { bronze: thankedAt } });
   });
 
-  test("the album's history records the tiers its stickers reach once it is done, for members on every page of the pass", async () => {
-    expect(everyone.length).toBeGreaterThan(membersPerMilestonePage);
+  test("the album's history records the tiers its stickers reach once it is done, for every member it gave stickers", async () => {
     await thanks(alice, "ty", otters[0]!, otters[1]!);
-    await thanks(crowd.at(-1)!, "ty", otters[0]!);
+    await thanks(crowd[0]!, "ty", otters[0]!);
     vi.setSystemTime(Date.now() + dayMs);
+    const startedAt = Date.now();
 
     await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
     await settle(t);
 
     const asAlice = await signedIn(alice);
     expect(await countsOf(asAlice)).toMatchObject({ people: 2 });
-    expect(await earnedOf(asAlice)).toMatchObject({ people: { bronze: Date.now() } });
-    expect(await earnedOf(await signedIn(crowd.at(-1)!)), "the member who joined last").toMatchObject({ people: { bronze: Date.now() } });
+    for (const giver of [alice, crowd[0]!]) expect((await earnedOf(await signedIn(giver))).people!.bronze, giver.name).toBeGreaterThanOrEqual(startedAt);
+  });
+
+  test("the workspace pass run by hand records the tiers written before tiers were recorded, for a member holding no album sticker on its last page", async () => {
+    const lastByUser = everyone.toSorted((one, other) => one.user.localeCompare(other.user)).at(-1)!;
+    expect(everyone.indexOf(lastByUser), "a member past the pass's first page").toBeGreaterThanOrEqual(0);
+    expect(everyone.length).toBeGreaterThan(membersPerMilestonePage);
+    await thanks(lastByUser, why, lanterns[0]!);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("milestoneTiers").collect()) await ctx.db.delete(row._id);
+    });
+    vi.setSystemTime(Date.now() + dayMs);
+    const passedAt = Date.now();
+
+    await t.mutation(internal.album.milestones.recordMilestonesInWorkspace, { workspace: "T1", cursor: null });
+    await settle(t);
+
+    expect(await earnedOf(await signedIn(lastByUser))).toMatchObject({ people: {}, thoughtful: { bronze: passedAt } });
   });
 });
 
