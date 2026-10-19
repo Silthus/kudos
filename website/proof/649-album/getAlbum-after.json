@@ -1,0 +1,41 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "IV",
+      "kind": "initials"
+    },
+    "name": "Ilsabet Varga",
+    "person": "js76zhcz25fm37qzw9855xk5558gjsyt"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [],
+  "people": [],
+  "tray": [
+    {
+      "item": "jn7v748ncm2f2ybr6r6s9v1eyx8gkjmk",
+      "kind": "sticker",
+      "person": "js70bsq6ss6cq5y49phcxjdt058gk46e"
+    },
+    {
+      "hoggie": "steve-jobs",
+      "isNew": true,
+      "item": "jn7t6yhsnnc5j2a79hc0hbat518gj7d6",
+      "kind": "hoggie",
+      "rarity": "epic"
+    },
+    {
+      "item": "jn7k6p116qqty3ywr138xvak818gkf1h",
+      "kind": "sticker",
+      "person": "js7cmxe3af0n7ny05nkqe4znrh8gj586"
+    }
+  ]
+}

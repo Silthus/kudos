@@ -94,10 +94,11 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: declared-target-coverage dismissed: the surfaces are App Home, the Slack opens, the website's opens, getActivity, getCollection and getBook, each read by the oracle's walk
   checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
   checklist: resumption-coverage dismissed: no batch runs for the collection; a drop is one open's mutation, and widening runs no backfill (CL19)
-- turning collection off takes nothing away: With drops made, turning `collection` off, dropping it from PostHog or unsetting the flags key hides the collection's App Home line, getCollection's collection and every found entry and leaves every drop record and tally as it was; a crate opened while it is off stays without a drop, answering `drop: null` once it is on again; and on again shows the same line, collection and found entries as before.
-  over: a member who dropped twice from App Home, in each of the three off states and on again, read through App Home, getCollection, getActivity and the drop records and tallies, and a feature opened in Slack while off and opened again in Slack and on the website once on
+- turning collection off takes nothing away: With drops made, turning `collection` off, dropping it from PostHog or unsetting the flags key hides the collection's App Home line, getCollection's collection, the album's getAlbumHoggies, which answers off, and every found entry and leaves every drop record and tally as it was; a crate opened while it is off stays without a drop, answering `drop: null` once it is on again; and on again shows the same line, collection and found entries as before.
+  over: a member who dropped twice from App Home, in each of the three off states and on again, read through App Home, getCollection, getActivity and the drop records and tallies; a member with `album` on who found a hoggie, read through getAlbumHoggies with `collection` off and on again; and a feature opened in Slack while off and opened again in Slack and on the website once on
   via: CL11: turning collection off hides every hoggie and takes nothing away; on again shows the same
   refuted: App Home's hoggies line no longer asked whether collection is shown to the member -> 2 of 5 tests failed: with collection off and missing in PostHog, App Home still showed the Hoggies line (2026-10-15)
+  refuted: getAlbumHoggies answered the member's hoggies without deciding collection for them -> 1 of 6 tests failed: with album on and collection off, getAlbumHoggies answered the found hoggies instead of off (2026-10-19)
   because: CL11 promises a rollback takes nothing away: a drop deleted or rewritten while off, or a draw for a crate opened while off, would hand a member a different collection when the flag comes back
   kinds: state, output
   checklist: revalidated-permission dismissed: each read decides `collection` when it runs, never from a value stored while it was on
@@ -105,7 +106,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: revision-preservation declared as a drop never changes
   checklist: supersession-safety dismissed: nothing stored records the flag's value but the exposure
   checklist: commit-ordered-effects dismissed: turning a flag off issues no effect
-  checklist: declared-target-coverage dismissed: the surfaces are App Home, getCollection and getActivity, each read by the oracle
+  checklist: declared-target-coverage dismissed: the surfaces are App Home, getCollection, getActivity and getAlbumHoggies, each read by the oracle
   checklist: destination-confinement dismissed: turning the flag off withholds lines, fields and entries; where Slack calls and answers go is unchanged
   checklist: redaction dismissed: the decision removes the whole line, collection or entry rather than scrubbing content inside it
   checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
