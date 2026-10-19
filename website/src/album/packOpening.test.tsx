@@ -259,8 +259,8 @@ describe("#720: a face-down card shows PostHog's playing-card back", () => {
       const logos = [...(await dialog.findByRole("group", { name })).querySelectorAll(`svg[viewBox="${official.getAttribute("viewBox")}"]`)];
 
       expect(logos.map((logo) => logo.innerHTML)).toEqual([official.innerHTML, official.innerHTML]);
-      expect(logos[0]!.parentElement).not.toHaveAttribute("transform");
-      expect(logos[1]!.parentElement).toHaveAttribute("transform", expect.stringMatching(/^rotate\(180 /));
+      expect(logos[0]!.closest('[transform^="rotate(180 "]')).toBeNull();
+      expect(logos[1]!.closest('[transform^="rotate(180 "]')).not.toBeNull();
     }
   });
 });

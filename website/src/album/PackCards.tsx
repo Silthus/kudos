@@ -1,5 +1,5 @@
-import { Logo } from "@posthog/brand/logo";
 import { useMemo, type CSSProperties } from "react";
+import stackedMonoLogo from "virtual:posthog-stacked-logo";
 import { MemberFace } from "../Face";
 import { hoggiePictureOf } from "../crates/Hoggie";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -100,7 +100,7 @@ export function CardBack() {
 }
 
 function BackLogo() {
-  return <Logo layout="stacked" variant="mono" x={93.5} y={112} width={63} height={56.44} />;
+  return <g transform="translate(93.5 112) scale(0.65625)" dangerouslySetInnerHTML={{ __html: stackedMonoLogo }} />;
 }
 
 function NewRibbon() {
