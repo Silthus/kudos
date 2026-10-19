@@ -1,0 +1,9 @@
+     × lists the workspace's Slack emojis with their pictures and what each one is mapped to, the first 50, saying how many more a search would find 529ms
+     × finds Slack emojis by any part of their name, and filters them by what they are mapped to 373ms
+     × maps a Slack emoji to a team inline and says so once the read shows it 482ms
+     × maps a Slack emoji to a person's hype emoji, found by name 804ms
+     × maps to a milestone, a level and the random drops, and clears a mapping 564ms
+     × keeps Save off until the place is complete and differs from today's, and says when a change is refused 379ms
+     × has no accessibility violations, with an editor open 309ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  7 failed | 2 passed (9)

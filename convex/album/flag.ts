@@ -8,6 +8,12 @@ export function albumShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> 
   return memberDecisionWithoutWriting(ctx, albumFlag, member);
 }
 
+export const randomEmojisFlag = { key: "random-emojis", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function randomEmojisShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, randomEmojisFlag, member);
+}
+
 export type AlbumShown = { album?: true };
 
 export async function albumOnProfileOf(ctx: QueryCtx, member: MemberId): Promise<AlbumShown> {

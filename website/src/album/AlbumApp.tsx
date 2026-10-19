@@ -18,7 +18,7 @@ import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ member, actions, useAlbum, useSettings, useEmojiMappings, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { member: MemberProfile }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   useCanonicalAddress(place, replaceAddress);
@@ -61,7 +61,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         album={album}
         place={place}
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
-        settings={<SettingsAnswerPage settings={settings} actions={actions} withThemeAndSignOut {...answers} />}
+        settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} withThemeAndSignOut {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
