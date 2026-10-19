@@ -51,7 +51,6 @@ export async function putDropIn(ctx: MutationCtx, member: MemberId, crate: Crate
   const copy = await countFound(ctx, member, drop.hoggie, at, await countDrop(ctx, member));
   const crest = await crestRecordedFor(ctx, member, drop.hoggie, copy);
   await ctx.db.patch(waiting._id, { putInAt: at, ...crest });
-  if (crest.crest) await crestsShownFor(ctx, member);
 }
 
 export async function lastFoundBy(ctx: QueryCtx, member: MemberId): Promise<Drop | null> {
