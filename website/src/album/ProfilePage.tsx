@@ -200,7 +200,7 @@ function YourPlace({ standing: { me, onTheBoards } }: { standing: Standing }) {
   );
 }
 
-function MoreLink({ href, children }: { href: string; children: string }) {
+export function MoreLink({ href, children }: { href: string; children: string }) {
   return (
     <AppLink href={href} className="al-profile-more">
       {children} <span aria-hidden="true">→</span>
@@ -208,7 +208,7 @@ function MoreLink({ href, children }: { href: string; children: string }) {
   );
 }
 
-function Section({ title, more, children }: { title: string; more?: ReactNode; children: ReactNode }) {
+export function Section({ title, more, children }: { title: string; more?: ReactNode; children: ReactNode }) {
   const heading = useId();
   return (
     <section className="al-profile-section" aria-labelledby={heading}>
@@ -236,7 +236,7 @@ function Glance({ album, team, hoggies }: { album: Album; team: AlbumTeam | unde
   );
 }
 
-function Tile({ href, label, held, total, footnote, art }: { href: string; label: string; held: number; total: number; footnote: string; art?: ReactNode }) {
+export function Tile({ href, label, held, total, footnote, art }: { href: string; label: string; held: number; total: number; footnote: string; art?: ReactNode }) {
   const foot = useId();
   return (
     <li>
@@ -310,7 +310,7 @@ function HoggieCard({ hoggie: { hoggie, name, rarity, firstAt } }: { hoggie: Fou
   );
 }
 
-function NewestRow({ album, person: { person, name, face, at } }: { album: Album; person: NewestPerson }) {
+export function NewestRow({ album, person: { person, name, face, at } }: { album: Album; person: NewestPerson }) {
   const team = teamNameOf(album, person);
   return (
     <li>

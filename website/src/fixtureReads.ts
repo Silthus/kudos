@@ -29,6 +29,8 @@ const fixtureAlbum = fixedAlbum(albumFixtures.trayed);
 
 const fixtureBoards = fixedBoards(boardsFixtures.week);
 
+const withoutATeam = "album-without-a-team";
+
 const fixturePeople = fixedPeople(albumFixtures.midway);
 const fixtureWeek = fixtureWeeks();
 
@@ -50,8 +52,8 @@ export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads
     drawSpotlight: fixtureSpotlight,
     useSettings: fixture === "album-maintainer" ? fixtureMaintainerSettings : fixtureSettings,
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
-    useAlbum: fixtureAlbum,
-    useThoughtfulBoards: fixtureBoards,
+    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixtureAlbum,
+    useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
     useAlbumProfile: fixtureProfile,

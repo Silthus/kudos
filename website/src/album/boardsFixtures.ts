@@ -63,7 +63,9 @@ const hidden = boardsOf(
 
 const quiet = withUnrankedTeams(boardsOf([], [], sam(["lanterns", "tin-orchard"], 0, { rank: null })), [team("lanterns", "Lanterns", "workflows", 0, { rank: null }, true), team("tin-orchard", "Tin Orchard", "replay", 0, { rank: null }, true)]);
 
-export const boardsFixtures = { week, twoTeams, hidden, quiet } satisfies Record<string, ThoughtfulBoards>;
+const teamless = boardsOf([], [], sam([], 0, { rank: null }));
+
+export const boardsFixtures = { week, twoTeams, hidden, quiet, teamless } satisfies Record<string, ThoughtfulBoards>;
 
 export function fixedBoards(answer: BoardsShown): BoardsRead {
   return (asking) => (asking ? answer : undefined);

@@ -391,6 +391,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-the-book-spread": shellFixtures.memberWithTheBookSpread,
   album: shellFixtures.memberWithTheAlbum,
   "album-maintainer": shellFixtures.memberWithTheAlbum,
+  "album-without-a-team": shellFixtures.memberWithTheAlbum,
   "member-with-packs": shellFixtures.memberWithPacks,
   "member-with-more-packs": shellFixtures.memberWithPacks,
   error: shellFixtures.error,
