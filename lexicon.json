@@ -738,11 +738,15 @@
     },
     {
       "name": "earned emoji",
-      "definition": "A team, milestone, level or hype emoji a member earned, derived on every read from what earns it: a team sticker, a milestone's gold tier, a level of 5, 10, 15, 20 or 25, or a first thoughtful pack for a person (AL23, AL24). Its ID never changes; its name lives in the workspace's emoji name registry, and it is in Slack only while the workspace's custom emoji copy holds that name (AL25, AL30). Not a kudos emoji: it decorates a message and gives nothing."
+      "definition": "A team, milestone, level, hype or random emoji a member earned. The first four are derived on every read from what earns them: a team sticker, a milestone's gold tier, a level of 5, 10, 15, 20 or 25, or a first thoughtful pack for a person (AL23, AL24); a random emoji is held from its stored drop. Its ID never changes; its name lives in the workspace's emoji name registry, which only the maintainer's mapping changes (AL74), and it is in Slack only while the workspace's custom emoji copy holds that name, pictured then as Slack pictures it (AL25, AL30). Not a kudos emoji: it decorates a message and gives nothing."
     },
     {
       "name": "hype emoji",
       "definition": "The earned emoji a member gets for a person with their first thoughtful pack for that person, named from the person's full name with -hype (AL23, AL25). Its picture is the person's face as the directory holds it, their posthog.com cutout, else their Slack picture, else the hype emblem (AL27). A sticker the album's history brought earns none; thanking that person thoughtfully once more does."
+    },
+    {
+      "name": "random emoji",
+      "definition": "A Slack custom emoji the maintainer classes as a random drop in Settings (AL74). An opened thoughtful pack rolls once for one, one time in ten, among the random emojis the member holds no drop of; a drop is stored, so a random emoji is the one earned emoji with a stored cause, and it stays the member's under its Slack name and picture whatever the name is mapped to later."
     }
   ],
   "retired": [

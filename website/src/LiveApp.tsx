@@ -24,6 +24,7 @@ import { useSocketUnreachable } from "./connection";
 import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
 import type { Direction, RecentKudosShown } from "./recentKudosRead";
+import type { EmojiMappingsShown } from "./emojiMappingsRead";
 import type { SettingsShown } from "./settingsRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { ActivityFilter } from "./route";
@@ -64,6 +65,7 @@ function LiveApp() {
       useCollection={(asking) => useLiveCollection(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
+      useEmojiMappings={(asking) => useLiveEmojiMappings(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking, period) => useLiveThoughtfulBoards(asking, period, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
@@ -201,6 +203,14 @@ function useLiveSettings(asking: boolean, unreachable: boolean): SettingsShown |
   return settings;
 }
 
+function useLiveEmojiMappings(asking: boolean, unreachable: boolean): EmojiMappingsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { mappings: { query: api.website.emojiMappings.getEmojiMappings, args: {} } } : {}), [asking]);
+  const { mappings } = useQueries(request);
+  if (mappings instanceof Error) return { kind: "broken" };
+  if (mappings === undefined && unreachable) return { kind: "connecting" };
+  return mappings;
+}
+
 function useLiveProfileCard(asking: boolean): ProfileCardShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { card: { query: api.website.profileCard.getProfileCard, args: {} } } : {}), [asking]);
   const { card } = useQueries(request);
@@ -257,6 +267,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const linkMyCompanyProfile = useSentOnce(api.website.commands.linkMyCompanyProfile);
   const linkCompanyProfile = useSentOnce(api.website.commands.linkCompanyProfile);
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
+  const mapSlackEmoji = useSentOnce(api.website.emojiMappings.mapSlackEmoji);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
   const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
   const unlockTeamSticker = useSentOnce(api.website.album.unlockTeamSticker);
@@ -277,6 +288,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       linkMyCompanyProfile: (profile) => answerWithin(commandAnswerBudgetMs, linkMyCompanyProfile({ profile })),
       linkCompanyProfile: (member, profile) => answerWithin(commandAnswerBudgetMs, linkCompanyProfile({ member, profile })),
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
+      mapSlackEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapSlackEmoji({ emoji, to })),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
       openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
       unlockTeamSticker: (team) => answerWithin(commandAnswerBudgetMs, unlockTeamSticker({ team })),
@@ -289,7 +301,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, mapSlackEmoji, setAvatar, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, onSignInFailure],
   );
 }
 
