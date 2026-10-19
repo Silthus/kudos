@@ -14,6 +14,8 @@ const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
 const why = "Thanks for untangling the flaky migration";
 const albumOpen = ["album", "collection", "packs"];
+const levelNames = ["level-5", "level-10", "level-15", "level-20", "level-25"];
+const milestoneGoldNames = ["full-of-friends", "most-of-the-company", "well-travelled", "hoarder", "heart-of-the-team"];
 
 type Person = { user: string; name: string };
 type Reader = Pick<Backend, "query" | "mutation">;
@@ -124,7 +126,7 @@ describe("AL19: unlocking a team sticker", { timeout: 60_000 }, () => {
 
     expect(await unlock(asAlice, "otters")).toMatchObject({ kind: "unlocked", sticker: { team: "otters", emoji: "otters" } });
 
-    expect(await emojiNamesIn("T1")).toEqual(expect.arrayContaining(["level-5", "lanterns", "otters"]));
+    expect(await emojiNamesIn("T1"), "the registry's names in the order they were reserved").toEqual([...levelNames, ...milestoneGoldNames, "lanterns", "otters"]);
   });
 
   test("a page with nobody to collect is never complete", async () => {
