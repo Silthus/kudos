@@ -1,0 +1,20 @@
+     × a post an admin switched off in another time zone shows the maintainer's own zone, which switching on books 43ms
+     × switching on books the post for next Monday 9:00 in the maintainer's time zone, the read shows it on, and the post goes out then 108ms
+     × switching off stops the booked post, and the read shows it off 33ms
+     × switching on what is already on answers on and books no second post 27ms
+     × a maintainer who is also a workspace admin is exposed to workspace-settings by the website switch 35ms
+     × while monday-post is off for the maintainer, switching off what is already off is refused too 19ms
+     × once the announcement channel is gone, switching on a post that is still stored on is refused 28ms
+     × switches it off and says nothing goes out until it is on again 91ms
+     × says when I couldn't post in the channel last time 52ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+Error: expect(element).toHaveTextContent()
+Error: expect(element).toHaveTextContent()
+AssertionError: expected { cantPost: false, …(4) } to deeply equal { on: false, …(4) }
+AssertionError: expected { kind: 'set', on: true } to deeply equal { kind: 'set' }
+AssertionError: expected { kind: 'set', on: false } to deeply equal { kind: 'set' }
+AssertionError: expected { kind: 'set', on: true } to deeply equal { kind: 'set' }
+AssertionError: expected [] to deeply equal [ Array(1) ]
+AssertionError: expected { kind: 'set', on: false } to deeply equal { kind: 'refused' }
+AssertionError: expected { kind: 'set', on: true } to deeply equal { kind: 'refused' }
+      Tests  9 failed | 17 passed (26)

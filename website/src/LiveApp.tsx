@@ -286,6 +286,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const linkMyCompanyProfile = useSentOnce(api.website.commands.linkMyCompanyProfile);
   const linkCompanyProfile = useSentOnce(api.website.commands.linkCompanyProfile);
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
+  const setWeeklyPost = useSentOnce(api.website.commands.setWeeklyPost);
   const mapSlackEmoji = useSentOnce(api.website.emojiMappings.mapSlackEmoji);
   const mapMyEmoji = useSentOnce(api.website.emojiWizard.mapMyEmoji);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
@@ -309,6 +310,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       linkMyCompanyProfile: (profile) => answerWithin(commandAnswerBudgetMs, linkMyCompanyProfile({ profile })),
       linkCompanyProfile: (member, profile) => answerWithin(commandAnswerBudgetMs, linkCompanyProfile({ member, profile })),
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
+      setWeeklyPost: (on) => answerWithin(commandAnswerBudgetMs, setWeeklyPost({ on })),
       mapSlackEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapSlackEmoji({ emoji, to })),
       mapMyEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapMyEmoji({ emoji, to })),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
@@ -324,7 +326,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, mapSlackEmoji, mapMyEmoji, setAvatar, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, mapSlackEmoji, mapMyEmoji, setAvatar, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, onSignInFailure],
   );
 }
 

@@ -36,6 +36,10 @@ export async function changeWorkspaceSettings(ctx: MutationCtx, workspace: strin
   return { kind: "set", saved: settings };
 }
 
+export async function maintainerSettingsApplyTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  return (await isTheMaintainer(ctx, member)) && (await workspaceSettingsApplyTo(ctx, member));
+}
+
 async function workspaceSettingsApplyTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   const applies = await memberDecision(ctx, workspaceSettingsFlag, member);
   await exposed(ctx, workspaceSettingsFlag, member, applies);
