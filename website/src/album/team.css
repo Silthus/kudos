@@ -93,8 +93,7 @@
   text-decoration: underline;
 }
 
-.al-photo-sticker,
-.al-silhouette {
+.al-photo-sticker {
   display: inline-flex;
   width: 6.5rem;
   height: 6.5rem;
@@ -105,10 +104,10 @@
   border: 3px solid var(--card);
   border-radius: 0.875rem;
   box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--foreground) 35%, transparent);
+  transition: rotate 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.al-photo[data-size="many"] .al-photo-sticker,
-.al-photo[data-size="many"] .al-silhouette {
+.al-photo[data-size="many"] .al-photo-sticker {
   width: 5.5rem;
   height: 5.5rem;
 }
@@ -121,6 +120,26 @@
   rotate: 1.5deg;
 }
 
+.al-photo .al-photo-sticker[data-picture="grey"] {
+  rotate: 0deg;
+  border-style: dashed;
+  border-color: var(--al-silhouette);
+  background: var(--al-silhouette-back);
+  box-shadow: none;
+}
+
+.al-photo-sticker > img,
+.al-hype-frame > img {
+  transition:
+    filter 900ms ease-out,
+    opacity 900ms ease-out;
+}
+
+[data-picture="grey"] > img {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
 .al-photo-face {
   width: 100%;
   height: 100%;
@@ -131,10 +150,13 @@
 
 .al-silhouette {
   position: relative;
-  border-style: dashed;
-  border-color: var(--al-silhouette);
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
   background: var(--al-silhouette-back);
-  box-shadow: none;
 }
 
 .al-silhouette-shape {
@@ -406,8 +428,7 @@ button.al-seal[aria-disabled] {
   padding: 1.5rem;
 }
 
-.al-photo-sticker-large,
-.al-mount-single .al-silhouette {
+.al-photo-sticker-large {
   width: 12rem;
   height: 12rem;
 }
@@ -487,13 +508,6 @@ button.al-seal[aria-disabled] {
 
 .al-person-hype:not([data-earned]) .al-hype-frame {
   border-color: var(--al-ring-out);
-}
-
-.al-hype-frame .al-silhouette {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  border-radius: 0;
 }
 
 .al-hype-frame .al-silhouette-initials {
@@ -579,9 +593,7 @@ button.al-seal[aria-disabled] {
   }
 
   .al-photo-sticker,
-  .al-silhouette,
-  .al-photo[data-size="many"] .al-photo-sticker,
-  .al-photo[data-size="many"] .al-silhouette {
+  .al-photo[data-size="many"] .al-photo-sticker {
     width: 4.75rem;
     height: 4.75rem;
   }
@@ -606,8 +618,7 @@ button.al-seal[aria-disabled] {
     gap: 1.25rem;
   }
 
-  .al-photo-sticker-large,
-  .al-mount-single .al-silhouette {
+  .al-photo-sticker-large {
     width: 9rem;
     height: 9rem;
   }
@@ -617,5 +628,11 @@ button.al-seal[aria-disabled] {
   .al-seal[data-state="ready"],
   .al-seal-shimmer {
     animation: none;
+  }
+
+  .al-photo-sticker,
+  .al-photo-sticker > img,
+  .al-hype-frame > img {
+    transition: none;
   }
 }

@@ -3,14 +3,13 @@ import { AnswerPage } from "../App";
 import { KudosMessage } from "../activity/KudosMessage";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
-import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
 import type { Album, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
 import { hrefOf } from "./place";
-import { Silhouette } from "./Silhouette";
+import { PersonPicture } from "./PersonPicture";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
 import "./team.css";
 
@@ -41,13 +40,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
       <div className="al-person-entry">
         <figure className="al-mount al-mount-single" aria-labelledby={caption}>
           <div className="al-photo">
-            {person.held ? (
-              <span className="al-photo-sticker al-photo-sticker-large">
-                <MemberFace face={person.face} className="al-photo-face" />
-              </span>
-            ) : (
-              <Silhouette name={person.name} />
-            )}
+            <PersonPicture face={person.face} name={person.name} collected={person.held} frame="al-photo-sticker al-photo-sticker-large" className="al-photo-face" />
           </div>
           <figcaption id={caption} className="al-photo-caption">{person.held ? "In your album" : "Not in your album yet"}</figcaption>
         </figure>
@@ -96,9 +89,7 @@ function HypeEmoji({ person, first }: { person: Person; first: string }) {
   const { earned, name } = person.hype;
   return (
     <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
-      <span className="al-hype-frame" aria-hidden="true">
-        {earned ? <MemberFace face={person.face} className="al-hype-face" /> : <Silhouette name={person.name} />}
-      </span>
+      <PersonPicture face={person.face} name={person.name} collected={earned} frame="al-hype-frame" className="al-hype-face" />
       <p>
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
