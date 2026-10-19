@@ -25,6 +25,7 @@ const pages: { path: string; fixtures: string[] }[] = [
   { path: "/book#teams", fixtures: ["member-with-the-book-spread"] },
   { path: "/settings", fixtures: ["member-with-settings"] },
   ...["/", "/book#teams/paper-moons", "/book#teams/kettle-works", "/book#teams/quiet-harbour", "/book#people/ines-okafor", "/book#people/juno-park", "/book#me", "/book#hoggies", "/book#hoggies/asleep", "/book#milestones", "/book#packs", "/activity", "/leaderboard", "/settings"].map((path) => ({ path, fixtures: ["album"] })),
+  { path: "/settings", fixtures: ["album-maintainer"] },
 ];
 
 const slackHost = /(?:^|[/.@])(?:[a-z0-9-]+\.)*(?:slack\.com|slack-edge\.com|gravatar\.com)\b/i;

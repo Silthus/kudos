@@ -1,11 +1,17 @@
 import type { EmojiMappingsShown } from "./emojiMappingsRead";
 import type { EmojiMappings, ShownMappingTarget } from "./shell";
 
-const slackPicture = (name: string) => `https://emoji.slack-edge.com/T1/${name}/1.png`;
+const standardEmojiArt = ["1f3c6", "1f994", "1f51f", "1f4e3", "1f9a6", "1f99c", "1f680", "2728", "1f525", "1f44d", "1f389", "1f31f"];
+
+const standardEmojiPicture = (index: number) => `https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-large/${standardEmojiArt[index % standardEmojiArt.length]}.png`;
+
+let listedSoFar = 0;
 
 function listed(name: string, mapping: ShownMappingTarget | null = null): EmojiMappings["emoji"][number] {
-  return { name, image: slackPicture(name), mapping };
+  return { name, image: name === "shipit" ? shipitPicture : standardEmojiPicture(listedSoFar++), mapping };
 }
+
+export const shipitPicture = "https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-large/1f43f-fe0f.png";
 
 const workspace: EmojiMappings = {
   kind: "mappings",

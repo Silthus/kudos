@@ -23,6 +23,8 @@ const fixtureQuests = fixedQuests(questsFixtures.weekWithLastWeeksCrate);
 
 const fixtureSettings = fixedSettings(settingsFixtures.everything);
 
+const fixtureMaintainerSettings = fixedSettings(settingsFixtures.forTheMaintainer);
+
 const fixtureAlbum = fixedAlbum(albumFixtures.trayed);
 
 const fixtureBoards = fixedBoards(boardsFixtures.week);
@@ -46,7 +48,7 @@ export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads
     useActivityWatch: fixtureActivityWatch,
     readActivity: fixtureReadActivity,
     drawSpotlight: fixtureSpotlight,
-    useSettings: fixtureSettings,
+    useSettings: fixture === "album-maintainer" ? fixtureMaintainerSettings : fixtureSettings,
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
     useAlbum: fixtureAlbum,
     useThoughtfulBoards: fixtureBoards,

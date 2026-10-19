@@ -2,7 +2,7 @@ import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { albumFixtures, fixedAlbum } from "./album/albumFixtures";
-import { emojiMappingsFixtures, withMapping } from "./emojiMappingFixtures";
+import { emojiMappingsFixtures, shipitPicture, withMapping } from "./emojiMappingFixtures";
 import type { EmojiMappingsShown } from "./emojiMappingsRead";
 import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import { shellFixtures, type EmojiMappingReply, type MemberProfile, type MySettings, type ShellActions } from "./shell";
@@ -77,7 +77,7 @@ describe("the maintainer maps Slack emojis to earned emojis in Settings", { time
     expect(rowOf("level-10").getByText("Level 10 emoji")).toBeInTheDocument();
     expect(rowOf("party-parrot").getByText("Random drop")).toBeInTheDocument();
     expect(rowOf("shipit").getByText("Not mapped")).toBeInTheDocument();
-    expect(rowElementOf("shipit").querySelector("img")).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/shipit/1.png");
+    expect(rowElementOf("shipit").querySelector("img")).toHaveAttribute("src", shipitPicture);
     expect(rows()).toHaveLength(50);
     expect(within(section()).getByText("38 more. Search or filter to narrow it down.")).toBeInTheDocument();
   });
