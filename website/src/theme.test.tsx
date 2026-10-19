@@ -1,7 +1,8 @@
 import { act, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures } from "./shell";
-import { renderApp } from "./test/renderApp";
+import { fixedSettings, settingsFixtures } from "./settingsFixtures";
+import { renderApp, renderSettingsPage } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 afterEach(() => {
@@ -9,6 +10,11 @@ afterEach(() => {
 });
 
 const isDark = () => document.documentElement.classList.contains("dark");
+
+function settingsPage() {
+  window.history.replaceState(null, "", "/settings");
+  return renderSettingsPage(fixedSettings(settingsFixtures.everything));
+}
 
 function renderShell() {
   return renderApp(shellFixtures.signedOut);
@@ -73,7 +79,7 @@ describe("V6: the theme control follows the system first, overrides it per brows
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("Storage is disabled", "SecurityError");
     });
-    const { user, showVisitor } = renderApp(shellFixtures.member);
+    const { user, showVisitor } = await settingsPage();
     await user.click(screen.getByRole("button", { name: "Light" }));
     showVisitor(shellFixtures.signedOut);
     expect(screen.getByRole("heading", { level: 1, name: "HedgeHug" })).toBeInTheDocument();
@@ -87,7 +93,7 @@ describe("V6: the theme control follows the system first, overrides it per brows
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("Storage is full", "QuotaExceededError");
     });
-    const { user, showVisitor } = renderApp(shellFixtures.member);
+    const { user, showVisitor } = await settingsPage();
     await user.click(screen.getByRole("button", { name: "Light" }));
     showVisitor(shellFixtures.signedOut);
     expect(screen.getByRole("button", { name: "Light" })).toHaveAttribute("aria-pressed", "true");

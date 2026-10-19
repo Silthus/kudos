@@ -1,5 +1,5 @@
 import { Switch } from "@posthog/quill";
-import { Panel } from "../home/Panel";
+import { Panel } from "./Panel";
 import type { ShellActions, WeeklyPostReply, WeeklyPostSetting } from "../shell";
 import { switchLook } from "./MessageSettingRow";
 import { StatusLine } from "./StatusLine";

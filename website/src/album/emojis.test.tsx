@@ -2,13 +2,13 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixturePackOpeningOf, fixtureUnlockOf } from "./albumFixtures";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum = shellFixtures.member;
 
 const midway = albumFixtures.midway;
 

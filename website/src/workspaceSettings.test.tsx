@@ -3,8 +3,8 @@ import axe from "axe-core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { settingsFixtures, workspaceParts } from "./settingsFixtures";
 import type { SettingsShown } from "./settingsRead";
-import { shellFixtures, type MySettings, type ShellActions, type WorkspaceSettingsPart, type WorkspaceSettingsReply } from "./shell";
-import { renderApp } from "./test/renderApp";
+import { type MySettings, type ShellActions, type WorkspaceSettingsPart, type WorkspaceSettingsReply } from "./shell";
+import { renderSettingsPage } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -12,12 +12,12 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/settings");
 });
 
-function showSettings(settings: MySettings, setWorkspaceSettings?: ShellActions["setWorkspaceSettings"]) {
+async function showSettings(settings: MySettings, setWorkspaceSettings?: ShellActions["setWorkspaceSettings"]) {
   let shown: SettingsShown = settings;
-  const view = renderApp(shellFixtures.memberWithSettings, undefined, { setWorkspaceSettings }, undefined, undefined, undefined, undefined, undefined, undefined, undefined, (asking) => (asking ? shown : undefined));
+  const view = await renderSettingsPage((asking) => (asking ? shown : undefined), { setWorkspaceSettings });
   const showSettingsAnswer = (next: MySettings) => {
     shown = next;
-    view.showVisitor({ ...shellFixtures.memberWithSettings });
+    view.showSettingsAgain();
   };
   return { ...view, showSettingsAnswer };
 }
@@ -51,14 +51,14 @@ function status() {
 }
 
 describe("the maintainer's workspace settings change only through setWorkspaceSettings", { timeout: 60_000 }, () => {
-  it("leaves the section out while the read carries no workspace part, as for everyone but the maintainer", () => {
-    showSettings(settingsFixtures.everything);
+  it("leaves the section out while the read carries no workspace part, as for everyone but the maintainer", async () => {
+    await showSettings(settingsFixtures.everything);
 
     expect(within(screen.getByRole("main")).queryByRole("region", { name: "Workspace" })).not.toBeInTheDocument();
   });
 
-  it("shows the daily allowance, the kudos emoji with its picture and the hug budget the read carries", () => {
-    showSettings(forTheMaintainer(workspaceParts.customEmoji));
+  it("shows the daily allowance, the kudos emoji with its picture and the hug budget the read carries", async () => {
+    await showSettings(forTheMaintainer(workspaceParts.customEmoji));
 
     expect(field("Kudos a day")).toHaveValue(3);
     expect(field("Kudos emoji")).toHaveValue("hoggo");
@@ -68,7 +68,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
   });
 
   it("previews a standard emoji as it is typed", async () => {
-    const { user } = showSettings(forTheMaintainer());
+    const { user } = await showSettings(forTheMaintainer());
 
     await user.clear(field("Kudos emoji"));
     await user.type(field("Kudos emoji"), ":pizza:");
@@ -78,7 +78,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
 
   it("sends the three typed settings once, holds Save until it answers, and says so once the read shows them", async () => {
     const later = answerLater();
-    const { user, actions, showSettingsAnswer } = showSettings(forTheMaintainer(), () => later.answer);
+    const { user, actions, showSettingsAnswer } = await showSettings(forTheMaintainer(), () => later.answer);
 
     await user.clear(field("Kudos a day"));
     await user.type(field("Kudos a day"), "5");
@@ -100,7 +100,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
   });
 
   it.each(["Kudos a day", "Hugs a day"])("holds Save while %s is empty, so a cleared field never saves as 0", async (name) => {
-    const { user, actions } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+    const { user, actions } = await showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
 
     await user.clear(field(name));
     await user.click(saveButton());
@@ -112,7 +112,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
 
   it("holds every field while a save is in flight, so nothing typed then is lost when the read lands", async () => {
     const later = answerLater();
-    const { user } = showSettings(forTheMaintainer(), () => later.answer);
+    const { user } = await showSettings(forTheMaintainer(), () => later.answer);
 
     await user.clear(field("Kudos a day"));
     await user.type(field("Kudos a day"), "5");
@@ -124,7 +124,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
   });
 
   it("holds the fields from the answer until the read shows the save, so nothing typed in between is lost", async () => {
-    const { user, showSettingsAnswer } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
     await user.clear(field("Kudos a day"));
     await user.type(field("Kudos a day"), "5");
     await user.click(saveButton());
@@ -142,7 +142,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
 
   it("drops the saved line once a saved hug budget of 0 is cleared", async () => {
     const zero = { ...workspaceParts.defaults, hugBudget: 0 };
-    const { user, showSettingsAnswer } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
     await user.clear(field("Hugs a day"));
     await user.type(field("Hugs a day"), "0");
     await user.click(saveButton());
@@ -155,7 +155,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
   });
 
   it("drops the saved line once the maintainer edits again", async () => {
-    const { user, showSettingsAnswer } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
     await user.clear(field("Kudos a day"));
     await user.type(field("Kudos a day"), "5");
     await user.click(saveButton());
@@ -174,7 +174,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
     ["someone who isn't the maintainer", { kind: "refused", reason: "not-maintainer" }, "Only HedgeHug's maintainer can change these."],
     ["workspace-settings off", { kind: "refused", reason: null }, "Workspace settings aren't open for you right now."],
   ])("says the refusal for %s in its own sentence and keeps what was typed", async (_, reply, line) => {
-    const { user } = showSettings(forTheMaintainer(), async () => reply);
+    const { user } = await showSettings(forTheMaintainer(), async () => reply);
 
     await user.clear(field("Kudos a day"));
     await user.type(field("Kudos a day"), "7");
@@ -185,7 +185,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
   });
 
   it("says when the server can't be reached", async () => {
-    const { user } = showSettings(forTheMaintainer(), () => Promise.reject(new Error("offline")));
+    const { user } = await showSettings(forTheMaintainer(), () => Promise.reject(new Error("offline")));
 
     await user.clear(field("Hugs a day"));
     await user.type(field("Hugs a day"), "4");
@@ -195,7 +195,7 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
   });
 
   it("has no accessibility violations", async () => {
-    showSettings(forTheMaintainer());
+    await showSettings(forTheMaintainer());
 
     const { violations } = await axe.run(workspaceSection());
 

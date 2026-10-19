@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type CSSProperties } from "react";
-import { AnswerPage } from "../App";
+import { AnswerPage } from "../pages/AnswerPage";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import type { Rarity } from "../shell";

@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppEmoji, AppEmojis } from "../../../convex/website/emojiWizard";
 import type { AppEmojisRead, SlackEmojiMatchesRead } from "../emojiWizardReads";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
-import { shellFixtures, type EmojiPlaceChoice, type MemberProfile } from "../shell";
+import { shellFixtures, type EmojiPlaceChoice } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import type { Album } from "./answer";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum = shellFixtures.member;
 
 const withTheWizard: Album = { ...albumFixtures.midway, emojiWizard: true };
 

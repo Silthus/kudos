@@ -4,7 +4,7 @@ import type { AppEmoji, AppEmojis } from "../../../convex/website/emojiWizard";
 import { giveFocusBack, pickOf } from "../album/findInSlack";
 import { SlackEmojiWizard } from "../album/SlackEmojiWizard";
 import type { AppEmojisRead, SlackEmojiMatchesRead } from "../emojiWizardReads";
-import { Panel } from "../home/Panel";
+import { Panel } from "./Panel";
 import type { ShellActions } from "../shell";
 
 type MapSlackEmoji = ShellActions["mapSlackEmoji"];

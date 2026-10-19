@@ -1,4 +1,4 @@
-import { Panel } from "../home/Panel";
+import { Panel } from "../settings/Panel";
 import type { SharedEmoji } from "./answer";
 import { SlackStatus } from "./EmojiPanel";
 import { EmojiPicture } from "./EmojiPicture";

@@ -3,7 +3,7 @@ import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { allowanceRange, emojiNameOf, hugBudgetRange } from "../../../convex/workspace/settingsBounds";
 import type { WorkspaceSettingsRefusal } from "../../../convex/workspace/workspaceSettings";
 import { NamedEmoji } from "../Emoji";
-import { Panel } from "../home/Panel";
+import { Panel } from "./Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import type { ShellActions, WorkspaceSettingsChange, WorkspaceSettingsPart, WorkspaceSettingsReply } from "../shell";
 import { StatusLine } from "./StatusLine";

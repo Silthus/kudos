@@ -33,7 +33,7 @@ describe("AL57: the album loads in its own chunk", () => {
     expect(chunks.filter((chunk) => !chunk.isEntry && holdsTheAlbum(chunk))).toHaveLength(1);
   });
 
-  test("the album's stylesheet is never one the entry loads, so today's pages keep today's CSS", { timeout: buildTimeout }, async () => {
+  test("the album's stylesheet is never one the entry loads, so the visitors' pages keep their own CSS", { timeout: buildTimeout }, async () => {
     const { chunks, stylesheets } = await productionBuild();
     const firstLoadCss = firstLoadOf(chunks).flatMap((chunk) => [...(chunk.viteMetadata?.importedCss ?? [])]);
     const albumCss = [...stylesheets].filter(([, css]) => css.includes(".al-shell")).map(([file]) => file);

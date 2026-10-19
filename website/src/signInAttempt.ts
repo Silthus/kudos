@@ -28,7 +28,7 @@ export function forgetSignInStarted() {
   }
 }
 
-export function useSignInOutcome(state: ShellState): ShellState {
+export function useSignInOutcome<State extends ShellState>(state: State): State | { kind: "sign-in-unfinished" } {
   const [returnedFromSignIn, setReturnedFromSignIn] = useState(signInStarted);
   const [unfinished, setUnfinished] = useState(false);
 

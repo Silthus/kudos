@@ -21,8 +21,16 @@ afterAll(() => {
   rmSync(outDir, { recursive: true, force: true });
 });
 
+const bundlerRuntime = /^rolldown-runtime-[\w-]+\.js$/;
+
+const bundlerRuntimeMostBytes = 2_048;
+
 function scripts() {
-  return readdirSync(assets).filter((file) => file.endsWith(".js"));
+  return readdirSync(assets).filter((file) => file.endsWith(".js") && !bundlerRuntime.test(file));
+}
+
+function bundlerRuntimes() {
+  return readdirSync(assets).filter((file) => bundlerRuntime.test(file));
 }
 
 function mapOf(script: string): SourceMap {
@@ -39,6 +47,14 @@ describe("MS25: the production build ships the source maps PostHog resolves stac
     for (const script of scripts()) {
       expect(readFileSync(join(assets, script), "utf8").trimEnd().endsWith(`//# sourceMappingURL=${script}.map`), `${script} names its map`).toBe(true);
       expect(readdirSync(assets), `${script}.map is uploaded beside ${script}`).toContain(`${script}.map`);
+    }
+  });
+
+  test("a script without a map is only the bundler's own runtime helpers, which hold no source of the website's", () => {
+    for (const runtime of bundlerRuntimes()) {
+      const code = readFileSync(join(assets, runtime), "utf8");
+      expect(code.length, `${runtime} stays a few helpers`).toBeLessThanOrEqual(bundlerRuntimeMostBytes);
+      expect(code, `${runtime} imports nothing of the website's`).not.toMatch(/from\s*["']\.\//);
     }
   });
 
