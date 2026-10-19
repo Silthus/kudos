@@ -21,5 +21,5 @@ Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox 
 
 `album/8` at `d2adcf51` (the round-1 fixes: unseen hype emojis first, the shared list without gone teams, and the hand-run `reserveSharedEmojiNames`) was deployed to the sandbox at 07:59 UTC from the same proof tree, merged again. The dry run changed no index, and no sandbox function was missing from the tree.
 
-9. `head/reserveSharedEmojiNames.txt`: the hand-run reservation over the sandbox workspace succeeded and added no name, since a grant had already opened its registry (393 rows before and after).
+9. `head/reserveSharedEmojiNames.txt`: the hand-run reservation over the sandbox workspace, run again with the row count taken before and after, exits 0 and adds no name, since a grant had already opened its registry.
 10. `head/getAlbum-after-fixes.json`: the cast-A giver reads the same emojis through the new code: the hype emoji still `seen: true`, every milestone and level emoji locked with its progress.
