@@ -1,0 +1,6 @@
+Second `convex run album/history:startAlbumHistory '{"workspace":"T0C3US298SH"}'` on different-dog-467, 20 s later.
+It is a no-op start: the history's record exists, so it pages nothing (AL14 stores the start instant once). Re-paging the same awards and hugs is proven in convex/album/history.test.ts ("the history run twice over a pair a pack already put in records each pair once", and the redelivery and racing tests), not here.
+cmp albumHistory before/after: identical (history-same)
+cmp every albumStickers row before/after: identical (stickers-same)
+cmp getAlbum --identity (Odile) before/after: identical (getAlbum-same)
+cmp Odile's three pair tallies and two week tallies before/after: identical (tallies-same)
