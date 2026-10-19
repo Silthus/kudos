@@ -45,6 +45,10 @@ function aMoment() {
   return screen.findByRole("dialog", { name: "New emoji unlocked" }, { timeout: 5_000 });
 }
 
+function aBundle() {
+  return screen.findByRole("dialog", { name: "New emojis unlocked" }, { timeout: 5_000 });
+}
+
 function shelf(popup: ReturnType<typeof within>, title: string) {
   return within(popup.getByRole("region", { name: new RegExp(`^${title}`) }));
 }
@@ -280,45 +284,111 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
 describe("AL26: an earned emoji is marked seen only once its moment has shown", { timeout: 30_000 }, () => {
   const fresh = albumFixtures.newEmojis;
 
-  it("each new emoji pops as a moment with its picture, its name and why it was earned, one at a time, and only taking it sends markEmojisSeen for it", async () => {
+  const sevenWaiting: Album = {
+    ...fresh,
+    emojis: [
+      ...fresh.emojis,
+      ...["dax-holm", "eli-roan", "ivo-penn"].map((person, index) => anEmoji({ id: `hype:${person}`, kind: "hype", name: `${person}-hype`, from: person, picture: "/emoji/hype.png", earned: true, earnedAt: Date.now() - index, progress: null })),
+    ],
+  };
+
+  function cardsIn(bundle: HTMLElement) {
+    return within(within(bundle).getByRole("list", { name: "Your new emojis" })).getAllByRole("listitem");
+  }
+
+  it("#721: several waiting emojis open as one bundle showing each one's picture, its name and what it came from, and only taking it sends markEmojisSeen, once, for all of them", async () => {
     preferReducedMotion();
     const view = visit("/", { album: fresh });
+
+    const bundle = await aBundle();
+
+    expect(view.marked).not.toHaveBeenCalled();
+    expect(within(bundle).getByRole("heading", { level: 2 }).textContent).toBe("4 new emojis unlocked");
+    const cards = cardsIn(bundle);
+    expect(cards.map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":quiet-harbour:", ":level-5:", ":bram-teller-hype:", ":fen-marlowe-hype:"]);
+    expect(cards[0]).toHaveTextContent("The Quiet Harbour team sticker");
+    expect(cards[1]).toHaveTextContent("Reaching level 5");
+    expect(cards[2]).toHaveTextContent("Your first thoughtful pack for Bram Teller");
+    expect(cards.every((card) => card.querySelector(".al-emoji-art") !== null)).toBe(true);
+    await view.user.click(within(bundle).getByRole("button", { name: "Add to my emojis" }));
+
+    expect(view.marked).toHaveBeenCalledExactlyOnceWith(["team:quiet-harbour", "level:5", "hype:bram-teller", "hype:fen-marlowe"]);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 1_200)));
+    expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument();
+  });
+
+  it("#721: an emoji in Slack says to use it there; one Slack doesn't have yet says so, with no download and no Add to Slack", async () => {
+    preferReducedMotion();
+    visit("/", { album: fresh });
+
+    const bundle = await aBundle();
+
+    const [inSlack, notInSlack] = cardsIn(bundle);
+    expect(inSlack).toHaveTextContent("Use it in Slack");
+    expect(notInSlack).toHaveTextContent("Not in Slack yet");
+    expect(notInSlack).not.toHaveTextContent("Use it in Slack");
+    expect(within(bundle).queryByRole("button", { name: /Add to Slack/ })).not.toBeInTheDocument();
+    expect(bundle).not.toHaveTextContent(/Add it to Slack|download/i);
+  });
+
+  it("#721: past five waiting, the bundle shows five and +N more, which marks every waiting emoji seen and opens the emoji popup", async () => {
+    preferReducedMotion();
+    const view = visit("/", { album: sevenWaiting });
+    const bundle = await aBundle();
+
+    expect(within(bundle).getByRole("heading", { level: 2 }).textContent).toBe("7 new emojis unlocked");
+    expect(cardsIn(bundle)).toHaveLength(5);
+    await view.user.click(within(bundle).getByRole("button", { name: "+2 more" }));
+
+    expect(view.marked).toHaveBeenCalledExactlyOnceWith(sevenWaiting.emojis.filter(({ earned, seen }) => earned && !seen).map(({ id }) => id));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument());
+    expect(await screen.findByRole("region", { name: "Your emojis" })).toBeInTheDocument();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 1_200)));
+    expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument();
+  });
+
+  it("#721: taking a bundle of five marks only those five, and the rest come next as one more bundle", async () => {
+    preferReducedMotion();
+    const view = visit("/", { album: sevenWaiting });
+    const first = await aBundle();
+    const shown = cardsIn(first).map((card) => within(card).getByRole("heading", { level: 3 }).textContent);
+
+    await view.user.click(within(first).getByRole("button", { name: "Add to my emojis" }));
+
+    expect(view.marked.mock.calls[0]?.[0]).toHaveLength(5);
+    const next = await aBundle();
+    await waitFor(() => expect(within(next).getByRole("heading", { level: 2 }).textContent).toBe("2 new emojis unlocked"));
+    expect(cardsIn(next).map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).not.toEqual(expect.arrayContaining(shown));
+  });
+
+  it("#721: a single waiting emoji keeps its own moment with its picture, its name and why it was earned", async () => {
+    preferReducedMotion();
+    const view = visit("/", { album: { ...fresh, emojis: fresh.emojis.filter(({ id }) => id !== "level:5" && !id.startsWith("hype:")) } });
 
     const moment = await aMoment();
 
-    expect(view.marked).not.toHaveBeenCalled();
     expect(within(moment).getByRole("heading", { level: 2 }).textContent).toBe(":quiet-harbour:");
     expect(moment).toHaveTextContent("You unlocked the Quiet Harbour team sticker · 15 Oct 2026");
     expect(moment).toHaveTextContent("Use it in Slack: react with it and put it in the kudos you give.");
-    expect(moment).toHaveTextContent("1 of 4 new");
+    expect(within(moment).queryByRole("list", { name: "Your new emojis" })).not.toBeInTheDocument();
     await view.user.click(within(moment).getByRole("button", { name: "Add to my emojis" }));
-
     expect(view.marked).toHaveBeenCalledExactlyOnceWith(["team:quiet-harbour"]);
-    const next = await aMoment();
-    await waitFor(() => expect(within(next).getByRole("heading", { level: 2 }).textContent).toBe(":level-5:"));
-    expect(next).toHaveTextContent("Add it to Slack from your emojis, then react with it and put it in the kudos you give.");
   });
 
-  it("the counter counts this batch to its last moment, and the moment takes focus itself and names its emoji, so a keystroke can't take it unread", async () => {
+  it("the moment takes focus itself and names its emojis, so a keystroke can't take it unread", async () => {
     preferReducedMotion();
     const view = visit("/", { album: fresh });
 
-    for (const at of [1, 2, 3]) {
-      const moment = await aMoment();
-      await waitFor(() => expect(moment).toHaveTextContent(`${at} of 4 new`));
-      expect(moment).toHaveFocus();
-      expect(moment).toHaveAccessibleDescription(expect.stringMatching(/^:[a-z0-9-]+: (You|From) /));
-      await view.user.keyboard(" ");
-      expect(view.marked).toHaveBeenCalledTimes(at - 1);
-      await view.user.click(within(moment).getByRole("button", { name: "Add to my emojis" }));
-    }
+    const bundle = await aBundle();
 
-    const last = await aMoment();
-    await waitFor(() => expect(last).toHaveTextContent("4 of 4 new"));
-    expect(within(last).queryByRole("button", { name: "Skip the rest" })).not.toBeInTheDocument();
+    expect(bundle).toHaveFocus();
+    expect(bundle).toHaveAccessibleDescription(expect.stringMatching(/^:quiet-harbour: The Quiet Harbour team sticker .*:fen-marlowe-hype:/));
+    await view.user.keyboard(" ");
+    expect(view.marked).not.toHaveBeenCalled();
   });
 
-  it("when the last moment goes, focus returns to where the member was", async () => {
+  it("when the moment goes, focus returns to where the member was", async () => {
     preferReducedMotion();
     const view = visit("/", { album: { ...fresh, emojis: fresh.emojis.filter(({ id }) => id !== "level:5" && !id.startsWith("hype:")) } });
     const search = await screen.findByRole("searchbox", { name: "Search teams and people" }, { timeout: 5_000 });
@@ -332,12 +402,13 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     await waitFor(() => expect(search).toHaveFocus());
   });
 
-  it("while more packs wait than getAlbum lists, every hype moment waits, since its pack may be one of them", async () => {
+  it("while more packs wait than getAlbum lists, every hype emoji waits, since its pack may be one of them", async () => {
+    preferReducedMotion();
     visit("/", { album: { ...fresh, morePacks: true } });
 
-    const moment = await aMoment();
-    await waitFor(() => expect(within(moment).getByRole("heading", { level: 2 }).textContent).toBe(":quiet-harbour:"));
-    expect(moment).toHaveTextContent("1 of 2 new");
+    const bundle = await aBundle();
+
+    expect(cardsIn(bundle).map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":quiet-harbour:", ":level-5:"]);
   });
 
   it("AL54: a team sticker's unlock moment counts as its team emoji's moment, which never plays a second time", async () => {
@@ -361,33 +432,28 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
 
     await waitFor(() => expect(marked).toHaveBeenCalledExactlyOnceWith(["team:kettle-works"]));
     await act(() => new Promise((resolve) => setTimeout(resolve, 1_200)));
-    expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument();
   });
 
-  it("Skip the rest marks every waiting emoji seen at once and plays no more moments", async () => {
+  it("Escape takes the bundle like its button, and a refused or unreachable markEmojisSeen still closes it", async () => {
     preferReducedMotion();
+    const view = visit("/", { album: fresh, markEmojisSeen: async () => Promise.reject(new Error("unreachable")) });
+    await aBundle();
+
+    await view.user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument());
+    expect(view.marked.mock.calls).toEqual([[["team:quiet-harbour", "level:5", "hype:bram-teller", "hype:fen-marlowe"]]]);
+  });
+
+  it("#721: with motion, taking the bundle flies its emojis into the emoji button and only then sends markEmojisSeen", async () => {
     const view = visit("/", { album: fresh });
-    const moment = await aMoment();
+    const bundle = await aBundle();
 
-    await view.user.click(within(moment).getByRole("button", { name: "Skip the rest" }));
+    await view.user.click(within(bundle).getByRole("button", { name: "Add to my emojis" }));
 
-    expect(view.marked).toHaveBeenCalledExactlyOnceWith(["team:quiet-harbour", "level:5", "hype:bram-teller", "hype:fen-marlowe"]);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 1_200)));
-    expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument();
-  });
-
-  it("Escape takes the moment like its button, and a refused or unreachable markEmojisSeen still moves on to the next one", async () => {
-    preferReducedMotion();
-    const view = visit("/", { album: { ...fresh, emojis: fresh.emojis.filter(({ kind }) => kind !== "hype") }, markEmojisSeen: async () => Promise.reject(new Error("unreachable")) });
-    await aMoment();
-
-    await view.user.keyboard("{Escape}");
-
-    const next = await aMoment();
-    await waitFor(() => expect(within(next).getByRole("heading", { level: 2 }).textContent).toBe(":level-5:"));
-    await view.user.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument());
-    expect(view.marked.mock.calls).toEqual([[["team:quiet-harbour"]], [["level:5"]]]);
+    expect(view.marked).not.toHaveBeenCalled();
+    await waitFor(() => expect(view.marked).toHaveBeenCalledOnce(), { timeout: 3_000 });
   });
 
   it("a hype emoji waits while its person's pack is still unopened, and an emoji seen before never pops", async () => {
@@ -397,7 +463,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
 
     await act(() => new Promise((resolve) => setTimeout(resolve, 1_200)));
 
-    expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument();
   });
 
   it("AL54: no moment plays while a pack opening is open; it waits until the opening closes", async () => {
@@ -409,9 +475,9 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
 
     await act(() => new Promise((resolve) => setTimeout(resolve, 1_200)));
 
-    expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ })).not.toBeInTheDocument();
     await view.user.keyboard("{Escape}");
-    expect(await aMoment()).toBeInTheDocument();
+    expect(await aBundle()).toBeInTheDocument();
   });
 });
 

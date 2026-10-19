@@ -1,32 +1,29 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
-import { addItToSlackWords, momentsOwedOf, useItInSlackWords, whyWords } from "./emojiShelf";
+import { bundleSize, earnedFromWords, momentsOwedOf, whyWords } from "./emojiShelf";
 import { keepFocusIn } from "./focusTrap";
+import { MomentSlackLine } from "./MomentSlackLine";
 import "./emoji.css";
 
-export const emojiMomentTiming = { settleMs: 700, flightMs: 850 };
+export const emojiMomentTiming = { settleMs: 700, flightMs: 850, flightStaggerMs: 90 };
 
 const momentPictureSize = 128;
 
-export type EmojiMoments = { playing: AlbumEmoji | null; position: number; inThisBatch: number; take: () => void; skipTheRest: () => void; shownElsewhere: (ids: string[]) => void };
+const bundlePictureSize = 72;
 
-export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (ids: string[]) => Promise<SeenReply>): EmojiMoments {
+export type EmojiMoments = { playing: AlbumEmoji[]; more: number; take: () => void; seeThemAll: () => void; shownElsewhere: (ids: string[]) => void };
+
+export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (ids: string[]) => Promise<SeenReply>, showTheEmojis: () => void): EmojiMoments {
   const [shown, setShown] = useState<ReadonlySet<string>>(() => new Set());
-  const [playing, setPlaying] = useState<AlbumEmoji | null>(null);
-  const [takenInThisBatch, setTakenInThisBatch] = useState(0);
-  const owed = momentsOwedOf(album, shown);
-  const next = owed[0] ?? null;
-  const batchOver = playing === null && next === null;
+  const [playing, setPlaying] = useState<AlbumEmoji[]>([]);
+  const owed = useMemo(() => momentsOwedOf(album, shown), [album, shown]);
   useEffect(() => {
-    if (batchOver) setTakenInThisBatch(0);
-  }, [batchOver]);
-  useEffect(() => {
-    if (waits || playing !== null || next === null) return;
-    const timer = window.setTimeout(() => setPlaying(next), emojiMomentTiming.settleMs);
+    if (waits || playing.length > 0 || owed.length === 0) return;
+    const timer = window.setTimeout(() => setPlaying(owed.slice(0, bundleSize)), emojiMomentTiming.settleMs);
     return () => window.clearTimeout(timer);
-  }, [waits, playing, next]);
+  }, [waits, playing, owed]);
   const shownElsewhere = useCallback(
     (ids: string[]) => {
       setShown((before) => new Set([...before, ...ids]));
@@ -37,73 +34,58 @@ export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (i
   const markShown = useCallback(
     (ids: string[]) => {
       shownElsewhere(ids);
-      setPlaying(null);
+      setPlaying([]);
     },
     [shownElsewhere],
   );
-  const take = useCallback(() => {
-    if (playing === null) return;
-    setTakenInThisBatch((taken) => taken + 1);
-    markShown([playing.id]);
-  }, [playing, markShown]);
-  const skipTheRest = useCallback(() => markShown(owed.map(({ id }) => id)), [owed, markShown]);
-  const stillOwed = owed.filter(({ id }) => id !== playing?.id).length;
-  return { playing, position: takenInThisBatch + 1, inThisBatch: takenInThisBatch + (playing === null ? 0 : 1) + stillOwed, take, skipTheRest, shownElsewhere };
+  const take = useCallback(() => markShown(playing.map(({ id }) => id)), [playing, markShown]);
+  const seeThemAll = useCallback(() => {
+    markShown(owed.map(({ id }) => id));
+    showTheEmojis();
+  }, [owed, markShown, showTheEmojis]);
+  const more = owed.filter(({ id }) => !playing.some((emoji) => emoji.id === id)).length;
+  return { playing, more, take, seeThemAll, shownElsewhere };
 }
 
 type EmojiMomentProps = { moments: EmojiMoments; emojiButton: RefObject<HTMLButtonElement | null> };
 
 export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
-  const { playing: emoji, position, inThisBatch, take, skipTheRest } = moments;
+  const { playing, more, take, seeThemAll } = moments;
   const described = useId();
   const [flying, setFlying] = useState(false);
   const [reduced] = useState(prefersReducedMotion);
   const dialog = useRef<HTMLDivElement>(null);
-  const picture = useRef<HTMLSpanElement>(null);
-  useFocusWhileShown(dialog, emojiButton);
+  const backToTheEmojis = useRef(false);
+  useFocusWhileShown(dialog, emojiButton, backToTheEmojis);
 
   const flyIn = useCallback(() => {
     if (flying) return;
     if (reduced) return take();
     setFlying(true);
-    void flyInto(picture.current, emojiButton.current).then(take);
+    void flyAllInto(dialog.current, emojiButton.current).then(take);
   }, [flying, reduced, take, emojiButton]);
+
+  const seeThemAllInTheEmojis = () => {
+    backToTheEmojis.current = true;
+    seeThemAll();
+  };
 
   useEscapeTo(flyIn);
 
-  if (emoji === null) return null;
+  const [only] = playing;
+  if (only === undefined) return null;
+  const bundled = playing.length > 1;
   return (
-    <div ref={dialog} tabIndex={-1} className="al-emoji-moment" role="dialog" aria-modal="true" aria-label="New emoji unlocked" aria-describedby={`${described}-name ${described}-why ${described}-use`} data-flying={flying ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={(event) => event.target === event.currentTarget && flyIn()} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
-      <div className="al-emoji-moment-card">
-        <p className="al-emoji-moment-kicker">
-          New emoji unlocked
-          {inThisBatch > 1 && (
-            <span className="al-quiet">
-              {" "}
-              · {position} of {inThisBatch} new
-            </span>
-          )}
-        </p>
-        <span ref={picture} className="al-emoji-moment-picture">
-          {!reduced && <span className="al-emoji-moment-rays" aria-hidden="true" />}
-          <EmojiPicture emoji={emoji} size={momentPictureSize} />
-        </span>
-        <h2 id={`${described}-name`} className="al-emoji-moment-name ph-no-capture">
-          :{emoji.name}:
-        </h2>
-        <p id={`${described}-why`} className="al-emoji-moment-why ph-no-capture">
-          {whyWords(emoji)}
-        </p>
-        <p id={`${described}-use`} className="al-emoji-moment-use">
-          {emoji.inSlack ? useItInSlackWords : addItToSlackWords}
-        </p>
+    <div ref={dialog} tabIndex={-1} className="al-emoji-moment" role="dialog" aria-modal="true" aria-label={bundled ? "New emojis unlocked" : "New emoji unlocked"} aria-describedby={bundled ? `${described}-cards` : `${described}-name ${described}-why ${described}-use`} data-flying={flying ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={(event) => event.target === event.currentTarget && flyIn()} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
+      <div className="al-emoji-moment-stage">
+        {bundled ? <Bundle emojis={playing} waiting={playing.length + more} described={described} reduced={reduced} /> : <OneEmoji emoji={only} described={described} reduced={reduced} />}
         <div className="al-emoji-moment-actions">
           <button type="button" className="al-emoji-moment-take" onClick={flyIn}>
             Add to my emojis
           </button>
-          {position < inThisBatch && (
-            <button type="button" className="al-emoji-moment-skip" onClick={skipTheRest} disabled={flying}>
-              Skip the rest
+          {more > 0 && (
+            <button type="button" className="al-emoji-moment-more" onClick={seeThemAllInTheEmojis} disabled={flying}>
+              +{more} more
             </button>
           )}
         </div>
@@ -112,13 +94,66 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
   );
 }
 
-function useFocusWhileShown(dialog: RefObject<HTMLDivElement | null>, emojiButton: RefObject<HTMLButtonElement | null>) {
+function OneEmoji({ emoji, described, reduced }: { emoji: AlbumEmoji; described: string; reduced: boolean }) {
+  return (
+    <div className="al-emoji-moment-card">
+      <p className="al-emoji-moment-kicker">New emoji unlocked</p>
+      <span className="al-emoji-moment-picture" data-flies="">
+        {!reduced && <span className="al-emoji-moment-rays" aria-hidden="true" />}
+        <EmojiPicture emoji={emoji} size={momentPictureSize} />
+      </span>
+      <h2 id={`${described}-name`} className="al-emoji-moment-name ph-no-capture">
+        :{emoji.name}:
+      </h2>
+      <p id={`${described}-why`} className="al-emoji-moment-why ph-no-capture">
+        {whyWords(emoji)}
+      </p>
+      <MomentSlackLine emoji={emoji} short={false} id={`${described}-use`} className="al-emoji-moment-use" />
+    </div>
+  );
+}
+
+function Bundle({ emojis, waiting, described, reduced }: { emojis: AlbumEmoji[]; waiting: number; described: string; reduced: boolean }) {
+  return (
+    <div className="al-emoji-bundle">
+      <h2 className="al-emoji-moment-kicker">{waiting} new emojis unlocked</h2>
+      {!reduced && (
+        <span className="al-emoji-bundle-wrapper" aria-hidden="true">
+          <span className="al-emoji-bundle-tear" />
+          <span className="al-emoji-bundle-brand">HedgeHug</span>
+          <span className="al-emoji-bundle-kind">Emoji bundle</span>
+        </span>
+      )}
+      <ul id={`${described}-cards`} className="al-emoji-bundle-cards" aria-label="Your new emojis">
+        {emojis.map((emoji, index) => (
+          <li key={emoji.id} className="al-emoji-bundle-card" style={{ "--al-card": index } as CSSProperties}>
+            <span className="al-emoji-bundle-picture" data-flies="">
+              <EmojiPicture emoji={emoji} size={bundlePictureSize} />
+            </span>
+            <h3 className="al-emoji-bundle-name ph-no-capture">:{emoji.name}:</h3>
+            <p className="al-emoji-bundle-from ph-no-capture">{earnedFromWords(emoji)}</p>
+            <MomentSlackLine emoji={emoji} short className="al-emoji-bundle-slack" />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function useFocusWhileShown(dialog: RefObject<HTMLDivElement | null>, emojiButton: RefObject<HTMLButtonElement | null>, backToTheEmojis: RefObject<boolean>) {
   const comeBackTo = useRef<Element | null>(null);
   useLayoutEffect(() => {
     comeBackTo.current = document.activeElement;
     dialog.current?.focus({ preventScroll: true });
   }, [dialog]);
-  useEffect(() => () => (comeBackTo.current instanceof HTMLElement && comeBackTo.current.isConnected ? comeBackTo.current : emojiButton.current)?.focus({ preventScroll: true }), [emojiButton]);
+  useEffect(
+    () => () => {
+      const before = comeBackTo.current;
+      const target = !backToTheEmojis.current && before instanceof HTMLElement && before.isConnected ? before : emojiButton.current;
+      target?.focus({ preventScroll: true });
+    },
+    [emojiButton, backToTheEmojis],
+  );
 }
 
 function useEscapeTo(then: () => void) {
@@ -135,8 +170,13 @@ function useEscapeTo(then: () => void) {
   }, []);
 }
 
-async function flyInto(element: HTMLElement | null, target: HTMLElement | null) {
-  if (element === null || target === null || typeof element.animate !== "function") return pause(emojiMomentTiming.flightMs);
+async function flyAllInto(dialog: HTMLElement | null, target: HTMLElement | null) {
+  const pictures = [...(dialog?.querySelectorAll<HTMLElement>("[data-flies]") ?? [])];
+  await Promise.all(pictures.map((picture, index) => pause(index * emojiMomentTiming.flightStaggerMs).then(() => flyInto(picture, target))));
+}
+
+async function flyInto(element: HTMLElement, target: HTMLElement | null) {
+  if (target === null || typeof element.animate !== "function") return pause(emojiMomentTiming.flightMs);
   const from = element.getBoundingClientRect();
   const to = target.getBoundingClientRect();
   const scale = from.width === 0 ? 0.2 : Math.max(0.12, to.height / from.width);
