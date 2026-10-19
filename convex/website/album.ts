@@ -18,6 +18,7 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
+import { workspaceUrlOf } from "../workspace/url";
 import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, type AlbumProfileAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
 import { appliedShownTo } from "./commands";
@@ -41,6 +42,7 @@ export type AlbumAnswer = {
   emojis: EarnedEmoji[];
   moreEmojis: boolean;
   sharedEmojis: SharedEmoji[] | null;
+  emojiPage: string | null;
 };
 
 export const mostPeopleShown = 500;
@@ -96,8 +98,14 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const milestones = await milestonesOf(ctx, me, pagesAndPeople.pages);
   const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level });
   const sharedEmojis = await sharedEmojisOf(ctx, me.member, earned);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis };
+  const emojiPage = await customEmojiPageOf(ctx, me.workspace);
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage };
 });
+
+async function customEmojiPageOf(ctx: QueryCtx, workspace: string): Promise<string | null> {
+  const url = await workspaceUrlOf(ctx, workspace);
+  return url === null ? null : `${url}customize/emoji`;
+}
 
 async function teamsOf(ctx: QueryCtx, pagesAndPeople: TeamPagesAndPeople, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
   const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));

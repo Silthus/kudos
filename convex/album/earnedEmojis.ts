@@ -15,9 +15,9 @@ export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype";
 
 export type EmojiProgress = { have: number; need: number };
 
-export type EarnedEmoji = { id: EarnedEmojiId; kind: EarnedEmojiKind; name: string; picture: string; earned: boolean; seen: boolean; inSlack: boolean; progress: EmojiProgress | null };
+export type EarnedEmoji = { id: EarnedEmojiId; kind: EarnedEmojiKind; name: string; from: string; picture: string; earned: boolean; earnedAt: number | null; seen: boolean; inSlack: boolean; progress: EmojiProgress | null };
 
-export type SharedEmoji = Pick<EarnedEmoji, "id" | "kind" | "name" | "picture" | "inSlack">;
+export type SharedEmoji = Pick<EarnedEmoji, "id" | "kind" | "name" | "from" | "picture" | "inSlack">;
 
 export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number } };
 
@@ -29,7 +29,11 @@ export const mostPeoplePackedRead = 500;
 
 export const mostEmojisSeenAtOnce = 500;
 
-type Cause = { id: EarnedEmojiId; kind: EarnedEmojiKind; picture: string; earned: boolean; progress: EmojiProgress };
+const unnamedPerson = "A teammate";
+
+type Cause = { id: EarnedEmojiId; kind: EarnedEmojiKind; from: string; picture: string; earned: boolean; earnedAt: number | null; progress: EmojiProgress };
+
+type PackedPerson = { person: MemberId; firstPackAt: number };
 
 export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: EmojiCauses): Promise<EarnedEmojis> {
   const seen = await seenBy(ctx, owner.member);
@@ -45,7 +49,7 @@ export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: Em
 export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }: EarnedEmojis): Promise<SharedEmoji[] | null> {
   if (!(await personFactsOf(ctx, member))?.admin) return null;
   const companyTeams = new Set((await companyTeamsOf(ctx)).map(({ team }) => `team:${team}`));
-  return emojis.filter(({ id, kind }) => (kind === "team" ? companyTeams.has(id) : kind !== "hype")).map(({ id, kind, name, picture, inSlack }) => ({ id, kind, name, picture, inSlack }));
+  return emojis.filter(({ id, kind }) => (kind === "team" ? companyTeams.has(id) : kind !== "hype")).map(({ id, kind, name, from, picture, inSlack }) => ({ id, kind, name, from, picture, inSlack }));
 }
 
 export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: string[], at: number): Promise<string[] | null> {
@@ -60,13 +64,13 @@ export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: 
   return marked;
 }
 
-async function emojiOf(ctx: QueryCtx, workspace: string, { id, kind, picture, earned, progress }: Cause, name: string, seen: Set<string>): Promise<EarnedEmoji> {
+async function emojiOf(ctx: QueryCtx, workspace: string, { id, kind, from, picture, earned, earnedAt, progress }: Cause, name: string, seen: Set<string>): Promise<EarnedEmoji> {
   const inSlack = (await customEmojiImageOf(ctx, workspace, name)) !== undefined;
-  return { id, kind, name, picture, earned, seen: earned && seen.has(id), inSlack, progress: earned ? null : progress };
+  return { id, kind, name, from, picture, earned, earnedAt, seen: earned && seen.has(id), inSlack, progress: earned ? null : progress };
 }
 
 function teamCausesOf(pages: TeamPage[]): Cause[] {
-  return pages.map(({ team, art, state, held, total }) => ({ id: `team:${team}`, kind: "team", picture: teamPictureOf(art), earned: state === "unlocked", progress: { have: held, need: total } }));
+  return pages.map(({ team, name, art, state, held, total, unlockedAt }) => ({ id: `team:${team}`, kind: "team", from: name, picture: teamPictureOf(art), earned: state === "unlocked", earnedAt: unlockedAt, progress: { have: held, need: total } }));
 }
 
 function teamPictureOf(art: TeamCrestArt): string {
@@ -77,28 +81,31 @@ function teamPictureOf(art: TeamCrestArt): string {
 function milestoneCausesOf(milestones: MilestoneAnswer[]): Cause[] {
   return milestones.flatMap(({ id, count, tiers }) => {
     const gold = tiers.find(({ tier }) => tier === "gold");
-    return gold === undefined ? [] : [{ id: `milestone:${id}` as const, kind: "milestone" as const, picture: emojiArtPictureOf("milestone", id), earned: gold.earnedAt !== null, progress: { have: count, need: gold.at } }];
+    return gold === undefined ? [] : [{ id: `milestone:${id}` as const, kind: "milestone" as const, from: gold.name, picture: emojiArtPictureOf("milestone", id), earned: gold.earnedAt !== null, earnedAt: gold.earnedAt, progress: { have: count, need: gold.at } }];
   });
 }
 
 function levelCausesOf({ level, xp }: EmojiCauses["level"]): Cause[] {
-  return emojiLevels.map((reward) => ({ id: `level:${reward}`, kind: "level", picture: emojiArtPictureOf("level", reward), earned: level >= reward, progress: { have: xp, need: xpToReach(reward) } }));
+  return emojiLevels.map((reward) => ({ id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: emojiArtPictureOf("level", reward), earned: level >= reward, earnedAt: null, progress: { have: xp, need: xpToReach(reward) } }));
 }
 
 async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>): Promise<{ causes: Cause[]; more: boolean }> {
   const people = unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen);
   const causes: Cause[] = [];
-  for (const person of people.slice(0, mostHypeEmojisShown)) causes.push({ id: `hype:${person}`, kind: "hype", picture: await hypePictureOf(ctx, workspace, person), earned: true, progress: { have: 1, need: 1 } });
+  for (const { person, firstPackAt } of people.slice(0, mostHypeEmojisShown)) {
+    const { name, picture } = await hypeFaceOf(ctx, workspace, person);
+    causes.push({ id: `hype:${person}`, kind: "hype", from: name, picture, earned: true, earnedAt: firstPackAt, progress: { have: 1, need: 1 } });
+  }
   return { causes, more: people.length > mostHypeEmojisShown };
 }
 
-function unseenFirst(people: MemberId[], seen: Set<string>): MemberId[] {
-  const isSeen = (person: MemberId) => seen.has(`hype:${person}`);
-  return [...people.filter((person) => !isSeen(person)), ...people.filter(isSeen)];
+function unseenFirst(people: PackedPerson[], seen: Set<string>): PackedPerson[] {
+  const isSeen = ({ person }: PackedPerson) => seen.has(`hype:${person}`);
+  return [...people.filter((packed) => !isSeen(packed)), ...people.filter(isSeen)];
 }
 
-async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Promise<MemberId[]> {
-  const people: MemberId[] = [];
+async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Promise<PackedPerson[]> {
+  const people: PackedPerson[] = [];
   for (let after: MemberId | null = null; people.length < most; ) {
     const last: MemberId | null = after;
     const pack = await ctx.db
@@ -106,15 +113,16 @@ async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Pro
       .withIndex("by_giver_recipient_week", (q) => (last === null ? q.eq("giver", giver) : q.eq("giver", giver).gt("recipient", last)))
       .first();
     if (pack === null) break;
-    people.push(pack.recipient);
+    people.push({ person: pack.recipient, firstPackAt: pack.at });
     after = pack.recipient;
   }
   return people;
 }
 
-async function hypePictureOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<string> {
+async function hypeFaceOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<{ name: string; picture: string }> {
   const companyFace = await storedCompanyFaceOf(ctx, workspace, person);
-  return companyFace?.image ?? (await nameAndPictureOf(ctx, person)).picture ?? hypeEmblemPicture;
+  const { name, picture } = await nameAndPictureOf(ctx, person);
+  return { name: name ?? unnamedPerson, picture: companyFace?.image ?? picture ?? hypeEmblemPicture };
 }
 
 async function seenBy(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
