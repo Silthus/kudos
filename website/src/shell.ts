@@ -381,6 +381,7 @@ const fixturesByName: Record<string, ShellState> = {
   album: shellFixtures.memberWithTheAlbum,
   "album-without-a-team": shellFixtures.memberWithTheAlbum,
   "album-with-new-emojis": shellFixtures.memberWithTheAlbum,
+  "album-as-an-admin": shellFixtures.memberWithTheAlbum,
   "member-with-packs": shellFixtures.memberWithPacks,
   "member-with-more-packs": shellFixtures.memberWithPacks,
   error: shellFixtures.error,

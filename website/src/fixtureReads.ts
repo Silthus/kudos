@@ -30,6 +30,8 @@ const withoutATeam = "album-without-a-team";
 
 const withNewEmojis = "album-with-new-emojis";
 
+const asAnAdmin = "album-as-an-admin";
+
 const fixturePeople = fixedPeople(albumFixtures.midway);
 const fixtureWeek = fixtureWeeks();
 
@@ -50,7 +52,7 @@ export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads
     readActivity: fixtureReadActivity,
     drawSpotlight: fixtureSpotlight,
     useSettings: fixtureSettings,
-    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixtureAlbum,
+    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixtureAlbum,
     useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
