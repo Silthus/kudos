@@ -155,6 +155,31 @@
   text-transform: none;
 }
 
+.al-emoji-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.al-emoji-group + .al-emoji-group {
+  border-top: 1px dashed var(--border);
+  padding-top: 0.5rem;
+}
+
+.al-emoji-group-title {
+  display: flex;
+  margin: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.al-emoji-group-title .al-quiet {
+  font-weight: 600;
+}
+
 .al-emoji-none {
   margin: 0;
   color: var(--al-quiet);

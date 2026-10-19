@@ -22,7 +22,7 @@ import { workspaceUrlOf } from "../workspace/url";
 import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, type AlbumProfileAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
 import { appliedShownTo } from "./commands";
-import { companyTeammateOf, nameless, storedFaceOf, teammateOf, type Face } from "./faces";
+import { companyTeammateOf, nameless, storedFaceOf, type Face } from "./faces";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
@@ -117,18 +117,20 @@ async function customEmojiPageOf(ctx: QueryCtx, workspace: string): Promise<stri
 async function teamsOf(ctx: QueryCtx, pagesAndPeople: TeamPagesAndPeople, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
   const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));
   const teams = pagesAndPeople.pages.map(({ unmatched, ...page }) => ({ ...page, unmatched: unmatched.flatMap((profile) => named.get(profile) ?? []) }));
-  return { teams, unlisted: unlistedPeopleOn(pagesAndPeople, listed, named) };
+  return { teams, unlisted: await unlistedPeopleOn(ctx, pagesAndPeople, listed, named) };
 }
 
-function unlistedPeopleOn({ pages, held, matchOf }: TeamPagesAndPeople, listed: Set<MemberId>, named: Map<number, string>): AlbumPerson[] {
+async function unlistedPeopleOn(ctx: QueryCtx, { pages, held, matchOf }: TeamPagesAndPeople, listed: Set<MemberId>, named: Map<number, string>): Promise<AlbumPerson[]> {
   const onAPage = new Set(pages.flatMap(({ people }) => people));
-  return [...onAPage].filter((person) => !listed.has(person)).map((person) => unlistedPersonOf(person, held.has(person), matchOf.get(person), named));
+  const unlisted = [...onAPage].filter((person) => !listed.has(person));
+  return Promise.all(unlisted.map((person) => unlistedPersonOf(ctx, person, held.has(person), matchOf.get(person), named)));
 }
 
-function unlistedPersonOf(person: MemberId, isHeld: boolean, match: StoredMatch | undefined, named: Map<number, string>): AlbumPerson {
+async function unlistedPersonOf(ctx: QueryCtx, person: MemberId, isHeld: boolean, match: StoredMatch | undefined, named: Map<number, string>): Promise<AlbumPerson> {
   const name = match === undefined ? undefined : named.get(match.profile);
-  const teammate = isHeld ? companyTeammateOf(name, null, match?.face ?? null) : teammateOf(name, null);
-  return { person, ...teammate, held: isHeld };
+  const companyFace = match?.face ?? null;
+  const picture = companyFace === null ? (await nameAndPictureOf(ctx, person)).picture : null;
+  return { person, ...companyTeammateOf(name, picture, companyFace), held: isHeld };
 }
 
 async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedPeople): Promise<{ packs: AlbumPack[]; more: boolean }> {
