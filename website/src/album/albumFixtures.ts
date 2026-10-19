@@ -37,6 +37,10 @@ function initialsOf(person: string) {
     .join("");
 }
 
+export function stickerFor(item: string, person: string): TrayItem {
+  return { item, kind: "sticker", person, thanked: { name: nameOf(person), face: { kind: "initials", initials: initialsOf(person) } } };
+}
+
 function teamsOf(cast: CastTeam[], mine: string | null): AlbumTeam[] {
   return cast.map(({ team, name, crest, people, held, state, unmatched = [] }) => ({
     team,
@@ -138,9 +142,9 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugge
 }
 
 const midwayTray: TrayItem[] = [
-  { item: "tray-cass-vey", kind: "sticker", person: "cass-vey" },
+  stickerFor("tray-cass-vey", "cass-vey"),
   { item: "tray-burning-money", kind: "hoggie", hoggie: "burning-money", rarity: "uncommon", isNew: true },
-  { item: "tray-dov-esker", kind: "sticker", person: "dov-esker" },
+  stickerFor("tray-dov-esker", "dov-esker"),
   { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: false },
 ];
 
@@ -175,7 +179,7 @@ export function fixturePackOpeningOf(pack: string): PackOpenAnswer {
   return {
     kind: "opened",
     items: [
-      { item: `${pack}:sticker`, kind: "sticker", person: waiting.person },
+      { item: `${pack}:sticker`, kind: "sticker", person: waiting.person, thanked: waiting.thanked },
       { item: `${pack}:hoggie`, kind: "hoggie", ...fixtureHoggies[index % fixtureHoggies.length]! },
     ],
     applied: { xp: 15, coins: 0, from: { xp, level, coins: 0, skillPoints: 0 }, to: { xp: xp + 15, level, coins: 0, skillPoints: 0 } },

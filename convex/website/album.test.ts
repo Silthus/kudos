@@ -199,6 +199,29 @@ describe("AL47: each waiting pack names the person it thanks, with the face the 
   });
 });
 
+describe("AL11: the open, Put in and Put them all in answer each sticker with the person it brings", () => {
+  test("openThoughtfulPack, putIn and putAllIn name the person and show their stored face, as getAlbum's tray does", async () => {
+    await switchWebsite(t, postHog, true, "album", "collection", "packs");
+    await thanks(alice, "Thanks for the careful review of the billing export", carol, dana);
+    const asAlice = await signedIn(alice);
+    const before = (await albumOf(asAlice)) as AlbumRead;
+    const opened = [];
+    for (const { pack } of before.kind === "album" ? before.packs : []) opened.push(await asAlice.mutation(api.website.album.openThoughtfulPack, { pack }));
+    await settle(t);
+    const carolId = await memberOf(carol);
+    const [carolShown, danaShown] = [{ name: carol.name, face: { kind: "initials", initials: "CL" } }, { name: dana.name, face: { kind: "initials", initials: "DF" } }];
+    const stickers = opened.flatMap((answer) => (answer.kind === "opened" ? answer.items.filter((item) => item.kind === "sticker") : []));
+    const carolsSticker = stickers.find(({ person }) => person === carolId);
+
+    const placed = await asAlice.mutation(api.website.album.putIn, { item: carolsSticker!.item });
+    const placedAll = await asAlice.mutation(api.website.album.putAllIn, {});
+
+    expect(stickers.map(({ thanked }) => thanked)).toEqual([carolShown, danaShown]);
+    expect(placed).toMatchObject({ kind: "placed", item: { person: carolId, thanked: carolShown } });
+    expect(placedAll.kind === "placed" ? placedAll.items.filter((item) => item.kind === "sticker").map(({ thanked }) => thanked) : placedAll).toEqual([danaShown]);
+  });
+});
+
 describe("website reads pass one guard", () => {
   test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);

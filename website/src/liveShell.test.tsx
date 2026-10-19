@@ -775,7 +775,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     teams: [],
     people: [],
     morePeople: false,
-    packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z"), thanked: { name: "Ines Okafor", face: { kind: "initials", initials: "IO" } } }],
+    packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z") }],
     morePacks: false,
     tray: [{ item: "t-1", kind: "sticker", person: "m-ines" }],
     moreTray: false,
@@ -953,7 +953,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const { user } = renderLiveSite();
 
     await user.click(await within((await screen.findAllByRole("banner"))[0]!).findByRole("button", { name: "Open your packs, 1 waiting" }));
-    await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking Ines Okafor" }));
+    await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking a teammate" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:openThoughtfulPack", args: { pack: "p-1" } });
   });
@@ -976,6 +976,24 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
       [{ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:putIn", args: { item: "t-2" } }],
       [{ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:putAllIn", args: {} }],
     ]);
+  });
+
+  it("#718: an answer from a getAlbum and a putIn without the thanked person, as an older backend sends during a rollback, still opens, lists and puts in the card for a teammate", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : undefined));
+    sentOverHttp.mockResolvedValue({ kind: "placed", item: albumV1.tray[0] });
+    const { user } = renderLiveSite();
+    const bar = within((await screen.findAllByRole("banner"))[0]!);
+
+    await user.click(await bar.findByRole("button", { name: "Tray, 1 to put in" }));
+    expect(screen.getByRole("region", { name: "Tray" })).toHaveTextContent("A teammate");
+    await user.click(screen.getByRole("button", { name: "Put your teammate's card in" }));
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledOnce());
+    expect(await bar.findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await user.click(bar.getByRole("button", { name: "Open your packs, 1 waiting" }));
+    expect(screen.getByText("For thanking a teammate")).toBeInTheDocument();
   });
 
   it("while getAlbum answers off, the album waits, and a member without album never subscribes to getAlbum", async () => {

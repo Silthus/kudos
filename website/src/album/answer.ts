@@ -19,7 +19,7 @@ export type Thanked = { name: string | null; face: Face | null };
 
 export type WaitingPack = { pack: string; person: string; earnedAt: number; thanked: Thanked };
 
-export type TrayItem = { item: string; kind: "sticker"; person: string; thanked?: Thanked } | { item: string; kind: "hoggie"; hoggie: string; rarity: Rarity; isNew: boolean };
+export type TrayItem = { item: string; kind: "sticker"; person: string; thanked: Thanked } | { item: string; kind: "hoggie"; hoggie: string; rarity: Rarity; isNew: boolean };
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 

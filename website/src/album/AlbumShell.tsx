@@ -66,7 +66,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing !== null && <EmojiMoment key={emojiMoments.playing.id} moments={emojiMoments} emojiButton={emojiButton} />}
-      <PutInFlights album={album} flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
+      <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
       </p>

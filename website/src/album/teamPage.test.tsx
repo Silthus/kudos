@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf, fixtureUnlockOf } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf, fixtureUnlockOf, stickerFor } from "./albumFixtures";
 import type { Album, AlbumEmoji, PersonPage, PersonRead, PutAllInReply, UnlockReply } from "./answer";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -48,7 +48,7 @@ async function unlockSays() {
 }
 
 function withTheTray(album: Album, person: string): Album {
-  return { ...album, tray: [{ item: `tray-${person}`, kind: "sticker", person }] };
+  return { ...album, tray: [stickerFor(`tray-${person}`, person)] };
 }
 
 describe("AL45: the team page is the team's class photo", () => {
@@ -171,7 +171,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
   });
 
   it("AL54: while Put them all in waits for its answer and while its cards fly in, the sticker says it waits and sends nothing, then comes back once they land", async () => {
-    const trayed: Album = { ...midway, tray: [{ item: "tray-juno", kind: "sticker", person: "juno-park" }, { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] };
+    const trayed: Album = { ...midway, tray: [stickerFor("tray-juno", "juno-park"), { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] };
     let answer: (reply: PutAllInReply) => void = () => undefined;
     const { user, send } = visit("/book#teams/kettle-works", { album: trayed, putAllIn: () => new Promise((resolve) => (answer = resolve)) });
     await user.click(await screen.findByRole("button", { name: /^Tray/ }));

@@ -62,7 +62,7 @@ describe("AL8 AL10: opening a thoughtful pack puts its sticker and its hoggie in
     expect(opened).toMatchObject({ kind: "opened", items: [{ kind: "sticker", person: await memberOf(bob) }, { kind: "hoggie", hoggie: drawn.hoggie, rarity: drawn.rarity, isNew: true }] });
     const album = await albumOf(asAlice);
     expect(album.packs.map(({ person }) => person)).toEqual([await memberOf(carol)]);
-    expect(storedItemsOf(album.tray)).toEqual("items" in opened ? opened.items : null);
+    expect(album.tray).toEqual("items" in opened ? opened.items : null);
     expect((await albumOf(await signedIn(alice))).tray).toEqual(album.tray);
   });
 
@@ -95,7 +95,7 @@ describe("AL10: getAlbum's tray is bounded", () => {
     const album = await albumOf(asAlice);
 
     expect(opened).toHaveLength(102);
-    expect(storedItemsOf(album.tray)).toEqual(opened.slice(0, 100));
+    expect(album.tray).toEqual(opened.slice(0, 100));
     expect(album.moreTray).toBe(true);
   });
 });
@@ -318,14 +318,6 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
 
 function open(reader: Reader, pack: PackId) {
   return reader.mutation(api.website.album.openThoughtfulPack, { pack });
-}
-
-function storedItemsOf(tray: AlbumAnswer["tray"]) {
-  return tray.map((shown) => {
-    if (shown.kind !== "sticker") return shown;
-    const { thanked: _shownPerson, ...stored } = shown;
-    return stored;
-  });
 }
 
 async function albumOf(reader: Reader): Promise<AlbumAnswer> {

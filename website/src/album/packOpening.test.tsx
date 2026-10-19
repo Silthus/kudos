@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures } from "./albumFixtures";
+import { albumFixtures, stickerFor } from "./albumFixtures";
 import type { Album, AlbumEmoji, AlbumRead, PackOpenReply, TrayItem } from "./answer";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -42,7 +42,7 @@ type DroppedHoggie = Omit<Extract<TrayItem, { kind: "hoggie" }>, "item" | "kind"
 
 function stickerAndHoggie(person: string, hoggie: DroppedHoggie = { hoggie: "banana", rarity: "common", isNew: true }): TrayItem[] {
   return [
-    { item: `tray-${person}`, kind: "sticker", person },
+    stickerFor(`tray-${person}`, person),
     { item: `tray-${hoggie.hoggie}`, kind: "hoggie", ...hoggie },
   ];
 }

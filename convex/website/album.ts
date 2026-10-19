@@ -59,15 +59,15 @@ export type AlbumTrayItem = Exclude<TrayItem, { kind: "sticker" }> | (Extract<Tr
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
-export type OpenAnswer = ({ kind: "opened" } & Opening) | { kind: "refused" };
+export type OpenAnswer = { kind: "opened"; items: AlbumTrayItem[]; applied: Opening["applied"] } | { kind: "refused" };
 
 export type UnlockAnswer = { kind: "unlocked"; sticker: TeamSticker } | { kind: "refused" };
 
-export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
+export type PutInAnswer = { kind: "placed"; item: AlbumTrayItem } | { kind: "refused" };
 
 export type SeenAnswer = { kind: "seen"; ids: string[] } | { kind: "refused" };
 
-export type PutAllInAnswer = ({ kind: "placed" } & PutIn) | { kind: "refused" };
+export type PutAllInAnswer = { kind: "placed"; items: AlbumTrayItem[]; more: PutIn["more"] } | { kind: "refused" };
 
 export type BoardPersonRow = { person: MemberId; name: string; face: Face; teams: string[]; thoughtful: number; you: boolean } & Standing;
 
@@ -141,9 +141,17 @@ async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember, thanked: Thanked
 
 async function trayShownTo(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedPeople): Promise<{ tray: AlbumTrayItem[]; more: boolean }> {
   const { tray, more } = await trayOf(ctx, me.member);
-  const named: AlbumTrayItem[] = [];
-  for (const item of tray) named.push(item.kind === "sticker" ? { ...item, thanked: await thanked(item.person) } : item);
-  return { tray: named, more };
+  return { tray: await shownItemsOf(tray, thanked), more };
+}
+
+async function shownItemsOf(items: TrayItem[], thanked: ThankedPeople): Promise<AlbumTrayItem[]> {
+  const shown: AlbumTrayItem[] = [];
+  for (const item of items) shown.push(await shownItemOf(item, thanked));
+  return shown;
+}
+
+async function shownItemOf(item: TrayItem, thanked: ThankedPeople): Promise<AlbumTrayItem> {
+  return item.kind === "sticker" ? { ...item, thanked: await thanked(item.person) } : item;
 }
 
 type ThankedPeople = (person: MemberId) => Promise<Thanked>;
@@ -160,7 +168,8 @@ export const openThoughtfulPack = memberMutation({
   args: { pack: v.id("thoughtfulPacks") },
   handler: async (ctx, me, _person, { pack }): Promise<OpenAnswer> => {
     const opening = (await opensPacks(ctx, me)) ? await openPack(ctx, me.member, pack, Date.now()) : null;
-    return opening === null ? { kind: "refused" } : { kind: "opened", items: opening.items, applied: await appliedShownTo(ctx, me, opening.applied) };
+    if (opening === null) return { kind: "refused" };
+    return { kind: "opened", items: await shownItemsOf(opening.items, thankedPeopleOf(ctx, me.workspace)), applied: await appliedShownTo(ctx, me, opening.applied) };
   },
 });
 
@@ -172,13 +181,17 @@ export const putIn = memberMutation({
   args: { item: v.id("trayItems") },
   handler: async (ctx, me, _person, { item }): Promise<PutInAnswer> => {
     const placed = (await albumShownTo(ctx, me.member)) ? await putItemIn(ctx, me, item, Date.now()) : null;
-    return placed === null ? { kind: "refused" } : { kind: "placed", item: placed };
+    return placed === null ? { kind: "refused" } : { kind: "placed", item: await shownItemOf(placed, thankedPeopleOf(ctx, me.workspace)) };
   },
 });
 
 export const putAllIn = memberMutation({
   args: {},
-  handler: async (ctx, me): Promise<PutAllInAnswer> => ((await albumShownTo(ctx, me.member)) ? { kind: "placed", ...(await putEveryItemIn(ctx, me, Date.now())) } : { kind: "refused" }),
+  handler: async (ctx, me): Promise<PutAllInAnswer> => {
+    if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
+    const { items, more } = await putEveryItemIn(ctx, me, Date.now());
+    return { kind: "placed", items: await shownItemsOf(items, thankedPeopleOf(ctx, me.workspace)), more };
+  },
 });
 
 export const unlockTeamSticker = memberMutation({
