@@ -447,7 +447,7 @@ button.al-hoggies-note .al-hoggie-art {
   display: grid;
   place-items: center;
   overflow-y: auto;
-  background: color-mix(in oklab, #000 45%, transparent);
+  background: rgb(0 0 0 / 0.45);
   padding: 1.5rem 1rem;
 }
 
