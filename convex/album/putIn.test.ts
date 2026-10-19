@@ -3,16 +3,31 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { holds } from "../../testing/hoggies";
+import { signedRequest } from "../../testing/signedSlack";
+import { publishedHome } from "../../testing/slackInteractions";
 import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 import { openUnlock } from "../unlocks/unlocks";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
+import { crestWith } from "../hoggies/catalogue";
 import type { CollectionAnswer } from "../website/collection";
 import type { MemberId } from "../workspace/directory";
+
+const theDraw = vi.hoisted(() => ({ pinned: null as string | null }));
+
+vi.mock("../hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+  const { hoggieNamed } = await import("../hoggies/catalogue");
+  return {
+    ...actual,
+    drawOf: vi.fn(async (input: Parameters<typeof actual.drawOf>[0]) => (theDraw.pinned === null || !input.crate.startsWith("thoughtful:") ? actual.drawOf(input) : { hoggie: theDraw.pinned, rarity: hoggieNamed(theDraw.pinned)!.rarity })),
+  };
+});
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
@@ -43,6 +58,7 @@ let messages = 0;
 const names = new Map<string, string>();
 
 beforeEach(async () => {
+  theDraw.pinned = null;
   vi.useFakeTimers({ now: tuesday });
   aDeploymentForWorkspace();
   postHog = new FakePostHog();
@@ -147,6 +163,40 @@ describe("a tray item is put in once", { timeout: 120_000 }, () => {
     expect(await putAllIn(asAlice)).toEqual({ kind: "placed", items: [...hoggiesIn(rest), ...stickersIn(rest)], more: false });
   });
 
+  test("a sticker whose person the album already holds leaves the tray, records no second album sticker and sends nothing", async () => {
+    await thanks(alice, why, bob);
+    await anAlbumStickerAsHistoryWillRecordIt(alice, bob);
+    const asAlice = await signedIn(alice);
+    const [sticker] = await openEvery(asAlice);
+
+    expect(await putIn(asAlice, sticker!.item)).toEqual({ kind: "placed", item: sticker });
+    await settle(t);
+
+    const album = await albumOf(asAlice);
+    expect(album.tray.map(({ kind }) => kind)).toEqual(["hoggie"]);
+    expect(album.people).toEqual([expect.objectContaining({ person: await memberOf(bob), held: true })]);
+    expect(postHog.productEvents().filter(({ event }) => event === "album sticker collected")).toEqual([]);
+  });
+
+  test("two waiting copies of one hoggie count one copy at each put-in, and only the first can complete its crest", async () => {
+    await theBookIsOpen("crests", "activity");
+    theDraw.pinned = "doctor";
+    await thanks(alice, why, bob, carol);
+    await theBookOpensFor(alice);
+    const asAlice = await signedIn(alice);
+    const [, first, , second] = await openEvery(asAlice);
+    await holds(t, await memberOf(alice), ...rosterBeside("doctor"));
+    const waiting = countOf(await collectionOf(asAlice), "doctor").count;
+
+    await putIn(asAlice, first!.item);
+    const afterFirst = await collectionOf(asAlice);
+    await putIn(asAlice, second!.item);
+    const afterSecond = await collectionOf(asAlice);
+
+    expect([waiting, countOf(afterFirst, "doctor").count, countOf(afterSecond, "doctor").count], "doctor's count waiting, after one put-in and after both").toEqual([waiting, waiting + 1, waiting + 2]);
+    expect(crestCompletionsIn(await activityOf(asAlice)), "the finds that answer doctor's crest").toEqual([crestWith("doctor")!.crest]);
+  });
+
   test("putting in an item of another member's tray answers the fixed refusal and changes no table", async () => {
     await thanks(alice, why, bob);
     await thanks(bob, "Thanks for pairing on the gnarly cache bug", alice);
@@ -194,6 +244,59 @@ describe("a tray item is put in once", { timeout: 120_000 }, () => {
     expect(album.tray).toEqual([]);
     expect(album.people.filter(({ held }) => held)).toHaveLength(34);
     expect(postHog.productEvents().filter(({ event }) => event === "album sticker collected")).toHaveLength(31);
+  });
+});
+
+describe("AL12: a tray hoggie is found when it is put in", () => {
+  test("a crest a put-in completes is collected at the put-in, and the find of the hoggie put in answers it", async () => {
+    await theBookIsOpen("crests", "activity");
+    theDraw.pinned = "doctor";
+    await thanks(alice, why, bob);
+    await theBookOpensFor(alice);
+    const asAlice = await signedIn(alice);
+    const [, hoggie] = await openEvery(asAlice);
+    vi.setSystemTime(Date.now() + minuteMs);
+    await holds(t, await memberOf(alice), ...rosterBeside("doctor"));
+    const crest = crestWith("doctor")!.crest;
+    const waiting = crestOf(await collectionOf(asAlice), crest);
+    vi.setSystemTime(Date.now() + minuteMs);
+
+    await putIn(asAlice, hoggie!.item);
+
+    const putInAt = Date.now();
+    expect(waiting.collectedAt, "the crest while doctor waits in the tray").toBeNull();
+    expect(crestOf(await collectionOf(asAlice), crest).collectedAt, "the crest once doctor is put in").toBe(putInAt);
+    expect(crestCompletionsIn(await activityOf(asAlice)), "the finds that answer the crest").toEqual([crest]);
+  });
+
+  test("the activity feed leaves a waiting hoggie out and lists it once it is put in", async () => {
+    await theBookIsOpen("activity");
+    theDraw.pinned = "doctor";
+    await thanks(alice, why, bob);
+    await theBookOpensFor(alice);
+    const asAlice = await signedIn(alice);
+    const [, hoggie] = await openEvery(asAlice);
+    const waiting = foundIn(await activityOf(asAlice));
+
+    await putIn(asAlice, hoggie!.item);
+
+    expect(foundIn(await activityOf(asAlice)), "the finds once doctor is put in, newest opened first").toEqual(["doctor", ...waiting]);
+  });
+
+  test("App Home's last find names the hoggie put in, even after a newer crate dropped one", async () => {
+    await theBookIsOpen();
+    theDraw.pinned = "doctor";
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [, hoggie] = await openEvery(asAlice);
+    vi.setSystemTime(Date.now() + minuteMs);
+    await theBookOpensFor(alice);
+    vi.setSystemTime(Date.now() + minuteMs);
+
+    await putIn(asAlice, hoggie!.item);
+    await openAppHome(alice);
+
+    expect(JSON.stringify(publishedHome(slack, alice.user))).toContain("last found: Doctor");
   });
 });
 
@@ -287,8 +390,8 @@ function profilesOf(...people: Person[]): TeamPage["profiles"] {
   });
 }
 
-async function theBookIsOpen() {
-  await switchWebsite(t, postHog, true, ...albumOpen, "xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree");
+async function theBookIsOpen(...alsoOn: string[]) {
+  await switchWebsite(t, postHog, true, ...albumOpen, "xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", ...alsoOn);
   await bookShippedBeforeAnyoneJoined(t);
 }
 
@@ -346,6 +449,35 @@ async function collectionOf(reader: Reader) {
   const collection: CollectionAnswer | { kind: string } = await reader.query(api.website.collection.getCollection, {});
   if (collection.kind !== "collection") throw new Error(`expected the collection, got ${JSON.stringify(collection)}`);
   return collection as Extract<CollectionAnswer, { kind: "collection" }>;
+}
+
+function rosterBeside(hoggie: string) {
+  return crestWith(hoggie)!.roster.filter((onRoster) => onRoster !== hoggie);
+}
+
+function crestOf(collection: Awaited<ReturnType<typeof collectionOf>>, crest: string) {
+  return collection.crests!.find((entry) => entry.crest === crest)!;
+}
+
+type Activity = Array<{ kind: string; drop?: { hoggie: string; crest?: { crest: string } | null } }>;
+
+async function activityOf(reader: Reader): Promise<Activity> {
+  const answer = (await reader.query(api.website.activity.getActivity, { filter: "all", cursor: null })) as { entries?: Activity };
+  if (answer.entries === undefined) throw new Error(`expected the activity feed, got ${JSON.stringify(answer)}`);
+  return answer.entries;
+}
+
+function foundIn(entries: Activity) {
+  return entries.flatMap(({ kind, drop }) => (kind === "found" && drop !== undefined ? [drop.hoggie] : []));
+}
+
+function crestCompletionsIn(entries: Activity) {
+  return entries.flatMap(({ drop }) => (drop?.crest ? [drop.crest.crest] : []));
+}
+
+async function openAppHome(someone: Person) {
+  await t.fetch("/slack/events", await signedRequest(appHomeOpened(someone.user)));
+  await settle(t);
 }
 
 function countOf(collection: Awaited<ReturnType<typeof collectionOf>>, hoggie: string) {

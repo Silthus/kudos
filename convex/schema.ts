@@ -522,7 +522,7 @@ export default defineSchema({
 
   dropTallies: defineTable(dropTallyValidator).index("by_member", ["member"]),
 
-  trayDrops: defineTable(trayDropValidator).index("by_member_crate", ["member", "crate"]),
+  trayDrops: defineTable(trayDropValidator).index("by_member_crate", ["member", "crate"]).index("by_member_put_in", ["member", "putInAt"]),
 
   hoggieAvatars: defineTable(hoggieAvatarValidator).index("by_member", ["member"]),
 

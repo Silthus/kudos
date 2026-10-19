@@ -17,7 +17,7 @@ export const dropValidator = v.object({
 
 export const hoggieTallyValidator = v.object({ member: v.id("members"), hoggie: v.string(), count: v.number(), firstAt: v.number(), firstN: v.number() });
 
-export const trayDropValidator = v.object({ member: v.id("members"), crate: v.string(), putInAt: v.optional(v.number()) });
+export const trayDropValidator = v.object({ member: v.id("members"), crate: v.string(), putInAt: v.optional(v.number()), crest: v.optional(v.union(v.string(), v.null())) });
 
 export const dropTallyValidator = v.object({ member: v.id("members"), drops: v.number() });
 
