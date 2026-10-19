@@ -54,6 +54,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}
+        putIn={actions.putIn}
+        putAllIn={actions.putAllIn}
       />
     </NavigateProvider>
   );

@@ -105,6 +105,20 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     expect([...container.querySelectorAll(".al-opening .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["Juno Park", "For thanking Rook Dale"]));
   });
 
+  it("AL56: the tray from the fixture build, open and while its cards fly, keeps every face and name in blocks", async () => {
+    window.history.replaceState(null, "", "/");
+    const { container } = render(<Root fixture="album" />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Tray, 4 to put in" }));
+
+    expect(exposedIn(container)).toEqual([]);
+    expect([...container.querySelectorAll(".al-tray-panel .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["Cass Vey", "Dov Esker"]));
+    await user.click(screen.getByRole("button", { name: "Put them all in · 4" }));
+    await screen.findByRole("button", { name: /^Tray, putting in/ });
+
+    expect(exposedIn(container)).toEqual([]);
+  });
+
   it("AL56: the album's Leaderboard carries blocks around every giver's face and name, so its walk is not vacuous", async () => {
     window.history.replaceState(null, "", "/leaderboard");
     const { container } = render(<Root fixture="album" />);

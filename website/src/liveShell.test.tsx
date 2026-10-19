@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import { getFunctionName, type FunctionReference } from "convex/server";
@@ -909,6 +909,26 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking a teammate" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:openThoughtfulPack", args: { pack: "p-1" } });
+  });
+
+  it("AL11: Put in and Put them all in send putIn and putAllIn over HTTP with the session's token, never through the socket's queue", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, tray: [...albumV1.tray, { item: "t-2", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] } : undefined));
+    sentOverHttp.mockResolvedValue({ kind: "refused" });
+    const { user } = renderLiveSite();
+    const bar = within((await screen.findAllByRole("banner"))[0]!);
+
+    await user.click(await bar.findByRole("button", { name: "Tray, 2 to put in" }));
+    await user.click(screen.getByRole("button", { name: "Put Banana in" }));
+    await user.click(await bar.findByRole("button", { name: "Tray, 2 to put in" }));
+    await user.click(screen.getByRole("button", { name: "Put them all in · 2" }));
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledTimes(2));
+    expect(sentOverHttp.mock.calls).toEqual([
+      [{ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:putIn", args: { item: "t-2" } }],
+      [{ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:putAllIn", args: {} }],
+    ]);
   });
 
   it("while getAlbum answers off, the album waits, and a member without album never subscribes to getAlbum", async () => {

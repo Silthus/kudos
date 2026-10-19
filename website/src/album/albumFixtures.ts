@@ -1,4 +1,4 @@
-import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, UnlockAnswer } from "./answer";
+import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, TrayItem, UnlockAnswer } from "./answer";
 
 const day = 86_400_000;
 
@@ -109,6 +109,13 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugge
   };
 }
 
+const midwayTray: TrayItem[] = [
+  { item: "tray-cass-vey", kind: "sticker", person: "cass-vey" },
+  { item: "tray-burning-money", kind: "hoggie", hoggie: "burning-money", rarity: "uncommon", isNew: true },
+  { item: "tray-dov-esker", kind: "sticker", person: "dov-esker" },
+  { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: false },
+];
+
 const newcomerCast = castTeams.slice(0, 4).map((team) => ({ ...team, held: 0, state: undefined }));
 
 export const albumFixtures = {
@@ -117,6 +124,7 @@ export const albumFixtures = {
   started: albumOf({ gettingStarted: { hugged: true, thoughtful: true, opened: true, completed: true } }),
   onePack: albumOf({ packs: 1 }),
   fewTeams: albumOf({ cast: castTeams.slice(0, 3) }),
+  trayed: { ...albumOf(), tray: midwayTray },
 } satisfies Record<string, Album>;
 
 export function fixedAlbum(answer: MyAlbum): AlbumRead {
@@ -178,4 +186,14 @@ export function fixturePersonOf(album: Album, person: string): PersonPage | { ki
 
 export function fixedPeople(album: Album): PersonRead {
   return (asking, person) => (asking && person !== null ? fixturePersonOf(album, person) : undefined);
+}
+
+export function fixturePutInOf(item: string): PutInAnswer {
+  const placed = albumFixtures.trayed.tray.find((waiting) => waiting.item === item);
+  return placed === undefined ? { kind: "refused" } : { kind: "placed", item: placed };
+}
+
+export function fixturePutAllIn(): PutAllInAnswer {
+  const { tray } = albumFixtures.trayed;
+  return { kind: "placed", items: [...tray.filter(({ kind }) => kind === "hoggie"), ...tray.filter(({ kind }) => kind === "sticker")], more: false };
 }

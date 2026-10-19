@@ -1,0 +1,49 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "OB",
+      "kind": "initials"
+    },
+    "name": "Odile Brandt",
+    "person": "js7dahjd8xyhvx00ttchgzxkad8gk1zj"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [],
+  "people": [],
+  "teams": "57 company teams, none holding these people",
+  "tray": [
+    {
+      "item": "jn7nhhvwqkjy8we3gw30hk51z18gk358",
+      "kind": "sticker",
+      "person": "js7cdpb1s3nn5ern3xsmqswht58gjed0"
+    },
+    {
+      "hoggie": "hoot",
+      "isNew": true,
+      "item": "jn7w93p9y2732wjv8f372b9x0d8gkf4m",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "item": "jn7kq5ytdnrfc2pcp3j0tnxtjd8gkp12",
+      "kind": "sticker",
+      "person": "js74xskbx503jxqcam2bhp9gq98gjx88"
+    },
+    {
+      "hoggie": "football-coach",
+      "isNew": true,
+      "item": "jn7p30hgacjxwa9trfr1r9fkg18gjw98",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ]
+}

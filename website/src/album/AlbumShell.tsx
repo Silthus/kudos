@@ -13,10 +13,12 @@ import { GettingStarted } from "./GettingStarted";
 import { PackOpening, useHeld } from "./PackOpening";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
+import { PutInFlights } from "./PutInFlights";
 import { Sidebar } from "./Sidebar";
 import { teamEmojiOf } from "./teamPage";
 import { TopBar } from "./TopBar";
 import { UnlockMoment } from "./UnlockMoment";
+import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { useTeamUnlock } from "./useTeamUnlock";
 import "./album.css";
 
@@ -30,18 +32,23 @@ export type AlbumShellProps = {
   onSignOut: () => void;
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
-};
+} & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, person, busy, onSignOut, openThoughtfulPack, unlockTeamSticker }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, person, busy, onSignOut, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
   const wide = useWideScreen();
-  const { opening, open, close, packsButton, album: opened, rememberOpened } = usePackOpening(answered);
-  const { album, unlocking, moment, finish } = useTeamUnlock(opened, unlockTeamSticker);
-  const { held, hold, release } = useHeld();
+  const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
+  const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
+  const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker);
+  const { held, hold, release } = useHeld();
   const closeOpening = useCallback(() => {
     release();
     close();
   }, [release, close]);
+  const putEverythingIn = () => {
+    closeOpening();
+    puttingIn.putAllIn();
+  };
   const playing = opening || moment !== null;
   const unlockedTeam = moment === null ? undefined : album.teams.find(({ team }) => team === moment.team);
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
@@ -49,9 +56,13 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, pers
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={playing} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} />
-      {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} />}
+      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={playing} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} tray={puttingIn} />
+      {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && unlockedTeam !== undefined && <UnlockMoment team={unlockedTeam} sticker={moment} emoji={teamEmojiOf(album, moment.team)} onDone={finish} />}
+      <PutInFlights album={album} flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
+      <p role="status" aria-label="Putting in" className="al-sr">
+        {puttingIn.said}
+      </p>
       <div className="al-body" inert={playing}>
         <Sidebar album={album} place={place} wide={wide} footer={<Footer onSignOut={onSignOut} />} />
         <main className="al-main" aria-busy={busy || undefined}>

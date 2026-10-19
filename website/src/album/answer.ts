@@ -53,6 +53,14 @@ export type PackOpenAnswer = { kind: "opened"; items: TrayItem[]; applied: Appli
 
 export type PackOpenReply = PackOpenAnswer | Denial;
 
+export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
+
+export type PutInReply = PutInAnswer | Denial;
+
+export type PutAllInAnswer = { kind: "placed"; items: TrayItem[]; more: boolean } | { kind: "refused" };
+
+export type PutAllInReply = PutAllInAnswer | Denial;
+
 export type Standing = { rank: number; tied: boolean } | { rank: null; tied: false };
 
 export type BoardPerson = { person: string; name: string; face: Face; teams: string[]; thoughtful: number; you: boolean } & Standing;

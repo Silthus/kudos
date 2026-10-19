@@ -6,7 +6,7 @@ import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { contrast, contrastOnTint, type Mode } from "../test/themeContrast";
-import { albumFixtures, fixedAlbum, fixedPeople, fixturePackOpeningOf, fixtureUnlockOf } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople, fixturePackOpeningOf, fixturePutAllIn, fixtureUnlockOf } from "./albumFixtures";
 import type { BoardsShown, MyAlbum } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 
@@ -94,6 +94,27 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
           expect(await violationsIn(container)).toEqual([]);
         }
         await user.click(screen.getByRole("button", { name: "Skip" }));
+        expect(await violationsIn(container)).toEqual([]);
+      }, 60_000);
+    }
+
+    for (const wide of [true, false]) {
+      it(`the tray holding stickers and hoggies passes axe open, after a refusal and while its cards fly in ${dark ? "dark" : "light"}, ${wide ? "wide" : "on a phone"}`, async () => {
+        fakeSystemTheme(dark);
+        if (wide) preferWideScreen();
+        else aWideScreenThatNarrows().narrow();
+        window.history.replaceState(null, "", "/");
+        const { user, container } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.trayed), { commands: { putIn: async () => ({ kind: "refused" }), putAllIn: async () => fixturePutAllIn() } });
+        const [bar] = await screen.findAllByRole("banner");
+
+        await user.click(within(bar!).getByRole("button", { name: "Tray, 4 to put in" }));
+        expect(await violationsIn(container)).toEqual([]);
+        await user.click(screen.getByRole("button", { name: "Put Cass Vey's card in" }));
+        await user.click(await within(bar!).findByRole("button", { name: "Tray, 4 to put in" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("That couldn't be put in. It may already be in your album.");
+        expect(await violationsIn(container)).toEqual([]);
+        await user.click(screen.getByRole("button", { name: "Put them all in · 4" }));
+        await within(bar!).findByRole("button", { name: /^Tray, putting in/ });
         expect(await violationsIn(container)).toEqual([]);
       }, 60_000);
     }
@@ -217,6 +238,14 @@ describe("AL55: the album's own colours meet WCAG 2.2 AA in both themes", () => 
     it(`the seal's ring and the ready page's edge reach 3:1 in ${mode}`, () => {
       expect(contrast(mode, "al-accent", "card")).toBeGreaterThanOrEqual(3);
       expect(contrast(mode, "al-ready-edge", "background")).toBeGreaterThanOrEqual(3);
+    });
+
+    it(`the tray's text reaches 4.5:1 in ${mode}`, () => {
+      expect(contrastOnTint(mode, "foreground", "al-accent-soft", { backdrop: "card" })).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-accent-ink", "card")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-count-ink", "al-accent-ink")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-count-ink", "al-accent")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "muted-foreground", "card")).toBeGreaterThanOrEqual(4.5);
     });
 
     it(`bars, pips and step rings reach 3:1 in ${mode}`, () => {
