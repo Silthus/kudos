@@ -9,8 +9,8 @@ import { api, internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
+import { mostAppEmojisListed } from "./emojiWizard";
 import type { AppEmoji, AppEmojis, SlackEmojiMatches } from "../website/emojiWizard";
-import type { EmojiMappings, EmojiMappingsRead } from "../website/emojiMappings";
 import type { MemberId } from "../workspace/directory";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -82,6 +82,14 @@ describe("the emoji wizard finds an earned emoji in Slack", { timeout: 90_000 },
     const found = await matchesOf(await signedIn(alice), { near: "otters", search: "Hedgehog" });
 
     expect(found.map(({ name }) => name)).toEqual(["hedgehog", "hedgehog-otters", "hedge-fund"]);
+  });
+
+  test("a search keeps the name as typed, underscores and colons included, so an exact Slack name is found even behind 40 names that share its start", async () => {
+    await slackHas(...Array.from({ length: 45 }, (_, index) => `party_a${String(index).padStart(2, "0")}`), "party_parrot");
+
+    const found = await matchesOf(await signedIn(alice), { near: "otters", search: ":party_parrot:" });
+
+    expect(found[0]).toEqual({ name: "party_parrot", image: slackPicture("party_parrot"), free: true });
   });
 
   test("a Slack emoji held by another earned emoji reads taken, and an alias is found by the name it is an alias of", async () => {
@@ -182,6 +190,19 @@ describe("a member maps an earned emoji they hold to a Slack emoji", { timeout: 
     expect(await everyTable()).toEqual(before);
   });
 
+  test("the maintainer picking the Slack emoji a member mapped takes the mapping over and locks it for members", async () => {
+    await unlocksOtters(alice);
+    await slackHas("sea-otters", "fresh");
+    await (await signedIn(alice)).mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "sea-otters" });
+    const asOwner = await signedIn(owner);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "sea-otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
+
+    expect(emojiNamed(await appEmojisOf(asOwner), "sea-otters").slack).toEqual({ image: slackPicture("sea-otters"), setBy: { by: "maintainer", name: owner.name } });
+    await slackLoses("sea-otters");
+    expect(await (await signedIn(alice)).mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "fresh" })).toEqual({ kind: "refused" });
+  });
+
   test("a member mapping is refused while emoji-wizard is off for the member, and writes nothing", async () => {
     await unlocksOtters(alice);
     await slackHas("otter");
@@ -242,6 +263,33 @@ describe("the maintainer lists every app emoji, mapped or not", { timeout: 90_00
     expect(emojiNamed(await appEmojisOf(asOwner), "otters")).toMatchObject({ slack: null, place: { kind: "team", team: "otters" } });
     expect(await emojiWithId(await signedIn(alice), "team:otters")).toMatchObject({ name: "otters", inSlack: false });
     expect(await (await signedIn(alice)).mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "otter" }), "the Slack emoji is held back").toEqual({ kind: "refused" });
+  });
+
+  test("a former teammate's hype emoji stays off the list, since only a current member's hype can be mapped to", async () => {
+    await aliceCollects(otters[0]!, lanterns[0]!);
+    await memberChanged(t, "user_change", { id: lanterns[0]!.user, team_id: "T1", deleted: true });
+    await settle(t);
+
+    const names = (await appEmojisOf(await signedIn(owner))).emojis.map(({ name }) => name);
+
+    expect(names).toContain("otter-quillfeather1-hype");
+    expect(names).not.toContain("lantern-wickfield1-hype");
+  });
+
+  test(`the list answers at most ${mostAppEmojisListed} app emojis, the most held first, and says more wait, within Convex's limits`, async () => {
+    await aliceCollects(otters[0]!);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < mostAppEmojisListed + 200; index++) {
+        const person = await ctx.db.insert("members", { workspace: "T1", user: `U_CROWD_${index}`, kind: "member", name: `Crowd ${index}` });
+        await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person, name: `crowd-${index}-hype` });
+      }
+    });
+
+    const { emojis, more } = await appEmojisOf(await signedIn(owner));
+
+    expect(emojis).toHaveLength(mostAppEmojisListed);
+    expect(more).toBe(true);
+    expect(emojis.find(({ name }) => name === "first-face")).toMatchObject({ holders: 1 });
   });
 
   test("the maintainer's list is off for everyone else, and while emoji-wizard or workspace-settings is off for the maintainer", async () => {
@@ -319,12 +367,6 @@ async function albumOf(reader: Reader): Promise<AlbumAnswer> {
   const album: AlbumRead | { kind: string } = await reader.query(api.website.album.getAlbum, {});
   if (album.kind !== "album") throw new Error(`expected an album, got ${JSON.stringify(album)}`);
   return album as AlbumAnswer;
-}
-
-export async function mappingsOf(reader: Reader): Promise<EmojiMappings> {
-  const read: EmojiMappingsRead | { kind: string } = await reader.query(api.website.emojiMappings.getEmojiMappings, {});
-  if (read.kind !== "mappings") throw new Error(`expected the mappings, got ${JSON.stringify(read)}`);
-  return read as EmojiMappings;
 }
 
 async function theCompanyCopyHolds(...teams: TeamPage[]) {
