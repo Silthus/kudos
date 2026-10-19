@@ -10,6 +10,7 @@ import { publishedHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { aSession, aSignedInSession } from "../../testing/website";
+import { catalogue } from "../hoggies/catalogue";
 import { api, internal } from "../_generated/api";
 import { albumFlag, albumShownTo } from "../album/flag";
 import { xpToReach } from "../progression/levels";
@@ -123,7 +124,7 @@ const albumOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () 
 ];
 
 describe("AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it", { timeout: 180_000 }, () => {
-  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies, emoji names and the pair and week tallies it stores and the packs earned events it sends, and getAlbum, getThoughtfulBoards, getAlbumPerson and getAlbumWeek answer off", async ({ flag, turnOff }) => {
+  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies, emoji names and the pair and week tallies it stores and the packs earned events it sends, and getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson and getAlbumWeek answer off", async ({ flag, turnOff }) => {
     theAlbum.removed = true;
     const withoutTheAlbum = await walkIn(await fourMembers(flag, turnOff), { opening: true });
     freshFakes();
@@ -140,6 +141,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(walk.albumRows.thoughtfulTallies).toEqual([expect.objectContaining({ awards: 2 }), expect.objectContaining({ awards: 1 })]);
     expect(Object.values(walk.boards).every((answer) => !(answer as object).hasOwnProperty("people"))).toBe(true);
     expect(Object.values(walk.boards)).toEqual(Object.values(withoutTheAlbum.boards));
+    expect(walk.hoggies, "getAlbumHoggies after Alice opened and put in her first pack answers what getAlbum answers").toEqual(walk.albums);
+    expect(Object.values(walk.hoggies)).toEqual(Object.values(withoutTheAlbum.hoggies));
     expect(packsEarnedIn(withoutTheAlbum)).toEqual([]);
     expect(packsEarnedIn(walk)).toEqual([
       { packs_earned: 2, recipients: 2 },
@@ -172,6 +175,7 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(on.albums.U_CAROL).toMatchObject({ kind: "album", packs: [] });
     expect(on.pages.U_ALICE).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, kudosReceived: 1 }, week: { kind: "week", issue: { kudosGiven: 2, kudosReceived: 1 } } });
     expect(on.pages.U_CAROL).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, best: null }, week: { kind: "week", issue: { kudosGiven: 1, kudosReceived: 1 } } });
+    expect(Object.values(on.hoggies)).toEqual(members.map(() => expect.objectContaining({ kind: "hoggies", total: catalogue.hoggies.length })));
     expect(on.boards.U_CAROL).toMatchObject({ kind: "boards", people: [{ name: alice.name, thoughtful: 2, rank: 1 }, { name: bob.name, thoughtful: 1, rank: 2 }], teams: [{ team: "lanterns", thoughtful: 3, rank: 1 }] });
     expect(albumExposures(on)).toEqual([]);
     expect(albumDecisions.length).toBeGreaterThan(0);
@@ -253,11 +257,13 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
   const albums: Record<string, unknown> = {};
   const boards: Record<string, unknown> = {};
   const pages: Record<string, unknown> = {};
+  const hoggies: Record<string, unknown> = {};
   for (const member of members) {
     answers[member.user] = await onTheWebsite(member);
     albums[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getAlbum, {}));
     boards[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getThoughtfulBoards, {}));
     pages[member.user] = await personAndWeekPagesOf(member);
+    hoggies[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getAlbumHoggies, {}));
   }
   const seen = {
     homes: Object.fromEntries(members.map(({ user }) => [user, publishedHome(slack, user)])),
@@ -267,7 +273,7 @@ async function walkIn(backend: Backend, { opening = false } = {}) {
     productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isPacksEarned(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheAlbum(),
   };
-  return { seen, albums, boards, pages, opened, placed, albumRows: await albumRows(), postHogEvents: postHog.events() };
+  return { seen, albums, boards, hoggies, pages, opened, placed, albumRows: await albumRows(), postHogEvents: postHog.events() };
 }
 
 async function personAndWeekPagesOf(member: Person) {

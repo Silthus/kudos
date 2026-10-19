@@ -1,0 +1,33 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 20
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7v748ncm2f2ybr6r6s9v1eyx8gkjmk",
+      "kind": "sticker",
+      "person": "js70bsq6ss6cq5y49phcxjdt058gk46e"
+    },
+    {
+      "hoggie": "steve-jobs",
+      "isNew": true,
+      "item": "jn7t6yhsnnc5j2a79hc0hbat518gj7d6",
+      "kind": "hoggie",
+      "rarity": "epic"
+    }
+  ],
+  "kind": "opened"
+}
