@@ -1,0 +1,4 @@
+     × every album read and command, the thread reply, the recap line, the weekly post and every album event answer what the same walk answers with the retired flags on, apart from the coins and skill points the retired features show 39491ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: every album read and command: expected { U_ALICE_MARCHETTI: { …(13) }, …(3) } to deeply equal { U_ALICE_MARCHETTI: { …(13) }, …(3) }
+      Tests  1 failed | 1 passed (2)

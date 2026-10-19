@@ -120,6 +120,8 @@ function coinsAndSkillPointsShownIn({ album, moments }: Walk) {
 function expectTheAlbumsWholeLoop({ album, moments, albumEvents }: Walk) {
   const alices = album.U_ALICE_MARCHETTI!;
   const alicesAlbum = alices.album as { kind: string; people: Array<{ held: boolean }>; teams: Array<{ team: string; state: string }>; milestones: unknown[]; emojis: Array<{ name: string }> };
+  expect((alices.beforeOpening as { packs: unknown[] }).packs, "Alice's two waiting packs").toHaveLength(2);
+  expect((alices.afterOpening as { tray: Array<{ kind: string }> }).tray.map(({ kind }) => kind).toSorted(), "Alice's tray after opening").toEqual(["hoggie", "hoggie", "sticker", "sticker"]);
   expect(alices.opened.map(({ kind }) => kind), "Alice opens her two packs into her tray and puts it in").toEqual(["opened", "opened", "placed", "placed"]);
   expect(alices.unlocked, "Alice unlocks the Lanterns sticker").toMatchObject({ kind: "unlocked", sticker: { team: "lanterns", emoji: "lantern-glow" } });
   expect(alicesAlbum.people.filter(({ held }) => held), "Alice's stickers").toHaveLength(2);
@@ -150,8 +152,7 @@ async function walkWith(retiredFlags: "on" | "off") {
 
   const album: Record<string, Record<string, unknown> & { opened: Answer[] }> = {};
   for (const someone of everyone) {
-    const opened = await opensAndPutsIn(someone);
-    album[someone.user] = { opened, ...(await commandsOf(someone)) };
+    album[someone.user] = { ...(await opensAndPutsIn(someone)), ...(await commandsOf(someone)) };
   }
   for (const someone of everyone) album[someone.user] = { ...album[someone.user]!, ...(await readsOf(someone)) };
   const homes: Record<string, string[]> = {};
@@ -195,12 +196,12 @@ async function opensAndPutsIn(someone: Person) {
   for (const { pack, person: recipient } of packs) namedIds.set(pack, `<pack of ${someone.user} to ${namedIds.get(recipient)}>`);
   const opened = [];
   for (const { pack } of packs) opened.push(await asMember.mutation(api.website.album.openThoughtfulPack, { pack }));
-  const tray = await asMember.query(api.website.album.getAlbum, {});
-  const [first] = tray.kind === "album" ? tray.tray : [];
+  const afterOpening = await asMember.query(api.website.album.getAlbum, {});
+  const [first] = afterOpening.kind === "album" ? afterOpening.tray : [];
   const placed = first === undefined ? null : await asMember.mutation(api.website.album.putIn, { item: first.item });
   const placedAll = await asMember.mutation(api.website.album.putAllIn, {});
   await settleInTimeOrder(t);
-  return [...opened, ...(placed === null ? [] : [placed]), placedAll] as Answer[];
+  return { beforeOpening: album, afterOpening, opened: [...opened, ...(placed === null ? [] : [placed]), placedAll] as Answer[] };
 }
 
 async function mapsTheLanternsEmoji(maintainer: Person) {
