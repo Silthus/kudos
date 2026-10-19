@@ -4,6 +4,7 @@ import { drawSecret } from "../hoggies/drops";
 import { customEmojiImageOf } from "../workspace/customEmoji";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { mostRandomEmojis, randomEmojiNamesIn } from "./emojiClasses";
+import { randomEmojisShownTo } from "./flag";
 import { emojiRollOf } from "./emojiRoll";
 
 export { mostRandomEmojis };
@@ -17,6 +18,7 @@ export type RandomEmojiId = `random:${string}`;
 export type HeldRandomEmoji = { id: RandomEmojiId; name: string; image: string };
 
 export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pack: Id<"thoughtfulPacks">, crate: string, at: number): Promise<void> {
+  if (!(await randomEmojisShownTo(ctx, member))) return;
   const { chance, pick } = await emojiRollOf({ secret: drawSecret(), member, crate });
   if (chance >= randomEmojiChance) return;
   const { workspace } = await chatUserOf(ctx, member);
@@ -29,6 +31,7 @@ export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pa
 
 export async function randomEmojisHeldBy(ctx: QueryCtx, workspace: string, member: MemberId): Promise<HeldRandomEmoji[]> {
   const held: HeldRandomEmoji[] = [];
+  if (!(await randomEmojisShownTo(ctx, member))) return held;
   for (const { name } of await dropsOf(ctx, member)) {
     const image = await customEmojiImageOf(ctx, workspace, name);
     if (image !== undefined) held.push({ id: `random:${name}`, name, image });

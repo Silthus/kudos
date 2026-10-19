@@ -230,6 +230,14 @@ describe("the maintainer maps Slack emojis to earned emojis in Settings", { time
     expect(within(section()).getByText("Slack has no custom emoji for this workspace yet.")).toBeInTheDocument();
   });
 
+  it("offers no random drops place or filter while random-emojis is off for the maintainer", async () => {
+    const { user } = await showSettings({ mappings: { ...emojiMappingsFixtures.workspace, randomDrops: false } });
+
+    expect(within(within(section()).getByRole("combobox", { name: "Show" })).queryByRole("option", { name: "Random drops" })).not.toBeInTheDocument();
+    await user.click(rowOf("shipit").getByRole("button", { name: "Change :shipit:" }));
+    expect(within(rowOf("shipit").getByRole("combobox", { name: "Map to" })).queryByRole("option", { name: "Random drops" })).not.toBeInTheDocument();
+  });
+
   it("has no accessibility violations, with an editor open", async () => {
     const { user, container } = await showSettings();
     await user.click(rowOf("shipit").getByRole("button", { name: "Change :shipit:" }));

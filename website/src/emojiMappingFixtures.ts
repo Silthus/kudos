@@ -26,6 +26,7 @@ const workspace: EmojiMappings = {
     ...Array.from({ length: 81 }, (_, index) => listed(`yak-${String(index + 1).padStart(3, "0")}`)),
   ],
   more: false,
+  randomDrops: true,
   teams: [
     { team: "otters", name: "Otters" },
     { team: "workflows", name: "Workflows" },

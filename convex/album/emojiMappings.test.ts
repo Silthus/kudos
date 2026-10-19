@@ -20,7 +20,7 @@ vi.mock("./emojiRoll", () => ({ emojiRollOf: vi.fn(async () => theRoll.next) }))
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
 const why = "Thanks for untangling the flaky migration";
-const albumOpen = ["album", "collection", "packs", "workspace-settings"];
+const albumOpen = ["album", "collection", "packs", "workspace-settings", "random-emojis"];
 const maintainer = "U_MAINTAINER";
 
 type Person = { user: string; name: string };
@@ -82,6 +82,7 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
       { name: "party-parrot", image: slackPicture("party-parrot"), mapping: null },
     ]);
     expect(mappings.more).toBe(false);
+    expect(mappings.randomDrops).toBe(true);
     expect(mappings.teams).toEqual([
       { team: "lanterns", name: "Lanterns" },
       { team: "otters", name: "Otters" },
@@ -285,6 +286,25 @@ describe("AL23: a random emoji drops from a thoughtful pack", { timeout: 90_000 
     const drops = await t.run(async (ctx) => (await ctx.db.query("randomEmojiDrops").collect()).map(({ name }) => name));
     expect(drops.filter((name) => name === held.at(-1)), "the held drop beyond the limit is not dropped again").toHaveLength(1);
     expect(await randomEmojisOf(await signedIn(alice))).toHaveLength(held.length);
+  });
+});
+
+describe("random emojis are dark where random-emojis is off", { timeout: 90_000 }, () => {
+  test("with random-emojis off the maintainer reads no random drops place and can't class one, no pack drops one, and a drop already held stays out of the album", async () => {
+    await slackHas("party-parrot", "dancing-hog");
+    const asOwner = await signedIn(owner);
+    await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "party-parrot", to: { kind: "random" } });
+    theRoll.next = { chance: 0, pick: 0 };
+    await aliceCollects(otters[0]!);
+    expect(await randomEmojisOf(await signedIn(alice)), "on: the drop shows").toHaveLength(1);
+
+    await switchWebsite(t, postHog, true, ...albumOpen.filter((flag) => flag !== "random-emojis"));
+
+    expect((await mappingsOf(asOwner)).randomDrops).toBe(false);
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "dancing-hog", to: { kind: "random" } })).toEqual({ kind: "refused" });
+    await aliceCollects(otters[1]!);
+    expect(await randomEmojisOf(await signedIn(alice)), "off: no drop shows").toEqual([]);
+    expect(await t.run(async (ctx) => (await ctx.db.query("randomEmojiDrops").collect()).length), "off: no pack drops one").toBe(1);
   });
 });
 

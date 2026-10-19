@@ -42,6 +42,8 @@ const places: [PlaceKind, string][] = [
 
 const sectionLabel = "Earned emojis in Slack";
 
+const mappingWords = "Map a Slack emoji to a team, a person's hype, a milestone, a level or the random drops. A mapped emoji is that earned emoji in Slack and in the album at once, and everyone who earned it keeps it.";
+
 export function EmojiMappingSection({ useEmojiMappings, mapSlackEmoji }: { useEmojiMappings: EmojiMappingsRead; mapSlackEmoji: MapSlackEmoji }) {
   const mappings = useEmojiMappings(true);
   if (mappings === undefined || mappings.kind === "connecting") return <Panel id="emoji-mapping" label={sectionLabel} busy />;
@@ -74,13 +76,13 @@ function EmojiMapping({ mappings, mapSlackEmoji }: { mappings: EmojiMappings; ma
   const more = found.length - shown;
   return (
     <Panel id="emoji-mapping" label={sectionLabel}>
-      <p className="text-sm text-muted-foreground">Map a Slack emoji to a team, a person's hype, a milestone, a level or the random drops. A mapped emoji is that earned emoji in Slack and in the album at once, and everyone who earned it keeps it. Random drops come from thoughtful packs, now and then.</p>
+      <p className="text-sm text-muted-foreground">{mappings.randomDrops ? `${mappingWords} Random drops come from thoughtful packs, now and then.` : mappingWords.replace(", a level or the random drops.", " or a level.")}</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <SearchField label="Find a Slack emoji" value={search} onChange={setSearch} />
         <label className="flex flex-col gap-1 text-sm font-medium">
           Show
           <select value={filter} onChange={(event) => setFilter(event.target.value as Filter)} className={selectClass}>
-            {filters.map(([value, label]) => (
+            {filters.filter(([value]) => mappings.randomDrops || value !== "random").map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -170,7 +172,7 @@ function PlaceEditor({ name, current, mappings, names, onSave, onCancel }: Place
       <label className="flex flex-col gap-1 text-sm font-medium">
         Map to
         <select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as PlaceKind })} className={selectClass}>
-          {places.map(([value, label]) => (
+          {places.filter(([value]) => mappings.randomDrops || value !== "random").map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>

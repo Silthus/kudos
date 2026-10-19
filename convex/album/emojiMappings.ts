@@ -16,11 +16,11 @@ export type MappableTeam = { team: string; name: string };
 
 export type MappableMilestone = { milestone: string; name: string };
 
-export type SlackEmojiMappings = { emoji: SlackEmojiMapping[]; more: boolean; teams: MappableTeam[]; milestones: MappableMilestone[]; levels: number[] };
+export type SlackEmojiMappings = { emoji: SlackEmojiMapping[]; more: boolean; randomDrops: boolean; teams: MappableTeam[]; milestones: MappableMilestone[]; levels: number[] };
 
 export const mostSlackEmojiListed = 10_000;
 
-export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string): Promise<SlackEmojiMappings> {
+export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, randomDrops: boolean): Promise<SlackEmojiMappings> {
   const listed = await customEmojiListedIn(ctx, workspace, mostSlackEmojiListed + 1);
   const named = await namesHeldIn(ctx, workspace);
   const classes = await emojiClassesIn(ctx, workspace);
@@ -28,14 +28,15 @@ export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string): Pr
   return {
     emoji: listed.slice(0, mostSlackEmojiListed).map(({ name, image }) => ({ name, image, mapping: mappingOf(name) })),
     more: listed.length > mostSlackEmojiListed,
+    randomDrops,
     teams: (await companyTeamsOf(ctx)).map(({ team, name }) => ({ team, name })).toSorted((one, other) => one.name.localeCompare(other.name)),
     milestones: milestoneGoldNames.map(({ milestone, gold }) => ({ milestone, name: gold })),
     levels: [...emojiLevels],
   };
 }
 
-export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace): Promise<boolean> {
-  if ((await customEmojiImageOf(ctx, workspace, name)) === undefined) return false;
+export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace, randomDrops: boolean): Promise<boolean> {
+  if ((await customEmojiImageOf(ctx, workspace, name)) === undefined || (place.kind === "random" && !randomDrops)) return false;
   await openTheRegistryIn(ctx, workspace);
   if (place.kind === "unmapped" || place.kind === "random") {
     if (!(await classEmoji(ctx, workspace, name, place.kind))) return false;
