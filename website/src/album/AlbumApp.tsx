@@ -8,15 +8,19 @@ import { useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import type { MemberProfile } from "../shell";
 import { AlbumShell } from "./AlbumShell";
+import { myTeamOf } from "./facts";
+import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards }: AppProps & { member: MemberProfile }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   useCanonicalAddress(place, replaceAddress);
   const album = useAlbum(true);
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);
+  const onLeaderboard = place.kind === "leaderboard";
+  const boards = useThoughtfulBoards(onLeaderboard);
   useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: album?.kind === "album" && onSettings && settings?.kind === "settings" });
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -37,7 +41,14 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings }: App
     );
   return (
     <NavigateProvider value={arriveAt}>
-      <AlbumShell album={album} place={place} busy={onSettings && settings === undefined} settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />} onSignOut={actions.signOut} />
+      <AlbumShell
+        album={album}
+        place={place}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards))}
+        settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
+        leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
+        onSignOut={actions.signOut}
+      />
     </NavigateProvider>
   );
 }

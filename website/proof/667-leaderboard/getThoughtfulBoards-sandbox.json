@@ -1,0 +1,788 @@
+{
+ "dune, before any link": {
+  "kind": "boards",
+  "onTheBoards": true,
+  "people": [
+   {
+    "face": {
+     "initials": "AV",
+     "kind": "initials"
+    },
+    "name": "Aster Vey",
+    "person": "js790g9p3yxx53b6any44dzx3s8gjjcp",
+    "rank": 1,
+    "teams": [],
+    "thoughtful": 3,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "MP",
+     "kind": "initials"
+    },
+    "name": "Marlo Penhallow",
+    "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+    "rank": 1,
+    "teams": [],
+    "thoughtful": 3,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "BH",
+     "kind": "initials"
+    },
+    "name": "Briar Holm",
+    "person": "js7fyer0k5wt2bhhyr21mrcard8gjk39",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "CL",
+     "kind": "initials"
+    },
+    "name": "Corin Lusk",
+    "person": "js77mpd27b73j2j09tjjb5cvgn8gj2vy",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "OM",
+     "kind": "initials"
+    },
+    "name": "Odile Marrow",
+    "person": "js70gsjtz6neeggbyfm3mq1erh8ggfv7",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "TO",
+     "kind": "initials"
+    },
+    "name": "Tamsin Okoro",
+    "person": "js73995bdb956zn7ca1myzyx618ggd1e",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "BA",
+     "kind": "initials"
+    },
+    "name": "Bramble Achterberg",
+    "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+    "rank": 7,
+    "teams": [],
+    "thoughtful": 1,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "DP",
+     "kind": "initials"
+    },
+    "name": "Dune Pellow",
+    "person": "js7cjkpq7x0wgv0jkk0gg689r58gjehn",
+    "rank": 7,
+    "teams": [],
+    "thoughtful": 1,
+    "tied": true,
+    "you": true
+   },
+   {
+    "face": {
+     "initials": "EQ",
+     "kind": "initials"
+    },
+    "name": "Ember Quist",
+    "person": "js7615a0sshybp2yrtr1v5xh4h8gkfh0",
+    "rank": 7,
+    "teams": [],
+    "thoughtful": 1,
+    "tied": true,
+    "you": false
+   }
+  ],
+  "pinned": {
+   "me": {
+    "face": {
+     "initials": "DP",
+     "kind": "initials"
+    },
+    "name": "Dune Pellow",
+    "person": "js7cjkpq7x0wgv0jkk0gg689r58gjehn",
+    "rank": 7,
+    "teams": [],
+    "thoughtful": 1,
+    "tied": true,
+    "you": true
+   },
+   "teams": []
+  },
+  "teams": []
+ },
+ "dune, after links, Ember off the boards": {
+  "kind": "boards",
+  "onTheBoards": true,
+  "people": [
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Aster Vey",
+    "person": "js790g9p3yxx53b6any44dzx3s8gjjcp",
+    "rank": 1,
+    "teams": [
+     "onboarding"
+    ],
+    "thoughtful": 3,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "MP",
+     "kind": "initials"
+    },
+    "name": "Marlo Penhallow",
+    "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+    "rank": 1,
+    "teams": [],
+    "thoughtful": 3,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Briar Holm",
+    "person": "js7fyer0k5wt2bhhyr21mrcard8gjk39",
+    "rank": 3,
+    "teams": [
+     "forward-deployed-engineering",
+     "customer-success-eu",
+     "customer-success-na-north",
+     "onboarding"
+    ],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Corin Lusk",
+    "person": "js77mpd27b73j2j09tjjb5cvgn8gj2vy",
+    "rank": 3,
+    "teams": [
+     "query-performance"
+    ],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "OM",
+     "kind": "initials"
+    },
+    "name": "Odile Marrow",
+    "person": "js70gsjtz6neeggbyfm3mq1erh8ggfv7",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "TO",
+     "kind": "initials"
+    },
+    "name": "Tamsin Okoro",
+    "person": "js73995bdb956zn7ca1myzyx618ggd1e",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "BA",
+     "kind": "initials"
+    },
+    "name": "Bramble Achterberg",
+    "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+    "rank": 7,
+    "teams": [],
+    "thoughtful": 1,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Dune Pellow",
+    "person": "js7cjkpq7x0wgv0jkk0gg689r58gjehn",
+    "rank": 7,
+    "teams": [
+     "customer-analytics",
+     "web-analytics"
+    ],
+    "thoughtful": 1,
+    "tied": true,
+    "you": true
+   }
+  ],
+  "pinned": {
+   "me": {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Dune Pellow",
+    "person": "js7cjkpq7x0wgv0jkk0gg689r58gjehn",
+    "rank": 7,
+    "teams": [
+     "customer-analytics",
+     "web-analytics"
+    ],
+    "thoughtful": 1,
+    "tied": true,
+    "you": true
+   },
+   "teams": [
+    {
+     "art": {
+      "kind": "crest",
+      "slug": "customer-analytics"
+     },
+     "mine": true,
+     "name": "Customer Analytics",
+     "rank": 6,
+     "team": "customer-analytics",
+     "thoughtful": 1,
+     "tied": true
+    },
+    {
+     "art": {
+      "kind": "crest",
+      "slug": "web-analytics"
+     },
+     "mine": true,
+     "name": "Web Analytics",
+     "rank": 6,
+     "team": "web-analytics",
+     "thoughtful": 1,
+     "tied": true
+    }
+   ]
+  },
+  "teams": [
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "onboarding"
+    },
+    "mine": false,
+    "name": "Onboarding",
+    "rank": 1,
+    "team": "onboarding",
+    "thoughtful": 5,
+    "tied": false
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "customer-success-eu"
+    },
+    "mine": false,
+    "name": "Customer Success EU",
+    "rank": 2,
+    "team": "customer-success-eu",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "image",
+     "redacted": true
+    },
+    "mine": false,
+    "name": "Customer Success NA North",
+    "rank": 2,
+    "team": "customer-success-na-north",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "forward-deployed-engineering"
+    },
+    "mine": false,
+    "name": "Forward Deployed Engineering",
+    "rank": 2,
+    "team": "forward-deployed-engineering",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "image",
+     "redacted": true
+    },
+    "mine": false,
+    "name": "Query Performance",
+    "rank": 2,
+    "team": "query-performance",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "customer-analytics"
+    },
+    "mine": true,
+    "name": "Customer Analytics",
+    "rank": 6,
+    "team": "customer-analytics",
+    "thoughtful": 1,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "web-analytics"
+    },
+    "mine": true,
+    "name": "Web Analytics",
+    "rank": 6,
+    "team": "web-analytics",
+    "thoughtful": 1,
+    "tied": true
+   }
+  ]
+ },
+ "ember, off the boards": {
+  "kind": "boards",
+  "onTheBoards": false,
+  "people": [
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Aster Vey",
+    "person": "js790g9p3yxx53b6any44dzx3s8gjjcp",
+    "rank": 1,
+    "teams": [
+     "onboarding"
+    ],
+    "thoughtful": 3,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "MP",
+     "kind": "initials"
+    },
+    "name": "Marlo Penhallow",
+    "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+    "rank": 1,
+    "teams": [],
+    "thoughtful": 3,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Briar Holm",
+    "person": "js7fyer0k5wt2bhhyr21mrcard8gjk39",
+    "rank": 3,
+    "teams": [
+     "forward-deployed-engineering",
+     "customer-success-eu",
+     "customer-success-na-north",
+     "onboarding"
+    ],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Corin Lusk",
+    "person": "js77mpd27b73j2j09tjjb5cvgn8gj2vy",
+    "rank": 3,
+    "teams": [
+     "query-performance"
+    ],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "OM",
+     "kind": "initials"
+    },
+    "name": "Odile Marrow",
+    "person": "js70gsjtz6neeggbyfm3mq1erh8ggfv7",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "TO",
+     "kind": "initials"
+    },
+    "name": "Tamsin Okoro",
+    "person": "js73995bdb956zn7ca1myzyx618ggd1e",
+    "rank": 3,
+    "teams": [],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "initials": "BA",
+     "kind": "initials"
+    },
+    "name": "Bramble Achterberg",
+    "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+    "rank": 7,
+    "teams": [],
+    "thoughtful": 1,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Dune Pellow",
+    "person": "js7cjkpq7x0wgv0jkk0gg689r58gjehn",
+    "rank": 7,
+    "teams": [
+     "customer-analytics",
+     "web-analytics"
+    ],
+    "thoughtful": 1,
+    "tied": true,
+    "you": false
+   }
+  ],
+  "pinned": {
+   "me": null,
+   "teams": [
+    {
+     "art": {
+      "kind": "crest",
+      "slug": "onboarding"
+     },
+     "mine": true,
+     "name": "Onboarding",
+     "rank": 1,
+     "team": "onboarding",
+     "thoughtful": 5,
+     "tied": false
+    }
+   ]
+  },
+  "teams": [
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "onboarding"
+    },
+    "mine": true,
+    "name": "Onboarding",
+    "rank": 1,
+    "team": "onboarding",
+    "thoughtful": 5,
+    "tied": false
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "customer-success-eu"
+    },
+    "mine": false,
+    "name": "Customer Success EU",
+    "rank": 2,
+    "team": "customer-success-eu",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "image",
+     "redacted": true
+    },
+    "mine": false,
+    "name": "Customer Success NA North",
+    "rank": 2,
+    "team": "customer-success-na-north",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "forward-deployed-engineering"
+    },
+    "mine": false,
+    "name": "Forward Deployed Engineering",
+    "rank": 2,
+    "team": "forward-deployed-engineering",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "image",
+     "redacted": true
+    },
+    "mine": false,
+    "name": "Query Performance",
+    "rank": 2,
+    "team": "query-performance",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "customer-analytics"
+    },
+    "mine": false,
+    "name": "Customer Analytics",
+    "rank": 6,
+    "team": "customer-analytics",
+    "thoughtful": 1,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "web-analytics"
+    },
+    "mine": false,
+    "name": "Web Analytics",
+    "rank": 6,
+    "team": "web-analytics",
+    "thoughtful": 1,
+    "tied": true
+   }
+  ]
+ },
+ "dune, {\"team\":\"onboarding\"}": {
+  "kind": "boards",
+  "onTheBoards": true,
+  "people": [
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Aster Vey",
+    "person": "js790g9p3yxx53b6any44dzx3s8gjjcp",
+    "rank": 1,
+    "teams": [
+     "onboarding"
+    ],
+    "thoughtful": 3,
+    "tied": true,
+    "you": false
+   },
+   {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Briar Holm",
+    "person": "js7fyer0k5wt2bhhyr21mrcard8gjk39",
+    "rank": 3,
+    "teams": [
+     "forward-deployed-engineering",
+     "customer-success-eu",
+     "customer-success-na-north",
+     "onboarding"
+    ],
+    "thoughtful": 2,
+    "tied": true,
+    "you": false
+   }
+  ],
+  "pinned": {
+   "me": {
+    "face": {
+     "kind": "company-profile",
+     "redacted": true
+    },
+    "name": "Dune Pellow",
+    "person": "js7cjkpq7x0wgv0jkk0gg689r58gjehn",
+    "rank": 7,
+    "teams": [
+     "customer-analytics",
+     "web-analytics"
+    ],
+    "thoughtful": 1,
+    "tied": true,
+    "you": true
+   },
+   "teams": [
+    {
+     "art": {
+      "kind": "crest",
+      "slug": "customer-analytics"
+     },
+     "mine": true,
+     "name": "Customer Analytics",
+     "rank": 6,
+     "team": "customer-analytics",
+     "thoughtful": 1,
+     "tied": true
+    },
+    {
+     "art": {
+      "kind": "crest",
+      "slug": "web-analytics"
+     },
+     "mine": true,
+     "name": "Web Analytics",
+     "rank": 6,
+     "team": "web-analytics",
+     "thoughtful": 1,
+     "tied": true
+    }
+   ]
+  },
+  "teams": [
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "onboarding"
+    },
+    "mine": false,
+    "name": "Onboarding",
+    "rank": 1,
+    "team": "onboarding",
+    "thoughtful": 5,
+    "tied": false
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "customer-success-eu"
+    },
+    "mine": false,
+    "name": "Customer Success EU",
+    "rank": 2,
+    "team": "customer-success-eu",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "image",
+     "redacted": true
+    },
+    "mine": false,
+    "name": "Customer Success NA North",
+    "rank": 2,
+    "team": "customer-success-na-north",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "forward-deployed-engineering"
+    },
+    "mine": false,
+    "name": "Forward Deployed Engineering",
+    "rank": 2,
+    "team": "forward-deployed-engineering",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "image",
+     "redacted": true
+    },
+    "mine": false,
+    "name": "Query Performance",
+    "rank": 2,
+    "team": "query-performance",
+    "thoughtful": 2,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "customer-analytics"
+    },
+    "mine": true,
+    "name": "Customer Analytics",
+    "rank": 6,
+    "team": "customer-analytics",
+    "thoughtful": 1,
+    "tied": true
+   },
+   {
+    "art": {
+     "kind": "crest",
+     "slug": "web-analytics"
+    },
+    "mine": true,
+    "name": "Web Analytics",
+    "rank": 6,
+    "team": "web-analytics",
+    "thoughtful": 1,
+    "tied": true
+   }
+  ]
+ }
+}
