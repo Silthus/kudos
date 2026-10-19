@@ -27,6 +27,8 @@ const rows = {
   quests: "section: *Quests and Journey* — When you finish a quest or a Journey step. [select: As a DM]",
   achievements: "section: *Book tiers* — When you earn an achievement tier. [select: As a DM]",
   celebrations: "section: *Public celebrations* — Your level ups and tiers in the announcement channel. [select: In the announcement channel]",
+  levelUpsWithoutUnlocks: "section: *Level ups* — When you reach a level. [select: As a DM]",
+  celebrationsWithoutTiers: "section: *Public celebrations* — Your level ups in the announcement channel. [select: In the announcement channel]",
 };
 
 const offRows = {
@@ -35,6 +37,8 @@ const offRows = {
   quests: "section: *Quests and Journey* · Off — When you finish a quest or a Journey step. [select: None]",
   achievements: "section: *Book tiers* · Off — When you earn an achievement tier. [select: None]",
   celebrations: "section: *Public celebrations* · Off — Your level ups and tiers in the announcement channel. [select: None]",
+  levelUpsWithoutUnlocks: "section: *Level ups* · Off — When you reach a level. [select: None]",
+  celebrationsWithoutTiers: "section: *Public celebrations* · Off — Your level ups in the announcement channel. [select: None]",
 };
 
 const whatISendYou = "section: *What I send you*";
@@ -90,10 +94,10 @@ describe("QM20: the Settings tab lists what I send you while message-settings is
     expect(publishedHome(slack, "U_ALICE")).toEqual(["actions: Profile | [Settings]", "header: Settings", whatISendYou, rows.kudosReply]);
   });
 
-  test("with xp-levels on, level ups and public celebrations join the rows, and the notification switches give way", async () => {
+  test("with xp-levels on, level ups and public celebrations join the rows, naming no feature level ups open and no tier while unlocks and achievements are off, and the notification switches give way", async () => {
     const t = await settingsOpen([messageSettings, "xp-levels"]);
 
-    expect(publishedHome(slack, "U_ALICE")).toEqual(["actions: Profile | [Settings]", "header: Settings", whatISendYou, rows.kudosReply, rows.levelUps, rows.celebrations]);
+    expect(publishedHome(slack, "U_ALICE")).toEqual(["actions: Profile | [Settings]", "header: Settings", whatISendYou, rows.kudosReply, rows.levelUpsWithoutUnlocks, rows.celebrationsWithoutTiers]);
   });
 
   test("every kind shows while its feature applies to the member, in the catalogue's order, below the leaderboard switch", async () => {
@@ -122,7 +126,7 @@ describe("QM20: the Settings tab lists what I send you while message-settings is
 
     await turn(t, "U_ALICE", "Level ups");
 
-    expect(publishedHome(slack, "U_ALICE")).toEqual(["actions: Profile | [Settings]", "header: Settings", whatISendYou, rows.kudosReply, offRows.levelUps, rows.celebrations]);
+    expect(publishedHome(slack, "U_ALICE")).toEqual(["actions: Profile | [Settings]", "header: Settings", whatISendYou, rows.kudosReply, offRows.levelUpsWithoutUnlocks, rows.celebrationsWithoutTiers]);
   });
 });
 
@@ -431,7 +435,7 @@ describe("QM14: today's settings are read as defaults, and today's switches show
     await click(t, "U_ALICE", "Settings");
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(publishedHome(slack, "U_ALICE")).toContain(offRows.celebrations);
+    expect(publishedHome(slack, "U_ALICE")).toContain(offRows.celebrationsWithoutTiers);
     expect(postsIn("C_NEWS")).toEqual([]);
     expect(await storedMessageSettings(t)).toEqual([]);
   });
@@ -479,7 +483,7 @@ describe("QM15 QM28: setting a message setting is safe to repeat, and a real cha
     await interact(t, "U_ALICE", turnOff);
     await turn(t, "U_ALICE", "Level ups");
 
-    expect(publishedHome(slack, "U_ALICE")).toContain(rows.levelUps);
+    expect(publishedHome(slack, "U_ALICE")).toContain(rows.levelUpsWithoutUnlocks);
     expect(settingChanges()).toEqual([
       { kind: "level-ups", on: false },
       { kind: "level-ups", on: true },

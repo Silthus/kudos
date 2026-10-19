@@ -1,0 +1,81 @@
+{
+ "ava": {
+  "buttons": [
+   {
+    "id": "album-open-packs",
+    "label": "Open your pack",
+    "url": "https://different-dog-467.convex.site/book#packs"
+   }
+  ],
+  "destination": {
+   "conversation": "C0C9N9A4SE4",
+   "kind": "thread",
+   "threadTs": "1792428160.435000"
+  },
+  "gains": [
+   {
+    "text": "+20 XP"
+   }
+  ],
+  "more": 0,
+  "recipients": [
+   {
+    "headline": "Ben is new in your album",
+    "hype": {
+     "line": "Ben's hype emoji is unlocked",
+     "picture": {
+      "label": "Ben's hype emoji",
+      "url": "https://different-dog-467.convex.site/emoji/hype.png"
+     }
+    },
+    "lines": []
+   },
+   {
+    "headline": "Cyd is new in your album",
+    "hype": {
+     "line": "Cyd's hype emoji is unlocked",
+     "picture": {
+      "label": "Cyd's hype emoji",
+      "url": "https://different-dog-467.convex.site/emoji/hype.png"
+     }
+    },
+    "lines": []
+   }
+  ],
+  "workspace": "T0C3US298SH"
+ },
+ "ben": {
+  "buttons": [
+   {
+    "id": "album-open-packs",
+    "label": "Open your pack",
+    "url": "https://different-dog-467.convex.site/book#packs"
+   }
+  ],
+  "destination": {
+   "conversation": "C0C9N9A4SE4",
+   "kind": "thread",
+   "threadTs": "1792428165.670000"
+  },
+  "gains": [
+   {
+    "text": "+10 XP"
+   }
+  ],
+  "more": 0,
+  "recipients": [
+   {
+    "headline": "Ava is new in your album",
+    "hype": {
+     "line": "Ava's hype emoji is unlocked",
+     "picture": {
+      "label": "Ava's hype emoji",
+      "url": "https://different-dog-467.convex.site/emoji/hype.png"
+     }
+    },
+    "lines": []
+   }
+  ],
+  "workspace": "T0C3US298SH"
+ }
+}
