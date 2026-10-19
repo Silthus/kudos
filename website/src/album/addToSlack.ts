@@ -14,6 +14,8 @@ const pictureWaitMs = 5_000;
 
 const frameColours = ["#F54E00", "#F7A501"] as const;
 
+const facelessColours = ["#E25A12", "#A33A0C"] as const;
+
 export async function addToSlack(emoji: SlackBound, emojiPage: string | null): Promise<AddedToSlack> {
   const copied = copyToClipboard(`:${emoji.name}:`);
   const pageOpened = emojiPage !== null && openInANewTab(emojiPage);
@@ -99,12 +101,32 @@ async function drawFramedFace(context: CanvasRenderingContext2D, picture: string
 }
 
 async function drawEmblemWithInitials(context: CanvasRenderingContext2D, initials: string) {
-  context.drawImage(await pictureAt(hypeEmblemPicture), 0, 0, emojiSize, emojiSize);
+  const centre = emojiSize / 2;
+  const disc = context.createLinearGradient(0, 0, emojiSize, emojiSize);
+  disc.addColorStop(0, facelessColours[0]);
+  disc.addColorStop(1, facelessColours[1]);
+  context.fillStyle = disc;
+  context.beginPath();
+  context.arc(centre, centre, centre, 0, Math.PI * 2);
+  context.fill();
   context.fillStyle = "#FFFFFF";
-  context.font = `800 ${Math.round(emojiSize * 0.34)}px system-ui, sans-serif`;
+  context.font = `800 ${Math.round(emojiSize * 0.38)}px system-ui, sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(initials, emojiSize / 2, emojiSize / 2);
+  context.fillText(initials, centre, centre + 2);
+  drawStar(context, emojiSize * 0.8, emojiSize * 0.2, emojiSize * 0.13);
+}
+
+function drawStar(context: CanvasRenderingContext2D, x: number, y: number, radius: number) {
+  context.fillStyle = "#FFD23F";
+  context.beginPath();
+  for (let point = 0; point < 10; point++) {
+    const reach = point % 2 === 0 ? radius : radius * 0.45;
+    const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+    context.lineTo(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach);
+  }
+  context.closePath();
+  context.fill();
 }
 
 function pictureAt(src: string): Promise<HTMLImageElement> {

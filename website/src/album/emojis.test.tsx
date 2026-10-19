@@ -88,6 +88,8 @@ function aCanvasThatDraws(failingPictures: (src: string) => boolean): Drawn {
     fillText: (text: string) => drawn.texts.push(text),
     createLinearGradient: () => gradient,
     beginPath: vi.fn(),
+    lineTo: vi.fn(),
+    closePath: vi.fn(),
     arc: vi.fn(),
     fill: vi.fn(),
     save: vi.fn(),
@@ -112,10 +114,10 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     expect(rowsIn(shelf(popup, "Levels"))[0]).toBe(":level-5:You reached level 5Add to Slack");
     const pictures = [...document.querySelectorAll<HTMLImageElement>(".al-popover .al-emoji-art:not([data-locked]) img")].map((picture) => picture.getAttribute("src"));
-    expect(pictures).toEqual(["/emoji/team-support.png", "/emoji/hype.png", "/emoji/level-5.png"]);
+    expect(pictures).toEqual(["/emoji/team-support.png", "/emoji/level-5.png"]);
   });
 
-  it("a hype emoji without a face shows the hype emblem with the person's initials", async () => {
+  it("a hype emoji without a face shows the person's initials in the hype colours", async () => {
     const view = visit("/");
 
     const popup = await openTheEmojis(view);
@@ -205,7 +207,7 @@ describe("#664 AL30 AL31: use it in Slack only when Slack has it, and Add to Sla
     await view.user.click(shelf(popup, "Hype").getByRole("button", { name: "Add :ines-okafor-hype: to Slack" }));
 
     await waitFor(() => expect(saved).toEqual([{ file: "ines-okafor-hype.png", href: "blob:drawn-emoji" }]));
-    expect(drawn).toEqual({ images: ["/emoji/hype.png"], texts: ["IO"] });
+    expect(drawn).toEqual({ images: [], texts: ["IO"] });
   });
 
   it("Add to Slack on a hype emoji whose face draws saves the framed face", async () => {
