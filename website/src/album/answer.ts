@@ -1,4 +1,5 @@
 import type { Denial } from "../../../convex/website/memberQuery";
+import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Rarity } from "../shell";
 
@@ -47,6 +48,10 @@ export type MyAlbum = AlbumAnswer | Denial;
 export type AlbumShown = MyAlbum | { kind: "connecting" } | { kind: "broken" };
 
 export type AlbumRead = (asking: boolean) => AlbumShown | undefined;
+
+export type PackOpenAnswer = { kind: "opened"; items: TrayItem[]; applied: AppliedReward | null } | { kind: "refused" };
+
+export type PackOpenReply = PackOpenAnswer | Denial;
 
 export type Standing = { rank: number; tied: boolean } | { rank: null; tied: false };
 
