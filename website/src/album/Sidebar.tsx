@@ -97,17 +97,17 @@ function Found({ album, words, place, onFollow }: { album: Album; words: string;
 }
 
 function withTheCurrentTeam(shown: AlbumTeam[], others: AlbumTeam[], place: Place) {
-  if (place.kind !== "team" || place.team === null || shown.some(({ team }) => team === place.team)) return shown;
+  if (place.kind !== "team" || shown.some(({ team }) => team === place.team)) return shown;
   const current = others.find(({ team }) => team === place.team);
   return current === undefined ? shown : [...shown, current];
 }
 
 function isCurrentTeam(place: Place, team: AlbumTeam) {
-  return place.kind === "team" && (place.team === team.team || (place.team === null && team.mine));
+  return place.kind === "team" && place.team === team.team;
 }
 
 function teamHref(team: AlbumTeam) {
-  return hrefOf({ kind: "team", team: team.mine ? null : team.team });
+  return hrefOf({ kind: "team", team: team.team });
 }
 
 function MyTeam({ team, current, onFollow }: { team: AlbumTeam; current: boolean; onFollow: () => void }) {

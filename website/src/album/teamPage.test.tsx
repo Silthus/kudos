@@ -52,8 +52,8 @@ function withTheTray(album: Album, person: string): Album {
 }
 
 describe("AL45: the team page is the team's class photo", () => {
-  it("/ shows the member's own team in one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
-    visit("/");
+  it("the member's own team page is one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
+    visit("/book#teams/lanterns");
 
     expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" }, arrival)).toBeInTheDocument();
     const shown = await photo();
@@ -71,7 +71,7 @@ describe("AL45: the team page is the team's class photo", () => {
   });
 
   it("the seal is ringed by one segment per person to collect, filled for each one in the album", async () => {
-    visit("/");
+    visit("/book#teams/lanterns");
 
     const seal = await screen.findByRole("img", { name: "Lanterns sticker, 4 of 5" }, arrival);
     expect(seal.querySelectorAll("[data-segment]")).toHaveLength(5);
@@ -375,7 +375,7 @@ describe("AL46: the person page", () => {
       .getAllByRole("link")
       .map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Kettle Works3 of 3", "/book#teams/kettle-works"],
-      ["Lanterns4 of 5", "/"],
+      ["Lanterns4 of 5", "/book#teams/lanterns"],
     ]);
     expect(screen.getByText(":ines-okafor-hype:")).toBeInTheDocument();
     expect(screen.getByText("Unlocked by your first thoughtful kudos to Ines")).toBeInTheDocument();
@@ -420,7 +420,7 @@ describe("AL46: the person page", () => {
 
   it("a team page never asks for a person", async () => {
     const asked: boolean[] = [];
-    visit("/", {
+    visit("/book#teams/lanterns", {
       people: (asking) => {
         asked.push(asking);
         return undefined;

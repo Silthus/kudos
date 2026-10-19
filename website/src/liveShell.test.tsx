@@ -785,6 +785,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     preferWideScreen();
     profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
     boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : undefined));
+    window.history.replaceState(null, "", "/");
 
     renderLiveSite();
 
@@ -794,7 +795,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     expect(bar.getByRole("link", { name: "Your profile, Juno Park" })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Your emojis, 0 earned" })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Tray, 1 to put in" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1, name: "Your album" })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.pathname + window.location.hash).toBe("/book#me"));
     expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbum")).toEqual([{ query: "website/album:getAlbum", args: {} }]);
   });
@@ -826,9 +827,9 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
       onTheBoards: true,
     };
     boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getThoughtfulBoards" ? boards : undefined));
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/book#milestones");
     const { user } = renderLiveSite();
-    await screen.findByRole("heading", { level: 1, name: "Your album" });
+    await screen.findByRole("heading", { level: 1, name: "Milestones" });
     expect([...subscriptions].map(({ query }) => query)).not.toContain("website/album:getThoughtfulBoards");
 
     await user.click(within((await screen.findAllByRole("banner"))[0]!).getByRole("link", { name: "Leaderboard" }));
@@ -854,9 +855,9 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const lastWeek = { kind: "week", week: "2026-10-05", weeks, issue: quiet };
     const weekAnswer = (args: { week?: string }) => (args.week === "2026-10-05" ? lastWeek : thisWeek);
     boardRead.mockImplementation((query: string, args: unknown) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : undefined));
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/book#milestones");
     const { user } = renderLiveSite();
-    await screen.findByRole("heading", { level: 1, name: "Your album" });
+    await screen.findByRole("heading", { level: 1, name: "Milestones" });
     expect([...subscriptions].map(({ query }) => query)).not.toContain("website/album:getAlbumWeek");
 
     await user.click(within((await screen.findAllByRole("banner"))[0]!).getByRole("link", { name: "Activity" }));
@@ -892,7 +893,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const lanterns = { team: "lanterns", name: "Lanterns", art: null, mine: true, people: ["m-ines", "m-omar", "m-sol"], unmatched: [], held: 2, total: 3, state: "progress", unlockedAt: null };
     const comets = { ...lanterns, team: "comets", name: "Comets", mine: false, people: ["m-pia"], held: 1, total: 1, state: "ready" };
     boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [lanterns, comets], people } : undefined));
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/book#teams/lanterns");
 
     renderLiveSite();
 
@@ -909,7 +910,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     ];
     const lanterns = { team: "lanterns", name: "Lanterns", art: null, mine: true, people: ["m-ines", "m-omar"], unmatched: [], held: 1, total: 2, state: "progress", unlockedAt: null };
     boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [lanterns], people } : undefined));
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/book#teams/lanterns");
 
     renderLiveSite();
 

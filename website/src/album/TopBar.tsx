@@ -10,7 +10,7 @@ import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
-import { hrefOf, type Place } from "./place";
+import { home, hrefOf, type Place } from "./place";
 import { TrayPanel } from "./TrayPanel";
 import { usePopover, type Popover } from "./usePopover";
 
@@ -23,7 +23,7 @@ export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, p
   useTrayOpenOnThePacksPage(place, popover);
   return (
     <header className="al-top" inert={inert}>
-      <AppLink href="/" className="al-brand" data-slot="home">
+      <AppLink href={hrefOf(home)} className="al-brand" data-slot="home">
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
       </AppLink>

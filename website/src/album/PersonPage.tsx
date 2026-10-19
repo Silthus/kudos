@@ -88,8 +88,8 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
   );
 }
 
-function teamHrefOf(team: Pick<AlbumTeam, "team" | "mine">) {
-  return hrefOf({ kind: "team", team: team.mine ? null : team.team });
+function teamHrefOf(team: Pick<AlbumTeam, "team">) {
+  return hrefOf({ kind: "team", team: team.team });
 }
 
 function HypeEmoji({ person, first }: { person: Person; first: string }) {

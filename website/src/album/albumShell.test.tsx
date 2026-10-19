@@ -109,7 +109,7 @@ describe("AL42: the top bar", () => {
     visit("/");
     const bar = await topBar();
 
-    expect(bar.getByRole("link", { name: "HedgeHug" })).toHaveAttribute("href", "/");
+    expect(bar.getByRole("link", { name: "HedgeHug" })).toHaveAttribute("href", "/book#me");
     expect(bar.getByText("Level 6")).toBeInTheDocument();
     expect(bar.getByText("290 XP to level 7")).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveAttribute("aria-haspopup", "dialog");
@@ -243,11 +243,11 @@ describe("#695: a top bar label opens out calmly", () => {
 
 describe("AL42: the sidebar", () => {
   it("leads with the member's team as a progress card", async () => {
-    visit("/");
+    visit("/book#teams/lanterns");
     const side = await sidebar();
 
     const mine = within(side.getByRole("region", { name: "Your team" })).getByRole("link");
-    expect(mine).toHaveAttribute("href", "/");
+    expect(mine).toHaveAttribute("href", "/book#teams/lanterns");
     expect(mine).toHaveTextContent("Lanterns");
     expect(mine).toHaveTextContent("4 of 5 · 1 to go");
     expect(mine).toHaveAttribute("aria-current", "page");
@@ -318,13 +318,13 @@ describe("AL42: the sidebar", () => {
     expect(more.getByRole("link", { name: /^Milestones/ })).toHaveTextContent("6 medals");
   });
 
-  it("an album that holds no teams yet lists no Teams section, and its home leads to finding your team", async () => {
+  it("an album that holds no teams yet lists no Teams section, and the profile leads to finding your team", async () => {
     visit("/", { ...albumFixtures.newcomer, teams: [], people: [] });
     const side = await sidebar();
 
     expect(side.queryByRole("list", { name: "Teams" })).not.toBeInTheDocument();
     expect(side.queryByRole("heading", { name: /^Teams/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Find your team" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Find your team" })).toBeInTheDocument();
   });
 
   it("a member with no team of their own sees no team card", async () => {
@@ -424,7 +424,7 @@ function holdsWhatItScrolls(selector: string, rules: DesktopRule[]) {
 }
 
 describe("AL42: Getting started", () => {
-  it("shows on the home page while unfinished, counting what's done and naming the next step", async () => {
+  it("shows on the profile, the album's home, while unfinished, counting what's done and naming the next step", async () => {
     visit("/");
     const strip = await screen.findByRole("region", { name: "Getting started" });
 
@@ -439,8 +439,8 @@ describe("AL42: Getting started", () => {
     expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
   });
 
-  it("shows only on the home page", async () => {
-    visit("/book#teams/paper-moons");
+  it("shows only on the profile, never on the member's own team page", async () => {
+    visit("/book#teams/lanterns");
     await screen.findByRole("navigation", { name: "Album" });
     expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
   });
@@ -448,7 +448,8 @@ describe("AL42: Getting started", () => {
 
 describe("AL43: every album route has its page", () => {
   const routes: { path: string; title: string }[] = [
-    { path: "/", title: "Lanterns" },
+    { path: "/", title: "Sam Example" },
+    { path: "/book#teams/lanterns", title: "Lanterns" },
     { path: "/book#teams/paper-moons", title: "Paper Moons" },
     { path: "/book#people/ines-okafor", title: "Ines Okafor" },
     { path: "/book#me", title: "Sam Example" },
@@ -467,11 +468,6 @@ describe("AL43: every album route has its page", () => {
       expect(await screen.findByRole("heading", { level: 1, name: title })).toBeInTheDocument();
     });
   }
-
-  it("the home page is the member's own team without a team of their own says how to find one", async () => {
-    visit("/", albumFixtures.newcomer);
-    expect(await screen.findByRole("heading", { level: 1, name: "Your album" })).toBeInTheDocument();
-  });
 
   it("a team or person the album doesn't hold is not found", async () => {
     visit("/book#teams/nowhere-team");
@@ -526,7 +522,7 @@ describe("AL43: every album route has its page", () => {
 describe("AL43: page changes the address didn't come from a link", () => {
   it("Back into Settings while its read still loads moves focus to its title once it lands", async () => {
     window.history.replaceState(null, "", "/settings");
-    window.history.pushState(null, "", "/");
+    window.history.pushState(null, "", "/book#teams/lanterns");
     let settings: SettingsShown | undefined;
     const readSettings: SettingsRead = (asking) => (asking ? settings : undefined);
     const { showVisitor } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: readSettings });
