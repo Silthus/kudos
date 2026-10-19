@@ -104,10 +104,7 @@
   border: 3px solid var(--card);
   border-radius: 0.875rem;
   box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--foreground) 35%, transparent);
-  transition:
-    rotate 600ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    border-color 600ms ease-out,
-    box-shadow 600ms ease-out;
+  transition: rotate 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .al-photo[data-size="many"] .al-photo-sticker {

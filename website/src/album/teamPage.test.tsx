@@ -60,6 +60,10 @@ function withFaces(album: Album, faces: Record<string, Face>): Album {
   return { ...album, people: album.people.map((person) => ({ ...person, face: faces[person.person] ?? person.face })) };
 }
 
+function silhouetteIn(person: HTMLElement) {
+  return person.querySelector(".al-silhouette");
+}
+
 function pictureShownOf(person: HTMLElement) {
   return person.querySelector("[data-picture]")?.getAttribute("data-picture");
 }
@@ -94,6 +98,20 @@ describe("AL45: the team page is the team's class photo", () => {
     const hal = shown.getAllByRole("listitem").find((person) => person.textContent?.includes("Hal Corwin"))!;
     expect(drawnPicturesIn(hal)).toEqual([]);
     expect(hal).toHaveTextContent("HCHal Corwin Not in Slack yet");
+  });
+
+  it.each([
+    { without: "no picture", face: { kind: "initials", initials: "JP" } as const, failsToLoad: false },
+    { without: "a picture that fails to load", face: junoFace, failsToLoad: true },
+  ])("someone not in your album yet with $without stands as a named silhouette, while a collected person without a picture keeps their initials", async ({ face, failsToLoad }) => {
+    visit("/book#teams/lanterns", { album: withFaces(midway, { "juno-park": face, "ines-okafor": { kind: "initials", initials: "IO" } }) });
+
+    const juno = (await photo()).getByRole("link", { name: "Juno Park Not in your album yet" });
+    if (failsToLoad) fireEvent.error(juno.querySelector("img")!);
+
+    await waitFor(() => expect(drawnPicturesIn(juno)).toEqual([]));
+    expect(silhouetteIn(juno)).toHaveTextContent("JP");
+    expect(silhouetteIn((await photo()).getByRole("link", { name: "Ines Okafor In your album" }))).toBeNull();
   });
 
   it("once their card is put in, the same picture turns from grey to colour", async () => {

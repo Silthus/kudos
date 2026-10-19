@@ -96,7 +96,8 @@ describe("AL18: team pages are company teams", { timeout: 60_000 }, () => {
 
   test("AL45: someone not collected yet whose posthog.com profile has no picture shows their Slack picture, and someone with neither shows initials", async () => {
     const [withSlackPicture, withNoPicture] = otters as [Person, Person];
-    await memberChanged(t, "user_change", { ...slackUser(withSlackPicture.user, withSlackPicture.name), profile: { ...slackUser(withSlackPicture.user, withSlackPicture.name).profile, image_192: "https://avatars.slack-edge.com/otter-1.png" } });
+    const user = slackUser(withSlackPicture.user, withSlackPicture.name);
+    await memberChanged(t, "user_change", { ...user, profile: { ...user.profile, image_192: "https://avatars.slack-edge.com/otter-1.png" } });
     await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(alice, withSlackPicture, withNoPicture) });
 
     const people = await peopleOf(await signedIn(alice));
