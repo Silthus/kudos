@@ -4,6 +4,7 @@ import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import type { AlbumEmoji, AlbumTeam, TeamSticker } from "./answer";
 import { SealArt } from "./Seal";
 import { FindInSlackWhileOn, useEmojiWizardOn } from "./findInSlack";
+import { keepFocusIn } from "./focusTrap";
 import { dateOf, newTeamEmojiWords } from "./teamPage";
 import "./moment.css";
 
@@ -52,7 +53,7 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
   useEscapeTo(advance);
 
   return (
-    <div ref={dialog} tabIndex={-1} className="al-unlock-moment" role="dialog" aria-modal="true" aria-label={`${sticker.name} sticker unlocked`} data-phase={phase} data-reduced={reduced ? "" : undefined} onClick={advance} onKeyDown={(event) => event.key === "Tab" && keepFocusOnTheWayBack(event, continueButton.current)}>
+    <div ref={dialog} tabIndex={-1} className="al-unlock-moment" role="dialog" aria-modal="true" aria-label={`${sticker.name} sticker unlocked`} data-phase={phase} data-reduced={reduced ? "" : undefined} onClick={advance} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
       <div className="al-unlock-dim" aria-hidden="true" />
       <div className="al-unlock-stage">
         <div className="al-unlock-spot">
@@ -151,11 +152,6 @@ function useEscapeTo(advance: () => void) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-}
-
-function keepFocusOnTheWayBack(event: ReactKeyboardEvent<HTMLElement>, button: HTMLButtonElement | null) {
-  event.preventDefault();
-  (button ?? (event.currentTarget as HTMLElement)).focus();
 }
 
 function sealOnThePage(team: string) {

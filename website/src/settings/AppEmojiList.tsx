@@ -40,7 +40,13 @@ function AppEmojiList({ answer: { emojis, more, emojiPage }, useSlackEmojiMatche
   const [tab, setTab] = useState<Tab>("not-mapped");
   const [shown, setShown] = useState(emojisShownAtMost);
   const [open, setOpen] = useState<Open | null>(null);
+  const [undone, setUndone] = useState<string | null>(null);
   const tabs = useRef<HTMLDivElement>(null);
+  const pressedTab = () => tabs.current?.querySelector<HTMLElement>('[aria-pressed="true"]') ?? null;
+  const onUndone = (name: string) => {
+    setUndone(name);
+    pressedTab()?.focus();
+  };
   const notMapped = emojis.filter(({ slack }) => slack === null);
   const mapped = emojis.filter(({ slack }) => slack !== null);
   const listed = tab === "not-mapped" ? notMapped : mapped;
@@ -49,7 +55,7 @@ function AppEmojiList({ answer: { emojis, more, emojiPage }, useSlackEmojiMatche
     setShown(emojisShownAtMost);
   };
   const close = () => {
-    if (open !== null) giveFocusBack(open.opener, tabs.current?.querySelector<HTMLElement>('[aria-pressed="true"]') ?? null);
+    if (open !== null) giveFocusBack(open.opener, pressedTab());
     setOpen(null);
   };
   return (
@@ -68,7 +74,7 @@ function AppEmojiList({ answer: { emojis, more, emojiPage }, useSlackEmojiMatche
       ) : (
         <ul aria-label={tab === "not-mapped" ? "Not mapped emojis" : "Mapped emojis"} className="ph-no-capture max-h-[36rem] divide-y overflow-y-auto rounded-lg border">
           {listed.slice(0, shown).map((emoji) => (
-            <AppEmojiRow key={emoji.key} emoji={emoji} onFind={(opener) => setOpen({ emoji, opener })} mapSlackEmoji={mapSlackEmoji} />
+            <AppEmojiRow key={emoji.key} emoji={emoji} onFind={(opener) => setOpen({ emoji, opener })} onUndone={onUndone} mapSlackEmoji={mapSlackEmoji} />
           ))}
         </ul>
       )}
@@ -79,21 +85,26 @@ function AppEmojiList({ answer: { emojis, more, emojiPage }, useSlackEmojiMatche
           </Button>
         </div>
       )}
+      <p role="status" className="text-sm text-muted-foreground empty:hidden">
+        {undone === null ? "" : `Undone. :${undone}: is no longer mapped, and members can't take it again until you map it.`}
+      </p>
       {more && <p className="text-sm text-muted-foreground">There are more app emojis than this list holds. The ones fewest members hold are left out.</p>}
       {open !== null && <SlackEmojiWizard emoji={open.emoji} whose="the" takesAnyEmoji emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapSlackEmoji(slackEmoji, open.emoji.place))} onClose={close} />}
     </Panel>
   );
 }
 
-function AppEmojiRow({ emoji, onFind, mapSlackEmoji }: { emoji: AppEmoji; onFind: (opener: HTMLElement) => void; mapSlackEmoji: MapSlackEmoji }) {
+function AppEmojiRow({ emoji, onFind, onUndone, mapSlackEmoji }: { emoji: AppEmoji; onFind: (opener: HTMLElement) => void; onUndone: (name: string) => void; mapSlackEmoji: MapSlackEmoji }) {
   const { name, picture, slack } = emoji;
   const [undo, setUndo] = useState<Undoing>("idle");
   const memberSetIt = slack?.setBy?.by === "member" ? slack.setBy.name : null;
   const undoIt = async () => {
+    if (undo === "undoing") return;
     setUndo("undoing");
     try {
       const answer = pickOf(await mapSlackEmoji(name, { kind: "unmapped" }));
       setUndo(answer === "mapped" ? "idle" : answer);
+      if (answer === "mapped") onUndone(name);
     } catch {
       setUndo("unreachable");
     }
@@ -113,7 +124,7 @@ function AppEmojiRow({ emoji, onFind, mapSlackEmoji }: { emoji: AppEmoji; onFind
             {slack === null ? "Find in Slack" : "Change"}
           </Button>
           {memberSetIt !== null && (
-            <Button variant="outline" size="sm" aria-label={`Undo ${memberSetIt}'s mapping of :${name}:`} disabled={undo === "undoing"} onClick={() => void undoIt()}>
+            <Button variant="outline" size="sm" aria-label={`Undo ${memberSetIt}'s mapping of :${name}:`} aria-disabled={undo === "undoing" || undefined} onClick={() => void undoIt()}>
               Undo
             </Button>
           )}

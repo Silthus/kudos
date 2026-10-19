@@ -61,7 +61,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
     );
   return (
     <NavigateProvider value={arriveAt}>
-      <EmojiWizardHost on={album.emojiWizard} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>
+      <EmojiWizardHost on={album.emojiWizard} emojis={album.emojis} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>
       <AlbumShell
         album={album}
         place={place}

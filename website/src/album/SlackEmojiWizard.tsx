@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { SlackEmojiMatch } from "../../../convex/album/emojiWizard";
 import type { SlackEmojiMatchesRead, SlackEmojiMatchesShown } from "../emojiWizardReads";
 import type { AlbumEmoji } from "./answer";
@@ -55,7 +55,7 @@ export function SlackEmojiWizard({ emoji, whose, takesAnyEmoji, emojiPage, useSl
     if (event.key === "Tab") keepFocusIn(dialog.current, event);
   };
   return (
-    <div className="al-wizard-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="al-wizard-backdrop" onPointerDown={(event) => closeOnTheBackdrop(event, onClose)}>
       <div ref={dialog} className="al-wizard ph-no-capture" role="dialog" aria-modal="true" aria-labelledby={title} onKeyDown={onKeyDown}>
         <header className="al-wizard-head">
           <EmojiPicture emoji={emoji} size={40} />
@@ -86,6 +86,11 @@ export function SlackEmojiWizard({ emoji, whose, takesAnyEmoji, emojiPage, useSl
       </div>
     </div>
   );
+}
+
+function closeOnTheBackdrop(event: PointerEvent<HTMLDivElement>, onClose: () => void) {
+  event.stopPropagation();
+  if (event.target === event.currentTarget) onClose();
 }
 
 function Mapped({ said, onClose }: { said: string; onClose: () => void }) {
@@ -125,7 +130,7 @@ function Matches({ emoji, matches, search, takesAnyEmoji, saving, emojiPage, onP
           </li>
         ))}
       </ul>
-      {takesAnyEmoji && matches.matches.some(({ free }) => !free) && <p className="al-wizard-quiet">Picking one in use gives it to this emoji, and the emoji that had it moves to a free name.</p>}
+      {takesAnyEmoji && matches.matches.some(({ free }) => !free) && <p className="al-wizard-quiet">Picking one in use gives it to this emoji: an earned emoji that had it moves to a free name, and a random drop or a held-back name stops being one.</p>}
       {!matches.matches.some(pickable) && <NoneFound emoji={emoji} said={`Every Slack emoji found${search === "" ? "" : ` for “${search}”`} is in use. Add this one to Slack under its name.`} emojiPage={emojiPage} />}
     </>
   );

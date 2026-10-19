@@ -2,11 +2,11 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf, type CompanyTeam } from "../companyProfiles/teams";
 import { levelOf } from "../progression/levels";
 import { customEmojiImageOf, originalCustomEmojiOf, originalCustomEmojiStartingWith } from "../workspace/customEmoji";
-import type { MemberId } from "../workspace/directory";
+import { currentMembersOf, type MemberId } from "../workspace/directory";
 import { emojiArtPictureOf, emojiLevels, milestoneTierArtOf, milestoneTierEmojiOf, slugOf } from "./emojiCatalogue";
 import { emojiClassesIn, isClassed } from "./emojiClasses";
 import { hypeFaceOf, isEarnedBy, teamPictureOf, type EarnedEmojiKind } from "./earnedEmojis";
-import { emojiNamed, emojiNameOf, giveEmojiTheName, mapperOf, namesHeldIn, registeredEmojisIn, type EarnedEmojiId, type RegisteredEmoji } from "./emojiNames";
+import { emojiNamed, emojiNameOf, giveEmojiTheName, mapperOf, namesHeldIn, registeredEmojisIn, type EarnedEmojiId } from "./emojiNames";
 import type { EmojiMapper } from "./records";
 
 export type SlackEmojiMatch = { name: string; image: string; free: boolean };
@@ -55,25 +55,18 @@ export type AppEmojiRows = { rows: AppEmojiRow[]; more: boolean };
 
 export async function appEmojisIn(ctx: QueryCtx, workspace: string): Promise<AppEmojiRows> {
   const teams = new Map((await companyTeamsOf(ctx)).map((team) => [team.team, team]));
-  const isCurrentHere = currentMemberTest(ctx, workspace);
-  const holders = await holdersIn(ctx, isCurrentHere);
-  const listed: (RegisteredEmoji & { holders: number })[] = [];
-  for (const registered of await registeredEmojisIn(ctx, workspace)) if (await isListable(registered.emoji, teams, isCurrentHere)) listed.push({ ...registered, holders: holders.get(registered.emoji) ?? 0 });
-  const mostHeld = listed.toSorted((one, other) => other.holders - one.holders || one.name.localeCompare(other.name));
+  const currentMembers = new Set<string>(await currentMembersOf(ctx, workspace));
+  const holders = await holdersIn(ctx, currentMembers);
+  const registered = (await registeredEmojisIn(ctx, workspace)).map((row) => ({ ...row, holders: holders.get(row.emoji) ?? 0 }));
   const rows: AppEmojiRow[] = [];
-  for (const { emoji, name, mappedBy, holders: held } of mostHeld.slice(0, mostAppEmojisListed)) {
+  for (const { emoji, name, mappedBy, holders: held } of registered.toSorted((one, other) => other.holders - one.holders || one.name.localeCompare(other.name))) {
+    const shown = await shownAppEmojiOf(ctx, workspace, emoji, teams, currentMembers);
+    if (shown === null) continue;
+    if (rows.length === mostAppEmojisListed) return { rows, more: true };
     const image = await customEmojiImageOf(ctx, workspace, name);
-    rows.push({ emoji, ...(await shownAppEmojiOf(ctx, workspace, emoji, teams)), name, holders: held, slack: image === undefined ? null : { image, mappedBy } });
+    rows.push({ emoji, ...shown, name, holders: held, slack: image === undefined ? null : { image, mappedBy } });
   }
-  return { rows, more: mostHeld.length > mostAppEmojisListed };
-}
-
-async function isListable(emoji: EarnedEmojiId, teams: Map<string, CompanyTeam>, isCurrentHere: CurrentMemberTest): Promise<boolean> {
-  const [kind, cause] = splitOnce(emoji);
-  if (kind === "team") return teams.has(cause);
-  if (kind === "milestone") return milestoneTierEmojiOf(cause) !== null;
-  if (kind === "hype") return isCurrentHere(cause as MemberId);
-  return true;
+  return { rows, more: false };
 }
 
 function splitOnce(id: string): [string, string] {
@@ -132,40 +125,30 @@ function diceOf(one: string[], other: string[]): number {
 
 type ShownAppEmoji = Pick<AppEmojiRow, "kind" | "from" | "picture">;
 
-async function shownAppEmojiOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId, teams: Map<string, CompanyTeam>): Promise<ShownAppEmoji> {
+async function shownAppEmojiOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId, teams: Map<string, CompanyTeam>, currentMembers: Set<string>): Promise<ShownAppEmoji | null> {
   const [kind, cause] = splitOnce(emoji);
   if (kind === "team") {
     const team = teams.get(cause);
-    return { kind, from: team?.name ?? cause, picture: teamPictureOf(team?.crest ?? null) };
+    return team === undefined ? null : { kind, from: team.name, picture: teamPictureOf(team.crest) };
   }
   if (kind === "milestone") {
     const tier = milestoneTierEmojiOf(cause);
-    return { kind, from: tier?.name ?? cause, picture: tier === null ? emojiArtPictureOf("milestone", cause) : emojiArtPictureOf("milestone", milestoneTierArtOf(tier.milestone, tier.tier)) };
+    return tier === null ? null : { kind, from: tier.name, picture: emojiArtPictureOf("milestone", milestoneTierArtOf(tier.milestone, tier.tier)) };
   }
   if (kind === "level") return { kind, from: `Level ${cause}`, picture: emojiArtPictureOf("level", Number(cause)) };
+  if (!currentMembers.has(cause)) return null;
   const { name, picture } = await hypeFaceOf(ctx, workspace, cause as MemberId);
   return { kind: "hype", from: name, picture };
 }
 
-async function holdersIn(ctx: QueryCtx, isCurrentHere: CurrentMemberTest): Promise<Map<string, number>> {
+async function holdersIn(ctx: QueryCtx, currentMembers: Set<string>): Promise<Map<string, number>> {
   const holdings = new Map<string, Set<MemberId>>();
-  const holds = async (member: MemberId, emoji: string) => {
-    if (await isCurrentHere(member)) holdings.set(emoji, (holdings.get(emoji) ?? new Set()).add(member));
+  const holds = (member: MemberId, emoji: string) => {
+    if (currentMembers.has(member)) holdings.set(emoji, (holdings.get(emoji) ?? new Set()).add(member));
   };
-  for (const { member, team } of await ctx.db.query("teamStickers").take(mostHoldingsCounted)) await holds(member, `team:${team}`);
-  for (const { member, milestone, tier } of await ctx.db.query("milestoneTiers").take(mostHoldingsCounted)) await holds(member, `milestone:${milestone}:${tier}`);
-  for (const { member, xp } of await ctx.db.query("memberProgress").take(mostHoldingsCounted)) for (const reward of emojiLevels.filter((level) => levelOf(xp) >= level)) await holds(member, `level:${reward}`);
-  for (const { giver, recipient } of await ctx.db.query("thoughtfulPacks").take(mostHoldingsCounted)) await holds(giver, `hype:${recipient}`);
+  for (const { member, team } of await ctx.db.query("teamStickers").take(mostHoldingsCounted)) holds(member, `team:${team}`);
+  for (const { member, milestone, tier } of await ctx.db.query("milestoneTiers").take(mostHoldingsCounted)) holds(member, `milestone:${milestone}:${tier}`);
+  for (const { member, xp } of await ctx.db.query("memberProgress").take(mostHoldingsCounted)) for (const reward of emojiLevels.filter((level) => levelOf(xp) >= level)) holds(member, `level:${reward}`);
+  for (const { giver, recipient } of await ctx.db.query("thoughtfulPacks").take(mostHoldingsCounted)) holds(giver, `hype:${recipient}`);
   return new Map([...holdings].map(([emoji, members]) => [emoji, members.size]));
-}
-
-type CurrentMemberTest = (member: MemberId) => Promise<boolean>;
-
-function currentMemberTest(ctx: QueryCtx, workspace: string): CurrentMemberTest {
-  const known = new Map<MemberId, Promise<boolean>>();
-  return (member) => {
-    const answer = known.get(member) ?? ctx.db.get(member).then((row) => row?.kind === "member" && row.workspace === workspace);
-    known.set(member, answer);
-    return answer;
-  };
 }

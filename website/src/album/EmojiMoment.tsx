@@ -3,7 +3,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { addItToSlackWords, findItInSlackWords, momentsOwedOf, useItInSlackWords, whyWords } from "./emojiShelf";
-import { FindInSlackWhileOn, useEmojiWizardOn } from "./findInSlack";
+import { FindInSlackWhileOn, useEmojiWizardOn, useLiveEmoji } from "./findInSlack";
 import { keepFocusIn } from "./focusTrap";
 import "./emoji.css";
 
@@ -55,7 +55,8 @@ export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (i
 type EmojiMomentProps = { moments: EmojiMoments; emojiButton: RefObject<HTMLButtonElement | null> };
 
 export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
-  const { playing: emoji, position, inThisBatch, take, skipTheRest } = moments;
+  const { playing, position, inThisBatch, take, skipTheRest } = moments;
+  const emoji = useLiveEmoji(playing);
   const described = useId();
   const wizardOn = useEmojiWizardOn();
   const [flying, setFlying] = useState(false);

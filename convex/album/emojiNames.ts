@@ -52,7 +52,7 @@ export async function openTheRegistryIn(ctx: MutationCtx, workspace: string): Pr
 export async function giveEmojiTheName(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiId, name: string, mappedBy: EmojiMapper): Promise<void> {
   const named = await registeredAs(ctx, workspace, emoji);
   if (named?.name === name) {
-    if (named.mappedBy !== undefined && named.mappedBy.as !== mappedBy.as) await ctx.db.patch(named._id, { mappedBy });
+    if (named.mappedBy?.as !== mappedBy.as) await ctx.db.patch(named._id, { mappedBy });
     return;
   }
   await freeTheName(ctx, workspace, name);

@@ -7,7 +7,8 @@ import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
-import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
+import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
+import type { Album, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
 import { FindInSlackWhileOn } from "./findInSlack";
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
@@ -65,7 +66,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
               ))}
             </ul>
           )}
-          <HypeEmoji person={person} first={first} earned={album.emojis.find(({ id }) => id === `hype:${person.person}`)} />
+          <HypeEmoji person={person} first={first} />
           {!person.held && (
             <div className="al-howto">
               <p className="al-eyebrow">
@@ -86,8 +87,8 @@ function teamHrefOf(team: Pick<AlbumTeam, "team">) {
   return hrefOf({ kind: "team", team: team.team });
 }
 
-function HypeEmoji({ person, first, earned: held }: { person: Person; first: string; earned: AlbumEmoji | undefined }) {
-  const { earned, name } = person.hype;
+function HypeEmoji({ person, first }: { person: Person; first: string }) {
+  const { earned, name, picture, inSlack } = person.hype;
   return (
     <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
       <PersonPicture face={person.face} name={person.name} collected={earned} frame="al-hype-frame" className="al-hype-face" />
@@ -95,7 +96,7 @@ function HypeEmoji({ person, first, earned: held }: { person: Person; first: str
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
       </p>
-      {held?.earned && <FindInSlackWhileOn emoji={held} />}
+      {earned && name !== null && <FindInSlackWhileOn emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} />}
     </div>
   );
 }

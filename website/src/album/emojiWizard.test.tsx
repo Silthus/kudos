@@ -1,4 +1,5 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
+import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppEmoji, AppEmojis } from "../../../convex/website/emojiWizard";
 import type { AppEmojisRead, SlackEmojiMatchesRead } from "../emojiWizardReads";
@@ -169,6 +170,32 @@ describe("#719: with emoji-wizard on, a member finds an earned emoji in Slack in
     expect(await screen.findByRole("button", { name: "Find :ines-okafor-hype: in Slack" }, arrival)).toBeInTheDocument();
   });
 
+  it("mapping the emoji a moment shows updates the moment: its Slack name, its use line, and no second Find in Slack", async () => {
+    const before: Album = { ...albumFixtures.newEmojis, emojiWizard: true, emojis: albumFixtures.newEmojis.emojis.map((emoji) => ({ ...emoji, seen: emoji.id !== "level:5" })) };
+    const live = { album: before, listeners: new Set<() => void>() };
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.album);
+      return asking ? shown : undefined;
+    };
+    const mapMyEmoji = async (emoji: string, to: string) => {
+      live.album = { ...live.album, emojis: live.album.emojis.map((each) => (each.id === emoji ? { ...each, name: to, picture: slackPicture(to), inSlack: true } : each)) };
+      return { kind: "mapped" } as const;
+    };
+    window.history.replaceState(null, "", "/");
+    const { user } = renderAlbum(memberWithTheAlbum, read, { slackEmojiMatches: slackEmojisFor(() => nearInes), commands: { mapMyEmoji } });
+    const moment = within(await screen.findByRole("dialog", { name: "New emoji unlocked" }, arrival));
+    const name = moment.getByRole("heading", { level: 2 }).textContent!.replaceAll(":", "");
+
+    await user.click(moment.getByRole("button", { name: `Find :${name}: in Slack` }));
+    await user.click((await theWizard(name)).getByRole("button", { name: "Map to :ines-cheer:" }));
+    act(() => live.listeners.forEach((listener) => listener()));
+    await user.click(await screen.findByRole("button", { name: "Done" }));
+
+    expect(moment.getByRole("heading", { level: 2 })).toHaveTextContent(":ines-cheer:");
+    expect(moment.getByText("Use it in Slack: react with it and put it in the kudos you give.")).toBeInTheDocument();
+    expect(moment.queryByRole("button", { name: /in Slack$/ })).not.toBeInTheDocument();
+  });
+
   it("Escape closes the wizard and gives focus back to the opener", async () => {
     const view = visit({ path: "/book#milestones" });
     const opener = await screen.findByRole("button", { name: "Find :familiar-faces: in Slack" }, arrival);
@@ -230,7 +257,7 @@ describe("#719: the maintainer lists every app emoji, not mapped first, and maps
 
     await view.user.click(list.getByRole("button", { name: "Find :ines-okafor-hype: in Slack" }));
     const wizard = await theWizard("ines-okafor-hype");
-    expect(wizard.getByText("Picking one in use gives it to this emoji, and the emoji that had it moves to a free name.")).toBeInTheDocument();
+    expect(wizard.getByText("Picking one in use gives it to this emoji: an earned emoji that had it moves to a free name, and a random drop or a held-back name stops being one.")).toBeInTheDocument();
     await view.user.click(wizard.getByRole("button", { name: "Map to :ines-old:, in use" }));
 
     expect(mapSlackEmoji).toHaveBeenCalledExactlyOnceWith("ines-old", { kind: "hype", person: "k1" });
@@ -248,6 +275,8 @@ describe("#719: the maintainer lists every app emoji, not mapped first, and maps
     await view.user.click(list.getByRole("button", { name: "Undo Bram Teller's mapping of :lantern-glow:" }));
 
     expect(mapSlackEmoji).toHaveBeenCalledExactlyOnceWith("lantern-glow", { kind: "unmapped" });
+    expect(await list.findByRole("status")).toHaveTextContent("Undone. :lantern-glow: is no longer mapped, and members can't take it again until you map it.");
+    expect(list.getByRole("button", { name: "Mapped · 2" })).toHaveFocus();
   });
 
   it("an Undo that can't reach HedgeHug says so and can be tried again", async () => {

@@ -30,6 +30,9 @@ const otters = Array.from({ length: 3 }, (_, index) => person("Otter", `Quillfea
 const lanterns = Array.from({ length: 2 }, (_, index) => person("Lantern", `Wickfield${index + 1}`));
 const everyone = [owner, alice, bruno, ...otters, ...lanterns];
 
+const crowdRows = 3_000;
+const crowdBatch = 500;
+
 const slackPicture = (name: string) => `https://emoji.slack-edge.com/T1/${name}/a1b2c3.png`;
 
 let postHog: FakePostHog;
@@ -203,6 +206,29 @@ describe("a member maps an earned emoji they hold to a Slack emoji", { timeout: 
     expect(await (await signedIn(alice)).mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "fresh" })).toEqual({ kind: "refused" });
   });
 
+  test("the maintainer picking an earned emoji's own name, already in Slack, records the maintainer and locks it for members", async () => {
+    await unlocksOtters(alice);
+    await slackHas("otters", "fresh");
+    const asOwner = await signedIn(owner);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
+
+    expect(emojiNamed(await appEmojisOf(asOwner), "otters").slack).toEqual({ image: slackPicture("otters"), setBy: { by: "maintainer", name: owner.name } });
+    await slackLoses("otters");
+    expect(await (await signedIn(alice)).mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "fresh" })).toEqual({ kind: "refused" });
+  });
+
+  test("a person page answers the hype emoji's picture and whether Slack has it, so the wizard can open there", async () => {
+    await aliceCollects(otters[0]!);
+    await slackHas("otter-cheer");
+    const asAlice = await signedIn(alice);
+    const otter = await memberOf(otters[0]!);
+
+    expect(await asAlice.query(api.website.album.getAlbumPerson, { person: otter })).toMatchObject({ hype: { earned: true, name: "otter-quillfeather1-hype", picture: expect.any(String), inSlack: false } });
+    await asAlice.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: `hype:${otter}`, to: "otter-cheer" });
+    expect(await asAlice.query(api.website.album.getAlbumPerson, { person: otter })).toMatchObject({ hype: { earned: true, name: "otter-cheer", picture: slackPicture("otter-cheer"), inSlack: true } });
+  });
+
   test("a member mapping is refused while emoji-wizard is off for the member, and writes nothing", async () => {
     await unlocksOtters(alice);
     await slackHas("otter");
@@ -225,7 +251,7 @@ describe("a member maps an earned emoji they hold to a Slack emoji", { timeout: 
   });
 });
 
-describe("the maintainer lists every app emoji, mapped or not", { timeout: 90_000 }, () => {
+describe("the maintainer lists every app emoji, mapped or not", { timeout: 180_000 }, () => {
   test("every earned emoji Slack doesn't have is not mapped, with its picture, what earns it and how many members hold it, the most held first", async () => {
     await unlocksOtters(alice);
     await aliceCollects(lanterns[0]!);
@@ -278,12 +304,13 @@ describe("the maintainer lists every app emoji, mapped or not", { timeout: 90_00
 
   test(`the list answers at most ${mostAppEmojisListed} app emojis, the most held first, and says more wait, within Convex's limits`, async () => {
     await aliceCollects(otters[0]!);
-    await t.run(async (ctx) => {
-      for (let index = 0; index < mostAppEmojisListed + 200; index++) {
-        const person = await ctx.db.insert("members", { workspace: "T1", user: `U_CROWD_${index}`, kind: "member", name: `Crowd ${index}` });
-        await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person, name: `crowd-${index}-hype` });
-      }
-    });
+    for (let batch = 0; batch < crowdRows / crowdBatch; batch++)
+      await t.run(async (ctx) => {
+        for (let index = batch * crowdBatch; index < (batch + 1) * crowdBatch; index++) {
+          const person = await ctx.db.insert("members", { workspace: "T1", user: `U_CROWD_${index}`, kind: "member", name: `Crowd ${index}` });
+          await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person, name: `crowd-${index}-hype` });
+        }
+      });
 
     const { emojis, more } = await appEmojisOf(await signedIn(owner));
 
