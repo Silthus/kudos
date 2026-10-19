@@ -105,12 +105,12 @@ function TrayButton({ album, items, popover, button, tray }: TrayButtonProps) {
       content={<TrayPanel album={album} trouble={tray.trouble} onPutIn={(item) => putting(() => tray.putIn(item))} onPutAllIn={() => putting(tray.putAllIn)} />}
     >
       <IconStack />
-      <OpensOut>Tray</OpensOut>
       {items > 0 && (
         <span key={items} className="al-tray-count">
           {items}
         </span>
       )}
+      <OpensOut>Tray</OpensOut>
     </PopoverButton>
   );
 }
@@ -124,10 +124,10 @@ function EmojiButton({ earned, popover }: { earned: number; popover: Popover<"tr
   return (
     <PopoverButton name="emojis" popover={popover} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" content={<p>{earned === 0 ? "Unlock a team sticker, a milestone or a level to earn your first emoji." : `You've earned ${plural(earned, "emoji", "emojis")}.`}</p>}>
       <IconEmoji />
-      <OpensOut>Emojis</OpensOut>
       <span className="al-emojis-count" aria-hidden="true">
         {earned}
       </span>
+      <OpensOut>Emojis</OpensOut>
     </PopoverButton>
   );
 }

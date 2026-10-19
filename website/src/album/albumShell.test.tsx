@@ -43,9 +43,8 @@ function declarationsOf(selector: string, css = albumCss) {
   return Object.fromEntries([...rule[2]!.matchAll(/([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]));
 }
 
-function reducedMotionCss() {
-  const start = albumCss.indexOf("@media (prefers-reduced-motion: reduce)");
-  return albumCss.slice(start);
+function cssFrom(media: string) {
+  return albumCss.slice(albumCss.indexOf(media));
 }
 
 async function topBar() {
@@ -207,16 +206,38 @@ describe("#695: a top bar label opens out calmly", () => {
     expect(resting["transition-delay"]).toBeUndefined();
   });
 
-  it("stays open at once, with no delay, on the current page and while its panel is open", () => {
+  it("opens over the bar beside its button, so no entry moves under a resting pointer and the pointer passes through it", () => {
+    const resting = declarationsOf(".al-opens-out");
+
+    expect(resting.position).toBe("absolute");
+    expect(resting.left).toBe("100%");
+    expect(resting["pointer-events"]).toBe("none");
+  });
+
+  it("opens at once, with no delay, while its panel is open", () => {
+    const expanded = declarationsOf(".al-top [aria-expanded=\"true\"] > .al-opens-out");
+
+    expect(expanded["grid-template-columns"]).toBe("1fr");
+    expect(expanded["transition-delay"]).toBe("0ms");
+  });
+
+  it("takes its place in the bar on the current page, open from the start", () => {
     const labelled = declarationsOf(".al-top [data-labelled] > .al-opens-out");
 
+    expect(labelled.position).toBe("static");
     expect(labelled["grid-template-columns"]).toBe("1fr");
     expect(labelled["transition-delay"]).toBe("0ms");
-    expect(declarationsOf(".al-top [aria-expanded=\"true\"] > .al-opens-out")).toEqual(labelled);
+  });
+
+  it("stays closed on a phone, where the bar has no room for a label", () => {
+    const phone = declarationsOf(".al-top .al-top-end .al-opens-out", cssFrom("@media (max-width: 63.999rem)"));
+
+    expect(phone["grid-template-columns"]).toBe("0fr");
+    expect(phone.opacity).toBe("0");
   });
 
   it("with reduced motion, keeps the delay but shows and hides the label without sliding", () => {
-    expect(declarationsOf(".al-opens-out", reducedMotionCss())["transition-duration"]).toBe("0s");
+    expect(declarationsOf(".al-opens-out", cssFrom("@media (prefers-reduced-motion: reduce)"))["transition-duration"]).toBe("0s");
   });
 });
 
@@ -387,6 +408,17 @@ describe("AL43: every album route has its page", () => {
     await user.click(within(theme).getByRole("button", { name: "System" }));
     expect(document.documentElement).not.toHaveClass("dark");
 
+    await user.click(page.getByRole("button", { name: "Sign out" }));
+    expect(actions.signOut).toHaveBeenCalledOnce();
+  });
+
+  it("#695: Settings keeps the theme choice and Sign out while its own read fails", async () => {
+    window.history.replaceState(null, "", "/settings");
+    const { user, actions } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: (asking) => (asking ? { kind: "broken" } : undefined) });
+    await screen.findByRole("heading", { level: 1, name: "Something went wrong" });
+    const page = within(screen.getByRole("main"));
+
+    expect(page.getByRole("group", { name: "Theme" })).toBeInTheDocument();
     await user.click(page.getByRole("button", { name: "Sign out" }));
     expect(actions.signOut).toHaveBeenCalledOnce();
   });
