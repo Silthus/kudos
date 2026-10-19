@@ -1,0 +1,8 @@
+     × reads its four medals bronze to diamond: earned ones in metal with their dates, the next lit with its progress, later ones faint at their step 222ms
+     × shows each tier's picture and name, earned tiers in colour and locked tiers greyed out with the step that unlocks them 240ms
+     × names each emoji as the album's earned emojis name it, so a name the registry numbered shows numbered 146ms
+     × before the album answers a tier's emoji, shows the tier's picture under the slug of its name and offers nothing to add 171ms
+     × AL31: an earned emoji Slack doesn't have offers Add to Slack, which saves its picture as <name>.png and opens Slack's custom emoji page 245ms
+     × AL30: a locked emoji never says it is in Slack or offers to add it, even where Slack already has its name 256ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 5 passed (11)

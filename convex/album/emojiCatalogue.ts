@@ -1,15 +1,26 @@
 import { catalogue as hoggieCatalogue } from "../hoggies/catalogue";
-import { milestoneCatalogue } from "./milestoneCatalogue";
+import { milestoneCatalogue, type MilestoneId } from "./milestoneCatalogue";
+import type { MilestoneTier } from "./records";
 
 export const emojiLevels = [5, 10, 15, 20, 25] as const;
 
-export const milestoneGoldNames = milestoneCatalogue.milestones.map(({ id, steps: [, , gold] }) => ({ milestone: id, gold: gold.name }));
+export type MilestoneTierEmoji = { milestone: MilestoneId; tier: MilestoneTier; name: string };
+
+export const milestoneTierEmojis: readonly MilestoneTierEmoji[] = milestoneCatalogue.milestones.flatMap(({ id, steps }) => steps.map(({ tier, name }) => ({ milestone: id, tier, name })));
+
+export function milestoneTierArtOf(milestone: MilestoneId, tier: MilestoneTier): string {
+  return `${milestone}-${tier}`;
+}
+
+export function milestoneTierEmojiOf(cause: string): MilestoneTierEmoji | null {
+  return milestoneTierEmojis.find(({ milestone, tier }) => `${milestone}:${tier}` === cause) ?? null;
+}
 
 export type EmojiArtKind = "team" | "milestone" | "level";
 
 export const emojiArt = {
   team: hoggieCatalogue.crests.map(({ crest }) => crest),
-  milestone: milestoneCatalogue.milestones.map(({ id }) => id),
+  milestone: milestoneTierEmojis.map(({ milestone, tier }) => milestoneTierArtOf(milestone, tier)),
   level: emojiLevels.map(String),
 } as const satisfies Record<EmojiArtKind, readonly string[]>;
 

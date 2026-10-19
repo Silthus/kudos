@@ -40,14 +40,16 @@ afterEach(() => {
 });
 
 describe("an earned emoji's name never moves", () => {
-  test("the first thoughtful kudos reserves the level, milestone and company team names before it names the hype emoji of the person it thanked", async () => {
+  test("the first thoughtful kudos reserves the level, every milestone tier's and the company team names before it names the hype emoji of the person it thanked", async () => {
     await companyTeams(team("lanterns", "Lanterns"), team("kites", "Kites"));
     const wren = await aMember({ user: "U_WREN", name: "Wren Halloway" });
 
     await thanks(wren);
 
     expect(await namesOf("level:5", "level:10", "level:15", "level:20", "level:25")).toEqual(["level-5", "level-10", "level-15", "level-20", "level-25"]);
-    expect(await namesOf("milestone:people", "milestone:teams", "milestone:reach", "milestone:hoggies", "milestone:thoughtful")).toEqual(["full-of-friends", "most-of-the-company", "well-travelled", "hoarder", "heart-of-the-team"]);
+    expect(await namesOf("milestone:people:bronze", "milestone:people:silver", "milestone:people:gold", "milestone:people:diamond")).toEqual(["first-face", "familiar-faces", "full-of-friends", "everyone-s-album"]);
+    expect(await namesOf("milestone:teams:gold", "milestone:reach:gold", "milestone:hoggies:gold", "milestone:thoughtful:gold")).toEqual(["most-of-the-company", "well-travelled", "hoarder", "heart-of-the-team"]);
+    expect(await namesOf("milestone:hoggies:bronze", "milestone:thoughtful:diamond")).toEqual(["curious", "patron-of-praise"]);
     expect(await namesOf("team:lanterns", "team:kites")).toEqual(["lanterns", "kites"]);
     expect(await hypeNameOf(wren)).toBe("wren-halloway-hype");
   });

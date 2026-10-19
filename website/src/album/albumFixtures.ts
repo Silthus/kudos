@@ -1,3 +1,4 @@
+import { milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
 import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, TrayItem, UnlockAnswer } from "./answer";
 
 const day = 86_400_000;
@@ -78,12 +79,24 @@ const milestones: AlbumMilestone[] = [
   { id: "thoughtful", count: 9, tiers: milestoneTiers(["First thank-you", "Generous soul", "Heart of the team", "Patron of praise"], [1, 25, 100, 500], [now - 30 * day]) },
 ];
 
+const milestoneEmojisInSlack: ReadonlySet<string> = new Set(["milestone:people:bronze"]);
+
+const milestoneEmojisOf = (listed: AlbumMilestone[]): AlbumEmoji[] =>
+  listed.flatMap(({ id, count, tiers }) =>
+    tiers.map(({ tier, at, name, earnedAt }) => {
+      const emoji = `milestone:${id}:${tier}`;
+      const earned = earnedAt !== null;
+      return { id: emoji, kind: "milestone", name: slugOf(name), picture: `/emoji/milestone-${milestoneTierArtOf(id, tier)}.png`, earned, seen: earned, inSlack: milestoneEmojisInSlack.has(emoji), progress: earned ? null : { have: count, need: at } };
+    }),
+  );
+
 const emojis: AlbumEmoji[] = [
   { id: "team:quiet-harbour", kind: "team", name: "quiet-harbour", picture: "/emoji/team-quiet-harbour.png", earned: true, seen: true, inSlack: true, progress: null },
   { id: "hype:ines-okafor", kind: "hype", name: "ines-okafor-hype", picture: "/emoji/hype-ines-okafor.png", earned: true, seen: true, inSlack: false, progress: null },
   { id: "level:5", kind: "level", name: "level-5", picture: "/emoji/level-5.png", earned: true, seen: false, inSlack: false, progress: null },
   { id: "team:lanterns", kind: "team", name: "lanterns", picture: "/emoji/team-lanterns.png", earned: false, seen: false, inSlack: false, progress: { have: 4, need: 5 } },
   { id: "level:10", kind: "level", name: "level-10", picture: "/emoji/level-10.png", earned: false, seen: false, inSlack: false, progress: { have: 1210, need: 4500 } },
+  ...milestoneEmojisOf(milestones),
 ];
 
 const me = { name: "Sam Example", face: { kind: "initials", initials: "SE" }, person: "sam-example" } as const;
@@ -121,7 +134,7 @@ const newcomerCast = castTeams.slice(0, 4).map((team) => ({ ...team, held: 0, st
 export const albumFixtures = {
   midway: albumOf(),
   teamless: albumOf({ mine: null }),
-  newcomer: { ...albumOf({ mine: null, cast: newcomerCast, gettingStarted: { hugged: false, thoughtful: false, opened: false, completed: false }, packs: 0 }), emojis: emojis.map((emoji) => ({ ...emoji, earned: false, seen: false })), milestones: milestones.map((milestone) => ({ ...milestone, count: 0, tiers: milestone.tiers.map((tier) => ({ ...tier, earnedAt: null })) })) },
+  newcomer: { ...albumOf({ mine: null, cast: newcomerCast, gettingStarted: { hugged: false, thoughtful: false, opened: false, completed: false }, packs: 0 }), emojis: emojis.map((emoji) => ({ ...emoji, earned: false, seen: false, progress: emoji.progress ?? { have: 0, need: 1 } })), milestones: milestones.map((milestone) => ({ ...milestone, count: 0, tiers: milestone.tiers.map((tier) => ({ ...tier, earnedAt: null })) })) },
   started: albumOf({ gettingStarted: { hugged: true, thoughtful: true, opened: true, completed: true } }),
   onePack: albumOf({ packs: 1 }),
   fewTeams: albumOf({ cast: castTeams.slice(0, 3) }),

@@ -116,7 +116,7 @@ describe("AL42: the top bar", () => {
     expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
     expect(bar.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
     expect(bar.getByRole("link", { name: "Leaderboard" })).toHaveAttribute("href", "/leaderboard");
-    expect(bar.getByRole("button", { name: "Your emojis, 3 earned" })).toBeInTheDocument();
+    expect(bar.getByRole("button", { name: "Your emojis, 9 earned" })).toBeInTheDocument();
     expect(bar.getByRole("link", { name: "Your profile, Sam Example" })).toHaveAttribute("href", "/book#me");
     expect(bar.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
     expect(bar.queryByRole("tab")).not.toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("AL42: the top bar", () => {
     expect(opensOutTo(bar.getByRole("button", { name: "Tray, nothing to put in" }))).toBe("Tray");
     expect(opensOutTo(bar.getByRole("link", { name: "Activity" }))).toBe("Activity");
     expect(opensOutTo(bar.getByRole("link", { name: "Leaderboard" }))).toBe("Leaderboard");
-    expect(opensOutTo(bar.getByRole("button", { name: "Your emojis, 3 earned" }))).toBe("Emojis");
+    expect(opensOutTo(bar.getByRole("button", { name: "Your emojis, 9 earned" }))).toBe("Emojis");
     expect(opensOutTo(bar.getByRole("button", { name: "Feedback" }))).toBe("Feedback");
   });
 
@@ -563,7 +563,7 @@ describe("AL55: the phone layout", () => {
     expect(bar.getByText("Level 6")).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
-    expect(bar.getByRole("button", { name: "Your emojis, 3 earned" })).toBeInTheDocument();
+    expect(bar.getByRole("button", { name: "Your emojis, 9 earned" })).toBeInTheDocument();
     expect(bar.queryByRole("link", { name: "Activity" })).not.toBeInTheDocument();
 
     await user.click(bar.getByRole("button", { name: "Menu" }));

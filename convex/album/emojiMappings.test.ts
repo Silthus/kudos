@@ -75,7 +75,7 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     const mappings = await mappingsOf(await signedIn(owner));
 
     expect(mappings.emoji).toEqual([
-      { name: "full-of-friends", image: slackPicture("full-of-friends"), mapping: { kind: "milestone", milestone: "people" } },
+      { name: "full-of-friends", image: slackPicture("full-of-friends"), mapping: { kind: "milestone", milestone: "people:gold" } },
       { name: "level-10", image: slackPicture("level-10"), mapping: { kind: "level", level: 10 } },
       { name: "otter-quillfeather1-hype", image: slackPicture("otter-quillfeather1-hype"), mapping: { kind: "hype", person: keyOf(mappings, otters[0]!) } },
       { name: "otters", image: slackPicture("otters"), mapping: { kind: "team", team: "otters" } },
@@ -87,8 +87,13 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
       { team: "lanterns", name: "Lanterns" },
       { team: "otters", name: "Otters" },
     ]);
-    expect(mappings.milestones.map(({ milestone }) => milestone)).toEqual(["people", "teams", "reach", "hoggies", "thoughtful"]);
-    expect(mappings.milestones[0]).toEqual({ milestone: "people", name: "Full of friends" });
+    expect(mappings.milestones.map(({ milestone }) => milestone)).toEqual(["people", "teams", "reach", "hoggies", "thoughtful"].flatMap((milestone) => ["bronze", "silver", "gold", "diamond"].map((tier) => `${milestone}:${tier}`)));
+    expect(mappings.milestones.slice(0, 4)).toEqual([
+      { milestone: "people:bronze", name: "First face" },
+      { milestone: "people:silver", name: "Familiar faces" },
+      { milestone: "people:gold", name: "Full of friends" },
+      { milestone: "people:diamond", name: "Everyone's album" },
+    ]);
     expect(mappings.levels).toEqual([5, 10, 15, 20, 25]);
     expect(mappings.people.map(({ name }) => name)).toEqual([alice, bruno, ...lanterns, owner, ...otters].map(({ name }) => name).toSorted((one, other) => one.localeCompare(other)));
   });
@@ -106,22 +111,24 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     expect((await mappingsOf(asOwner)).emoji).toEqual([{ name: "hedgehog-otters", image: slackPicture("hedgehog-otters"), mapping: { kind: "team", team: "otters" } }]);
   });
 
-  test("a Slack emoji maps to a person's hype emoji, a milestone's and a level's, each earned emoji taking its name and picture", async () => {
+  test("a Slack emoji maps to a person's hype emoji, a milestone tier's and a level's, each earned emoji taking its name and picture", async () => {
     await aliceCollects(otters[0]!);
     await reachesXp(alice, xpToReach(10));
-    await slackHas("otter-cheer", "gold-friends", "ten");
+    await slackHas("otter-cheer", "gold-friends", "first-friend", "ten");
     const asOwner = await signedIn(owner);
     const otter = keyOf(await mappingsOf(asOwner), otters[0]!);
 
     for (const [name, to] of [
       ["otter-cheer", { kind: "hype", person: otter }],
-      ["gold-friends", { kind: "milestone", milestone: "people" }],
+      ["gold-friends", { kind: "milestone", milestone: "people:gold" }],
+      ["first-friend", { kind: "milestone", milestone: "people:bronze" }],
       ["ten", { kind: "level", level: 10 }],
     ] as const) expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to }), name).toEqual({ kind: "mapped" });
 
     const asAlice = await signedIn(alice);
     expect(await emojiWithId(asAlice, `hype:${await memberOf(otters[0]!)}`)).toMatchObject({ name: "otter-cheer", picture: slackPicture("otter-cheer"), earned: true, inSlack: true });
-    expect(await emojiWithId(asAlice, "milestone:people")).toMatchObject({ name: "gold-friends", picture: slackPicture("gold-friends"), earned: false, inSlack: true });
+    expect(await emojiWithId(asAlice, "milestone:people:gold")).toMatchObject({ name: "gold-friends", picture: slackPicture("gold-friends"), earned: false, inSlack: true });
+    expect(await emojiWithId(asAlice, "milestone:people:bronze")).toMatchObject({ name: "first-friend", picture: slackPicture("first-friend"), earned: true, inSlack: true });
     expect(await emojiWithId(asAlice, "level:10")).toMatchObject({ name: "ten", picture: slackPicture("ten"), earned: true, inSlack: true });
   });
 
@@ -188,6 +195,8 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
       ["not-in-slack", { kind: "team", team: "otters" }],
       ["spare", { kind: "team", team: "walruses" }],
       ["spare", { kind: "milestone", milestone: "speed" }],
+      ["spare", { kind: "milestone", milestone: "people" }],
+      ["spare", { kind: "milestone", milestone: "people:platinum" }],
       ["spare", { kind: "level", level: 7 }],
       ["spare", { kind: "hype", person: "not-a-key" }],
     ] as const) expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to }), `${name} to ${JSON.stringify(to)}`).toEqual({ kind: "refused" });

@@ -3,20 +3,32 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import type { Plugin } from "vite";
-import { emojiArt as catalogue, emojiArtPictureOf, hypeEmblemPicture, teamEmblemPicture } from "../convex/album/emojiCatalogue";
+import { emojiArtPictureOf, emojiArt as catalogue, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojis, teamEmblemPicture } from "../convex/album/emojiCatalogue";
 import type { MilestoneId } from "../convex/album/milestoneCatalogue";
+import type { MilestoneTier } from "../convex/album/records";
 
 type Picture = { path: string; svg: () => string };
 
 const size = 128;
 
-const gold = { light: "#fff1b8", mid: "#e4b520", dark: "#c99400", glint: "#f8e39a" };
+type Metal = { glint: string; mid: string; dark: string };
+
+const metals: Record<MilestoneTier, Metal> = {
+  bronze: { glint: "#f3d6bb", mid: "#d39a68", dark: "#a3622c" },
+  silver: { glint: "#f1f2f4", mid: "#bfc2c8", dark: "#737780" },
+  gold: { glint: "#f8e39a", mid: "#e2b53a", dark: "#94700a" },
+  diamond: { glint: "#e2f5fa", mid: "#7cc9de", dark: "#2a7f9e" },
+};
+
+const levelGold = { light: "#fff1b8", mid: "#e4b520", dark: "#c99400", glint: "#f8e39a" };
+
+const sparkled: ReadonlySet<MilestoneTier> = new Set(["gold", "diamond"]);
 
 const milestoneHoggies: Record<MilestoneId, string> = {
-  people: "hand-clasp",
+  people: "explorer",
   teams: "coding-group",
-  reach: "explorer",
-  hoggies: "organized",
+  reach: "hand-clasp",
+  hoggies: "star",
   thoughtful: "heart",
 };
 
@@ -34,6 +46,8 @@ const rosettePoints = Array.from({ length: 56 }, (_, index) => {
   const angle = (Math.PI * index) / 28 - Math.PI / 2;
   return `${(64 + radius * Math.cos(angle)).toFixed(2)},${(64 + radius * Math.sin(angle)).toFixed(2)}`;
 }).join(" ");
+
+const sparkle = "M110 2 112.6 13.4 124 16 112.6 18.6 110 30 107.4 18.6 96 16 107.4 13.4Z";
 
 const spark = "M12 1.5 14.6 8.4 21.8 9.1 16.3 13.8 18 21 12 17.1 6 21 7.7 13.8 2.2 9.1 9.4 8.4Z";
 
@@ -66,7 +80,7 @@ export function emojiArtFiles() {
 function pictures(): Picture[] {
   return [
     ...catalogue.team.map((crest) => ({ path: emojiArtPictureOf("team", crest), svg: () => teamCrest(crest) })),
-    ...catalogue.milestone.map((milestone) => ({ path: emojiArtPictureOf("milestone", milestone), svg: () => milestoneEmblem(milestone) })),
+    ...milestoneTierEmojis.map(({ milestone, tier }) => ({ path: emojiArtPictureOf("milestone", milestoneTierArtOf(milestone, tier)), svg: () => milestoneMedal(milestone, tier) })),
     ...catalogue.level.map((level) => ({ path: emojiArtPictureOf("level", level), svg: () => levelEmblem(level) })),
     { path: teamEmblemPicture, svg: teamEmblem },
     { path: hypeEmblemPicture, svg: hypeEmblem },
@@ -77,20 +91,22 @@ function teamCrest(crest: string) {
   return square(`<image href="${pngData(brandFolder("crests/full/png"), crest)}" x="0" y="0" width="${size}" height="${size}"/>`);
 }
 
-function milestoneEmblem(milestone: MilestoneId) {
+function milestoneMedal(milestone: MilestoneId, tier: MilestoneTier) {
+  const metal = metals[tier];
   return square(`
-    ${goldRosette()}
+    ${rosette(metal)}
     <clipPath id="face"><circle cx="64" cy="64" r="44"/></clipPath>
-    <circle cx="64" cy="64" r="46" fill="#fffaf0" stroke="${gold.dark}" stroke-width="3"/>
-    <image href="${pngData(brandFolder("hoggies/png"), milestoneHoggies[milestone])}" x="18" y="24" width="92" height="92" clip-path="url(#face)"/>`);
+    <circle cx="64" cy="64" r="46" fill="#fffaf0" stroke="${metal.dark}" stroke-width="3"/>
+    <image href="${pngData(brandFolder("hoggies/png"), milestoneHoggies[milestone])}" x="18" y="24" width="92" height="92" clip-path="url(#face)"/>
+    ${sparkled.has(tier) ? `<path d="${sparkle}" fill="${metal.glint}" stroke="${metal.dark}" stroke-width="2.5" stroke-linejoin="round"/>` : ""}`);
 }
 
 function levelEmblem(level: string) {
-  const colour = levelColours[level] ?? gold.dark;
+  const colour = levelColours[level] ?? levelGold.dark;
   return square(`
-    ${goldRosette()}
+    ${rosette(levelGold)}
     <circle cx="64" cy="64" r="46" fill="${colour}" stroke="#ffffff" stroke-width="4"/>
-    <path d="${spark}" transform="translate(52 14) scale(1)" fill="${gold.light}"/>
+    <path d="${spark}" transform="translate(52 14) scale(1)" fill="${levelGold.light}"/>
     ${digits(level)}`);
 }
 
@@ -114,10 +130,10 @@ function hypeEmblem() {
     <path d="${spark}" transform="translate(28 28) scale(3)" fill="#ffffff"/>`);
 }
 
-function goldRosette() {
+function rosette({ glint, mid, dark }: Metal) {
   return `
-    <defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${gold.glint}"/><stop offset=".5" stop-color="${gold.mid}"/><stop offset="1" stop-color="${gold.dark}"/></linearGradient></defs>
-    <polygon points="${rosettePoints}" fill="url(#gold)" stroke="${gold.dark}" stroke-width="1.5" stroke-linejoin="round"/>`;
+    <defs><linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${glint}"/><stop offset=".5" stop-color="${mid}"/><stop offset="1" stop-color="${dark}"/></linearGradient></defs>
+    <polygon points="${rosettePoints}" fill="url(#metal)" stroke="${dark}" stroke-width="1.5" stroke-linejoin="round"/>`;
 }
 
 function square(body: string) {
