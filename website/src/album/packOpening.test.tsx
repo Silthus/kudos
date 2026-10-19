@@ -1,4 +1,5 @@
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { Logo } from "@posthog/brand/logo";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
@@ -244,6 +245,23 @@ describe("AL47: the opening turns one card a beat", () => {
     await user.click(await dialog.findByRole("button", { name: "Skip" }));
 
     expect(dialog.queryByText(":juno-park-hype:")).not.toBeInTheDocument();
+  });
+});
+
+describe("#720: a face-down card shows PostHog's playing-card back", () => {
+  it("both cards carry the official PostHog logo twice in their middle, the second turned upside down like a court card", async () => {
+    const official = render(<Logo layout="stacked" variant="mono" />).container.querySelector("svg")!;
+    const { user } = visit(notCompleting, async () => opened(stickerAndHoggie("juno-park")));
+    const dialog = await openThePacks(user);
+    await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
+
+    for (const name of ["The person card, face down", "The hoggie card, face down"]) {
+      const logos = [...(await dialog.findByRole("group", { name })).querySelectorAll(`svg[viewBox="${official.getAttribute("viewBox")}"]`)];
+
+      expect(logos.map((logo) => logo.innerHTML)).toEqual([official.innerHTML, official.innerHTML]);
+      expect(logos[0]!.parentElement).not.toHaveAttribute("transform");
+      expect(logos[1]!.parentElement).toHaveAttribute("transform", expect.stringMatching(/^rotate\(180 /));
+    }
   });
 });
 
