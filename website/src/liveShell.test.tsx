@@ -788,7 +788,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     renderLiveSite();
 
     const bar = within((await screen.findAllByRole("banner"))[0]!);
-    expect(await bar.findByRole("link", { name: "Open your packs, 1 waiting" })).toBeInTheDocument();
+    expect(await bar.findByRole("button", { name: "Open your packs, 1 waiting" })).toBeInTheDocument();
     expect(bar.getByText("290 XP to level 7")).toBeInTheDocument();
     expect(bar.getByRole("link", { name: "Your profile, Juno Park" })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Your emojis, 0 earned" })).toBeInTheDocument();
@@ -834,6 +834,19 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     const side = within(await screen.findByRole("navigation", { name: "Album" }));
     await user.type(side.getByRole("searchbox", { name: "Search teams and people" }), "ines");
     expect(within(side.getByRole("list", { name: "People" })).getByRole("link", { name: "Ines Okafor" })).toBeInTheDocument();
+  });
+
+  it("AL47: ripping a pack sends its one openThoughtfulPack over HTTP with the session's token, never through the socket's queue", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : undefined));
+    sentOverHttp.mockReturnValue(new Promise(() => undefined));
+    const { user } = renderLiveSite();
+
+    await user.click(await within((await screen.findAllByRole("banner"))[0]!).findByRole("button", { name: "Open your packs, 1 waiting" }));
+    await user.click(await screen.findByRole("button", { name: "Rip open the pack for thanking a teammate" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:openThoughtfulPack", args: { pack: "p-1" } });
   });
 
   it("while getAlbum answers off, the album waits, and a member without album never subscribes to getAlbum", async () => {
