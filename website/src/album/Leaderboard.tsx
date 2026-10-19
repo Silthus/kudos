@@ -229,8 +229,8 @@ function usePinnedClearance(): { clearance: CSSProperties; pinnedRef: PinnedRef 
   const pinnedRef = useCallback((row: HTMLLIElement | null) => {
     observer.current?.disconnect();
     observer.current = null;
+    setHeight(row?.offsetHeight ?? 0);
     if (row === null) return;
-    setHeight(row.offsetHeight);
     if (typeof ResizeObserver === "undefined") return;
     observer.current = new ResizeObserver(() => setHeight(row.offsetHeight));
     observer.current.observe(row);

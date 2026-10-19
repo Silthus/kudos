@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
@@ -15,6 +15,8 @@ beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
 });
+
+afterEach(() => vi.restoreAllMocks());
 
 function visit(boards: BoardsShown = boardsFixtures.week) {
   window.history.replaceState(null, "", "/leaderboard");
@@ -123,6 +125,23 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     const pinnedIn = async (name: "People" | "Teams") => (await board(name)).getAllByRole("listitem").filter((row) => row.hasAttribute("data-pinned")).map(spokenTextOf);
     expect(await pinnedIn("People")).toEqual(["Rank 5: Sam Example You Lanterns, Tin Orchard 3 thoughtful kudos"]);
     expect(await pinnedIn("Teams")).toEqual(["Rank 2: Lanterns Your team Who gave 8 thoughtful kudos"]);
+  });
+
+  it("clears focus past the stuck row by its height, and by nothing once the member's row leaves the board", async () => {
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+      return this.hasAttribute("data-pinned") ? 64 : 0;
+    });
+    let shown: BoardsShown = boardsFixtures.week;
+    window.history.replaceState(null, "", "/leaderboard");
+    const { showVisitor } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: (asking) => (asking ? shown : undefined) });
+    const peopleList = async () => (await board("People")).getByRole("list");
+
+    expect((await peopleList()).style.getPropertyValue("--al-pinned-height")).toBe("64px");
+
+    shown = { ...boardsFixtures.hidden, teams: boardsFixtures.hidden.teams.map((team) => ({ ...team, mine: false })), pinned: { me: null, teams: [] } };
+    showVisitor(memberWithTheAlbum);
+
+    expect((await peopleList()).style.getPropertyValue("--al-pinned-height"), "no stuck row, no clearance").toBe("0px");
   });
 
   it("links only the member's home team to the home page, and their other team to its own page", async () => {
