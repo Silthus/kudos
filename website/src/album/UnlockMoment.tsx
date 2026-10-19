@@ -3,7 +3,7 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { AlbumEmoji, AlbumTeam, TeamSticker } from "./answer";
 import { SealArt } from "./Seal";
-import { dateOf, inSlackWords } from "./teamPage";
+import { dateOf, newTeamEmojiWords } from "./teamPage";
 import "./moment.css";
 
 const phases = ["lift", "reveal", "named", "emoji", "home"] as const;
@@ -88,7 +88,7 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
                   </span>
                   <span className="al-unlock-emoji-words">
                     <code>:{sticker.emoji}:</code>
-                    <span>{emojiLineOf(emoji)}</span>
+                    <span>{newTeamEmojiWords(emoji)}</span>
                   </span>
                 </div>
                 <div className="al-unlock-continue">
@@ -121,11 +121,6 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
 
 function sealOf({ team, name, art, at }: TeamSticker, collected: number): AlbumTeam {
   return { team, name, art, mine: false, people: [], unmatched: [], held: collected, total: collected, state: "unlocked", unlockedAt: at };
-}
-
-function emojiLineOf(emoji: AlbumEmoji | undefined) {
-  const inSlack = inSlackWords(emoji);
-  return inSlack === null ? "New team emoji" : `New team emoji · ${inSlack}`;
 }
 
 function usePhaseClock(reduced: boolean, setPhase: (phase: Phase) => void) {
