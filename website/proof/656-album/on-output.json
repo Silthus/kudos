@@ -1,0 +1,103 @@
+{
+  "step": "on",
+  "eventsSent": 2,
+  "thoughtful": {
+    "ts": "1792403784.863279",
+    "thread": {
+      "ok": true,
+      "replies": [
+        {
+          "ts": "1792403786.312469",
+          "bot_id": "B0C8XHUTUKE",
+          "text": "Wren is new in your album · A pack for thanking Tamsin",
+          "blocks": [
+            {
+              "type": "section",
+              "block_id": "bOO1g",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Wren is new in your album*",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "context",
+              "block_id": "9GYcM",
+              "elements": [
+                {
+                  "type": "image",
+                  "image_url": "https://different-dog-467.convex.site/emoji/hype.png",
+                  "alt_text": "Wren's hype emoji"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "Wren's hype emoji is unlocked",
+                  "verbatim": false
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "block_id": "qBPPo",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*A pack for thanking Tamsin*\nTamsin is already in your album, so this pack holds a hoggie.",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "context",
+              "block_id": "GItUo",
+              "elements": [
+                {
+                  "type": "image",
+                  "image_url": "https://different-dog-467.convex.site/emoji/hype.png",
+                  "alt_text": "Tamsin's hype emoji"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "Tamsin's hype emoji is unlocked",
+                  "verbatim": false
+                }
+              ]
+            },
+            {
+              "type": "actions",
+              "block_id": "YVESz",
+              "elements": [
+                {
+                  "type": "button",
+                  "action_id": "album-open-packs",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Open your pack",
+                    "emoji": true
+                  },
+                  "url": "https://different-dog-467.convex.site/book#packs"
+                }
+              ]
+            },
+            {
+              "type": "context",
+              "block_id": "nfACR",
+              "elements": [
+                {
+                  "type": "mrkdwn",
+                  "text": "+20 XP",
+                  "verbatim": false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "short": {
+    "ts": "1792403797.304319",
+    "thread": {
+      "ok": true,
+      "replies": []
+    }
+  }
+}

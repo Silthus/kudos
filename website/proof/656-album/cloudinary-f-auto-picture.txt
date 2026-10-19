@@ -1,0 +1,1 @@
+ok True None ['https://res.cloudinary.com/demo/image/upload/c_limit,w_160,f_auto,q_auto/sample.jpg']
