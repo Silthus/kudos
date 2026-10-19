@@ -1,11 +1,11 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf, type CompanyTeam } from "../companyProfiles/teams";
-import { progressionHomeOf } from "../progression/progression";
+import { levelOf } from "../progression/levels";
 import { customEmojiImageOf, originalCustomEmojiOf, originalCustomEmojiStartingWith } from "../workspace/customEmoji";
-import { currentMembersOf, type MemberId } from "../workspace/directory";
+import type { MemberId } from "../workspace/directory";
 import { emojiArtPictureOf, emojiLevels, milestoneTierArtOf, milestoneTierEmojiOf, slugOf } from "./emojiCatalogue";
 import { emojiClassesIn, isClassed } from "./emojiClasses";
-import { hypeFaceOf, isEarnedBy, mostEmojiCausesRead, teamPictureOf, type EarnedEmojiKind } from "./earnedEmojis";
+import { hypeFaceOf, isEarnedBy, teamPictureOf, type EarnedEmojiKind } from "./earnedEmojis";
 import { emojiNamed, emojiNameOf, giveEmojiTheName, mapperOf, namesHeldIn, registeredEmojisIn, type EarnedEmojiId } from "./emojiNames";
 import type { EmojiMapper } from "./records";
 
@@ -17,7 +17,7 @@ export type AppEmojiRow = { emoji: EarnedEmojiId; kind: AppEmojiKind; name: stri
 
 export const mostMatchesShown = 24;
 
-export const mostPacksCountedPerGiver = 2_000;
+export const mostHoldingsCounted = 5_000;
 
 const matchesReadPerTerm = 20;
 
@@ -124,29 +124,23 @@ async function shownAppEmojiOf(ctx: QueryCtx, workspace: string, emoji: EarnedEm
 }
 
 async function holdersIn(ctx: QueryCtx, workspace: string): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
-  const holds = (emoji: string) => counts.set(emoji, (counts.get(emoji) ?? 0) + 1);
-  for (const member of await currentMembersOf(ctx, workspace)) for (const emoji of await emojisHeldBy(ctx, member)) holds(emoji);
-  return counts;
+  const isCurrentHere = currentMemberTest(ctx, workspace);
+  const holdings = new Map<string, Set<MemberId>>();
+  const holds = async (member: MemberId, emoji: string) => {
+    if (await isCurrentHere(member)) holdings.set(emoji, (holdings.get(emoji) ?? new Set()).add(member));
+  };
+  for (const { member, team } of await ctx.db.query("teamStickers").take(mostHoldingsCounted)) await holds(member, `team:${team}`);
+  for (const { member, milestone, tier } of await ctx.db.query("milestoneTiers").take(mostHoldingsCounted)) await holds(member, `milestone:${milestone}:${tier}`);
+  for (const { member, xp } of await ctx.db.query("memberProgress").take(mostHoldingsCounted)) for (const reward of emojiLevels.filter((level) => levelOf(xp) >= level)) await holds(member, `level:${reward}`);
+  for (const { giver, recipient } of await ctx.db.query("thoughtfulPacks").take(mostHoldingsCounted)) await holds(giver, `hype:${recipient}`);
+  return new Map([...holdings].map(([emoji, members]) => [emoji, members.size]));
 }
 
-async function emojisHeldBy(ctx: QueryCtx, member: MemberId): Promise<string[]> {
-  const stickers = await ctx.db
-    .query("teamStickers")
-    .withIndex("by_member_team", (q) => q.eq("member", member))
-    .take(mostEmojiCausesRead);
-  const tiers = await ctx.db
-    .query("milestoneTiers")
-    .withIndex("by_member_milestone_tier", (q) => q.eq("member", member))
-    .take(mostEmojiCausesRead);
-  const { level } = await progressionHomeOf(ctx, member);
-  return [...stickers.map(({ team }) => `team:${team}`), ...tiers.map(({ milestone, tier }) => `milestone:${milestone}:${tier}`), ...emojiLevels.filter((reward) => level >= reward).map((reward) => `level:${reward}`), ...(await peoplePackedBy(ctx, member)).map((person) => `hype:${person}`)];
-}
-
-async function peoplePackedBy(ctx: QueryCtx, giver: MemberId): Promise<MemberId[]> {
-  const packs = await ctx.db
-    .query("thoughtfulPacks")
-    .withIndex("by_giver_at", (q) => q.eq("giver", giver))
-    .take(mostPacksCountedPerGiver);
-  return [...new Set(packs.map(({ recipient }) => recipient))];
+function currentMemberTest(ctx: QueryCtx, workspace: string): (member: MemberId) => Promise<boolean> {
+  const known = new Map<MemberId, Promise<boolean>>();
+  return (member) => {
+    const answer = known.get(member) ?? ctx.db.get(member).then((row) => row?.kind === "member" && row.workspace === workspace);
+    known.set(member, answer);
+    return answer;
+  };
 }
