@@ -1,7 +1,7 @@
 import { useId, type CSSProperties } from "react";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { PageTitle } from "../PageTitle";
-import { AddToSlack } from "./AddToSlack";
+import { AddToSlackButton } from "./AddToSlackButton";
 import type { Album, AlbumMilestone } from "./answer";
 import { medalsOf } from "./facts";
 import { climbedShareOf, emblemOf, goalOf, isEarned, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
@@ -96,7 +96,7 @@ function MilestoneRow({ album, milestone }: { album: Album; milestone: AlbumMile
         <span className="al-ms-rail" aria-hidden="true" />
         <ol className="al-ms-medals" aria-label={`${name} medals, bronze to diamond`}>
           {milestone.tiers.map((tier) => (
-            <Medal key={tier.tier} milestone={milestone} tier={tier} step={stepOf(milestone, tier)} ladder={ladder} emoji={tierEmojiOf(album, milestone, tier)} />
+            <Medal key={tier.tier} milestone={milestone} tier={tier} step={stepOf(milestone, tier)} ladder={ladder} emoji={tierEmojiOf(album, milestone, tier)} emojiPage={album.emojiPage} />
           ))}
         </ol>
       </div>
@@ -106,7 +106,7 @@ function MilestoneRow({ album, milestone }: { album: Album; milestone: AlbumMile
 
 type Tier = AlbumMilestone["tiers"][number];
 
-function Medal({ milestone, tier, step, ladder, emoji }: { milestone: AlbumMilestone; tier: Tier; step: MedalStep; ladder: ReturnType<typeof emblemOf>; emoji: TierEmoji }) {
+function Medal({ milestone, tier, step, ladder, emoji, emojiPage }: { milestone: AlbumMilestone; tier: Tier; step: MedalStep; ladder: ReturnType<typeof emblemOf>; emoji: TierEmoji; emojiPage: string | null }) {
   const note = noteOf(milestone, tier, step);
   return (
     <li className="al-ms-medal" data-step={step}>
@@ -118,7 +118,7 @@ function Medal({ milestone, tier, step, ladder, emoji }: { milestone: AlbumMiles
       <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
       <span className="al-ms-medal-name">{tier.name}</span>
       <span className="al-ms-note">{note}</span>
-      <MedalEmoji tier={tier} emoji={emoji} />
+      <MedalEmoji tier={tier} emoji={emoji} emojiPage={emojiPage} />
     </li>
   );
 }
@@ -129,28 +129,28 @@ function noteOf(milestone: AlbumMilestone, tier: Tier, step: MedalStep) {
   return null;
 }
 
-function MedalEmoji({ tier, emoji: { name, picture, answered } }: { tier: Tier; emoji: TierEmoji }) {
+function MedalEmoji({ tier, emoji: { name, picture, answered }, emojiPage }: { tier: Tier; emoji: TierEmoji; emojiPage: string | null }) {
   const earned = isEarned(tier);
   return (
     <figure className="al-ms-emoji ph-no-capture" data-earned={earned ? "" : undefined}>
       <img src={picture} alt="" width={32} height={32} loading="lazy" decoding="async" />
       <figcaption>
         <code>{`:${name}:`}</code>
-        <EmojiSays earned={earned} at={tier.at} answered={answered} />
+        <EmojiSays earned={earned} at={tier.at} answered={answered} emojiPage={emojiPage} />
       </figcaption>
     </figure>
   );
 }
 
-function EmojiSays({ earned, at, answered }: { earned: boolean; at: number; answered: TierEmoji["answered"] }) {
-  return <span className="al-ms-emoji-says">{emojiSaysOf(earned, at, answered)}</span>;
+function EmojiSays({ earned, at, answered, emojiPage }: { earned: boolean; at: number; answered: TierEmoji["answered"]; emojiPage: string | null }) {
+  return <span className="al-ms-emoji-says">{emojiSaysOf(earned, at, answered, emojiPage)}</span>;
 }
 
-function emojiSaysOf(earned: boolean, at: number, answered: TierEmoji["answered"]) {
+function emojiSaysOf(earned: boolean, at: number, answered: TierEmoji["answered"], emojiPage: string | null) {
   if (!earned) return `Unlocks at ${at}`;
   if (answered === null) return null;
   if (answered.inSlack) return "In Slack";
-  return <AddToSlack emoji={answered} />;
+  return <AddToSlackButton emoji={answered} emojiPage={emojiPage} />;
 }
 
 const ringRadius = 46;

@@ -1,0 +1,23 @@
+
+ RUN  v5.0.3 /home/coder/.t3/worktrees/kudos/t3-7615c8d7
+
+ ❯ |convex| convex/album/earnedEmojis.test.ts (20 tests | 10 failed) 3662ms
+   ❯ an earned emoji follows its cause (8)
+     × before any cause, a member reads every company team's emoji, each milestone's and each level's, locked with their progress, named from the registry and pictured under their catalogue IDs, and no hype emoji 580ms
+     × unlocking a team sticker earns its team emoji under the sticker's name, and renaming the team or its leaving posthog.com never takes it back 187ms
+     × reaching a milestone's gold earns its milestone emoji, named after the gold tier 480ms
+     × a jump past two levels earns each level emoji it passed, and the next one shows the XP still to reach 120ms
+     × the first thoughtful pack for a person earns their hype emoji, pictured by their posthog.com face, else their Slack picture, else the hype emblem; a second pack earns no second one 149ms
+     × #664: each emoji says what earns it, and an earned one when: the team and its unlock, the gold tier and its date, the level, and the person thanked with their first pack's date 172ms
+     × #664: the album answers the workspace's custom emoji page once the workspace's Slack address is known, and none before 85ms
+     × a sticker the album's history brought earns no hype emoji, and thanking that person thoughtfully once more does 164ms
+   ❯ AL25: a workspace's shared emoji names, reserved by hand where nothing opened its registry (1)
+     × before any grant or unlock a member reads no emoji; once the shared names are reserved by hand, a level-5 member reads their level emoji earned and unseen, and an admin the whole shared list 98ms
+   ❯ AL32: workspace admins and owners get the shared list (2)
+     × an admin and an owner read every team, milestone and level emoji with its name, picture and whether Slack has it, and no hype emoji; another member reads none 132ms
+
+ Test Files  1 failed (1)
+      Tests  10 failed | 10 passed (20)
+   Start at  10:48:04
+   Duration  4.89s (tests 76%, transform 18%, import 5%, environment 1%)
+

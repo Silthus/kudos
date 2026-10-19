@@ -3,7 +3,8 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
-import type { Album, PackOpenReply, UnlockReply } from "./answer";
+import type { Album, PackOpenReply, SeenReply, UnlockReply } from "./answer";
+import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
 import { PackOpening, useHeld } from "./PackOpening";
 import { AlbumPage } from "./pages";
@@ -29,12 +30,14 @@ export type AlbumShellProps = {
   busy: boolean;
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
+  markEmojisSeen: (ids: string[]) => Promise<SeenReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
+  const emojiButton = useRef<HTMLButtonElement>(null);
   const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
   const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker, { waits: puttingIn.busy });
   const { held, hold, release } = useHeld();
@@ -46,16 +49,23 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     closeOpening();
     puttingIn.putAllIn();
   };
-  const playing = opening || moment !== null;
+  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy;
+  const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen);
+  const playing = opening || moment !== null || emojiMoments.playing !== null;
+  const finishUnlocking = (team: string) => {
+    emojiMoments.shownElsewhere([`team:${team}`]);
+    finish();
+  };
   const awaitingAMoment = playing || unlocking.sending !== null;
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} tray={puttingIn} />
+      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
-      {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={finish} />}
+      {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
+      {emojiMoments.playing !== null && <EmojiMoment key={emojiMoments.playing.id} moments={emojiMoments} emojiButton={emojiButton} />}
       <PutInFlights album={album} flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}

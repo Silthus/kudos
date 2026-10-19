@@ -189,6 +189,49 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
     );
   });
 
+  test("#664: each emoji says what earns it, and an earned one when: the team and its unlock, the gold tier and its date, the level, and the person thanked with their first pack's date", async () => {
+    await theCompanyCopyHolds(...threeTeams());
+    await aliceCollects(...otters);
+    vi.setSystemTime(Date.now() + weekMs);
+    await thanks(alice, why, otters[0]!);
+    const asAlice = await signedIn(alice);
+    const unlocked = await asAlice.mutation(api.website.album.unlockTeamSticker, { team: "otters" });
+    await reachesXp(alice, xpToReach(5));
+    const otter = await memberOf(otters[0]!);
+    const packsForOtter = await t.run((ctx) => ctx.db.query("thoughtfulPacks").collect());
+    const firstPackAt = Math.min(...packsForOtter.filter(({ recipient }) => recipient === otter).map(({ at }) => at));
+    const unlockedAt = unlocked.kind === "unlocked" ? unlocked.sticker.at : null;
+
+    const said = (await emojisOf(asAlice)).map(({ id, from, earnedAt }) => ({ id, from, earnedAt }));
+
+    expect(said).toEqual(
+      expect.arrayContaining([
+        { id: "team:otters", from: "Otters", earnedAt: unlockedAt },
+        { id: "team:lanterns", from: "Lanterns", earnedAt: null },
+        { id: "milestone:people:gold", from: "Full of friends", earnedAt: null },
+        { id: "level:5", from: "Level 5", earnedAt: null },
+        { id: "level:10", from: "Level 10", earnedAt: null },
+        { id: `hype:${otter}`, from: "Otter Quillfeather1", earnedAt: firstPackAt },
+      ]),
+    );
+  });
+
+  test("#664: the album answers the workspace's custom emoji page once the workspace's Slack address is known, and none before", async () => {
+    await reachesXp(alice, xpToReach(5));
+    const asAlice = await signedIn(alice);
+    expect((await albumOf(asAlice)).emojiPage, "no address yet").toBeNull();
+
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("workspaces")
+        .withIndex("by_workspace", (q) => q.eq("workspace", "T1"))
+        .unique();
+      await ctx.db.patch(row!._id, { url: "https://hedgehug-sandbox.slack.com/" });
+    });
+
+    expect((await albumOf(asAlice)).emojiPage).toBe("https://hedgehug-sandbox.slack.com/customize/emoji");
+  });
+
   test("a sticker the album's history brought earns no hype emoji, and thanking that person thoughtfully once more does", async () => {
     await thanks(alice, "ty", lanterns[0]!);
     vi.setSystemTime(Date.now() + minuteMs);
@@ -325,11 +368,11 @@ describe("AL32: workspace admins and owners get the shared list", { timeout: 90_
 
     expect(shared).toEqual(
       byId([
-        { id: "team:otters", kind: "team", name: "otters", picture: ottersCrestPicture, inSlack: false },
-        { id: "team:lanterns", kind: "team", name: "lanterns", picture: "/emoji/team.png", inSlack: false },
-        { id: "team:product-analytics", kind: "team", name: "product-analytics", picture: "/emoji/team-product-analytics.png", inSlack: false },
-        ...milestoneTiers.map(([milestone, tier, name]) => ({ id: `milestone:${milestone}:${tier}`, kind: "milestone", name, picture: `/emoji/milestone-${milestone}-${tier}.png`, inSlack: false })),
-        ...levels.map((level) => ({ id: `level:${level}`, kind: "level", name: `level-${level}`, picture: `/emoji/level-${level}.png`, inSlack: false })),
+        { id: "team:otters", kind: "team", name: "otters", from: "Otters", picture: ottersCrestPicture, inSlack: false },
+        { id: "team:lanterns", kind: "team", name: "lanterns", from: "Lanterns", picture: "/emoji/team.png", inSlack: false },
+        { id: "team:product-analytics", kind: "team", name: "product-analytics", from: "Product Analytics", picture: "/emoji/team-product-analytics.png", inSlack: false },
+        ...milestoneTiers.map(([milestone, tier, name]) => ({ id: `milestone:${milestone}:${tier}`, kind: "milestone", name, from: expect.any(String), picture: `/emoji/milestone-${milestone}-${tier}.png`, inSlack: false })),
+        ...levels.map((level) => ({ id: `level:${level}`, kind: "level", name: `level-${level}`, from: `Level ${level}`, picture: `/emoji/level-${level}.png`, inSlack: false })),
       ]),
     );
     expect((await albumOf(await signedIn(lanterns[0]!))).sharedEmojis, "an owner").toEqual(shared);
@@ -428,11 +471,11 @@ function threeTeams(): TeamPage[] {
 }
 
 function locked(id: Emoji["id"], kind: Emoji["kind"], name: string, picture: string, progress: Emoji["progress"]): Emoji {
-  return { id, kind, name, picture, earned: false, seen: false, inSlack: false, progress };
+  return { id, kind, name, from: expect.any(String) as string, picture, earned: false, earnedAt: null, seen: false, inSlack: false, progress };
 }
 
 function earned(id: Emoji["id"], kind: Emoji["kind"], name: string, picture: string): Emoji {
-  return { id, kind, name, picture, earned: true, seen: false, inSlack: false, progress: null };
+  return { id, kind, name, from: expect.any(String) as string, picture, earned: true, earnedAt: kind === "level" ? null : (expect.any(Number) as number), seen: false, inSlack: false, progress: null };
 }
 
 function byId<T>(entries: T[], idOf: (entry: T) => string = (entry) => (entry as { id: string }).id): T[] {

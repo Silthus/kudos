@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
@@ -152,7 +152,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
   });
 
   it("#707: names each emoji as the album's earned emojis name it, so a name the registry numbered shows numbered", async () => {
-    const numbered: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends-2", picture: "/emoji/milestone-people-gold.png", earned: false, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
+    const numbered: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends-2", from: "Full of friends", picture: "/emoji/milestone-people-gold.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
     visit(withEmoji(midway, numbered));
 
     expect(emojisUnder(await rowOf("Faces in the album"))[2]).toMatchObject({ name: ":full-of-friends-2:", says: "Unlocks at 25" });
@@ -163,7 +163,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
 
     const faces = await rowOf("Faces in the album");
     expect(emojisUnder(faces)[1]).toEqual({ picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "" });
-    expect(faces.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
+    expect(faces.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
   });
 
   it("#707: getAlbum's answer as the code before #707 built it, gold only under milestone:<id>, still shows every medal's own picture under its tier's slug and offers nothing to add", async () => {
@@ -176,23 +176,22 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
       { picture: "/emoji/milestone-people-gold.png", name: ":full-of-friends:", earned: false, says: "Unlocks at 25" },
       { picture: "/emoji/milestone-people-diamond.png", name: ":everyone-s-album:", earned: false, says: "Unlocks at 50" },
     ]);
-    expect(screen.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
   });
 
-  it("#707, AL31: an earned emoji Slack doesn't have offers Add to Slack, which saves its picture as <name>.png and opens Slack's custom emoji page", async () => {
+  it("#707, AL31: an earned emoji Slack doesn't have offers Add to Slack, which saves its picture as <name>.png and opens the workspace's custom emoji page", async () => {
     const saved = savedPictures();
     const { user } = visit();
 
-    const add = (await rowOf("Faces in the album")).getByRole("link", { name: "Add to Slack" });
-    expect(add).toHaveAttribute("href", "https://my.slack.com/customize/emoji");
-    expect(add).toHaveAttribute("target", "_blank");
-    await user.click(add);
+    vi.spyOn(window, "open").mockReturnValue(null);
+    await user.click((await rowOf("Faces in the album")).getByRole("button", { name: "Add to Slack: :familiar-faces:" }));
 
-    expect(saved).toEqual([{ href: "/emoji/milestone-people-silver.png", download: "familiar-faces.png" }]);
+    await waitFor(() => expect(saved).toEqual([{ href: "/emoji/milestone-people-silver.png", download: "familiar-faces.png" }]));
+    expect(window.open).toHaveBeenCalledExactlyOnceWith("https://hedgehug.slack.com/customize/emoji", "_blank", "noopener,noreferrer");
   });
 
   it("#707, AL30: a locked emoji never says it is in Slack or offers to add it, even where Slack already has its name", async () => {
-    const gold: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends", picture: "/emoji/milestone-people-gold.png", earned: false, seen: false, inSlack: true, progress: { have: 12, need: 25 } };
+    const gold: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends", from: "Full of friends", picture: "/emoji/milestone-people-gold.png", earned: false, earnedAt: null, seen: false, inSlack: true, progress: { have: 12, need: 25 } };
     visit(withEmoji(midway, gold));
 
     expect(emojisUnder(await rowOf("Faces in the album"))[2]).toMatchObject({ earned: false, says: "Unlocks at 25" });
