@@ -6,7 +6,7 @@ import { customEmojiImageOf } from "../workspace/customEmoji";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
 import { isClassed } from "./emojiClasses";
-import type { MilestoneId, MilestoneTier } from "./records";
+import type { EmojiMapper, MilestoneId, MilestoneTier } from "./records";
 import { standardEmojiNames } from "./standardEmojiNames";
 
 export type EarnedEmojiId = `level:${number}` | `milestone:${MilestoneId}:${MilestoneTier}` | `team:${string}` | `hype:${MemberId}`;
@@ -49,19 +49,38 @@ export async function openTheRegistryIn(ctx: MutationCtx, workspace: string): Pr
   await reserveSharedNamesIn(ctx, workspace);
 }
 
-export async function giveEmojiTheName(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiId, name: string): Promise<void> {
+export async function giveEmojiTheName(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiId, name: string, mappedBy: EmojiMapper): Promise<void> {
   const named = await registeredAs(ctx, workspace, emoji);
   if (named?.name === name) return;
   await freeTheName(ctx, workspace, name);
-  if (named === null) await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name });
-  else await ctx.db.patch(named._id, { name });
+  if (named === null) await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name, mappedBy });
+  else await ctx.db.patch(named._id, { name, mappedBy });
 }
 
 export async function freeTheName(ctx: MutationCtx, workspace: string, name: string): Promise<void> {
   const holder = await holderOf(ctx, workspace, name);
   if (holder === null) return;
   const shape = await naturalShapeOf(ctx, emojiIdOf(holder));
-  await ctx.db.patch(holder._id, { name: await firstFreeName(ctx, workspace, shape, (candidate) => slackHas(ctx, workspace, candidate)) });
+  await ctx.db.patch(holder._id, { name: await firstFreeName(ctx, workspace, shape, (candidate) => slackHas(ctx, workspace, candidate)), mappedBy: undefined });
+}
+
+export type RegisteredEmoji = { emoji: EarnedEmojiId; name: string; mappedBy: EmojiMapper | null };
+
+export async function registeredEmojisIn(ctx: QueryCtx, workspace: string): Promise<RegisteredEmoji[]> {
+  const rows = await ctx.db
+    .query("emojiNames")
+    .withIndex("by_workspace_name", (q) => q.eq("workspace", workspace))
+    .collect();
+  return rows.map((row) => ({ emoji: emojiIdOf(row), name: row.name, mappedBy: row.mappedBy ?? null }));
+}
+
+export async function emojiNamed(ctx: QueryCtx, workspace: string, name: string): Promise<EarnedEmojiId | null> {
+  const holder = await holderOf(ctx, workspace, name);
+  return holder === null ? null : emojiIdOf(holder);
+}
+
+export async function mapperOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId): Promise<EmojiMapper | null> {
+  return (await registeredAs(ctx, workspace, emoji))?.mappedBy ?? null;
 }
 
 async function slackHas(ctx: QueryCtx, workspace: string, name: string) {

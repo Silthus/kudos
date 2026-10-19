@@ -62,7 +62,11 @@ export type MilestoneId = Infer<typeof milestoneIdValidator>;
 
 export const milestoneTierRecordValidator = v.object({ member: v.id("members"), milestone: milestoneIdValidator, tier: milestoneTierValidator, at: v.number(), catalogue: v.number() });
 
-export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string() });
+export const emojiMapperValidator = v.object({ member: v.id("members"), as: v.union(v.literal("member"), v.literal("maintainer")) });
+
+export type EmojiMapper = Infer<typeof emojiMapperValidator>;
+
+export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string(), mappedBy: v.optional(emojiMapperValidator) });
 
 export const seenEmojiValidator = v.object({ member: v.id("members"), emoji: v.string(), at: v.number() });
 

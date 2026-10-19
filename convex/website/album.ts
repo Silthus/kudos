@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
-import { albumShownTo } from "../album/flag";
+import { albumShownTo, emojiWizardShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
@@ -43,6 +43,7 @@ export type AlbumAnswer = {
   moreEmojis: boolean;
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
+  emojiWizard: boolean;
 };
 
 export const mostPeopleShown = 500;
@@ -97,9 +98,10 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const level = await levelOf(ctx, me.member);
   const milestones = await milestonesOf(ctx, me, pagesAndPeople.pages);
   const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level });
-  const sharedEmojis = await sharedEmojisOf(ctx, me.member, earned);
+  const emojiWizard = await emojiWizardShownTo(ctx, me.member);
+  const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard };
 });
 
 async function customEmojiPageOf(ctx: QueryCtx, workspace: string): Promise<string | null> {
