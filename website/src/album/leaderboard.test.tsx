@@ -361,6 +361,28 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(rowsOf(await board("People"))).toHaveLength(2);
   });
 
+  it("Show everyone after the picked team folded away in another period returns focus to the fold", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.lastWeek }));
+
+    await user.click((await board("Teams")).getByRole("button", { name: "Who gave in Kettle Works" }));
+    await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
+    await user.click((await board("People")).getByRole("button", { name: "Show everyone" }));
+
+    expect((await board("Teams")).getByRole("button", { name: /more teams with nothing yet$/ })).toHaveFocus();
+  });
+
+  it("names one folded team in the singular", async () => {
+    const onTheBoard = new Set(boardsFixtures.week.teams.map(({ team }) => team));
+    const unscored = albumFixtures.midway.teams.filter(({ team }) => !onTheBoard.has(team));
+    const rankedAllButOne = unscored.slice(0, -1).map(({ team, name, art }, index) => ({ team, name, art, thoughtful: 1, mine: false, rank: 7 + index, tied: false }));
+    const { user } = visit({ ...boardsFixtures.week, teams: [...boardsFixtures.week.teams, ...rankedAllButOne] });
+
+    const teams = await board("Teams");
+    await user.click(teams.getByRole("button", { name: "1 more team with nothing yet" }));
+
+    expect(teams.getByRole("button", { name: "Hide the 1 team with nothing yet" })).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("keeps the boards on screen, marked busy, while a picked period loads", async () => {
     const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week }));
     await board("People");
