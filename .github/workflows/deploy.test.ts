@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
+import { runStep } from "./workflowStep";
 
 type Step = { id?: string; name?: string; if?: string; run?: string; uses?: string; with?: Record<string, unknown>; env?: Record<string, string> };
 type Job = { env?: Record<string, string>; needs?: string | string[]; uses?: string; with?: Record<string, unknown>; outputs?: Record<string, string>; steps?: Step[] };
@@ -98,8 +99,10 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   test("every run deploys the branch's tip as it stands when the run starts, so a burst of pushes never leaves the deployment behind", () => {
     const tip = workflow.jobs.tip;
     expect(checkoutOf(tip)?.with).toMatchObject({ ref: "${{ github.ref }}" });
-    expect(tip?.steps?.find((step) => step.id === "tip")?.run).toBe('echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"');
     expect(tip?.outputs?.sha).toBe("${{ steps.tip.outputs.sha }}");
+    const checkedOut = "c".repeat(40);
+    const resolved = runStep(tip!.steps!.find((step) => step.id === "tip")!.run!, { git: `[ "$*" = "rev-parse HEAD" ] && echo ${checkedOut}` });
+    expect(resolved).toEqual({ status: 0, output: `sha=${checkedOut}\n` });
     for (const step of keyedSteps.filter((step) => step !== pendingCratesStep)) expect(step?.if).toBeUndefined();
   });
 
@@ -107,7 +110,14 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(workflow.jobs.tip?.outputs?.attempt).toBe("${{ github.run_attempt }}");
     const guard = steps.find((step) => step.if === "${{ needs.tip.outputs.attempt != github.run_attempt }}");
     expect(steps.indexOf(guard!)).toBeLessThan(steps.indexOf(deployStep!));
-    expect(guard?.run).toContain('git ls-remote origin "$GITHUB_REF"');
     expect(guard?.env).toEqual({ SHA: "${{ needs.tip.outputs.sha }}" });
+
+    const gated = "a".repeat(40);
+    const withRemoteTip = (git: string) => runStep(guard!.run!, { env: { GITHUB_REF: "refs/heads/main", SHA: gated }, git }).status;
+    const answering = (tip: string) => `[ "$*" = "ls-remote origin refs/heads/main" ] && printf '%s\\trefs/heads/main\\n' ${tip}`;
+    expect(withRemoteTip(answering(gated))).toBe(0);
+    expect(withRemoteTip(answering("b".repeat(40)))).not.toBe(0);
+    expect(withRemoteTip("exit 128")).not.toBe(0);
   });
 });
+

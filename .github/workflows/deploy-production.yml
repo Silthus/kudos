@@ -53,7 +53,7 @@ jobs:
         if: ${{ needs.tip.outputs.attempt != github.run_attempt }}
         run: |
           tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
-          test "$tip" = "$SHA" || { echo "::error::$GITHUB_REF moved from $SHA to $tip since the first attempt; re-run all jobs to deploy its tip"; exit 1; }
+          test "$tip" = "$SHA" || { echo "::error::$GITHUB_REF moved from $SHA to $tip since the first attempt, and this rerun may have replaced a newer run waiting to deploy; re-run all jobs to gate and deploy the tip"; exit 1; }
         env:
           SHA: ${{ needs.tip.outputs.sha }}
 
