@@ -297,6 +297,22 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(rowsOf(await board("People"))).toEqual(["Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
   });
 
+  it("Who gave on a team that gave nothing in the next period picked says nobody in it gave, until Show everyone", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.lastWeek }));
+
+    await user.click((await board("Teams")).getByRole("button", { name: "Who gave in Kettle Works" }));
+    await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
+
+    const people = await board("People");
+    expect(people.getByText("Only Kettle Works")).toBeInTheDocument();
+    expect(people.getByText("Nobody in Kettle Works gave one last week.")).toBeInTheDocument();
+    expect(rowsOf(people)).toEqual(["Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
+
+    await user.click(people.getByRole("button", { name: "Show everyone" }));
+
+    expect(rowsOf(await board("People"))).toHaveLength(2);
+  });
+
   it("keeps the boards on screen, marked busy, while a picked period loads", async () => {
     const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week }));
     await board("People");

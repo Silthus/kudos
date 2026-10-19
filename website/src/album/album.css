@@ -820,7 +820,6 @@
 
 .al-period-switch {
   display: inline-flex;
-  flex-wrap: wrap;
   gap: 2px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -1087,6 +1086,15 @@
 }
 
 @media (max-width: 63.999rem) {
+  .al-period-switch {
+    width: 100%;
+  }
+
+  .al-period-switch button {
+    flex: 1;
+    padding-inline: 0.5rem;
+  }
+
   .al-boards {
     grid-template-columns: minmax(0, 1fr);
   }

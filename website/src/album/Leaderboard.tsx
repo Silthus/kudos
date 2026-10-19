@@ -35,14 +35,14 @@ type TeamsByKey = Map<string, BoardTeam>;
 type LeaderboardPageProps = { boards: ThoughtfulBoards; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
 
 function LeaderboardPage({ boards, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
-  const [picked, setPicked] = useState<string | null>(null);
+  const [picked, setPicked] = useState<BoardTeam | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
   const showEveryone = () => {
-    if (picked !== null) pickButtons.current.get(picked)?.focus();
+    if (picked !== null) pickButtons.current.get(picked.team)?.focus();
     setPicked(null);
   };
   const teams: TeamsByKey = new Map([...boards.teams, ...boards.pinned.teams].map((team) => [team.team, team]));
-  const pickedTeam = picked === null ? undefined : teams.get(picked);
+  const pickedTeam = picked === null ? undefined : (teams.get(picked.team) ?? picked);
   const words = periodWords[period];
   return (
     <div className="al-page-body al-leaderboard">
@@ -57,7 +57,7 @@ function LeaderboardPage({ boards, period, loading, onChoosePeriod, homeTeam }: 
       </header>
       <div className="al-boards" aria-busy={loading || undefined}>
         <PeopleBoard boards={boards} words={words} offer={quietOffers[period]} onChoosePeriod={onChoosePeriod} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
-        <TeamBoard boards={boards} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
+        <TeamBoard boards={boards} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
@@ -104,7 +104,7 @@ function PeopleBoard({ boards, words, offer, onChoosePeriod, teams, picked, onSh
   );
 }
 
-type TeamBoardProps = { boards: ThoughtfulBoards; words: PeriodWords; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: string) => void };
+type TeamBoardProps = { boards: ThoughtfulBoards; words: PeriodWords; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: BoardTeam) => void };
 
 function TeamBoard({ boards, words, homeTeam, pickButtons, picked, onPick }: TeamBoardProps) {
   const unrankedMine = boards.pinned.teams.filter(({ rank }) => rank === null);
@@ -116,7 +116,7 @@ function TeamBoard({ boards, words, homeTeam, pickButtons, picked, onPick }: Tea
       {rows.length > 0 && (
         <ol className="al-board-rows" style={clearance}>
           {rows.map((row) => (
-            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pinnedRef={pinnedRef} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row.team)} />
+            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pinnedRef={pinnedRef} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row)} />
           ))}
         </ol>
       )}
