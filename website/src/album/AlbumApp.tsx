@@ -38,7 +38,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
     <NavigateProvider value={arriveAt}>
       <AlbumShell album={album} place={placeOf(route, window.location.hash)} busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
-        leaderboard={<LeaderboardAnswerPage boards={boards} setBoardVisibility={actions.setBoardVisibility} {...answers} />} onSignOut={actions.signOut} />
+        leaderboard={<LeaderboardAnswerPage boards={boards} {...answers} />} onSignOut={actions.signOut} />
     </NavigateProvider>
   );
 }

@@ -998,10 +998,13 @@
   max-width: 40rem;
 }
 
-.al-board-switch {
-  min-width: 16rem;
+.al-board-off {
   color: var(--foreground);
   font-weight: 600;
+}
+
+.al-board-off a {
+  color: var(--al-accent-ink);
 }
 
 @media (max-width: 63.999rem) {
@@ -1012,10 +1015,5 @@
   .al-board-row {
     gap: 0.5rem;
     padding: 0.625rem 0.875rem;
-  }
-
-  .al-board-switch {
-    min-width: 0;
-    width: 100%;
   }
 }

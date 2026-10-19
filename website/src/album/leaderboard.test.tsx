@@ -14,9 +14,9 @@ beforeEach(() => {
   preferWideScreen();
 });
 
-function visit(boards: BoardsShown = boardsFixtures.week, path = "/leaderboard", setBoardVisibility?: (visible: boolean) => Promise<{ kind: "set"; visible: boolean }>) {
-  window.history.replaceState(null, "", path);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: fixedBoards(boards), commands: setBoardVisibility === undefined ? {} : { setBoardVisibility } });
+function visit(boards: BoardsShown = boardsFixtures.week) {
+  window.history.replaceState(null, "", "/leaderboard");
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards: fixedBoards(boards) });
 }
 
 async function board(name: "People" | "Teams") {
@@ -148,21 +148,21 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(rowsOf(people)).toEqual(["Not ranked: Sam Example You Lanterns, Tin Orchard 0 thoughtful kudos"]);
   });
 
-  it("Show me on the leaderboards switched off leaves the member's row off the people board, says so, and can switch back on from the page", async () => {
-    let shown: boolean[] = [];
-    const { user } = visit(boardsFixtures.hidden, "/leaderboard", async (visible) => {
-      shown = [...shown, visible];
-      return { kind: "set", visible };
-    });
+  it("Show me on the leaderboards switched off leaves the member's row off the people board, and says where to switch it back on", async () => {
+    visit(boardsFixtures.hidden);
 
     const people = await board("People");
     expect(people.queryByText("Sam Example")).not.toBeInTheDocument();
-    expect(people.queryByText(/You're No\./)).not.toBeInTheDocument();
-    expect(screen.getByText(`You're off the boards by choice. Switch on "Show me on the leaderboards" to come back.`)).toBeInTheDocument();
+    expect(people.getByText("22 thoughtful kudos given this week.")).toBeInTheDocument();
+    const line = screen.getByText(/You're off the boards by choice/);
+    expect(line).toHaveTextContent(`You're off the boards by choice. Switch on "Show me on the leaderboards" in Settings to come back.`);
+    expect(within(line).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+  });
 
-    await user.click(screen.getByRole("switch", { name: "Show me on the leaderboards" }));
-
-    expect(shown).toEqual([true]);
+  it("a member on the boards gets no line about being off them", async () => {
+    visit();
+    await board("People");
+    expect(screen.queryByText(/off the boards/)).not.toBeInTheDocument();
   });
 });
 

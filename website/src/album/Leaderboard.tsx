@@ -3,30 +3,26 @@ import { AnswerPage } from "../App";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { MemberFace } from "../Face";
-import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
-import type { ShellActions } from "../shell";
 import type { BoardPerson, BoardsShown, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
 import { hrefOf } from "./place";
 
-type LeaderboardAnswerProps = { boards: BoardsShown | undefined; setBoardVisibility: ShellActions["setBoardVisibility"]; onSignIn: () => void; onSignOut: () => void };
+type LeaderboardAnswerProps = { boards: BoardsShown | undefined; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards, setBoardVisibility, ...answers }: LeaderboardAnswerProps) {
+export function LeaderboardAnswerPage({ boards, ...answers }: LeaderboardAnswerProps) {
   if (boards === undefined || boards.kind === "off") return <LoadingPage shape="column" />;
   if (boards.kind !== "boards") return <AnswerPage answer={boards} {...answers} />;
-  return <LeaderboardPage boards={boards} setBoardVisibility={setBoardVisibility} />;
+  return <LeaderboardPage boards={boards} />;
 }
 
 export function isWaitingForTheBoards(boards: BoardsShown | undefined) {
   return boards === undefined || boards.kind === "off";
 }
 
-const offTheBoardsWords = `You're off the boards by choice. Switch on "Show me on the leaderboards" to come back.`;
-
 type TeamsByKey = Map<string, BoardTeam>;
 
-function LeaderboardPage({ boards, setBoardVisibility }: { boards: ThoughtfulBoards; setBoardVisibility: ShellActions["setBoardVisibility"] }) {
+function LeaderboardPage({ boards }: { boards: ThoughtfulBoards }) {
   const [picked, setPicked] = useState<string | null>(null);
   const teams: TeamsByKey = new Map([...boards.teams, ...boards.pinned.teams].map((team) => [team.team, team]));
   const pickedTeam = picked === null ? undefined : teams.get(picked);
@@ -42,10 +38,11 @@ function LeaderboardPage({ boards, setBoardVisibility }: { boards: ThoughtfulBoa
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
-        {!boards.onTheBoards && <p>{offTheBoardsWords}</p>}
-        <div className="al-board-switch">
-          <VisibilitySwitch onTheBoards={boards.onTheBoards} setBoardVisibility={setBoardVisibility} />
-        </div>
+        {!boards.onTheBoards && (
+          <p className="al-board-off">
+            You're off the boards by choice. Switch on "Show me on the leaderboards" in <AppLink href={hrefOf({ kind: "settings" })}>Settings</AppLink> to come back.
+          </p>
+        )}
       </section>
     </div>
   );
