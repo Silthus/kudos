@@ -9,6 +9,7 @@ import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, teamEmblemPicture } 
 import { emojiNameOf, type EarnedEmojiId } from "./emojiNames";
 import type { MilestoneAnswer } from "./milestones";
 import type { MilestoneId } from "./records";
+import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
 
@@ -133,7 +134,7 @@ async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): Promise<
   if (kind === "milestone") return (await goldTierOf(ctx, member, cause as MilestoneId)) !== null;
   if (kind === "level") return emojiLevels.some((reward) => String(reward) === cause) && (await progressionHomeOf(ctx, member)).level >= Number(cause);
   if (kind === "hype") return hasPackedFor(ctx, member, ctx.db.normalizeId("members", cause));
-  if (kind === "random") return holdsRandomEmoji(ctx, member, cause);
+  if (kind === "random") return (await randomEmojisShownTo(ctx, member)) && (await holdsRandomEmoji(ctx, member, cause));
   return false;
 }
 

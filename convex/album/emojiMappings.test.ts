@@ -305,6 +305,7 @@ describe("random emojis are dark where random-emojis is off", { timeout: 90_000 
     await aliceCollects(otters[1]!);
     expect(await randomEmojisOf(await signedIn(alice)), "off: no drop shows").toEqual([]);
     expect(await t.run(async (ctx) => (await ctx.db.query("randomEmojiDrops").collect()).length), "off: no pack drops one").toBe(1);
+    expect(await (await signedIn(alice)).mutation(api.website.album.markEmojisSeen, { ids: ["random:party-parrot"] }), "off: a held drop can't be marked seen").toEqual({ kind: "seen", ids: [] });
   });
 });
 
