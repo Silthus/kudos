@@ -1,6 +1,6 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { KudosMessage } from "../activity/KudosMessage";
-import { AnswerPage } from "../App";
+import { AnswerPage } from "../pages/AnswerPage";
 import { AppLink } from "../AppLink";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { Medal } from "../book/Medal";

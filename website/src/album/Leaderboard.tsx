@@ -1,5 +1,5 @@
 import { useCallback, useId, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
-import { AnswerPage } from "../App";
+import { AnswerPage } from "../pages/AnswerPage";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { MemberFace } from "../Face";

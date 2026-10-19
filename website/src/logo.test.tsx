@@ -33,7 +33,7 @@ function pngSize(name: string) {
 
 describe("#258: the header carries the HedgeHug logo beside the wordmark", () => {
   it("shows the HedgehogHeart at 34 px in a link home named HedgeHug, home", () => {
-    renderApp(shellFixtures.member);
+    renderApp(shellFixtures.notAMember);
     const logo = homeLogo();
     expect(logo).toHaveAttribute("href", "/");
     const heart = logo.querySelector("img");

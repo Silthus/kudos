@@ -1,13 +1,13 @@
 import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
 import type { WeekRead, WeekShown } from "./answer";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);

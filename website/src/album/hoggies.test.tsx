@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contrast } from "../test/themeContrast";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
@@ -12,7 +12,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 
 const arrival = 10_000;
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum = shellFixtures.member;
 
 type Box = { top: number; height: number };
 
@@ -393,7 +393,7 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
 
     act(() => window.history.back());
     await waitFor(() => expect(screen.queryByText("Showing epic hoggies.")).not.toBeInTheDocument());
-    expect(markedInTheStrip(), "Back to every rarity").toEqual(["Uncommon"]);
+    await waitFor(() => expect(markedInTheStrip(), "Back to every rarity").toEqual(["Uncommon"]));
   });
 
   it("waits on its own read and shows the album's loading page meanwhile", async () => {

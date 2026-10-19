@@ -2,7 +2,8 @@ import { hedgehogHandClaspPng } from "@posthog/brand/hoggies/png";
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
-import { renderApp } from "./test/renderApp";
+import { albumFixtures, fixedAlbum } from "./album/albumFixtures";
+import { renderAlbum, renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -91,8 +92,9 @@ describe("WS309: the sign-in page stands alone as variant E's card", () => {
     expect(landingHint()).not.toBeInTheDocument();
   });
 
-  it("moves focus to the card's title after signing out", () => {
-    const { showVisitor } = renderApp(shellFixtures.member);
+  it("moves focus to the card's title after signing out", async () => {
+    const { showVisitor } = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
+    await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
     showVisitor(shellFixtures.signedOut);
     const title = screen.getByRole("heading", { level: 1 });
     expect(title).toHaveTextContent(/^HedgeHug$/);

@@ -5,12 +5,11 @@ import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Root } from "./Root";
 import { shellFixtures } from "./shell";
 import { withoutSignInCode } from "./browserAnalytics/withoutSignInCode";
 import { postHogScriptUrl } from "./browserAnalytics/postHogScript";
 import type { CaptureResult } from "posthog-js/dist/module.full.no-external";
-import { fakeSystemTheme } from "./test/systemTheme";
+import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 type Call = { instance: string; method: string; args: unknown[] };
 type Sent = { instance: string; event: string; properties: Record<string, unknown>; $set_once?: Record<string, unknown> };
@@ -109,7 +108,8 @@ function analyticsAnswers(answer: unknown) {
   act(() => listeners.forEach((notify) => notify()));
 }
 
-function renderLiveSite() {
+async function renderLiveSite() {
+  const { Root } = await import("./Root");
   const user = userEvent.setup();
   render(<Root convexUrl="https://happy-hog-123.convex.cloud" />);
   return { user };
@@ -133,7 +133,22 @@ function sentEvents() {
   return recorded.sent.map(({ event, properties }) => ({ event, page: properties.page, book_page: properties.book_page, spread: properties.spread }));
 }
 
-const screens = () => screen.getByRole("navigation", { name: "Screens" });
+const anAlbum = {
+  kind: "album",
+  me: { name: "Sam Example", face: { kind: "initials", initials: "SE" }, person: "m-sam" },
+  level: { level: 2, xp: 50, startsAt: 20, nextAt: 100 },
+  teams: [],
+  people: [],
+  morePeople: false,
+  packs: [],
+  morePacks: false,
+  tray: [],
+  moreTray: false,
+};
+
+async function topBar() {
+  return (await screen.findAllByRole("banner", {}, { timeout: 10_000 }))[0]!;
+}
 
 const privateWords = ["Thanks Ann for untangling the deploy", "U0123ABCD", "C0456EFGH", "SIGNIN-CODE-1234"];
 
@@ -178,12 +193,15 @@ const ownFrame = { filename: "https://hedgehug.example/assets/index-abc.js", fun
 
 beforeEach(() => {
   fakeSystemTheme(false);
+  preferWideScreen();
+  window.history.replaceState(null, "", "/book#me");
   vi.resetModules();
   recorded.imports = 0;
   recorded.calls.length = 0;
   recorded.sent.length = 0;
   answers.clear();
-  answers.set("website/profile:getMyProfile", shellFixtures.memberWithEveryFeatureOpen);
+  answers.set("website/profile:getMyProfile", shellFixtures.member);
+  answers.set("website/album:getAlbum", anAlbum);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
@@ -194,10 +212,10 @@ afterEach(() => {
 
 describe("the browser captures only while told to", () => {
   it("imports nothing and calls nothing while the read is loading, answers off, or answers a denial", async () => {
-    const { user } = renderLiveSite();
-    await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
+    const { user } = await renderLiveSite();
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
     for (const answer of [{ kind: "off" }, ...denials]) analyticsAnswers(answer);
-    await user.click(within(screens()).getByRole("link", { name: "Profile" }));
+    await user.click(within(await topBar()).getByRole("link", { name: /^Your profile/ }));
 
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(recorded.imports).toBe(0);
@@ -205,7 +223,7 @@ describe("the browser captures only while told to", () => {
   });
 
   it("imports nothing when the read fails", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(new Error("Server Error"));
 
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -215,7 +233,7 @@ describe("the browser captures only while told to", () => {
   });
 
   it("a capture answer starts posthog-js bootstrapped as the member, with environment registered, flags off and no identify", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -246,14 +264,14 @@ describe("the browser captures only while told to", () => {
     ["the website closing", { kind: "closed" }],
     ["the read failing", new Error("Server Error")],
   ])("%s stops replay, opts out and resets, and nothing is captured afterwards", async (_, next) => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
     const sentBefore = recorded.sent.length;
 
     analyticsAnswers(next);
     const stopping = recorded.calls.slice(-5).map(({ method }) => method);
-    await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
     window.history.pushState(null, "", "/book#hoggies/legendary");
 
     expect(new Set(stopping.slice(0, 2))).toEqual(new Set(["stopSessionRecording", "stopExceptionAutocapture"]));
@@ -263,7 +281,7 @@ describe("the browser captures only while told to", () => {
   });
 
   it("an answer that changes while posthog-js is still loading abandons the import", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     analyticsAnswers({ kind: "signed-out" });
 
@@ -272,7 +290,7 @@ describe("the browser captures only while told to", () => {
   });
 
   it("a later capture answer for another member starts afresh with that member's ID", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
     analyticsAnswers({ kind: "signed-out" });
@@ -292,7 +310,7 @@ describe("the browser captures only while told to", () => {
     ...denials.map((denial) => [`answers ${denial.kind}`, denial] as [string, unknown]),
     ["fails", new Error("Server Error")],
   ])("an error the shell's error page catches while the read %s is never reported, even when capture starts later", async (_, answer) => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(answer);
     aPageThrows(privateError());
     await errorPage();
@@ -306,7 +324,7 @@ describe("the browser captures only while told to", () => {
   });
 
   it("an error the shell's error page catches while the read still loads waits, untouched, and is reported once capture starts", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     const error = privateError();
     aPageThrows(error);
     await errorPage();
@@ -317,13 +335,13 @@ describe("the browser captures only while told to", () => {
     analyticsAnswers(ann);
     await capturing();
 
-    await waitFor(() => expect(callsOf("captureException").map(({ args }) => args)).toEqual([[error, { page: "home" }]]));
+    await waitFor(() => expect(callsOf("captureException").map(({ args }) => args)).toEqual([[error, { page: "book" }]]));
     await settled();
     expect(callsOf("captureException")).toHaveLength(1);
   });
 
   it("the frame shows the Feedback control only while capturing", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers({ kind: "off" });
     expect(screen.queryByRole("button", { name: "Feedback" })).not.toBeInTheDocument();
 
@@ -335,7 +353,7 @@ describe("the browser captures only while told to", () => {
   });
 
   it("the same capture answer again starts nothing new", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -349,10 +367,10 @@ describe("the browser captures only while told to", () => {
 
 describe("MS24: the shell's error page reports what it caught", () => {
   it("an error a page throws while capturing is reported once, with the route's page, and the error page shows", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
-    await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
     const error = privateError();
 
     aPageThrows(error);
@@ -366,24 +384,24 @@ describe("MS24: the shell's error page reports what it caught", () => {
 
 describe("MS22: pageviews follow the address", () => {
   it("the first page, then each page a member opens, sends one pageview, after a page leave for the page before", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
-    await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
-    await user.click(within(screens()).getByRole("link", { name: "Profile" }));
+    await user.click(within(await topBar()).getByRole("link", { name: "Leaderboard" }));
+    await user.click(within(await topBar()).getByRole("link", { name: /^Your profile/ }));
 
     expect(sentEvents()).toEqual([
-      { event: "$pageview", page: "home", book_page: undefined, spread: undefined },
-      { event: "$pageleave", page: "home", book_page: undefined, spread: undefined },
+      { event: "$pageview", page: "book", book_page: "overview", spread: "me" },
+      { event: "$pageleave", page: "book", book_page: "overview", spread: "me" },
       { event: "$pageview", page: "leaderboard", book_page: undefined, spread: undefined },
       { event: "$pageleave", page: "leaderboard", book_page: undefined, spread: undefined },
-      { event: "$pageview", page: "home", book_page: undefined, spread: undefined },
+      { event: "$pageview", page: "book", book_page: "overview", spread: "me" },
     ]);
   });
 
   it("each Book spread sends its own pageview with the Book's page and the spread's hash, and later events carry the page", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -395,8 +413,8 @@ describe("MS22: pageviews follow the address", () => {
     act(() => window.history.pushState(null, "", "/quests"));
 
     expect(sentEvents()).toEqual([
-      { event: "$pageview", page: "home", book_page: undefined, spread: undefined },
-      { event: "$pageleave", page: "home", book_page: undefined, spread: undefined },
+      { event: "$pageview", page: "book", book_page: "overview", spread: "me" },
+      { event: "$pageleave", page: "book", book_page: "overview", spread: "me" },
       { event: "$pageview", page: "book", book_page: "overview", spread: "hoggies/legendary" },
       { event: "$pageleave", page: "book", book_page: "overview", spread: "hoggies/legendary" },
       { event: "$pageview", page: "book", book_page: "overview", spread: "teams" },
@@ -406,21 +424,21 @@ describe("MS22: pageviews follow the address", () => {
   });
 
   it("AL56: each album page under /book sends its own pageview with the hash as its spread", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
-    for (const address of ["/book#me", "/book#people/ines-okafor", "/book#milestones", "/book#packs", "/book#hoggies/hedgehog-sitting", "/book#teams/paper-moons"]) act(() => window.history.pushState(null, "", address));
+    for (const address of ["/book#people/ines-okafor", "/book#milestones", "/book#packs", "/book#hoggies/hedgehog-sitting", "/book#teams/paper-moons"]) act(() => window.history.pushState(null, "", address));
 
     expect(sentEvents().filter(({ event }) => event === "$pageview")).toEqual([
-      { event: "$pageview", page: "home", book_page: undefined, spread: undefined },
-      ...["me", "people/ines-okafor", "milestones", "packs", "hoggies/hedgehog-sitting", "teams/paper-moons"].map((spread) => ({ event: "$pageview", page: "book", book_page: "overview", spread })),
+      { event: "$pageview", page: "book", book_page: "overview", spread: "me" },
+      ...["people/ines-okafor", "milestones", "packs", "hoggies/hedgehog-sitting", "teams/paper-moons"].map((spread) => ({ event: "$pageview", page: "book", book_page: "overview", spread })),
     ]);
   });
 
   it("a replaceState that only canonicalises the same route, or the same address again, sends nothing", async () => {
     window.history.replaceState(null, "", "/leaderboard?period=week");
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -434,8 +452,8 @@ describe("MS22: pageviews follow the address", () => {
 
 describe("nothing private reaches PostHog from the browser", () => {
   it("an error the shell's error page caught, full of kudos words, Slack IDs and a sign-in URL, is sent as its type alone, with its frames free of the code", async () => {
-    window.history.replaceState(null, "", `/?code=${privateWords[3]}&panel=inventory`);
-    renderLiveSite();
+    window.history.replaceState(null, "", `/book?code=${privateWords[3]}#me`);
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -444,13 +462,13 @@ describe("nothing private reaches PostHog from the browser", () => {
 
     const exception = only(recorded.sent.filter(({ event }) => event === "$exception"));
     expect(exception.properties.$exception_list).toEqual([expect.objectContaining({ type: "TypeError", value: "TypeError" })]);
-    expect(exception.properties.page).toBe("home");
-    expect(JSON.stringify(exception.properties.$exception_list)).toContain("http://localhost:3000/?panel=inventory");
+    expect(exception.properties.page).toBe("book");
+    expect(JSON.stringify(exception.properties.$exception_list)).toContain("http://localhost:3000/book#me");
     for (const word of privateWords) expect(JSON.stringify(recorded.sent), word).not.toContain(word);
   });
 
   it("an exception posthog-js captures by itself, causes included, keeps its types, frames and page and loses every message", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -465,7 +483,7 @@ describe("nothing private reaches PostHog from the browser", () => {
   });
 
   it("an exception thrown inside posthog-js's own script is never sent back to PostHog", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
     const beforeSend = beforeSendOfTheStartedSdk();
@@ -475,7 +493,7 @@ describe("nothing private reaches PostHog from the browser", () => {
   });
 
   it("replay records the member's sessions with every input masked, ph-no-capture blocked, and no network payloads, console logs, canvas or other frames", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -497,7 +515,7 @@ describe("nothing private reaches PostHog from the browser", () => {
 
 describe("no sign-in code leaves the browser", () => {
   it("every replay URL loses the code and keeps everything else", async () => {
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
     const { session_recording } = only(callsOf("init")).args[1] as { session_recording: { maskCapturedNetworkRequestFn: (request: { name: string; isInitial?: boolean }) => { name: string; isInitial?: boolean } } };
@@ -509,7 +527,7 @@ describe("no sign-in code leaves the browser", () => {
 
   it("the sign-in code in the address never reaches an event's URL properties", async () => {
     window.history.replaceState(null, "", "/?code=SIGNIN-CODE-1234&panel=inventory");
-    renderLiveSite();
+    await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
     act(() => window.history.pushState(null, "", "/quests?code=SIGNIN-CODE-1234"));
@@ -519,7 +537,7 @@ describe("no sign-in code leaves the browser", () => {
     expect(only(recorded.sent).properties.$current_url).toBe("http://localhost:3000/?panel=inventory");
   });
 
-  it("every URL property, every person property and every stack frame loses the code, and nothing else changes", () => {
+  it("every URL property, every person property and every stack frame loses the code, and nothing else changes", async () => {
     const signInUrl = "https://hedgehug.example/book?code=SIGNIN-CODE-1234&page=giving#teams";
     const event = {
       uuid: "event-1",
@@ -547,7 +565,7 @@ describe("no sign-in code leaves the browser", () => {
     expect(scrubbed.properties.page).toBe("book");
   });
 
-  it("a heatmap keyed by a URL with the code is keyed by the URL without it, its clicks kept and merged with the same page's", () => {
+  it("a heatmap keyed by a URL with the code is keyed by the URL without it, its clicks kept and merged with the same page's", async () => {
     const click = (x: number) => ({ x, y: 80, target_fixed: false, type: "click" });
     const event = {
       uuid: "event-2",
@@ -584,7 +602,7 @@ async function openFeedback(user: ReturnType<typeof userEvent.setup>) {
 
 describe("MS35: a Feedback button", () => {
   it("opening the form captures survey shown, and Send captures survey sent with the member's own words and thanks them", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -601,7 +619,7 @@ describe("MS35: a Feedback button", () => {
       [`$survey_response_${feedbackQuestion}`]: "Where do I see who thanked me?",
       $survey_completed: true,
       $survey_questions: [{ id: feedbackQuestion, question: "What's confusing or missing here?" }],
-      page: "home",
+      page: "book",
     });
     expect(sent.properties.$survey_submission_id).toEqual(expect.any(String));
     expect(await screen.findByText("Thanks, we read every answer.")).toBeInTheDocument();
@@ -611,7 +629,7 @@ describe("MS35: a Feedback button", () => {
   });
 
   it("closing the form unsent captures survey dismissed and sends nothing the member typed", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -627,7 +645,7 @@ describe("MS35: a Feedback button", () => {
   });
 
   it("an unsent answer is still there when the member opens the form again, and a sent one is gone", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -643,7 +661,7 @@ describe("MS35: a Feedback button", () => {
   });
 
   it("the thanks line describes the Close button that takes focus after Send", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -655,7 +673,7 @@ describe("MS35: a Feedback button", () => {
   });
 
   it("Send waits for words, and each opening is its own submission", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 
@@ -677,7 +695,7 @@ describe("MS35: a Feedback button", () => {
   });
 
   it("a member can open, write, send and close it by keyboard alone, and focus returns to the control", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     const control = await screen.findByRole("button", { name: "Feedback" });
 
@@ -696,7 +714,7 @@ describe("MS35: a Feedback button", () => {
   });
 
   it("the form sits outside every ph-no-capture block and passes axe's WCAG AA rules", async () => {
-    const { user } = renderLiveSite();
+    const { user } = await renderLiveSite();
     analyticsAnswers(ann);
     await capturing();
 

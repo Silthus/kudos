@@ -1,11 +1,10 @@
 import type { CSSProperties } from "react";
-import type { Album } from "./answer";
 import { TrayToken } from "./TrayPanel";
 import { putInFlightMs, type Box, type Flight, type Touchdown } from "./usePuttingIn";
 
 const sparkles = 8;
 
-export function PutInFlights({ album, flights, touchdowns }: { album: Album; flights: Flight[]; touchdowns: Touchdown[] }) {
+export function PutInFlights({ flights, touchdowns }: { flights: Flight[]; touchdowns: Touchdown[] }) {
   if (flights.length === 0 && touchdowns.length === 0) return null;
   return (
     <div className="al-flights" aria-hidden="true">
@@ -25,7 +24,7 @@ export function PutInFlights({ album, flights, touchdowns }: { album: Album; fli
           <span className="al-flight-x">
             <span className="al-flight-y">
               <span className="al-flight-token">
-                <TrayToken album={album} item={flight.item} />
+                <TrayToken item={flight.item} />
               </span>
             </span>
           </span>

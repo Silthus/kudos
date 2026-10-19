@@ -10,19 +10,19 @@ import { fixtureWeeks } from "./weekFixtures";
 import type { MyAlbum } from "./answer";
 import type { SettingsRead, SettingsShown } from "../settingsRead";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures, type ShellState } from "../shell";
 import type { Capturer } from "../browserAnalytics/capture";
 import { renderAlbum, renderApp } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
 });
 
-function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum, capturer: Capturer | null = null) {
+function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: ShellState = memberWithTheAlbum, capturer: Capturer | null = null) {
   window.history.replaceState(null, "", path);
   return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway), capturer });
 }
@@ -66,39 +66,19 @@ describe("the AlbumAnswer fixtures keep the contract the UI tickets build on", (
   });
 });
 
-describe("AL39: the album shell shows only while getMyProfile carries album", () => {
-  it("a member the flag is on for gets the album's frame, not today's", async () => {
-    visit("/");
+describe("AL67: the album is the only shell", () => {
+  it("a member gets the album's frame whatever getMyProfile says about the album", async () => {
+    visit("/", albumFixtures.midway, shellFixtures.member);
 
     expect(await screen.findByRole("navigation", { name: "Album" })).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Screens" })).not.toBeInTheDocument();
   });
 
-  it("a member without the flag keeps today's shell and the album is never asked for", async () => {
-    window.history.replaceState(null, "", "/");
-    const asked: boolean[] = [];
-    renderAlbum(shellFixtures.memberWithEveryFeatureOpen, (asking) => {
-      asked.push(asking);
-      return asking ? albumFixtures.midway : undefined;
-    });
-
-    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
-    expect(asked.every((asking) => !asking)).toBe(true);
-  });
-
-  it("today's renderApp, which injects no album read, renders today's shell as before", async () => {
-    window.history.replaceState(null, "", "/");
-    renderApp(shellFixtures.memberWithEveryFeatureOpen);
-
-    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
-  });
-
-  it("while getAlbum answers off for a member the profile still says album for, the album waits instead of showing", async () => {
+  it("while getAlbum answers off, the member reads that the website isn't open here, never another shell", async () => {
     visit("/", { kind: "off" });
 
-    expect(await screen.findByRole("main")).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByRole("heading", { level: 1, name: "Not open yet" })).toBeInTheDocument();
+    expect(screen.getByRole("main")).not.toHaveAttribute("aria-busy");
     expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Screens" })).not.toBeInTheDocument();
   });

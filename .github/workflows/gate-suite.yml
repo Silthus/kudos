@@ -1,0 +1,67 @@
+# The whole of pnpm gate, split so it finishes well inside its time limits: the typecheck and Coherence's checks in one job, the tests in shards side by side.
+# The Gate and both deploys call it, each with the commit it checks.
+name: Gate suite
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: The commit to check; empty checks the caller's own commit.
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  COHERENCE_TELEMETRY: "0"
+  DO_NOT_TRACK: "1"
+  COHERENCE_NO_UPDATE_CHECK: "1"
+
+jobs:
+  checks:
+    name: typecheck and coherence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm coherence
+
+  # Vitest splits the files by a hash of their paths, so each shard holds about the same number of files.
+  tests:
+    name: tests ${{ matrix.shard }}/${{ strategy.job-total }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test --shard=${{ matrix.shard }}/${{ strategy.job-total }}

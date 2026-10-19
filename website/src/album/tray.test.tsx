@@ -1,15 +1,15 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { shellFixtures, type MemberProfile } from "../shell";
+import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures } from "./albumFixtures";
+import { albumFixtures, stickerFor } from "./albumFixtures";
 import type { Album, AlbumRead, PackOpenReply, PutAllInReply, PutInReply, TrayItem } from "./answer";
 import { albumWithLanded } from "./tray";
 import { putInFlightMs, putInGapMs } from "./usePuttingIn";
 
-const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
+const memberWithTheAlbum = shellFixtures.member;
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -98,15 +98,15 @@ async function openTheTray(user: ReturnType<typeof visit>["user"]) {
   return within(await screen.findByRole("region", { name: "Tray" }));
 }
 
-const juno: TrayItem = { item: "tray-juno", kind: "sticker", person: "juno-park" };
+const juno = stickerFor("tray-juno", "juno-park");
 
-const rook: TrayItem = { item: "tray-rook", kind: "sticker", person: "rook-dale" };
+const rook = stickerFor("tray-rook", "rook-dale");
 
 const banana: TrayItem = { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true };
 
 const coffee: TrayItem = { item: "tray-coffee", kind: "hoggie", hoggie: "coffee-run", rarity: "rare", isNew: false };
 
-const unnamed: TrayItem = { item: "tray-stranger", kind: "sticker", person: "someone-unlisted" };
+const unnamed: TrayItem = { item: "tray-stranger", kind: "sticker", person: "someone-unlisted", thanked: { name: null, face: null } };
 
 function withTray(album: Album, tray: TrayItem[]): Album {
   return { ...album, packs: [], tray };
@@ -115,7 +115,7 @@ function withTray(album: Album, tray: TrayItem[]): Album {
 const lanternsOfSix: Album = { ...albumFixtures.midway, teams: albumFixtures.midway.teams.map((team) => (team.team === "lanterns" ? { ...team, people: [...team.people, "kai-lumen"], total: 6 } : team)) };
 
 function sixtyItems(): TrayItem[] {
-  return Array.from({ length: 60 }, (_, index) => (index % 3 === 0 ? { item: `tray-h${index}`, kind: "hoggie", hoggie: "banana", rarity: "common", isNew: false } : { item: `tray-s${index}`, kind: "sticker", person: `teammate-${index}` }));
+  return Array.from({ length: 60 }, (_, index) => (index % 3 === 0 ? { item: `tray-h${index}`, kind: "hoggie", hoggie: "banana", rarity: "common", isNew: false } : stickerFor(`tray-s${index}`, `teammate-${index}`)));
 }
 
 describe("AL47: the tray panel lists each item with where it goes", () => {
@@ -138,6 +138,18 @@ describe("AL47: the tray panel lists each item with where it goes", () => {
 
     expect(tray.getAllByRole("listitem").map((row) => row.textContent)).toEqual([expect.stringContaining("Juno Park→ Lanterns · completes the page!"), expect.stringContaining("A teammate→ your album")]);
     expect(tray.getByRole("button", { name: "Put your teammate's card in" })).toBeInTheDocument();
+  });
+
+  it("names a sticker for someone on no team page from the tray item, with their stored face", async () => {
+    const ivo: TrayItem = { item: "tray-ivo", kind: "sticker", person: "ivo-strand", thanked: { name: "Ivo Strand", face: { kind: "slack", image: "https://pictures.example/ivo.png", initials: "IS" } } };
+    const { user } = visit(withTray(albumFixtures.midway, [ivo]), {});
+
+    const tray = await openTheTray(user);
+
+    const [row] = tray.getAllByRole("listitem");
+    expect(row).toHaveTextContent("Ivo Strand→ your album");
+    expect(row!.querySelector(".al-tray-token img")).toHaveAttribute("src", "https://pictures.example/ivo.png");
+    expect(tray.getByRole("button", { name: "Put Ivo Strand's card in" })).toBeInTheDocument();
   });
 
   it("with one item offers Put it in, and with none says how the tray fills", async () => {
@@ -276,7 +288,7 @@ describe("AL19: an unlocked team gaining a person counts them on landing and sta
     const harbour = albumFixtures.midway.teams.find(({ team }) => team === "quiet-harbour")!;
     const grown: Album = { ...albumFixtures.midway, teams: albumFixtures.midway.teams.map((team) => (team === harbour ? { ...team, people: [...team.people, "nova-lark"], total: 3 } : team)), people: [...albumFixtures.midway.people, { person: "nova-lark", name: "Nova Lark", face: { kind: "initials", initials: "NL" }, teams: ["quiet-harbour"], held: false, packedThisWeek: false }] };
 
-    const landed = albumWithLanded(grown, [{ item: "tray-nova", kind: "sticker", person: "nova-lark" }]);
+    const landed = albumWithLanded(grown, [stickerFor("tray-nova", "nova-lark")]);
 
     expect(landed.teams.find(({ team }) => team === "quiet-harbour")).toMatchObject({ held: 3, total: 3, state: "unlocked" });
   });

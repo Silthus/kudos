@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
-export function useTitleFocusAfterChange(kind: string, { held }: { held: boolean }) {
+export function useTitleFocusAfterChange(kind: string) {
   const lastShown = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (kind === "loading") return;
     const changed = lastShown.current !== undefined && lastShown.current !== kind;
     lastShown.current = kind;
-    if (changed && !held) focusPageTitle();
-  }, [kind, held]);
+    if (changed) focusPageTitle();
+  }, [kind]);
 }
 
 export function useTitleFocusWhenTheFocusedElementGoes() {
@@ -27,19 +27,26 @@ export function useTitleFocusWhenTheFocusedElementGoes() {
 }
 
 export function focusPageTitle() {
+  if (aLandedSectionHoldsFocus()) return;
   document.querySelector<HTMLElement>("main h1")?.focus();
 }
 
-export function useTitleFocusOnArrival() {
+export function useTitleFocusOnArrival(arrivals = 0) {
   const arriving = useRef(false);
   useEffect(() => {
+    if (arrivals > 0) arriving.current = true;
+  }, [arrivals]);
+  useEffect(() => {
     if (!arriving.current) return;
-    const title = document.querySelector<HTMLElement>("main h1");
-    if (title === null) return;
+    if (document.querySelector("main h1") === null) return;
     arriving.current = false;
-    title.focus();
+    focusPageTitle();
   });
   return useCallback(() => {
     arriving.current = true;
   }, []);
+}
+
+function aLandedSectionHoldsFocus() {
+  return document.activeElement?.closest("main [data-panel-target]") != null;
 }

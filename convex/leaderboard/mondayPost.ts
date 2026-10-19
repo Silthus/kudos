@@ -9,6 +9,7 @@ import { availableIn } from "../groups/groups";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import type { MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
+import { maintainerSettingsApplyTo } from "../workspace/workspaceSettings";
 import { workspaceGroupsBoardOf } from "./groupBoards";
 import { mondayPostOutcomeValidator } from "./mondayPostOutcome";
 import { wholeWeekBefore } from "./periods";
@@ -30,7 +31,9 @@ export type WeeklyPost = MondayPost | TopKudosPost;
 
 export type ClaimedWeek = { claim: Id<"mondayPostClaims">; channel: string; post: WeeklyPost };
 
-type Admin = { member: MemberId; admin: boolean; timeZone: string | undefined };
+type Switcher = { member: MemberId; timeZone: string | undefined };
+
+type Admin = Switcher & { admin: boolean };
 
 type Settings = Doc<"mondayPostSettings">;
 
@@ -40,11 +43,20 @@ const dayMs = 24 * 60 * 60 * 1000;
 
 export async function mondayPostSwitchShownTo(ctx: MutationCtx, workspace: string, person: Admin): Promise<MondayPostSwitch | null> {
   if (!(await setsMondayPost(ctx, person))) return null;
+  return mondayPostSwitchIn(ctx, workspace, person);
+}
+
+export async function mondayPostSwitchReadBy(ctx: QueryCtx, workspace: string, person: Switcher): Promise<MondayPostSwitch | null> {
+  if (!(await memberDecision(ctx, mondayPostFlag, person.member))) return null;
+  return mondayPostSwitchIn(ctx, workspace, person);
+}
+
+async function mondayPostSwitchIn(ctx: QueryCtx, workspace: string, person: Switcher): Promise<MondayPostSwitch | null> {
   const channel = await switchableChannelIn(ctx, workspace);
   if (channel === null) return null;
   const settings = await settingsRow(ctx, workspace);
   const posts = (await albumSlackAppliesToWorkspace(ctx, workspace)) ? "topKudos" : "groups";
-  return { channel, on: settings?.on ?? false, timeZone: settings?.timeZone ?? zoneOf(person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
+  return { channel, on: settings?.on ?? false, timeZone: zoneASwitchOnUses(settings, person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
 }
 
 export async function setMondayPost(ctx: MutationCtx, workspace: string, person: Admin, change: MondayPostChange): Promise<boolean> {
@@ -53,7 +65,7 @@ export async function setMondayPost(ctx: MutationCtx, workspace: string, person:
   if (!change.on) return switchOff(ctx, settings);
   if (change.timeZone !== undefined && !isTimeZone(change.timeZone)) return false;
   if ((await switchableChannelIn(ctx, workspace)) === null) return false;
-  const timeZone = change.timeZone ?? (settings?.on ? settings.timeZone : zoneOf(person));
+  const timeZone = change.timeZone ?? zoneASwitchOnUses(settings, person);
   if (settings?.on && settings.timeZone === timeZone) return false;
   await scheduleNextPost(ctx, await switchOn(ctx, workspace, settings, timeZone));
   return true;
@@ -127,7 +139,7 @@ function postingTimeOf(monday: DayKey, timeZone: string) {
 }
 
 async function setsMondayPost(ctx: MutationCtx, { member, admin }: Admin) {
-  if (!admin) return false;
+  if (!admin && !(await maintainerSettingsApplyTo(ctx, member))) return false;
   const applies = await memberDecision(ctx, mondayPostFlag, member);
   await exposed(ctx, mondayPostFlag, member, applies);
   return applies;
@@ -196,7 +208,11 @@ function settingsRow(ctx: QueryCtx, workspace: string) {
     .unique();
 }
 
-function zoneOf({ timeZone }: Admin) {
+function zoneASwitchOnUses(settings: Settings | null, person: Switcher) {
+  return settings?.on ? settings.timeZone : zoneOf(person);
+}
+
+function zoneOf({ timeZone }: Switcher) {
   return timeZone ?? "UTC";
 }
 

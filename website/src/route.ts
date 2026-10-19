@@ -26,8 +26,6 @@ export type Route =
 
 export type BookPageId = CategoryId | "overview" | "earned" | "collection";
 
-export type Screen = Exclude<Route["page"], "not-found" | "activity">;
-
 const routeAt = {
   "/": (search) => ({ page: "home", panel: panelIn(search), crate: crateIn(search) }),
   "/activity": (search) => ({ page: "activity", filter: filterIn(search) }),
@@ -172,20 +170,10 @@ export function useRoute() {
     setRoute(currentRoute());
   }, []);
 
-  const choosePeriod = useCallback((period: Period) => {
-    window.history.replaceState(null, "", leaderboardHref(period));
-    setRoute(currentRoute());
-  }, []);
-
-  const chooseFilter = useCallback((filter: ActivityFilter) => {
-    window.history.replaceState(null, "", activityHref(filter));
-    setRoute(currentRoute());
-  }, []);
-
   const replaceAddress = useCallback((href: string, state: unknown) => {
     window.history.replaceState(state, "", href);
     setRoute(currentRoute());
   }, []);
 
-  return { route, navigate, choosePeriod, chooseFilter, replaceAddress };
+  return { route, navigate, replaceAddress };
 }

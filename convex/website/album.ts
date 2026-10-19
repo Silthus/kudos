@@ -34,9 +34,9 @@ export type AlbumAnswer = {
   teams: AlbumTeam[];
   people: AlbumPerson[];
   morePeople: boolean;
-  packs: WaitingPack[];
+  packs: AlbumPack[];
   morePacks: boolean;
-  tray: TrayItem[];
+  tray: AlbumTrayItem[];
   moreTray: boolean;
   milestones: MilestoneAnswer[];
   emojis: EarnedEmoji[];
@@ -52,17 +52,23 @@ export type AlbumTeam = Omit<TeamPage, "unmatched"> & { unmatched: string[] };
 
 export type AlbumPerson = { person: MemberId; name: string; face: Face; held: boolean };
 
+export type Thanked = { name: string | null; face: Face };
+
+export type AlbumPack = WaitingPack & { thanked: Thanked };
+
+export type AlbumTrayItem = Exclude<TrayItem, { kind: "sticker" }> | (Extract<TrayItem, { kind: "sticker" }> & { thanked: Thanked });
+
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
-export type OpenAnswer = ({ kind: "opened" } & Opening) | { kind: "refused" };
+export type OpenAnswer = { kind: "opened"; items: AlbumTrayItem[]; applied: Opening["applied"] } | { kind: "refused" };
 
 export type UnlockAnswer = { kind: "unlocked"; sticker: TeamSticker } | { kind: "refused" };
 
-export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
+export type PutInAnswer = { kind: "placed"; item: AlbumTrayItem } | { kind: "refused" };
 
 export type SeenAnswer = { kind: "seen"; ids: string[] } | { kind: "refused" };
 
-export type PutAllInAnswer = ({ kind: "placed" } & PutIn) | { kind: "refused" };
+export type PutAllInAnswer = { kind: "placed"; items: AlbumTrayItem[]; more: PutIn["more"] } | { kind: "refused" };
 
 export type BoardPersonRow = { person: MemberId; name: string; face: Face; teams: string[]; thoughtful: number; you: boolean } & Standing;
 
@@ -90,9 +96,10 @@ export type AlbumHoggiesRead = { kind: "off" } | AlbumHoggiesAnswer;
 
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
-  const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
+  const thanked = thankedPeopleOf(ctx, me.workspace);
+  const { packs, more: morePacks } = await packsToOpenOf(ctx, me, thanked);
   const { people: held, morePeople } = await peopleHeldBy(ctx, me);
-  const { tray, more: moreTray } = await trayOf(ctx, me.member);
+  const { tray, more: moreTray } = await trayShownTo(ctx, me, thanked);
   const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
   const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
   const level = await levelOf(ctx, me.member);
@@ -123,15 +130,45 @@ async function unlistedPersonOf(ctx: QueryCtx, person: MemberId, isHeld: boolean
   return { person, ...companyTeammateOf(name, picture, companyFace), held: isHeld };
 }
 
-async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember) {
-  return (await noLaunchWaitsFor(ctx, me)) ? waitingPacksOf(ctx, me.member) : { packs: [], more: false };
+async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedPeople): Promise<{ packs: AlbumPack[]; more: boolean }> {
+  if (!(await noLaunchWaitsFor(ctx, me))) return { packs: [], more: false };
+  const { packs, more } = await waitingPacksOf(ctx, me.member);
+  const named: AlbumPack[] = [];
+  for (const pack of packs) named.push({ ...pack, thanked: await thanked(pack.person) });
+  return { packs: named, more };
+}
+
+async function trayShownTo(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedPeople): Promise<{ tray: AlbumTrayItem[]; more: boolean }> {
+  const { tray, more } = await trayOf(ctx, me.member);
+  return { tray: await shownItemsOf(tray, thanked), more };
+}
+
+async function shownItemsOf(items: TrayItem[], thanked: ThankedPeople): Promise<AlbumTrayItem[]> {
+  const shown: AlbumTrayItem[] = [];
+  for (const item of items) shown.push(await shownItemOf(item, thanked));
+  return shown;
+}
+
+async function shownItemOf(item: TrayItem, thanked: ThankedPeople): Promise<AlbumTrayItem> {
+  return item.kind === "sticker" ? { ...item, thanked: await thanked(item.person) } : item;
+}
+
+type ThankedPeople = (person: MemberId) => Promise<Thanked>;
+
+function thankedPeopleOf(ctx: QueryCtx, workspace: string): ThankedPeople {
+  const known = new Map<MemberId, Promise<Thanked>>();
+  return (person) => {
+    if (!known.has(person)) known.set(person, storedPersonOf(ctx, workspace, person));
+    return known.get(person)!;
+  };
 }
 
 export const openThoughtfulPack = memberMutation({
   args: { pack: v.id("thoughtfulPacks") },
   handler: async (ctx, me, _person, { pack }): Promise<OpenAnswer> => {
     const opening = (await opensPacks(ctx, me)) ? await openPack(ctx, me.member, pack, Date.now()) : null;
-    return opening === null ? { kind: "refused" } : { kind: "opened", items: opening.items, applied: await appliedShownTo(ctx, me, opening.applied) };
+    if (opening === null) return { kind: "refused" };
+    return { kind: "opened", items: await shownItemsOf(opening.items, thankedPeopleOf(ctx, me.workspace)), applied: await appliedShownTo(ctx, me, opening.applied) };
   },
 });
 
@@ -143,13 +180,17 @@ export const putIn = memberMutation({
   args: { item: v.id("trayItems") },
   handler: async (ctx, me, _person, { item }): Promise<PutInAnswer> => {
     const placed = (await albumShownTo(ctx, me.member)) ? await putItemIn(ctx, me, item, Date.now()) : null;
-    return placed === null ? { kind: "refused" } : { kind: "placed", item: placed };
+    return placed === null ? { kind: "refused" } : { kind: "placed", item: await shownItemOf(placed, thankedPeopleOf(ctx, me.workspace)) };
   },
 });
 
 export const putAllIn = memberMutation({
   args: {},
-  handler: async (ctx, me): Promise<PutAllInAnswer> => ((await albumShownTo(ctx, me.member)) ? { kind: "placed", ...(await putEveryItemIn(ctx, me, Date.now())) } : { kind: "refused" }),
+  handler: async (ctx, me): Promise<PutAllInAnswer> => {
+    if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
+    const { items, more } = await putEveryItemIn(ctx, me, Date.now());
+    return { kind: "placed", items: await shownItemsOf(items, thankedPeopleOf(ctx, me.workspace)), more };
+  },
 });
 
 export const unlockTeamSticker = memberMutation({
@@ -222,8 +263,14 @@ async function peopleHeldBy(ctx: QueryCtx, me: VerifiedMember): Promise<{ people
   const { stickers, more } = await albumStickersOf(ctx, me.member, mostPeopleShown);
   const people: AlbumPerson[] = [];
   for (const { person } of stickers) {
-    const { name, picture } = await nameAndPictureOf(ctx, person);
-    people.push({ person, ...companyTeammateOf(name, picture, (await storedCompanyFaceOf(ctx, me.workspace, person)) ?? null), held: true });
+    const { name, face } = await storedPersonOf(ctx, me.workspace, person);
+    people.push({ person, name: name ?? nameless, face, held: true });
   }
   return { people, morePeople: more };
+}
+
+async function storedPersonOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<Thanked> {
+  const { name, picture } = await nameAndPictureOf(ctx, person);
+  const { face } = companyTeammateOf(name, picture, (await storedCompanyFaceOf(ctx, workspace, person)) ?? null);
+  return { name: name ?? null, face };
 }

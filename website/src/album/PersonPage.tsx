@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { AnswerPage } from "../App";
+import { AnswerPage } from "../pages/AnswerPage";
 import { KudosMessage } from "../activity/KudosMessage";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";

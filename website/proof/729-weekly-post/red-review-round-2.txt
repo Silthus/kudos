@@ -1,0 +1,8 @@
+     × once the announcement channel is gone, switching off a post that is still stored on is refused and writes nothing 774ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { …(7) } to deeply equal { …(7) }
+-   "generation": 1,
++   "generation": 2,
+-   "on": true,
++   "on": false,
+      Tests  1 failed | 17 skipped (18)

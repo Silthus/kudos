@@ -5,6 +5,10 @@ export function permalinkOf(workspaceUrl: string, { conversation, message }: Mes
   return threadRoot === null || threadRoot === message ? link : `${link}?thread_ts=${threadRoot}&cid=${conversation}`;
 }
 
+export function channelLinkOf(workspaceUrl: string, channel: string): string {
+  return `${withTrailingSlash(workspaceUrl)}archives/${channel}`;
+}
+
 function withTrailingSlash(url: string) {
   return url.endsWith("/") ? url : `${url}/`;
 }

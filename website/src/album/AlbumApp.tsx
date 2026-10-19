@@ -1,12 +1,15 @@
 import { useCallback, useEffect } from "react";
-import { AlbumWaits, AnswerPage, SettingsAnswerPage, type AppProps } from "../App";
+import type { AppProps } from "../App";
+import { AlbumWaits } from "../pages/AlbumWaits";
+import { AnswerPage } from "../pages/AnswerPage";
+import { SettingsAnswerPage } from "../pages/SettingsAnswerPage";
 import { NavigateProvider } from "../AppLink";
 import { Frame } from "../Frame";
-import { ErrorPage } from "../pages/ErrorPage";
-import { useLinkTargetOnceLanded } from "../linkTarget";
-import { useTitleFocusOnArrival } from "../pageFocus";
+import { ClosedPage } from "../pages/ClosedPage";
+import { useSectionOnceLanded } from "../linkTarget";
+import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
-import type { MemberProfile } from "../shell";
+import { rememberSignInStarted } from "../signInAttempt";
 import type { Album } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
@@ -23,7 +26,7 @@ import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { arrivals: number }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
@@ -41,8 +44,9 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
   const edition = useWeekEdition(useAlbumWeek, onActivity);
-  useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: album?.kind === "album" && onSettings && settings?.kind === "settings" });
-  const expectArrival = useTitleFocusOnArrival();
+  const expectArrival = useTitleFocusOnArrival(arrivals);
+  useTitleFocusAfterChange(album === undefined ? "loading" : album.kind);
+  useSectionOnceLanded(route, album?.kind === "album" && onSettings && settings?.kind === "settings");
   const arriveAt = useCallback(
     (href: string) => {
       expectArrival();
@@ -50,15 +54,13 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
     },
     [expectArrival, navigate],
   );
-  const signIn = useCallback(() => actions.signIn(returnAddressOf(route)), [actions, route]);
+  const signIn = useCallback(() => {
+    rememberSignInStarted();
+    actions.signIn(returnAddressOf(route));
+  }, [actions, route]);
   const answers = { onSignIn: signIn, onSignOut: actions.signOut };
-  if (album === undefined || album.kind === "off") return <AlbumWaits />;
-  if (album.kind !== "album")
-    return (
-      <Frame member={member} busy={false}>
-        {album.kind === "broken" ? <ErrorPage focusWasOnPage={false} /> : <AnswerPage answer={album} {...answers} />}
-      </Frame>
-    );
+  if (album === undefined) return <AlbumWaits />;
+  if (album.kind !== "album") return <Frame busy={false}>{album.kind === "off" ? <ClosedPage /> : <AnswerPage answer={album} {...answers} />}</Frame>;
   return (
     <NavigateProvider value={arriveAt}>
       <EmojiWizardHost on={album.emojiWizard} emojis={album.emojis} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>
@@ -66,7 +68,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
         album={album}
         place={place}
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
-        settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} withThemeAndSignOut albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
+        settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}

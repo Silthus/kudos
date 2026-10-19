@@ -42,24 +42,24 @@ export function TrayPanel({ album, trouble, onPutIn, onPutAllIn }: TrayPanelProp
 function TrayRow({ album, item, onPutIn }: { album: Album; item: TrayItem; onPutIn: () => void }) {
   return (
     <li className="al-tray-row">
-      <TrayToken album={album} item={item} />
+      <TrayToken item={item} />
       <span className="al-tray-where">
-        <ItemName album={album} item={item} />
+        <ItemName item={item} />
         <span className="al-tray-goes" data-completes={completesThePage(album, item) ? "" : undefined}>
           {goesWords(destinationOf(album, item), item)}
         </span>
       </span>
-      <button type="button" className={item.kind === "sticker" ? "al-tray-put ph-no-capture" : "al-tray-put"} onClick={onPutIn} aria-label={putInLabelOf(album, item)}>
+      <button type="button" className={item.kind === "sticker" ? "al-tray-put ph-no-capture" : "al-tray-put"} onClick={onPutIn} aria-label={putInLabelOf(item)}>
         Put in
       </button>
     </li>
   );
 }
 
-export function TrayToken({ album, item }: { album: Album; item: TrayItem }) {
+export function TrayToken({ item }: { item: TrayItem }) {
   if (item.kind === "sticker") {
-    const person = album.people.find((listed) => listed.person === item.person);
-    return <span className="al-tray-token al-tray-token-person ph-no-capture">{person === undefined ? <span className="al-tray-token-blank" /> : <MemberFace face={person.face} className="al-tray-face" />}</span>;
+    const { face } = item.thanked;
+    return <span className="al-tray-token al-tray-token-person ph-no-capture">{face === null ? <span className="al-tray-token-blank" /> : <MemberFace face={face} className="al-tray-face" />}</span>;
   }
   const picture = hoggiePictureOf({ kind: "hoggie", slug: item.hoggie });
   return (
@@ -69,9 +69,9 @@ export function TrayToken({ album, item }: { album: Album; item: TrayItem }) {
   );
 }
 
-function ItemName({ album, item }: { album: Album; item: TrayItem }) {
+function ItemName({ item }: { item: TrayItem }) {
   if (item.kind === "hoggie") return <strong>{hoggieNameOf(item.hoggie)}</strong>;
-  const name = personNameOf(album, item.person);
+  const { name } = item.thanked;
   return <strong className={name === null ? undefined : "ph-no-capture"}>{name ?? "A teammate"}</strong>;
 }
 
@@ -93,14 +93,10 @@ function completesThePage(album: Album, item: TrayItem) {
   return destination.kind === "team" && destination.completes;
 }
 
-function putInLabelOf(album: Album, item: TrayItem) {
+function putInLabelOf(item: TrayItem) {
   if (item.kind === "hoggie") return `Put ${hoggieNameOf(item.hoggie)} in`;
-  const name = personNameOf(album, item.person);
+  const { name } = item.thanked;
   return name === null ? "Put your teammate's card in" : `Put ${name}'s card in`;
-}
-
-function personNameOf(album: Album, person: string) {
-  return album.people.find((listed) => listed.person === person)?.name ?? null;
 }
 
 export function hoggieNameOf(hoggie: string) {

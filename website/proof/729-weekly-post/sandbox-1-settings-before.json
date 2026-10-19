@@ -1,0 +1,11 @@
+{
+ "kind": "settings",
+ "weeklyPost": {
+  "cantPost": false,
+  "channelLink": "https://posthogtestgroup.slack.com/archives/C0C9N9A4SE4",
+  "on": false,
+  "posts": "topKudos",
+  "timeZone": "Europe/Berlin"
+ },
+ "workspace": "present"
+}

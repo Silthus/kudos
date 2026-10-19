@@ -2,7 +2,7 @@ import { Button } from "@posthog/quill";
 import { useMemo, useRef, useState } from "react";
 import { mostRandomEmojis } from "../../../convex/album/emojiClasses";
 import type { EmojiMappingsRead } from "../emojiMappingsRead";
-import { Panel } from "../home/Panel";
+import { Panel } from "./Panel";
 import type { EmojiMappingReply, EmojiMappings, EmojiPlaceChoice, ShellActions, ShownMappingTarget } from "../shell";
 import { isFoundBy, searchTextOf } from "./profileSearch";
 import { SearchField } from "./SearchField";

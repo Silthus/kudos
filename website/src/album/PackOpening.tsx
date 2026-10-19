@@ -2,7 +2,8 @@ import { IconX } from "@posthog/icons";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Rarity } from "../shell";
-import type { Album, AlbumLevel, PackOpenReply, WaitingPack, AlbumEmoji } from "./answer";
+import type { Album, AlbumEmoji, AlbumLevel, PackOpenReply, WaitingPack } from "./answer";
+import { EmojiPicture } from "./EmojiPicture";
 import { plural } from "./facts";
 import {
   beatAfter,
@@ -14,10 +15,10 @@ import {
   hasTurned,
   heldSaying,
   lastBeatOf,
+  nameOf,
   rarityWordOf,
   shownTeamOf,
   sparklesFor,
-  thankedFor,
   type Beat,
   type PackContents,
 } from "./opening";
@@ -145,12 +146,12 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onO
         {active === null ? (
           <NoPacks onDone={onClose} />
         ) : reveal === null ? (
-          <SealedPack album={album} pack={active} sending={sending} problem={problem} onRip={() => void rip()} />
+          <SealedPack pack={active} sending={sending} problem={problem} onRip={() => void rip()} />
         ) : (
           <Turns reveal={reveal} reduced={reduced} flying={flying} waitingAfter={waiting.length} onTurn={turn} onSkip={skip} onFinish={(next) => finish(next && waiting[0] !== undefined ? { kind: "next", pack: waiting[0] } : { kind: "close" })} onPutAllIn={() => finish({ kind: "put-all-in" })} />
         )}
       </div>
-      {waiting.length > 0 && <UpNext album={album} waiting={waiting} disabled={busy || (reveal !== null && !ended)} onPick={(pack) => finish({ kind: "next", pack })} />}
+      {waiting.length > 0 && <UpNext waiting={waiting} disabled={busy || (reveal !== null && !ended)} onPick={(pack) => finish({ kind: "next", pack })} />}
       <p role="status" className="al-sr-only ph-no-capture">
         {reveal !== null && ended ? heldSaying(reveal.contents) : ""}
       </p>
@@ -222,14 +223,13 @@ function NoPacks({ onDone }: { onDone: () => void }) {
   );
 }
 
-type SealedPackProps = { album: Album; pack: WaitingPack; sending: boolean; problem: Problem | null; onRip: () => void };
+type SealedPackProps = { pack: WaitingPack; sending: boolean; problem: Problem | null; onRip: () => void };
 
-function SealedPack({ album, pack, sending, problem, onRip }: SealedPackProps) {
-  const thanked = thankedFor(album, pack);
+function SealedPack({ pack: { thanked }, sending, problem, onRip }: SealedPackProps) {
   return (
     <div className="al-sealed" data-ripping={sending ? "" : undefined}>
       <p className="al-opening-hint">{sending ? "Opening…" : "Click or press Enter to rip it open"}</p>
-      <button type="button" className="al-sealed-pack" aria-label={`Rip open the pack for thanking ${thanked.name ?? "a teammate"}`} aria-disabled={sending || undefined} onClick={onRip} autoFocus>
+      <button type="button" className="al-sealed-pack" aria-label={`Rip open the pack for thanking ${nameOf(thanked)}`} aria-disabled={sending || undefined} onClick={onRip} autoFocus>
         <span className="al-sealed-strip" aria-hidden="true" />
         <PackWrapper thanked={thanked} size="big" />
       </button>
@@ -261,13 +261,11 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
       <div className="al-turn-cards" onClick={ended || flying ? undefined : onTurn}>
         {celebrating && beat === "person" && confetti !== null && <Confetti size={confetti} seed={contents.pack.earnedAt % 9973} />}
         {contents.sticker !== null && (
-          <CardSlot label={personUp ? cardNameOf(contents.thanked) : "The person card, face down"} up={personUp} glow={null} flourish={celebrating && beat === "person"} back={<CardBack />}>
-            <PersonCard thanked={contents.thanked} team={shownTeamOf(contents.sticker)} />
-            {personUp && contents.sticker.hype !== null && (
-              <HypeUnlocked hype={contents.sticker.hype} />
-            )}
+          <CardSlot label={personUp ? cardNameOf(contents.pack.thanked) : "The person card, face down"} up={personUp} glow={null} flourish={celebrating && beat === "person"} back={<CardBack />}>
+            <PersonCard thanked={contents.pack.thanked} team={shownTeamOf(contents.sticker)} />
           </CardSlot>
         )}
+        {personUp && contents.sticker?.hype && <HypeEmoji hype={contents.sticker.hype} />}
         {contents.hoggie !== null && (
           <CardSlot label={hoggieUp ? `${contents.hoggie.name}, ${rarityWordOf(contents.hoggie.rarity)}` : "The hoggie card, face down"} up={hoggieUp} rarity={contents.hoggie.rarity} glow={beat === "glow" ? contents.hoggie.rarity : null} flourish={celebrating && beat === "hoggie"} back={<CardBack />}>
             <HoggieCard hoggie={contents.hoggie} />
@@ -281,6 +279,16 @@ function Turns({ reveal: { contents, beat }, reduced, flying, waitingAfter, onTu
         {ended && contents.sticker?.hype && <HypeInSlack hype={contents.sticker.hype} />}
       </div>
     </div>
+  );
+}
+
+function HypeEmoji({ hype }: { hype: AlbumEmoji }) {
+  const live = useLiveEmoji(hype);
+  return (
+    <span className="al-hype ph-no-capture" role="img" aria-label={`Hype emoji :${live.name}:`}>
+      <EmojiPicture emoji={live} size={24} />
+      <span className="al-emoji-name">:{live.name}:</span>
+    </span>
   );
 }
 
@@ -318,7 +326,7 @@ function Caption({ contents, beat }: { contents: PackContents; beat: Beat }) {
       {beat === "person" && contents.sticker !== null && (
         <>
           <p className="al-opening-title">
-            <span className="al-new-tag">New card</span> <span className="ph-no-capture">{contents.thanked.name ?? "Your teammate"}</span>
+            <span className="al-new-tag">New card</span> <span className="ph-no-capture">{contents.pack.thanked.name ?? "Your teammate"}</span>
           </p>
           <TeamLines contents={contents} />
         </>
@@ -351,18 +359,6 @@ function TeamLines({ contents }: { contents: PackContents }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function HypeUnlocked({ hype }: { hype: AlbumEmoji }) {
-  const { name, picture } = useLiveEmoji(hype);
-  return (
-    <span className="al-hype ph-no-capture">
-      <img src={picture} alt="" className="al-hype-picture" />
-      <span>
-        + <span className="al-emoji-name">:{name}:</span> unlocked
-      </span>
-    </span>
   );
 }
 
@@ -419,15 +415,15 @@ function EndActions({ waitingAfter, disabled, onFinish, onPutAllIn }: { waitingA
   );
 }
 
-function UpNext({ album, waiting, disabled, onPick }: { album: Album; waiting: WaitingPack[]; disabled: boolean; onPick: (pack: WaitingPack) => void }) {
+function UpNext({ waiting, disabled, onPick }: { waiting: WaitingPack[]; disabled: boolean; onPick: (pack: WaitingPack) => void }) {
   return (
     <aside className="al-up-next" aria-label="Up next">
       <h2 className="al-up-next-title">Up next</h2>
       <ul>
         {waiting.slice(0, 4).map((pack) => (
           <li key={pack.pack}>
-            <button type="button" className="al-up-next-pack" aria-label={`Open the pack for thanking ${thankedFor(album, pack).name ?? "a teammate"}`} onClick={() => onPick(pack)} disabled={disabled}>
-              <PackWrapper thanked={thankedFor(album, pack)} size="mini" />
+            <button type="button" className="al-up-next-pack" aria-label={`Open the pack for thanking ${nameOf(pack.thanked)}`} onClick={() => onPick(pack)} disabled={disabled}>
+              <PackWrapper thanked={pack.thanked} size="mini" />
             </button>
           </li>
         ))}

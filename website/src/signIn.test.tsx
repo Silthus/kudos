@@ -2,7 +2,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
-import { renderApp } from "./test/renderApp";
+import { albumFixtures, fixedAlbum } from "./album/albumFixtures";
+import { fixedSettings, settingsFixtures } from "./settingsFixtures";
+import { renderAlbum, renderApp, renderSettingsPage } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -89,8 +91,9 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
 
   it("forgets a sign-in that finished, so signing out later shows the plain sign-in page", async () => {
     (await startSignInFromKeyboard()).unmount();
-    const { showVisitor } = returnFromSlack();
+    const { showVisitor } = renderAlbum(shellFixtures.loading, fixedAlbum(albumFixtures.midway));
     showVisitor(shellFixtures.member);
+    await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
     showVisitor(shellFixtures.signedOut);
     expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
@@ -110,9 +113,10 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
 });
 
 describe("WS9 WS16 WS24: signing out", () => {
-  it("signs out from the header's own Sign out button with the keyboard", async () => {
-    const { user, actions } = renderApp(shellFixtures.member);
-    await tabTo(user, within(screen.getByRole("banner")).getByRole("button", { name: "Sign out" }));
+  it("signs out from Settings' own Sign out button with the keyboard", async () => {
+    window.history.replaceState(null, "", "/settings");
+    const { user, actions } = await renderSettingsPage(fixedSettings(settingsFixtures.everything));
+    await tabTo(user, within(screen.getByRole("main")).getByRole("button", { name: "Sign out" }));
     await user.keyboard("{Enter}");
     expect(actions.signOut).toHaveBeenCalledOnce();
   });
@@ -175,11 +179,11 @@ describe("F28: a link from Slack that asks to sign in", () => {
 
   it("leaves a signed-in member on the page and drops the ask from the address", async () => {
     arriveAt("/sign-in/");
-    const { actions } = renderApp(shellFixtures.member);
+    const { actions } = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
 
-    await waitFor(() => expect(currentAddress()).toBe("/"));
+    await waitFor(() => expect(currentAddress() + window.location.hash).toBe("/book#me"), { timeout: 10_000 });
     expect(actions.signIn).not.toHaveBeenCalled();
-    expect(pageTitle()).not.toHaveTextContent(/^HedgeHug$/);
+    expect(screen.getByRole("navigation", { name: "Album" })).toBeInTheDocument();
   });
 
   it.each([
@@ -187,8 +191,8 @@ describe("F28: a link from Slack that asks to sign in", () => {
     { later: shellFixtures.signedOut, title: /^HedgeHug$/ },
   ])("shows a member who arrived with the ask the page their later $later.kind answer calls for", async ({ later, title }) => {
     arriveAt("/sign-in/");
-    const { actions, showVisitor } = renderApp(shellFixtures.member);
-    await waitFor(() => expect(currentAddress()).toBe("/"));
+    const { actions, showVisitor } = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
+    await waitFor(() => expect(currentAddress() + window.location.hash).toBe("/book#me"), { timeout: 10_000 });
 
     showVisitor(later);
 
@@ -210,5 +214,18 @@ describe("F28: a link from Slack that asks to sign in", () => {
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(actions.signIn).not.toHaveBeenCalled();
+  });
+});
+
+describe("WS6: a sign-in the album asks for is remembered", () => {
+  it("remembers a sign-in started from the album's own signed-out answer, so a failed return says it didn't finish", async () => {
+    const { user, actions, unmount } = renderAlbum(shellFixtures.member, (asking) => (asking ? { kind: "signed-out" } : undefined));
+    await user.click(await screen.findByRole("button", { name: "Sign in with Slack" }, { timeout: 10_000 }));
+    expect(actions.signIn).toHaveBeenCalledOnce();
+    unmount();
+
+    returnFromSlack().showVisitor(shellFixtures.signedOut);
+
+    expect(pageTitle()).toHaveTextContent("Sign-in didn't finish");
   });
 });
