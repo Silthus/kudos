@@ -6,7 +6,7 @@ import { PageTitle } from "../PageTitle";
 import { AddToSlackButton } from "./AddToSlackButton";
 import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
 import { plural } from "./facts";
-import { PersonPicture, pictureShownOf } from "./PersonPicture";
+import { PersonPicture } from "./PersonPicture";
 import { hrefOf } from "./place";
 import { SealArt } from "./Seal";
 import { Silhouette } from "./Silhouette";
@@ -52,7 +52,7 @@ function PhotoPerson({ shown }: { shown: OnThePhoto }) {
   if (shown.kind === "unmatched")
     return (
       <li className="al-photo-person" data-out="">
-        <span className="al-photo-sticker" data-picture={pictureShownOf(false)}>
+        <span className="al-photo-sticker" data-picture="grey" aria-hidden="true">
           <Silhouette name={shown.name} />
         </span>
         <span className="al-photo-name ph-no-capture">{shown.name}</span>{" "}
@@ -63,9 +63,7 @@ function PhotoPerson({ shown }: { shown: OnThePhoto }) {
   return (
     <li className="al-photo-person" data-out={held ? undefined : ""}>
       <AppLink href={hrefOf({ kind: "person", person })} className="al-photo-link">
-        <span className="al-photo-sticker" data-picture={pictureShownOf(held)}>
-          <PersonPicture face={face} name={name} collected={held} className="al-photo-face" />
-        </span>
+        <PersonPicture face={face} name={name} collected={held} frame="al-photo-sticker" className="al-photo-face" />
         <span className="al-photo-name ph-no-capture">{name}</span>{" "}
         <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>

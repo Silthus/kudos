@@ -2,10 +2,12 @@ import { MemberFace } from "../Face";
 import type { Face } from "../shell";
 import { Silhouette } from "./Silhouette";
 
-export function PersonPicture({ face, name, collected, className }: { face: Face; name: string; collected: boolean; className: string }) {
-  return <MemberFace face={face} className={className} withoutPicture={collected ? undefined : <Silhouette name={name} />} />;
-}
+type PersonPictureProps = { face: Face; name: string; collected: boolean; frame: string; className: string };
 
-export function pictureShownOf(collected: boolean) {
-  return collected ? "colour" : "grey";
+export function PersonPicture({ face, name, collected, frame, className }: PersonPictureProps) {
+  return (
+    <span className={frame} data-picture={collected ? "colour" : "grey"} aria-hidden="true">
+      <MemberFace face={face} className={className} withoutPicture={collected ? undefined : <Silhouette name={name} />} />
+    </span>
+  );
 }

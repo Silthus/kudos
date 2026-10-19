@@ -9,7 +9,7 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
 import type { Album, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
 import { hrefOf } from "./place";
-import { PersonPicture, pictureShownOf } from "./PersonPicture";
+import { PersonPicture } from "./PersonPicture";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
 import "./team.css";
 
@@ -40,9 +40,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
       <div className="al-person-entry">
         <figure className="al-mount al-mount-single" aria-labelledby={caption}>
           <div className="al-photo">
-            <span className="al-photo-sticker al-photo-sticker-large" data-picture={pictureShownOf(person.held)}>
-              <PersonPicture face={person.face} name={person.name} collected={person.held} className="al-photo-face" />
-            </span>
+            <PersonPicture face={person.face} name={person.name} collected={person.held} frame="al-photo-sticker al-photo-sticker-large" className="al-photo-face" />
           </div>
           <figcaption id={caption} className="al-photo-caption">{person.held ? "In your album" : "Not in your album yet"}</figcaption>
         </figure>
@@ -91,9 +89,7 @@ function HypeEmoji({ person, first }: { person: Person; first: string }) {
   const { earned, name } = person.hype;
   return (
     <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
-      <span className="al-hype-frame" aria-hidden="true" data-picture={pictureShownOf(earned)}>
-        <PersonPicture face={person.face} name={person.name} collected={earned} className="al-hype-face" />
-      </span>
+      <PersonPicture face={person.face} name={person.name} collected={earned} frame="al-hype-frame" className="al-hype-face" />
       <p>
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
