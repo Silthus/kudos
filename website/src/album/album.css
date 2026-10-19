@@ -880,6 +880,73 @@
   max-width: 76rem;
 }
 
+.al-leaderboard-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.al-leaderboard-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.al-period-switch {
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 3px;
+}
+
+.al-period-switch button {
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  padding: 0.25rem 0.875rem;
+  color: var(--al-quiet);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.al-period-switch button:hover {
+  background: var(--fill-hover, var(--muted));
+  color: var(--foreground);
+}
+
+.al-period-switch button[aria-pressed="true"] {
+  background: var(--foreground);
+  color: var(--card);
+}
+
+@media (max-width: 22rem) {
+  .al-period-switch {
+    flex-wrap: wrap;
+    border-radius: 1rem;
+  }
+}
+
+.al-boards[aria-busy] {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .al-boards {
+    transition: opacity 150ms ease;
+  }
+}
+
+.al-board-offer {
+  font-size: 0.8125rem;
+}
+
 .al-boards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -948,6 +1015,7 @@
 
 .al-board-rows {
   --al-picked: color-mix(in oklab, var(--foreground) 6%, transparent);
+  position: relative;
   max-height: max(22.5rem, calc(100vh - 23.75rem));
   margin: 0;
   padding: 0;
@@ -1107,6 +1175,15 @@
 }
 
 @media (max-width: 63.999rem) {
+  .al-period-switch {
+    width: 100%;
+  }
+
+  .al-period-switch button {
+    flex: 1;
+    padding-inline: 0.5rem;
+  }
+
   .al-boards {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1126,6 +1203,7 @@
 }
 
 .al-week-tabs {
+  position: relative;
   display: flex;
   gap: 0.75rem;
   margin-top: 1rem;

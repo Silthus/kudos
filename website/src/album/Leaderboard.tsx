@@ -5,15 +5,16 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
-import type { AlbumTeam, BoardPerson, BoardsShown, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
+import type { AlbumTeam, BoardPeriod, BoardPerson, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
+import type { BoardsOfPeriod } from "./boardPeriods";
 import { findYourselfHref, hrefOf } from "./place";
 
-type LeaderboardAnswerProps = { boards: BoardsShown | undefined; teams: AlbumTeam[]; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
+type LeaderboardAnswerProps = { boards: BoardsOfPeriod; teams: AlbumTeam[]; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
-  if (boards === undefined || boards.kind === "off") return <LoadingPage shape="column" />;
-  if (boards.kind !== "boards") return <AnswerPage answer={boards} {...answers} />;
-  return <LeaderboardPage boards={boards} teamRows={teamRowsOf(boards, teams)} homeTeam={homeTeam} />;
+export function LeaderboardAnswerPage({ boards: { shown, shownPeriod, period, loading, choose }, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
+  if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
+  if (shown.kind !== "boards") return <AnswerPage answer={shown} {...answers} />;
+  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} shownPeriod={shownPeriod} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
 }
 
 function teamRowsOf(boards: ThoughtfulBoards, albumTeams: AlbumTeam[]): BoardTeam[] {
@@ -26,30 +27,52 @@ function teamRowsOf(boards: ThoughtfulBoards, albumTeams: AlbumTeam[]): BoardTea
   return [...listed, ...unscored];
 }
 
-export function isWaitingForTheBoards(boards: BoardsShown | undefined) {
-  return boards === undefined || boards.kind === "off";
-}
+type PeriodWords = { label: string; span: string; past: boolean };
+
+const periodWords: Record<BoardPeriod, PeriodWords> = {
+  week: { label: "This week", span: " this week", past: false },
+  "last-week": { label: "Last week", span: " last week", past: true },
+  month: { label: "This month", span: " this month", past: false },
+  all: { label: "All time", span: "", past: false },
+};
+
+const boardPeriods = Object.keys(periodWords) as BoardPeriod[];
+
+const quietOffers: Record<BoardPeriod, BoardPeriod | null> = { week: "last-week", "last-week": "all", month: "all", all: null };
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-function LeaderboardPage({ boards, teamRows, homeTeam }: { boards: ThoughtfulBoards; teamRows: BoardTeam[]; homeTeam: string | null }) {
-  const [picked, setPicked] = useState<string | null>(null);
+type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: BoardTeam[]; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
+
+function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
+  const [picked, setPicked] = useState<BoardTeam | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
   const showEveryone = () => {
-    if (picked !== null) pickButtons.current.get(picked)?.focus();
+    if (picked !== null) pickButtons.current.get(picked.team)?.focus();
     setPicked(null);
   };
   const teams: TeamsByKey = new Map(teamRows.map((team) => [team.team, team]));
-  const pickedTeam = picked === null ? undefined : teams.get(picked);
+  const pickedTeam = picked === null ? undefined : (teams.get(picked.team) ?? picked);
+  const words = periodWords[shownPeriod];
+  const periodButtons = useRef(new Map<BoardPeriod, HTMLButtonElement>());
+  const chooseFromTheOffer = (offered: BoardPeriod) => {
+    onChoosePeriod(offered);
+    periodButtons.current.get(offered)?.focus();
+  };
   return (
     <div className="al-page-body al-leaderboard">
-      <p className="al-eyebrow">Leaderboard · thoughtful kudos given this week</p>
-      <PageTitle tab="Leaderboard" size="hero">
-        Who said thanks, and why
-      </PageTitle>
-      <div className="al-boards">
-        <PeopleBoard boards={boards} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
-        <TeamBoard boards={boards} rows={teamRows} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
+      <header className="al-leaderboard-head">
+        <div className="al-leaderboard-title">
+          <p className="al-eyebrow">Leaderboard · thoughtful kudos given</p>
+          <PageTitle tab="Leaderboard" size="hero">
+            Who said thanks, and why
+          </PageTitle>
+        </div>
+        <PeriodSwitch period={period} buttons={periodButtons.current} onChoose={onChoosePeriod} />
+      </header>
+      <div className="al-boards" aria-busy={loading || undefined}>
+        <PeopleBoard boards={boards} words={words} offer={quietOffers[shownPeriod]} onChoosePeriod={chooseFromTheOffer} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
+        <TeamBoard boards={boards} rows={teamRows} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
@@ -63,14 +86,28 @@ function LeaderboardPage({ boards, teamRows, homeTeam }: { boards: ThoughtfulBoa
   );
 }
 
-function PeopleBoard({ boards, teams, picked, onShowEveryone }: { boards: ThoughtfulBoards; teams: TeamsByKey; picked: BoardTeam | undefined; onShowEveryone: () => void }) {
+function PeriodSwitch({ period, buttons, onChoose }: { period: BoardPeriod; buttons: Map<BoardPeriod, HTMLButtonElement>; onChoose: (period: BoardPeriod) => void }) {
+  return (
+    <div role="group" aria-label="Period" className="al-period-switch">
+      {boardPeriods.map((each) => (
+        <button key={each} ref={(button) => keepPeriodButton(buttons, each, button)} type="button" aria-pressed={each === period} onClick={() => onChoose(each)}>
+          {periodWords[each].label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type PeopleBoardProps = { boards: ThoughtfulBoards; words: PeriodWords; offer: BoardPeriod | null; onChoosePeriod: (period: BoardPeriod) => void; teams: TeamsByKey; picked: BoardTeam | undefined; onShowEveryone: () => void };
+
+function PeopleBoard({ boards, words, offer, onChoosePeriod, teams, picked, onShowEveryone }: PeopleBoardProps) {
   const shown = picked === undefined ? boards.people : boards.people.filter(({ teams: theirs }) => theirs.includes(picked.team));
   const me = boards.pinned.me;
   const rows = me === null || shown.some(({ you }) => you) ? shown : [...shown, me];
   const { clearance, pinnedRef } = usePinnedClearance();
   return (
-    <Board title="People" story={<PeopleStory boards={boards} />} filter={picked === undefined ? undefined : <PickedTeam team={picked} onShowEveryone={onShowEveryone} />}>
-      {picked !== undefined && shown.length === 0 && <p className="al-board-empty">Nobody in {picked.name} has given one yet this week.</p>}
+    <Board title="People" story={<PeopleStory boards={boards} words={words} offer={offer} onChoosePeriod={onChoosePeriod} />} filter={picked === undefined ? undefined : <PickedTeam team={picked} onShowEveryone={onShowEveryone} />}>
+      {picked !== undefined && shown.length === 0 && <p className="al-board-empty">{nobodyInWords(picked.name, words)}</p>}
       {rows.length > 0 && (
         <ol className="al-board-rows" style={clearance}>
           {rows.map((row) => (
@@ -82,15 +119,17 @@ function PeopleBoard({ boards, teams, picked, onShowEveryone }: { boards: Though
   );
 }
 
-function TeamBoard({ boards, rows, homeTeam, pickButtons, picked, onPick }: { boards: ThoughtfulBoards; rows: BoardTeam[]; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: string) => void }) {
+type TeamBoardProps = { boards: ThoughtfulBoards; rows: BoardTeam[]; words: PeriodWords; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: BoardTeam) => void };
+
+function TeamBoard({ boards, rows, words, homeTeam, pickButtons, picked, onPick }: TeamBoardProps) {
   const pinned = rows.find(({ mine, team }) => mine && team === homeTeam) ?? rows.find(({ mine }) => mine);
   const { clearance, pinnedRef } = usePinnedClearance();
   return (
-    <Board title="Teams" story={<TeamStory boards={boards} />}>
+    <Board title="Teams" story={<TeamStory boards={boards} words={words} />}>
       {rows.length > 0 && (
         <ol className="al-board-rows" style={clearance}>
           {rows.map((row) => (
-            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pinnedRef={pinnedRef} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row.team)} />
+            <TeamRow key={row.team} row={row} home={row.team === homeTeam} pinned={row === pinned} pinnedRef={pinnedRef} pickButtons={pickButtons} picked={row.team === picked} onPick={() => onPick(row)} />
           ))}
         </ol>
       )}
@@ -114,31 +153,58 @@ function Board({ title, story, filter, children }: { title: string; story: React
   );
 }
 
-function PeopleStory({ boards }: { boards: ThoughtfulBoards }) {
+type PeopleStoryProps = { boards: ThoughtfulBoards; words: PeriodWords; offer: BoardPeriod | null; onChoosePeriod: (period: BoardPeriod) => void };
+
+function PeopleStory({ boards, words, offer, onChoosePeriod }: PeopleStoryProps) {
   const leaders = leadersOf(boards.people);
   if (leaders.length === 0)
     return (
-      <Story headline="Nobody has said thanks with a why yet this week.">
-        {boards.onTheBoards ? "You haven't given one yet. Thank someone and say why to lead the board." : ""}
+      <Story headline={nobodyWords("Nobody", words)} offer={offer === null ? null : <QuietOffer period={offer} onChoose={onChoosePeriod} />}>
+        {boards.onTheBoards ? quietStandingWords(words) : ""}
       </Story>
     );
   const given = boards.people.reduce((sum, { thoughtful }) => sum + thoughtful, 0);
   return (
     <Story headline={<span className="ph-no-capture">{leadWords(leaders.map(({ name }) => name), leaders[0]!.thoughtful)}</span>}>
-      {[`${given} thoughtful kudos given this week.`, boards.onTheBoards ? myStandingWords(boards.pinned.me) : ""].join(" ").trim()}
+      {[`${given} thoughtful kudos given${words.span || " in all"}.`, boards.onTheBoards ? myStandingWords(boards.pinned.me, words) : ""].join(" ").trim()}
     </Story>
   );
 }
 
-function myStandingWords(me: BoardPerson | null) {
-  if (me === null) return "";
-  return me.rank === null ? "You haven't given one yet." : `You're No. ${me.rank}${me.tied ? ", tied," : ""} with ${me.thoughtful}.`;
+function QuietOffer({ period, onChoose }: { period: BoardPeriod; onChoose: (period: BoardPeriod) => void }) {
+  return (
+    <button type="button" className="al-link-button" onClick={() => onChoose(period)}>
+      See {periodWords[period].label.toLowerCase()}
+    </button>
+  );
 }
 
-function TeamStory({ boards }: { boards: ThoughtfulBoards }) {
+function nobodyWords(subject: string, { span, past }: PeriodWords) {
+  return past ? `${subject} said thanks with a why${span}.` : `${subject} has said thanks with a why yet${span}.`;
+}
+
+function nobodyInWords(team: string, { span, past }: PeriodWords) {
+  return past ? `Nobody in ${team} gave one${span}.` : `Nobody in ${team} has given one yet${span}.`;
+}
+
+function quietStandingWords(words: PeriodWords) {
+  return words.past ? notGivenWords("You", words) : `${notGivenWords("You", words)} Thank someone and say why to lead the board.`;
+}
+
+function notGivenWords(subject: string, { span, past }: PeriodWords) {
+  if (past) return `${subject} didn't give one${span}.`;
+  return `${subject} ${subject === "You" ? "haven't" : "hasn't"} given one yet.`;
+}
+
+function myStandingWords(me: BoardPerson | null, words: PeriodWords) {
+  if (me === null) return "";
+  return me.rank === null ? notGivenWords("You", words) : `You're No. ${me.rank}${me.tied ? ", tied," : ""} with ${me.thoughtful}.`;
+}
+
+function TeamStory({ boards, words }: { boards: ThoughtfulBoards; words: PeriodWords }) {
   const leaders = leadersOf(boards.teams);
-  const mine = boards.pinned.teams.length === 0 ? <NoTeamYet /> : boards.pinned.teams.map(teamStandingWords).join(" ");
-  if (leaders.length === 0) return <Story headline="No team has said thanks with a why yet this week.">{mine}</Story>;
+  const mine = boards.pinned.teams.length === 0 ? <NoTeamYet /> : boards.pinned.teams.map((team) => teamStandingWords(team, words)).join(" ");
+  if (leaders.length === 0) return <Story headline={nobodyWords("No team", words)}>{mine}</Story>;
   return <Story headline={leadWords(leaders.map(({ name }) => name), leaders[0]!.thoughtful)}>{mine}</Story>;
 }
 
@@ -150,8 +216,8 @@ function NoTeamYet() {
   );
 }
 
-function teamStandingWords({ name, rank, tied }: BoardTeam) {
-  return rank === null ? `${name} hasn't given one yet.` : `${name} sits at No. ${rank}${tied ? ", tied" : ""}.`;
+function teamStandingWords({ name, rank, tied }: BoardTeam, words: PeriodWords) {
+  return rank === null ? notGivenWords(name, words) : `${name} sits at No. ${rank}${tied ? ", tied" : ""}.`;
 }
 
 function leadersOf<Row extends Standing>(rows: Row[]) {
@@ -164,11 +230,12 @@ function leadWords(names: string[], thoughtful: number) {
   return `${names[0]} and ${names.length - 1} others lead with ${thoughtful}.`;
 }
 
-function Story({ headline, children }: { headline: ReactNode; children: ReactNode }) {
+function Story({ headline, offer = null, children }: { headline: ReactNode; offer?: ReactNode; children: ReactNode }) {
   return (
     <div className="al-board-story">
       <p className="al-board-headline">{headline}</p>
       {children !== "" && <p className="al-board-deck">{children}</p>}
+      {offer !== null && <p className="al-board-offer">{offer}</p>}
     </div>
   );
 }
@@ -252,6 +319,11 @@ function usePinnedClearance(): { clearance: CSSProperties; pinnedRef: PinnedRef 
     observer.current.observe(row);
   }, []);
   return { clearance: { "--al-pinned-height": `${height}px` } as CSSProperties, pinnedRef };
+}
+
+function keepPeriodButton(buttons: Map<BoardPeriod, HTMLButtonElement>, period: BoardPeriod, button: HTMLButtonElement | null) {
+  if (button === null) buttons.delete(period);
+  else buttons.set(period, button);
 }
 
 function keepPickButton(pickButtons: Map<string, HTMLButtonElement>, team: string, button: HTMLButtonElement | null) {

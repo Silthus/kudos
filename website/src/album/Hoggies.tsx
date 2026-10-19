@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useId, useRef, useState, type CSSProperties } from "react";
 import { AnswerPage } from "../App";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
@@ -10,7 +10,7 @@ import { HoggieEntry } from "./HoggieEntry";
 import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, numberOf, rarityTintOf, shelvesOf, type Filter, type Shelf } from "./hoggieGuide";
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
-import { useRarityUnderBar } from "./useRarityUnderBar";
+import { useRarityStrip } from "./useRarityStrip";
 import "./hoggies.css";
 
 type HoggiesPlace = { hoggie: string | null; rarity?: Rarity };
@@ -128,15 +128,14 @@ function Collection({ answer, shown, filter, rarity, onFilter, onShowEveryRarity
   const heading = useRef<HTMLHeadingElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const groups = shelvesOf(answer, shown).filter(({ hoggies }) => hoggies.length > 0);
-  const underTheBar = useRarityUnderBar(groups.map((group) => group.rarity), bar);
-  const jump = useJump(groups);
+  const strip = useRarityStrip(groups, bar);
   const jumpTo = (target: Rarity) => {
     if (rarity !== undefined && rarity !== target) onShowEveryRarity();
     if (!keptBy(filter, answer.hoggies).some((hoggie) => hoggie.rarity === target)) onFilter("all");
-    jump(target);
+    strip.jump(target);
   };
   return (
-    <section className="al-hoggies-collection" aria-labelledby={title}>
+    <section className="al-hoggies-collection" style={landingLineOf(strip.line)} aria-labelledby={title}>
       <div ref={bar} className="al-hoggies-bar">
         <div className="al-hoggies-bar-row">
           <h2 ref={heading} id={title} tabIndex={-1} className="al-hoggies-bar-title">
@@ -151,7 +150,7 @@ function Collection({ answer, shown, filter, rarity, onFilter, onShowEveryRarity
             ))}
           </div>
         </div>
-        <RarityStrip shelves={shelvesOf(answer, answer.hoggies)} current={rarity ?? underTheBar} onJump={jumpTo} />
+        <RarityStrip shelves={shelvesOf(answer, answer.hoggies)} current={rarity ?? strip.current} onJump={jumpTo} />
         {rarity !== undefined && (
           <p className="al-hoggies-filtered">
             <span>{`Showing ${rarity} hoggies.`}</span>
@@ -176,18 +175,8 @@ function Collection({ answer, shown, filter, rarity, onFilter, onShowEveryRarity
   );
 }
 
-function useJump(groups: Shelf[]) {
-  const [target, setTarget] = useState<Rarity | null>(null);
-  const shown = groups.map(({ rarity }) => rarity).join(" ");
-  useEffect(() => {
-    if (target === null) return;
-    const group = document.getElementById(groupIdOf(target));
-    if (group === null) return;
-    group.scrollIntoView({ block: "start" });
-    group.querySelector<HTMLElement>("h3")?.focus({ preventScroll: true });
-    setTarget(null);
-  }, [target, shown]);
-  return setTarget;
+function landingLineOf(line: number | null) {
+  return line === null ? undefined : ({ "--al-hoggies-line": `${line}px` } as CSSProperties);
 }
 
 function RarityStrip({ shelves, current, onJump }: { shelves: Shelf[]; current: Rarity | null; onJump: (rarity: Rarity) => void }) {

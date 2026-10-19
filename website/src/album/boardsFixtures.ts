@@ -1,4 +1,4 @@
-import type { BoardPerson, BoardsRead, BoardsShown, BoardTeam, ThoughtfulBoards } from "./answer";
+import type { BoardPeriod, BoardPerson, BoardsRead, BoardsShown, BoardTeam, ThoughtfulBoards } from "./answer";
 
 type Placing = { rank: number; tied?: boolean } | { rank: null };
 
@@ -63,10 +63,24 @@ const hidden = boardsOf(
 
 const quiet = withUnrankedTeams(boardsOf([], [], sam(["lanterns", "tin-orchard"], 0, { rank: null })), [team("lanterns", "Lanterns", "workflows", 0, { rank: null }, true), team("tin-orchard", "Tin Orchard", "replay", 0, { rank: null }, true)]);
 
+const lastWeek = boardsOf(
+  [{ ...others.oren, thoughtful: 4, rank: 1 }, { ...samRanked, thoughtful: 2, rank: 2 }],
+  [team("salt-and-sparrow", "Salt and Sparrow", "security", 4, { rank: 1 }), team("lanterns", "Lanterns", "workflows", 2, { rank: 2 }, true)],
+  { ...samRanked, thoughtful: 2, rank: 2 },
+);
+
 const teamless = boardsOf([], [], sam([], 0, { rank: null }));
 
-export const boardsFixtures = { week, twoTeams, hidden, quiet, teamless } satisfies Record<string, ThoughtfulBoards>;
+export const boardsFixtures = { week, twoTeams, hidden, quiet, lastWeek, teamless } satisfies Record<string, ThoughtfulBoards>;
 
 export function fixedBoards(answer: BoardsShown): BoardsRead {
   return (asking) => (asking ? answer : undefined);
+}
+
+export function boardsByPeriod(answers: Partial<Record<BoardPeriod, BoardsShown>>, asked: BoardPeriod[] = []): BoardsRead {
+  return (asking, period) => {
+    if (!asking) return undefined;
+    asked.push(period);
+    return answers[period];
+  };
 }
