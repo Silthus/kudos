@@ -226,6 +226,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   via: AL49: the Leaderboard shows people and teams side by side by thoughtful kudos in the period picked
   refuted: PeopleBoard ignored the team Who gave picked and showed every giver -> Who gave left all seven givers on the people board, 2 of 10 tests red (2026-10-19)
   refuted: PeriodSwitch's buttons all chose this week, so picking Last week, This month or All time read this week's boards again -> 5 of 21 tests red: no period but This week was ever pressed, and Last week's and all time's boards never showed (2026-10-19)
+  refuted: TeamBoard listed every team with nothing yet after the ranked ones and never folded them -> 4 of 26 tests red: the ranked board, the folding toggle, the teamless member's board and the quiet week each showed every zero row (2026-10-19)
   refuted: teamRowsOf left out every team getAlbum holds that the boards don't rank -> the team board listed only ranked and pinned teams, 3 of 16 tests red (2026-10-19)
   because: the album's Leaderboard rewards saying why, by people and by team, with the member's own row and teams in view (AL49, #627, #667)
   kinds: output
