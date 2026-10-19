@@ -1,0 +1,9 @@
+     × a thoughtful kudos to someone new and to someone already in the album posts one public reply in its thread, a section for each, the new person's team progress, their hype emoji as a picture, Open your pack and the gains line 982ms
+     × a second thoughtful kudos the same week says the next pack comes next week and links to the person's page, and a pack while an earlier one still holds the sticker says it is waiting 211ms
+     × AL29 AL30: a hype emoji Slack has is named beside its picture, one Slack doesn't have only shows its picture, falling back to the hype emblem without a face 136ms
+     × a kudos posted in a thread is answered in that thread, a giver who chose DMs gets it as a DM, and one who turned kudos replies off gets none 208ms
+     × with Feedback's private reply delivered before the grant and the grant run after, the reply is posted once, and a grant run again posts nothing more 82ms
+     × a message to more people than one reply can name names the first ten and counts the rest 477ms
+     × with album-slack on for the giver's email, the same walk adds only the thread replies of the giver's thoughtful kudos 620ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  7 failed | 7 passed (14)

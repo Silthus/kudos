@@ -25,6 +25,8 @@ export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; le
 
 export type EarnedEmojis = { emojis: EarnedEmoji[]; more: boolean };
 
+export type HypeEmoji = Pick<EarnedEmoji, "name" | "picture" | "inSlack">;
+
 export const mostHypeEmojisShown = 200;
 
 export const mostPeoplePackedRead = 500;
@@ -53,6 +55,13 @@ export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }
   if (!(await personFactsOf(ctx, member))?.admin) return null;
   const companyTeams = new Set((await companyTeamsOf(ctx)).map(({ team }) => `team:${team}`));
   return emojis.filter(({ id, kind }) => (kind === "team" ? companyTeams.has(id) : kind === "milestone" || kind === "level")).map(({ id, kind, name, from, picture, inSlack }) => ({ id, kind, name, from, picture, inSlack }));
+}
+
+export async function hypeEmojiOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<HypeEmoji | null> {
+  const name = await emojiNameOf(ctx, workspace, `hype:${person}`);
+  if (name === null) return null;
+  const slackPicture = await customEmojiImageOf(ctx, workspace, name);
+  return { name, picture: slackPicture ?? (await hypePictureOf(ctx, workspace, person)), inSlack: slackPicture !== undefined };
 }
 
 export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: string[], at: number): Promise<string[] | null> {
