@@ -78,16 +78,11 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
   return (
     <div ref={dialog} tabIndex={-1} className="al-emoji-moment" role="dialog" aria-modal="true" aria-label={bundled ? "New emojis unlocked" : "New emoji unlocked"} aria-describedby={bundled ? `${described}-cards` : `${described}-name ${described}-why ${described}-use`} data-flying={flying ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={(event) => event.target === event.currentTarget && flyIn()} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)}>
       <div className="al-emoji-moment-stage">
-        {bundled ? <Bundle emojis={playing} waiting={playing.length + more} described={described} reduced={reduced} /> : <OneEmoji emoji={only} described={described} reduced={reduced} />}
+        {bundled ? <Bundle emojis={playing} more={more} described={described} reduced={reduced} flying={flying} onSeeThemAll={seeThemAllInTheEmojis} /> : <OneEmoji emoji={only} described={described} reduced={reduced} />}
         <div className="al-emoji-moment-actions">
           <button type="button" className="al-emoji-moment-take" onClick={flyIn}>
             Add to my emojis
           </button>
-          {more > 0 && (
-            <button type="button" className="al-emoji-moment-more" onClick={seeThemAllInTheEmojis} disabled={flying}>
-              +{more} more
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -113,10 +108,12 @@ function OneEmoji({ emoji, described, reduced }: { emoji: AlbumEmoji; described:
   );
 }
 
-function Bundle({ emojis, waiting, described, reduced }: { emojis: AlbumEmoji[]; waiting: number; described: string; reduced: boolean }) {
+type BundleProps = { emojis: AlbumEmoji[]; more: number; described: string; reduced: boolean; flying: boolean; onSeeThemAll: () => void };
+
+function Bundle({ emojis, more, described, reduced, flying, onSeeThemAll }: BundleProps) {
   return (
     <div className="al-emoji-bundle">
-      <h2 className="al-emoji-moment-kicker">{waiting} new emojis unlocked</h2>
+      <h2 className="al-emoji-moment-kicker">{emojis.length + more} new emojis unlocked</h2>
       {!reduced && (
         <span className="al-emoji-bundle-wrapper" aria-hidden="true">
           <span className="al-emoji-bundle-tear" />
@@ -124,18 +121,25 @@ function Bundle({ emojis, waiting, described, reduced }: { emojis: AlbumEmoji[];
           <span className="al-emoji-bundle-kind">Emoji bundle</span>
         </span>
       )}
-      <ul id={`${described}-cards`} className="al-emoji-bundle-cards" aria-label="Your new emojis">
-        {emojis.map((emoji, index) => (
-          <li key={emoji.id} className="al-emoji-bundle-card" style={{ "--al-card": index } as CSSProperties}>
-            <span className="al-emoji-bundle-picture" data-flies="">
-              <EmojiPicture emoji={emoji} size={bundlePictureSize} />
-            </span>
-            <h3 className="al-emoji-bundle-name ph-no-capture">:{emoji.name}:</h3>
-            <p className="al-emoji-bundle-from ph-no-capture">{earnedFromWords(emoji)}</p>
-            <MomentSlackLine emoji={emoji} short className="al-emoji-bundle-slack" />
-          </li>
-        ))}
-      </ul>
+      <div className="al-emoji-bundle-row">
+        <ul id={`${described}-cards`} className="al-emoji-bundle-cards" aria-label="Your new emojis">
+          {emojis.map((emoji, index) => (
+            <li key={emoji.id} className="al-emoji-bundle-card" style={{ "--al-card": index } as CSSProperties}>
+              <span className="al-emoji-bundle-picture" data-flies="">
+                <EmojiPicture emoji={emoji} size={bundlePictureSize} />
+              </span>
+              <h3 className="al-emoji-bundle-name ph-no-capture">:{emoji.name}:</h3>
+              <p className="al-emoji-bundle-from ph-no-capture">{earnedFromWords(emoji)}</p>
+              <MomentSlackLine emoji={emoji} short className="al-emoji-bundle-slack" />
+            </li>
+          ))}
+        </ul>
+        {more > 0 && (
+          <button type="button" className="al-emoji-bundle-card al-emoji-bundle-more" style={{ "--al-card": emojis.length } as CSSProperties} onClick={onSeeThemAll} disabled={flying}>
+            +{more} more
+          </button>
+        )}
+      </div>
     </div>
   );
 }
