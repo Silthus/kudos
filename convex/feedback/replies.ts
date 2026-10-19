@@ -60,8 +60,6 @@ export type Reply =
 
 export const questsWaitMs = 10_000;
 
-const mostRepliesReadPerMessage = 10;
-
 const hintLine: Line = [{ text: "Add why they earned it to earn more." }];
 
 type WrittenReply = Pick<Doc<"privateReplies">, "given" | "lines" | "gains" | "hint" | "held">;
@@ -139,14 +137,12 @@ async function hintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | 
 }
 
 export async function givenReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<Doc<"privateReplies"> | null> {
-  const replies = await ctx.db
-    .query("privateReplies")
-    .withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
-    .take(mostRepliesReadPerMessage);
-  return replies.find(({ gains }) => gains !== undefined) ?? null;
+  const replies = ctx.db.query("privateReplies").withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message));
+  for await (const reply of replies) if (reply.gains !== undefined) return reply;
+  return null;
 }
 
-export async function gainsLineOf(ctx: QueryCtx, workspace: string, member: MemberId, gains: Gains): Promise<Line | null> {
+export async function gainsLineWithoutQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, { questsDone: _, ...gains }: Gains): Promise<Line | null> {
   return extrasLineOf(await gainsShownTo(ctx, workspace, member, gains), null, null);
 }
 

@@ -2,15 +2,15 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
 import { hypeEmojiOf, type HypeEmoji } from "../album/earnedEmojis";
-import { isFirstPackFor } from "../album/packs";
+import { isFirstPackGrantedFor } from "../album/packs";
 import type { GrantOutcome } from "../album/records";
-import { isComplete, teamProgressWith, type TeamProgress } from "../album/teamPages";
+import { isComplete, teamPagesAndPeopleOf, teamProgressWith, type TeamPagesAndPeople, type TeamProgress } from "../album/teamPages";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
 import { placeOf } from "../messageSettings/messageSettings";
 import { websiteOrigin } from "../website/link";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { albumSlackAppliesTo } from "./albumSlack";
-import { gainsLineOf, givenReplyOf } from "./replies";
+import { gainsLineWithoutQuestsOf, givenReplyOf } from "./replies";
 import type { Line } from "./segments";
 
 export const mostRecipientsNamed = 10;
@@ -21,13 +21,13 @@ export type AlbumReplyPicture = { url: string; label: string };
 
 export type AlbumReplyRecipient = { headline: string; lines: string[]; hype: { picture: AlbumReplyPicture | null; line: string } | null };
 
-export type AlbumReplyButton = { label: string; url: string; id: "album-open-packs" | "album-see-person" };
+export type AlbumReplyButton = { label: string; url: string; id: string };
 
 export type AlbumReply = { workspace: string; destination: AlbumReplyDestination; recipients: AlbumReplyRecipient[]; more: number; buttons: AlbumReplyButton[]; gains: Line | null };
 
 type Outcome = ThoughtfulPacksGrantedEvent["outcomes"][number];
 
-export const replyInThread = internalMutation({
+export const replyAfterTheGrant = internalMutation({
   args: { event: thoughtfulPacksGrantedEventValidator },
   returns: v.null(),
   handler: async (ctx, { event }) => {
@@ -39,21 +39,23 @@ export const replyInThread = internalMutation({
 export const albumReply = internalQuery({
   args: { event: thoughtfulPacksGrantedEventValidator },
   handler: async (ctx, { event }): Promise<AlbumReply | null> => {
+    if (!(await albumSlackAppliesTo(ctx, event.giver))) return null;
     const given = await givenReplyOf(ctx, event.message);
     if (given?.gains === undefined) return null;
     const destination = await destinationOf(ctx, event, given);
     if (destination === null) return null;
     const origin = await websiteOrigin(ctx, event.workspace);
     const named = event.outcomes.slice(0, mostRecipientsNamed);
+    const album = named.some(({ outcome }) => outcome === "new") ? await teamPagesAndPeopleOf(ctx, { workspace: event.workspace, member: event.giver }) : null;
     const recipients: AlbumReplyRecipient[] = [];
-    for (const outcome of named) recipients.push(await recipientOf(ctx, event, outcome, origin));
+    for (const outcome of named) recipients.push(await recipientOf(ctx, event, outcome, album, origin));
     return {
       workspace: event.workspace,
       destination,
       recipients,
       more: event.outcomes.length - named.length,
-      buttons: origin === null ? [] : await buttonsOf(ctx, named, origin),
-      gains: await gainsLineOf(ctx, event.workspace, event.giver, given.gains),
+      buttons: origin === null ? [] : await buttonsOf(ctx, event.outcomes, named, origin),
+      gains: await gainsLineWithoutQuestsOf(ctx, event.workspace, event.giver, given.gains),
     };
   },
 });
@@ -65,9 +67,9 @@ async function destinationOf(ctx: QueryCtx, { giver, message }: ThoughtfulPacksG
   return { kind: "thread", conversation: message.conversation, threadTs: threadRoot ?? message.message };
 }
 
-async function recipientOf(ctx: QueryCtx, event: ThoughtfulPacksGrantedEvent, { recipient, outcome }: Outcome, origin: string | null): Promise<AlbumReplyRecipient> {
+async function recipientOf(ctx: QueryCtx, event: ThoughtfulPacksGrantedEvent, { recipient, outcome }: Outcome, album: TeamPagesAndPeople | null, origin: string | null): Promise<AlbumReplyRecipient> {
   const first = await firstNameOf(ctx, recipient);
-  const { headline, lines } = outcome === "new" ? { headline: `${first} is new in your album`, lines: teamLinesOf(await teamProgressWith(ctx, { workspace: event.workspace, member: event.giver }, recipient)) } : wordsOf(outcome, first);
+  const { headline, lines } = outcome === "new" ? { headline: `${first} is new in your album`, lines: album === null ? [] : teamLinesOf(teamProgressWith(album, recipient)) } : wordsOf(outcome, first);
   return { headline, lines, hype: await unlockedHypeOf(ctx, event, recipient, outcome, first, origin) };
 }
 
@@ -87,7 +89,7 @@ function teamLinesOf(teams: TeamProgress[]): string[] {
 }
 
 async function unlockedHypeOf(ctx: QueryCtx, { workspace, giver, message }: ThoughtfulPacksGrantedEvent, recipient: MemberId, outcome: GrantOutcome, first: string, origin: string | null) {
-  if (outcome === "nextWeek" || !(await isFirstPackFor(ctx, giver, recipient, message))) return null;
+  if (outcome === "nextWeek" || !(await isFirstPackGrantedFor(ctx, giver, recipient, message))) return null;
   const hype = await hypeEmojiOf(ctx, workspace, recipient);
   if (hype === null) return null;
   return { picture: pictureOf(hype, first, origin), line: `${first}'s hype emoji is unlocked${hype.inSlack ? `: :${hype.name}:` : ""}` };
@@ -98,10 +100,10 @@ function pictureOf({ picture }: HypeEmoji, first: string, origin: string | null)
   return url === null ? null : { url, label: `${first}'s hype emoji` };
 }
 
-async function buttonsOf(ctx: QueryCtx, named: Outcome[], origin: string): Promise<AlbumReplyButton[]> {
-  if (named.some(({ outcome }) => outcome !== "nextWeek")) return [{ label: "Open your pack", url: `${origin}/book#packs`, id: "album-open-packs" }];
+async function buttonsOf(ctx: QueryCtx, outcomes: Outcome[], named: Outcome[], origin: string): Promise<AlbumReplyButton[]> {
+  if (outcomes.some(({ outcome }) => outcome !== "nextWeek")) return [{ label: "Open your pack", url: `${origin}/book#packs`, id: "album-open-packs" }];
   const buttons: AlbumReplyButton[] = [];
-  for (const { recipient } of named) buttons.push({ label: `See ${await firstNameOf(ctx, recipient)}'s page`, url: `${origin}/book#people/${encodeURIComponent(recipient)}`, id: "album-see-person" });
+  for (const { recipient } of named) buttons.push({ label: `See ${await firstNameOf(ctx, recipient)}'s page`, url: `${origin}/book#people/${encodeURIComponent(recipient)}`, id: `album-see-person:${recipient}` });
   return buttons;
 }
 

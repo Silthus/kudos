@@ -15,3 +15,5 @@ Branch `album/12` at `bc7ae5ee` (origin/main merged), merged in a never-pushed p
 Synthetic members match no posthog.com team in the sandbox, so the new person's team lines are proven by `convex/feedback/albumReplies.test.ts`, not here.
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> SLACK_BOT_TOKEN_FILE=<600 file> KUDOS_CAST=A bun website/proof/656-album/drive.mts join|on|off`
+
+**Round 1 review fixes.** The sandbox bot posted a `context` block whose `image` element uses the transform production stores for posthog.com cutouts (`c_limit,w_160,f_auto,q_auto`, on Cloudinary's demo image), in the same thread: Slack answered `ok: true` and echoed the image element (`cloudinary-f-auto-picture.txt`). Production's hype pictures come from posthog.com cutouts on Cloudinary for most members and from Slack-hosted pictures for the rest, measured read-only with the counts kept private. A post Slack still refuses for its blocks is sent once more without its pictures.

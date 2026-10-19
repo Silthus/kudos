@@ -52,8 +52,7 @@ async function teamStickersOf(ctx: QueryCtx, member: MemberId): Promise<Map<stri
   return new Map(stickers.map(({ team, name, art, emoji, at }) => [team, { team, name, art, emoji, at }]));
 }
 
-export async function teamProgressWith(ctx: QueryCtx, owner: PageOwner, person: MemberId): Promise<TeamProgress[]> {
-  const { pages, held } = await teamPagesAndPeopleOf(ctx, owner);
+export function teamProgressWith({ pages, held }: TeamPagesAndPeople, person: MemberId): TeamProgress[] {
   const arriving = held.has(person) ? 0 : 1;
   return pages.filter(({ people }) => people.includes(person)).map(({ name, held: counted, total }) => ({ name, held: counted + arriving, total }));
 }

@@ -41,11 +41,12 @@ export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<{
   return { packs, more: oldestFirst.length > mostWaitingPacksShown };
 }
 
-export async function isFirstPackFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId, message: MessageRef): Promise<boolean> {
-  const first = await ctx.db
+export async function isFirstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId, message: MessageRef): Promise<boolean> {
+  const packs = await ctx.db
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
-    .first();
+    .collect();
+  const first = packs.reduce<(typeof packs)[number] | null>((earliest, pack) => (earliest === null || pack._creationTime < earliest._creationTime ? pack : earliest), null);
   return first !== null && isTheSameMessage(first.message, message);
 }
 

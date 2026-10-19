@@ -4,8 +4,8 @@ import { offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly } from "
 import type { FlagDefinition } from "../../testing/fakePostHog";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
-import { FakeSlack, rateLimitedFor, timesOut, type SlackCall } from "../../testing/fakeSlack";
-import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { FakeSlack, rateLimitedFor, slackError, timesOut, type SlackCall } from "../../testing/fakeSlack";
+import { memberChanged, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
@@ -20,7 +20,7 @@ const site = "https://kudos-site.test";
 const channel = "C_TEAM";
 const why = "Thanks for untangling the flaky migration";
 const grantJob = vi.hoisted(() => "album/packs:grantThoughtfulPacks");
-const replyJob = vi.hoisted(() => "feedback/albumReplies:replyInThread");
+const replyJob = vi.hoisted(() => "feedback/albumReplies:replyAfterTheGrant");
 const albumOn = ["website", "album", "collection", "packs", "xp-levels", "message-settings"];
 const albumSlack = "album-slack";
 
@@ -63,7 +63,7 @@ let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
 let weeksLater = 0;
-const albumPostAnswers: Array<"lands without an answer" | "rate limited"> = [];
+const albumPostAnswers: Array<"lands without an answer" | "rate limited" | "lands with an internal error" | "refuses its pictures"> = [];
 
 beforeEach(() => {
   theBus.holdingGrants = false;
@@ -115,7 +115,7 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
 
     expect(sectionsOf(threadRepliesTo(first))).toEqual(["*Dana is new in your album*\nOtters 1/2"]);
     expect(sectionsOf(threadRepliesTo(sameWeek))).toEqual(["*Kudos counted.*\nYour next pack for Dana comes next week."]);
-    expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See Dana's page", url: `${site}/book#people/${await memberOf(dana)}`, action_id: "album-see-person" }]);
+    expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See Dana's page", url: `${site}/book#people/${await memberOf(dana)}`, action_id: `album-see-person:${await memberOf(dana)}` }]);
     expect(sectionsOf(threadRepliesTo(nextWeek))).toEqual(["*Dana's sticker is already waiting in your packs*\nSo this pack holds a hoggie."]);
     expect(buttonsOf(threadRepliesTo(nextWeek))).toEqual([{ text: "Open your pack", url: `${site}/book#packs`, action_id: "album-open-packs" }]);
     expect(hypeLinesOf(threadRepliesTo(first))).toEqual(["Dana's hype emoji is unlocked"]);
@@ -192,6 +192,54 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     expect(threadRepliesTo(limited), "the post Slack rate-limited once").toHaveLength(1);
   });
 
+  test("Slack answering internal_error after the post landed is not posted again either, and a post Slack refuses for its pictures is sent once more without them", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    albumPostAnswers.push("lands with an internal error");
+    const ambiguous = await thanks(alice, why, bob);
+    albumPostAnswers.push("refuses its pictures");
+    const refused = await thanks(carol, why, dana);
+
+    expect(threadRepliesTo(ambiguous), "the post answered internal_error").toHaveLength(1);
+    expect(sectionsOf(threadRepliesTo(refused))).toEqual(["*Dana is new in your album*\nOtters 1/2"]);
+    expect(contextsOf(threadRepliesTo(refused))).toEqual([[{ type: "mrkdwn", text: "Dana's hype emoji is unlocked" }], [{ type: "mrkdwn", text: "+10 XP" }]]);
+  });
+
+  test("two people whose next pack comes next week get a page button each, every button with its own action", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    await thanks(alice, why, bob, dana);
+    const again = await thanks(alice, "Thanks again for pairing on the rollback", bob, dana);
+
+    expect(buttonsOf(threadRepliesTo(again))).toEqual([
+      { text: "See Bob's page", url: `${site}/book#people/${await memberOf(bob)}`, action_id: `album-see-person:${await memberOf(bob)}` },
+      { text: "See Dana's page", url: `${site}/book#people/${await memberOf(dana)}`, action_id: `album-see-person:${await memberOf(dana)}` },
+    ]);
+  });
+
+  test("a pack earned by a recipient past the ten the reply names still offers Open your pack", async () => {
+    const crowd = Array.from({ length: 12 }, (_, index) => person("Guest", `Number${index + 1}`, 10 + index));
+    await fourMembers([onForEveryone(albumSlack)], crowd);
+    await thanks(alice, why, ...crowd.slice(0, 10));
+
+    const again = await thanks(alice, "Thanks again for staffing the help desk", ...crowd);
+
+    expect(sectionsOf(threadRepliesTo(again))).toEqual(Array.from({ length: 10 }, (_, index) => `*Kudos counted.*\nYour next pack for Guest comes next week.`));
+    expect(buttonsOf(threadRepliesTo(again)).map(({ text }) => text)).toEqual(["Open your pack"]);
+  });
+
+  test("a hype emoji is told unlocked once, by the grant that ran first, even when an earlier week's kudos is granted after it", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    theBus.holdingGrants = true;
+    const late = await thanks(alice, why, dana);
+    theBus.holdingGrants = false;
+    weeksLater += 1;
+    const first = await thanks(alice, "Thanks for reviewing the quarterly runbook", dana);
+    await t.mutation(internal.album.packs.grantThoughtfulPacks, { event: (theBus.heldGrants as KudosGivenEvent[])[0]! });
+    await settle(t);
+
+    expect(hypeLinesOf(threadRepliesTo(first))).toEqual(["Dana's hype emoji is unlocked"]);
+    expect(hypeLinesOf(threadRepliesTo(late))).toEqual([]);
+  });
+
   test("a message to more people than one reply can name names the first ten and counts the rest", async () => {
     const crowd = Array.from({ length: 12 }, (_, index) => person("Guest", `Number${index + 1}`, 10 + index));
     await fourMembers([onForEveryone(albumSlack)], crowd);
@@ -226,6 +274,18 @@ describe("AL58: album moments are dark where album-slack is off", { timeout: 60_
     expect(walk.calls).toEqual(withoutTheReply.calls);
     expect(walk.packs, "the packs are earned all the same").toBeGreaterThan(0);
     expect(walk.exposures).toEqual([]);
+  });
+
+  test("a reply whose delivery waits on a rate limit is not posted once album-slack turned off for the giver", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    albumPostAnswers.push("rate limited");
+    const ts = await thanks(alice, why, bob, { settling: "until the first answer" });
+    expect({ answersLeft: albumPostAnswers.length, posted: threadRepliesTo(ts) }, "the first post was rate-limited and nothing was posted yet").toEqual({ answersLeft: 0, posted: [] });
+    postHog.withFlags(...albumOn.map(onForEveryone), offForEveryone(albumSlack));
+    await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+    await settle(t);
+
+    expect(threadRepliesTo(ts)).toEqual([]);
   });
 
   test("with album-slack on for the giver's email, the same walk adds only the thread replies of the giver's thoughtful kudos", async () => {
@@ -278,19 +338,25 @@ async function fourMembers(flags: FlagDefinition[], more: Person[] = [], albumFl
 async function chatAnswering(input: string | URL | Request, init?: RequestInit) {
   const isAnAlbumPost = String(input instanceof Request ? input.url : input).endsWith("/chat.postMessage") && String(init?.body ?? "").includes("album-");
   const answer = isAnAlbumPost ? albumPostAnswers.shift() : undefined;
-  if (answer === "rate limited") return rateLimitedFor(5)(() => new Response());
+  if (answer === "rate limited") return rateLimitedFor(60)(() => new Response());
+  if (answer === "refuses its pictures" && String(init?.body).includes('"type":"image"')) return slackError("invalid_blocks")(() => new Response());
+  if (answer === "refuses its pictures") return slack.fetch(input, init);
   const answered = await slack.fetch(input, init);
+  if (answer === "lands with an internal error") return slackError("internal_error")(() => answered);
   return answer === "lands without an answer" ? timesOut(() => answered) : answered;
 }
 
-async function thanks(giver: Person, words: string, ...recipientsAndOptions: Array<Person | { threadTs: string }>) {
+type Options = { threadTs?: string; settling?: "until the first answer" };
+
+async function thanks(giver: Person, words: string, ...recipientsAndOptions: Array<Person | Options>) {
   const recipients = recipientsAndOptions.filter((item): item is Person => "user" in item);
-  const threadTs = recipientsAndOptions.find((item): item is { threadTs: string } => "threadTs" in item)?.threadTs;
+  const { threadTs, settling } = recipientsAndOptions.find((item): item is Options => !("user" in item)) ?? {};
   messages += 1;
   vi.setSystemTime(tuesday.getTime() + weeksLater * weekMs + messages * minuteMs);
   const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts, channel, ...(threadTs && { threadTs }) });
-  await settle(t);
+  if (settling === "until the first answer") await settleUntil(t, new Date(Date.now() + 5_000));
+  else await settle(t);
   return ts;
 }
 

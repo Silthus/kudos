@@ -4,7 +4,7 @@ import { observedAction } from "../analytics/boundary";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
 import type { AlbumReply, AlbumReplyButton, AlbumReplyRecipient } from "../feedback/albumReplies";
 import { mrkdwn, urlButtonOf } from "./blocks";
-import { attemptArgs, attemptCall, retryAfter, slackTextOf, tryAtMostThreeTimes, type Retry } from "./delivery";
+import { attemptArgs, attemptCall, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
 
 export const deliverAlbumReply = observedAction({
   args: { event: thoughtfulPacksGrantedEventValidator, ...attemptArgs },
@@ -20,9 +20,25 @@ export const deliverAlbumReply = observedAction({
 async function sendAlbumReply(ctx: ActionCtx, event: ThoughtfulPacksGrantedEvent, attempt: number): Promise<Retry> {
   const reply = await ctx.runQuery(internal.feedback.albumReplies.albumReply, { event });
   if (reply === null) return null;
+  const result = await postAlbumReply(ctx, reply);
+  return isRateLimited(result) ? retryAfter(result, attempt) : null;
+}
+
+async function postAlbumReply(ctx: ActionCtx, reply: AlbumReply): Promise<Attempt> {
   const result = await attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(reply));
-  if (result.kind === "delivered" || result.kind === "gone" || result.kind === "unknown") return null;
-  return retryAfter(result, attempt);
+  return isRefusedForItsBlocks(result) ? attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(withoutPictures(reply))) : result;
+}
+
+function isRateLimited(result: Attempt): result is Extract<Attempt, { kind: "held" | "failed" }> {
+  return result.kind === "held" || (result.kind === "failed" && result.retryAt !== undefined);
+}
+
+function isRefusedForItsBlocks(result: Attempt) {
+  return result.kind === "failed" && result.error === "invalid_blocks";
+}
+
+function withoutPictures(reply: AlbumReply): AlbumReply {
+  return { ...reply, recipients: reply.recipients.map((recipient) => (recipient.hype === null ? recipient : { ...recipient, hype: { ...recipient.hype, picture: null } })) };
 }
 
 function messageOf(reply: AlbumReply) {
