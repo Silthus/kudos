@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { vi } from "vitest";
 import { App, type AppReads } from "../App";
+import type { Capturer } from "../browserAnalytics/capture";
+import { CapturingContext } from "../browserAnalytics/capturing";
 import type { ActivityRead, ActivityWatch } from "../activityRead";
 import type { AlbumRead, BoardsRead, HoggiesRead, PersonRead, ProfileRead, WeekRead } from "../album/answer";
 import type { BoardRead } from "../boardRead";
@@ -62,11 +64,11 @@ export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBo
   return renderAppWith(visitor, { useLeaderboard: readLeaderboard, useQuests: readQuests, useBook: readBook, useSkillTree: readSkillTree, useProfileCard: readProfileCard, useRecentKudos: readRecentKudos, useActivityWatch: activity.watch, readActivity: activity.read, drawSpotlight, useSettings: readSettings, useEmojiMappings: noEmojiMappings, useCollection: readCollection, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies }, commands);
 }
 
-export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, emojiMappings = noEmojiMappings, boards = noBoards, weeks = noWeeks, people = noPeople, profile = noProfile, hoggies = noHoggies, commands = {} }: { settings?: SettingsRead; emojiMappings?: EmojiMappingsRead; boards?: BoardsRead; weeks?: WeekRead; people?: PersonRead; profile?: ProfileRead; hoggies?: HoggiesRead; commands?: Commands } = {}) {
-  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useEmojiMappings: emojiMappings, useThoughtfulBoards: boards, useAlbumWeek: weeks, useAlbumPerson: people, useAlbumProfile: profile, useAlbumHoggies: hoggies }, commands);
+export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, emojiMappings = noEmojiMappings, boards = noBoards, weeks = noWeeks, people = noPeople, profile = noProfile, hoggies = noHoggies, commands = {}, capturer = null }: { settings?: SettingsRead; emojiMappings?: EmojiMappingsRead; boards?: BoardsRead; weeks?: WeekRead; people?: PersonRead; profile?: ProfileRead; hoggies?: HoggiesRead; commands?: Commands; capturer?: Capturer | null } = {}) {
+  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useEmojiMappings: emojiMappings, useThoughtfulBoards: boards, useAlbumWeek: weeks, useAlbumPerson: people, useAlbumProfile: profile, useAlbumHoggies: hoggies }, commands, capturer);
 }
 
-function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands) {
+function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands, capturer: Capturer | null = null) {
   const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)),
     openQuestCrate: vi.fn(commands.openQuestCrate ?? (async () => ({ kind: "refused" }) as const)),
     buyPerk: vi.fn(commands.buyPerk ?? (async () => ({ kind: "refused", reason: null }) as const)),
@@ -90,9 +92,11 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands)
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (
     <StrictMode>
-      <ShellBoundary>
-        <App visitor={state} actions={actions} {...reads} />
-      </ShellBoundary>
+      <CapturingContext value={capturer}>
+        <ShellBoundary>
+          <App visitor={state} actions={actions} {...reads} />
+        </ShellBoundary>
+      </CapturingContext>
     </StrictMode>
   );
   const view = render(appFor(visitor));

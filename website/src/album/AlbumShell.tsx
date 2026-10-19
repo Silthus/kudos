@@ -1,12 +1,7 @@
-import { IconLeave } from "@posthog/icons";
-import { Button } from "@posthog/quill";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useCapturing } from "../browserAnalytics/capturing";
 import { ErrorBoundary } from "../ErrorBoundary";
-import { Feedback } from "../Feedback";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
-import { ThemeControl } from "../ThemeControl";
 import { useWideScreen } from "../useWideScreen";
 import type { Album, NewestPerson, PackOpenReply, UnlockReply } from "./answer";
 import { GettingStarted } from "./GettingStarted";
@@ -33,12 +28,11 @@ export type AlbumShellProps = {
   hoggies: ReactNode;
   newest: NewestPerson[] | null;
   busy: boolean;
-  onSignOut: () => void;
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, newest, busy, onSignOut, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, newest, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, openFrom, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
@@ -68,7 +62,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
         {puttingIn.said}
       </p>
       <div className="al-body" inert={playing}>
-        <Sidebar album={album} place={place} wide={wide} footer={<Footer onSignOut={onSignOut} />} />
+        <Sidebar album={album} place={place} wide={wide} />
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "team" && place.team === null && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
@@ -107,17 +101,4 @@ function usePackOpening(answered: Album) {
   const open = useCallback(() => openFrom(null), [openFrom]);
   const close = useCallback(() => setOpening(false), []);
   return { opening, open, openFrom, close, packsButton, album, rememberOpened };
-}
-
-function Footer({ onSignOut }: { onSignOut: () => void }) {
-  const capturer = useCapturing();
-  return (
-    <>
-      <ThemeControl />
-      {capturer && <Feedback capturer={capturer} />}
-      <Button variant="outline" size="icon" aria-label="Sign out" title="Sign out" onClick={onSignOut}>
-        <IconLeave />
-      </Button>
-    </>
-  );
 }

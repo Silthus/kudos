@@ -3,6 +3,8 @@ import { panelTargetAttributes } from "../linkTarget";
 import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
 import { PageTitle } from "../PageTitle";
 import type { EmojiMappingsRead } from "../emojiMappingsRead";
+import { SignOutButton } from "../SignOutButton";
+import { ThemeChoices } from "../ThemeControl";
 import { CompanyProfileSection } from "../settings/CompanyProfileSection";
 import { EmojiMappingSection } from "../settings/EmojiMapping";
 import { GroupPicker } from "../settings/GroupPicker";
@@ -11,9 +13,9 @@ import { TeammateMatching } from "../settings/TeammateMatching";
 import { WorkspaceSettings } from "../settings/WorkspaceSettings";
 import type { MessageSetting, MySettings, ShellActions } from "../shell";
 
-type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "mapSlackEmoji">; useEmojiMappings: EmojiMappingsRead };
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "mapSlackEmoji">; useEmojiMappings: EmojiMappingsRead; themeAndSignOut?: { onSignOut: () => void } };
 
-export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace }, actions, useEmojiMappings }: SettingsPageProps) {
+export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace }, actions, useEmojiMappings, themeAndSignOut }: SettingsPageProps) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -23,6 +25,7 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
         </PageTitle>
         <p className="text-sm text-muted-foreground">Your choices in one place. Changes here show in Slack's App Home too.</p>
       </header>
+      {themeAndSignOut !== undefined && <AppearancePanel />}
       {messages !== null && <Messages messages={messages} setMessageSetting={actions.setMessageSetting} />}
       {board !== null && (
         <Panel id="leaderboards" label="Leaderboards" target={panelTargetAttributes("visibility")}>
@@ -42,7 +45,37 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
       {admin !== undefined && <TeammateMatching admin={admin} linkCompanyProfile={actions.linkCompanyProfile} />}
       {workspace !== undefined && <WorkspaceSettings workspace={workspace} setWorkspaceSettings={actions.setWorkspaceSettings} />}
       {workspace !== undefined && <EmojiMappingSection useEmojiMappings={useEmojiMappings} mapSlackEmoji={actions.mapSlackEmoji} />}
+      {themeAndSignOut !== undefined && <AccountPanel onSignOut={themeAndSignOut.onSignOut} />}
     </div>
+  );
+}
+
+export function ThemeAndSignOut({ onSignOut }: { onSignOut: () => void }) {
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <AppearancePanel />
+      <AccountPanel onSignOut={onSignOut} />
+    </div>
+  );
+}
+
+function AppearancePanel() {
+  return (
+    <Panel id="appearance" label="Appearance">
+      <p className="text-sm text-muted-foreground">How HedgeHug looks in this browser.</p>
+      <ThemeChoices />
+    </Panel>
+  );
+}
+
+function AccountPanel({ onSignOut }: { onSignOut: () => void }) {
+  return (
+    <Panel id="account" label="Account">
+      <p className="text-sm text-muted-foreground">Sign out of HedgeHug in this browser. Your album stays as it is.</p>
+      <div>
+        <SignOutButton onSignOut={onSignOut} />
+      </div>
+    </Panel>
   );
 }
 
