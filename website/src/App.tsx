@@ -360,10 +360,10 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
 
 export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">;
 
-type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; withThemeAndSignOut?: boolean; onSignIn: () => void; onSignOut: () => void };
+type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; withThemeAndSignOut?: boolean; albumSections?: ReactNode; onSignIn: () => void; onSignOut: () => void };
 
-export function SettingsAnswerPage({ settings, actions, withThemeAndSignOut = false, ...answers }: SettingsAnswerPageProps) {
-  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} />;
+export function SettingsAnswerPage({ settings, actions, withThemeAndSignOut = false, albumSections, ...answers }: SettingsAnswerPageProps) {
+  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} albumSections={albumSections} />;
   const answered = <SettingsElsewhere settings={settings} {...answers} />;
   if (!withThemeAndSignOut || !settingsStillMissing(settings)) return answered;
   return (

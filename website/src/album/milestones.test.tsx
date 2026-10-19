@@ -71,8 +71,8 @@ describe("AL51: Milestones shows one row per milestone with its four medals", { 
   });
 
   it("names the emoji each milestone's gold gives, as the album's earned emojis name it once they carry it", async () => {
-    const goldEmoji: AlbumEmoji = { id: "milestone:people", kind: "milestone", name: "full-of-friends-2", picture: "/emoji/milestone-people.png", earned: false, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
-    visit({ ...midway, emojis: [...midway.emojis, goldEmoji] });
+    const goldEmoji: AlbumEmoji = { id: "milestone:people", kind: "milestone", name: "full-of-friends-2", from: "Full of friends", picture: "/emoji/milestone-people.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
+    visit({ ...midway, emojis: [...midway.emojis.filter(({ id }) => id !== goldEmoji.id), goldEmoji] });
 
     expect((await rowOf("Faces in the album")).getByText(":full-of-friends-2:").parentElement).toHaveTextContent("Gold unlocks :full-of-friends-2:");
     expect((await rowOf("Kind words")).getByText(":heart-of-the-team:").parentElement).toHaveTextContent("Gold unlocks :heart-of-the-team:");

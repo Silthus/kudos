@@ -21,7 +21,9 @@ export type TrayItem = { item: string; kind: "sticker"; person: string } | { ite
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype";
 
-export type AlbumEmoji = { id: string; kind: EarnedEmojiKind; name: string; picture: string; earned: boolean; seen: boolean; inSlack: boolean; progress: { have: number; need: number } | null };
+export type AlbumEmoji = { id: string; kind: EarnedEmojiKind; name: string; from: string; picture: string; earned: boolean; earnedAt: number | null; seen: boolean; inSlack: boolean; progress: { have: number; need: number } | null };
+
+export type SharedEmoji = Pick<AlbumEmoji, "id" | "kind" | "name" | "from" | "picture" | "inSlack">;
 
 export type MilestoneTierId = "bronze" | "silver" | "gold" | "diamond";
 
@@ -39,6 +41,8 @@ export type Album = {
   morePacks: boolean;
   tray: TrayItem[];
   emojis: AlbumEmoji[];
+  sharedEmojis: SharedEmoji[] | null;
+  emojiPage: string | null;
   milestones: AlbumMilestone[];
   gettingStarted: GettingStarted | null;
 };
@@ -54,6 +58,10 @@ export type AlbumRead = (asking: boolean) => AlbumShown | undefined;
 export type PackOpenAnswer = { kind: "opened"; items: TrayItem[]; applied: AppliedReward | null } | { kind: "refused" };
 
 export type PackOpenReply = PackOpenAnswer | Denial;
+
+export type SeenAnswer = { kind: "seen"; ids: string[] } | { kind: "refused" };
+
+export type SeenReply = SeenAnswer | Denial;
 
 export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
 

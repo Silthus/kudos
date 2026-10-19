@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
@@ -85,10 +85,30 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     const { container } = render(<Root fixture="album" />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Unlock the Kettle Works sticker" }));
-    await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
+    const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
 
     expect(exposedIn(container)).toEqual([]);
-    expect(screen.getByText(":kettle-works:").closest(".ph-no-capture")).not.toBeNull();
+    expect(within(moment).getByText(":kettle-works:").closest(".ph-no-capture")).not.toBeNull();
+  });
+
+  it("AL56: the emoji popup from the fixture build keeps every emoji's picture, its name and who it came from in blocks", async () => {
+    window.history.replaceState(null, "", "/");
+    const { container } = render(<Root fixture="album" />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /^Your emojis/ }));
+
+    expect(exposedIn(container)).toEqual([]);
+    expect([...container.querySelectorAll(".al-emoji-popover .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining([":ines-okafor-hype:", "From your first thoughtful pack for Ines Okafor · 9 Oct 2026"]));
+  });
+
+  it("AL56: an emoji moment from the fixture build keeps the emoji's picture, its name and why it was earned in blocks", async () => {
+    preferReducedMotion();
+    window.history.replaceState(null, "", "/");
+    const { container } = render(<Root fixture="album-with-new-emojis" />);
+    await screen.findByRole("dialog", { name: "New emoji unlocked" }, { timeout: 5_000 });
+
+    expect(exposedIn(container)).toEqual([]);
+    expect(screen.getByRole("heading", { level: 2, name: ":quiet-harbour:" }).closest(".ph-no-capture")).not.toBeNull();
   });
 
   it("AL56: the pack opening, sealed and opened from the fixture build, keeps every face, name and Slack picture in blocks", async () => {

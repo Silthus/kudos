@@ -11,7 +11,7 @@ const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeat
 
 const bonus = { xp: 15, coins: 0, from: { xp: 1210, level: 6, coins: 0, skillPoints: 0 }, to: { xp: 1225, level: 6, coins: 0, skillPoints: 0 } };
 
-const junoHype: AlbumEmoji = { id: "hype:juno-park", kind: "hype", name: "juno-park-hype", picture: "/emoji/hype-juno-park.png", earned: true, seen: false, inSlack: false, progress: null };
+const junoHype: AlbumEmoji = { id: "hype:juno-park", kind: "hype", name: "juno-park-hype", from: "Juno Park", picture: "/emoji/hype-juno-park.png", earned: true, earnedAt: Date.parse("2026-10-17T10:00:00Z"), seen: false, inSlack: false, progress: null };
 
 beforeEach(() => {
   fakeSystemTheme(false);

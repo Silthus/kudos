@@ -53,7 +53,7 @@ const noProfile: ProfileRead = (asking) => (asking ? { kind: "off" } : undefined
 
 const noHoggies: HoggiesRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker">>;
+type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen">>;
 
 const noReads: AppReads = { useLeaderboard: noBoard, useQuests: noQuests, useBook: noBook, useCollection: noCollection, useSkillTree: noSkillTree, useProfileCard: noProfileCard, useRecentKudos: noRecentKudos, useActivityWatch: noActivity.watch, readActivity: noActivity.read, drawSpotlight: noSpotlight, useSettings: noSettings, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies };
 
@@ -84,6 +84,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     unlockTeamSticker: vi.fn(commands.unlockTeamSticker ?? (async () => ({ kind: "refused" }) as const)),
     putIn: vi.fn(commands.putIn ?? (async () => ({ kind: "refused" }) as const)),
     putAllIn: vi.fn(commands.putAllIn ?? (async () => ({ kind: "refused" }) as const)),
+    markEmojisSeen: vi.fn(commands.markEmojisSeen ?? (async (ids: string[]) => ({ kind: "seen", ids }) as const)),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (

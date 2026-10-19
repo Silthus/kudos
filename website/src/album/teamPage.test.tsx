@@ -12,7 +12,7 @@ const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeat
 
 const midway = albumFixtures.midway;
 
-const kettleWorksEmoji: AlbumEmoji = { id: "team:kettle-works", kind: "team", name: "kettle-works", picture: "/emoji/team-kettle-works.png", earned: false, seen: false, inSlack: true, progress: { have: 3, need: 3 } };
+const kettleWorksEmoji: AlbumEmoji = { id: "team:kettle-works", kind: "team", name: "kettle-works", from: "Kettle Works", picture: "/emoji/team-kettle-works.png", earned: false, earnedAt: null, seen: false, inSlack: true, progress: { have: 3, need: 3 } };
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -208,7 +208,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
   });
 
   it("dims the page, lifts the sticker, colours it, names it and its team emoji, then flies it back to an unlocked page, in about five seconds", async () => {
-    visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis, kettleWorksEmoji] } });
+    visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis.filter(({ id }) => id !== kettleWorksEmoji.id), kettleWorksEmoji] } });
     const unlock = (await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" });
     vi.useFakeTimers();
     await act(async () => fireEvent.click(unlock));
