@@ -81,7 +81,7 @@ describe("AL18: team pages are company teams", { timeout: 60_000 }, () => {
     );
   });
 
-  test("AL45: a held teammate past the 500 people getAlbum lists still reads held, so the photo never shows them as a silhouette", async () => {
+  test("AL45: a held teammate past the 500 people getAlbum lists still reads held, so the photo shows them by their face, never as a silhouette", async () => {
     const aliceId = await memberOf(alice);
     await t.run(async (ctx) => {
       for (let index = 0; index < mostPeopleShown; index += 1) {
@@ -93,12 +93,12 @@ describe("AL18: team pages are company teams", { timeout: 60_000 }, () => {
     await settle(t);
     const latecomerId = await memberOf(latecomer);
     await t.run((ctx) => ctx.db.insert("albumStickers", { member: aliceId, person: latecomerId, from: "history", at: 0 }));
-    await theCompanyCopyHolds({ slug: "late", name: "Late", profiles: profilesOf(alice, latecomer, otters[0]!) });
+    await theCompanyCopyHolds({ slug: "late", name: "Late", profiles: profilesOf(alice, latecomer, otters[0]!).map((profile) => (profile.firstName === "Lena" ? { ...profile, cutout: aCutout("lena-pastthecap") } : profile)) });
 
     const album = await albumOf(await signedIn(alice));
 
     expect(album.morePeople).toBe(true);
-    expect(album.people.filter(({ person }) => person === latecomerId)).toEqual([expect.objectContaining({ name: latecomer.name, held: true })]);
+    expect(album.people.filter(({ person }) => person === latecomerId)).toEqual([{ person: latecomerId, name: latecomer.name, face: expect.objectContaining({ kind: "company-profile", image: expect.stringContaining("lena-pastthecap"), initials: "LP" }), held: true }]);
     expect(album.people.filter(({ person }) => person === aliceId)).toEqual([]);
   });
 

@@ -160,16 +160,22 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" })).not.toHaveAttribute("aria-disabled");
   });
 
-  it("AL54: while cards are still flying in from the tray, the action waits and sends nothing", async () => {
+  it("AL54: while Put them all in waits for its answer and while its cards fly in, the action says it waits and sends nothing, then comes back once they land", async () => {
     const trayed: Album = { ...midway, tray: [{ item: "tray-juno", kind: "sticker", person: "juno-park" }, { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }] };
-    const { user, send } = visit("/book#teams/kettle-works", { album: trayed, putAllIn: answersNever });
+    let answer: (reply: PutAllInReply) => void = () => undefined;
+    const { user, send } = visit("/book#teams/kettle-works", { album: trayed, putAllIn: () => new Promise((resolve) => (answer = resolve)) });
     await user.click(await screen.findByRole("button", { name: /^Tray/ }));
     await user.click(screen.getByRole("button", { name: /^Put them all in/ }));
 
-    const unlock = (await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" });
-    expect(unlock).toHaveAttribute("aria-disabled", "true");
-    await user.click(unlock);
+    const waiting = (await goal()).getByRole("button", { name: "Waiting for your cards to land…" });
+    expect(waiting).toHaveAttribute("aria-disabled", "true");
+    await user.click(waiting);
+    await act(async () => answer({ kind: "placed", items: trayed.tray, more: false }));
+    await user.click((await goal()).getByRole("button", { name: "Waiting for your cards to land…" }));
     expect(send).not.toHaveBeenCalled();
+
+    const unlock = await (await goal()).findByRole("button", { name: "Unlock the Kettle Works sticker" }, { timeout: 5_000 });
+    expect(unlock).not.toHaveAttribute("aria-disabled");
   });
 
   it("AL54: while the unlock waits for its answer, the packs button opens nothing, so the moment never lands on a pack", async () => {

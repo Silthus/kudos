@@ -164,9 +164,14 @@ function UnlockButton({ team, unlocking }: { team: AlbumTeam; unlocking: TeamUnl
   return (
     <button type="button" className="al-unlock" aria-disabled={unavailable || undefined} onClick={unavailable ? undefined : () => unlocking.start(team.team)}>
       <LockOpen />
-      {sending ? "Unlocking…" : `Unlock the ${team.name} sticker`}
+      {unlockWordsOf(team, sending, unlocking.waits)}
     </button>
   );
+}
+
+function unlockWordsOf(team: AlbumTeam, sending: boolean, waits: boolean) {
+  if (sending) return "Unlocking…";
+  return waits ? "Waiting for your cards to land…" : `Unlock the ${team.name} sticker`;
 }
 
 function LockOpen() {

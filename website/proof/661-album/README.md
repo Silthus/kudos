@@ -15,3 +15,12 @@ Branch `album/17` at `c12645e6` (`main` at `d3a28eff` merged in), deployed by ha
 The hugs both ways read 0: both hugs landed on a message that thanked the hugger, which the pair tallies don't count. Reduced motion can't be emulated in the preview browser; `teamPage.test.tsx` proves the moment's end state. The team emoji isn't "in Slack" (nobody added it), so the moment says "New team emoji" without the Slack line (AL30). The unlocked page shows its emoji line once ticket 8 answers `emojis`.
 
 Run: `KUDOS_CAST=<letter> KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/661-album/drive.mts`, then `KUDOS_CAST=<letter> bun website/proof/661-album/seed.mts <companyProfiles.jsonl> <companyTeams.jsonl> seed > args.json` and `convex run companyProfiles/sync:replaceCompanyProfiles "$(cat args.json)"`.
+
+## Rerun on the reviewed head
+
+After review round 1's fixes and `main` (#688, Activity) merged in, `album/17` at `562a7679` was deployed again at 06:21 UTC with functions and website, from a never-pushed proof tree merged with the live `album/7` head (`4888fc8b`). The dry run deleted no index.
+
+10. Casts C and D, seeded together as `Lamplighters C` and `Lamplighters D`. Cast C, light, 1440 × 900, by mouse, recorded: the class photo with three silhouettes; Fenwick's page, not held, now shows his **earned hype emoji with his face** and "Unlocked by your first thoughtful kudos to Fenwick"; the tray step; "Put them all in" lands Caspian, the page turns ready; the unlock, the moment ("19 Oct 2026 · 3 of 3 people collected"), and home onto "Unlocked 19 Oct 2026" with focus there (`getAlbum-rerun-C.json`).
+11. Cast D, dark, 390 × 844, by keyboard alone, recorded: ten `Tab`s reach the action, `Enter` unlocks, focus moves to "Put it on the page" over the deeper dark scrim, `Enter` lands focus on "Unlocked 19 Oct 2026". No sideways scroll (`getAlbum-rerun-D.json`).
+12. Casts A and B, unlocked in the first run: the hourly posthog.com sync has since removed their seeded teams, and both pages still read `unlocked` with their original dates through this head (`getAlbum-rerun-A.json`, `getAlbum-rerun--B.json`).
+13. No `securitypolicyviolation` in either walk. The touch hint ("or tap anywhere") shows only on a coarse pointer, which the desktop preview doesn't have.

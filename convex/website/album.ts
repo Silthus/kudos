@@ -7,7 +7,7 @@ import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
 import type { TeamSticker } from "../album/records";
 import { albumStickersOf } from "../album/stickers";
-import { teamPagesAndPeopleOf, type TeamPage, type TeamPagesAndPeople } from "../album/teamPages";
+import { teamPagesAndPeopleOf, type StoredMatch, type TeamPage, type TeamPagesAndPeople } from "../album/teamPages";
 import { unlockTeamStickerOf } from "../album/teamStickers";
 import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
@@ -91,13 +91,15 @@ async function teamsOf(ctx: QueryCtx, me: VerifiedMember, listed: Set<MemberId>)
   return { teams, unlisted: unlistedPeopleOn(pagesAndPeople, listed, named) };
 }
 
-function unlistedPeopleOn({ pages, held, profileOf }: TeamPagesAndPeople, listed: Set<MemberId>, named: Map<number, string>): AlbumPerson[] {
+function unlistedPeopleOn({ pages, held, matchOf }: TeamPagesAndPeople, listed: Set<MemberId>, named: Map<number, string>): AlbumPerson[] {
   const onAPage = new Set(pages.flatMap(({ people }) => people));
-  const nameOf = (person: MemberId) => {
-    const profile = profileOf.get(person);
-    return profile === undefined ? undefined : named.get(profile);
-  };
-  return [...onAPage].filter((person) => !listed.has(person)).map((person) => ({ person, ...teammateOf(nameOf(person), null), held: held.has(person) }));
+  return [...onAPage].filter((person) => !listed.has(person)).map((person) => unlistedPersonOf(person, held.has(person), matchOf.get(person), named));
+}
+
+function unlistedPersonOf(person: MemberId, isHeld: boolean, match: StoredMatch | undefined, named: Map<number, string>): AlbumPerson {
+  const name = match === undefined ? undefined : named.get(match.profile);
+  const teammate = isHeld ? companyTeammateOf(name, null, match?.face ?? null) : teammateOf(name, null);
+  return { person, ...teammate, held: isHeld };
 }
 
 async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember) {
