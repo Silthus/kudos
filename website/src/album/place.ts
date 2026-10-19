@@ -57,9 +57,10 @@ function isARetiredGroupAlbum(team: string) {
 }
 
 function hoggiesPlaceOf(key: string | null, landingState: unknown): Place {
-  const rarity = rarityIn(key) ?? (key === null ? filteredRarityIn(landingState) : undefined);
-  if (rarity !== undefined) return { kind: "hoggies", hoggie: null, rarity };
-  return { kind: "hoggies", hoggie: key };
+  const landedRarity = rarityIn(key);
+  if (landedRarity !== undefined) return { kind: "hoggies", hoggie: null, rarity: landedRarity };
+  const filtered = filteredRarityIn(landingState);
+  return filtered === undefined ? { kind: "hoggies", hoggie: key } : { kind: "hoggies", hoggie: key, rarity: filtered };
 }
 
 function rarityIn(asked: unknown): Rarity | undefined {
@@ -118,5 +119,6 @@ export function hrefOf(place: Place): string {
 }
 
 export function keyOf(place: Place): string {
+  if (place.kind === "hoggies") return hrefOf({ kind: "hoggies", hoggie: null });
   return hrefOf(place) + (place.kind === "elsewhere" ? "#elsewhere" : "");
 }
