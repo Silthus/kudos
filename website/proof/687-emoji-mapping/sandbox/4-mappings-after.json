@@ -1,0 +1,41 @@
+[
+ {
+  "image": "https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-large/1f6a8.png",
+  "mapping": {
+   "kind": "team",
+   "team": "proof-696-beaconsa"
+  },
+  "name": "beacons-a"
+ },
+ {
+  "image": "https://emoji.slack-edge.com/T0C3US298SH/glitch_crab/db049f1f9c.png",
+  "mapping": {
+   "kind": "random"
+  },
+  "name": "glitch_crab"
+ },
+ {
+  "image": "https://emoji.slack-edge.com/T0C3US298SH/piggy/b7762ee8cd.png",
+  "mapping": {
+   "kind": "team",
+   "team": "proof-652-inslacka"
+  },
+  "name": "piggy"
+ },
+ {
+  "image": "https://emoji.slack-edge.com/T0C3US298SH/squirrel/465f40c0e0.png",
+  "mapping": {
+   "kind": "level",
+   "level": 5
+  },
+  "name": "shipit"
+ },
+ {
+  "image": "https://emoji.slack-edge.com/T0C3US298SH/squirrel/465f40c0e0.png",
+  "mapping": {
+   "kind": "hype",
+   "person": "ab45dd6f5b767a15ca54ffbea6e06006"
+  },
+  "name": "squirrel"
+ }
+]

@@ -1,0 +1,30 @@
+ ❯ Object.result.<computed> [as mutation] node_modules/.pnpm/convex-test@0.0.61_patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c58_c49130ae7d2535675125fd89125442c7/node_modules/convex-test/dist/index.js:1982:56
+ ❯ convex/album/emojiMappings.test.ts:290:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/14]⎯
+
+ FAIL  |convex| convex/album/emojiMappings.test.ts > website commands pass one guard > WS61: the Slack emoji and its place are mapSlackEmoji's only arguments, so no call names a member
+AssertionError: expected [Function] to throw error matching /member/ but got 'Could not find module for: "website/e…'
+
+- Expected:
+/member/
+
++ Received:
+"Could not find module for: \"website/emojiMappings\""
+
+ ❯ convex/album/emojiMappings.test.ts:308:160
+    306|     const before = await everyTable();
+    307|
+    308|     await expect(asOwner.mutation(api.website.emojiMappings.mapSlackEm…
+       |                                                                                                                                                                ^
+    309|     expect(await everyTable()).toEqual(before);
+    310|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/14]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  14 failed (14)
+   Start at  09:07:21
+   Duration  2.37s (tests 53%, transform 34%, import 12%, environment 2%)
+

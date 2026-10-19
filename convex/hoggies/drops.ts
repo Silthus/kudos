@@ -183,6 +183,6 @@ function dropRecordOf(ctx: QueryCtx, member: MemberId, crate: string): Promise<D
     .unique();
 }
 
-function drawSecret() {
+export function drawSecret() {
   return process.env.HOGGIE_DRAW_SECRET ?? "";
 }

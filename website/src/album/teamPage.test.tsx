@@ -338,6 +338,30 @@ function withTheTeamEmojiOutOfSlack(album: Album, team: string): Album {
   return { ...album, emojis: album.emojis.map((emoji) => (emoji.id === `team:${team}` ? { ...emoji, inSlack: false } : emoji)) };
 }
 
+describe("AL74: a team emoji mapped to a Slack emoji", () => {
+  const mappedPicture = "https://emoji.slack-edge.com/T1/harbour-hogs/1.png";
+
+  it("shows the Slack emoji's name and picture on the unlocked page", async () => {
+    const mapped: AlbumEmoji = { id: "team:quiet-harbour", kind: "team", name: "harbour-hogs", picture: mappedPicture, earned: true, seen: true, inSlack: true, progress: null };
+    visit("/book#teams/quiet-harbour", { album: { ...midway, emojis: [...midway.emojis.filter(({ id }) => id !== "team:quiet-harbour"), mapped] } });
+
+    expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
+    expect(teamEmojiLine()).toHaveTextContent("You got the :harbour-hogs: team emoji.");
+    expect(screen.queryByText(":quiet-harbour:")).not.toBeInTheDocument();
+    expect(teamEmojiLine().closest(".al-emoji-line")?.querySelector("img")).toHaveAttribute("src", mappedPicture);
+  });
+
+  it("names the Slack emoji, not the name stored at the unlock, in the unlock moment", async () => {
+    preferReducedMotion();
+    visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis, { ...kettleWorksEmoji, name: "kettle-crew", picture: mappedPicture }] } });
+    await userEvent.click(await unlockOnThePhoto());
+
+    const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
+    expect(within(moment).getByText(":kettle-crew:")).toBeInTheDocument();
+    expect(within(moment).getByText(":kettle-crew:").closest(".al-unlock-emoji")?.querySelector("img")).toHaveAttribute("src", mappedPicture);
+  });
+});
+
 describe("AL46: the person page", () => {
   it("shows your history with them, their teams and their hype emoji", async () => {
     visit("/book#people/ines-okafor");

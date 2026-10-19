@@ -1,0 +1,25 @@
+[
+ {
+  "earned": true,
+  "id": "hype:js7awm3qedr5ymzkehbctewrex8gj710",
+  "inSlack": true,
+  "kind": "hype",
+  "name": "squirrel",
+  "picture": "https://emoji.slack-edge.com/T0C3US298SH/squirrel/465f40c0e0.png",
+  "progress": null,
+  "seen": true
+ },
+ {
+  "earned": false,
+  "id": "level:5",
+  "inSlack": true,
+  "kind": "level",
+  "name": "shipit",
+  "picture": "https://emoji.slack-edge.com/T0C3US298SH/squirrel/465f40c0e0.png",
+  "progress": {
+   "have": 10,
+   "need": 600
+  },
+  "seen": false
+ }
+]
