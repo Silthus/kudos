@@ -3,7 +3,9 @@
   --al-card-frame: #1d4aff;
   --al-card-frame-ink: #ffffff;
   --al-card-back: #23308f;
-  --al-card-back-line: color-mix(in oklab, #ffffff 16%, transparent);
+  --al-card-back-ink: #ffffff;
+  --al-card-back-line: color-mix(in oklab, var(--al-card-back-ink) 16%, transparent);
+  --al-light: #ffffff;
   --al-gold: #e4b520;
   --al-gold-ink: #1f1a05;
   --al-ribbon: var(--al-accent-ink);
@@ -20,6 +22,7 @@
 }
 
 .dark .al-shell {
+  --al-light: #f4f4f0;
   --al-card-frame: #5b7bff;
   --al-card-frame-ink: #0b1030;
   --al-card-back: #2b3aa8;
@@ -406,7 +409,7 @@
 .al-card-back {
   justify-content: center;
   background: repeating-linear-gradient(135deg, var(--al-card-back) 0 10px, color-mix(in oklab, var(--al-card-back) 85%, var(--al-card-frame-ink)) 10px 20px);
-  color: #ffffff;
+  color: var(--al-card-back-ink);
 }
 
 .al-card-back-mark {
@@ -552,7 +555,7 @@
 }
 
 .al-card-rarity {
-  color: var(--card-rarity);
+  color: var(--foreground);
   font-size: 0.8125rem;
   font-weight: 800;
 }
@@ -560,7 +563,7 @@
 .al-card-foil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 30%, color-mix(in oklab, var(--card-rarity) 30%, transparent) 45%, color-mix(in oklab, #ffffff 40%, transparent) 50%, transparent 62%);
+  background: linear-gradient(115deg, transparent 30%, color-mix(in oklab, var(--card-rarity) 30%, transparent) 45%, color-mix(in oklab, var(--al-light) 40%, transparent) 50%, transparent 62%);
   background-size: 250% 100%;
   background-position: 100% 0;
   mix-blend-mode: soft-light;
@@ -666,7 +669,7 @@
   inset: 0;
   z-index: 3;
   border-radius: 0.875rem;
-  background: linear-gradient(105deg, transparent 35%, color-mix(in oklab, #ffffff 65%, transparent) 50%, transparent 65%);
+  background: linear-gradient(105deg, transparent 35%, color-mix(in oklab, var(--al-light) 65%, transparent) 50%, transparent 65%);
   background-size: 300% 100%;
   animation: al-shine 900ms ease-out 200ms both;
   pointer-events: none;
@@ -794,6 +797,10 @@
   .al-opening-stage,
   .al-up-next {
     grid-column: 1;
+  }
+
+  .al-opening-stage {
+    overflow-x: clip;
   }
 
   .al-up-next {

@@ -55,12 +55,12 @@ function afterTheOpen(album: Album, pack: string, items: TrayItem[]): Album {
   return { ...album, packs: album.packs.filter((waiting) => waiting.pack !== pack), tray: [...album.tray, ...items], level: { ...album.level, xp: album.level.xp + 15 } };
 }
 
-function visit(album: Album, openThoughtfulPack: (pack: string) => Promise<PackOpenReply>) {
+function visit(album: Album, openThoughtfulPack: (pack: string) => Promise<PackOpenReply>, { readFollows = true }: { readFollows?: boolean } = {}) {
   window.history.replaceState(null, "", "/");
   const live = anAlbumThatAnswers(album);
   const send = vi.fn(async (pack: string) => {
     const reply = await openThoughtfulPack(pack);
-    if (reply.kind === "opened") live.answerNext(afterTheOpen(live.now(), pack, reply.items));
+    if (reply.kind === "opened" && readFollows) live.answerNext(afterTheOpen(live.now(), pack, reply.items));
     return reply;
   });
   const view = renderAlbum(memberWithTheAlbum, live.read, { commands: { openThoughtfulPack: send } });
@@ -122,6 +122,14 @@ describe("AL47: the packs button opens the oldest waiting pack, sealed, and only
     expect(screen.queryByRole("dialog", { name: "Open your packs" })).not.toBeInTheDocument();
     expect(send).not.toHaveBeenCalled();
     expect((await topBar()).getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveFocus();
+  });
+
+  it("the sealed pack never says whether it holds the person's sticker", async () => {
+    const { user } = visit(albumFixtures.midway, async () => opened(stickerAndHoggie("juno-park")));
+
+    const dialog = await openThePacks(user);
+
+    expect(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" })).not.toHaveTextContent(/card|sticker/i);
   });
 
   it("with no pack waiting, says how to earn one", async () => {
@@ -281,6 +289,48 @@ describe("AL47: the opened cards fly into the top bar's tray", () => {
     expect(await dialog.findByRole("button", { name: "Rip open the pack for thanking Rook Dale" }, { timeout: 2000 })).toHaveFocus();
     expect(dialog.getByText("1 opened · 1 pack waiting")).toBeInTheDocument();
     expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AL8: a pack opened before getAlbum answers again is never offered again", () => {
+  it("reopening the packs while the read still lists the opened pack brings the next one, and counts only it", async () => {
+    preferReducedMotion();
+    const { user, send } = visit(albumFixtures.midway, async () => opened(stickerAndHoggie("juno-park")), { readFollows: false });
+    const dialog = await openThePacks(user);
+    await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
+    await user.click(await dialog.findByRole("button", { name: "Done for now" }));
+
+    const again = await openThePacks(user);
+
+    expect(again.getByRole("button", { name: "Rip open the pack for thanking Rook Dale" })).toHaveFocus();
+    expect(again.getByText("1 pack waiting")).toBeInTheDocument();
+    expect(send.mock.calls).toEqual([["pack-1"]]);
+  });
+
+  it("the packs button stops counting a pack the moment it opens", async () => {
+    preferReducedMotion();
+    const { user } = visit(albumFixtures.midway, async () => opened(stickerAndHoggie("juno-park")), { readFollows: false });
+    const dialog = await openThePacks(user);
+    await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
+    await user.click(await dialog.findByRole("button", { name: "Done for now" }));
+
+    expect((await topBar()).getByRole("button", { name: "Open your packs, 1 waiting" })).toHaveFocus();
+  });
+});
+
+describe("AL55: focus stays inside the pack opening", () => {
+  it("Shift+Tab from the first control goes to the last, and Tab from the last back to the first", async () => {
+    const { user } = visit(albumFixtures.midway, async () => opened(stickerAndHoggie("juno-park")));
+    const dialog = await openThePacks(user);
+    const close = dialog.getByRole("button", { name: "Close the pack opening" });
+    const next = dialog.getByRole("button", { name: "Open the pack for thanking Rook Dale" });
+
+    close.focus();
+    await user.tab({ shift: true });
+    expect(next).toHaveFocus();
+
+    await user.tab();
+    expect(close).toHaveFocus();
   });
 });
 

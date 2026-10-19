@@ -179,6 +179,7 @@ describe("AL55: the album's own colours meet WCAG 2.2 AA in both themes", () => 
       expect(contrast(mode, "al-count-ink", "al-accent")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-gold-ink", "al-gold")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-ribbon-ink", "al-ribbon")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-card-back-ink", "al-card-back")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-accent-ink", "background")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "foreground", "card")).toBeGreaterThanOrEqual(4.5);
     });

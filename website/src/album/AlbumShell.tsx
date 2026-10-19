@@ -1,6 +1,6 @@
 import { IconLeave } from "@posthog/icons";
 import { Button } from "@posthog/quill";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useCapturing } from "../browserAnalytics/capturing";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { Feedback } from "../Feedback";
@@ -19,9 +19,9 @@ import "./album.css";
 
 export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; busy: boolean; onSignOut: () => void; openThoughtfulPack: (pack: string) => Promise<PackOpenReply> };
 
-export function AlbumShell({ album, place, settings, leaderboard, busy, onSignOut, openThoughtfulPack }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, busy, onSignOut, openThoughtfulPack }: AlbumShellProps) {
   const wide = useWideScreen();
-  const { opening, open, close, packsButton } = usePackOpening();
+  const { opening, open, close, packsButton, album, rememberOpened } = usePackOpening(answered);
   const { held, hold, release } = useHeld();
   const trayButton = useRef<HTMLButtonElement>(null);
   const closeOpening = useCallback(() => {
@@ -33,7 +33,7 @@ export function AlbumShell({ album, place, settings, leaderboard, busy, onSignOu
   return (
     <div className="al-shell">
       <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={opening} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} />
-      {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onClose={closeOpening} />}
+      {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} />}
       <div className="al-body" inert={opening}>
         <Sidebar album={album} place={place} wide={wide} footer={<Footer onSignOut={onSignOut} />} />
         <main className="al-main" aria-busy={busy || undefined}>
@@ -47,8 +47,11 @@ export function AlbumShell({ album, place, settings, leaderboard, busy, onSignOu
   );
 }
 
-function usePackOpening() {
+function usePackOpening(answered: Album) {
   const [opening, setOpening] = useState(false);
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
+  const album = useMemo(() => (opened.size === 0 ? answered : { ...answered, packs: answered.packs.filter(({ pack }) => !opened.has(pack)) }), [answered, opened]);
+  const rememberOpened = useCallback((pack: string) => setOpened((packs) => new Set(packs).add(pack)), []);
   const packsButton = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -57,7 +60,7 @@ function usePackOpening() {
   }, [opening]);
   const open = useCallback(() => setOpening(true), []);
   const close = useCallback(() => setOpening(false), []);
-  return { opening, open, close, packsButton };
+  return { opening, open, close, packsButton, album, rememberOpened };
 }
 
 function Footer({ onSignOut }: { onSignOut: () => void }) {

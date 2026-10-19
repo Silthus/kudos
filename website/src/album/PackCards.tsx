@@ -15,7 +15,7 @@ export function PackWrapper({ thanked, size }: { thanked: Thanked; size: "big" |
         <ThankedFace thanked={thanked} />
       </span>
       <span className="al-pack-for ph-no-capture">For thanking {nameOf(thanked)}</span>
-      {size === "big" && <span className="al-pack-contents">A card and a hoggie inside</span>}
+      {size === "big" && <span className="al-pack-contents">A surprise inside</span>}
       <span className="al-pack-crimp" aria-hidden="true" />
     </span>
   );

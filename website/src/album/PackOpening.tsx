@@ -1,5 +1,5 @@
 import { IconX } from "@posthog/icons";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Rarity } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, WaitingPack } from "./answer";
@@ -45,10 +45,11 @@ type PackOpeningProps = {
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   trayTarget: RefObject<HTMLElement | null>;
   onHold: (held: Partial<Held>) => void;
+  onOpened: (pack: string) => void;
   onClose: () => void;
 };
 
-export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onClose }: PackOpeningProps) {
+export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onOpened, onClose }: PackOpeningProps) {
   const [reduced] = useState(prefersReducedMotion);
   const [active, setActive] = useState<WaitingPack | null>(() => album.packs[0] ?? null);
   const [opened, setOpened] = useState<string[]>([]);
@@ -80,6 +81,7 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onC
       const reply = await openThoughtfulPack(active.pack);
       if (reply.kind !== "opened") return refuse("refused");
       const contents = contentsOf(before, active, reply);
+      onOpened(active.pack);
       setOpened((packs) => [...packs, active.pack]);
       setReveal({ contents, beat: reduced ? lastBeatOf(contents) : beatsOf(contents)[0]! });
     } catch {
@@ -125,7 +127,7 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onC
   });
 
   return (
-    <div ref={dialog} className="al-opening" role="dialog" aria-modal="true" aria-label="Open your packs" data-step={flying ? "flying" : (reveal?.beat ?? "sealed")} data-reduced={reduced ? "" : undefined}>
+    <div ref={dialog} tabIndex={-1} onKeyDown={(event) => event.key === "Tab" && keepFocusIn(dialog.current, event)} className="al-opening" role="dialog" aria-modal="true" aria-label="Open your packs" data-step={flying ? "flying" : (reveal?.beat ?? "sealed")} data-reduced={reduced ? "" : undefined}>
       <div className="al-opening-head">
         <p className="al-opening-count">{countWordsOf(opened.length, album.packs.filter(({ pack }) => !opened.includes(pack)).length)}</p>
         <button type="button" className="al-opening-close" aria-label="Close the pack opening" onClick={close} disabled={busy}>
@@ -147,6 +149,15 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onC
       </p>
     </div>
   );
+}
+
+function keepFocusIn(dialog: HTMLElement | null, event: ReactKeyboardEvent<HTMLElement>) {
+  const controls = [...(dialog?.querySelectorAll<HTMLElement>("button:not(:disabled)") ?? [])];
+  const focused = document.activeElement as HTMLElement | null;
+  const atTheEdge = event.shiftKey ? focused === controls[0] : focused === controls.at(-1);
+  if (controls.length > 0 && focused !== null && controls.includes(focused) && !atTheEdge) return;
+  event.preventDefault();
+  (controls.length === 0 ? dialog : event.shiftKey ? controls.at(-1) : controls[0])?.focus();
 }
 
 function countWordsOf(openedCount: number, left: number) {
