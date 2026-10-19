@@ -9,12 +9,12 @@ import { SettingsPage, ThemeAndSignOut } from "./SettingsPage";
 
 export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "mapSlackEmoji">;
 
-type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; useEmojiMappings: EmojiMappingsRead; withThemeAndSignOut?: boolean; albumSections?: ReactNode } & Answers;
+type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; useEmojiMappings: EmojiMappingsRead; albumSections?: ReactNode } & Answers;
 
-export function SettingsAnswerPage({ settings, actions, useEmojiMappings, withThemeAndSignOut = false, albumSections, ...answers }: SettingsAnswerPageProps) {
-  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} themeAndSignOut={withThemeAndSignOut ? { onSignOut: answers.onSignOut } : undefined} albumSections={albumSections} />;
+export function SettingsAnswerPage({ settings, actions, useEmojiMappings, albumSections, ...answers }: SettingsAnswerPageProps) {
+  if (settings?.kind === "settings") return <SettingsPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} onSignOut={answers.onSignOut} albumSections={albumSections} />;
   const answered = <SettingsElsewhere settings={settings} {...answers} />;
-  if (!withThemeAndSignOut || !settingsStillMissing(settings)) return answered;
+  if (!settingsStillMissing(settings)) return answered;
   return (
     <>
       {answered}

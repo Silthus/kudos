@@ -1,6 +1,4 @@
 import type { ReactNode } from "react";
-import { Arrow } from "../Arrow";
-import { AppLink } from "../AppLink";
 
 type PanelProps = { id: string; label: string; target?: Record<`data-${string}`, string>; aside?: ReactNode; busy?: boolean; children?: ReactNode };
 
@@ -16,14 +14,5 @@ export function Panel({ id, label, target, aside, busy = false, children }: Pane
       </div>
       {children}
     </section>
-  );
-}
-
-export function PanelLink({ href, children, ...attributes }: { href: string; children: ReactNode } & Record<`data-${string}`, string>) {
-  return (
-    <AppLink href={href} className="group inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline" {...attributes}>
-      {children}
-      <Arrow />
-    </AppLink>
   );
 }
