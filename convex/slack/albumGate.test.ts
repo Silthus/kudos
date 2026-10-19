@@ -34,6 +34,7 @@ vi.mock("../bus/publish", async (importOriginal) => {
     });
   actual.subscribers.kudosGiven = withoutTheAlbum(actual.subscribers.kudosGiven) as typeof actual.subscribers.kudosGiven;
   actual.subscribers.companyTeamsReplaced = withoutTheAlbum(actual.subscribers.companyTeamsReplaced) as typeof actual.subscribers.companyTeamsReplaced;
+  actual.subscribers.hugGiven = withoutTheAlbum(actual.subscribers.hugGiven) as typeof actual.subscribers.hugGiven;
   return actual;
 });
 
@@ -77,7 +78,7 @@ const minuteMs = 60_000;
 const siteUrl = "https://kudos-site.test";
 const album = "album";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "sticker-book", "team-pages", "team-spirit"];
-const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulTallies", "albumStickers", "emojiNames", "emojiNameNumbers"] as const;
+const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulTallies", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs"] as const;
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -122,7 +123,7 @@ const albumOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () 
 ];
 
 describe("AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it", { timeout: 180_000 }, () => {
-  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies and emoji names it stores and the packs earned events it sends, and getAlbum and getThoughtfulBoards answer off", async ({ flag, turnOff }) => {
+  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies, emoji names and the pair and week tallies it stores and the packs earned events it sends, and getAlbum and getThoughtfulBoards answer off", async ({ flag, turnOff }) => {
     theAlbum.removed = true;
     const withoutTheAlbum = await walkIn(await fourMembers(flag, turnOff));
     freshFakes();
@@ -134,6 +135,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(withoutTheAlbum.albumRows.thoughtfulPacks).toEqual([]);
     expect(walk.albumRows.thoughtfulPacks).toHaveLength(3);
     expect(walk.albumRows.emojiNames.length).toBeGreaterThan(0);
+    expect(withoutTheAlbum.albumRows.pairTallies).toEqual([]);
+    expect(walk.albumRows.pairTallies.length).toBeGreaterThan(0);
     expect(walk.albumRows.thoughtfulTallies).toEqual([expect.objectContaining({ awards: 2 }), expect.objectContaining({ awards: 1 })]);
     expect(Object.values(walk.boards).every((answer) => !(answer as object).hasOwnProperty("people"))).toBe(true);
     expect(Object.values(walk.boards)).toEqual(Object.values(withoutTheAlbum.boards));
