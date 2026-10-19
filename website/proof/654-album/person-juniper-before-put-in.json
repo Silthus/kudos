@@ -1,0 +1,47 @@
+{
+  "best": {
+    "at": 1791774152926,
+    "message": {
+      "edited": false,
+      "kind": "text",
+      "segments": [
+        {
+          "kind": "person",
+          "name": "Juniper Vale"
+        },
+        {
+          "kind": "text",
+          "text": " "
+        },
+        {
+          "kind": "emoji",
+          "name": "hedgehog",
+          "unicode": "🦔"
+        },
+        {
+          "kind": "text",
+          "text": " for untangling the brittle invoice export over two long afternoons with me"
+        }
+      ]
+    },
+    "permalink": "https://posthogtestgroup.slack.com/archives/C0C9N9A4SE4/p1791774152926000"
+  },
+  "face": {
+    "initials": "JV",
+    "kind": "initials"
+  },
+  "firstThankedAt": 1791774152926,
+  "held": false,
+  "hugsGiven": 1,
+  "hugsReceived": 0,
+  "hype": {
+    "earned": true,
+    "name": "juniper-vale-3-hype"
+  },
+  "kind": "person",
+  "kudosGiven": 3,
+  "kudosReceived": 0,
+  "name": "Juniper Vale",
+  "person": "js79zdca22vdg9a7dqjfx6593d8gkmcj",
+  "teams": []
+}

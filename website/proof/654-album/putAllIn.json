@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "hoggie": "megaphone",
+      "isNew": true,
+      "item": "jn7vm3tmfqwydewnkvsntjy2fd8gjzd2",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "hoggie": "robot",
+      "isNew": true,
+      "item": "jn7tf2qppqz5z160kjtxreyw7n8gjf5x",
+      "kind": "hoggie",
+      "rarity": "rare"
+    },
+    {
+      "item": "jn7wje3j9x6shn02ddbzpxvtt98gjet5",
+      "kind": "sticker",
+      "person": "js79zdca22vdg9a7dqjfx6593d8gkmcj"
+    }
+  ],
+  "kind": "placed",
+  "more": false
+}
