@@ -50,6 +50,17 @@ export async function weekTotals(ctx: QueryCtx, member: MemberId, week: Week): P
   return { givenWeek: sumOf(given), receivedWeek: sumOf(received) };
 }
 
+export type WeekAward = { message: MessageRef; giver: MemberId; recipient: MemberId; at: number };
+
+export async function awardsInWeekNewestFirst(ctx: QueryCtx, member: MemberId, side: "given" | "received", { monday, sunday }: Week, atMost: number): Promise<WeekAward[]> {
+  const awards =
+    side === "given"
+      ? ctx.db.query("awards").withIndex("by_giver", (q) => q.eq("giver", member).gte("day", monday).lte("day", sunday))
+      : ctx.db.query("awards").withIndex("by_recipient", (q) => q.eq("recipient", member).gte("day", monday).lte("day", sunday));
+  const newest = await awards.order("desc").take(atMost);
+  return newest.map(({ workspace, conversation, message, giver, recipient, at }) => ({ message: { workspace, conversation, message }, giver, recipient, at }));
+}
+
 export type EarlierAward = { recipient: MemberId; day: DayKey; annotations: Annotations };
 
 export async function givenEarlierInWeek(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week, before: AwardId): Promise<EarlierAward[]> {

@@ -5,6 +5,7 @@ import { personPageOf, type HypeEmoji, type PersonTeam } from "../album/personPa
 import { lastKindNoteTo, newestStickersOf, type KindNote } from "../album/profile";
 import type { HoggieFound } from "../album/records";
 import { weekEditionOf, type Issue, type WeekTab } from "../album/weekIssue";
+import type { WeekKudos, WeekKudosList } from "../album/weekKudos";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { givenFactsOf } from "../engine/awards";
 import type { DayKey } from "../engine/allowance";
@@ -14,6 +15,8 @@ import { companyTeammateOf, type Face } from "./faces";
 import type { VerifiedMember } from "./memberQuery";
 
 export type AlbumPersonFace = { person: MemberId; name: string; face: Face };
+
+const mentionLookupsAnIssue = 1_000;
 
 export type AlbumKudos = { message: Message; permalink: string | null; at: number };
 
@@ -32,7 +35,11 @@ export type AlbumPersonAnswer = AlbumPersonFace & {
 
 export type PeopleShown = { people: AlbumPersonFace[]; more: number };
 
-export type AlbumIssue = Omit<Issue, "kudosOfWeek" | "thanked" | "thankedBy" | "hugged" | "huggedBy" | "newFaces" | "hoggiesFound"> & {
+export type AlbumWeekKudos = AlbumKudos & { people: AlbumPersonFace[]; morePeople: number };
+
+export type AlbumWeekKudosList = { kudos: AlbumWeekKudos[]; more: boolean };
+
+export type AlbumIssue = Omit<Issue, "kudosOfWeek" | "thanked" | "thankedBy" | "hugged" | "huggedBy" | "newFaces" | "hoggiesFound" | "given" | "received"> & {
   kudosOfWeek: (AlbumKudos & { giver: AlbumPersonFace; hugs: number }) | null;
   thanked: PeopleShown;
   thankedBy: PeopleShown;
@@ -40,6 +47,8 @@ export type AlbumIssue = Omit<Issue, "kudosOfWeek" | "thanked" | "thankedBy" | "
   huggedBy: PeopleShown;
   newFaces: PeopleShown;
   hoggies: { hoggies: HoggieFound[]; more: number };
+  given: AlbumWeekKudosList;
+  received: AlbumWeekKudosList;
 };
 
 export type AlbumWeekAnswer = { kind: "week"; week: DayKey; weeks: WeekTab[]; issue: AlbumIssue | null };
@@ -75,24 +84,32 @@ async function kindNoteShown(ctx: QueryCtx, workspace: string, { giver, message,
   return { giver: await faceIn(ctx, workspace, giver), ...(await kudosShown(ctx, mentionsOfOnePage(ctx), message, at)) };
 }
 
-async function issueShown(ctx: QueryCtx, workspace: string, { kudosOfWeek, thanked, thankedBy, hugged, huggedBy, newFaces, hoggiesFound, ...counts }: Issue): Promise<AlbumIssue> {
+async function issueShown(ctx: QueryCtx, workspace: string, { kudosOfWeek, thanked, thankedBy, hugged, huggedBy, newFaces, hoggiesFound, given, received, ...counts }: Issue): Promise<AlbumIssue> {
   const people = async ({ people: listed, more }: { people: MemberId[]; more: number }): Promise<PeopleShown> => ({ people: await Promise.all(listed.map((person) => faceIn(ctx, workspace, person))), more });
+  const mentions = mentionsOfOnePage(ctx, mentionLookupsAnIssue);
+  const kudosList = async ({ kudos, more }: WeekKudosList): Promise<AlbumWeekKudosList> => ({ kudos: await Promise.all(kudos.map((each) => weekKudosShown(ctx, workspace, mentions, each))), more });
   return {
     ...counts,
-    kudosOfWeek: kudosOfWeek === null ? null : await kudosOfTheWeekShown(ctx, workspace, kudosOfWeek),
+    kudosOfWeek: kudosOfWeek === null ? null : await kudosOfTheWeekShown(ctx, workspace, mentions, kudosOfWeek),
     thanked: await people(thanked),
     thankedBy: await people(thankedBy),
     hugged: await people(hugged),
     huggedBy: await people(huggedBy),
     newFaces: await people(newFaces),
     hoggies: hoggiesFound,
+    given: await kudosList(given),
+    received: await kudosList(received),
   };
 }
 
-async function kudosOfTheWeekShown(ctx: QueryCtx, workspace: string, { message, hugs, at }: NonNullable<Issue["kudosOfWeek"]>): Promise<AlbumIssue["kudosOfWeek"]> {
+async function kudosOfTheWeekShown(ctx: QueryCtx, workspace: string, mentions: Mentions, { message, hugs, at }: NonNullable<Issue["kudosOfWeek"]>): Promise<AlbumIssue["kudosOfWeek"]> {
   const given = await givenFactsOf(ctx, message);
   if (given === null) return null;
-  return { giver: await faceIn(ctx, workspace, given.giver), ...(await kudosShown(ctx, mentionsOfOnePage(ctx), message, at)), hugs };
+  return { giver: await faceIn(ctx, workspace, given.giver), ...(await kudosShown(ctx, mentions, message, at)), hugs };
+}
+
+async function weekKudosShown(ctx: QueryCtx, workspace: string, mentions: Mentions, { message, at, people, morePeople }: WeekKudos): Promise<AlbumWeekKudos> {
+  return { ...(await kudosShown(ctx, mentions, message, at)), people: await Promise.all(people.map((person) => faceIn(ctx, workspace, person))), morePeople };
 }
 
 async function kudosShown(ctx: QueryCtx, mentions: Mentions, message: MessageRef, at: number): Promise<AlbumKudos> {

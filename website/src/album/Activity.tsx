@@ -8,7 +8,7 @@ import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import { SlackLink } from "../SlackLink";
-import type { AlbumWeek, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekTab } from "./answer";
+import type { AlbumWeek, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
 import { plural } from "./facts";
 import { rarityWordOf } from "./opening";
 import { hrefOf } from "./place";
@@ -150,7 +150,7 @@ function Issue({ issue, me }: { issue: WeekIssue; me: string }) {
 
 function isQuiet(issue: WeekIssue) {
   const lists = [issue.thanked, issue.thankedBy, issue.hugged, issue.huggedBy, issue.newFaces];
-  return issue.days.every((count) => count === 0) && issue.packsOpened === 0 && issue.kudosOfWeek === null && lists.every((list) => countOf(list) === 0) && countOf(issue.hoggies) === 0;
+  return issue.days.every((count) => count === 0) && issue.packsOpened === 0 && issue.kudosOfWeek === null && lists.every((list) => countOf(list) === 0) && countOf(issue.hoggies) === 0 && issue.given.kudos.length + issue.received.kudos.length === 0;
 }
 
 function countOf({ more, ...list }: PeopleListed | HoggiesFound) {
@@ -183,12 +183,13 @@ function Tally({ term, figure, note }: { term: string; figure: number; note: str
 }
 
 function IssueBody({ issue, me }: { issue: WeekIssue; me: string }) {
+  const ledByYou = issue.kudosOfWeek?.giver.person === me;
   return (
     <div className="al-issue-body">
       <div className="al-issue-main">
         {issue.kudosOfWeek !== null && <KudosOfTheWeekStory kudos={issue.kudosOfWeek} me={me} />}
-        <PeopleSection title="Who you thanked" listed={issue.thanked} />
-        <PeopleSection title="Who thanked you" listed={issue.thankedBy} />
+        <KudosSection title={ledByYou ? "Everyone else you thanked" : "Who you thanked"} list={issue.given} />
+        <KudosSection title="Said to you" list={issue.received} />
       </div>
       <div className="al-issue-side">
         <Section title="New in your album">{countOf(issue.newFaces) === 0 ? <p className="al-issue-hint">No new faces this week. A thoughtful kudos to someone new brings their card.</p> : <People listed={issue.newFaces} />}</Section>
@@ -238,13 +239,48 @@ function KudosOfTheWeekStory({ kudos, me }: { kudos: KudosOfTheWeek; me: string 
   );
 }
 
-function PeopleSection({ title, listed }: { title: string; listed: PeopleListed }) {
-  if (countOf(listed) === 0) return null;
+function KudosSection({ title, list: { kudos, more } }: { title: string; list: WeekKudosList }) {
+  if (kudos.length === 0) return null;
   return (
     <Section title={title}>
-      <People listed={listed} />
+      <ul className="al-issue-said">
+        {kudos.map((each) => (
+          <SaidLine key={`${each.at}-${each.permalink ?? ""}-${each.people[0]?.person ?? ""}`} kudos={each} />
+        ))}
+      </ul>
+      {more && <p className="al-issue-hint">More kudos came this week than an issue lists.</p>}
     </Section>
   );
+}
+
+function SaidLine({ kudos: { people, morePeople, message, at } }: { kudos: WeekKudos }) {
+  const [first] = people;
+  return (
+    <li className="al-issue-said-line">
+      {first === undefined ? <span /> : <MemberFace face={first.face} className="al-issue-said-face" />}
+      <div className="al-issue-said-body">
+        <p className="al-issue-said-who">
+          <Names people={people} more={morePeople} /> <span className="al-issue-hint">· {shortWeekdayOf(at)}</span>
+        </p>
+        <blockquote className="al-issue-said-words">
+          <KudosMessage message={message} clamped={false} />
+        </blockquote>
+      </div>
+    </li>
+  );
+}
+
+function Names({ people, more }: { people: WeekPerson[]; more: number }) {
+  const names = people.map(({ person, name }) => (
+    <AppLink key={person} href={hrefOf({ kind: "person", person })} className="al-issue-said-name ph-no-capture">
+      {name}
+    </AppLink>
+  ));
+  return <>{joinedWithAnd(more > 0 ? [...names, <span key="more">{more} more</span>] : names)}</>;
+}
+
+function joinedWithAnd(parts: ReactNode[]): ReactNode[] {
+  return parts.flatMap((part, index) => (index === 0 ? [part] : [index === parts.length - 1 ? " and " : ", ", part]));
 }
 
 function People({ listed: { people, more } }: { listed: PeopleListed }) {
@@ -323,6 +359,8 @@ const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC"
 
 const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "long" });
 
+const shortWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
+
 function mondayOf(week: string) {
   return Date.parse(`${week}T00:00:00Z`);
 }
@@ -351,4 +389,8 @@ function headlineOf(week: string, thisWeek: string | undefined) {
 
 function weekdayOf(at: number) {
   return weekday.format(at);
+}
+
+function shortWeekdayOf(at: number) {
+  return shortWeekday.format(at);
 }
