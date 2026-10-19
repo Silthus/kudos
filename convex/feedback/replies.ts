@@ -136,6 +136,16 @@ async function hintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | 
   return (await sayingWhyEarnsMore(ctx, member)) && (await wantsMessage(ctx, member, "tips")) ? hint : null;
 }
 
+export async function givenReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<Doc<"privateReplies"> | null> {
+  const replies = ctx.db.query("privateReplies").withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message));
+  for await (const reply of replies) if (reply.gains !== undefined) return reply;
+  return null;
+}
+
+export async function gainsLineWithoutQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, { questsDone: _, ...gains }: Gains): Promise<Line | null> {
+  return extrasLineOf(await gainsShownTo(ctx, workspace, member, gains), null, null);
+}
+
 function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
   return ctx.db
     .query("privateReplies")
