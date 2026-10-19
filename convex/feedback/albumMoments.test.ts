@@ -4,9 +4,11 @@ import { offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly } from "
 import type { FlagDefinition } from "../../testing/fakePostHog";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
-import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
+import { FakeSlack, slackError, type SlackCall } from "../../testing/fakeSlack";
+import { signedRequest } from "../../testing/signedSlack";
 import { deleteMessage, memberChanged, post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import crons from "../crons";
@@ -54,9 +56,11 @@ let postHog: FakePostHog;
 let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
+let refusesPictures = false;
 
 beforeEach(() => {
   theGate.shut = false;
+  refusesPictures = false;
   for (const level of ["log", "info", "warn", "error", "debug"] as const) vi.spyOn(console, level).mockImplementation(() => {});
 });
 
@@ -117,24 +121,41 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
     expect(recapTo(alice)).toEqual({ channel: alice.user, text: [...alicesWeekInHugs, footer].join("\n") });
   });
 
-  test("more than nine emojis show their first nine pictures and every name", async () => {
+  test("thirty-seven emojis show their first nine pictures and their first twenty-five names, the rest counted", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
-    await thanks(alice, why, bob, carol, dana);
-    const danaSays = await says(dana, "Lunch is in the kitchen");
-    await t.run(async (ctx) => {
-      const member = (await ctx.db.query("members").collect()).find(({ user }) => user === alice.user)!._id;
-      for (const level of [1, 2, 3, 4, 26]) await ctx.db.insert("levelUps", { member, level, ready: [], at: Date.now() });
-    });
-    await hugs(alice, danaSays);
+    const crowd = await joined(30);
+    await thanks(alice, why, ...crowd);
+    await levelsReached(alice, 26);
+    await hugs(alice, await says(dana, "Lunch is in the kitchen"));
 
     await recapsSentOnMonday();
 
     const emojiLine = contextOf(recapTo(alice));
     expect(emojiLine.filter(({ type }) => type === "image")).toHaveLength(9);
-    expect(emojiLine.at(-1)).toEqual({
-      type: "mrkdwn",
-      text: "Emojis you earned last week: bob-okonkwo-hype, carol-lindqvist-hype, dana-ferreira-hype, first-thank-you, level-5, level-10, level-15, level-20, level-25",
-    });
+    const names = crowd.slice(0, 25).map(({ name }) => `${name.toLowerCase().replaceAll(" ", "-")}-hype`);
+    expect(emojiLine.at(-1)).toEqual({ type: "mrkdwn", text: `Emojis you earned last week: ${names.join(", ")} and 12 more` });
+  });
+
+  test("a member who jumps past level 5 in one award earns the level-5 emoji, recorded only at the level they reached", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
+    await levelsReached(alice, 6);
+    await hugs(alice, await says(dana, "Lunch is in the kitchen"));
+
+    await recapsSentOnMonday();
+
+    expect(contextOf(recapTo(alice)).at(-1)).toEqual({ type: "mrkdwn", text: "Emojis you earned last week: level-5" });
+  });
+
+  test("a recap whose pictures Slack refuses goes once more without them, its emoji line as words", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    await thanks(alice, why, bob);
+    await hugs(alice, await says(dana, "Lunch is in the kitchen"));
+    refusesPictures = true;
+
+    await recapsSentOnMonday();
+
+    expect(recapTo(alice)).toEqual({ channel: alice.user, text: [...alicesWeekInHugs, "Emojis you earned last week: bob-okonkwo-hype, first-thank-you", footer].join("\n") });
   });
 });
 
@@ -198,6 +219,52 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
     await mondayPostSent();
 
     expect(mondayPosts()).toEqual([]);
+  });
+
+  test("a post whose pictures Slack refuses goes once more without them", async () => {
+    await fourMembers([onForEveryone(albumSlack)], { startingAt: lastWeeksTuesday });
+    await collects(alice, bob, carol);
+    vi.setSystemTime(tuesday);
+    await unlocks(alice, "lanterns");
+    await thanks(carol, "Thanks for the careful design review today", dana);
+    refusesPictures = true;
+
+    await mondayPostSent();
+
+    expect(mondayPost()?.blocks?.at(-1)).toEqual({ type: "context", elements: [{ type: "mrkdwn", text: "*Lanterns* ×1" }] });
+  });
+
+  test("more than ten teams: the first ten with their pictures, then every other team with its count", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    await teamStickersUnlocked(alice, 12);
+
+    await mondayPostSent();
+
+    const blocks = mondayPost()?.blocks ?? [];
+    expect(blocks.filter(({ type }) => type === "context")).toHaveLength(11);
+    expect(blocks.at(-1)).toEqual({ type: "context", elements: [{ type: "mrkdwn", text: "*Team 10* ×1 · *Team 11* ×1" }] });
+  });
+
+  test("a kudos that starts with many blank lines still quotes its words", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    messages += 1;
+    vi.setSystemTime(Date.now() + minuteMs);
+    const ts = `${Math.floor(Date.now() / 1000)}.${String(messages).padStart(6, "0")}`;
+    const blankLines = Array.from({ length: 201 }, () => text("\n"));
+    await post(t, [section(...blankLines, text("Thanks for the careful design review today "), mention(dana.user), text(" "), emoji("taco"))], { user: carol.user, ts, channel });
+    await settle(t);
+
+    await mondayPostSent();
+
+    expect(mondayPost()?.text).toContain("1. Carol Lindqvist thanked Dana Ferreira: Thanks for the careful design review today @Dana Ferreira :taco:");
+  });
+
+  test("an admin's App Home switch says the Monday post is the week's top thoughtful kudos", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+
+    await adminTabOpen(alice);
+
+    expect(publishedHome(slack, alice.user)).toContain(`section: I can post last week's top thoughtful kudos in <#${announcementChannel}> every Monday at 9:00. [button: Switch on]`);
   });
 });
 
@@ -300,7 +367,7 @@ async function fourMembers(flags: FlagDefinition[], { albumFlags = albumOn, star
   slack = new FakeSlack();
   for (const someone of everyone) slack.withMember(someone.user, { tz: "UTC", is_admin: someone === alice, profile: { display_name: someone.name, real_name: someone.name, email: someone.email } });
   slack.withUserGroup("S_LANTERNS", { name: "Lanterns", users: [alice.user, bob.user, carol.user] }).withUserGroup("S_OTTERS", { name: "Otters", users: [dana.user] });
-  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slack.fetch(input, init))));
+  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slackAnswering(input, init))));
   t = testBackend();
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 200, announcementChannel }));
   await t.mutation(internal.workspace.url.rememberWorkspaceUrl, { workspace: "T1", url: slackUrl });
@@ -316,6 +383,11 @@ async function fourMembers(flags: FlagDefinition[], { albumFlags = albumOn, star
   await t.action(internal.slack.userGroups.syncUserGroups, {});
   await settle(t);
   slack.calls.length = 0;
+}
+
+async function slackAnswering(input: string | URL | Request, init?: RequestInit) {
+  const refused = refusesPictures && String(input instanceof Request ? input.url : input).endsWith("/chat.postMessage") && String(init?.body ?? "").includes('"type":"image"');
+  return refused ? slackError("invalid_blocks")(() => new Response()) : slack.fetch(input, init);
 }
 
 type Sent = { channel: string; ts: string };
@@ -341,6 +413,41 @@ const authors = new Map<string, string>();
 async function hugs(hugger: Person, { channel: hugged, ts }: Sent) {
   vi.setSystemTime(Date.now() + minuteMs);
   await react(t, { user: hugger.user, itemUser: authors.get(`${hugged}/${ts}`)!, channel: hugged, ts });
+  await settle(t);
+}
+
+async function joined(people: number): Promise<Person[]> {
+  const crowd = Array.from({ length: people }, (_, index) => person(`Guest${String(index).padStart(2, "0")}`, "Visitor", 100 + index));
+  for (const someone of crowd) {
+    slack.withMember(someone.user, { tz: "UTC", profile: { display_name: someone.name, real_name: someone.name, email: someone.email } });
+    const profile = { real_name: someone.name, display_name: someone.name, email: someone.email };
+    await memberChanged(t, "team_join", { id: someone.user, team_id: "T1", tz: "UTC", name: someone.name, real_name: someone.name, profile });
+  }
+  await settle(t);
+  return crowd;
+}
+
+async function levelsReached(someone: Person, level: number) {
+  await t.run(async (ctx) => {
+    const member = (await ctx.db.query("members").collect()).find(({ user }) => user === someone.user)!._id;
+    await ctx.db.insert("levelUps", { member, level, ready: [], at: Date.now() });
+  });
+}
+
+async function teamStickersUnlocked(someone: Person, teams: number) {
+  await t.run(async (ctx) => {
+    const member = (await ctx.db.query("members").collect()).find(({ user }) => user === someone.user)!._id;
+    for (let index = 0; index < teams; index += 1) {
+      const name = `Team ${String(index).padStart(2, "0")}`;
+      await ctx.db.insert("teamStickers", { member, workspace: "T1", team: `team-${index}`, at: Date.now(), name, art: null, emoji: `team-${index}` });
+    }
+  });
+}
+
+async function adminTabOpen(admin: Person) {
+  await t.fetch("/slack/events", await signedRequest(appHomeOpened(admin.user)));
+  await settle(t);
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(admin.user, buttonInHome(slack, admin.user, "Admin")), { contentType: "application/x-www-form-urlencoded" }));
   await settle(t);
 }
 

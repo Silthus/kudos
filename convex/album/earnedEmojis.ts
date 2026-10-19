@@ -3,7 +3,7 @@ import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
-import { levelFirstReachedAt } from "../unlocks/unlocks";
+import { levelFirstReachedAt } from "../unlocks/levelUps";
 import { customEmojiImageOf } from "../workspace/customEmoji";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";

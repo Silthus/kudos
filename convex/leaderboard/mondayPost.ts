@@ -20,7 +20,7 @@ export const mondayPostFlag = { key: "monday-post", safeDefault: false, values: 
 
 export type MondayPostChange = { on: boolean; timeZone?: string };
 
-export type MondayPostSwitch = { channel: string; on: boolean; timeZone: string; cantPost: boolean };
+export type MondayPostSwitch = { channel: string; on: boolean; timeZone: string; cantPost: boolean; posts: WeeklyPost["kind"] };
 
 export type PostedGroup = { rank: number; name: string; perMember: number };
 
@@ -43,7 +43,8 @@ export async function mondayPostSwitchShownTo(ctx: MutationCtx, workspace: strin
   const channel = await switchableChannelIn(ctx, workspace);
   if (channel === null) return null;
   const settings = await settingsRow(ctx, workspace);
-  return { channel, on: settings?.on ?? false, timeZone: settings?.timeZone ?? zoneOf(person), cantPost: await couldNotPostIn(ctx, workspace, channel) };
+  const posts = (await albumSlackAppliesToWorkspace(ctx, workspace)) ? "topKudos" : "groups";
+  return { channel, on: settings?.on ?? false, timeZone: settings?.timeZone ?? zoneOf(person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
 }
 
 export async function setMondayPost(ctx: MutationCtx, workspace: string, person: Admin, change: MondayPostChange): Promise<boolean> {

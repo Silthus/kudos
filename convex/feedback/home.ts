@@ -544,15 +544,18 @@ function adminGroups({ announcementChannel, achievements, groupMode, mondayPost,
   return [channelLines, ...groupModeLines, ...mondayPostLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
 }
 
-function mondayPostLinesOf({ channel, on, timeZone, cantPost }: MondayPostSwitch): HomeLine[] {
+const weeklyPostNamed = { groups: "last week's top groups", topKudos: "last week's top thoughtful kudos" } as const;
+
+function mondayPostLinesOf({ channel, on, timeZone, cantPost, posts }: MondayPostSwitch): HomeLine[] {
   const where = `<#${channel}>`;
+  const what = weeklyPostNamed[posts];
   const heading: HomeLine = { kind: "text", text: bold("Monday post") };
   const cantPostNote: HomeLine[] = cantPost ? [{ kind: "text", text: `I can't post in ${where}. Add me to it or pick another channel.` }] : [];
   if (!on) {
-    const switchOn: HomeLine = { kind: "action", text: `I can post last week's top groups in ${where} every Monday at 9:00.`, action: { label: "Switch on", command: { type: "setMondayPost", on: true } } };
+    const switchOn: HomeLine = { kind: "action", text: `I can post ${what} in ${where} every Monday at 9:00.`, action: { label: "Switch on", command: { type: "setMondayPost", on: true } } };
     return [heading, switchOn, ...cantPostNote];
   }
-  const switchOff: HomeLine = { kind: "action", text: `Every Monday I post last week's top groups in ${where}.`, action: { label: "Switch off", command: { type: "setMondayPost", on: false } } };
+  const switchOff: HomeLine = { kind: "action", text: `Every Monday I post ${what} in ${where}.`, action: { label: "Switch off", command: { type: "setMondayPost", on: false } } };
   return [heading, switchOff, timeZonePickOf(timeZone), ...cantPostNote];
 }
 

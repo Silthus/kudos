@@ -5,7 +5,7 @@ import { withholdingWords } from "../analytics/exceptions";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { isMember, type MemberId } from "../workspace/directory";
 import { awardsOfMessage, awardsReceivedNewestFirst, fromTheNewest, messagesGivenNewestFirst, type Before } from "./awards";
-import { wordsOf } from "./kudosText";
+import { wordsOf, type KudosText } from "./kudosText";
 import { messageRefValidator, type MessageRef, type WordSegment } from "./messageEvent";
 import { drawnAlong, placeInSpotlight, type DrawPoint, type DrawWalk, type Drawn } from "./spotlightDraws";
 
@@ -47,6 +47,7 @@ export async function drawFrom(ctx: QueryCtx, workspace: string, walk: DrawWalk)
 }
 
 export async function publicThoughtfulKudosOf(ctx: QueryCtx, ref: MessageRef): Promise<DrawableKudos | null> {
+  if (!isPublicAndThoughtful(await wordsOf(ctx, ref))) return null;
   return drawableAmong(ctx, ref, await awardsOfMessage(ctx, ref));
 }
 
@@ -98,8 +99,12 @@ async function drawableAmong(ctx: QueryCtx, ref: MessageRef, awards: Awards): Pr
   if (first === undefined) return null;
   if (!(await isMember(ctx, first.giver)) || !(await allOnTheBoards(ctx, peopleOf(awards)))) return null;
   const words = await wordsOf(ctx, ref);
-  if (words.kind !== "text" || words.visibility !== "public" || words.gate?.thoughtful !== true) return null;
+  if (!isPublicAndThoughtful(words)) return null;
   return { at: first.at, giver: first.giver, recipients: awards.map(({ recipient }) => recipient), segments: words.segments, edited: words.edited };
+}
+
+function isPublicAndThoughtful(words: KudosText): words is Extract<KudosText, { kind: "text" }> {
+  return words.kind === "text" && words.visibility === "public" && words.gate?.thoughtful === true;
 }
 
 async function allOnTheBoards(ctx: QueryCtx, members: MemberId[]) {

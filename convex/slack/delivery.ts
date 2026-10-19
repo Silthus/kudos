@@ -151,6 +151,10 @@ async function answerOrUnknown<Data>(method: string, args: Record<string, unknow
   }
 }
 
+export function isRefusedForItsBlocks(result: Attempt) {
+  return result.kind === "failed" && result.error === "invalid_blocks";
+}
+
 export function retryAfter(result: Exclude<Attempt, { kind: "delivered" | "gone" }>, attempt: number): Retry {
   if (result.kind === "held") return { at: result.until, attempt };
   const retryAt = result.kind === "failed" ? result.retryAt : undefined;

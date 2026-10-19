@@ -1,0 +1,21 @@
+     × thirty-six emojis show their first nine pictures and their first twenty-five names, the rest counted 1422ms
+     × a member who jumps past level 5 in one award earns the level-5 emoji, recorded only at the level they reached 81ms
+     × a recap whose pictures Slack refuses goes once more without them, its emoji line as words 167ms
+     × a post whose pictures Slack refuses goes once more without them 285ms
+     × more than ten teams: the first ten with their pictures, then every other team with its count 48ms
+     × a kudos that starts with many blank lines still quotes its words 163ms
+     × an admin's App Home switch says the Monday post is the week's top thoughtful kudos 64ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { type: 'mrkdwn', …(1) } to deeply equal { type: 'mrkdwn', …(1) }
+AssertionError: expected undefined to deeply equal { type: 'mrkdwn', …(1) }
+AssertionError: one recap to Alice Marchetti: expected [] to have a length of 1 but got +0
+AssertionError: one Monday post: expected [] to have a length of 1 but got +0
+AssertionError: expected { type: 'context', …(1) } to deeply equal { type: 'context', …(1) }
+AssertionError: expected '🏆 Last week\'s top thoughtful kudos\…' to contain '1. Carol Lindqvist thanked Dana Ferre…'
+AssertionError: expected [ …(14) ] to include 'section: I can post last week\'s top …'
+      Tests  7 failed | 13 passed (20)
+     × a week of 500 thoughtful kudos whose 197 most hugged are private and thank 20 people each, and 100 team stickers: claiming the week quotes the three public kudos after them within Convex's transaction limits 2574ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+Error: Too many index ranges read in a single function execution (limit: 4096). This is a Convex limit: https://docs.convex.dev/production/state/limits
+    125|                 throw new Error(`Too many index ranges read in a singl…
+      Tests  1 failed | 2 skipped (3)

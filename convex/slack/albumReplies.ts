@@ -4,7 +4,7 @@ import { observedAction } from "../analytics/boundary";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
 import type { AlbumReply, AlbumReplyButton, AlbumReplyRecipient } from "../feedback/albumReplies";
 import { escaped, mrkdwn, urlButtonOf } from "./blocks";
-import { attemptArgs, attemptCall, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
+import { attemptArgs, attemptCall, isRefusedForItsBlocks, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
 
 const rateLimitErrors = new Set(["ratelimited", "rate_limited"]);
 
@@ -33,10 +33,6 @@ async function postAlbumReply(ctx: ActionCtx, reply: AlbumReply): Promise<Attemp
 
 function isRateLimited(result: Attempt): result is Extract<Attempt, { kind: "held" | "failed" }> {
   return result.kind === "held" || (result.kind === "failed" && (result.retryAt !== undefined || rateLimitErrors.has(result.error ?? "")));
-}
-
-function isRefusedForItsBlocks(result: Attempt) {
-  return result.kind === "failed" && result.error === "invalid_blocks";
 }
 
 function hasPictures({ recipients }: AlbumReply) {

@@ -43,7 +43,7 @@ describe("GB35: the Monday post at scale", () => {
     expect(claimed?.post).toEqual(topGroupsPostedWith(4_200));
   }, 600_000);
 
-  test("a week of 500 thoughtful kudos whose 197 most hugged are private, and 100 team stickers: claiming the week quotes the three public kudos after them within Convex's transaction limits", async () => {
+  test("a week of 500 thoughtful kudos whose 197 most hugged are private and thank 20 people each, and 100 team stickers: claiming the week quotes the three public kudos after them within Convex's transaction limits", async () => {
     postHog.withFlags(onForEveryone("monday-post"), onForEveryone("xp-levels"), onForEveryone("album"), onForEveryone("album-slack"));
     const t = await flagsLoaded(testBackend({ transactionLimits: true }));
     await sixtyGroupsWhoGaveForTwoWeeks(t, 1);
@@ -62,11 +62,13 @@ async function aWeekOfThoughtfulKudos(t: Backend, { kudos, privateOnTop, teamSti
   for (let first = 0; first < kudos; first += 50) {
     await t.run(async (ctx) => {
       for (let index = first; index < Math.min(kudos, first + 50); index += 1) {
-        const [giver, recipient] = [await aMember(ctx, `UG${index}`), await aMember(ctx, `UR${index}`)];
+        const visibility = index < privateOnTop ? ("private" as const) : ("public" as const);
+        const giver = await aMember(ctx, `UG${index}`);
         const message = { workspace: "T1", conversation: "C_TEAM", message: `${tuesday / 1000 + index}.000100` };
         const at = tuesday + index * 1_000;
-        await ctx.db.insert("awards", { ...message, giver, recipient, kudos: 1, day: "2026-10-13", at });
-        const visibility = index < privateOnTop ? ("private" as const) : ("public" as const);
+        for (let thanked = 0; thanked < (visibility === "private" ? 20 : 1); thanked += 1) {
+          await ctx.db.insert("awards", { ...message, giver, recipient: await aMember(ctx, `UR${index}x${thanked}`), kudos: 1, day: "2026-10-13", at });
+        }
         const segments = [{ kind: "text" as const, text: `${visibility} kudos ${index}` }];
         await ctx.db.insert("kudosTexts", { ...message, kind: "words", revision: 1n, author: `UG${index}`, edited: false, segments, visibility, gate: { version: 1, thoughtful: true } });
         await ctx.db.insert("hugCounts", { ...message, hugs: kudos - index });

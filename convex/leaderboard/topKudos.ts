@@ -4,7 +4,7 @@ import { thoughtfulKudosBetween, type Instants, type ThoughtfulKudos } from "../
 import { teamStickersUnlockedIn } from "../album/teamStickers";
 import type { Segment } from "../activity/entries";
 import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf, type Mentions } from "../activity/kudos";
-import type { MessageRef } from "../engine/messageEvent";
+import type { MessageRef, WordSegment } from "../engine/messageEvent";
 import { publicThoughtfulKudosOf, type DrawableKudos } from "../engine/spotlight";
 import { hugsOnTheMessage } from "../hugs/weeks";
 import { nameless } from "../website/faces";
@@ -15,10 +15,10 @@ export const kudosQuoted = 3;
 export const mostKudosRanked = 500;
 export const mostKudosChecked = 200;
 export const mostTeamStickersRead = 500;
-export const segmentsQuotedAtMost = 200;
+export const wordsQuotedAtMost = 200;
 export const recipientsNamed = 3;
 
-const mentionLookupsAtMost = 3 * segmentsQuotedAtMost;
+const mentionLookupsAtMost = 3 * wordsQuotedAtMost;
 
 export type QuotedKudos = { giver: string; recipients: string[]; moreRecipients: number; words: Segment[]; permalink: string | null };
 
@@ -56,9 +56,24 @@ async function quotedKudosOf(ctx: QueryCtx, mentions: Mentions, message: Message
     giver: await nameOf(ctx, giver),
     recipients: named,
     moreRecipients: recipients.length - named.length,
-    words: await readableSegmentsOf(mentions, message.workspace, segments.slice(0, segmentsQuotedAtMost)),
+    words: await readableSegmentsOf(mentions, message.workspace, quotedSegmentsOf(segments)),
     permalink: await permalinkOfMessage(ctx, message),
   };
+}
+
+function quotedSegmentsOf(segments: WordSegment[]): WordSegment[] {
+  const quoted: WordSegment[] = [];
+  let worded = 0;
+  for (const segment of segments) {
+    if (worded === wordsQuotedAtMost) break;
+    quoted.push(segment);
+    if (!isBlank(segment)) worded += 1;
+  }
+  return quoted;
+}
+
+function isBlank(segment: WordSegment) {
+  return segment.kind === "break" || (segment.kind === "text" && segment.text.trim() === "");
 }
 
 async function teamsUnlockedOf(ctx: QueryCtx, workspace: string, week: Instants): Promise<UnlockedTeam[]> {
