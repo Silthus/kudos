@@ -7,7 +7,9 @@ import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
+import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
 import type { Album, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
+import { FindInSlackWhileOn } from "./findInSlack";
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
@@ -86,7 +88,7 @@ function teamHrefOf(team: Pick<AlbumTeam, "team">) {
 }
 
 function HypeEmoji({ person, first }: { person: Person; first: string }) {
-  const { earned, name } = person.hype;
+  const { earned, name, picture, inSlack } = person.hype;
   return (
     <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
       <PersonPicture face={person.face} name={person.name} collected={earned} frame="al-hype-frame" className="al-hype-face" />
@@ -94,6 +96,7 @@ function HypeEmoji({ person, first }: { person: Person; first: string }) {
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
       </p>
+      {earned && name !== null && <FindInSlackWhileOn emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} />}
     </div>
   );
 }

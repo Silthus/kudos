@@ -2,14 +2,14 @@ import type { QueryCtx } from "../_generated/server";
 import { storedCompanyMatchOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
 import { isAPersonOf, type MemberId } from "../workspace/directory";
-import { emojiNameOf } from "./emojiNames";
+import { hypeEmojiOf as shownHypeEmojiOf } from "./earnedEmojis";
 import type { PageOwner } from "./teamPages";
 import { inTheAlbumOf } from "./stickers";
 import { anEmptyPair, pairTallyFor, type PairTally } from "./tallies";
 
 export type PersonTeam = { team: string; name: string; art: TeamCrestArt };
 
-export type HypeEmoji = { earned: boolean; name: string | null };
+export type HypeEmoji = { earned: boolean; name: string | null; picture: string | null; inSlack: boolean };
 
 export type PersonPage = PairTally & { held: boolean; teams: PersonTeam[]; hype: HypeEmoji };
 
@@ -37,5 +37,6 @@ async function hypeEmojiOf(ctx: QueryCtx, { workspace, member }: PageOwner, pers
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", member).eq("recipient", person))
     .first();
-  return { earned: firstPack !== null, name: await emojiNameOf(ctx, workspace, `hype:${person}`) };
+  const shown = await shownHypeEmojiOf(ctx, workspace, person);
+  return { earned: firstPack !== null, name: shown?.name ?? null, picture: shown?.picture ?? null, inSlack: shown?.inSlack ?? false };
 }
