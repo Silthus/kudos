@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { albumShownTo } from "../album/flag";
+import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
@@ -55,6 +56,10 @@ export type ThoughtfulBoardsAnswer = {
 
 export type ThoughtfulBoardsRead = { kind: "off" } | ThoughtfulBoardsAnswer;
 
+export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies;
+
+export type AlbumHoggiesRead = { kind: "off" } | AlbumHoggiesAnswer;
+
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
   const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
@@ -91,6 +96,8 @@ export const putAllIn = memberMutation({
   args: {},
   handler: async (ctx, me): Promise<PutAllInAnswer> => ((await albumShownTo(ctx, me.member)) ? { kind: "placed", ...(await putEveryItemIn(ctx, me, Date.now())) } : { kind: "refused" }),
 });
+
+export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)) } : { kind: "off" }));
 
 export const getThoughtfulBoards = memberQuery({
   args: { team: v.optional(v.string()) },
