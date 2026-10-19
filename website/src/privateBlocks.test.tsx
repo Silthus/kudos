@@ -81,6 +81,18 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     expect([...container.querySelectorAll(".al-opening .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["Juno Park", "For thanking Rook Dale"]));
   });
 
+  it("AL56: the album's Leaderboard carries blocks around every giver's face and name, so its walk is not vacuous", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    const { container } = render(<Root fixture="album" />);
+    await screen.findByRole("region", { name: "People" });
+
+    const blocked = [...container.querySelectorAll(".ph-no-capture")].map((block) => block.textContent);
+    expect(blocked).toEqual(expect.arrayContaining(["Wren Alder", "Ines Okafor", "Perrin Holt", "Sam Example", "WA", "Wren Alder leads with 6."]));
+    const slackPictures = [...container.querySelectorAll("img")].filter((image) => slackHost.test(image.getAttribute("src")!));
+    expect(slackPictures).toHaveLength(1);
+    expect(slackPictures.every((image) => image.closest(".ph-no-capture") !== null)).toBe(true);
+  });
+
   it("a page with private things in it carries blocks, so the walk is not vacuous", async () => {
     window.history.replaceState(null, "", "/activity");
     const { container } = render(<Root fixture="member-with-every-feature-open" />);

@@ -14,6 +14,7 @@ import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum, renderApp } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
@@ -25,7 +26,7 @@ const home: Landing = { address: "/", title: "Lanterns" };
 const profile: Landing = { address: "/book#me", title: "Sam Example" };
 const milestones: Landing = { address: "/book#milestones", title: "Milestones" };
 const hoggies: Landing = { address: "/book#hoggies", title: "Hoggies" };
-const leaderboard: Landing = { address: "/leaderboard", title: "Leaderboard" };
+const leaderboard: Landing = { address: "/leaderboard", title: "Who said thanks, and why" };
 const activity: Landing = { address: "/activity", title: "Activity" };
 const settings: Landing = { address: "/settings", title: "Settings" };
 
@@ -36,7 +37,7 @@ beforeEach(() => {
 
 function visit(address: string) {
   window.history.replaceState(null, "", address);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything) });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week) });
 }
 
 function addressNow() {
