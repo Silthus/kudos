@@ -4,11 +4,12 @@ import { companyTeamsReplacedEventValidator } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
 import { customEmojiImageOf } from "../workspace/customEmoji";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
-import { emojiLevels, milestoneGoldNames, slugOf } from "./emojiCatalogue";
+import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
 import { isClassed } from "./emojiClasses";
+import type { MilestoneId, MilestoneTier } from "./records";
 import { standardEmojiNames } from "./standardEmojiNames";
 
-export type EarnedEmojiId = `level:${number}` | `milestone:${string}` | `team:${string}` | `hype:${MemberId}`;
+export type EarnedEmojiId = `level:${number}` | `milestone:${MilestoneId}:${MilestoneTier}` | `team:${string}` | `hype:${MemberId}`;
 
 const hypeSuffix = "-hype";
 const firstUse: EarnedEmojiId = `level:${emojiLevels[0]}`;
@@ -70,7 +71,7 @@ async function slackHas(ctx: QueryCtx, workspace: string, name: string) {
 async function naturalShapeOf(ctx: QueryCtx, emoji: EarnedEmojiId): Promise<NameShape> {
   const [kind, cause] = splitOnce(emoji);
   if (kind === "level") return { slug: `level-${cause}`, empty: "level", suffix: "" };
-  if (kind === "milestone") return { slug: slugOf(milestoneGoldNames.find(({ milestone }) => milestone === cause)?.gold ?? cause), empty: "milestone", suffix: "" };
+  if (kind === "milestone") return { slug: slugOf(milestoneTierEmojiOf(cause)?.name ?? cause), empty: "milestone", suffix: "" };
   if (kind === "team") return { slug: slugOf((await companyTeamsOf(ctx)).find(({ team }) => team === cause)?.name ?? cause), empty: "team", suffix: "" };
   return { slug: slugOf(await fullNameOf(ctx, cause as MemberId)), empty: "person", suffix: hypeSuffix };
 }
@@ -84,7 +85,10 @@ export const reserveTeamNamesAfterTheSync = internalMutation({
   args: { event: companyTeamsReplacedEventValidator },
   returns: v.null(),
   handler: async (ctx) => {
-    for (const workspace of await workspacesWithARegistry(ctx)) await reserveCompanyTeamNamesIn(ctx, workspace);
+    for (const workspace of await workspacesWithARegistry(ctx)) {
+      await reserveCatalogueNamesIn(ctx, workspace);
+      await reserveCompanyTeamNamesIn(ctx, workspace);
+    }
     return null;
   },
 });
@@ -94,6 +98,7 @@ export const reserveSharedEmojiNames = internalMutation({
   returns: v.null(),
   handler: async (ctx, { workspace }) => {
     await reserveSharedNamesIn(ctx, workspace);
+    await reserveCatalogueNamesIn(ctx, workspace);
     return null;
   },
 });
@@ -112,9 +117,13 @@ async function fullNameOf(ctx: QueryCtx, person: MemberId): Promise<string> {
 
 async function reserveSharedNamesIn(ctx: MutationCtx, workspace: string) {
   if ((await registeredAs(ctx, workspace, firstUse)) !== null) return;
-  for (const level of emojiLevels) await allocate(ctx, workspace, `level:${level}`, { slug: `level-${level}`, empty: "level", suffix: "" });
-  for (const { milestone, gold } of milestoneGoldNames) await allocate(ctx, workspace, `milestone:${milestone}`, { slug: slugOf(gold), empty: "milestone", suffix: "" });
+  await reserveCatalogueNamesIn(ctx, workspace);
   await reserveCompanyTeamNamesIn(ctx, workspace);
+}
+
+async function reserveCatalogueNamesIn(ctx: MutationCtx, workspace: string) {
+  for (const level of emojiLevels) await allocate(ctx, workspace, `level:${level}`, { slug: `level-${level}`, empty: "level", suffix: "" });
+  for (const { milestone, tier, name } of milestoneTierEmojis) await allocate(ctx, workspace, `milestone:${milestone}:${tier}`, { slug: slugOf(name), empty: "milestone", suffix: "" });
 }
 
 async function reserveCompanyTeamNamesIn(ctx: MutationCtx, workspace: string, only: (slug: string) => boolean = () => true) {
@@ -171,11 +180,19 @@ function registeredAs(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId) {
 
 function storedKeyOf(emoji: EarnedEmojiId): { emoji: string; person?: MemberId } {
   const [kind, ...rest] = emoji.split(":");
-  return kind === "hype" ? { emoji: kind, person: rest.join(":") as MemberId } : { emoji };
+  return kind === "hype" ? { emoji: kind, person: rest.join(":") as MemberId } : { emoji: goldKeepsTheKeyItHadAlone(emoji) };
+}
+
+function goldKeepsTheKeyItHadAlone(emoji: EarnedEmojiId): string {
+  return emoji.replace(/^(milestone:[a-z]+):gold$/, "$1");
+}
+
+function goldOfTheKeyItHadAlone(storedKey: string): string {
+  return storedKey.replace(/^(milestone:[a-z]+)$/, "$1:gold");
 }
 
 function emojiIdOf({ emoji, person }: { emoji: string; person?: MemberId }): EarnedEmojiId {
-  return (person === undefined ? emoji : `hype:${person}`) as EarnedEmojiId;
+  return (person === undefined ? goldOfTheKeyItHadAlone(emoji) : `hype:${person}`) as EarnedEmojiId;
 }
 
 function holderOf(ctx: QueryCtx, workspace: string, name: string) {

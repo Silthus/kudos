@@ -2,7 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf } from "../companyProfiles/teams";
 import { customEmojiImageOf, customEmojiListedIn } from "../workspace/customEmoji";
 import { personFactsOf, type MemberId } from "../workspace/directory";
-import { emojiLevels, milestoneGoldNames } from "./emojiCatalogue";
+import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis } from "./emojiCatalogue";
 import { classEmoji, emojiClassesIn, unclassEmoji } from "./emojiClasses";
 import { freeTheName, giveEmojiTheName, namesHeldIn, openTheRegistryIn, type EarnedEmojiId } from "./emojiNames";
 
@@ -30,7 +30,7 @@ export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, ran
     more: listed.length > mostSlackEmojiListed,
     randomDrops,
     teams: (await companyTeamsOf(ctx)).map(({ team, name }) => ({ team, name })).toSorted((one, other) => one.name.localeCompare(other.name)),
-    milestones: milestoneGoldNames.map(({ milestone, gold }) => ({ milestone, name: gold })),
+    milestones: milestoneTierEmojis.map(({ milestone, tier, name }) => ({ milestone: `${milestone}:${tier}`, name })),
     levels: [...emojiLevels],
   };
 }
@@ -65,7 +65,7 @@ async function earnedEmojiAt(ctx: QueryCtx, workspace: string, place: Exclude<Ma
     case "team":
       return (await companyTeamsOf(ctx)).some(({ team }) => team === place.team) ? `team:${place.team}` : null;
     case "milestone":
-      return milestoneGoldNames.some(({ milestone }) => milestone === place.milestone) ? `milestone:${place.milestone}` : null;
+      return milestoneTierEmojiOf(place.milestone) === null ? null : (`milestone:${place.milestone}` as EarnedEmojiId);
     case "level":
       return emojiLevels.some((level) => level === place.level) ? `level:${place.level}` : null;
     case "hype":

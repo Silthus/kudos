@@ -54,6 +54,7 @@
 }
 
 .al-popover.al-emoji-popover {
+  position: absolute;
   width: min(26rem, calc(100vw - 2rem));
   max-width: none;
   max-height: min(36rem, calc(100vh - var(--al-top-height) - 2rem));

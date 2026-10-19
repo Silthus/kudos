@@ -37,12 +37,27 @@ const ottersCrestPicture = expect.stringMatching(/\/v1\/otters-crest\.png$/) as 
 const otterFace = expect.stringMatching(/\/v1\/otter-quillfeather1\.png$/) as string;
 
 const levels = [5, 10, 15, 20, 25];
-const milestoneGolds = [
-  ["people", "full-of-friends", 25],
-  ["teams", "most-of-the-company", 15],
-  ["reach", "well-travelled", 25],
-  ["hoggies", "hoarder", 100],
-  ["thoughtful", "heart-of-the-team", 100],
+const milestoneTiers = [
+  ["people", "bronze", "first-face", 1],
+  ["people", "silver", "familiar-faces", 10],
+  ["people", "gold", "full-of-friends", 25],
+  ["people", "diamond", "everyone-s-album", 50],
+  ["teams", "bronze", "first-full-page", 1],
+  ["teams", "silver", "five-teams-strong", 5],
+  ["teams", "gold", "most-of-the-company", 15],
+  ["teams", "diamond", "every-page", 50],
+  ["reach", "bronze", "next-door", 3],
+  ["reach", "silver", "bridge-builder", 10],
+  ["reach", "gold", "well-travelled", 25],
+  ["reach", "diamond", "all-hands", 50],
+  ["hoggies", "bronze", "curious", 10],
+  ["hoggies", "silver", "collector", 40],
+  ["hoggies", "gold", "hoarder", 100],
+  ["hoggies", "diamond", "completionist", expect.any(Number) as unknown as number],
+  ["thoughtful", "bronze", "first-thank-you", 1],
+  ["thoughtful", "silver", "generous-soul", 25],
+  ["thoughtful", "gold", "heart-of-the-team", 100],
+  ["thoughtful", "diamond", "patron-of-praise", 500],
 ] as const;
 
 let postHog: FakePostHog;
@@ -73,17 +88,20 @@ afterEach(() => {
 });
 
 describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
-  test("before any cause, a member reads every company team's emoji, each milestone's and each level's, locked with their progress, named from the registry and pictured under their catalogue IDs, and no hype emoji", async () => {
+  test("before any cause, a member reads every company team's emoji, every milestone tier's and each level's, locked with their progress, named from the registry and pictured under their catalogue IDs, and no hype emoji", async () => {
     await theCompanyCopyHolds(...threeTeams());
     await thanks(bruno, why, lanterns[0]!);
     await aliceCollects(otters[0]!);
+    const reachedAtOne = new Set(["people:bronze", "thoughtful:bronze"]);
 
     expect(await emojisOf(await signedIn(alice))).toEqual(
       byId([
         locked("team:otters", "team", "otters", ottersCrestPicture, { have: 1, need: 3 }),
         locked("team:lanterns", "team", "lanterns", "/emoji/team.png", { have: 0, need: 2 }),
         locked("team:product-analytics", "team", "product-analytics", "/emoji/team-product-analytics.png", { have: 0, need: 2 }),
-        ...milestoneGolds.map(([milestone, name, gold]) => locked(`milestone:${milestone}`, "milestone", name, `/emoji/milestone-${milestone}.png`, { have: milestone === "people" || milestone === "reach" || milestone === "thoughtful" ? 1 : expect.any(Number), need: gold })),
+        ...milestoneTiers.map(([milestone, tier, name, at]) =>
+          reachedAtOne.has(`${milestone}:${tier}`) ? earned(`milestone:${milestone}:${tier}`, "milestone", name, `/emoji/milestone-${milestone}-${tier}.png`) : locked(`milestone:${milestone}:${tier}`, "milestone", name, `/emoji/milestone-${milestone}-${tier}.png`, { have: milestone === "people" || milestone === "reach" || milestone === "thoughtful" ? 1 : expect.any(Number), need: at }),
+        ),
         ...levels.map((level) => locked(`level:${level}`, "level", `level-${level}`, `/emoji/level-${level}.png`, { have: expect.any(Number), need: xpToReach(level) })),
         earned(`hype:${await memberOf(otters[0]!)}`, "hype", "otter-quillfeather1-hype", otterFace),
       ]),
@@ -107,10 +125,35 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
     expect(await emojiWithId(asAlice, "team:otters"), "the team left posthog.com").toEqual(teamEmoji);
   });
 
-  test("reaching a milestone's gold earns its milestone emoji, named after the gold tier", async () => {
+  test("each tier a milestone reaches earns its own milestone emoji, named after that tier, and the next tier shows the count still to reach", async () => {
     await aliceCollects(...crowd);
 
-    expect(await emojiWithId(await signedIn(alice), "milestone:people")).toEqual(earned("milestone:people", "milestone", "full-of-friends", "/emoji/milestone-people.png"));
+    const people = (await emojisOf(await signedIn(alice))).filter(({ id }) => id.startsWith("milestone:people:"));
+
+    expect(people).toEqual(
+      byId([
+        earned("milestone:people:bronze", "milestone", "first-face", "/emoji/milestone-people-bronze.png"),
+        earned("milestone:people:silver", "milestone", "familiar-faces", "/emoji/milestone-people-silver.png"),
+        earned("milestone:people:gold", "milestone", "full-of-friends", "/emoji/milestone-people-gold.png"),
+        locked("milestone:people:diamond", "milestone", "everyone-s-album", "/emoji/milestone-people-diamond.png", { have: 25, need: 50 }),
+      ]),
+    );
+  });
+
+  test("a registry opened when only gold had an emoji keeps each gold name, and its next reservation names the other tiers, so a member who already holds a tier reads its emoji", async () => {
+    await theCompanyCopyHolds(...threeTeams());
+    await aliceCollects(otters[0]!);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("emojiNames").collect()) if (row.emoji.startsWith("milestone:") && !milestoneTiers.some(([milestone, tier]) => tier === "gold" && row.emoji === `milestone:${milestone}`)) await ctx.db.delete(row._id);
+    });
+    const asAlice = await signedIn(alice);
+    expect(await emojiWithId(asAlice, "milestone:people:bronze"), "before the tier names are reserved").toBeUndefined();
+    expect(await emojiWithId(asAlice, "milestone:people:gold"), "gold, under its first name").toMatchObject({ name: "full-of-friends", earned: false });
+
+    await theCompanyCopyHolds(...threeTeams());
+
+    expect(await emojiWithId(asAlice, "milestone:people:bronze")).toEqual(earned("milestone:people:bronze", "milestone", "first-face", "/emoji/milestone-people-bronze.png"));
+    expect((await emojisOf(asAlice)).filter(({ kind }) => kind === "milestone").map(({ name }) => name)).toEqual(byId(milestoneTiers.map(([milestone, tier, name]) => ({ id: `milestone:${milestone}:${tier}`, name }))).map(({ name }) => name));
   });
 
   test("a jump past two levels earns each level emoji it passed, and the next one shows the XP still to reach", async () => {
@@ -165,7 +208,7 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
       expect.arrayContaining([
         { id: "team:otters", from: "Otters", earnedAt: unlockedAt },
         { id: "team:lanterns", from: "Lanterns", earnedAt: null },
-        { id: "milestone:people", from: "Full of friends", earnedAt: null },
+        { id: "milestone:people:gold", from: "Full of friends", earnedAt: null },
         { id: "level:5", from: "Level 5", earnedAt: null },
         { id: "level:10", from: "Level 10", earnedAt: null },
         { id: `hype:${otter}`, from: "Otter Quillfeather1", earnedAt: firstPackAt },
@@ -215,7 +258,23 @@ describe("AL25: a workspace's shared emoji names, reserved by hand where nothing
     await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
 
     expect(await emojiWithId(await signedIn(alice), "level:5")).toEqual(earned("level:5", "level", "level-5", "/emoji/level-5.png"));
-    expect((await albumOf(await signedIn(bruno))).sharedEmojis?.map(({ id }) => id)).toEqual(byId([...["otters", "lanterns", "product-analytics"].map((team) => ({ id: `team:${team}` })), ...milestoneGolds.map(([milestone]) => ({ id: `milestone:${milestone}` })), ...levels.map((level) => ({ id: `level:${level}` }))]).map(({ id }) => id));
+    expect((await albumOf(await signedIn(bruno))).sharedEmojis?.map(({ id }) => id)).toEqual(byId([...["otters", "lanterns", "product-analytics"].map((team) => ({ id: `team:${team}` })), ...milestoneTiers.map(([milestone, tier]) => ({ id: `milestone:${milestone}:${tier}` })), ...levels.map((level) => ({ id: `level:${level}` }))]).map(({ id }) => id));
+  });
+});
+
+describe("AL25: a registry opened before every milestone tier had an emoji", { timeout: 90_000 }, () => {
+  test("reserving the shared names by hand names the tiers it lacks and keeps every name it holds", async () => {
+    await theCompanyCopyHolds(...threeTeams());
+    await aliceCollects(otters[0]!);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("emojiNames").collect()) if (/^milestone:[a-z]+:/.test(row.emoji)) await ctx.db.delete(row._id);
+    });
+    const namesBefore = await registry();
+
+    await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
+
+    expect(await registry()).toEqual(expect.arrayContaining(namesBefore));
+    expect((await emojisOf(await signedIn(alice))).filter(({ kind }) => kind === "milestone")).toHaveLength(milestoneTiers.length);
   });
 });
 
@@ -227,11 +286,11 @@ describe("AL26: each earned emoji is seen once", { timeout: 90_000 }, () => {
     const hype = `hype:${await memberOf(otters[0]!)}`;
     expect(await emojiWithId(asAlice, hype)).toMatchObject({ earned: true, seen: false });
 
-    const marked = await asAlice.mutation(api.website.album.markEmojisSeen, { ids: [hype, "team:otters", "level:5", "level:7", "hype:nobody", "nonsense", hype] });
+    const marked = await asAlice.mutation(api.website.album.markEmojisSeen, { ids: [hype, "milestone:people:bronze", "milestone:people:silver", "milestone:people", "milestone:nowhere:bronze", "milestone:people:platinum", "team:otters", "level:5", "level:7", "hype:nobody", "nonsense", hype] });
 
-    expect(marked).toEqual({ kind: "seen", ids: [hype] });
+    expect(marked).toEqual({ kind: "seen", ids: [hype, "milestone:people:bronze"] });
     expect(await emojiWithId(asAlice, hype)).toMatchObject({ earned: true, seen: true });
-    expect((await emojisOf(asAlice)).filter(({ seen }) => seen).map(({ id }) => id)).toEqual([hype]);
+    expect((await emojisOf(asAlice)).filter(({ seen }) => seen).map(({ id }) => id)).toEqual(byId([{ id: hype }, { id: "milestone:people:bronze" }]).map(({ id }) => id));
     const before = await everyTable();
     expect(await asAlice.mutation(api.website.album.markEmojisSeen, { ids: [hype] }), "seen twice").toEqual({ kind: "seen", ids: [hype] });
     expect(await everyTable()).toEqual(before);
@@ -312,7 +371,7 @@ describe("AL32: workspace admins and owners get the shared list", { timeout: 90_
         { id: "team:otters", kind: "team", name: "otters", from: "Otters", picture: ottersCrestPicture, inSlack: false },
         { id: "team:lanterns", kind: "team", name: "lanterns", from: "Lanterns", picture: "/emoji/team.png", inSlack: false },
         { id: "team:product-analytics", kind: "team", name: "product-analytics", from: "Product Analytics", picture: "/emoji/team-product-analytics.png", inSlack: false },
-        ...milestoneGolds.map(([milestone, name]) => ({ id: `milestone:${milestone}`, kind: "milestone", name, from: expect.any(String), picture: `/emoji/milestone-${milestone}.png`, inSlack: false })),
+        ...milestoneTiers.map(([milestone, tier, name]) => ({ id: `milestone:${milestone}:${tier}`, kind: "milestone", name, from: expect.any(String), picture: `/emoji/milestone-${milestone}-${tier}.png`, inSlack: false })),
         ...levels.map((level) => ({ id: `level:${level}`, kind: "level", name: `level-${level}`, from: `Level ${level}`, picture: `/emoji/level-${level}.png`, inSlack: false })),
       ]),
     );
@@ -398,6 +457,10 @@ describe("website commands pass one guard", { timeout: 90_000 }, () => {
     expect(await everyTable()).toEqual(before);
   });
 });
+
+function registry() {
+  return t.run(async (ctx) => (await ctx.db.query("emojiNames").collect()).map(({ emoji, person, name }) => ({ emoji, person, name })));
+}
 
 function threeTeams(): TeamPage[] {
   return [

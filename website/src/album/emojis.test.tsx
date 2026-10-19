@@ -109,13 +109,15 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     const popup = await openTheEmojis(view);
 
-    expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Your emojis · 3 of 9");
-    expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Team stickers 1 of 4", "Hype 1", "Milestones 0 of 2", "Levels 1 of 2"]);
+    expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Your emojis · 9 of 27");
+    expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Team stickers 1 of 4", "Hype 1", "Milestones 6 of 20", "Levels 1 of 2"]);
     expect(rowsIn(shelf(popup, "Team stickers"))[0]).toBe(":quiet-harbour:You unlocked the Quiet Harbour team sticker · 15 Oct 2026In Slack");
     expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
+    expect(rowsIn(shelf(popup, "Milestones")).slice(0, 2)).toEqual([":familiar-faces:You reached silver in Faces in the album · 16 Oct 2026Add to Slack", ":first-full-page:You reached bronze in Full pages · 15 Oct 2026Add to Slack"]);
     expect(rowsIn(shelf(popup, "Levels"))[0]).toBe(":level-5:You reached level 5Add to Slack");
     const pictures = [...document.querySelectorAll<HTMLImageElement>(".al-popover .al-emoji-art:not([data-locked]) img")].map((picture) => picture.getAttribute("src"));
-    expect(pictures).toEqual(["/emoji/team-support.png", "/emoji/level-5.png"]);
+    expect(pictures).toEqual(expect.arrayContaining(["/emoji/team-support.png", "/emoji/milestone-people-silver.png", "/emoji/level-5.png"]));
+    expect(pictures).toHaveLength(8);
   });
 
   it("a hype emoji without a face shows the person's initials in the hype colours", async () => {
@@ -132,9 +134,9 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     const popup = await openTheEmojis(view);
 
     expect(rowsIn(shelf(popup, "Team stickers")).slice(1)).toEqual([":kettle-works:Everyone on Kettle Works is in: unlock the sticker on its page", ":lanterns:Collect all 5 people on Lanterns · 4 of 5", ":copper-kite:Collect all 3 people on Copper Kite · 0 of 3"]);
-    expect(rowsIn(shelf(popup, "Milestones"))).toEqual([":full-of-friends:Reach gold in Faces in the album · 12 of 25", ":heart-of-the-team:Reach gold in Kind words · 9 of 100"]);
+    expect(rowsIn(shelf(popup, "Milestones")).slice(6)).toEqual([":bridge-builder:Reach silver in Across the company · 6 of 10", ":full-of-friends:Reach gold in Faces in the album · 12 of 25", ":collector:Reach silver in Hoggie hunter · 18 of 40"]);
     expect(rowsIn(shelf(popup, "Levels"))[1]).toBe(":level-10:Reach level 10 · 1,210 of 4,500 XP");
-    expect(document.querySelectorAll(".al-popover .al-emoji-art[data-locked]")).toHaveLength(6);
+    expect(document.querySelectorAll(".al-popover .al-emoji-art[data-locked]")).toHaveLength(7);
     await view.user.click(shelf(popup, "Team stickers").getByRole("link", { name: /Kettle Works/ }));
     expect(await screen.findByRole("heading", { level: 1, name: "Kettle Works" })).toBeInTheDocument();
   });
@@ -169,12 +171,12 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
   });
 
   it("an emoji from a milestone this website doesn't know yet still shows, under its own name", async () => {
-    const unknown = anEmoji({ id: "milestone:people:bronze", kind: "milestone", name: "first-face", from: "First face", progress: { have: 3, need: 1 }, earned: true, earnedAt: Date.parse("2026-10-16T10:00:00Z") });
+    const unknown = anEmoji({ id: "milestone:streaks:gold", kind: "milestone", name: "streak-keeper", from: "Streak keeper", progress: null, earned: true, earnedAt: Date.parse("2026-10-17T10:00:00Z") });
     const view = visit("/", { album: { ...midway, emojis: [...midway.emojis, unknown] } });
 
     const popup = await openTheEmojis(view);
 
-    expect(rowsIn(shelf(popup, "Milestones"))[0]).toBe(":first-face:You reached gold in First face · 16 Oct 2026Add to Slack");
+    expect(rowsIn(shelf(popup, "Milestones"))[0]).toBe(":streak-keeper:You reached gold in Streak keeper · 17 Oct 2026Add to Slack");
   });
 
   it("random drops show only once one dropped, each with the pack it dropped from", async () => {
@@ -198,7 +200,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     expect(rowsIn(popup)).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     await view.user.clear(popup.getByRole("searchbox", { name: "Find an emoji" }));
-    await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "kind words");
+    await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "heart of the team");
     expect(rowsIn(popup)).toEqual([":heart-of-the-team:Reach gold in Kind words · 9 of 100"]);
     await view.user.clear(popup.getByRole("searchbox", { name: "Find an emoji" }));
     await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "zebra");
@@ -419,17 +421,18 @@ describe("#664 AL32: the Settings page shows workspace admins the shared list", 
 
     const list = within(await screen.findByRole("region", { name: "Shared emojis" }));
 
-    expect(rowsIn(list)).toEqual([
+    const rows = rowsIn(list);
+    expect(rows.slice(0, 5)).toEqual([
       ":quiet-harbour:The Quiet Harbour team stickerIn Slack",
       ":lanterns:The Lanterns team stickerAdd to Slack",
       ":kettle-works:The Kettle Works team stickerAdd to Slack",
       ":copper-kite:The Copper Kite team stickerAdd to Slack",
-      ":full-of-friends:Gold in Faces in the album: Full of friendsAdd to Slack",
-      ":heart-of-the-team:Gold in Kind words: Heart of the teamAdd to Slack",
-      ":level-5:Reaching level 5Add to Slack",
-      ":level-10:Reaching level 10Add to Slack",
+      ":first-face:Bronze in Faces in the album: First faceIn Slack",
     ]);
-    expect(list.getByText("1 of 8 in Slack")).toBeInTheDocument();
+    expect(rows).toContain(":heart-of-the-team:Gold in Kind words: Heart of the teamAdd to Slack");
+    expect(rows.slice(-2)).toEqual([":level-5:Reaching level 5Add to Slack", ":level-10:Reaching level 10Add to Slack"]);
+    expect(rows).toHaveLength(26);
+    expect(list.getByText("2 of 26 in Slack")).toBeInTheDocument();
   });
 
   it("a member who is no admin sees no shared list", async () => {
