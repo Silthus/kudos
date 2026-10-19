@@ -6,8 +6,9 @@ import { flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onF
 import { blockActions } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { testBackend, type Backend } from "../../testing/slackBackend";
+import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { appHomeOpened, emoji, mention, messageEvent, reactionEvent, section, text } from "../../testing/slackMessages";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { publish, subscribers } from "../bus/publish";
 import type { Command } from "../commands/commands";
 import schema from "../schema";
@@ -38,7 +39,7 @@ type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShow
 const now = new Date("2026-10-13T10:00:00Z");
 const stepMs = 10 * 60_000;
 const stepWindowMs = 9 * 60_000;
-const aTotalityOverEveryRecorderWalksFourTimesMs = 30_000;
+const aTotalityOverEveryRecorderWalksFiveTimesMs = 40_000;
 const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -180,10 +181,10 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of four whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book and one through a group quest whose team page completes, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of five whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes and one through the album's tray, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
-    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest]) {
+    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest, walkThroughTheAlbumsTray]) {
       const { t } = await walked();
       for (const spy of [memberDecision, workspaceDecision, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
       for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
@@ -193,7 +194,7 @@ describe("E11: recording a product event writes only analytics' own rows and sch
     }
 
     expect([...reRun].sort()).toEqual(everyRecorder().sort());
-  }, aTotalityOverEveryRecorderWalksFourTimesMs);
+  }, aTotalityOverEveryRecorderWalksFiveTimesMs);
 });
 
 async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
@@ -275,6 +276,26 @@ async function walkThroughAGroupQuest() {
   await everyoneOnOneTeam(t);
   await giveKudos(t, "U_ALICE", 1);
   expect(eventsNamed("team page completed")).toHaveLength(members.length);
+  return { t };
+}
+
+async function walkThroughTheAlbumsTray() {
+  start("on", "flags key set");
+  aDeploymentForWorkspace();
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "website", "album"].map(onForEveryone));
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
+  await journeyShippedBeforeAnyoneJoined(t);
+
+  await openHome(t, "U_ALICE");
+  await giveKudos(t, "U_ALICE", 1);
+  const { asSignedIn } = await aSignedInSession(t, { user: "U_ALICE" });
+  const album = await asSignedIn.query(api.website.album.getAlbum, {});
+  for (const { pack } of "packs" in album ? album.packs : []) await asSignedIn.mutation(api.website.album.openThoughtfulPack, { pack });
+  await asSignedIn.mutation(api.website.album.putAllIn, {});
+  await settled(t);
+
+  expect(eventsNamed("album sticker collected")).toHaveLength(1);
   return { t };
 }
 

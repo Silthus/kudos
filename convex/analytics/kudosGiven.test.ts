@@ -6,7 +6,8 @@ import { blockActions, buttonIn, buttonInHome, type Block } from "../../testing/
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
-import { internal } from "../_generated/api";
+import { aSignedInSession } from "../../testing/website";
+import { api, internal } from "../_generated/api";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -281,6 +282,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
       await t.fetch("/slack/interactivity", await signedRequest(blockActions(people.giver, buttonInHome(slack, people.giver, label), { team }), form));
       await settle(t);
     }
+    await putsTheirThoughtfulPackInOnTheWebsite(t, team, people.giver);
 
     expect(new Set(postHog.productEvents().map((event) => event.event))).toEqual(
       new Set([
@@ -288,6 +290,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
         "kudos received",
         "person collected",
         "packs earned",
+        "album sticker collected",
         "member welcomed",
         "level reached",
         "unlock made ready",
@@ -425,4 +428,15 @@ function kudosEvents() {
 
 async function outbox(t: Backend) {
   return t.run((ctx) => ctx.db.query("analyticsOutbox").collect());
+}
+
+async function putsTheirThoughtfulPackInOnTheWebsite(t: Backend, team: string, user: string) {
+  vi.stubEnv("SLACK_WORKSPACE_ID", team);
+  await flagsFromPostHog(t, postHog, ...["xp-levels", "quests", "everyone-board", "collection", "website", "album"].map(onForEveryone));
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  const { asSignedIn } = await aSignedInSession(t, { workspace: team, user });
+  const album = await asSignedIn.query(api.website.album.getAlbum, {});
+  for (const { pack } of "packs" in album ? album.packs : []) await asSignedIn.mutation(api.website.album.openThoughtfulPack, { pack });
+  expect(await asSignedIn.mutation(api.website.album.putAllIn, {}), "the giver puts their thoughtful pack's sticker in").toMatchObject({ kind: "placed", items: expect.arrayContaining([expect.objectContaining({ kind: "sticker" })]) });
+  await settle(t);
 }

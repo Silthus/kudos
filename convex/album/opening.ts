@@ -34,7 +34,7 @@ export async function trayOf(ctx: QueryCtx, member: MemberId): Promise<{ tray: T
   return { tray: inOpeningOrder.slice(0, mostTrayItemsShown).map(shownTrayItem), more: inOpeningOrder.length > mostTrayItemsShown };
 }
 
-function crateKeyOf(pack: PackId): CrateKey {
+export function crateKeyOf(pack: PackId): CrateKey {
   return `thoughtful:${pack}`;
 }
 
@@ -46,7 +46,7 @@ async function intoTheTray(ctx: MutationCtx, { _id: pack, giver: member, recipie
   return items;
 }
 
-function shownTrayItem(stored: Doc<"trayItems">): TrayItem {
+export function shownTrayItem(stored: Doc<"trayItems">): TrayItem {
   if (stored.kind === "sticker") return { item: stored._id, kind: "sticker", person: stored.person };
   return { item: stored._id, kind: "hoggie", hoggie: stored.hoggie, rarity: stored.rarity, isNew: stored.isNew };
 }
