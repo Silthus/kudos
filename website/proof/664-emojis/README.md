@@ -23,7 +23,12 @@ Album ticket 20. Sandbox `different-dog-467`, 2026-10-19 11:42–11:56 UTC.
 | No CSP violation | a `securitypolicyviolation` listener stayed empty through the moments, the popup, both downloads and the dark reload |
 | Red, then green | [red-backend.txt](red-backend.txt) (10 of 20), [red-website.txt](red-website.txt) (15 of 17), [gate-02951143.txt](gate-02951143.txt) |
 
+## Refresh on the reviewed head (12:38 UTC)
+
+After two review rounds and the merges of #701 and #704, the website at `7e901c92` was uploaded over the sandbox, whose backend by then was another lane's (#707, per-tier milestone emojis, not on `main`). [light-1440-head-7e901c92-moment-and-popup.png](light-1440-head-7e901c92-moment-and-popup.png) shows HEAD's popup and a moment there: the batch counter ("1 of 2 new"), the dialog holding focus with Skip the rest, wrapped names, the new wording, and an emoji from a milestone this website doesn't know listed under its own name instead of failing the album. No CSP violation. The earlier shots above were taken at `02951143`–`6f6abb41` on this branch's own backend.
+
 ## Gaps
 
 - Reduced motion was checked in the tests (`preferReducedMotion`), not in the browser: the preview browser can't emulate `prefers-reduced-motion`.
 - The level and team moments weren't played on the sandbox: the synthetic giver is level 2 with no unlocked team. The tests play them.
+- A face framed in the hype download was drawn only in tests: the sandbox giver's people have no face. Cloudinary (posthog.com faces) and Gravatar answer `Access-Control-Allow-Origin: *`, so their faces draw; a Slack-avatar face falls back to the initials, as AL31 allows.
