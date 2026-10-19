@@ -132,16 +132,16 @@ function currentRoute() {
   return routeOf(window.location);
 }
 
-function currentAddress() {
+export function currentAddress() {
   return window.location.pathname + window.location.search + window.location.hash;
 }
 
-function keepingSignInCode(href: string) {
+export function keepingSignInCode(href: string) {
   const code = new URLSearchParams(window.location.search).get("code");
   if (code === null) return href;
   const address = new URL(href, window.location.origin);
   address.searchParams.set("code", code);
-  return address.pathname + address.search;
+  return address.pathname + address.search + address.hash;
 }
 
 function keepingTheHash(href: string) {
@@ -182,5 +182,10 @@ export function useRoute() {
     setRoute(currentRoute());
   }, []);
 
-  return { route, navigate, choosePeriod, chooseFilter };
+  const replaceAddress = useCallback((href: string, state: unknown) => {
+    window.history.replaceState(state, "", href);
+    setRoute(currentRoute());
+  }, []);
+
+  return { route, navigate, choosePeriod, chooseFilter, replaceAddress };
 }
