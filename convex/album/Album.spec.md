@@ -122,6 +122,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   refuted: openThoughtfulPack opened any member's waiting pack, never checking it was the signed-in member's own -> 1 of 3 tests failed: a member opened another member's pack (2026-10-18)
   refuted: putItemIn put in any waiting tray item, never checking it was the signed-in member's own -> 1 of 6 tests failed: a member putting in another member's item answered placed instead of refused (2026-10-19)
   refuted: getThoughtfulBoards pinned the board's first row as the member's own, whoever it belonged to -> 1 of 4 tests failed: a member's pinned row named another member (2026-10-18)
+  refuted: Hoggies' talliesOf read the tallies from the signed-in member's ID on, a gte instead of eq -> 1 of 8 tests failed: getAlbumHoggies answered a member another member's finds (2026-10-19)
   kinds: read
   checklist: scoped-reads declared as the album is private
   checklist: redaction dismissed: the read answers the member's own album whole or not at all; nothing inside it is scrubbed
@@ -134,6 +135,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   refuted: putIn put the item in whatever album decided for the member -> 1 of 8 tests failed: with album turned off after a member opened their packs, putting an item in answered placed instead of refused (2026-10-19)
   refuted: albumOnProfileOf answered album true for every member whatever album decided -> 2 of 7 tests failed: with album on for one email only, every other member's getMyProfile carried album, and the on walk's profiles no longer matched (2026-10-18)
   refuted: getThoughtfulBoards answered the boards without deciding album for the member -> 3 of 7 tests failed: in three off states getThoughtfulBoards answered its boards (2026-10-18)
+  refuted: getAlbumHoggies answered the member's hoggies without deciding album for them -> 3 of 8 tests failed: in three off states getAlbumHoggies answered the hoggies Alice found instead of what getAlbum answers (2026-10-19)
   kinds: state, output
   checklist: revalidated-permission dismissed: getAlbum decides `album` for the signed-in member on every read, never from a stored value
   checklist: legal-state-succession dismissed: the flag decides only what is shown; packs, grant records and names are written the same whatever it says (AL3), so turning it off and on again changes no record
