@@ -17,6 +17,7 @@ import {
   hugGivenEventValidator,
   stickersCollectedEventValidator,
   thoughtfulPacksGrantedEventValidator,
+  stickerPutInEventValidator,
   unlockOpenedEventValidator,
   unlockReadyEventValidator,
   unlocksLaunchedEventValidator,
@@ -44,6 +45,7 @@ import {
   projectHugGiven,
   projectPersonCollected,
   projectPacksEarned,
+  projectAlbumStickerCollected,
   projectUnlockOpened,
   projectUnlockReady,
   projectUnlocksLaunched,
@@ -183,6 +185,13 @@ export const recordPacksEarned = internalMutation({
   args: { event: thoughtfulPacksGrantedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectPacksEarned(event)]));
+  },
+});
+
+export const recordAlbumStickerCollected = internalMutation({
+  args: { event: stickerPutInEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectAlbumStickerCollected(event)]));
   },
 });
 

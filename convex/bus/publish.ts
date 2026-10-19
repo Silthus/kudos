@@ -57,6 +57,7 @@ export const subscribers: Registry = {
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
   thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned],
+  stickerPutIn: [internal.analytics.subscribers.recordAlbumStickerCollected],
   companyTeamsReplaced: [internal.album.emojiNames.reserveTeamNamesAfterTheSync],
 };
 

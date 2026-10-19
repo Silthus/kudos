@@ -1,0 +1,39 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 35
+  },
+  "me": {
+    "face": {
+      "initials": "OM",
+      "kind": "initials"
+    },
+    "name": "Odile Marrow",
+    "person": "js7fvdzca0ve1wk6b6jbpnda9x8gk8qw"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1792369180381,
+      "pack": "hn7g5ngm554whkzdzxkyfcw3098gk7ey",
+      "person": "js74a13fk9r87pcn3j7nqa1b6h8gkzq8"
+    }
+  ],
+  "people": [
+    {
+      "face": {
+        "initials": "TR",
+        "kind": "initials"
+      },
+      "held": true,
+      "name": "Tamsin Reed",
+      "person": "js736vvncamgq53mq1m1awrwq18gkvx4"
+    }
+  ],
+  "tray": []
+}

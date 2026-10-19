@@ -1,0 +1,28 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 50
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "hoggie": "data-thief",
+      "isNew": true,
+      "item": "jn7wrq7vfrehpxqtpgtyrmrn198gkkhz",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ],
+  "kind": "opened"
+}

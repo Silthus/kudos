@@ -2,14 +2,14 @@ import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import type { Surface } from "../commands/surface";
-import { decidedBelow, type DecidedBelow } from "../engine/awards";
+import { decidedBelow, fromTheNewestDecided, type DecidedBelow } from "../engine/awards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { applyGain } from "../progression/progression";
 import type { AppliedReward } from "../progression/rewards";
 import { catalogue, crestNamed, crestWith, firstVersionWithCrests, hoggieNamed, type Rarity } from "./catalogue";
 import { drawOf, packBonusOf } from "./draw";
 import { crestsShownFor, crestsShownTo, hoggiesDropFor, packsPayFor } from "./flag";
-import type { CrateKey } from "./crateKey";
+import { crateKindOf, type CrateKey } from "./crateKey";
 import type { DropRecord } from "./records";
 
 export type HoggieArt = { kind: "hoggie"; slug: string };
@@ -28,11 +28,13 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
   const { hoggie, rarity } = await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version });
   const n = await countDrop(ctx, member);
-  const copy = await countCopy(ctx, member, hoggie, at, n);
-  const crest = await crestRecordedFor(ctx, member, hoggie, copy);
+  const waits = waitsInTheTray(crate);
+  const copy = waits ? await nextCopyOf(ctx, member, hoggie) : await countFound(ctx, member, hoggie, at, n);
+  const crest = waits ? crestDecidedAtThePutIn() : await crestRecordedFor(ctx, member, hoggie, copy);
   const { workspace } = await chatUserOf(ctx, member);
   const pack = await packPaidFor(ctx, workspace, member, crate, at);
   await ctx.db.insert("drops", { member, crate, hoggie, rarity, n, copy, catalogueVersion: catalogue.version, at, ...crest, ...(pack && { pack }) });
+  if (waits) await ctx.db.insert("trayDrops", { member, crate });
   if (crest.crest) await crestsShownFor(ctx, member);
   await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at, ...(pack && { pack: { xp: pack.xp, coins: pack.coins } }), surface });
 }
@@ -40,6 +42,68 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
 async function packPaidFor(ctx: MutationCtx, workspace: string, member: MemberId, crate: CrateKey, at: number): Promise<AppliedReward | null> {
   if (!(await packsPayFor(ctx, member))) return null;
   return applyGain(ctx, workspace, { member, ...(await packBonusOf({ secret: drawSecret(), member, crate })) }, at);
+}
+
+export async function putDropIn(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number): Promise<void> {
+  const waiting = await trayDropOf(ctx, member, crate);
+  const drop = await dropRecordOf(ctx, member, crate);
+  if (waiting === null || waiting.putInAt !== undefined || drop === null) return;
+  const copy = await countFound(ctx, member, drop.hoggie, at, await countDrop(ctx, member));
+  const crest = await crestRecordedFor(ctx, member, drop.hoggie, copy);
+  await ctx.db.patch(waiting._id, { putInAt: at, ...crest });
+}
+
+export async function lastFoundBy(ctx: QueryCtx, member: MemberId): Promise<Drop | null> {
+  const shown = { crests: false };
+  const newest = await newestFoundOf(ctx, member, shown);
+  const putIn = await lastPutInOf(ctx, member);
+  if (putIn === null || (newest !== null && newest.at >= putIn.at)) return newest?.drop ?? null;
+  return shownDrop(putIn.record, shown);
+}
+
+async function newestFoundOf(ctx: QueryCtx, member: MemberId, shown: CrestsShown): Promise<DroppedAt | null> {
+  for await (const dropped of dropsByDecision(ctx, member, fromTheNewestDecided, shown)) return dropped;
+  return null;
+}
+
+async function lastPutInOf(ctx: QueryCtx, member: MemberId): Promise<{ at: number; record: DropRecord } | null> {
+  const latest = await ctx.db
+    .query("trayDrops")
+    .withIndex("by_member_put_in", (q) => q.eq("member", member))
+    .order("desc")
+    .first();
+  if (latest?.putInAt === undefined) return null;
+  const record = await dropRecordOf(ctx, member, latest.crate);
+  return record === null ? null : { at: latest.putInAt, record };
+}
+
+function crestDecidedAtThePutIn(): { crest?: null } {
+  return catalogue.version < firstVersionWithCrests ? {} : { crest: null };
+}
+
+function waitsInTheTray(crate: string) {
+  return crateKindOf(crate) === "thoughtful";
+}
+
+async function cratesWaitingInTheTrayOf(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
+  const waiting = await ctx.db
+    .query("trayDrops")
+    .withIndex("by_member_put_in", (q) => q.eq("member", member).eq("putInAt", undefined))
+    .collect();
+  return new Set(waiting.map(({ crate }) => crate));
+}
+
+async function asFound(ctx: QueryCtx, record: DropRecord, shown: CrestsShown): Promise<DropRecord> {
+  if (!shown.crests || !waitsInTheTray(record.crate)) return record;
+  const putIn = await trayDropOf(ctx, record.member, record.crate);
+  return putIn?.crest === undefined ? record : { ...record, crest: putIn.crest };
+}
+
+function trayDropOf(ctx: QueryCtx, member: MemberId, crate: string): Promise<Doc<"trayDrops"> | null> {
+  return ctx.db
+    .query("trayDrops")
+    .withIndex("by_member_crate", (q) => q.eq("member", member).eq("crate", crate))
+    .unique();
 }
 
 export async function packOf(ctx: QueryCtx, member: MemberId, crate: string): Promise<AppliedReward | null> {
@@ -58,7 +122,8 @@ export async function* dropsByDecision(ctx: QueryCtx, member: MemberId, below: D
     .query("drops")
     .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))
     .order("desc");
-  for await (const record of rows) yield { at: record.at, n: record.n, decided: record._creationTime, drop: shownDrop(record, shown) };
+  const waiting = await cratesWaitingInTheTrayOf(ctx, member);
+  for await (const record of rows) if (!waiting.has(record.crate)) yield { at: record.at, n: record.n, decided: record._creationTime, drop: shownDrop(await asFound(ctx, record, shown), shown) };
 }
 
 function shownDrop({ hoggie, rarity, copy, crest }: DropRecord, shown: CrestsShown): Drop {
@@ -90,7 +155,11 @@ async function countDrop(ctx: MutationCtx, member: MemberId) {
   return drops;
 }
 
-async function countCopy(ctx: MutationCtx, member: MemberId, hoggie: string, at: number, n: number) {
+async function nextCopyOf(ctx: QueryCtx, member: MemberId, hoggie: string) {
+  return ((await tallyOf(ctx, member, hoggie))?.count ?? 0) + 1;
+}
+
+async function countFound(ctx: MutationCtx, member: MemberId, hoggie: string, at: number, n: number) {
   const tally = await tallyOf(ctx, member, hoggie);
   if (tally === null) {
     await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: at, firstN: n });

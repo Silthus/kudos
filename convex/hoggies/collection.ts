@@ -1,9 +1,8 @@
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { fromTheNewestDecided } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import { catalogue, rarities, type CatalogueCrest, type CatalogueHoggie, type Rarity } from "./catalogue";
-import { dropsByDecision, type CrestArt, type CrestsShown, type Drop, type HoggieArt } from "./drops";
+import { lastFoundBy, type CrestArt, type CrestsShown, type Drop, type HoggieArt } from "./drops";
 
 export type HeldHoggie = CatalogueHoggie & { art: HoggieArt; count: number; firstAt: number | null };
 
@@ -59,11 +58,6 @@ export async function talliesOf(ctx: QueryCtx, member: MemberId): Promise<Tallie
     .withIndex("by_member_hoggie", (q) => q.eq("member", member))
     .take(catalogue.hoggies.length);
   return new Map(tallies.map((tally) => [tally.hoggie, tally]));
-}
-
-async function lastFoundBy(ctx: QueryCtx, member: MemberId): Promise<Drop | null> {
-  for await (const { drop } of dropsByDecision(ctx, member, fromTheNewestDecided, { crests: false })) return drop;
-  return null;
 }
 
 function heldOf({ hoggie, name, rarity }: CatalogueHoggie, tally: Doc<"hoggieTallies"> | undefined): HeldHoggie {

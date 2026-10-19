@@ -1,0 +1,8 @@
+# hoggieTallies
+# trayDrops
+{ "_creationTime": 1792375605501.4993, "_id": "js7jhk411xxez0e2q2jr9qngh58gjsx0", "crate": "thoughtful:hn7zz7hfbn31cd7fzsh34sj5t58gkv29", "member": "js7crapvhnamsda3zz0tp5563h8gjxqw" }
+{ "_creationTime": 1792375604612.3674, "_id": "js7rhjxp249tfvna5e242fcww98gjnp4", "crate": "thoughtful:hn7km7gesf2kgzzapr88632sd58gks1a", "member": "js7crapvhnamsda3zz0tp5563h8gjxqw" }
+# albumStickers
+# drops
+{ "_creationTime": 1792375605501.499, "_id": "y17a63rjwh67hycsscz7zbhgv98gknq5", "at": 1792375605501, "catalogueVersion": 2, "copy": 1, "crate": "thoughtful:hn7zz7hfbn31cd7fzsh34sj5t58gkv29", "crest": null, "hoggie": "panic", "member": "js7crapvhnamsda3zz0tp5563h8gjxqw", "n": 2, "pack": { "coins": 0, "from": { "coins": 28, "level": 2, "skillPoints": 0, "xp": 35 }, "to": { "coins": 28, "level": 2, "skillPoints": 0, "xp": 50 }, "xp": 15 }, "rarity": "common" }
+{ "_creationTime": 1792375604612.3672, "_id": "y179her2s7tt3w4kvn00eqtfe58gj4nd", "at": 1792375604612, "catalogueVersion": 2, "copy": 1, "crate": "thoughtful:hn7km7gesf2kgzzapr88632sd58gks1a", "crest": null, "hoggie": "trenchcoat", "member": "js7crapvhnamsda3zz0tp5563h8gjxqw", "n": 1, "pack": { "coins": 0, "from": { "coins": 28, "level": 2, "skillPoints": 0, "xp": 20 }, "to": { "coins": 28, "level": 2, "skillPoints": 0, "xp": 35 }, "xp": 15 }, "rarity": "common" }

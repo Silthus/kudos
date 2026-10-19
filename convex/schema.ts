@@ -24,7 +24,7 @@ import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
-import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator } from "./hoggies/records";
+import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, trayDropValidator } from "./hoggies/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import {
@@ -522,6 +522,8 @@ export default defineSchema({
 
   dropTallies: defineTable(dropTallyValidator).index("by_member", ["member"]),
 
+  trayDrops: defineTable(trayDropValidator).index("by_member_crate", ["member", "crate"]).index("by_member_put_in", ["member", "putInAt"]),
+
   hoggieAvatars: defineTable(hoggieAvatarValidator).index("by_member", ["member"]),
 
   stickers: defineTable(stickerValidator).index("by_member_person", ["member", "person"]).index("by_member_firstAt", ["member", "firstAt"]),
@@ -533,7 +535,7 @@ export default defineSchema({
     .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
     .index("by_giver_opened_at", ["giver", "openedAt", "at"]),
 
-  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]),
+  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]),
 
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 

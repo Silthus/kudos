@@ -261,6 +261,10 @@ export const thoughtfulPacksGrantedEventValidator = v.object({
 
 export type ThoughtfulPacksGrantedEvent = Infer<typeof thoughtfulPacksGrantedEventValidator>;
 
+export const stickerPutInEventValidator = v.object({ type: v.literal("stickerPutIn"), workspace: v.string(), member: v.id("members"), person: v.id("members"), at: v.number() });
+
+export type StickerPutInEvent = Infer<typeof stickerPutInEventValidator>;
+
 export const companyTeamsReplacedEventValidator = v.object({ type: v.literal("companyTeamsReplaced"), at: v.number() });
 
 export type CompanyTeamsReplacedEvent = Infer<typeof companyTeamsReplacedEventValidator>;
@@ -309,6 +313,7 @@ export type DomainEvent =
   | TeamPagesCompletedEvent
   | StickersCollectedEvent
   | ThoughtfulPacksGrantedEvent
+  | StickerPutInEvent
   | CompanyTeamsReplacedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {

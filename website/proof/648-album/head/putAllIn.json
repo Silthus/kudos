@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "hoggie": "trenchcoat",
+      "isNew": true,
+      "item": "jn7ns5aysqq2ggh2jmbqw7b0sh8gjhy4",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "hoggie": "panic",
+      "isNew": true,
+      "item": "jn7hf6wncjgtmpfc2cwyewk4858gkgz1",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "item": "jn7n0kseen6ef82w6vp50p5r2n8gjhje",
+      "kind": "sticker",
+      "person": "js7dd8qhe7hne79wn1jr7dhtt18gkyy8"
+    }
+  ],
+  "kind": "placed",
+  "more": false
+}
