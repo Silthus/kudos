@@ -11,6 +11,7 @@ const stylesheets = [
   readFileSync(join(websiteDirectory, "src", "index.css"), "utf8"),
   readFileSync(join(websiteDirectory, "src", "album", "album.css"), "utf8"),
   readFileSync(join(websiteDirectory, "src", "album", "opening.css"), "utf8"),
+  readFileSync(join(websiteDirectory, "src", "album", "team.css"), "utf8"),
 ];
 
 function declarationsIn(mode: Mode) {

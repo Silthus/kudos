@@ -67,6 +67,19 @@ describe("AL18: team pages are company teams", { timeout: 60_000 }, () => {
     ]);
   });
 
+  test("AL45: getAlbum names everyone a page lists, so the class photo can show the people not collected yet as silhouettes: each once, by their posthog.com name, with initials and no picture", async () => {
+    await theCompanyCopyHolds({ slug: "lanterns", name: "Lanterns", profiles: profilesOf(alice, ...lanterns, nobodyInSlack) }, { slug: "beacons", name: "Beacons", profiles: profilesOf(...lanterns.slice(4, 7)) });
+    await aliceCollects(...lanterns.slice(0, 5));
+    const asAlice = await signedIn(alice);
+
+    const people = await peopleOf(asAlice);
+
+    expect(people.filter(({ held }) => held).map(({ name }) => name)).toEqual(lanterns.slice(0, 5).map(({ name }) => name));
+    expect(people.filter(({ held }) => !held)).toEqual(
+      await Promise.all(lanterns.slice(5).map(async (someone) => ({ person: await memberOf(someone), name: someone.name, face: { kind: "initials", initials: "LW" }, held: false }))),
+    );
+  });
+
   test("pages come in sidebar order: the member's own team first, then pages ready to unlock, then the most held", async () => {
     await theCompanyCopyHolds(
       { slug: "beacons", name: "Beacons", profiles: profilesOf(...lanterns.slice(0, 4)) },
@@ -288,10 +301,18 @@ function unlock(reader: Reader, team: string) {
   return reader.mutation(api.website.album.unlockTeamSticker, { team });
 }
 
-async function teamsOf(reader: Reader): Promise<AlbumTeam[]> {
+async function albumOf(reader: Reader): Promise<AlbumAnswer> {
   const album: AlbumRead | { kind: string } = await reader.query(api.website.album.getAlbum, {});
   if (album.kind !== "album") throw new Error(`expected an album, got ${JSON.stringify(album)}`);
-  return (album as AlbumAnswer).teams;
+  return album as AlbumAnswer;
+}
+
+async function teamsOf(reader: Reader): Promise<AlbumTeam[]> {
+  return (await albumOf(reader)).teams;
+}
+
+async function peopleOf(reader: Reader): Promise<AlbumAnswer["people"]> {
+  return (await albumOf(reader)).people;
 }
 
 async function teamNamed(reader: Reader, team: string): Promise<AlbumTeam> {

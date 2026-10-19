@@ -22,7 +22,13 @@ export type TeamPage = {
 
 export type PageOwner = { workspace: string; member: MemberId };
 
-export async function teamPagesOf(ctx: QueryCtx, { workspace, member }: PageOwner): Promise<TeamPage[]> {
+export type TeamPagesAndPeople = { pages: TeamPage[]; held: Set<MemberId>; profileOf: Map<MemberId, number> };
+
+export async function teamPagesOf(ctx: QueryCtx, owner: PageOwner): Promise<TeamPage[]> {
+  return (await teamPagesAndPeopleOf(ctx, owner)).pages;
+}
+
+export async function teamPagesAndPeopleOf(ctx: QueryCtx, { workspace, member }: PageOwner): Promise<TeamPagesAndPeople> {
   const holders = await storedHoldersIn(ctx, workspace);
   const held = await peopleHeldBy(ctx, member);
   const unlocked = await teamStickersOf(ctx, member);
@@ -30,7 +36,7 @@ export async function teamPagesOf(ctx: QueryCtx, { workspace, member }: PageOwne
   const onPostHogCom = new Set(teams.map(({ team }) => team));
   const listed = teams.map((team) => pageOf(team, member, holders, held, unlocked.get(team.team)));
   const gone = [...unlocked.values()].filter(({ team }) => !onPostHogCom.has(team)).map(goneTeamPageOf);
-  return [...listed, ...gone].sort(inSidebarOrder);
+  return { pages: [...listed, ...gone].sort(inSidebarOrder), held, profileOf: new Map([...holders].map(([profile, holder]) => [holder, profile])) };
 }
 
 async function teamStickersOf(ctx: QueryCtx, member: MemberId): Promise<Map<string, TeamSticker>> {

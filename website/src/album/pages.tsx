@@ -1,21 +1,20 @@
 import type { ReactNode } from "react";
-import { AppLink } from "../AppLink";
 import { PageTitle } from "../PageTitle";
 import { NotFoundPage } from "../pages/NotFoundPage";
-import type { Album, AlbumPerson, AlbumTeam } from "./answer";
+import type { Album, AlbumTeam } from "./answer";
 import { medalsOf, myTeamOf, plural, xpToNextOf } from "./facts";
-import { hrefOf, type Place } from "./place";
+import type { Place } from "./place";
+import { TeamPage } from "./TeamPage";
+import type { TeamUnlocking } from "./useTeamUnlock";
 
-type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode };
+type PageProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; person: ReactNode; unlocking: TeamUnlocking };
 
-export function AlbumPage({ album, place, settings, leaderboard }: PageProps) {
+export function AlbumPage({ album, place, settings, leaderboard, person, unlocking }: PageProps) {
   switch (place.kind) {
     case "team":
-      return <TeamPage album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} />;
-    case "person": {
-      const person = album.people.find(({ person }) => person === place.person);
-      return person === undefined ? <NotFoundPage /> : <PersonPage album={album} person={person} />;
-    }
+      return <TeamOrHome album={album} team={place.team === null ? myTeamOf(album) : album.teams.find(({ team }) => team === place.team)} home={place.team === null} unlocking={unlocking} />;
+    case "person":
+      return person;
     case "profile":
       return (
         <Page tab="Profile" eyebrow="Your profile" title={<span className="ph-no-capture">{album.me.name}</span>}>
@@ -67,7 +66,7 @@ function Page({ tab, eyebrow, title, children }: { tab: string; eyebrow?: string
   );
 }
 
-function TeamPage({ album, team, home }: { album: Album; team: AlbumTeam | undefined; home: boolean }) {
+function TeamOrHome({ album, team, home, unlocking }: { album: Album; team: AlbumTeam | undefined; home: boolean; unlocking: TeamUnlocking }) {
   if (team === undefined && home)
     return (
       <Page tab="Your album" title="Your album">
@@ -75,38 +74,5 @@ function TeamPage({ album, team, home }: { album: Album; team: AlbumTeam | undef
       </Page>
     );
   if (team === undefined) return <NotFoundPage />;
-  return (
-    <Page tab={team.name} eyebrow={team.mine ? "Your team" : "Team"} title={team.name}>
-      {teamLineOf(team)} {plural(album.people.filter(({ teams, held }) => held && teams.includes(team.team)).length, "person", "people")} in your album.
-    </Page>
-  );
-}
-
-function teamLineOf(team: AlbumTeam) {
-  if (team.state === "ready") return "Complete and ready to unlock.";
-  if (team.state === "unlocked") return `Unlocked ${new Date(team.unlockedAt ?? 0).toLocaleDateString(undefined, { day: "numeric", month: "long" })}.`;
-  return `${team.held} of ${team.total} collected.`;
-}
-
-function PersonPage({ album, person }: { album: Album; person: AlbumPerson }) {
-  const teams = album.teams.filter(({ team }) => person.teams.includes(team));
-  return (
-    <div className="al-page-body">
-      <p className="al-eyebrow">{person.held ? "In your album" : "Not in your album yet"}</p>
-      <PageTitle tab={person.name} size="hero">
-        <span className="ph-no-capture">{person.name}</span>
-      </PageTitle>
-      {teams.length > 0 && (
-        <ul className="al-chips" aria-label="Their teams">
-          {teams.map(({ team, name, mine }) => (
-            <li key={team}>
-              <AppLink href={hrefOf({ kind: "team", team: mine ? null : team })} className="al-chip">
-                {name}
-              </AppLink>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+  return <TeamPage album={album} team={team} unlocking={unlocking} />;
 }

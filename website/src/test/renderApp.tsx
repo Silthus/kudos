@@ -4,7 +4,7 @@ import { StrictMode } from "react";
 import { vi } from "vitest";
 import { App, type AppReads } from "../App";
 import type { ActivityRead, ActivityWatch } from "../activityRead";
-import type { AlbumRead, BoardsRead } from "../album/answer";
+import type { AlbumRead, BoardsRead, PersonRead } from "../album/answer";
 import type { BoardRead } from "../boardRead";
 import type { BookRead } from "../bookRead";
 import type { CollectionRead } from "../collectionRead";
@@ -43,16 +43,18 @@ const noAlbum: AlbumRead = (asking) => (asking ? { kind: "off" } : undefined);
 
 const noBoards: BoardsRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest" | "openThoughtfulPack">>;
+const noPeople: PersonRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-const noReads: AppReads = { useLeaderboard: noBoard, useQuests: noQuests, useBook: noBook, useCollection: noCollection, useSkillTree: noSkillTree, useProfileCard: noProfileCard, useRecentKudos: noRecentKudos, useActivityWatch: noActivity.watch, readActivity: noActivity.read, drawSpotlight: noSpotlight, useSettings: noSettings, useAlbum: noAlbum, useThoughtfulBoards: noBoards };
+type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest" | "openThoughtfulPack" | "unlockTeamSticker">>;
+
+const noReads: AppReads = { useLeaderboard: noBoard, useQuests: noQuests, useBook: noBook, useCollection: noCollection, useSkillTree: noSkillTree, useProfileCard: noProfileCard, useRecentKudos: noRecentKudos, useActivityWatch: noActivity.watch, readActivity: noActivity.read, drawSpotlight: noSpotlight, useSettings: noSettings, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumPerson: noPeople };
 
 export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook, readSkillTree: SkillTreeRead = noSkillTree, readProfileCard: ProfileCardRead = noProfileCard, readRecentKudos: RecentKudosRead = noRecentKudos, activity: ActivityReads = noActivity, drawSpotlight: SpotlightDraw = noSpotlight, readSettings: SettingsRead = noSettings, readCollection: CollectionRead = noCollection) {
-  return renderAppWith(visitor, { useLeaderboard: readLeaderboard, useQuests: readQuests, useBook: readBook, useSkillTree: readSkillTree, useProfileCard: readProfileCard, useRecentKudos: readRecentKudos, useActivityWatch: activity.watch, readActivity: activity.read, drawSpotlight, useSettings: readSettings, useCollection: readCollection, useAlbum: noAlbum, useThoughtfulBoards: noBoards }, commands);
+  return renderAppWith(visitor, { useLeaderboard: readLeaderboard, useQuests: readQuests, useBook: readBook, useSkillTree: readSkillTree, useProfileCard: readProfileCard, useRecentKudos: readRecentKudos, useActivityWatch: activity.watch, readActivity: activity.read, drawSpotlight, useSettings: readSettings, useCollection: readCollection, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumPerson: noPeople }, commands);
 }
 
-export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, boards = noBoards, commands = {} }: { settings?: SettingsRead; boards?: BoardsRead; commands?: Commands } = {}) {
-  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useThoughtfulBoards: boards }, commands);
+export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, boards = noBoards, people = noPeople, commands = {} }: { settings?: SettingsRead; boards?: BoardsRead; people?: PersonRead; commands?: Commands } = {}) {
+  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useThoughtfulBoards: boards, useAlbumPerson: people }, commands);
 }
 
 function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands) {
@@ -71,6 +73,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands)
     setAvatar: vi.fn(commands.setAvatar ?? (async () => ({ kind: "refused" }) as const)),
     swapQuest: vi.fn(commands.swapQuest ?? (async () => ({ kind: "refused" }) as const)),
     openThoughtfulPack: vi.fn(commands.openThoughtfulPack ?? (async () => ({ kind: "refused" }) as const)),
+    unlockTeamSticker: vi.fn(commands.unlockTeamSticker ?? (async () => ({ kind: "refused" }) as const)),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (

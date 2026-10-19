@@ -13,7 +13,7 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
-import type { AlbumShown, BoardsShown } from "./album/answer";
+import type { AlbumShown, BoardsShown, PersonShown } from "./album/answer";
 import { albumOf } from "./album/liveAlbum";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
@@ -66,6 +66,7 @@ function LiveApp() {
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking) => useLiveThoughtfulBoards(asking, unreachable)}
+      useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
@@ -131,6 +132,14 @@ function useLiveThoughtfulBoards(asking: boolean, unreachable: boolean): BoardsS
   if (boards instanceof Error) return { kind: "broken" };
   if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return boards;
+}
+
+function useLiveAlbumPerson(asking: boolean, person: string | null, unreachable: boolean): PersonShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking && person !== null ? { person: { query: api.website.album.getAlbumPerson, args: { person } } } : {}), [asking, person]);
+  const { person: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
 }
 
 function useLiveCollection(asking: boolean, unreachable: boolean): CollectionShown | undefined {
@@ -223,6 +232,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
   const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
+  const unlockTeamSticker = useSentOnce(api.website.album.unlockTeamSticker);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
@@ -240,6 +250,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
       openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
+      unlockTeamSticker: (team) => answerWithin(commandAnswerBudgetMs, unlockTeamSticker({ team })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -247,7 +258,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, unlockTeamSticker, onSignInFailure],
   );
 }
 

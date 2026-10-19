@@ -7,7 +7,7 @@ import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
 import type { TeamSticker } from "../album/records";
 import { albumStickersOf } from "../album/stickers";
-import { teamPagesOf, type TeamPage } from "../album/teamPages";
+import { teamPagesAndPeopleOf, type TeamPage, type TeamPagesAndPeople } from "../album/teamPages";
 import { unlockTeamStickerOf } from "../album/teamStickers";
 import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
@@ -19,7 +19,7 @@ import { nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { albumPersonOf, albumWeekOf, type AlbumPersonAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
 import { appliedShownTo } from "./commands";
-import { companyTeammateOf, nameless, storedFaceOf, type Face } from "./faces";
+import { companyTeammateOf, nameless, storedFaceOf, teammateOf, type Face } from "./faces";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
@@ -78,15 +78,26 @@ export type AlbumHoggiesRead = { kind: "off" } | AlbumHoggiesAnswer;
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
   const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
-  const { people, morePeople } = await peopleHeldBy(ctx, me);
+  const { people: held, morePeople } = await peopleHeldBy(ctx, me);
   const { tray, more: moreTray } = await trayOf(ctx, me.member);
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams: await teamsOf(ctx, me), people, morePeople, packs, morePacks, tray, moreTray };
+  const { teams, notYetHeld } = await teamsOf(ctx, me);
+  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams, people: [...held, ...notYetHeld], morePeople, packs, morePacks, tray, moreTray };
 });
 
-async function teamsOf(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumTeam[]> {
-  const pages = await teamPagesOf(ctx, me);
+async function teamsOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ teams: AlbumTeam[]; notYetHeld: AlbumPerson[] }> {
+  const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
   const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));
-  return pages.map(({ unmatched, ...page }) => ({ ...page, unmatched: unmatched.flatMap((profile) => named.get(profile) ?? []) }));
+  const teams = pagesAndPeople.pages.map(({ unmatched, ...page }) => ({ ...page, unmatched: unmatched.flatMap((profile) => named.get(profile) ?? []) }));
+  return { teams, notYetHeld: notYetHeldOn(pagesAndPeople, named) };
+}
+
+function notYetHeldOn({ pages, held, profileOf }: TeamPagesAndPeople, named: Map<number, string>): AlbumPerson[] {
+  const onAPage = new Set(pages.flatMap(({ people }) => people));
+  const nameOf = (person: MemberId) => {
+    const profile = profileOf.get(person);
+    return profile === undefined ? undefined : named.get(profile);
+  };
+  return [...onAPage].filter((person) => !held.has(person)).map((person) => ({ person, ...teammateOf(nameOf(person), null), held: false }));
 }
 
 async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember) {
@@ -143,8 +154,12 @@ export const getThoughtfulBoards = memberQuery({
 });
 
 export const getAlbumPerson = memberQuery({
-  args: { person: v.id("members") },
-  handler: async (ctx, me, { person }): Promise<AlbumPersonRead> => ((await albumShownTo(ctx, me.member)) ? albumPersonOf(ctx, me, person) : { kind: "off" }),
+  args: { person: v.string() },
+  handler: async (ctx, me, { person }): Promise<AlbumPersonRead> => {
+    if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
+    const member = ctx.db.normalizeId("members", person);
+    return member === null ? { kind: "no-person" } : albumPersonOf(ctx, me, member);
+  },
 });
 
 export const getAlbumWeek = memberQuery({
