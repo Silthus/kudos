@@ -1,0 +1,61 @@
+{
+ "thoughtfulTierEmojis": [
+  {
+   "earned": true,
+   "earnedAt": 1792411970525,
+   "from": "First thank-you",
+   "id": "milestone:thoughtful:bronze",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "first-thank-you",
+   "picture": "/emoji/milestone-thoughtful-bronze.png",
+   "progress": null,
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Generous soul",
+   "id": "milestone:thoughtful:silver",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "generous-soul",
+   "picture": "/emoji/milestone-thoughtful-silver.png",
+   "progress": {
+    "have": 1,
+    "need": 25
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Heart of the team",
+   "id": "milestone:thoughtful:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "heart-of-the-team",
+   "picture": "/emoji/milestone-thoughtful-gold.png",
+   "progress": {
+    "have": 1,
+    "need": 100
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Patron of praise",
+   "id": "milestone:thoughtful:diamond",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "patron-of-praise",
+   "picture": "/emoji/milestone-thoughtful-diamond.png",
+   "progress": {
+    "have": 1,
+    "need": 500
+   },
+   "seen": false
+  }
+ ]
+}

@@ -1,0 +1,191 @@
+{
+ "milestoneEmojis": [
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Full of friends",
+   "id": "milestone:people:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "full-of-friends",
+   "picture": "/emoji/milestone-people-gold.png",
+   "progress": {
+    "have": 4,
+    "need": 25
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Most of the company",
+   "id": "milestone:teams:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "most-of-the-company",
+   "picture": "/emoji/milestone-teams-gold.png",
+   "progress": {
+    "have": 0,
+    "need": 15
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Well travelled",
+   "id": "milestone:reach:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "well-travelled",
+   "picture": "/emoji/milestone-reach-gold.png",
+   "progress": {
+    "have": 0,
+    "need": 25
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Hoarder",
+   "id": "milestone:hoggies:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "hoarder",
+   "picture": "/emoji/milestone-hoggies-gold.png",
+   "progress": {
+    "have": 8,
+    "need": 100
+   },
+   "seen": false
+  },
+  {
+   "earned": false,
+   "earnedAt": null,
+   "from": "Heart of the team",
+   "id": "milestone:thoughtful:gold",
+   "inSlack": false,
+   "kind": "milestone",
+   "name": "heart-of-the-team",
+   "picture": "/emoji/milestone-thoughtful-gold.png",
+   "progress": {
+    "have": 5,
+    "need": 100
+   },
+   "seen": false
+  }
+ ],
+ "milestones": [
+  {
+   "id": "people",
+   "count": 4,
+   "tiers": [
+    {
+     "tier": "bronze",
+     "earnedAt": 1792387198235
+    },
+    {
+     "tier": "silver",
+     "earnedAt": null
+    },
+    {
+     "tier": "gold",
+     "earnedAt": null
+    },
+    {
+     "tier": "diamond",
+     "earnedAt": null
+    }
+   ]
+  },
+  {
+   "id": "teams",
+   "count": 0,
+   "tiers": [
+    {
+     "tier": "bronze",
+     "earnedAt": null
+    },
+    {
+     "tier": "silver",
+     "earnedAt": null
+    },
+    {
+     "tier": "gold",
+     "earnedAt": null
+    },
+    {
+     "tier": "diamond",
+     "earnedAt": null
+    }
+   ]
+  },
+  {
+   "id": "reach",
+   "count": 0,
+   "tiers": [
+    {
+     "tier": "bronze",
+     "earnedAt": null
+    },
+    {
+     "tier": "silver",
+     "earnedAt": null
+    },
+    {
+     "tier": "gold",
+     "earnedAt": null
+    },
+    {
+     "tier": "diamond",
+     "earnedAt": null
+    }
+   ]
+  },
+  {
+   "id": "hoggies",
+   "count": 8,
+   "tiers": [
+    {
+     "tier": "bronze",
+     "earnedAt": null
+    },
+    {
+     "tier": "silver",
+     "earnedAt": null
+    },
+    {
+     "tier": "gold",
+     "earnedAt": null
+    },
+    {
+     "tier": "diamond",
+     "earnedAt": null
+    }
+   ]
+  },
+  {
+   "id": "thoughtful",
+   "count": 5,
+   "tiers": [
+    {
+     "tier": "bronze",
+     "earnedAt": 1792387198235
+    },
+    {
+     "tier": "silver",
+     "earnedAt": null
+    },
+    {
+     "tier": "gold",
+     "earnedAt": null
+    },
+    {
+     "tier": "diamond",
+     "earnedAt": null
+    }
+   ]
+  }
+ ]
+}
