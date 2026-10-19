@@ -1,0 +1,4 @@
+     × #721: +N more opens the emoji popup on a Just unlocked list holding every emoji it marked seen, past what a shelf shows 4149ms
+     × #721: with motion, Escape before the cards have risen waits for them, then flies them in and sends markEmojisSeen 4183ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 13 passed | 15 skipped (30)

@@ -8,9 +8,9 @@ import { howToUnlockWords, isReadyToUnlock, matchesSearch, milestoneGroupsOf, mi
 import { hrefOf } from "./place";
 import "./emoji.css";
 
-type PanelProps = { album: Album; onFollow: () => void };
+type PanelProps = { album: Album; justUnlocked: string[]; onFollow: () => void };
 
-export function EmojiPanel({ album, onFollow }: PanelProps) {
+export function EmojiPanel({ album, justUnlocked, onFollow }: PanelProps) {
   const [search, setSearch] = useState("");
   const searching = search.trim() !== "";
   const shelves = shelvesOf(album.emojis);
@@ -28,8 +28,31 @@ export function EmojiPanel({ album, onFollow }: PanelProps) {
           <input type="search" placeholder="Find an emoji, a team or a person" aria-label="Find an emoji" value={search} onChange={(event) => setSearch(event.target.value)} />
         </label>
       </div>
-      {searching ? <Found album={album} search={search} onFollow={onFollow} /> : shelves.map((shelf) => <ShelfSection key={shelf.kind.kind} album={album} shelf={shelf} onFollow={onFollow} />)}
+      {searching ? (
+        <Found album={album} search={search} onFollow={onFollow} />
+      ) : (
+        <>
+          <JustUnlocked album={album} ids={justUnlocked} onFollow={onFollow} />
+          {shelves.map((shelf) => (
+            <ShelfSection key={shelf.kind.kind} album={album} shelf={shelf} onFollow={onFollow} />
+          ))}
+        </>
+      )}
     </div>
+  );
+}
+
+function JustUnlocked({ album, ids, onFollow }: { album: Album; ids: string[]; onFollow: () => void }) {
+  const title = useId();
+  const emojis = ids.flatMap((id) => album.emojis.filter((emoji) => emoji.id === id));
+  if (emojis.length === 0) return null;
+  return (
+    <section className="al-emoji-shelf" aria-labelledby={title}>
+      <h3 id={title} className="al-emoji-shelf-title">
+        Just unlocked
+      </h3>
+      <EmojiRows album={album} emojis={emojis} onFollow={onFollow} />
+    </section>
   );
 }
 

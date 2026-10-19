@@ -12,9 +12,10 @@ import { keyOf, type Place } from "./place";
 import { PutInFlights } from "./PutInFlights";
 import { Sidebar } from "./Sidebar";
 import { teamEmojiOf } from "./teamPage";
-import { TopBar } from "./TopBar";
+import { TopBar, type TopBarPopups } from "./TopBar";
 import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
+import { usePopover } from "./usePopover";
 import { useTeamUnlock } from "./useTeamUnlock";
 import "./album.css";
 
@@ -49,9 +50,19 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     closeOpening();
     puttingIn.putAllIn();
   };
+  const popover = usePopover<TopBarPopups>();
+  const { show } = popover;
+  const [justUnlocked, setJustUnlocked] = useState<string[]>([]);
+  const showTheEmojis = useCallback(
+    (ids: string[]) => {
+      setJustUnlocked(ids);
+      show("emojis");
+    },
+    [show],
+  );
   const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy;
-  const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen);
-  const playing = opening || moment !== null || emojiMoments.playing !== null;
+  const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
+  const playing = opening || moment !== null || emojiMoments.playing.length > 0;
   const finishUnlocking = (team: string) => {
     emojiMoments.shownElsewhere([`team:${team}`]);
     finish();
@@ -62,10 +73,10 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
-      {emojiMoments.playing !== null && <EmojiMoment key={emojiMoments.playing.id} moments={emojiMoments} emojiButton={emojiButton} />}
+      {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
       <PutInFlights album={album} flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}

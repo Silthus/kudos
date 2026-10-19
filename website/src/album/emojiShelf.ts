@@ -169,9 +169,10 @@ function number(value: number) {
 
 export const useItInSlackWords = `Use it in Slack: ${howToUseIt}.`;
 
-export const addItToSlackWords = `Add it to Slack from your emojis, then ${howToUseIt}.`;
+export const notInSlackYetWords = "Not in Slack yet";
 
-export const findItInSlackWords = `It isn't in Slack yet: find it in Slack, then ${howToUseIt}.`;
+export const bundleSize = 5;
+
 
 export function momentsOwedOf(album: Album, shown: ReadonlySet<string>): AlbumEmoji[] {
   return album.emojis.filter((emoji) => emoji.earned && !emoji.seen && !shown.has(emoji.id) && !heldForItsPack(album, emoji));
