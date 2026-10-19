@@ -1,0 +1,185 @@
+{
+ "U0PRF670AVAA": {
+  "tabs": [
+   "profile",
+   "leaderboard",
+   "settings"
+  ],
+  "profile": {
+   "boughtCrates": null,
+   "earlierCrates": null,
+   "earlierGroupCrates": null,
+   "groupQuest": null,
+   "hoggies": null,
+   "journey": null,
+   "progression": {
+    "coins": null,
+    "level": 2,
+    "skillPoints": null,
+    "skillTreeTab": false,
+    "xp": 55,
+    "xpToNextLevel": 45
+   },
+   "quests": null,
+   "unlocks": null
+  },
+  "settings rows that apply": [
+   [
+    "kudos-reply",
+    "What a kudos you gave earned you, right after you send it."
+   ],
+   [
+    "level-ups",
+    "When you reach a level."
+   ],
+   [
+    "celebrations",
+    "Your level ups in the announcement channel."
+   ],
+   [
+    "hugs-recap",
+    "Last week's hugs, the :hedgehog: you and your teammates reacted, with their XP, on Monday morning."
+   ]
+  ],
+  "settings rows on main before the fix (a sibling deploy)": [
+   [
+    "kudos-reply",
+    "What a kudos you gave earned you, right after you send it."
+   ],
+   [
+    "level-ups",
+    "When you reach a level, with what it opens for you."
+   ],
+   [
+    "celebrations",
+    "Your level ups and tiers in the announcement channel."
+   ],
+   [
+    "hugs-recap",
+    "Last week's hugs, the :hedgehog: you and your teammates reacted, with their XP, on Monday morning."
+   ]
+  ]
+ },
+ "U0PRF670BENA": {
+  "tabs": [
+   "profile",
+   "leaderboard",
+   "settings"
+  ],
+  "profile": {
+   "boughtCrates": null,
+   "earlierCrates": null,
+   "earlierGroupCrates": null,
+   "groupQuest": null,
+   "hoggies": null,
+   "journey": null,
+   "progression": {
+    "coins": null,
+    "level": 2,
+    "skillPoints": null,
+    "skillTreeTab": false,
+    "xp": 35,
+    "xpToNextLevel": 65
+   },
+   "quests": null,
+   "unlocks": null
+  },
+  "settings rows that apply": [
+   [
+    "kudos-reply",
+    "What a kudos you gave earned you, right after you send it."
+   ],
+   [
+    "level-ups",
+    "When you reach a level."
+   ],
+   [
+    "celebrations",
+    "Your level ups in the announcement channel."
+   ],
+   [
+    "hugs-recap",
+    "Last week's hugs, the :hedgehog: you and your teammates reacted, with their XP, on Monday morning."
+   ]
+  ],
+  "settings rows on main before the fix (a sibling deploy)": [
+   [
+    "kudos-reply",
+    "What a kudos you gave earned you, right after you send it."
+   ],
+   [
+    "level-ups",
+    "When you reach a level, with what it opens for you."
+   ],
+   [
+    "celebrations",
+    "Your level ups and tiers in the announcement channel."
+   ],
+   [
+    "hugs-recap",
+    "Last week's hugs, the :hedgehog: you and your teammates reacted, with their XP, on Monday morning."
+   ]
+  ]
+ },
+ "U0PRF670CYDA": {
+  "tabs": [
+   "profile",
+   "leaderboard",
+   "settings"
+  ],
+  "profile": {
+   "boughtCrates": null,
+   "earlierCrates": null,
+   "earlierGroupCrates": null,
+   "groupQuest": null,
+   "hoggies": null,
+   "journey": null,
+   "progression": {
+    "coins": null,
+    "level": 1,
+    "skillPoints": null,
+    "skillTreeTab": false,
+    "xp": 15,
+    "xpToNextLevel": 5
+   },
+   "quests": null,
+   "unlocks": null
+  },
+  "settings rows that apply": [
+   [
+    "kudos-reply",
+    "What a kudos you gave earned you, right after you send it."
+   ],
+   [
+    "level-ups",
+    "When you reach a level."
+   ],
+   [
+    "celebrations",
+    "Your level ups in the announcement channel."
+   ],
+   [
+    "hugs-recap",
+    "Last week's hugs, the :hedgehog: you and your teammates reacted, with their XP, on Monday morning."
+   ]
+  ],
+  "settings rows on main before the fix (a sibling deploy)": [
+   [
+    "kudos-reply",
+    "What a kudos you gave earned you, right after you send it."
+   ],
+   [
+    "level-ups",
+    "When you reach a level, with what it opens for you."
+   ],
+   [
+    "celebrations",
+    "Your level ups and tiers in the announcement channel."
+   ],
+   [
+    "hugs-recap",
+    "Last week's hugs, the :hedgehog: you and your teammates reacted, with their XP, on Monday morning."
+   ]
+  ]
+ }
+}

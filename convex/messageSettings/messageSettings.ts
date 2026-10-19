@@ -1,5 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { bookAppliesIn } from "../achievements/flag";
+import { achievementsApplyIn, bookAppliesIn } from "../achievements/flag";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { questsApplyTo } from "../quests/flag";
@@ -28,16 +28,26 @@ const appliesWhile: Record<MessageKind, Applies> = {
   "hugs-recap": (ctx, member) => hugsShownTo(ctx, member),
 };
 
+const retirablePartOf: Partial<Record<MessageKind, { appliesWhile: Applies; describedWithout: string }>> = {
+  "level-ups": { appliesWhile: (ctx, member) => unlocksAppliedTo(ctx, member), describedWithout: "When you reach a level." },
+  celebrations: { appliesWhile: (ctx, _, workspace) => achievementsApplyIn(ctx, workspace), describedWithout: "Your level ups in the announcement channel." },
+};
+
 export async function messageSettingsOf(ctx: QueryCtx, member: MemberId): Promise<MessageSetting[]> {
   const { workspace } = await chatUserOf(ctx, member);
   const { kudosEmoji } = await settingsOf(ctx, workspace);
   const settings: MessageSetting[] = [];
   for (const entry of messageKinds) {
     const place = await placeOf(ctx, member, entry.kind);
-    const description = entry.description.replace("{kudos emoji}", `:${kudosEmoji}:`);
+    const description = (await describedFor(ctx, member, workspace, entry)).replace("{kudos emoji}", `:${kudosEmoji}:`);
     settings.push({ ...entry, description, applies: await kindAppliesTo(ctx, member, entry.kind), on: place !== "none", place, places: await placesOf(ctx, member, entry.kind) });
   }
   return settings;
+}
+
+async function describedFor(ctx: QueryCtx, member: MemberId, workspace: string, { kind, description }: MessageKindEntry) {
+  const part = retirablePartOf[kind];
+  return part === undefined || (await part.appliesWhile(ctx, member, workspace)) ? description : part.describedWithout;
 }
 
 export async function kindAppliesTo(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<boolean> {
