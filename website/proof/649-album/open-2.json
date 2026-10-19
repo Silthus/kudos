@@ -1,0 +1,33 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 50
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7k6p116qqty3ywr138xvak818gkf1h",
+      "kind": "sticker",
+      "person": "js7cmxe3af0n7ny05nkqe4znrh8gj586"
+    },
+    {
+      "hoggie": "dynamite",
+      "isNew": true,
+      "item": "jn7v6g6vqvc8nh9ptjv2fy41258gjrhd",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ],
+  "kind": "opened"
+}
