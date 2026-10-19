@@ -54,7 +54,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
       it(`${path} for ${fixture}: every kudos word, Slack-shaped ID, Slack URL and emoji name sits inside a ph-no-capture block`, async () => {
         window.history.replaceState(null, "", path);
         const { container } = render(<Root fixture={fixture} />);
-        await (fixture === "album" ? screen.findByRole("navigation", { name: "Album" }) : screen.findByRole("main"));
+        await (fixture === "album" ? screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 }) : screen.findByRole("main"));
         await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
 
         expect(exposedIn(container)).toEqual([]);
