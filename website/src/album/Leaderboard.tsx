@@ -8,12 +8,12 @@ import { LoadingPage } from "../pages/LoadingPage";
 import type { BoardPerson, BoardsShown, BoardTeam, Standing, ThoughtfulBoards } from "./answer";
 import { hrefOf } from "./place";
 
-type LeaderboardAnswerProps = { boards: BoardsShown | undefined; onSignIn: () => void; onSignOut: () => void };
+type LeaderboardAnswerProps = { boards: BoardsShown | undefined; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards, ...answers }: LeaderboardAnswerProps) {
+export function LeaderboardAnswerPage({ boards, homeTeam, ...answers }: LeaderboardAnswerProps) {
   if (boards === undefined || boards.kind === "off") return <LoadingPage shape="column" />;
   if (boards.kind !== "boards") return <AnswerPage answer={boards} {...answers} />;
-  return <LeaderboardPage boards={boards} />;
+  return <LeaderboardPage boards={boards} homeTeam={homeTeam} />;
 }
 
 export function isWaitingForTheBoards(boards: BoardsShown | undefined) {
@@ -22,7 +22,7 @@ export function isWaitingForTheBoards(boards: BoardsShown | undefined) {
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-function LeaderboardPage({ boards }: { boards: ThoughtfulBoards }) {
+function LeaderboardPage({ boards, homeTeam }: { boards: ThoughtfulBoards; homeTeam: string | null }) {
   const [picked, setPicked] = useState<string | null>(null);
   const teams: TeamsByKey = new Map([...boards.teams, ...boards.pinned.teams].map((team) => [team.team, team]));
   const pickedTeam = picked === null ? undefined : teams.get(picked);
@@ -34,7 +34,7 @@ function LeaderboardPage({ boards }: { boards: ThoughtfulBoards }) {
       </PageTitle>
       <div className="al-boards">
         <PeopleBoard boards={boards} teams={teams} picked={pickedTeam} onShowEveryone={() => setPicked(null)} />
-        <TeamBoard boards={boards} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
+        <TeamBoard boards={boards} homeTeam={homeTeam} picked={picked} onPick={(team) => setPicked(team === picked ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
@@ -66,7 +66,7 @@ function PeopleBoard({ boards, teams, picked, onShowEveryone }: { boards: Though
   );
 }
 
-function TeamBoard({ boards, picked, onPick }: { boards: ThoughtfulBoards; picked: string | null; onPick: (team: string) => void }) {
+function TeamBoard({ boards, homeTeam, picked, onPick }: { boards: ThoughtfulBoards; homeTeam: string | null; picked: string | null; onPick: (team: string) => void }) {
   const unrankedMine = boards.pinned.teams.filter(({ rank }) => rank === null);
   const rows = [...boards.teams, ...unrankedMine];
   return (
@@ -74,7 +74,7 @@ function TeamBoard({ boards, picked, onPick }: { boards: ThoughtfulBoards; picke
       {rows.length > 0 && (
         <ol className="al-board-rows">
           {rows.map((row) => (
-            <TeamRow key={row.team} row={row} picked={row.team === picked} onPick={() => onPick(row.team)} />
+            <TeamRow key={row.team} row={row} home={row.team === homeTeam} picked={row.team === picked} onPick={() => onPick(row.team)} />
           ))}
         </ol>
       )}
@@ -192,14 +192,14 @@ function PersonLink({ person, name }: { person: string; name: string }) {
   );
 }
 
-function TeamRow({ row, picked, onPick }: { row: BoardTeam; picked: boolean; onPick: () => void }) {
+function TeamRow({ row, home, picked, onPick }: { row: BoardTeam; home: boolean; picked: boolean; onPick: () => void }) {
   return (
     <li className="al-board-row" data-you={row.mine ? "" : undefined} data-picked={picked ? "" : undefined}>
       <RankMark standing={row} />
       <TeamCrest art={row.art} size={32} name={row.name} />
       <span className="al-board-who">
         <span className="al-board-name">
-          <AppLink href={hrefOf({ kind: "team", team: row.mine ? null : row.team })} className="al-board-link">
+          <AppLink href={hrefOf({ kind: "team", team: home ? null : row.team })} className="al-board-link">
             {row.name}
           </AppLink>
           {row.mine && <span className="al-board-tag">Your team</span>}

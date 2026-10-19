@@ -7,6 +7,7 @@ import { useTitleFocusOnArrival } from "../pageFocus";
 import { returnAddressOf, useRoute } from "../route";
 import type { MemberProfile } from "../shell";
 import { AlbumShell } from "./AlbumShell";
+import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
 import { placeOf } from "./place";
 
@@ -38,7 +39,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
     <NavigateProvider value={arriveAt}>
       <AlbumShell album={album} place={placeOf(route, window.location.hash)} busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
-        leaderboard={<LeaderboardAnswerPage boards={boards} {...answers} />} onSignOut={actions.signOut} />
+        leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />} onSignOut={actions.signOut} />
     </NavigateProvider>
   );
 }

@@ -99,6 +99,14 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(spokenTextOf((await board("People")).getByText("Sam Example").closest("li")!)).toBe("Rank 5: Sam Example You Lanterns, Tin Orchard 3 thoughtful kudos");
   });
 
+  it("links only the member's home team to the home page, and their other team to its own page", async () => {
+    visit(boardsFixtures.twoTeams);
+
+    const teams = await board("Teams");
+    expect(teams.getByRole("link", { name: "Lanterns" })).toHaveAttribute("href", "/");
+    expect(teams.getByRole("link", { name: "Tin Orchard" })).toHaveAttribute("href", "/book#teams/tin-orchard");
+  });
+
   it("pins the member's row after the board while they haven't given one this week", async () => {
     visit(boardsFixtures.quiet);
 
