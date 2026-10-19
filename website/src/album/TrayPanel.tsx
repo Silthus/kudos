@@ -3,10 +3,12 @@ import { hoggieNamed } from "../../../convex/hoggies/catalogue";
 import { hoggiePictureOf } from "../crates/Hoggie";
 import { MemberFace } from "../Face";
 import { HedgehogSitting } from "../hoggies";
-import type { Album, TrayItem } from "./answer";
+import type { Album, Thanked, TrayItem } from "./answer";
 import { rarityWordOf } from "./opening";
 import { destinationOf, type Destination } from "./tray";
 import "./tray.css";
+
+type TraySticker = Extract<TrayItem, { kind: "sticker" }>;
 
 type TrayPanelProps = { album: Album; trouble: string | null; onPutIn: (item: string) => void; onPutAllIn: () => void };
 
@@ -58,8 +60,8 @@ function TrayRow({ album, item, onPutIn }: { album: Album; item: TrayItem; onPut
 
 export function TrayToken({ album, item }: { album: Album; item: TrayItem }) {
   if (item.kind === "sticker") {
-    const person = album.people.find((listed) => listed.person === item.person);
-    return <span className="al-tray-token al-tray-token-person ph-no-capture">{person === undefined ? <span className="al-tray-token-blank" /> : <MemberFace face={person.face} className="al-tray-face" />}</span>;
+    const { face } = thankedOn(album, item);
+    return <span className="al-tray-token al-tray-token-person ph-no-capture">{face === null ? <span className="al-tray-token-blank" /> : <MemberFace face={face} className="al-tray-face" />}</span>;
   }
   const picture = hoggiePictureOf({ kind: "hoggie", slug: item.hoggie });
   return (
@@ -71,7 +73,7 @@ export function TrayToken({ album, item }: { album: Album; item: TrayItem }) {
 
 function ItemName({ album, item }: { album: Album; item: TrayItem }) {
   if (item.kind === "hoggie") return <strong>{hoggieNameOf(item.hoggie)}</strong>;
-  const name = personNameOf(album, item.person);
+  const { name } = thankedOn(album, item);
   return <strong className={name === null ? undefined : "ph-no-capture"}>{name ?? "A teammate"}</strong>;
 }
 
@@ -95,12 +97,14 @@ function completesThePage(album: Album, item: TrayItem) {
 
 function putInLabelOf(album: Album, item: TrayItem) {
   if (item.kind === "hoggie") return `Put ${hoggieNameOf(item.hoggie)} in`;
-  const name = personNameOf(album, item.person);
+  const { name } = thankedOn(album, item);
   return name === null ? "Put your teammate's card in" : `Put ${name}'s card in`;
 }
 
-function personNameOf(album: Album, person: string) {
-  return album.people.find((listed) => listed.person === person)?.name ?? null;
+function thankedOn(album: Album, { person, thanked }: TraySticker): Thanked {
+  if (thanked !== undefined) return thanked;
+  const listed = album.people.find((someone) => someone.person === person);
+  return { name: listed?.name ?? null, face: listed?.face ?? null };
 }
 
 export function hoggieNameOf(hoggie: string) {

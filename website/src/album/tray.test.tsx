@@ -140,6 +140,18 @@ describe("AL47: the tray panel lists each item with where it goes", () => {
     expect(tray.getByRole("button", { name: "Put your teammate's card in" })).toBeInTheDocument();
   });
 
+  it("names a sticker for someone on no team page from the tray item, with their stored face", async () => {
+    const ivo: TrayItem = { item: "tray-ivo", kind: "sticker", person: "ivo-strand", thanked: { name: "Ivo Strand", face: { kind: "slack", image: "https://pictures.example/ivo.png", initials: "IS" } } };
+    const { user } = visit(withTray(albumFixtures.midway, [ivo]), {});
+
+    const tray = await openTheTray(user);
+
+    const [row] = tray.getAllByRole("listitem");
+    expect(row).toHaveTextContent("Ivo Strand→ your album");
+    expect(row!.querySelector(".al-tray-token img")).toHaveAttribute("src", "https://pictures.example/ivo.png");
+    expect(tray.getByRole("button", { name: "Put Ivo Strand's card in" })).toBeInTheDocument();
+  });
+
   it("with one item offers Put it in, and with none says how the tray fills", async () => {
     const { user, unmount } = visit(withTray(albumFixtures.midway, [banana]), {});
     expect((await openTheTray(user)).getByRole("button", { name: "Put it in" })).toBeInTheDocument();

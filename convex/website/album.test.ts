@@ -176,13 +176,26 @@ describe("AL47: each waiting pack names the person it thanks, with the face the 
     await thanks(alice, "Thanks for the careful review of the billing export", bob, carol);
     await settle(t);
 
-    const album = await albumOf(await signedIn(alice));
+    const album = (await albumOf(await signedIn(alice))) as AlbumRead;
 
     expect(album.kind === "album" ? album.people.filter(({ held }) => held) : album).toEqual([]);
     expect(album.kind === "album" ? album.packs.map(({ thanked }) => thanked) : album).toEqual([
       { name: bob.name, face: expect.objectContaining({ kind: "company-profile", image: expect.stringContaining("bob"), initials: "BO" }) },
       { name: carol.name, face: { kind: "initials", initials: "CL" } },
     ]);
+  });
+
+  test("an opened pack's sticker waits in the tray naming the person, with the same face", async () => {
+    await switchWebsite(t, postHog, true, "album", "collection", "packs");
+    await thanks(alice, "Thanks for the careful review of the billing export", carol);
+    const asAlice = await signedIn(alice);
+    const before = (await albumOf(asAlice)) as AlbumRead;
+    for (const { pack } of before.kind === "album" ? before.packs : []) await asAlice.mutation(api.website.album.openThoughtfulPack, { pack });
+    await settle(t);
+
+    const album = (await albumOf(asAlice)) as AlbumRead;
+
+    expect(album.kind === "album" ? album.tray.filter(({ kind }) => kind === "sticker") : album).toEqual([expect.objectContaining({ person: await memberOf(carol), thanked: { name: carol.name, face: { kind: "initials", initials: "CL" } } })]);
   });
 });
 
