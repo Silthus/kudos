@@ -117,7 +117,7 @@ function Medal({ milestone, tier, step, ladder, emoji }: { milestone: AlbumMiles
       </span>
       <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
       <span className="al-ms-medal-name">{tier.name}</span>
-      {note !== null && <span className="al-ms-note">{note}</span>}
+      <span className="al-ms-note">{note}</span>
       <MedalEmoji tier={tier} emoji={emoji} />
     </li>
   );
@@ -143,14 +143,14 @@ function MedalEmoji({ tier, emoji: { name, picture, answered } }: { tier: Tier; 
 }
 
 function EmojiSays({ earned, at, answered }: { earned: boolean; at: number; answered: TierEmoji["answered"] }) {
-  if (!earned) return <span className="al-ms-emoji-says">{`Unlocks at ${at}`}</span>;
+  return <span className="al-ms-emoji-says">{emojiSaysOf(earned, at, answered)}</span>;
+}
+
+function emojiSaysOf(earned: boolean, at: number, answered: TierEmoji["answered"]) {
+  if (!earned) return `Unlocks at ${at}`;
   if (answered === null) return null;
-  if (answered.inSlack) return <span className="al-ms-emoji-says">In Slack</span>;
-  return (
-    <span className="al-ms-emoji-says">
-      <AddToSlack emoji={answered} />
-    </span>
-  );
+  if (answered.inSlack) return "In Slack";
+  return <AddToSlack emoji={answered} />;
 }
 
 const ringRadius = 46;

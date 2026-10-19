@@ -4,6 +4,7 @@ import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import answeredBefore707 from "./milestonesAnsweredBefore707.json";
 import type { Album, AlbumEmoji, AlbumMilestone } from "./answer";
 
 const arrival = 10_000;
@@ -41,7 +42,7 @@ function textOutsideTheEmoji(medal: HTMLElement) {
 function emojisUnder(row: ReturnType<typeof within>) {
   return medalsIn(row).map((medal) => {
     const emoji = within(medal).getByRole("figure");
-    return { picture: emoji.querySelector("img")?.getAttribute("src"), name: within(emoji).getByText(/^:.+:$/).textContent, earned: emoji.hasAttribute("data-earned"), says: emoji.querySelector(".al-ms-emoji-says")?.textContent ?? "" };
+    return { picture: emoji.querySelector("img")?.getAttribute("src"), name: within(emoji).getByText(/^:.+:$/).textContent, earned: emoji.hasAttribute("data-earned"), says: emoji.querySelector(".al-ms-emoji-says")?.textContent };
   });
 }
 
@@ -54,11 +55,8 @@ function withoutMilestoneEmojis(album: Album): Album {
 }
 
 function answeredBeforeEveryTier(album: Album): Album {
-  const goldOnly = album.milestones.map(({ id, count, tiers }): AlbumEmoji => {
-    const gold = tiers.find(({ tier }) => tier === "gold")!;
-    return { id: `milestone:${id}`, kind: "milestone", name: gold.name.toLowerCase().replaceAll(" ", "-"), picture: `/emoji/milestone-${id}.png`, earned: gold.earnedAt !== null, seen: false, inSlack: false, progress: gold.earnedAt === null ? { have: count, need: gold.at } : null };
-  });
-  return { ...withoutMilestoneEmojis(album), emojis: [...withoutMilestoneEmojis(album).emojis, ...goldOnly] };
+  const { emojis, milestones } = answeredBefore707 as Pick<Album, "emojis" | "milestones">;
+  return { ...album, emojis: [...withoutMilestoneEmojis(album).emojis, ...emojis], milestones };
 }
 
 function savedPictures() {
@@ -168,7 +166,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
     expect(faces.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
   });
 
-  it("#707: an answer built before every tier had an emoji, gold only under milestone:<id>, still shows every medal's own picture under its tier's slug and offers nothing to add", async () => {
+  it("#707: getAlbum's answer as the code before #707 built it, gold only under milestone:<id>, still shows every medal's own picture under its tier's slug and offers nothing to add", async () => {
     visit(answeredBeforeEveryTier(midway));
 
     const faces = await rowOf("Faces in the album");

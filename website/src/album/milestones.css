@@ -203,14 +203,17 @@
   position: relative;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
+  grid-template-rows: repeat(5, auto);
+  gap: 0 0.5rem;
 }
 
 .al-ms-medal {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-row: span 5;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+  justify-items: center;
   border-radius: 0.75rem;
   padding: 0.5rem 0.375rem 0.625rem;
   line-height: 1.25;
@@ -248,17 +251,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-.al-ms-medal > :has(+ .al-ms-emoji) {
-  margin-bottom: 0.5rem;
-}
-
 .al-ms-emoji {
   display: flex;
   width: 100%;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  margin: auto 0 0;
+  margin: 0.5rem 0 0;
   border-top: 1px dashed var(--border);
   padding-top: 0.5rem;
 }
