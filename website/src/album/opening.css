@@ -54,6 +54,10 @@
   animation: al-fade-in 200ms ease-out;
 }
 
+.al-opening:focus {
+  outline: none;
+}
+
 .al-opening-head {
   grid-column: 1 / -1;
   display: flex;
