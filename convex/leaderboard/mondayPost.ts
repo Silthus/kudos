@@ -51,16 +51,12 @@ export async function mondayPostSwitchReadBy(ctx: QueryCtx, workspace: string, p
   return mondayPostSwitchIn(ctx, workspace, person);
 }
 
-export async function mondayPostIsOnIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
-  return (await settingsRow(ctx, workspace))?.on ?? false;
-}
-
 async function mondayPostSwitchIn(ctx: QueryCtx, workspace: string, person: Switcher): Promise<MondayPostSwitch | null> {
   const channel = await switchableChannelIn(ctx, workspace);
   if (channel === null) return null;
   const settings = await settingsRow(ctx, workspace);
   const posts = (await albumSlackAppliesToWorkspace(ctx, workspace)) ? "topKudos" : "groups";
-  return { channel, on: settings?.on ?? false, timeZone: settings?.timeZone ?? zoneOf(person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
+  return { channel, on: settings?.on ?? false, timeZone: settings?.on ? settings.timeZone : zoneOf(person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
 }
 
 export async function setMondayPost(ctx: MutationCtx, workspace: string, person: Admin, change: MondayPostChange): Promise<boolean> {

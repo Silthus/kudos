@@ -28,8 +28,8 @@ import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { coinsVisibleTo } from "../wallet/visibility";
 import { userGroupsOf } from "../workspace/userGroups";
-import { workspaceSettingsShownTo, type WorkspaceSettingsRefusal } from "../workspace/workspaceSettings";
-import { mondayPostIsOnIn } from "../leaderboard/mondayPost";
+import { maintainerSettingsApplyTo, type WorkspaceSettingsRefusal } from "../workspace/workspaceSettings";
+import { mondayPostSwitchReadBy } from "../leaderboard/mondayPost";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
@@ -68,7 +68,7 @@ export type AdminProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; rea
 
 export type WorkspaceSettingsAnswer = { kind: "set" } | { kind: "refused"; reason: WorkspaceSettingsRefusal | null };
 
-export type WeeklyPostAnswer = { kind: "set"; on: boolean } | { kind: "refused" };
+export type WeeklyPostAnswer = { kind: "set" } | { kind: "refused" };
 
 export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
 
@@ -340,9 +340,9 @@ export const setWorkspaceSettings = memberMutation({
 export const setWeeklyPost = memberMutation({
   args: { on: v.boolean() },
   handler: async (ctx, me, person, { on }): Promise<WeeklyPostAnswer> => {
-    if (!(await workspaceSettingsShownTo(ctx, me.member))) return refused;
+    if (!(await maintainerSettingsApplyTo(ctx, me.member))) return refused;
     await runFromWebsite(ctx, me, person, { type: "setMondayPost", on }, `website:setWeeklyPost:${me.member}`);
-    return (await mondayPostIsOnIn(ctx, me.workspace)) === on ? { kind: "set", on } : refused;
+    return (await mondayPostSwitchReadBy(ctx, me.workspace, person))?.on === on ? { kind: "set" } : refused;
   },
 });
 

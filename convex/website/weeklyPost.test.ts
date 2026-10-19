@@ -3,8 +3,8 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest } from "../../testing/signedSlack";
 import { memberChanged, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, staleButtonOf } from "../../testing/slackInteractions";
-import { emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import schema from "../schema";
@@ -57,10 +57,19 @@ describe("the maintainer switches the weekly post on and off from Settings", { t
     expect(await owner.weeklyPost()).toEqual({ ...switchedOff, channelLink: null });
   });
 
+  test("a post an admin switched off in another time zone shows the maintainer's own zone, which switching on books", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await t.run((ctx) => ctx.db.insert("mondayPostSettings", { workspace: "T1", on: false, timeZone: "America/New_York", generation: 2 }));
+
+    expect(await owner.weeklyPost()).toEqual(switchedOff);
+    await owner.switchWeeklyPost(true);
+    expect(await mondayPostSettings()).toMatchObject({ on: true, timeZone: "Europe/Berlin", nextPostAt: mondayAtNineInBerlin });
+  });
+
   test("switching on books the post for next Monday 9:00 in the maintainer's time zone, the read shows it on, and the post goes out then", async () => {
     const owner = await aWorkspaceWithGroups();
 
-    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "set", on: true });
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "set" });
 
     expect(await owner.weeklyPost()).toEqual({ ...switchedOff, on: true });
     expect(await mondayPostSettings()).toMatchObject({ on: true, timeZone: "Europe/Berlin", nextPostAt: mondayAtNineInBerlin });
@@ -73,7 +82,7 @@ describe("the maintainer switches the weekly post on and off from Settings", { t
     const owner = await aWorkspaceWithGroups();
     await owner.switchWeeklyPost(true);
 
-    expect(await owner.switchWeeklyPost(false)).toEqual({ kind: "set", on: false });
+    expect(await owner.switchWeeklyPost(false)).toEqual({ kind: "set" });
 
     expect(await owner.weeklyPost()).toEqual(switchedOff);
     await giveKudos("U_ANN", "U_BOB");
@@ -85,7 +94,7 @@ describe("the maintainer switches the weekly post on and off from Settings", { t
     const owner = await aWorkspaceWithGroups();
     await owner.switchWeeklyPost(true);
 
-    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "set", on: true });
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "set" });
 
     expect(await weeklyPostJobs()).toHaveLength(1);
   });
@@ -104,15 +113,43 @@ describe("the maintainer switches the weekly post on and off from Settings", { t
   });
 });
 
-describe("only an admin or the maintainer switches the Monday post", { timeout: 60_000 }, () => {
-  test("a switch the maintainer makes shows in the admins' App Home switch, which keeps working", async () => {
-    const owner = await aWorkspaceWithGroups();
-    await owner.switchWeeklyPost(true);
+describe("the website switch exposes workspace-settings for the maintainer", { timeout: 60_000 }, () => {
+  test("a maintainer who is also a workspace admin is exposed to workspace-settings by the website switch", async () => {
+    vi.stubEnv("KUDOS_MAINTAINER", "U_ADMIN");
+    await aWorkspaceWithGroups();
+    const admin = await signedIn("U_ADMIN");
 
-    await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ADMIN", staleButtonOf({ type: "setMondayPost", on: false })), form));
+    await admin.switchWeeklyPost(true);
+
+    expect(await exposuresOf("workspace-settings")).toEqual([{ flag: "workspace-settings", member: admin.member, value: true }]);
+  });
+});
+
+describe("only an admin or the maintainer switches the Monday post", { timeout: 60_000 }, () => {
+  test("the maintainer's switch shows in an admin's App Home, and the admin's Switch off there shows in the maintainer's Settings", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await adminTabOpen("U_ADMIN");
+
+    await owner.switchWeeklyPost(true);
     await settleUpTo(t, Date.now() + 60_000);
 
+    expect(publishedHome(slack, "U_ADMIN")).toContain("section: Every Monday I post last week's top groups in <#C_ANNOUNCE>. [button: Switch off]");
+    await clickInHome("U_ADMIN", "Switch off");
     expect(await owner.weeklyPost()).toEqual(switchedOff);
+  });
+
+  test("while monday-post is off for the maintainer, switching off what is already off is refused too", async () => {
+    const owner = await aWorkspaceWithGroups({ flags: ["workspace-settings", "xp-levels", "groups"] });
+
+    expect(await owner.switchWeeklyPost(false)).toEqual({ kind: "refused" });
+  });
+
+  test("once the announcement channel is gone, switching on a post that is still stored on is refused", async () => {
+    const owner = await aWorkspaceWithGroups();
+    await owner.switchWeeklyPost(true);
+    await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").unique())!._id, { announcementChannel: undefined }));
+
+    expect(await owner.switchWeeklyPost(true)).toEqual({ kind: "refused" });
   });
 
   test("a workspace admin who isn't the maintainer sees no weekly post in Settings, and their switch is refused and writes nothing", async () => {
@@ -203,6 +240,17 @@ async function signedIn(user: string) {
 async function giveKudos(giver: string, recipient: string) {
   sentMessages += 1;
   await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), emoji("taco"))], { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
+  await settleUpTo(t, Date.now() + 60_000);
+}
+
+async function adminTabOpen(user: string) {
+  await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
+  await settleUpTo(t, Date.now() + 60_000);
+  await clickInHome(user, "Admin");
+}
+
+async function clickInHome(user: string, label: string) {
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, buttonInHome(slack, user, label)), form));
   await settleUpTo(t, Date.now() + 60_000);
 }
 

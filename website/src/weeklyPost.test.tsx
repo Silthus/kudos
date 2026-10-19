@@ -86,20 +86,20 @@ describe("the maintainer switches the weekly post only through setWeeklyPost", {
     expect(actions.setWeeklyPost).toHaveBeenCalledTimes(1);
     expect(actions.setWeeklyPost).toHaveBeenCalledWith(true);
     expect(theSwitch()).toHaveAttribute("aria-disabled", "true");
-    await act(async () => later.resolve({ kind: "set", on: true }));
+    await act(async () => later.resolve({ kind: "set" }));
     showSettingsAnswer(forTheMaintainer(weeklyPostParts.on));
     expect(theSwitch()).toBeChecked();
     expect(status()).toHaveTextContent("Switched on. The next one goes out on Monday at 9:00.");
   });
 
   it("switches it off and says nothing goes out until it is on again", async () => {
-    const { user, actions, showSettingsAnswer } = showSettings(forTheMaintainer(weeklyPostParts.on), async () => ({ kind: "set", on: false }));
+    const { user, actions, showSettingsAnswer } = showSettings(forTheMaintainer(weeklyPostParts.on), async () => ({ kind: "set" }));
 
     await user.click(theSwitch());
     showSettingsAnswer(forTheMaintainer());
 
     expect(actions.setWeeklyPost).toHaveBeenCalledWith(false);
-    expect(status()).toHaveTextContent("Switched off. Nothing goes out until you switch it on again.");
+    expect(status()).toHaveTextContent("Switched off. Nothing goes out until it's switched on again.");
   });
 
   it("says when the switch was refused and leaves it as the read shows it", async () => {
@@ -114,7 +114,7 @@ describe("the maintainer switches the weekly post only through setWeeklyPost", {
   it("says when I couldn't post in the channel last time", () => {
     showSettings(forTheMaintainer({ ...weeklyPostParts.on, cantPost: true }));
 
-    expect(weeklyPostSection()).toHaveTextContent("I can't post in the announcement channel. Add me to it, or pick another channel in App Home's Admin tab.");
+    expect(weeklyPostSection()).toHaveTextContent("I can't post in the announcement channel. Add me to it, or ask a workspace admin to pick another channel in App Home's Admin tab.");
   });
 
   it("has no accessibility violations", async () => {
