@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, PutAllInReply, PutInReply, TrayItem } from "./answer";
 import { plural } from "./facts";
-import { albumWithLanded, slotOf, type Slot } from "./tray";
+import { albumWithLanded, slotOf, withTrayItems, type Slot } from "./tray";
 
 export const putInFlightMs = 1100;
 
@@ -55,10 +55,12 @@ export function usePuttingIn(answered: Album, commands: PutInCommands, trayButto
     await Promise.all(
       items.map(async (item, index) => {
         await clock.pause(index * gap);
+        if (clock.cancelled()) return;
         if (clock.skipping()) return land([item]);
         const flight = launchedFlight(item, slotOf(into, item), trayButton.current);
         setFlights((flying) => [...flying, flight]);
         await clock.pause(putInFlightMs);
+        if (clock.cancelled()) return;
         setFlights((flying) => flying.filter(({ key }) => key !== flight.key));
         land([item]);
         if (!clock.skipping()) touchDown(flight);
@@ -82,11 +84,14 @@ export function usePuttingIn(answered: Album, commands: PutInCommands, trayButto
     let problem: Problem | null = null;
     for (;;) {
       const page = await nextPage();
+      if (clock.cancelled()) return;
       if (typeof page === "string") {
         problem = page;
         break;
       }
+      setBefore((held) => held && withTrayItems(held, page.items));
       await flyIn(page.items, into);
+      if (clock.cancelled()) return;
       placed += page.items.length;
       if (!page.more || page.items.length === 0) break;
     }
@@ -143,20 +148,29 @@ function boxOf(element: Element | null): Box {
 }
 
 function useSkippableClock() {
-  const state = useRef({ skipping: false, waking: new Set<() => void>() });
-  const clock = useMemo(
-    () => ({
+  const state = useRef({ skipping: false, cancelled: false, waking: new Set<() => void>() });
+  const clock = useMemo(() => {
+    const wakeEveryPause = () => state.current.waking.forEach((wake) => wake());
+    return {
       skipping: () => state.current.skipping,
+      cancelled: () => state.current.cancelled,
       start: () => {
         state.current.skipping = false;
       },
       skip: () => {
         state.current.skipping = true;
-        state.current.waking.forEach((wake) => wake());
+        wakeEveryPause();
+      },
+      mount: () => {
+        state.current.cancelled = false;
+      },
+      cancel: () => {
+        state.current.cancelled = true;
+        wakeEveryPause();
       },
       pause: (ms: number) =>
         new Promise<void>((resolve) => {
-          if (ms <= 0 || state.current.skipping) return resolve();
+          if (ms <= 0 || state.current.skipping || state.current.cancelled) return resolve();
           const wake = () => {
             window.clearTimeout(timer);
             state.current.waking.delete(wake);
@@ -165,10 +179,12 @@ function useSkippableClock() {
           const timer = window.setTimeout(wake, ms);
           state.current.waking.add(wake);
         }),
-    }),
-    [],
-  );
-  useEffect(() => clock.skip, [clock]);
+    };
+  }, []);
+  useEffect(() => {
+    clock.mount();
+    return clock.cancel;
+  }, [clock]);
   return clock;
 }
 

@@ -6,6 +6,7 @@ import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures } from "./albumFixtures";
 import type { Album, AlbumRead, PackOpenReply, PutAllInReply, PutInReply, TrayItem } from "./answer";
+import { albumWithLanded } from "./tray";
 import { putInFlightMs, putInGapMs } from "./usePuttingIn";
 
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
@@ -158,6 +159,7 @@ describe("AL47: the tray panel lists each item with where it goes", () => {
     const panel = screen.getByRole("region", { name: "Tray" });
     expect([...panel.querySelectorAll(".ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["Juno Park"]));
     expect(panel.querySelector(".ph-no-capture .al-face, .ph-no-capture img, .ph-no-capture [class*='face']")).not.toBeNull();
+    expect([...panel.querySelectorAll("[aria-label*='Juno Park']")].filter((labelled) => labelled.closest(".ph-no-capture") === null)).toEqual([]);
   });
 });
 
@@ -234,6 +236,49 @@ describe("AL11: Put them all in calls putAllIn until more is false, flying each 
 
     expect(await (await topBar()).findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
     expect(document.querySelectorAll(".al-flight").length).toBe(0);
+  });
+});
+
+describe("AL11: a put-in sequence follows the tray as it is, and ends with the album", () => {
+  it("counts an item opened on another device that a later page answers, so the tray never says none are left while it flies", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let call = 0;
+    const { user } = visit(withTray(albumFixtures.midway, [juno]), { putAllIn: async () => (call++ === 0 ? { kind: "placed", items: [juno], more: true } : { kind: "placed", items: [rook], more: false }) });
+
+    await user.click((await openTheTray(user)).getByRole("button", { name: "Put it in" }));
+    const bar = await topBar();
+    await bar.findByRole("button", { name: "Tray, putting in, 1 to go" });
+    await act(() => vi.advanceTimersByTimeAsync(putInFlightMs));
+
+    expect(await bar.findByRole("button", { name: "Tray, putting in, 1 to go" })).toBeInTheDocument();
+    expect(document.querySelector(".al-flight")).toHaveAttribute("data-to", "team:paper-moons");
+    await act(() => vi.advanceTimersByTimeAsync(putInFlightMs));
+    expect(await bar.findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+  });
+
+  it("sends no further page once the album has gone, mid-flight or while a page is on its way", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const page = deferred<PutAllInReply>();
+    let call = 0;
+    const { user, putAllIn, unmount } = visit(withTray(albumFixtures.midway, [juno, rook, banana]), { putAllIn: () => (call++ === 0 ? page.promise : Promise.resolve({ kind: "placed", items: [], more: false })) });
+    await user.click((await openTheTray(user)).getByRole("button", { name: "Put them all in · 3" }));
+
+    unmount();
+    await act(async () => page.resolve({ kind: "placed", items: [banana], more: true }));
+    await act(() => vi.advanceTimersByTimeAsync(3 * putInFlightMs));
+
+    expect(putAllIn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AL19: an unlocked team gaining a person counts them on landing and stays unlocked", () => {
+  it("adds the landed person to the held count without changing the team's state", () => {
+    const harbour = albumFixtures.midway.teams.find(({ team }) => team === "quiet-harbour")!;
+    const grown: Album = { ...albumFixtures.midway, teams: albumFixtures.midway.teams.map((team) => (team === harbour ? { ...team, people: [...team.people, "nova-lark"], total: 3 } : team)), people: [...albumFixtures.midway.people, { person: "nova-lark", name: "Nova Lark", face: { kind: "initials", initials: "NL" }, teams: ["quiet-harbour"], held: false, packedThisWeek: false }] };
+
+    const landed = albumWithLanded(grown, [{ item: "tray-nova", kind: "sticker", person: "nova-lark" }]);
+
+    expect(landed.teams.find(({ team }) => team === "quiet-harbour")).toMatchObject({ held: 3, total: 3, state: "unlocked" });
   });
 });
 

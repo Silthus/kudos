@@ -49,7 +49,7 @@ function TrayRow({ album, item, onPutIn }: { album: Album; item: TrayItem; onPut
           {goesWords(destinationOf(album, item), item)}
         </span>
       </span>
-      <button type="button" className="al-tray-put" onClick={onPutIn} aria-label={putInLabelOf(album, item)}>
+      <button type="button" className={item.kind === "sticker" ? "al-tray-put ph-no-capture" : "al-tray-put"} onClick={onPutIn} aria-label={putInLabelOf(album, item)}>
         Put in
       </button>
     </li>

@@ -50,9 +50,15 @@ function completes(team: AlbumTeam) {
   return team.state === "progress" && team.held + 1 === team.total;
 }
 
+export function withTrayItems(album: Album, items: readonly TrayItem[]): Album {
+  const listed = new Set(album.tray.map(({ item }) => item));
+  const arriving = items.filter(({ item }) => !listed.has(item));
+  return arriving.length === 0 ? album : { ...album, tray: [...album.tray, ...arriving] };
+}
+
 function withArrivals(team: AlbumTeam, arriving: ReadonlySet<string>): AlbumTeam {
   const joining = team.people.filter((person) => arriving.has(person)).length;
-  if (joining === 0 || team.state !== "progress") return team;
+  if (joining === 0) return team;
   const held = Math.min(team.total, team.held + joining);
-  return { ...team, held, state: held === team.total ? "ready" : "progress" };
+  return { ...team, held, state: team.state === "progress" && held === team.total ? "ready" : team.state };
 }
