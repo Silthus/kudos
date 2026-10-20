@@ -55,7 +55,7 @@ async function drawnFor(member: MemberId, crate: string, floor?: Rarity) {
 
 describe("a level up drops a hoggie from each of three crates", () => {
   test("reaching a level drops three hoggies into the collection, the third rare or rarer", async () => {
-    const member = await aMemberWith("level-up-hoggies", "collection");
+    const member = await aMemberWith("level-up-reveal", "collection");
 
     await reachesLevel(t, member, 3);
 
@@ -67,7 +67,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
   });
 
   test("over twenty level ups, every third find is rare or rarer", async () => {
-    const member = await aMemberWith("level-up-hoggies", "collection");
+    const member = await aMemberWith("level-up-reveal", "collection");
 
     for (let level = 2; level <= 21; level++) await reachesLevel(t, member, level);
 
@@ -77,7 +77,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
   });
 
   test("each level reached drops its own three", async () => {
-    const member = await aMemberWith("level-up-hoggies", "collection");
+    const member = await aMemberWith("level-up-reveal", "collection");
 
     await reachesLevel(t, member, 2);
     await reachesLevel(t, member, 3);
@@ -86,7 +86,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
   });
 
   test("a replayed level-up drops nothing more", async () => {
-    const member = await aMemberWith("level-up-hoggies", "collection");
+    const member = await aMemberWith("level-up-reveal", "collection");
     await reachesLevel(t, member, 3);
 
     await reachesLevel(t, member, 3);
@@ -95,7 +95,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
   });
 
   test("the hoggies pay no pack bonus, so they never level the member up again", async () => {
-    const member = await aMemberWith("level-up-hoggies", "collection", "packs");
+    const member = await aMemberWith("level-up-reveal", "collection", "packs");
     const before = await t.run((ctx) => standingOf(ctx, member));
 
     await reachesLevel(t, member, 3);
@@ -106,8 +106,8 @@ describe("a level up drops a hoggie from each of three crates", () => {
   });
 
   test.each([
-    ["level-up-hoggies is off", ["collection"]],
-    ["collection is off", ["level-up-hoggies"]],
+    ["level-up-reveal is off", ["collection"]],
+    ["collection is off", ["level-up-reveal"]],
   ])("while %s, a level-up drops nothing", async (_, flags) => {
     const member = await aMemberWith(...flags);
 
