@@ -1,5 +1,6 @@
 import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
+import type { Drop } from "../../../convex/hoggies/drops";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { AppliedReward } from "../../../convex/progression/rewards";
@@ -182,9 +183,9 @@ export type HoggiesShown = AlbumHoggies | { kind: "off" } | Denial | { kind: "co
 
 export type HoggiesRead = (asking: boolean) => HoggiesShown | undefined;
 
-export type LevelUpHoggie = { hoggie: string; name: string; rarity: Rarity; isNew: boolean };
+export type CardHoggie = Pick<Drop, "hoggie" | "name" | "rarity" | "isNew">;
 
-export type AlbumLevelUp = { kind: "levelUp"; level: number; at: number; hoggies: LevelUpHoggie[]; emojis: AlbumEmoji[] };
+export type AlbumLevelUp = { kind: "levelUp"; level: number; at: number; hoggies: CardHoggie[]; emojis: AlbumEmoji[] };
 
 export type LevelUpShown = AlbumLevelUp | { kind: "off" } | { kind: "none" } | Denial | { kind: "connecting" } | { kind: "broken" };
 

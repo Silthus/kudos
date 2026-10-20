@@ -4,7 +4,7 @@ import { AnswerPage, type Answers } from "../pages/AnswerPage";
 import { LoadingPage } from "../pages/LoadingPage";
 import { PageTitle } from "../PageTitle";
 import { prefersReducedMotion } from "../reducedMotion";
-import type { AlbumEmoji, AlbumLevelUp, LevelUpHoggie, LevelUpShown } from "./answer";
+import type { AlbumEmoji, AlbumLevelUp, CardHoggie, LevelUpShown } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { earnedFromWords } from "./emojiShelf";
 import { rarityWordOf, sparklesFor } from "./opening";
@@ -82,7 +82,7 @@ function LevelUpReveal({ levelUp, onEmojisShown }: { levelUp: AlbumLevelUp; onEm
   );
 }
 
-type TurningCardProps = { hoggie: LevelUpHoggie; index: number; up: boolean; emphasised: boolean; flourish: boolean; reduced: boolean };
+type TurningCardProps = { hoggie: CardHoggie; index: number; up: boolean; emphasised: boolean; flourish: boolean; reduced: boolean };
 
 function TurningCard({ hoggie, index, up, emphasised, flourish, reduced }: TurningCardProps) {
   const sparkles = emphasised && up && !reduced ? sparklesFor(hoggie.rarity) : 0;

@@ -5,8 +5,8 @@ import { hoggiePictureOf } from "../crates/Hoggie";
 import { TeamCrest } from "../crates/TeamCrest";
 import { HedgehogSitting } from "../hoggies";
 import type { Rarity } from "../shell";
-import type { Thanked } from "./answer";
-import { nameOf, rarityWordOf, type OpenedHoggie, type TeamTick } from "./opening";
+import type { CardHoggie, Thanked } from "./answer";
+import { nameOf, rarityWordOf, type TeamTick } from "./opening";
 
 export function PackWrapper({ thanked, size }: { thanked: Thanked; size: "big" | "mini" }) {
   return (
@@ -86,7 +86,7 @@ export function CardSlot({ label, up, rarity, glow, flourish, back, children }: 
   );
 }
 
-export function HoggieCard({ hoggie }: { hoggie: OpenedHoggie }) {
+export function HoggieCard({ hoggie }: { hoggie: CardHoggie }) {
   const picture = hoggiePictureOf({ kind: "hoggie", slug: hoggie.hoggie });
   return (
     <span className="al-card al-hoggie-card" data-rarity={hoggie.rarity} style={{ "--card-rarity": `var(--rarity-${hoggie.rarity})` } as CSSProperties}>

@@ -1,7 +1,7 @@
 import { hoggieNamed } from "../../../convex/hoggies/catalogue";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Rarity } from "../shell";
-import type { Album, AlbumEmoji, AlbumPerson, PackOpenAnswer, Thanked, WaitingPack } from "./answer";
+import type { Album, AlbumEmoji, AlbumPerson, CardHoggie, PackOpenAnswer, Thanked, WaitingPack } from "./answer";
 
 export type Beat = "stack" | "person" | "glow" | "hoggie";
 
@@ -9,9 +9,7 @@ export type TeamTick = { team: string; name: string; art: TeamArt; before: numbe
 
 export type OpenedSticker = { teams: TeamTick[]; hype: AlbumEmoji | null };
 
-export type OpenedHoggie = { hoggie: string; name: string; rarity: Rarity; isNew: boolean };
-
-export type PackContents = { pack: WaitingPack; sticker: OpenedSticker | null; hoggie: OpenedHoggie | null; xp: number };
+export type PackContents = { pack: WaitingPack; sticker: OpenedSticker | null; hoggie: CardHoggie | null; xp: number };
 
 export function contentsOf(before: Album, pack: WaitingPack, { items, applied }: Extract<PackOpenAnswer, { kind: "opened" }>): PackContents {
   const sticker = items.some((item) => item.kind === "sticker") ? stickerOf(before, pack.person) : null;
