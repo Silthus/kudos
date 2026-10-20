@@ -1,0 +1,15 @@
+     × offers the picker beside the announcement channel while none is picked 61ms
+     × names the picked channel and links it in Slack 43ms
+     × names the picked channel without a link until Slack has told me the workspace's address 43ms
+     × sends the pasted link once, says it is checking the channel, and once the read names it says it is picked 49ms
+     × says why a private channel wasn't picked, and that the post stays where it was 41ms
+     × says why a not-found channel wasn't picked, and that the post stays where it was 39ms
+     × says why a archived channel wasn't picked, and that the post stays where it was 41ms
+     × says why a failed channel wasn't picked, and that the post stays where it was 38ms
+     × says so when the pasted text isn't a channel link 39ms
+     × says when the pick was refused 38ms
+     × keeps the button off until something is pasted 43ms
+     × says when I couldn't post in the picked channel last time, and to pick another one 31ms
+     × says when I couldn't post in the announcement channel, and to pick another one 38ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  13 failed | 11 passed (24)

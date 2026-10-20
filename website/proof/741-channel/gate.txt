@@ -1,0 +1,5 @@
+gate 93d410f3:  Test Files  292 passed (292)
+gate 93d410f3:       Tests  5037 passed (5037)
+gate 93d410f3: exit=0
+lacking: enforcement 0, refutation 3, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-20T06:18:25.387Z (1927 runs)
+0 rejected names, 0 unknown nouns (1265 files), 191 in records
