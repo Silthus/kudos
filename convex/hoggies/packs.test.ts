@@ -16,7 +16,7 @@ import { recordReward } from "../progression/progression";
 import type { Quest } from "../quests/step";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
-import type { PackKey } from "./crateKey";
+import type { CrateKey } from "./crateKey";
 import { packBonusOf } from "./draw";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -337,18 +337,18 @@ describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
 
 describe("CV3 CV4: the pack draw", () => {
   test("is SHA-256 of the secret, member, crate key, 'pack' and band version, bytes 0–3 picking the XP step and 4–7 the coins", async () => {
-    for (const crate of ["journey:first-thanks", `weekly:${thisWeek}:1`, "group:g1:2026-10-12", "unlock:quests", "bought:7"] as PackKey[]) {
+    for (const crate of ["journey:first-thanks", `weekly:${thisWeek}:1`, "group:g1:2026-10-12", "unlock:quests", "bought:7"] as CrateKey[]) {
       expect(await packBonusOf({ secret: "s", member: "m1", crate }), crate).toEqual(await bonusDrawnFor("m1" as MemberId, crate, "s"));
     }
   });
 
   test("over 10,000 crate keys, each XP step and each coin amount is drawn within one percentage point of its share", async () => {
-    const keys = Array.from({ length: 10_000 }, (_, index): PackKey => `bought:${index + 1}`);
+    const keys = Array.from({ length: 10_000 }, (_, index): CrateKey => `bought:${index + 1}`);
     const bonuses = await Promise.all(keys.map((crate) => packBonusOf({ secret: "s", member: "m1", crate })));
     const shareOf = (count: number) => count / keys.length;
 
-    for (const step of xpSteps) expect(Math.abs(shareOf(bonuses.filter(({ xp }) => xp === step).length) - 0.2), `share of ${step} XP`).toBeLessThan(0.01);
-    for (const amount of coinAmounts) expect(Math.abs(shareOf(bonuses.filter(({ coins }) => coins === amount).length) - 0.2), `share of ${amount} coins`).toBeLessThan(0.01);
+    for (const step of xpSteps) expect(Math.abs(shareOf(bonuses.filter((bonus) => bonus?.xp === step).length) - 0.2), `share of ${step} XP`).toBeLessThan(0.01);
+    for (const amount of coinAmounts) expect(Math.abs(shareOf(bonuses.filter((bonus) => bonus?.coins === amount).length) - 0.2), `share of ${amount} coins`).toBeLessThan(0.01);
   });
 });
 

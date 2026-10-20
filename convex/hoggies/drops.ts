@@ -9,7 +9,7 @@ import type { AppliedReward } from "../progression/rewards";
 import { catalogue, crestNamed, crestWith, firstVersionWithCrests, hoggieNamed, type Rarity } from "./catalogue";
 import { drawOf, packBonusOf } from "./draw";
 import { crestsShownFor, crestsShownTo, hoggiesDropFor, packsPayFor } from "./flag";
-import { crateKindOf, paysAPack, type CrateKey } from "./crateKey";
+import { crateKindOf, type CrateKey } from "./crateKey";
 import type { DropRecord } from "./records";
 
 export type HoggieArt = { kind: "hoggie"; slug: string };
@@ -42,8 +42,9 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
 }
 
 async function packPaidFor(ctx: MutationCtx, workspace: string, member: MemberId, crate: CrateKey, at: number): Promise<AppliedReward | null> {
-  if (!paysAPack(crate) || !(await packsPayFor(ctx, member))) return null;
-  return applyGain(ctx, workspace, { member, ...(await packBonusOf({ secret: drawSecret(), member, crate })) }, at);
+  const bonus = await packBonusOf({ secret: drawSecret(), member, crate });
+  if (bonus === null || !(await packsPayFor(ctx, member))) return null;
+  return applyGain(ctx, workspace, { member, ...bonus }, at);
 }
 
 export async function putDropIn(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number): Promise<void> {

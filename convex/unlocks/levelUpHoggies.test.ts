@@ -7,6 +7,7 @@ import { aDeploymentForWorkspace, aMember, switchWebsite } from "../../testing/w
 import { fromTheNewestDecided } from "../engine/awards";
 import { catalogue, type Rarity } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
+import { collectionOf } from "../hoggies/collection";
 import { dropsByDecision } from "../hoggies/drops";
 import { standingOf } from "../progression/progression";
 import type { MemberId } from "../workspace/directory";
@@ -48,6 +49,10 @@ function cratesOf(member: MemberId) {
   return t.run(async (ctx) => (await ctx.db.query("drops").withIndex("by_member", (q) => q.eq("member", member)).collect()).map(({ crate }) => crate));
 }
 
+function copiesHeldBy(member: MemberId) {
+  return t.run(async (ctx) => (await collectionOf(ctx, member, { crests: false })).hoggies.reduce((copies, { count }) => copies + count, 0));
+}
+
 async function drawnFor(member: MemberId, crate: string, floor?: Rarity) {
   const { hoggie, rarity } = await drawOf({ secret: process.env.HOGGIE_DRAW_SECRET ?? "", member, crate, version: catalogue.version, floor });
   return { hoggie, rarity };
@@ -64,6 +69,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
       await drawnFor(member, "level:3:2"),
       await drawnFor(member, "level:3:3", "rare"),
     ]);
+    expect(await copiesHeldBy(member), "copies in the collection").toBe(3);
   });
 
   test("over twenty level ups, every third find is rare or rarer", async () => {
@@ -83,6 +89,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
     await reachesLevel(t, member, 3);
 
     expect(await cratesOf(member)).toEqual(["level:2:1", "level:2:2", "level:2:3", "level:3:1", "level:3:2", "level:3:3"]);
+    expect(await copiesHeldBy(member), "copies in the collection").toBe(6);
   });
 
   test("a replayed level-up drops nothing more", async () => {
@@ -92,6 +99,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
     await reachesLevel(t, member, 3);
 
     expect(await cratesOf(member)).toHaveLength(3);
+    expect(await copiesHeldBy(member), "copies in the collection").toBe(3);
   });
 
   test("the hoggies pay no pack bonus, so they never level the member up again", async () => {
@@ -114,5 +122,6 @@ describe("a level up drops a hoggie from each of three crates", () => {
     await reachesLevel(t, member, 3);
 
     expect(await cratesOf(member)).toEqual([]);
+    expect(await copiesHeldBy(member), "copies in the collection").toBe(0);
   });
 });

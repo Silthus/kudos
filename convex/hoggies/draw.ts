@@ -1,11 +1,11 @@
 import { hoggiesOfRarity, packBands, rarities, type Rarity } from "./catalogue";
-import { packKindOf, type PackKey } from "./crateKey";
+import { kindOf, type CrateKey } from "./crateKey";
 
 export type DrawInput = { secret: string; member: string; crate: string; version: number; floor?: Rarity };
 
 export type Drawn = { rarity: Rarity; hoggie: string };
 
-export type PackDrawInput = { secret: string; member: string; crate: PackKey };
+export type PackDrawInput = { secret: string; member: string; crate: CrateKey };
 
 export type PackBonus = { xp: number; coins: number };
 
@@ -16,8 +16,10 @@ export async function drawOf({ secret, member, crate, version, floor = "common" 
   return { rarity, hoggie: hoggies[pickAt(digest, 4, hoggies.length)]!.hoggie };
 }
 
-export async function packBonusOf({ secret, member, crate }: PackDrawInput): Promise<PackBonus> {
-  const { xp, coins, version } = packBands[packKindOf(crate)];
+export async function packBonusOf({ secret, member, crate }: PackDrawInput): Promise<PackBonus | null> {
+  const band = packBands[kindOf(crate)];
+  if (band === null) return null;
+  const { xp, coins, version } = band;
   const digest = await digestOf(`${secret}:${member}:${crate}:pack:${version}`);
   const xpSteps = (xp.most - xp.least) / xp.step + 1;
   return { xp: xp.least + xp.step * pickAt(digest, 0, xpSteps), coins: coins.least + pickAt(digest, 4, coins.most - coins.least + 1) };
