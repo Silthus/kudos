@@ -197,7 +197,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
     expect(actions.pickWeeklyPostChannel).toHaveBeenCalledWith(pickedLink);
     expect(useThisChannel()).toHaveAttribute("aria-disabled", "true");
     showSettingsAnswer(forTheMaintainer(withCheck("checking")));
-    await act(async () => answer({ kind: "checking" }));
+    await act(async () => answer({ kind: "checking", pick: 1 }));
     expect(channelStatus()).toHaveTextContent("Checking the channel…");
     expect(linkField()).toHaveValue(pickedLink);
     showSettingsAnswer(forTheMaintainer(pickedAgain(1, false)));
@@ -206,7 +206,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
   });
 
   it("says it is checking, not the last pick's outcome, while the reply has come but the read hasn't moved yet", async () => {
-    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.picked), undefined, async () => ({ kind: "checking" }));
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.picked), undefined, async () => ({ kind: "checking", pick: 2 }));
 
     await user.type(linkField(), pickedLink);
     await user.click(useThisChannel());
@@ -218,7 +218,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
   });
 
   it.each([
-    ["answered", (later: { resolve: (reply: WeeklyPostChannelReply) => void }) => later.resolve({ kind: "checking" })],
+    ["answered", (later: { resolve: (reply: WeeklyPostChannelReply) => void }) => later.resolve({ kind: "checking", pick: 2 })],
     ["never answered", (later: { reject: (error: Error) => void }) => later.reject(new Error("no answer within the budget"))],
   ] as const)("says the channel is picked and empties the field when the read lands before the pick is %s", async (_, settle) => {
     const later = deferredReply();
@@ -233,8 +233,41 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
     expect(linkField()).toHaveValue("");
   });
 
+  it("keeps a second paste's refusal and its text when the first pick lands after it", async () => {
+    const replies: WeeklyPostChannelReply[] = [{ kind: "checking", pick: 1 }, { kind: "refused", reason: "not-a-channel-link" }];
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.unpicked), undefined, async () => replies.shift()!);
+
+    await user.type(linkField(), pickedLink);
+    await user.click(useThisChannel());
+    await user.clear(linkField());
+    await user.type(linkField(), "#second-channel");
+    await user.click(useThisChannel());
+    showSettingsAnswer(forTheMaintainer(pickedAgain(1)));
+
+    expect(channelStatus()).toHaveTextContent("That isn't a link to a Slack channel. Copy it from the channel in Slack.");
+    expect(linkField()).toHaveValue("#second-channel");
+  });
+
+  it("says a second pick is still being checked when only the first one has landed", async () => {
+    const replies: WeeklyPostChannelReply[] = [{ kind: "checking", pick: 1 }, { kind: "checking", pick: 2 }];
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.unpicked), undefined, async () => replies.shift()!);
+
+    await user.type(linkField(), pickedLink);
+    await user.click(useThisChannel());
+    await user.clear(linkField());
+    await user.type(linkField(), otherLink);
+    await user.click(useThisChannel());
+    showSettingsAnswer(forTheMaintainer(pickedAgain(1)));
+    expect(channelStatus()).toHaveTextContent("Checking the channel…");
+    expect(linkField()).toHaveValue(otherLink);
+    showSettingsAnswer(forTheMaintainer({ ...weeklyPostParts.picked, channelPick: { picked: "other", check: "picked", pick: 2 } }));
+
+    expect(channelStatus()).toHaveTextContent("Picked #other.");
+    expect(linkField()).toHaveValue("");
+  });
+
   it("keeps a link typed while the last pick was still being checked", async () => {
-    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.unpicked), undefined, async () => ({ kind: "checking" }));
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.unpicked), undefined, async () => ({ kind: "checking", pick: 1 }));
 
     await user.type(linkField(), pickedLink);
     await user.click(useThisChannel());
@@ -259,7 +292,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
     ["archived", "That channel is archived. Pick another one."],
     ["failed", "Slack didn't answer about that channel. Try again."],
   ] as const)("says why the channel wasn't picked when its check reads %s, keeps the pasted link, and the post stays where it was", async (check, line) => {
-    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.picked), undefined, async () => ({ kind: "checking" }));
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.picked), undefined, async () => ({ kind: "checking", pick: 2 }));
 
     await user.type(linkField(), otherLink);
     await user.click(useThisChannel());

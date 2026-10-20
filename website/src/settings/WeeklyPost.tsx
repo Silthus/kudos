@@ -107,23 +107,28 @@ function ChannelPicker({ pick, pickWeeklyPostChannel }: ChannelPickerProps) {
 
 const inputClass = "h-10 w-full rounded-lg border border-muted-foreground bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-type Attempt = { id: number; link: string; before: number; answer: Answer | "not-a-channel-link" | null };
+type Attempt = { id: number; link: string; before: number; answer: PickAnswer | null };
+
+type PickAnswer = { kind: "checking"; pick: number } | { kind: "refused"; line: string } | { kind: "unreachable" };
 
 function useSentPick(pick: ChannelPick, pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"]) {
   const [pending, setPending] = useState(false);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const attempts = useRef(0);
+  const latestSentPick = useRef(0);
 
   const send = async (link: string) => {
     if (pending) return;
     setPending(true);
     attempts.current += 1;
-    const sent = { id: attempts.current, link, before: pick.pick };
+    const sent = { id: attempts.current, link, before: Math.max(pick.pick, latestSentPick.current) };
     setAttempt({ ...sent, answer: null });
     try {
-      setAttempt({ ...sent, answer: pickAnswerOf(await pickWeeklyPostChannel(link)) });
+      const answer = pickAnswerOf(await pickWeeklyPostChannel(link));
+      if (answer.kind === "checking") latestSentPick.current = Math.max(latestSentPick.current, answer.pick);
+      setAttempt({ ...sent, answer });
     } catch {
-      setAttempt({ ...sent, answer: "unreachable" });
+      setAttempt({ ...sent, answer: { kind: "unreachable" } });
     } finally {
       setPending(false);
     }
@@ -132,22 +137,23 @@ function useSentPick(pick: ChannelPick, pickWeeklyPostChannel: ShellActions["pic
   return { pending, attempt, send };
 }
 
-function hasLanded(attempt: Attempt, read: ChannelPick) {
-  return read.pick > attempt.before;
+function hasLanded({ before, answer }: Attempt, read: ChannelPick) {
+  if (answer?.kind === "refused") return false;
+  return answer?.kind === "checking" ? read.pick >= answer.pick : read.pick > before;
 }
 
-function pickAnswerOf(reply: WeeklyPostChannelReply): Attempt["answer"] {
-  if (reply.kind === "checking") return "landed";
-  if (reply.kind === "refused") return reply.reason ?? "refused";
-  return "denied";
+function pickAnswerOf(reply: WeeklyPostChannelReply): PickAnswer {
+  if (reply.kind === "checking") return reply;
+  if (reply.kind === "refused") return { kind: "refused", line: reply.reason === "not-a-channel-link" ? notAChannelLinkLine : lineAfter("refused", "") };
+  return { kind: "refused", line: "" };
 }
 
 function lineOf(attempt: Attempt | null, read: ChannelPick): string {
   if (attempt === null) return "";
   if (hasLanded(attempt, read) && read.check !== null) return read.check === "picked" ? `Picked ${channelNameOf(read.picked)}.` : checkLines[read.check];
-  if (attempt.answer === null || attempt.answer === "landed") return checkLines.checking;
-  if (attempt.answer === "not-a-channel-link") return notAChannelLinkLine;
-  return lineAfter(attempt.answer, "");
+  if (attempt.answer?.kind === "refused") return attempt.answer.line;
+  if (attempt.answer?.kind === "unreachable") return lineAfter("unreachable", "");
+  return checkLines.checking;
 }
 
 function answerOf(reply: WeeklyPostReply): Answer {

@@ -1,0 +1,5 @@
+     × a pasted link to a public channel is checked by joining it, then the read names it and links it, and the post goes there 22ms
+     × keeps a second paste's refusal and its text when the first pick lands after it 306ms
+     × says a second pick is still being checked when only the first one has landed 340ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed | 73 passed (76)

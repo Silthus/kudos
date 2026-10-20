@@ -29,7 +29,7 @@ export type ChannelPick = { picked: string | null; check: ChannelCheck | null; p
 
 type PostChannel = { id: string; picked: boolean };
 
-export type ChannelPickOutcome = { kind: "checking" };
+export type ChannelPickOutcome = { kind: "checking"; pick: number };
 
 export type WeeklyPostSwitch = MondayPostSwitch & { channelPick?: ChannelPick };
 
@@ -92,7 +92,7 @@ export async function pickMondayPostChannel(ctx: MutationCtx, workspace: string,
   if (settings === null) await ctx.db.insert("mondayPostSettings", { workspace, on: false, timeZone: zoneOf(maintainer), generation: 0, channelCheck });
   else await ctx.db.patch(settings._id, { channelCheck });
   await ctx.scheduler.runAfter(0, internal.slack.mondayPost.checkPickedChannel, { workspace, channel, pick: channelCheck.pick });
-  return { kind: "checking" };
+  return { kind: "checking", pick: channelCheck.pick };
 }
 
 export const foundChannelValidator = v.union(v.object({ kind: v.literal("public"), name: v.string() }), v.object({ kind: v.literal("refused"), reason: channelRefusalValidator }));

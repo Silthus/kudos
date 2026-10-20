@@ -218,7 +218,7 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     slack.withChannel(pickedChannel, { name: "kudos-weekly" });
     const owner = await aWorkspaceWithGroups({ flags: withPicker });
 
-    expect(await owner.pickChannel(pickedLink)).toEqual({ kind: "checking" });
+    expect(await owner.pickChannel(pickedLink)).toEqual({ kind: "checking", pick: 1 });
     expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "checking", pick: 1 } });
     await settle(t);
 

@@ -71,7 +71,7 @@ export type WorkspaceSettingsAnswer = { kind: "set" } | { kind: "refused"; reaso
 
 export type WeeklyPostAnswer = { kind: "set" } | { kind: "refused" };
 
-export type WeeklyPostChannelAnswer = { kind: "checking" } | { kind: "refused"; reason: "not-a-channel-link" | null };
+export type WeeklyPostChannelAnswer = { kind: "checking"; pick: number } | { kind: "refused"; reason: "not-a-channel-link" | null };
 
 export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
 
@@ -355,7 +355,7 @@ export const pickWeeklyPostChannel = memberMutation({
     const channel = channelOfLink(link);
     if (channel === null) return { kind: "refused", reason: "not-a-channel-link" };
     const outcome = await runFromWebsite(ctx, me, person, { type: "pickMondayPostChannel", channel }, `website:pickWeeklyPostChannel:${me.member}`);
-    return outcome?.kind === "checking" ? { kind: "checking" } : { kind: "refused", reason: null };
+    return outcome?.kind === "checking" ? { kind: "checking", pick: outcome.pick } : { kind: "refused", reason: null };
   },
 });
 
