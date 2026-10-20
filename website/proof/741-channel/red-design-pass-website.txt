@@ -1,0 +1,6 @@
+     × sends the pasted link once, says it is checking the channel, and once the read names it says it is picked 265ms
+     × says the channel is picked when the same channel is picked again and the read never shows the check 182ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+      Tests  2 failed | 23 passed (25)

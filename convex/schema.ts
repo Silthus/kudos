@@ -18,7 +18,7 @@ import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
 import { segmentValidator } from "./feedback/segments";
-import { mondayPostOutcomeValidator } from "./leaderboard/mondayPostOutcome";
+import { channelCheckValidator, mondayPostOutcomeValidator } from "./leaderboard/mondayPostOutcome";
 import { periodValidator } from "./leaderboard/periods";
 import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
@@ -725,6 +725,8 @@ export default defineSchema({
     timeZone: v.string(),
     generation: v.number(),
     nextPostAt: v.optional(v.number()),
+    channel: v.optional(v.object({ id: v.string(), name: v.string() })),
+    channelCheck: v.optional(v.object({ channel: v.string(), pick: v.number(), outcome: channelCheckValidator })),
   }).index("by_workspace", ["workspace"]),
 
   mondayPostClaims: defineTable({

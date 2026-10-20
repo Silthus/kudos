@@ -546,11 +546,11 @@ function adminGroups({ announcementChannel, achievements, groupMode, mondayPost,
 
 const weeklyPostNamed = { groups: "last week's top groups", topKudos: "last week's top thoughtful kudos" } as const;
 
-function mondayPostLinesOf({ channel, on, timeZone, cantPost, posts }: MondayPostSwitch): HomeLine[] {
+function mondayPostLinesOf({ channel, channelPicked, on, timeZone, cantPost, posts }: MondayPostSwitch): HomeLine[] {
   const where = `<#${channel}>`;
   const what = weeklyPostNamed[posts];
   const heading: HomeLine = { kind: "text", text: bold("Monday post") };
-  const cantPostNote: HomeLine[] = cantPost ? [{ kind: "text", text: `I can't post in ${where}. Add me to it or pick another channel.` }] : [];
+  const cantPostNote: HomeLine[] = cantPost ? [{ kind: "text", text: `I can't post in ${where}. ${channelPicked ? `Ask ${productName}'s maintainer to pick another channel in the website's Settings.` : "Add me to it or pick another channel."}` }] : [];
   if (!on) {
     const switchOn: HomeLine = { kind: "action", text: `I can post ${what} in ${where} every Monday at 9:00.`, action: { label: "Switch on", command: { type: "setMondayPost", on: true } } };
     return [heading, switchOn, ...cantPostNote];

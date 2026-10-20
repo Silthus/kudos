@@ -15,7 +15,7 @@ import { WeeklyPost } from "../settings/WeeklyPost";
 import { WorkspaceSettings } from "../settings/WorkspaceSettings";
 import type { MessageSetting, MySettings, ShellActions } from "../shell";
 
-type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "mapSlackEmoji">; useEmojiMappings: EmojiMappingsRead; onSignOut: () => void; albumSections?: ReactNode };
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji">; useEmojiMappings: EmojiMappingsRead; onSignOut: () => void; albumSections?: ReactNode };
 
 export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace, weeklyPost }, actions, useEmojiMappings, onSignOut, albumSections }: SettingsPageProps) {
   return (
@@ -46,7 +46,7 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
       {companyProfile !== undefined && <CompanyProfileSection setting={companyProfile} linkMyCompanyProfile={actions.linkMyCompanyProfile} />}
       {admin !== undefined && <TeammateMatching admin={admin} linkCompanyProfile={actions.linkCompanyProfile} />}
       {workspace !== undefined && <WorkspaceSettings workspace={workspace} setWorkspaceSettings={actions.setWorkspaceSettings} />}
-      {weeklyPost !== undefined && <WeeklyPost setting={weeklyPost} setWeeklyPost={actions.setWeeklyPost} />}
+      {weeklyPost !== undefined && <WeeklyPost setting={weeklyPost} setWeeklyPost={actions.setWeeklyPost} pickWeeklyPostChannel={actions.pickWeeklyPostChannel} />}
       {workspace !== undefined && <EmojiMappingSection useEmojiMappings={useEmojiMappings} mapSlackEmoji={actions.mapSlackEmoji} />}
       {albumSections}
       <AccountPanel onSignOut={onSignOut} />

@@ -1,0 +1,15 @@
+     × sends the pasted link once, says it is checking the channel, and once the read names it says it is picked and empties the field 250ms
+     × says the channel is picked when the same channel is picked again and the read never shows the check 181ms
+     × shows no line for a pick's outcome stored before this page was opened 48ms
+     × says why the channel wasn't picked when its check reads private, keeps the pasted link, and the post stays where it was 201ms
+     × says why the channel wasn't picked when its check reads shared, keeps the pasted link, and the post stays where it was 199ms
+     × says why the channel wasn't picked when its check reads not-found, keeps the pasted link, and the post stays where it was 201ms
+     × says why the channel wasn't picked when its check reads archived, keeps the pasted link, and the post stays where it was 186ms
+     × says why the channel wasn't picked when its check reads failed, keeps the pasted link, and the post stays where it was 183ms
+     × after an answer that never came, says what the read then shows about the pick 215ms
+     × a shared channel is refused with why, nothing is picked, and the post stays in the announcement channel 48ms
+     × of two picks in a row, the later one wins, even when the earlier one's check answers last 60004ms
+     × of two picks of the same channel, the later one's check wins even when the earlier one's fails first 34ms
+     × when the post can't go to a picked channel, an admin's App Home sends them to the maintainer rather than to the announcement channel's picker 186ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  13 failed | 58 passed (71)

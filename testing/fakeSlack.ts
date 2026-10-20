@@ -24,6 +24,8 @@ export type SlackUserGroup = {
 
 export type UserGroupOptions = { handle?: string; name?: string; users?: string[]; disabled?: boolean; autoType?: "admin" | "owner" };
 
+export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared" };
+
 export type SlackArgs = Record<string, unknown>;
 
 export type SlackCall = { method: string; args: SlackArgs };
@@ -60,6 +62,7 @@ export class FakeSlack {
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
   private readonly channelMessages = new Map<string, ChannelMessage[]>();
   private readonly customEmoji = new Map<string, string>();
+  private readonly channels = new Map<string, SlackChannel>();
   private workspaceUrl = "https://t1.slack.com/";
 
   withWorkspaceUrl(url: string) {
@@ -79,6 +82,11 @@ export class FakeSlack {
 
   withoutUserGroup(id: string) {
     this.userGroups.delete(id);
+    return this;
+  }
+
+  withChannel(id: string, channel: SlackChannel) {
+    this.channels.set(id, channel);
     return this;
   }
 
@@ -210,9 +218,17 @@ export class FakeSlack {
     if (method === "chat.update") return this.updateMessage(args);
     if (method === "conversations.history") return this.history(args);
     if (method === "conversations.replies") return this.replies(args);
-    if (method === "conversations.join") return { ok: true, channel: { id: field("channel") } };
+    if (method === "conversations.join") return this.join(field("channel"));
     if (method === "auth.test") return { ok: true, url: this.workspaceUrl, team: "Kudos Test", team_id: "T1", user: "kudos", user_id: "U_KUDOS_BOT", bot_id: "B_KUDOS" };
     return { ok: false, error: "unknown_method" };
+  }
+
+  private join(id: string) {
+    const channel = this.channels.get(id);
+    if (channel === undefined) return { ok: true, channel: { id } };
+    if (channel.kind === "private") return { ok: false, error: "method_not_supported_for_channel_type" };
+    if (channel.kind === "archived") return { ok: false, error: "is_archived" };
+    return { ok: true, channel: { id, name: channel.name, is_channel: true, is_private: false, is_archived: false, is_ext_shared: channel.kind === "shared" } };
   }
 
   private userGroupsListed(args: SlackArgs) {

@@ -1,0 +1,10 @@
+     × a pasted link to a public channel is checked by joining it, then the read names it and links it, and the post goes there 45ms
+     × of two picks in a row, the later one wins, even when the earlier one's check answers last 44ms
+     × a channel ID pasted on its own is checked like its link 38ms
+     × when I can't post in the picked channel, the read says so for it, and picking another channel clears it 137ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { cantPost: false, …(5) } to deeply equal { on: false, …(5) }
+AssertionError: expected { cantPost: false, …(5) } to match object { channelPick: { …(2) } }
+AssertionError: expected { cantPost: false, …(5) } to match object { channelPick: { …(2) } }
+AssertionError: expected { cantPost: true, …(5) } to match object { cantPost: true, …(1) }
+      Tests  4 failed | 36 passed (40)

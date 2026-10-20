@@ -30,6 +30,7 @@ import { coinsVisibleTo } from "../wallet/visibility";
 import { userGroupsOf } from "../workspace/userGroups";
 import { maintainerSettingsApplyTo, type WorkspaceSettingsRefusal } from "../workspace/workspaceSettings";
 import { mondayPostSwitchReadBy } from "../leaderboard/mondayPost";
+import { channelOfLink } from "../slack/permalink";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
@@ -69,6 +70,8 @@ export type AdminProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; rea
 export type WorkspaceSettingsAnswer = { kind: "set" } | { kind: "refused"; reason: WorkspaceSettingsRefusal | null };
 
 export type WeeklyPostAnswer = { kind: "set" } | { kind: "refused" };
+
+export type WeeklyPostChannelAnswer = { kind: "checking"; pick: number } | { kind: "refused"; reason: "not-a-channel-link" | null };
 
 export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
 
@@ -343,6 +346,16 @@ export const setWeeklyPost = memberMutation({
     if (!(await maintainerSettingsApplyTo(ctx, me.member)) || (await mondayPostSwitchReadBy(ctx, me.workspace, person)) === null) return refused;
     await runFromWebsite(ctx, me, person, { type: "setMondayPost", on }, `website:setWeeklyPost:${me.member}`);
     return (await mondayPostSwitchReadBy(ctx, me.workspace, person))?.on === on ? { kind: "set" } : refused;
+  },
+});
+
+export const pickWeeklyPostChannel = memberMutation({
+  args: { link: v.string() },
+  handler: async (ctx, me, person, { link }): Promise<WeeklyPostChannelAnswer> => {
+    const channel = channelOfLink(link);
+    if (channel === null) return { kind: "refused", reason: "not-a-channel-link" };
+    const outcome = await runFromWebsite(ctx, me, person, { type: "pickMondayPostChannel", channel }, `website:pickWeeklyPostChannel:${me.member}`);
+    return outcome?.kind === "checking" ? { kind: "checking", pick: outcome.pick } : { kind: "refused", reason: null };
   },
 });
 

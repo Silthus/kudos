@@ -11,7 +11,7 @@ import type { MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { maintainerSettingsApplyTo } from "../workspace/workspaceSettings";
 import { workspaceGroupsBoardOf } from "./groupBoards";
-import { mondayPostOutcomeValidator } from "./mondayPostOutcome";
+import { channelRefusalValidator, mondayPostOutcomeValidator, type ChannelCheck } from "./mondayPostOutcome";
 import { wholeWeekBefore } from "./periods";
 import { isTimeZone } from "./timeZones";
 import { topKudosPostOf, type TopKudosPost } from "./topKudos";
@@ -19,9 +19,19 @@ import { giversIn } from "./totals";
 
 export const mondayPostFlag = { key: "monday-post", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
+export const weeklyPostChannelFlag = { key: "weekly-post-channel", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
 export type MondayPostChange = { on: boolean; timeZone?: string };
 
-export type MondayPostSwitch = { channel: string; on: boolean; timeZone: string; cantPost: boolean; posts: WeeklyPost["kind"] };
+export type MondayPostSwitch = { channel: string; channelPicked: boolean; on: boolean; timeZone: string; cantPost: boolean; posts: WeeklyPost["kind"] };
+
+export type ChannelPick = { picked: string | null; check: ChannelCheck | null; pick: number };
+
+type PostChannel = { id: string; picked: boolean };
+
+export type ChannelPickOutcome = { kind: "checking"; pick: number };
+
+export type WeeklyPostSwitch = MondayPostSwitch & { channelPick?: ChannelPick };
 
 export type PostedGroup = { rank: number; name: string; perMember: number };
 
@@ -46,17 +56,20 @@ export async function mondayPostSwitchShownTo(ctx: MutationCtx, workspace: strin
   return mondayPostSwitchIn(ctx, workspace, person);
 }
 
-export async function mondayPostSwitchReadBy(ctx: QueryCtx, workspace: string, person: Switcher): Promise<MondayPostSwitch | null> {
+export async function mondayPostSwitchReadBy(ctx: QueryCtx, workspace: string, person: Switcher): Promise<WeeklyPostSwitch | null> {
   if (!(await memberDecision(ctx, mondayPostFlag, person.member))) return null;
-  return mondayPostSwitchIn(ctx, workspace, person);
+  const shown = await mondayPostSwitchIn(ctx, workspace, person);
+  if (shown === null || !(await workspaceDecision(ctx, weeklyPostChannelFlag, workspace))) return shown;
+  return { ...shown, channelPick: channelPickOf(await settingsRow(ctx, workspace)) };
 }
 
 async function mondayPostSwitchIn(ctx: QueryCtx, workspace: string, person: Switcher): Promise<MondayPostSwitch | null> {
-  const channel = await switchableChannelIn(ctx, workspace);
-  if (channel === null) return null;
+  const postChannel = await switchableChannelIn(ctx, workspace);
+  if (postChannel === null) return null;
+  const { id: channel, picked: channelPicked } = postChannel;
   const settings = await settingsRow(ctx, workspace);
   const posts = (await albumSlackAppliesToWorkspace(ctx, workspace)) ? "topKudos" : "groups";
-  return { channel, on: settings?.on ?? false, timeZone: zoneASwitchOnUses(settings, person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
+  return { channel, channelPicked, on: settings?.on ?? false, timeZone: zoneASwitchOnUses(settings, person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
 }
 
 export async function setMondayPost(ctx: MutationCtx, workspace: string, person: Admin, change: MondayPostChange): Promise<boolean> {
@@ -69,6 +82,47 @@ export async function setMondayPost(ctx: MutationCtx, workspace: string, person:
   if (settings?.on && settings.timeZone === timeZone) return false;
   await scheduleNextPost(ctx, await switchOn(ctx, workspace, settings, timeZone));
   return true;
+}
+
+export async function pickMondayPostChannel(ctx: MutationCtx, workspace: string, maintainer: Switcher, channel: string): Promise<ChannelPickOutcome | null> {
+  if (!(await setsMondayPost(ctx, { ...maintainer, admin: false })) || !(await picksChannelIn(ctx, workspace, maintainer.member))) return null;
+  if ((await switchableChannelIn(ctx, workspace)) === null) return null;
+  const settings = await settingsRow(ctx, workspace);
+  const channelCheck = { channel, pick: (settings?.channelCheck?.pick ?? 0) + 1, outcome: "checking" as const };
+  if (settings === null) await ctx.db.insert("mondayPostSettings", { workspace, on: false, timeZone: zoneOf(maintainer), generation: 0, channelCheck });
+  else await ctx.db.patch(settings._id, { channelCheck });
+  await ctx.scheduler.runAfter(0, internal.slack.mondayPost.checkPickedChannel, { workspace, channel, pick: channelCheck.pick });
+  return { kind: "checking", pick: channelCheck.pick };
+}
+
+export const foundChannelValidator = v.union(v.object({ kind: v.literal("public"), name: v.string() }), v.object({ kind: v.literal("refused"), reason: channelRefusalValidator }));
+
+export const recordChannelCheck = internalMutation({
+  args: { workspace: v.string(), channel: v.string(), pick: v.number(), found: foundChannelValidator },
+  handler: async (ctx, { workspace, channel, pick, found }) => {
+    const settings = await settingsRow(ctx, workspace);
+    if (settings === null || !isChecking(settings, channel, pick)) return;
+    if (found.kind === "refused") {
+      await ctx.db.patch(settings._id, { channelCheck: { channel, pick, outcome: found.reason } });
+      return;
+    }
+    await ctx.db.patch(settings._id, { channel: { id: channel, name: found.name }, channelCheck: { channel, pick, outcome: "picked" } });
+    await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+  },
+});
+
+function isChecking({ channelCheck }: Settings, channel: string, pick: number) {
+  return channelCheck?.channel === channel && channelCheck.pick === pick && channelCheck.outcome === "checking";
+}
+
+function channelPickOf(settings: Settings | null): ChannelPick {
+  return { picked: settings?.channel?.name ?? null, check: settings?.channelCheck?.outcome ?? null, pick: settings?.channelCheck?.pick ?? 0 };
+}
+
+async function picksChannelIn(ctx: MutationCtx, workspace: string, member: MemberId) {
+  const applies = await workspaceDecision(ctx, weeklyPostChannelFlag, workspace);
+  await exposed(ctx, weeklyPostChannelFlag, member, applies);
+  return applies;
 }
 
 async function switchOn(ctx: MutationCtx, workspace: string, settings: Settings | null, timeZone: string): Promise<Settings> {
@@ -161,12 +215,20 @@ async function scheduleNextPost(ctx: MutationCtx, settings: Settings) {
 
 async function postableChannelIn(ctx: MutationCtx, workspace: string) {
   if (!(await workspaceDecision(ctx, mondayPostFlag, workspace))) return null;
-  return switchableChannelIn(ctx, workspace);
+  return (await switchableChannelIn(ctx, workspace))?.id ?? null;
 }
 
-async function switchableChannelIn(ctx: QueryCtx, workspace: string) {
+async function switchableChannelIn(ctx: QueryCtx, workspace: string): Promise<PostChannel | null> {
   if (!(await xpLevelsShownIn(ctx, workspace)) || !(await availableIn(ctx, workspace))) return null;
-  return (await settingsOf(ctx, workspace)).announcementChannel;
+  const picked = await pickedChannelIn(ctx, workspace);
+  if (picked !== null) return { id: picked, picked: true };
+  const announcement = (await settingsOf(ctx, workspace)).announcementChannel;
+  return announcement === null ? null : { id: announcement, picked: false };
+}
+
+async function pickedChannelIn(ctx: QueryCtx, workspace: string) {
+  if (!(await workspaceDecision(ctx, weeklyPostChannelFlag, workspace))) return null;
+  return (await settingsRow(ctx, workspace))?.channel?.id ?? null;
 }
 
 async function weeklyPostOf(ctx: QueryCtx, workspace: string, thisMonday: DayKey, timeZone: string): Promise<WeeklyPost> {
