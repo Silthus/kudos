@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { AppLink } from "../AppLink";
 import { AnswerPage, type Answers } from "../pages/AnswerPage";
 import { LoadingPage } from "../pages/LoadingPage";
@@ -15,18 +15,22 @@ import "./levelUp.css";
 
 export const levelUpTiming = { burstMs: 1_200, turnMs: 650 };
 
+const seenWhenInView = 0.5;
+
 const ordinals = ["first", "second", "third"];
 
 const hoggiesHref = hrefOf({ kind: "hoggies", hoggie: null });
 
-type LevelUpAnswerProps = { shown: LevelUpShown | undefined; onEmojisShown: (ids: string[]) => void } & Answers;
+type EmojisShown = (ids: string[]) => void;
 
-export function LevelUpAnswerPage({ shown, onEmojisShown, ...answers }: LevelUpAnswerProps) {
+type LevelUpAnswerProps = { shown: LevelUpShown | undefined; covered: boolean; onEmojisShown: EmojisShown } & Answers;
+
+export function LevelUpAnswerPage({ shown, covered, onEmojisShown, ...answers }: LevelUpAnswerProps) {
   if (shown === undefined) return <LoadingPage shape="column" />;
   if (shown.kind === "off") return <NoReveal line="Level-up reveals aren't open to you yet." />;
   if (shown.kind === "none") return <NoReveal line="There's no level up to reveal here." />;
   if (shown.kind !== "levelUp") return <AnswerPage answer={shown} {...answers} />;
-  return <LevelUpReveal levelUp={shown} onEmojisShown={onEmojisShown} />;
+  return <LevelUpReveal levelUp={shown} covered={covered} onEmojisShown={onEmojisShown} />;
 }
 
 export function isWaitingForTheLevelUp(shown: LevelUpShown | undefined) {
@@ -45,7 +49,7 @@ function NoReveal({ line }: { line: string }) {
   );
 }
 
-function LevelUpReveal({ levelUp, onEmojisShown }: { levelUp: AlbumLevelUp; onEmojisShown: (ids: string[]) => void }) {
+function LevelUpReveal({ levelUp, covered, onEmojisShown }: { levelUp: AlbumLevelUp; covered: boolean; onEmojisShown: EmojisShown }) {
   const [reduced] = useState(prefersReducedMotion);
   const { turned, showAll } = useTurns(levelUp.hoggies.length, reduced);
   const ended = turned === levelUp.hoggies.length;
@@ -74,7 +78,7 @@ function LevelUpReveal({ levelUp, onEmojisShown }: { levelUp: AlbumLevelUp; onEm
             Show them all
           </button>
         )}
-        {ended && levelUp.emojis.length > 0 && <EarnedEmojis emojis={levelUp.emojis} onShown={onEmojisShown} />}
+        {ended && levelUp.emojis.length > 0 && <EarnedEmojis emojis={levelUp.emojis} covered={covered} onShown={onEmojisShown} />}
         {ended && <WayOn />}
       </div>
     </article>
@@ -96,12 +100,13 @@ function TurningCard({ hoggie, index, up, emphasised, flourish, reduced }: Turni
   );
 }
 
-function EarnedEmojis({ emojis, onShown }: { emojis: AlbumEmoji[]; onShown: (ids: string[]) => void }) {
-  useShownOnce(emojis, onShown);
+function EarnedEmojis({ emojis, covered, onShown }: { emojis: AlbumEmoji[]; covered: boolean; onShown: EmojisShown }) {
+  const list = useRef<HTMLUListElement>(null);
+  useShownOnceSeen(list, emojis, covered, onShown);
   return (
     <section className="al-level-up-emojis">
       <h2 className="al-level-up-emojis-title">New emojis from this level up</h2>
-      <ul aria-label="New emojis from this level up" className="al-level-up-emoji-list">
+      <ul ref={list} aria-label="New emojis from this level up" className="al-level-up-emoji-list">
         {emojis.map((emoji) => (
           <li key={emoji.id} className="al-level-up-emoji">
             <EmojiPicture emoji={emoji} size={56} />
@@ -146,11 +151,24 @@ function useFocusedOnArrival() {
   return title;
 }
 
-function useShownOnce(emojis: AlbumEmoji[], onShown: (ids: string[]) => void) {
+function useShownOnceSeen(list: RefObject<HTMLElement | null>, emojis: AlbumEmoji[], covered: boolean, onShown: EmojisShown) {
+  const inView = useInView(list);
   const told = useRef(false);
   useEffect(() => {
-    if (told.current) return;
+    if (told.current || !inView || covered) return;
     told.current = true;
     onShown(emojis.map(({ id }) => id));
-  }, [emojis, onShown]);
+  }, [inView, covered, emojis, onShown]);
+}
+
+function useInView(target: RefObject<Element | null>) {
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const element = target.current;
+    if (element === null) return;
+    const observer = new IntersectionObserver(([entry]) => setInView((entry?.intersectionRatio ?? 0) >= seenWhenInView), { threshold: seenWhenInView });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [target]);
+  return inView;
 }

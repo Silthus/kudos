@@ -172,14 +172,18 @@
 }
 
 .al-level-up[data-reduced],
-.al-level-up[data-reduced] * {
+.al-level-up[data-reduced] *,
+.al-level-up[data-reduced] *::before,
+.al-level-up[data-reduced] *::after {
   animation: none !important;
   transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .al-level-up,
-  .al-level-up * {
+  .al-level-up *,
+  .al-level-up *::before,
+  .al-level-up *::after {
     animation: none !important;
     transition: none !important;
   }

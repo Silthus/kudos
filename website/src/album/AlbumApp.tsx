@@ -76,7 +76,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
-        levelUp={(emojisShown) => <LevelUpAnswerPage shown={levelUp} onEmojisShown={emojisShown} {...answers} />}
+        levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} {...answers} />}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}

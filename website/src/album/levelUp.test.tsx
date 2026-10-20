@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
+import { scrollIntoViewport, scrollOutOfViewport } from "../test/intersectionObserver";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
 import type { Album, AlbumLevelUp, LevelUpRead, LevelUpShown } from "./answer";
@@ -71,6 +74,16 @@ function card(name: string) {
   return screen.getByRole("group", { name });
 }
 
+function theEmojiList() {
+  return screen.getByRole("list", { name: "New emojis from this level up" });
+}
+
+async function scrolledTo(target: Element) {
+  await act(async () => scrollIntoViewport(target));
+}
+
+const levelUpCss = readFileSync(join(__dirname, "levelUp.css"), "utf8");
+
 function acknowledgedLevelFive(markEmojisSeen: ReturnType<typeof vi.fn>) {
   return markEmojisSeen.mock.calls.filter(([ids]) => (ids as string[]).includes("level:5")).length;
 }
@@ -133,20 +146,44 @@ describe("the level-up reveal plays where the DM's link lands", () => {
     expect(reveal.getByRole("link", { name: "See all your hoggies" })).toHaveAttribute("href", "/book#hoggies");
   });
 
-  it("the emojis the level up earned show below the cards once they all turned, acknowledged as seen exactly then and once, and the emoji moment never pops them on top", async () => {
-    const { reveal, actions } = await revealOnFakeTime(levelUpFixtures.levelFive, withLevelFiveUnseen);
+  it("the emojis the level up earned show below the cards once they all turned, and the emoji moment never pops them on top", async () => {
+    const { reveal } = await revealOnFakeTime(levelUpFixtures.levelFive, withLevelFiveUnseen);
 
     await advance(burstMs);
     await advance(turnMs);
     expect(reveal.queryByRole("list", { name: "New emojis from this level up" })).not.toBeInTheDocument();
-    expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(0);
 
     await advance(turnMs);
-    expect(within(reveal.getByRole("list", { name: "New emojis from this level up" })).getByText(":level-5:")).toBeInTheDocument();
-    expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(1);
-
+    expect(within(theEmojiList()).getByText(":level-5:")).toBeInTheDocument();
     await advance(emojiMomentTiming.settleMs * 2);
     expect(screen.queryByRole("dialog", { name: "New emoji unlocked" })).not.toBeInTheDocument();
+  });
+
+  it("the emojis are acknowledged as seen only once their list scrolls into view, and only once", async () => {
+    const { actions } = await revealOnFakeTime(levelUpFixtures.levelFive, withLevelFiveUnseen);
+    await theWholeReveal();
+    expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(0);
+
+    await scrolledTo(theEmojiList());
+    expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(1);
+
+    await act(async () => scrollOutOfViewport(theEmojiList()));
+    await scrolledTo(theEmojiList());
+    expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(1);
+  });
+
+  it("a pack opening over the page holds the acknowledgement until it closes and the list is in view", async () => {
+    const { actions } = await revealOnFakeTime(levelUpFixtures.levelFive, withLevelFiveUnseen);
+    await advance(burstMs);
+    const [bar] = screen.getAllByRole("banner");
+    await act(async () => fireEvent.click(within(bar!).getByRole("button", { name: /^Open your packs/ })));
+    await advance(turnMs);
+    await advance(turnMs);
+
+    await scrolledTo(theEmojiList());
+    expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(0);
+
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Close the pack opening" })));
     expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(1);
   });
 
@@ -169,7 +206,7 @@ describe("the level-up reveal plays where the DM's link lands", () => {
     expect(reveal.queryByRole("list", { name: "New emojis from this level up" })).not.toBeInTheDocument();
   });
 
-  it("with reduced motion, every card is face up at once, with no confetti, sparkles, ring or shine, and the emojis acknowledged once", async () => {
+  it("with reduced motion, every card is face up at once, with no confetti, sparkles, ring or shine, and the emojis acknowledged once in view", async () => {
     preferReducedMotion();
     const { reveal, actions } = await revealOnFakeTime(levelUpFixtures.levelFive, withLevelFiveUnseen);
 
@@ -177,7 +214,17 @@ describe("the level-up reveal plays where the DM's link lands", () => {
     expect(card("Asleep, Common")).toHaveAttribute("data-face-up", "");
     for (const flourish of ["confetti", "sparkles", "ring", "shine"]) expect(reveal.queryByTestId(flourish)).not.toBeInTheDocument();
     expect(reveal.queryByRole("button", { name: "Show them all" })).not.toBeInTheDocument();
+    expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(0);
+
+    await scrolledTo(theEmojiList());
     expect(acknowledgedLevelFive(actions.markEmojisSeen)).toBe(1);
+  });
+
+  it("the stylesheet's reduced-motion overrides stop the burst's halo too, so no pseudo-element keeps moving", () => {
+    const overrides = [...levelUpCss.matchAll(/([^{}]+)\{\s*animation: none !important;/g)].map(([, selectors]) => selectors!.replace(/@media[^{]*\{/, "").trim());
+
+    expect(overrides).toHaveLength(2);
+    for (const selectors of overrides) for (const pseudo of ["::before", "::after"]) expect(selectors, `${selectors} names ${pseudo}`).toContain(pseudo);
   });
 
   it.each<[string, LevelUpShown, string]>([

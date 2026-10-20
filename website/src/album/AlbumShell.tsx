@@ -28,7 +28,7 @@ export type AlbumShellProps = {
   person: ReactNode;
   profile: ReactNode;
   hoggies: ReactNode;
-  levelUp: (emojisShown: (ids: string[]) => void) => ReactNode;
+  levelUp: (emojisShown: (ids: string[]) => void, covered: boolean) => ReactNode;
   busy: boolean;
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
@@ -87,7 +87,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere)} unlocking={unlocking} />
+            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
           </ErrorBoundary>
         </main>
       </div>
