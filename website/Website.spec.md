@@ -90,6 +90,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   via: the level-up reveal plays where the DM's link lands
   refuted: useTurns started every card face up -> no card lay face down under the burst, the third was up with the first, and `Show them all` never showed, 6 of 11 tests red (2026-10-20)
   refuted: useShownOnce dropped its once-guard, so the emoji list acknowledged its emojis on every effect run -> the played-through page and the reduced-motion page sent markEmojisSeen twice under StrictMode, 2 of 13 tests red on the fake-timer tests (2026-10-20)
+  refuted: useShownOnceSeen ignored whether a pack opening or other moment covered the page -> the list scrolled into view under a pack opening sent markEmojisSeen before the opening closed, 1 of 16 tests red (2026-10-20)
   because: the product owner asked, 2026-10-20, for a clear, celebratory level-up moment where the three finds turn like cards rather than a pack to open, plainly from that level up, with the emojis it unlocked; a member who prefers reduced motion gets the same end state at once, and an emoji shown here is its moment, so it never pops a second time
   kinds: output
   checklist: destination-confinement dismissed: the page sends only markEmojisSeen for the emojis it shows, once, and nothing else
