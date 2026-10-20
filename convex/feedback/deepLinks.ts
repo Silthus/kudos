@@ -19,6 +19,10 @@ export const deepLinks = {
   tiersEarned: { page: { page: "bookEarned" }, label: "See what you earned on the web" },
 } satisfies Record<string, Destination>;
 
+export function levelUpRevealOf(level: number): Destination {
+  return { page: { page: "levelUp", level }, label: "Reveal your three new hoggies" };
+}
+
 export async function deepLinkOf(ctx: QueryCtx, workspace: string, destination: Destination): Promise<DeepLink | null> {
   return deepLinkFrom(await websiteOrigin(ctx, workspace), destination);
 }
