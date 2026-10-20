@@ -13,7 +13,7 @@ import { hrefOf } from "./place";
 import "./opening.css";
 import "./levelUp.css";
 
-const levelUpTiming = { burstMs: 1_200, turnMs: 650 };
+export const levelUpTiming = { burstMs: 1_200, turnMs: 650 };
 
 const ordinals = ["first", "second", "third"];
 
@@ -50,7 +50,6 @@ function LevelUpReveal({ levelUp, onEmojisShown }: { levelUp: AlbumLevelUp; onEm
   const { turned, showAll } = useTurns(levelUp.hoggies.length, reduced);
   const ended = turned === levelUp.hoggies.length;
   const title = useFocusedOnArrival();
-  useEmojisShownHere(levelUp.emojis, onEmojisShown);
   return (
     <article className="al-page-body al-level-up" data-reduced={reduced ? "" : undefined}>
       <header className="al-level-up-burst">
@@ -75,7 +74,7 @@ function LevelUpReveal({ levelUp, onEmojisShown }: { levelUp: AlbumLevelUp; onEm
             Show them all
           </button>
         )}
-        {ended && levelUp.emojis.length > 0 && <EarnedEmojis emojis={levelUp.emojis} />}
+        {ended && levelUp.emojis.length > 0 && <EarnedEmojis emojis={levelUp.emojis} onShown={onEmojisShown} />}
         {ended && <WayOn />}
       </div>
     </article>
@@ -97,7 +96,8 @@ function TurningCard({ hoggie, index, up, emphasised, flourish, reduced }: Turni
   );
 }
 
-function EarnedEmojis({ emojis }: { emojis: AlbumEmoji[] }) {
+function EarnedEmojis({ emojis, onShown }: { emojis: AlbumEmoji[]; onShown: (ids: string[]) => void }) {
+  useShownOnce(emojis, onShown);
   return (
     <section className="al-level-up-emojis">
       <h2 className="al-level-up-emojis-title">New emojis from this level up</h2>
@@ -146,9 +146,11 @@ function useFocusedOnArrival() {
   return title;
 }
 
-function useEmojisShownHere(emojis: AlbumEmoji[], onEmojisShown: (ids: string[]) => void) {
-  const ids = emojis.map(({ id }) => id).join(" ");
+function useShownOnce(emojis: AlbumEmoji[], onShown: (ids: string[]) => void) {
+  const told = useRef(false);
   useEffect(() => {
-    if (ids !== "") onEmojisShown(ids.split(" "));
-  }, [ids, onEmojisShown]);
+    if (told.current) return;
+    told.current = true;
+    onShown(emojis.map(({ id }) => id));
+  }, [emojis, onShown]);
 }
