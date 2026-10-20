@@ -8,7 +8,8 @@ const secret = readFileSync(required("SLACK_SIGNING_SECRET_FILE"), "utf8").trim(
 const botToken = readFileSync(required("SLACK_BOT_TOKEN_FILE"), "utf8").trim();
 const step = process.argv[2] ?? "join";
 const run = `${Date.now()}`;
-const madeUp = "T0PRF741WKS";
+const madeUp = process.env.KUDOS_MADE_UP ?? "T0PRF741WKS";
+const cast = process.env.KUDOS_CAST ?? "";
 const madeUpChannel = "C0PRF741KUD";
 const pickedChannel = "C0C9N9A4SE4";
 const lastWednesday = Date.parse("2026-10-14T09:00:00Z");
@@ -16,9 +17,9 @@ const lastWednesday = Date.parse("2026-10-14T09:00:00Z");
 type Person = { id: string; name: string; workspace: string; admin?: boolean };
 
 const maintainer: Person = { id: "U0PRF741MNT", name: "Mae Proof", workspace: sandbox };
-const admin: Person = { id: "U0PRF741ADM", name: "Ada Proof", workspace: madeUp, admin: true };
-const giver: Person = { id: "U0PRF741GIV", name: "Gil Proof", workspace: madeUp };
-const recipient: Person = { id: "U0PRF741RCP", name: "Rae Proof", workspace: madeUp };
+const admin: Person = { id: `U0PRF741ADM${cast}`, name: "Ada Proof", workspace: madeUp, admin: true };
+const giver: Person = { id: `U0PRF741GIV${cast}`, name: "Gil Proof", workspace: madeUp };
+const recipient: Person = { id: `U0PRF741RCP${cast}`, name: "Rae Proof", workspace: madeUp };
 
 let sent = 0;
 
@@ -78,8 +79,9 @@ async function newestAppPostIn(channel: string) {
 }
 
 if (step === "join") {
-  for (const person of [maintainer, admin, giver, recipient]) await join(person);
-  console.log(JSON.stringify({ step, eventsSent: sent, people: [maintainer, admin, giver, recipient].map(({ id, workspace }) => ({ id, workspace })) }));
+  const people = cast === "" ? [maintainer, admin, giver, recipient] : [admin, giver, recipient];
+  for (const person of people) await join(person);
+  console.log(JSON.stringify({ step, eventsSent: sent, people: people.map(({ id, workspace }) => ({ id, workspace })) }));
 } else if (step === "week") {
   const kudos = await thanks(giver, recipient, "Thanks for rewriting the deploy runbook so the whole team can ship on a Friday", lastWednesday);
   console.log(JSON.stringify({ step, eventsSent: sent, kudos }));
