@@ -198,6 +198,15 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
     expect(channelStatus()).toHaveTextContent("Picked. From now on I post it in #kudos-weekly.");
   });
 
+  it("says the channel is picked when the same channel is picked again and the read never shows the check", async () => {
+    const { user } = await showSettings(forTheMaintainer(weeklyPostParts.picked), undefined, async () => ({ kind: "checking" }));
+
+    await user.type(linkField(), pickedLink);
+    await user.click(useThisChannel());
+
+    expect(channelStatus()).toHaveTextContent("Picked. From now on I post it in #kudos-weekly.");
+  });
+
   it.each([
     ["private", "That channel is private. I only post in public channels, since the post quotes public kudos."],
     ["not-found", "I couldn't find that channel in this workspace. Check the link and try again."],

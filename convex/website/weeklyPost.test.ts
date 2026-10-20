@@ -223,7 +223,7 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     await settle(t);
 
     expect(slack.callsTo("conversations.join")).toEqual([{ channel: pickedChannel }]);
-    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelLink: pickedLink, channelPick: { picked: "kudos-weekly", check: null } });
+    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelLink: pickedLink, channelPick: { picked: "kudos-weekly", check: "picked" } });
     await owner.switchWeeklyPost(true);
     await giveKudos("U_ANN", "U_BOB");
     await settleUpTo(t, mondayAtNineInBerlin);
@@ -277,13 +277,18 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
   test("of two picks in a row, the later one wins, even when the earlier one's check answers last", async () => {
     slack.withChannel(pickedChannel, { name: "kudos-weekly" }).withChannel("C0SECOND", { name: "shout-outs" });
     const owner = await aWorkspaceWithGroups({ flags: withPicker });
-
     await owner.pickChannel(pickedLink);
+    const earlierJoin = slack.holdNext("conversations.join");
+    const earlierCheck = t.action(internal.slack.mondayPost.checkPickedChannel, { workspace: "T1", channel: pickedChannel });
+    await earlierJoin.reached;
+
     await owner.pickChannel("https://app.slack.com/client/T1/C0SECOND");
     await settle(t);
+    expect(await owner.weeklyPost()).toMatchObject({ channelPick: { picked: "shout-outs", check: "picked" } });
+    earlierJoin.release();
+    await earlierCheck;
 
-    expect(slack.callsTo("conversations.join")).toEqual([{ channel: pickedChannel }, { channel: "C0SECOND" }]);
-    expect(await owner.weeklyPost()).toMatchObject({ channelPick: { picked: "shout-outs", check: null } });
+    expect(await owner.weeklyPost()).toMatchObject({ channelLink: "https://hedgehug.slack.com/archives/C0SECOND", channelPick: { picked: "shout-outs", check: "picked" } });
   });
 
   test.each(["#kudos-weekly", "https://example.com/archives/C0PICKED1", "http://hedgehug.slack.com/archives/C0PICKED1", "https://hedgehug.slack.com/team/U_ANN", ""])("%j isn't a channel link: refused as such, and nothing is picked or asked of Slack", async (link) => {
@@ -302,7 +307,7 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     await owner.pickChannel(` ${pickedChannel} `);
     await settle(t);
 
-    expect(await owner.weeklyPost()).toMatchObject({ channelPick: { picked: "kudos-weekly", check: null } });
+    expect(await owner.weeklyPost()).toMatchObject({ channelPick: { picked: "kudos-weekly", check: "picked" } });
   });
 
   test("when I can't post in the picked channel, the read says so for it, and picking another channel clears it", async () => {
@@ -316,10 +321,10 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     slack.answering("chat.postMessage", slackError("not_in_channel"));
     await settleUpTo(t, mondayAtNineInBerlin);
 
-    expect(await owner.weeklyPost()).toMatchObject({ cantPost: true, channelPick: { picked: "kudos-weekly", check: null } });
+    expect(await owner.weeklyPost()).toMatchObject({ cantPost: true, channelPick: { picked: "kudos-weekly", check: "picked" } });
     await owner.pickChannel("https://hedgehug.slack.com/archives/C0SECOND");
     await settleUpTo(t, Date.now() + 60_000);
-    expect(await owner.weeklyPost()).toMatchObject({ cantPost: false, channelPick: { picked: "shout-outs", check: null } });
+    expect(await owner.weeklyPost()).toMatchObject({ cantPost: false, channelPick: { picked: "shout-outs", check: "picked" } });
   });
 
   test("picking decides weekly-post-channel with exposure for the maintainer, and the read decides it without", async () => {
@@ -366,17 +371,18 @@ describe("only the maintainer picks the weekly post's channel, and only while we
     expect(slack.callsTo("conversations.join")).toEqual([]);
   });
 
-  test("while weekly-post-channel is off, the read has no picker, the pick is refused writing nothing, and a channel picked while it was on gets no post: the announcement channel does", async () => {
+  test("while weekly-post-channel is off, the read has no picker, the pick is refused storing nothing, and a channel picked while it was on gets no post: the announcement channel does", async () => {
     slack.withChannel(pickedChannel, { name: "kudos-weekly" });
     const owner = await aWorkspaceWithGroups({ flags: withPicker });
     await owner.pickChannel(pickedLink);
     await settle(t);
     await switchWebsite(t, postHog, true, ...everyFlag);
-    const before = await everyTable();
+    const stored = await mondayPostSettings();
 
     expect(await owner.weeklyPost()).toEqual(switchedOff);
     expect(await owner.pickChannel("https://hedgehug.slack.com/archives/C0SECOND")).toEqual({ kind: "refused", reason: null });
-    expect(await everyTable()).toEqual(before);
+    expect(await mondayPostSettings()).toEqual(stored);
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: pickedChannel }]);
     await owner.switchWeeklyPost(true);
     await giveKudos("U_ANN", "U_BOB");
     await settleUpTo(t, mondayAtNineInBerlin);

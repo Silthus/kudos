@@ -54,7 +54,7 @@ function channelNameOf(picked: string | null) {
 
 type ChannelPickerProps = { pick: ChannelPick; pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"] };
 
-const checkLines: Record<ChannelCheck, string> = {
+const checkLines: Record<Exclude<ChannelCheck, "picked">, string> = {
   checking: "Checking the channel…",
   private: "That channel is private. I only post in public channels, since the post quotes public kudos.",
   "not-found": "I couldn't find that channel in this workspace. Check the link and try again.",
@@ -66,7 +66,7 @@ const notAChannelLinkLine = "That isn't a link to a Slack channel. Copy it from 
 
 function ChannelPicker({ pick, pickWeeklyPostChannel }: ChannelPickerProps) {
   const [link, setLink] = useState("");
-  const { pending, line, send } = useSentPick(pick, pickWeeklyPostChannel);
+  const { pending, sent, send } = useSentPick(pickWeeklyPostChannel);
   const id = useId();
   const hintId = `${id}-hint`;
   const sendable = !pending && link.trim() !== "";
@@ -88,51 +88,49 @@ function ChannelPicker({ pick, pickWeeklyPostChannel }: ChannelPickerProps) {
           Use this channel
         </Button>
       </div>
-      <StatusLine line={line} />
+      <StatusLine line={lineOf(sent, pick)} />
     </form>
   );
 }
 
 const inputClass = "h-10 w-full rounded-lg border border-muted-foreground bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-type Progress = { kind: "idle" } | { kind: "answered"; answer: Answer | "not-a-channel-link" } | { kind: "checking"; from: string | null; seen: boolean };
+type Sent = Answer | "not-a-channel-link";
 
-function useSentPick(pick: ChannelPick, pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"]) {
+function useSentPick(pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"]) {
   const [pending, setPending] = useState(false);
-  const [progress, setProgress] = useState<Progress>({ kind: "idle" });
-  if (progress.kind === "checking" && !progress.seen && pick.check === "checking") setProgress({ ...progress, seen: true });
+  const [sent, setSent] = useState<Sent | null>(null);
 
   const send = async (link: string) => {
     if (pending) return false;
     setPending(true);
-    setProgress({ kind: "idle" });
+    setSent(null);
     try {
       const reply = await pickWeeklyPostChannel(link);
-      setProgress(progressAfter(reply, pick.picked));
+      setSent(sentOf(reply));
       return reply.kind === "checking";
     } catch {
-      setProgress({ kind: "answered", answer: "unreachable" });
+      setSent("unreachable");
       return false;
     } finally {
       setPending(false);
     }
   };
 
-  return { pending, line: lineOf(progress, pick), send };
+  return { pending, sent, send };
 }
 
-function progressAfter(reply: WeeklyPostChannelReply, picked: string | null): Progress {
-  if (reply.kind === "checking") return { kind: "checking", from: picked, seen: false };
-  if (reply.kind === "refused") return { kind: "answered", answer: reply.reason ?? "refused" };
-  return { kind: "answered", answer: "denied" };
+function sentOf(reply: WeeklyPostChannelReply): Sent {
+  if (reply.kind === "checking") return "landed";
+  if (reply.kind === "refused") return reply.reason ?? "refused";
+  return "denied";
 }
 
-function lineOf(progress: Progress, { picked, check }: ChannelPick): string {
-  if (progress.kind === "answered") return progress.answer === "not-a-channel-link" ? notAChannelLinkLine : lineAfter(progress.answer, "");
-  if (check !== null) return checkLines[check];
-  if (progress.kind === "idle") return "";
-  const landed = picked !== null && (progress.seen || picked !== progress.from);
-  return landed ? `Picked. From now on I post it in #${picked}.` : checkLines.checking;
+function lineOf(sent: Sent | null, { picked, check }: ChannelPick): string {
+  if (sent === "not-a-channel-link") return notAChannelLinkLine;
+  if (sent !== null && sent !== "landed") return lineAfter(sent, "");
+  if (check === null) return "";
+  return check === "picked" ? `Picked. From now on I post it in ${channelNameOf(picked)}.` : checkLines[check];
 }
 
 function answerOf(reply: WeeklyPostReply): Answer {

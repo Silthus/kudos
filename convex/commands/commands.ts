@@ -8,7 +8,7 @@ import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHo
 import { setGroupMode } from "../groups/groupMode";
 import { groupModeValidator } from "../groups/mode";
 import { boardsShownTo } from "../leaderboard/boards";
-import { pickMondayPostChannel, setMondayPost } from "../leaderboard/mondayPost";
+import { pickMondayPostChannel, setMondayPost, type ChannelPickOutcome } from "../leaderboard/mondayPost";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -69,7 +69,7 @@ export type Command = Infer<typeof commandValidator>;
 
 export type CommandOrigin = { surface: Surface; idempotencyKey: string };
 
-export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | WorkspaceSettingsOutcome | null;
+export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | WorkspaceSettingsOutcome | ChannelPickOutcome | null;
 
 const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile", "setWorkspaceSettings", "pickMondayPostChannel"]);
 
@@ -135,8 +135,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return null;
     }
     case "pickMondayPostChannel":
-      await pickMondayPostChannel(ctx, workspace, person, command.channel);
-      return null;
+      return pickMondayPostChannel(ctx, workspace, person, command.channel);
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       if (outcome !== null) await showHomeTab(ctx, workspace, person, "skillTree");

@@ -8,6 +8,6 @@ export const channelRefusalValidator = v.union(v.literal("private"), v.literal("
 
 export type ChannelRefusal = Infer<typeof channelRefusalValidator>;
 
-export const channelCheckValidator = v.union(v.literal("checking"), channelRefusalValidator);
+export const channelCheckValidator = v.union(v.literal("checking"), v.literal("picked"), channelRefusalValidator);
 
 export type ChannelCheck = Infer<typeof channelCheckValidator>;

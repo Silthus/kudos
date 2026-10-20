@@ -27,6 +27,8 @@ export type MondayPostSwitch = { channel: string; on: boolean; timeZone: string;
 
 export type ChannelPick = { picked: string | null; check: ChannelCheck | null };
 
+export type ChannelPickOutcome = { kind: "checking"; picking: string };
+
 export type WeeklyPostSwitch = MondayPostSwitch & { channelPick?: ChannelPick };
 
 export type PostedGroup = { rank: number; name: string; perMember: number };
@@ -79,15 +81,15 @@ export async function setMondayPost(ctx: MutationCtx, workspace: string, person:
   return true;
 }
 
-export async function pickMondayPostChannel(ctx: MutationCtx, workspace: string, person: Admin, channel: string): Promise<boolean> {
-  if (!(await setsMondayPost(ctx, person)) || !(await picksChannelIn(ctx, workspace, person.member))) return false;
-  if ((await switchableChannelIn(ctx, workspace)) === null) return false;
+export async function pickMondayPostChannel(ctx: MutationCtx, workspace: string, maintainer: Switcher, channel: string): Promise<ChannelPickOutcome | null> {
+  if (!(await setsMondayPost(ctx, { ...maintainer, admin: false })) || !(await picksChannelIn(ctx, workspace, maintainer.member))) return null;
+  if ((await switchableChannelIn(ctx, workspace)) === null) return null;
   const settings = await settingsRow(ctx, workspace);
   const channelCheck = { channel, outcome: "checking" as const };
-  if (settings === null) await ctx.db.insert("mondayPostSettings", { workspace, on: false, timeZone: zoneOf(person), generation: 0, channelCheck });
+  if (settings === null) await ctx.db.insert("mondayPostSettings", { workspace, on: false, timeZone: zoneOf(maintainer), generation: 0, channelCheck });
   else await ctx.db.patch(settings._id, { channelCheck });
   await ctx.scheduler.runAfter(0, internal.slack.mondayPost.checkPickedChannel, { workspace, channel });
-  return true;
+  return { kind: "checking", picking: channel };
 }
 
 export const foundChannelValidator = v.union(v.object({ kind: v.literal("public"), name: v.string() }), v.object({ kind: v.literal("refused"), reason: channelRefusalValidator }));
@@ -101,7 +103,7 @@ export const recordChannelCheck = internalMutation({
       await ctx.db.patch(settings._id, { channelCheck: { channel, outcome: found.reason } });
       return;
     }
-    await ctx.db.patch(settings._id, { channel: { id: channel, name: found.name }, channelCheck: undefined });
+    await ctx.db.patch(settings._id, { channel: { id: channel, name: found.name }, channelCheck: { channel, outcome: "picked" } });
     await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
   },
 });

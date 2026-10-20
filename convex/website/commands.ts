@@ -352,17 +352,12 @@ export const setWeeklyPost = memberMutation({
 export const pickWeeklyPostChannel = memberMutation({
   args: { link: v.string() },
   handler: async (ctx, me, person, { link }): Promise<WeeklyPostChannelAnswer> => {
-    if (!(await channelPickerShownTo(ctx, me, person))) return { kind: "refused", reason: null };
     const channel = channelOfLink(link);
     if (channel === null) return { kind: "refused", reason: "not-a-channel-link" };
-    await runFromWebsite(ctx, me, person, { type: "pickMondayPostChannel", channel }, `website:pickWeeklyPostChannel:${me.member}`);
-    return (await mondayPostSwitchReadBy(ctx, me.workspace, person))?.channelPick?.check === "checking" ? { kind: "checking" } : { kind: "refused", reason: null };
+    const outcome = await runFromWebsite(ctx, me, person, { type: "pickMondayPostChannel", channel }, `website:pickWeeklyPostChannel:${me.member}`);
+    return outcome !== null && "picking" in outcome ? { kind: "checking" } : { kind: "refused", reason: null };
   },
 });
-
-async function channelPickerShownTo(ctx: MutationCtx, me: VerifiedMember, person: HomeMember) {
-  return (await maintainerSettingsApplyTo(ctx, me.member)) && (await mondayPostSwitchReadBy(ctx, me.workspace, person))?.channelPick !== undefined;
-}
 
 export const pickPrimaryGroup = memberMutation({
   args: { group: v.string() },
