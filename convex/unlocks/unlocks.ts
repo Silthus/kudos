@@ -7,6 +7,7 @@ import type { Surface } from "../commands/surface";
 import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { dropFor } from "../hoggies/drops";
+import { dropLevelUpHoggies } from "./levelUpHoggies";
 import { notifyLevelReached } from "../feedback/notify";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -30,6 +31,7 @@ export const makeReady = internalMutation({
     await unlocksLiveFor(ctx, member);
     const madeReady = await storeReadiness(ctx, { workspace, member, at }, reachedAt(await shippedTo(ctx, member), level));
     await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
+    await dropLevelUpHoggies(ctx, member, level, at);
     await notifyLevelReached(ctx, event, madeReady);
     if (madeReady.length > 0 && (await xpLevelsOnFor(ctx, member))) await republish(ctx, member);
   },
@@ -41,7 +43,7 @@ export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Fe
   if ((await stateOf(ctx, member, feature)) !== "ready") return "refused";
   const opening = { workspace, member, at: Date.now() };
   if (!(await storeOpening(ctx, opening, feature))) return "done";
-  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at, surface);
+  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at, { surface });
   await publishOpened(ctx, opening, feature);
   return "done";
 }

@@ -132,6 +132,14 @@ describe("CL8: the draw", () => {
     for (const { rarity, weight } of rarities) expect(Math.abs(counts[rarity] / 100 - weight), rarity).toBeLessThanOrEqual(1);
   });
 
+  test("with a rare floor, over 10,000 crate keys, only rare, epic and legendary draw, each within one percentage point of its share of their weights", async () => {
+    const counts: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 };
+    for (let crate = 0; crate < 10_000; crate++) counts[(await drawOf({ secret: "", member, crate: `level:${crate}:3`, version: 1, floor: "rare" })).rarity]++;
+
+    expect({ common: counts.common, uncommon: counts.uncommon }).toEqual({ common: 0, uncommon: 0 });
+    for (const [rarity, weight] of [["rare", 14], ["epic", 6], ["legendary", 2]] as const) expect(Math.abs(counts[rarity] / 100 - (weight / 22) * 100), rarity).toBeLessThanOrEqual(1);
+  });
+
   test("a different secret draws differently for the same crates", async () => {
     const crates = Array.from({ length: 20 }, (_, slot) => `weekly:2026-10-12:${slot}`);
     const drawnWith = (secret: string) => Promise.all(crates.map((crate) => drawOf({ secret, member, crate, version: 1 })));
