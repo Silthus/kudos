@@ -3,7 +3,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { channel, emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
@@ -87,7 +87,38 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
         { team: "otters", name: "Otters", art: null },
       ],
       hype: { earned: true, name: "bob-okonkwo-hype", picture: expect.any(String), inSlack: false },
+      slackProfile: `${workspaceUrl}team/${bob.user}`,
     });
+  });
+
+  test("the best message names each member it mentions with their person, and someone the album doesn't know, a group and a channel without one", async () => {
+    await t.run((ctx) => ctx.db.insert("userGroups", { workspace: "T1", group: "S_ONCALL", handle: "oncall", name: "On call", enabled: true, automatic: false, asOf: 0 }));
+    slack.withMember("U_GONE", { deleted: true });
+    await post(t, [section(text(`${longerWhy} `), mention(bob.user), text(" and "), mention(carol.user), text(" with "), mention("U_GONE"), text(" for "), userGroup("S_ONCALL"), text(" in "), channel("C_SHIP"), text(" "), emoji("taco"))], { user: alice.user, ts: nextTs() });
+    await settle(t);
+
+    const page = await personPageOf(alice, bob);
+
+    if (page.kind !== "person" || !("best" in page) || page.best?.message.kind !== "text") throw new Error("expected Bob's page with Alice's best message");
+    expect(page.best.message.segments.filter(({ kind }) => kind !== "text" && kind !== "emoji")).toEqual([
+      { kind: "person", name: bob.name, person: await memberOf(bob) },
+      { kind: "person", name: carol.name, person: await memberOf(carol) },
+      { kind: "person", name: "A teammate" },
+      { kind: "group", handle: "oncall" },
+      { kind: "channel" },
+    ]);
+  });
+
+  test("a person's page opens them in Slack: their profile on the workspace's address, else Slack's own link by team and user", async () => {
+    await thanks(alice, why, bob);
+
+    expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", slackProfile: `${workspaceUrl}team/${bob.user}` });
+
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("workspaces").collect()) await ctx.db.patch(row._id, { url: undefined });
+    });
+
+    expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", slackProfile: `slack://user?team=T1&id=${bob.user}` });
   });
 
   test("a person you only thanked briefly, or who only thanked you, shows no best message and their hype emoji still locked", async () => {
@@ -135,6 +166,20 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
 });
 
 describe("AL48: getAlbumWeek reads one week's issue from its week tally", { timeout: 180_000 }, () => {
+  test("the kudos of the week and every other kudos of the week name each member they mention with their person", async () => {
+    await thanks(alice, longerWhy, bob, carol);
+    await thanks(alice, why, dana);
+
+    const week = await weekOf(alice);
+
+    if (week.kind !== "week" || week.issue === null) throw new Error("expected this week's issue");
+    const peopleIn = (message: { kind: string; segments?: { kind: string }[] }) => (message.segments ?? []).filter(({ kind }) => kind === "person");
+    expect(peopleIn(week.issue.kudosOfWeek!.message)).toEqual([
+      { kind: "person", name: bob.name, person: await memberOf(bob) },
+      { kind: "person", name: carol.name, person: await memberOf(carol) },
+    ]);
+    expect(week.issue.given.kudos.map(({ message }) => peopleIn(message))).toContainEqual([{ kind: "person", name: dana.name, person: await memberOf(dana) }]);
+  });
   test("this week's issue holds its counts, the kudos of the week with its words, who you thanked, who thanked you, who you hugged and who hugged you, the packs you opened, the new faces and hoggies you put in, and each day's count", async () => {
     const thanked = await thanks(alice, longerWhy, bob);
     const thankedBy = await thanks(carol, "ty", alice);

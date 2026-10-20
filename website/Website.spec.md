@@ -9,8 +9,8 @@ The browser package, the signed-in surface where a member sees their kudos besid
   control: none — it serves public static bytes built from this repository, which hold no member data and no secret; every HTML response carries the Content Security Policy header that forbids framing and foreign scripts (WS25)
 
 ## invariants
-- a kudos message renders as text: Every segment of a kudos message becomes React text or a fixed element, never parsed HTML, and only an http or https URL becomes a link, so the words a member wrote in Slack never become markup, a script or a link with another scheme on the website.
-  over: KudosMessage in website/src/activity/KudosMessage.tsx, the one renderer every surface hands a Message to, for text segments holding a script tag, an img tag with an onerror handler and HTML entities, and links with javascript: and data: URLs, with live links and clamped
+- a kudos message renders as text: Every segment of a kudos message becomes React text or a fixed element, never parsed HTML, and only an http or https URL becomes a link out, and a mention of a member the read names becomes a link to their person page, `/book#people/` and the member's ID encoded, so the words a member wrote in Slack never become markup, a script or a link with another scheme on the website; a mention of anyone else, a group, a channel or a broadcast stays text (#737).
+  over: KudosMessage in website/src/activity/KudosMessage.tsx, the one renderer every surface hands a Message to, for text segments holding a script tag, an img tag with an onerror handler and HTML entities, links with javascript: and data: URLs, and a mention whose name holds markup and whose member ID is a javascript: URL, with live links and clamped
   via: a kudos message renders as text
   because: the words come from Slack, typed by any member, and reach every teammate's browser who sees the kudos; a renderer that parsed them as HTML or linked any scheme would run a script or a javascript: link in the reader's signed-in session (WS210, WS224)
   crossing: domain -> browser

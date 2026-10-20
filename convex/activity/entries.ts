@@ -6,7 +6,7 @@ export type Person = { name: string; face: Face };
 
 export type Segment =
   | { kind: "text"; text: string; bold?: true; italic?: true; strike?: true; code?: true }
-  | { kind: "person"; name: string }
+  | { kind: "person"; name: string; person?: string }
   | { kind: "group"; handle: string }
   | { kind: "channel" }
   | { kind: "broadcast"; range: "here" | "channel" | "everyone" }

@@ -66,6 +66,18 @@ describe("AL52: getAlbumProfile reads the profile's kind note and newest people"
     });
   });
 
+  test("the kind note names each member it mentions with their person, for a link to their page", async () => {
+    await thanks(bob, why, alice, carol);
+
+    const profile = await profileOf(alice);
+
+    if (profile.kind !== "profile" || profile.note?.message.kind !== "text") throw new Error("expected Alice's kind note with its words");
+    expect(profile.note.message.segments.filter(({ kind }) => kind === "person")).toEqual([
+      { kind: "person", name: alice.name, person: await memberOf(alice) },
+      { kind: "person", name: carol.name, person: await memberOf(carol) },
+    ]);
+  });
+
   test("a kind note whose words are gone, deleted in Slack, gives way to the thoughtful kudos before it", async () => {
     const kept = await thanks(bob, why, alice);
     const deleted = await thanks(carol, "Thanks for the thorough onboarding notes you wrote", alice);
