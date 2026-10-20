@@ -24,8 +24,8 @@ export async function slackEmojiNamed(ctx: QueryCtx, workspace: string, name: st
 
 export async function slackEmojiStartingWith(ctx: QueryCtx, workspace: string, typed: string, limit: number, reach: SlackEmojiReach): Promise<SlackEmoji[]> {
   const custom = await originalCustomEmojiStartingWith(ctx, workspace, typed, limit);
-  const standard = standardIn(reach, () => standardEmojiStartingWith(typed, limit - custom.length)) ?? [];
-  return [...custom, ...(await notCustomIn(ctx, workspace, standard))];
+  const standard = standardIn(reach, () => standardEmojiStartingWith(typed, limit)) ?? [];
+  return [...custom, ...(await notCustomIn(ctx, workspace, standard))].slice(0, limit);
 }
 
 export async function slackEmojiListedIn(ctx: QueryCtx, workspace: string, most: number, reach: SlackEmojiReach): Promise<SlackEmoji[]> {

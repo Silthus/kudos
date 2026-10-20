@@ -131,6 +131,16 @@ describe("the emoji wizard offers Slack's standard emoji behind standard-emoji",
     expect(await emojiWithId(await signedIn(bruno), "team:otters")).toMatchObject({ name: "otter", picture: standardPicture("1f9a6"), inSlack: true });
   });
 
+  test("a standard emoji a custom one names leaves its place to the next standard emoji, so the search stays full", async () => {
+    await slackHas("b", ...Array.from({ length: 18 }, (_, index) => `b-${String(index + 1).padStart(2, "0")}`));
+    await switchWebsite(t, postHog, true, ...wizardOpen, "standard-emoji");
+
+    const found = await matchesOf(await signedIn(alice), { near: "otters", search: "b" });
+
+    expect(found.filter(({ name }) => name === "b")).toEqual([{ name: "b", image: slackPicture("b"), free: true }]);
+    expect(found.map(({ name }) => name)).toContain("baby");
+  });
+
   test("with standard-emoji off, a search finds no standard emoji and mapping to one is refused and writes nothing", async () => {
     await unlocksOtters(alice);
     const asAlice = await signedIn(alice);
