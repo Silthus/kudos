@@ -568,8 +568,6 @@ export default defineSchema({
 
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
 
-  teamEmojiNameMoves: defineTable({ workspace: v.string() }).index("by_workspace", ["workspace"]),
-
   seenEmojis: defineTable(seenEmojiValidator).index("by_member_emoji", ["member", "emoji"]),
 
   emojiClasses: defineTable(emojiClassValidator).index("by_workspace_name", ["workspace", "name"]).index("by_workspace_class", ["workspace", "class", "name"]),

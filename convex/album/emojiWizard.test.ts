@@ -332,7 +332,7 @@ describe("the maintainer lists every app emoji, mapped or not", { timeout: 180_0
     await slackHas("team-lanterns");
     const asOwner = await signedIn(owner);
 
-    expect(await matchesOf(asOwner, { near: "team-otters", search: "team-lan" })).toEqual([{ name: "team-lanterns", image: slackPicture("team-lanterns"), free: false }]);
+    expect(await matchesOf(asOwner, { near: "team-otters", search: "lan" })).toEqual([{ name: "team-lanterns", image: slackPicture("team-lanterns"), free: false }]);
     expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "team-lanterns", to: emojiNamed(await appEmojisOf(asOwner), "team-otters").place })).toEqual({ kind: "mapped" });
     expect(await emojiWithId(await signedIn(alice), "team:otters")).toMatchObject({ name: "team-lanterns", inSlack: true });
   });

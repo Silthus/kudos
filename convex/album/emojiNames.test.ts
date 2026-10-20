@@ -129,26 +129,38 @@ describe("an earned emoji's name never moves", () => {
     expect([await hypeNameOf(sam), ...(await namesOf("team:sam-rivera-hype"))]).toEqual(["team-sam-rivera-2-hype", "team-sam-rivera-hype"]);
   });
 
-  test("a registry opened before team emojis were named team-<slug> moves every team nobody mapped to team-<slug> at the next sync, once, keeping a mapped team's name and every row", async () => {
+  test("a registry opened before team emojis were named team-<slug> moves every team nobody mapped to team-<slug> at the next sync, even where Slack already has that name, keeping a mapped team's name and every row, and a later rename moves nothing", async () => {
     const teams = [team("lanterns", "Lanterns"), team("kites", "Kites"), team("people-ops", "People & Ops")];
     await companyTeams(...teams);
     const maintainer = await aMember({ user: "U_MAINTAINER", name: "Maya Brandt" });
+    await slackHasCustomEmoji("team-lanterns", "team-people-ops");
     await aRegistryOpenedBeforeTheTeamPrefix([
       { emoji: "team:lanterns", name: "lanterns" },
       { emoji: "team:kites", name: "kites", mappedBy: { member: maintainer, as: "maintainer" } },
       { emoji: "team:people-ops", name: "people-ops" },
+      { emoji: "team:otters", name: "otters" },
     ]);
     const teamRowsBefore = await teamEmojisNamed();
 
     await companyTeams(...teams);
-    const moved = await namesOf("team:lanterns", "team:kites", "team:people-ops");
+    const moved = await namesOf("team:lanterns", "team:kites", "team:people-ops", "team:otters");
     await companyTeams(team("lanterns", "Lantern Bearers"), team("kites", "Kites"), team("people-ops", "People & Ops"));
 
-    expect([moved, await teamEmojisNamed()]).toEqual([["team-lanterns", "kites", "team-people-ops"], teamRowsBefore]);
-    expect(await namesOf("team:lanterns", "team:kites", "team:people-ops")).toEqual(moved);
+    expect([moved, await teamEmojisNamed()], "a team that left posthog.com moves to team- and its own slug").toEqual([["team-lanterns", "kites", "team-people-ops", "team-otters"], teamRowsBefore]);
+    expect(await namesOf("team:lanterns", "team:kites", "team:people-ops", "team:otters"), "after the team's rename").toEqual(moved);
   });
 
-  test("the move gives a team the team-<slug> name another team's bare name vacates in the same move", async () => {
+  test("a bare team name the registry still holds after a rollback, or one whose team was renamed to a name with no Latin letter, moves at the next sync", async () => {
+    await companyTeams(team("lanterns", "Lanterns"));
+    await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
+    await namedByTheCodeBeforeTheTeamPrefix({ emoji: "team:kites", name: "kites" }, { emoji: "team:kanji", name: "kanji-club" });
+
+    await companyTeams(team("lanterns", "Lanterns"), team("kites", "Kites"), team("kanji", "数据"));
+
+    expect(await namesOf("team:lanterns", "team:kites", "team:kanji")).toEqual(["team-lanterns", "team-kites", "team-1"]);
+  });
+
+  test("a legacy team name already under team- stays, so the team whose team-<slug> name it holds gets the next number", async () => {
     const teams = [team("lanterns", "Lanterns"), team("team-lanterns", "Team Lanterns")];
     await companyTeams(...teams);
     await aRegistryOpenedBeforeTheTeamPrefix([
@@ -158,7 +170,7 @@ describe("an earned emoji's name never moves", () => {
 
     await companyTeams(...teams);
 
-    expect(await namesOf("team:lanterns", "team:team-lanterns")).toEqual(["team-lanterns", "team-team-lanterns"]);
+    expect(await namesOf("team:lanterns", "team:team-lanterns")).toEqual(["team-lanterns-2", "team-lanterns"]);
   });
 
   test("a registry opened with team-<slug> names keeps a renamed team's name at the next sync", async () => {
@@ -214,10 +226,20 @@ async function thanks(recipient: MemberId, words = why, ...others: MemberId[]) {
 
 type OldRegistryRow = { emoji: EarnedEmojiId; name: string; mappedBy?: { member: MemberId; as: "member" | "maintainer" } };
 
-async function aRegistryOpenedBeforeTheTeamPrefix(teamRows: OldRegistryRow[]) {
+function aRegistryOpenedBeforeTheTeamPrefix(teamRows: OldRegistryRow[]) {
+  return namedByTheCodeBeforeTheTeamPrefix({ emoji: "level:5", name: "level-5" }, ...teamRows);
+}
+
+async function namedByTheCodeBeforeTheTeamPrefix(...rows: OldRegistryRow[]) {
   await t.run(async (ctx) => {
-    for (const { emoji: key, name, mappedBy } of [{ emoji: "level:5" as const, name: "level-5" }, ...teamRows]) await ctx.db.insert("emojiNames", { workspace: "T1", emoji: key, name, mappedBy });
+    for (const { emoji: key, name, mappedBy } of rows) await ctx.db.insert("emojiNames", { workspace: "T1", emoji: key, name, mappedBy });
   });
+}
+
+async function slackHasCustomEmoji(...names: string[]) {
+  for (const name of names) slack.withCustomEmoji(name, `https://emoji.slack-edge.com/T1/${name}/abc.png`);
+  await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+  await settle(t);
 }
 
 function teamEmojisNamed() {
