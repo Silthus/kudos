@@ -268,6 +268,7 @@ import type * as store_storeFlag from "../store/storeFlag.js";
 import type * as store_visibility from "../store/visibility.js";
 import type * as unlocks_feature from "../unlocks/feature.js";
 import type * as unlocks_launch from "../unlocks/launch.js";
+import type * as unlocks_levelUpHoggies from "../unlocks/levelUpHoggies.js";
 import type * as unlocks_levelUps from "../unlocks/levelUps.js";
 import type * as unlocks_previewMoments from "../unlocks/previewMoments.js";
 import type * as unlocks_schedule from "../unlocks/schedule.js";
@@ -587,6 +588,7 @@ declare const fullApi: ApiFromModules<{
   "store/visibility": typeof store_visibility;
   "unlocks/feature": typeof unlocks_feature;
   "unlocks/launch": typeof unlocks_launch;
+  "unlocks/levelUpHoggies": typeof unlocks_levelUpHoggies;
   "unlocks/levelUps": typeof unlocks_levelUps;
   "unlocks/previewMoments": typeof unlocks_previewMoments;
   "unlocks/schedule": typeof unlocks_schedule;

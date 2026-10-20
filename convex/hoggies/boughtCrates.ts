@@ -30,7 +30,7 @@ export async function buyCrate(ctx: MutationCtx, member: MemberId, next: number,
 export async function openCrate(ctx: MutationCtx, member: MemberId, crate: string, at: number, surface: Surface): Promise<void> {
   const bought = await boughtCrateOf(ctx, member, crate);
   if (bought === null || bought.openedAt !== undefined || !(await hoggiesShownTo(ctx, member))) return;
-  await dropFor(ctx, member, boughtCrateKeyOf(bought.n), at, surface);
+  await dropFor(ctx, member, boughtCrateKeyOf(bought.n), at, { surface });
   await ctx.db.patch(bought._id, { openedAt: at });
 }
 

@@ -17,6 +17,27 @@ Unlocks: owns each member's ready and opened features (P72 to P79, P92, ADR-0006
   checklist: worker-fencing dismissed: no worker owns a member's unlocks; Convex serializes the mutations that touch one row
   checklist: commit-ordered-effects dismissed: opening issues no external effect; unlockOpened goes to the in-process bus and its subscribers run only after the transaction commits, and the App Home republish is scheduled by the interaction's own mutation
   checklist: resumption-coverage dismissed: no batch operation resumes
+- a level up drops a hoggie from each of three crates: While `level-up-reveal` and `collection` are on for the member, recording a level up drops one hoggie from each of the crates `level:{level}:1`, `level:{level}:2` and `level:{level}:3` in that mutation, the third drawn only among rare, epic and legendary by their weights, so every level up hands the member three finds, one rare or rarer; each level reached drops its own three, a replayed levelReached drops nothing more, the three pay no pack bonus while `packs` is on, so they never level the member up again, and while either flag is off a level up drops nothing, then or later.
+  over: a member reaching level 3, reaching level 2 then 3, reaching every level from 2 to 21, the same level up replayed, a level up with `packs` on, and level ups with `level-up-reveal` or `collection` off, read through dropsByDecision, the member's collection, the stored drop records and the member's standing
+  via: a level up drops a hoggie from each of three crates
+  refuted: the level up's third crate drew among every rarity, with no rare floor -> over twenty level ups, level 4's third find was common (2026-10-20)
+  because: the product owner asked, 2026-10-20, that leveling up hand out three finds, one rare or rarer; a replay that dropped again would hand out extra finds, and a pack bonus on these would add XP that could level the member up again from inside their own level up
+  kinds: storage, state
+  checklist: scoped-reads dismissed: the drops are the member's own, written for the member the level up names
+  checklist: revalidated-permission dismissed: nothing is queued; both flags are read in the mutation that records the level up
+  checklist: encrypted-storage dismissed: drop records are game data, not confidential; the draw's secret lives in the deployment's environment, never in a table
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted, and the draw's secret is set once per deployment and never rotated (CL8)
+  checklist: input-validation dismissed: levelReached is checked by its event validator at the subscriber's boundary, and only progression publishes it
+  checklist: revision-preservation dismissed: the drops are drop records, declared as a drop never changes
+  checklist: separation-of-duties dismissed: no approval policy applies
+  checklist: legal-state-succession dismissed: a level up is recorded once per member and level and its crates drop in that same mutation, so a replay finds the record and writes nothing
+  checklist: supersession-safety dismissed: the level up's record is read first and written with its drops in one transaction
+  checklist: worker-fencing dismissed: no worker owns a level up; Convex serializes the mutations that touch one member's level-up rows
+  checklist: commit-ordered-effects dismissed: the drops issue no external effect; hoggieDropped schedules analytics and milestones, which run only after the mutation commits
+  checklist: durable-dispatch-intent dismissed: hoggieDropped is scheduled in the level up's own mutation, so it commits with the drops or not at all
+  checklist: resumption-coverage dismissed: no batch drops them, and widening `level-up-reveal` runs no backfill
+  checklist: declared-target-coverage dismissed: makeReady is the only caller, reached by the oracle through the level up
+  checklist: completion-evidence dismissed: nothing waits on the drops; they commit with the level up or not at all
 - a ready or opened feature is kept for good: A feature once ready stays ready, with its first readyAt, until the member opens it, and once opened stays open, with its first openedAt, for good: through later level ups, a replayed levelReached, a second open, time passing and its flag going off and on; while its flag is off it reads unshipped, and it reads ready or open again with the same times when the flag is back on.
   over: every table of the schema and every published event, across a week passing, later levelReached events, a replayed levelReached, a second open and everyone-board turned off and on again, for a ready Leaderboard and for an opened one
   via: P5: a ready or opened feature is kept for good

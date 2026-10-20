@@ -1,0 +1,229 @@
+{
+ "levelUps": [
+  {
+   "user": "U0PRF661GVRA",
+   "level": 3,
+   "ready": []
+  },
+  {
+   "user": "U0PRF661FNWA",
+   "level": 2,
+   "ready": [
+    "leaderboard"
+   ]
+  },
+  {
+   "user": "U0PRFLU1GVRA",
+   "level": 2,
+   "ready": [
+    "leaderboard"
+   ]
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "level": 2,
+   "ready": [
+    "leaderboard"
+   ]
+  }
+ ],
+ "drops": [
+  {
+   "user": "U0PRF661GVRA",
+   "crate": "level:3:3",
+   "hoggie": "pope",
+   "rarity": "epic",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "crate": "level:3:2",
+   "hoggie": "oprah",
+   "rarity": "epic",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "crate": "level:3:1",
+   "hoggie": "hourglass",
+   "rarity": "common",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRF661FNWA",
+   "crate": "level:2:3",
+   "hoggie": "reaper",
+   "rarity": "epic",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRF661FNWA",
+   "crate": "level:2:2",
+   "hoggie": "success",
+   "rarity": "common",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRF661FNWA",
+   "crate": "level:2:1",
+   "hoggie": "stamp-denied",
+   "rarity": "common",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRFLU1GVRA",
+   "crate": "level:2:3",
+   "hoggie": "gladiator",
+   "rarity": "epic",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRFLU1GVRA",
+   "crate": "level:2:2",
+   "hoggie": "cowboy-lasso",
+   "rarity": "uncommon",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRFLU1GVRA",
+   "crate": "level:2:1",
+   "hoggie": "pinata",
+   "rarity": "rare",
+   "copy": 1,
+   "pack": null
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "crate": "thoughtful:hn7nxbhnted4n1kq1mt8shvc7s8gjtdx",
+   "hoggie": "stamp-approved",
+   "rarity": "common",
+   "copy": 1,
+   "pack": {
+    "coins": 0,
+    "from": {
+     "coins": 52,
+     "level": 2,
+     "skillPoints": 0,
+     "xp": 65
+    },
+    "to": {
+     "coins": 52,
+     "level": 2,
+     "skillPoints": 0,
+     "xp": 80
+    },
+    "xp": 15
+   }
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "crate": "thoughtful:hn7szzjk4dwevd07c977c4yqbx8gkp6v",
+   "hoggie": "surfer",
+   "rarity": "uncommon",
+   "copy": 1,
+   "pack": {
+    "coins": 0,
+    "from": {
+     "coins": 52,
+     "level": 2,
+     "skillPoints": 0,
+     "xp": 50
+    },
+    "to": {
+     "coins": 52,
+     "level": 2,
+     "skillPoints": 0,
+     "xp": 65
+    },
+    "xp": 15
+   }
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "crate": "thoughtful:hn7k05pne2f8nddkfetxt3f3kx8gkvea",
+   "hoggie": "desk-wizard",
+   "rarity": "rare",
+   "copy": 1,
+   "pack": {
+    "coins": 0,
+    "from": {
+     "coins": 52,
+     "level": 2,
+     "skillPoints": 0,
+     "xp": 35
+    },
+    "to": {
+     "coins": 52,
+     "level": 2,
+     "skillPoints": 0,
+     "xp": 50
+    },
+    "xp": 15
+   }
+  }
+ ],
+ "tallies": 12,
+ "progress": [
+  {
+   "user": "U0PRFLU1TAMA",
+   "xp": 10
+  },
+  {
+   "user": "U0PRFLU1GVRA",
+   "xp": 20
+  },
+  {
+   "user": "U0PRF661FNWA",
+   "xp": 30
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "xp": 110
+  }
+ ],
+ "exposures": [
+  {
+   "user": "U0PRF661GVRA",
+   "flag": "level-up-reveal",
+   "value": true
+  },
+  {
+   "user": "U0PRF661FNWA",
+   "flag": "collection",
+   "value": true
+  },
+  {
+   "user": "U0PRF661FNWA",
+   "flag": "level-up-reveal",
+   "value": true
+  },
+  {
+   "user": "U0PRFLU1GVRA",
+   "flag": "collection",
+   "value": true
+  },
+  {
+   "user": "U0PRFLU1GVRA",
+   "flag": "level-up-reveal",
+   "value": true
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "flag": "packs",
+   "value": true
+  },
+  {
+   "user": "U0PRF661GVRA",
+   "flag": "collection",
+   "value": true
+  }
+ ]
+}
