@@ -148,6 +148,19 @@ describe("an earned emoji's name never moves", () => {
     expect(await namesOf("team:lanterns", "team:kites", "team:people-ops")).toEqual(moved);
   });
 
+  test("the move gives a team the team-<slug> name another team's bare name vacates in the same move", async () => {
+    const teams = [team("lanterns", "Lanterns"), team("team-lanterns", "Team Lanterns")];
+    await companyTeams(...teams);
+    await aRegistryOpenedBeforeTheTeamPrefix([
+      { emoji: "team:lanterns", name: "lanterns" },
+      { emoji: "team:team-lanterns", name: "team-lanterns" },
+    ]);
+
+    await companyTeams(...teams);
+
+    expect(await namesOf("team:lanterns", "team:team-lanterns")).toEqual(["team-lanterns", "team-team-lanterns"]);
+  });
+
   test("a registry opened with team-<slug> names keeps a renamed team's name at the next sync", async () => {
     await companyTeams(team("lanterns", "Lanterns"));
     await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));

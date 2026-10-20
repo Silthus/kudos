@@ -65,7 +65,8 @@ export async function freeTheName(ctx: MutationCtx, workspace: string, name: str
   const holder = await holderOf(ctx, workspace, name);
   if (holder === null) return;
   const shape = await naturalShapeOf(ctx, emojiIdOf(holder));
-  await ctx.db.patch(holder._id, { name: await firstFreeName(ctx, workspace, shape, (candidate) => slackHas(ctx, workspace, candidate)), mappedBy: undefined });
+  const isFreeHereAndInSlack: IsFree = async (candidate) => (await isFree(ctx, workspace, candidate)) && !(await slackHas(ctx, workspace, candidate));
+  await ctx.db.patch(holder._id, { name: await firstFreeName(ctx, workspace, shape, isFreeHereAndInSlack), mappedBy: undefined });
 }
 
 export type RegisteredEmoji = { emoji: EarnedEmojiId; name: string; mappedBy: EmojiMapper | null };
@@ -148,13 +149,27 @@ async function reserveSharedNamesIn(ctx: MutationCtx, workspace: string) {
 
 async function moveTeamNamesToTheTeamPrefixOnceIn(ctx: MutationCtx, workspace: string) {
   if (await teamNamesMovedIn(ctx, workspace)) return;
+  const moving = await teamNamesToMoveIn(ctx, workspace);
+  const vacated = new Set(moving.map(({ row }) => row.name));
+  const given = new Set<string>();
+  const isFreeOnceMoved: IsFree = async (name) => !given.has(name) && (vacated.has(name) || (await isFree(ctx, workspace, name)));
+  const renames = [];
+  for (const { row, shape } of moving) {
+    const name = await firstFreeName(ctx, workspace, shape, isFreeOnceMoved);
+    given.add(name);
+    renames.push({ row, name });
+  }
+  for (const { row, name } of renames) await ctx.db.patch(row._id, { name });
+  await ctx.db.insert("teamEmojiNameMoves", { workspace });
+}
+
+async function teamNamesToMoveIn(ctx: QueryCtx, workspace: string) {
   const teamNames = new Map((await companyTeamsOf(ctx)).map(({ team, name }) => [team, name]));
-  for (const row of await teamEmojiRowsIn(ctx, workspace)) {
+  return (await teamEmojiRowsIn(ctx, workspace)).flatMap((row) => {
     const [, team] = splitOnce(row.emoji);
     const shape = teamNameShapeOf(teamNames.get(team) ?? team);
-    if (row.mappedBy === undefined && !holdsANameOf(row.name, shape)) await ctx.db.patch(row._id, { name: await firstFreeName(ctx, workspace, shape) });
-  }
-  await ctx.db.insert("teamEmojiNameMoves", { workspace });
+    return row.mappedBy === undefined && !holdsANameOf(row.name, shape) ? [{ row, shape }] : [];
+  });
 }
 
 function holdsANameOf(name: string, { slug }: NameShape) {
@@ -205,10 +220,9 @@ async function allocate(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiI
   await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name: await firstFreeName(ctx, workspace, shape) });
 }
 
-type AlsoTaken = (name: string) => Promise<boolean>;
+type IsFree = (name: string) => Promise<boolean>;
 
-async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty, suffix }: NameShape, alsoTaken: AlsoTaken = async () => false): Promise<string> {
-  const isFreeHere = async (name: string) => (await isFree(ctx, workspace, name)) && !(await alsoTaken(name));
+async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty, suffix }: NameShape, isFreeHere: IsFree = (name) => isFree(ctx, workspace, name)): Promise<string> {
   const plain = `${slug}${suffix}`;
   if (slug !== "" && (await isFreeHere(plain))) return plain;
   const stem = slug === "" ? empty : slug;
