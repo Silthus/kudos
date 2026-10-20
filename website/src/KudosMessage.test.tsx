@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { KudosMessage } from "./activity/KudosMessage";
+import { NavigateProvider } from "./AppLink";
 import type { Message, Segment } from "./shell";
 
 function words(...segments: Segment[]): Message {
@@ -28,10 +29,26 @@ describe("WS210: one renderer for a kudos message", () => {
     expect(screen.getByText("plain").closest("strong, em, s, code")).toBeNull();
   });
 
-  it("renders people, groups, channels and broadcasts as plain styled text, never links", () => {
+  it("links a mention of a member the album knows to their person page by name, followed in place", () => {
+    const followed: string[] = [];
+    const { container } = render(
+      <NavigateProvider value={(href) => followed.push(href)}>
+        <KudosMessage message={words({ kind: "text", text: "Thanks " }, { kind: "person", name: "Dev Rao", person: "member/dev 1" })} clamped={false} />
+      </NavigateProvider>,
+    );
+
+    const mention = screen.getByRole("link", { name: "@Dev Rao" });
+    expect(mention).toHaveAttribute("href", "/book#people/member%2Fdev%201");
+    expect(mention).not.toHaveAttribute("target");
+    fireEvent.click(mention);
+    expect(followed).toEqual(["/book#people/member%2Fdev%201"]);
+    expect(container).toHaveTextContent("Thanks @Dev Rao");
+  });
+
+  it("renders a mention of someone the album doesn't know, groups, channels and broadcasts as plain styled text, never links", () => {
     const container = shown(
       words(
-        { kind: "person", name: "Dev Rao" },
+        { kind: "person", name: "A teammate" },
         { kind: "text", text: " " },
         { kind: "group", handle: "design-team" },
         { kind: "text", text: " " },
@@ -43,8 +60,16 @@ describe("WS210: one renderer for a kudos message", () => {
       ),
     );
 
-    expect(container).toHaveTextContent("@Dev Rao @design-team #channel @here@channel@everyone");
+    expect(container).toHaveTextContent("@A teammate @design-team #channel @here@channel@everyone");
+    expect(screen.getByText("@A teammate")).toHaveClass("font-medium");
     expect(screen.getByText("#channel")).toHaveClass("text-muted-foreground");
+    expect(screen.queryAllByRole("link")).toEqual([]);
+  });
+
+  it("renders a known member's mention as plain text when clamped, so nothing focusable hides behind the clamp", () => {
+    const container = shown(words({ kind: "person", name: "Dev Rao", person: "member-dev" }), { clamped: true });
+
+    expect(container).toHaveTextContent("@Dev Rao");
     expect(screen.queryAllByRole("link")).toEqual([]);
   });
 
@@ -172,6 +197,7 @@ describe("a kudos message renders as text", () => {
     { kind: "link", url: "javascript:alert(3)", label: "click me" },
     { kind: "link", url: "data:text/html,<script>alert(4)</script>" },
     { kind: "link", url: "https://example.com/safe", label: "safe" },
+    { kind: "person", name: "<b>Eve</b>", person: "javascript:alert(5)" },
   );
 
   it.each([
@@ -181,9 +207,10 @@ describe("a kudos message renders as text", () => {
     const container = shown(hostile, { clamped });
 
     expect(container).toHaveTextContent('<script>alert(1)</script><img src=x onerror="alert(2)">&lt;b&gt; &amp; &#60;i&#62;click me');
+    expect(container).toHaveTextContent("@<b>Eve</b>");
     expect(container).toHaveTextContent("data:text/html,<script>alert(4)</script>");
     expect(container.querySelector("script, img, b, i")).toBeNull();
-    expect(hrefsIn(container).every((href) => href !== null && /^https?:/.test(href))).toBe(true);
-    expect(hrefsIn(container)).toEqual(clamped ? [] : ["https://example.com/safe"]);
+    expect(hrefsIn(container).every((href) => href !== null && /^(https?:|\/book#people\/)/.test(href))).toBe(true);
+    expect(hrefsIn(container)).toEqual(clamped ? [] : ["https://example.com/safe", "/book#people/javascript%3Aalert(5)"]);
   });
 });

@@ -7,7 +7,7 @@ import { gateRecordedWith } from "../progression/effects";
 import { permalinkOf } from "../slack/permalink";
 import { nameless, teammateOf } from "../website/faces";
 import { customEmojiImageOf } from "../workspace/customEmoji";
-import { displayNameOfUser, nameAndPictureOf, type MemberId } from "../workspace/directory";
+import { nameAndPictureOf, currentMemberOfUser, type MemberId } from "../workspace/directory";
 import { workspaceUrlOf } from "../workspace/url";
 import { userGroupHandleOf } from "../workspace/userGroups";
 import type { Channel, Message, Person, Segment } from "./entries";
@@ -20,27 +20,36 @@ const broadcastRanges = ["here", "channel", "everyone"] as const;
 
 export const mentionLookupsPerPage = 2_000;
 
+type PersonMentioned = Extract<Segment, { kind: "person" }>;
+
 export type Mentions = {
-  personName: (workspace: string, user: string) => Promise<string>;
+  person: (workspace: string, user: string) => Promise<PersonMentioned>;
   groupHandle: (workspace: string, group: string) => Promise<string>;
   emojiImage: (workspace: string, name: string) => Promise<string | undefined>;
 };
 
-export function mentionsOfOnePage(ctx: QueryCtx, lookupsAtMost = mentionLookupsPerPage): Mentions {
-  const looked = new Map<string, Promise<string | undefined>>();
-  const once = (key: string, lookUp: () => Promise<string | undefined>) => {
+export type PeopleMentioned = "named" | "linked";
+
+export function mentionsOfOnePage(ctx: QueryCtx, lookupsAtMost = mentionLookupsPerPage, people: PeopleMentioned = "named"): Mentions {
+  const looked = new Map<string, Promise<unknown>>();
+  const once = <Found>(key: string, lookUp: () => Promise<Found | undefined>): Promise<Found | undefined> => {
     const known = looked.get(key);
-    if (known !== undefined) return known;
+    if (known !== undefined) return known as Promise<Found | undefined>;
     if (looked.size >= lookupsAtMost) return Promise.resolve(undefined);
     const answer = lookUp();
     looked.set(key, answer);
     return answer;
   };
   return {
-    personName: async (workspace, user) => (await once(`person ${workspace} ${user}`, () => displayNameOfUser(ctx, workspace, user))) ?? nameless,
+    person: async (workspace, user) => personMentionedAs(await once(`person ${workspace} ${user}`, () => currentMemberOfUser(ctx, workspace, user)), people),
     groupHandle: async (workspace, group) => (await once(`group ${workspace} ${group}`, () => userGroupHandleOf(ctx, workspace, group))) ?? unknownGroupHandle,
     emojiImage: (workspace, name) => once(`emoji ${workspace} ${name}`, () => customEmojiImageOf(ctx, workspace, name)),
   };
+}
+
+function personMentionedAs(known: { member: MemberId; name: string | undefined } | undefined, people: PeopleMentioned): PersonMentioned {
+  const name = known?.name ?? nameless;
+  return known === undefined || people === "named" ? { kind: "person", name } : { kind: "person", name, person: known.member };
 }
 
 export async function kudosFactsOf(ctx: QueryCtx, mentions: Mentions, ref: MessageRef, first: AwardId): Promise<KudosFacts> {
@@ -70,7 +79,7 @@ export function readableSegmentsOf(mentions: Mentions, workspace: string, segmen
 async function readableSegmentOf(mentions: Mentions, workspace: string, segment: WordSegment): Promise<Segment> {
   switch (segment.kind) {
     case "person":
-      return { kind: "person", name: await mentions.personName(workspace, segment.user) };
+      return mentions.person(workspace, segment.user);
     case "group":
       return { kind: "group", handle: await mentions.groupHandle(workspace, segment.group) };
     case "broadcast":

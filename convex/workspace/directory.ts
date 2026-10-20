@@ -68,9 +68,9 @@ export async function timeZoneOf(ctx: QueryCtx, member: MemberId): Promise<strin
   return row?.kind === "member" ? (row.timeZone ?? null) : null;
 }
 
-export async function displayNameOfUser(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<string | undefined> {
+export async function currentMemberOfUser(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<{ member: MemberId; name: string | undefined } | undefined> {
   const row = await memberRow(ctx, workspace, user);
-  return row?.kind === "member" ? row.name : undefined;
+  return row?.kind === "member" ? { member: row._id, name: row.name } : undefined;
 }
 
 export async function displayNameOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
