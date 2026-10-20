@@ -15,6 +15,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   because: the words come from Slack, typed by any member, and reach every teammate's browser who sees the kudos; a renderer that parsed them as HTML or linked any scheme would run a script or a javascript: link in the reader's signed-in session (WS210, WS224)
   crossing: domain -> browser
   refuted: let isWebAddress accept every scheme -> the test found an href outside http and https in the live-link render (2026-10-14)
+  refuted: PersonMention linked a mention to the raw member ID the read gave instead of `/book#people/` and the encoded ID -> the live-link render found the hostile mention's javascript: ID as an href (2026-10-20)
   kinds: output
   checklist: destination-confinement dismissed: the website sends nothing; a link opens only where the member clicks, and only for http or https, and a custom emoji's picture loads only from the Slack hosts WS25's header allows for images
   checklist: redaction dismissed: the renderer shows the member's own kudos words as the read answers them; it exports nothing
