@@ -2,12 +2,12 @@ import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyTeamsReplacedEventValidator } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
-import { customEmojiImageOf } from "../workspace/customEmoji";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
 import { isClassed } from "./emojiClasses";
 import type { EmojiMapper, MilestoneId, MilestoneTier } from "./records";
 import { standardEmojiNames } from "./standardEmojiNames";
+import { slackEmojiImageOf } from "../workspace/slackEmoji";
 
 export type EarnedEmojiId = `level:${number}` | `milestone:${MilestoneId}:${MilestoneTier}` | `team:${string}` | `hype:${MemberId}`;
 
@@ -88,7 +88,7 @@ export async function mapperOf(ctx: QueryCtx, workspace: string, emoji: EarnedEm
 }
 
 async function slackHas(ctx: QueryCtx, workspace: string, name: string) {
-  return (await customEmojiImageOf(ctx, workspace, name)) !== undefined;
+  return (await slackEmojiImageOf(ctx, workspace, name)) !== undefined;
 }
 
 async function naturalShapeOf(ctx: QueryCtx, emoji: EarnedEmojiId): Promise<NameShape> {

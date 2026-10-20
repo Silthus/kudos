@@ -4,7 +4,6 @@ import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { levelFirstReachedAt } from "../unlocks/levelUps";
-import { customEmojiImageOf } from "../workspace/customEmoji";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";
 import { emojiNameOf, type EarnedEmojiId } from "./emojiNames";
@@ -14,6 +13,7 @@ import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
 import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
+import { slackEmojiImageOf } from "../workspace/slackEmoji";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
@@ -68,7 +68,7 @@ export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }
 export async function hypeEmojiOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<HypeEmoji | null> {
   const name = await emojiNameOf(ctx, workspace, `hype:${person}`);
   if (name === null) return null;
-  const slackPicture = await customEmojiImageOf(ctx, workspace, name);
+  const slackPicture = await slackEmojiImageOf(ctx, workspace, name);
   return { name, picture: slackPicture ?? (await hypeFaceOf(ctx, workspace, person)).picture, inSlack: slackPicture !== undefined };
 }
 
@@ -104,7 +104,7 @@ async function emojiOf(ctx: QueryCtx, workspace: string, { id, kind, from, pictu
 }
 
 async function shownEmojiOf(ctx: QueryCtx, workspace: string, picture: string, name: string): Promise<ShownEmoji> {
-  const slackPicture = await customEmojiImageOf(ctx, workspace, name);
+  const slackPicture = await slackEmojiImageOf(ctx, workspace, name);
   return { name, picture: slackPicture ?? picture, inSlack: slackPicture !== undefined };
 }
 

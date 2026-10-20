@@ -2,11 +2,12 @@ import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, memberDecision } from "../analytics/flags";
-import { customEmojiImageOf, customEmojiScopeMissingIn, originalCustomEmojiOf, originalCustomEmojiStartingWith } from "../workspace/customEmoji";
+import { customEmojiScopeMissingIn } from "../workspace/customEmoji";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { customItemOf, type StoreItem } from "./catalogue";
 import { customKudosEmojiFlag } from "./customKudosEmojiFlag";
 import { storeShownAndExposedTo, storeShownTo } from "./visibility";
+import { slackEmojiImageOf, slackEmojiNamed, slackEmojiStartingWith } from "../workspace/slackEmoji";
 
 export type CustomKudosEmojiPicker = { kind: "reinstall" } | { kind: "pick"; picked: string[] };
 
@@ -26,7 +27,7 @@ export const customKudosEmojiOptions = internalQuery({
   handler: async (ctx, { workspace, user, typed }): Promise<string[]> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member" || !person.admin || !(await customKudosEmojiShownTo(ctx, person.member))) return [];
-    return (await originalCustomEmojiStartingWith(ctx, workspace, typed.trim().toLowerCase().replace(/^:|:$/g, ""), optionsPerSearch)).map(({ name }) => name);
+    return (await slackEmojiStartingWith(ctx, workspace, typed.trim().toLowerCase().replace(/^:|:$/g, ""), optionsPerSearch)).map(({ name }) => name);
   },
 });
 
@@ -93,14 +94,14 @@ async function originalsOf(ctx: QueryCtx, workspace: string, names: string[]) {
   const originals = new Map<string, string>();
   for (const name of names) {
     if (originals.size === customKudosEmojiPerWorkspace) break;
-    const original = await originalCustomEmojiOf(ctx, workspace, name);
+    const original = await slackEmojiNamed(ctx, workspace, name);
     if (original !== null) originals.set(original.name, original.image);
   }
   return originals;
 }
 
 async function refreshArt(ctx: MutationCtx, workspace: string, row: Doc<"customKudosEmoji">) {
-  const url = await customEmojiImageOf(ctx, workspace, row.name);
+  const url = await slackEmojiImageOf(ctx, workspace, row.name);
   if (url !== undefined && url !== row.url) await ctx.db.patch(row._id, { url });
 }
 

@@ -1,11 +1,11 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { drawSecret } from "../hoggies/drops";
-import { customEmojiImageOf } from "../workspace/customEmoji";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { mostRandomEmojis, randomEmojiNamesIn } from "./emojiClasses";
 import { randomEmojisShownTo } from "./flag";
 import { emojiRollOf } from "./emojiRoll";
+import { slackEmojiImageOf } from "../workspace/slackEmoji";
 
 export { mostRandomEmojis };
 
@@ -25,7 +25,7 @@ export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pa
   const offered: string[] = [];
   for (const name of await randomEmojiNamesIn(ctx, workspace)) if (!(await holdsRandomEmoji(ctx, member, name))) offered.push(name);
   const name = offered[Math.floor(pick * offered.length)];
-  if (name === undefined || (await customEmojiImageOf(ctx, workspace, name)) === undefined) return;
+  if (name === undefined || (await slackEmojiImageOf(ctx, workspace, name)) === undefined) return;
   await ctx.db.insert("randomEmojiDrops", { member, name, pack, at });
 }
 
@@ -33,7 +33,7 @@ export async function randomEmojisHeldBy(ctx: QueryCtx, workspace: string, membe
   const held: HeldRandomEmoji[] = [];
   if (!(await randomEmojisShownTo(ctx, member))) return held;
   for (const { name, pack, at } of await dropsOf(ctx, member)) {
-    const image = await customEmojiImageOf(ctx, workspace, name);
+    const image = await slackEmojiImageOf(ctx, workspace, name);
     const packed = await ctx.db.get(pack);
     if (image !== undefined && packed !== null) held.push({ id: `random:${name}`, name, image, from: packed.recipient, at });
   }
