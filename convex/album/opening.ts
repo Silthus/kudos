@@ -21,7 +21,7 @@ export async function openThoughtfulPack(ctx: MutationCtx, member: MemberId, pac
   const waiting = await ctx.db.get(pack);
   if (waiting?.giver !== member || waiting.openedAt !== undefined || !(await hoggiesShownTo(ctx, member))) return null;
   const crate = crateKeyOf(pack);
-  await dropFor(ctx, member, crate, at, "website");
+  await dropFor(ctx, member, crate, at, { surface: "website" });
   const drop = await dropOf(ctx, member, crate);
   if (drop === null) return null;
   await ctx.db.patch(pack, { openedAt: at });

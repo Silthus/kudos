@@ -24,9 +24,11 @@ export type CrestsShown = { crests: boolean };
 
 export type DroppedAt = { at: number; n: number; decided: number; drop: Drop };
 
-export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, surface: Surface): Promise<void> {
+export type DropContext = { surface?: Surface; floor?: Rarity };
+
+export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { surface, floor }: DropContext): Promise<void> {
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
-  const { hoggie, rarity } = await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version });
+  const { hoggie, rarity } = await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, floor });
   const n = await countDrop(ctx, member);
   const waits = waitsInTheTray(crate);
   const copy = waits ? await nextCopyOf(ctx, member, hoggie) : await countFound(ctx, member, hoggie, at, n);
@@ -36,12 +38,13 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
   await ctx.db.insert("drops", { member, crate, hoggie, rarity, n, copy, catalogueVersion: catalogue.version, at, ...crest, ...(pack && { pack }) });
   if (waits) await ctx.db.insert("trayDrops", { member, crate });
   if (crest.crest) await crestsShownFor(ctx, member);
-  await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at, ...(pack && { pack: { xp: pack.xp, coins: pack.coins } }), surface });
+  await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at, ...(pack && { pack: { xp: pack.xp, coins: pack.coins } }), ...(surface && { surface }) });
 }
 
 async function packPaidFor(ctx: MutationCtx, workspace: string, member: MemberId, crate: CrateKey, at: number): Promise<AppliedReward | null> {
-  if (!(await packsPayFor(ctx, member))) return null;
-  return applyGain(ctx, workspace, { member, ...(await packBonusOf({ secret: drawSecret(), member, crate })) }, at);
+  const bonus = await packBonusOf({ secret: drawSecret(), member, crate });
+  if (bonus === null || !(await packsPayFor(ctx, member))) return null;
+  return applyGain(ctx, workspace, { member, ...bonus }, at);
 }
 
 export async function putDropIn(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number): Promise<void> {

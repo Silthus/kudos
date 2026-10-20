@@ -347,8 +347,8 @@ describe("CV3 CV4: the pack draw", () => {
     const bonuses = await Promise.all(keys.map((crate) => packBonusOf({ secret: "s", member: "m1", crate })));
     const shareOf = (count: number) => count / keys.length;
 
-    for (const step of xpSteps) expect(Math.abs(shareOf(bonuses.filter(({ xp }) => xp === step).length) - 0.2), `share of ${step} XP`).toBeLessThan(0.01);
-    for (const amount of coinAmounts) expect(Math.abs(shareOf(bonuses.filter(({ coins }) => coins === amount).length) - 0.2), `share of ${amount} coins`).toBeLessThan(0.01);
+    for (const step of xpSteps) expect(Math.abs(shareOf(bonuses.filter((bonus) => bonus?.xp === step).length) - 0.2), `share of ${step} XP`).toBeLessThan(0.01);
+    for (const amount of coinAmounts) expect(Math.abs(shareOf(bonuses.filter((bonus) => bonus?.coins === amount).length) - 0.2), `share of ${amount} coins`).toBeLessThan(0.01);
   });
 });
 
