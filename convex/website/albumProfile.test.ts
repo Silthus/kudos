@@ -71,7 +71,7 @@ describe("AL52: getAlbumProfile reads the profile's kind note and newest people"
 
     const profile = await profileOf(alice);
 
-    if (profile.kind !== "profile" || profile.note?.message.kind !== "text") throw new Error("expected Alice's kind note with its words");
+    if (!("note" in profile) || profile.note?.message.kind !== "text") throw new Error("expected Alice's kind note with its words");
     expect(profile.note.message.segments.filter(({ kind }) => kind === "person")).toEqual([
       { kind: "person", name: alice.name, person: await memberOf(alice) },
       { kind: "person", name: carol.name, person: await memberOf(carol) },
