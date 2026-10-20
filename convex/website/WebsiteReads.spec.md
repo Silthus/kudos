@@ -65,6 +65,8 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 
 - query getAlbumHoggies: a browser asks for the hoggies the signed-in member's own album has found and still hides, with no arguments
   handler: getAlbumHoggies in convex/website/album.ts
+- query getLevelUp: a browser asks for one of the signed-in member's own level ups, with the level as its only argument
+  handler: getLevelUp in convex/website/album.ts
   trust: browser
 
 - query getThoughtfulBoards: a browser asks for the thoughtful boards of this week, last week, this month or all time with the signed-in member's own row and teams pinned, optionally narrowing the people board to one company team
@@ -204,8 +206,8 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: commit-ordered-effects dismissed: parsing a link issues no effect
   checklist: circuit-breaker-policy dismissed: nothing is sent
   checklist: declared-target-coverage dismissed: the link has one target, the website
-- one function builds every website link: websiteLinkOf answers SITE_URL plus the album address the asked page lands on (AL67): the root for the home, the Quests page, the skill tree and the Book, `/leaderboard` for the Leaderboard whatever its period, `/book#milestones` for the Book's earned page, `/book#hoggies` for its Collection, and `/settings` with its section, never a crate, quest, perk, panel or period, so a link never names a path the website doesn't serve and lands with no rewrite.
-  over: websiteLinkOf while the website is open, for every page, the Leaderboard's three periods, and the targets a link drops: a perk, a quest, a feature's crate, the Journey's crate, an earlier week's weekly crate and group crate, a bought crate, the crate offer and the inventory panel; `/settings` with no section and with each of its three sections; and urlOf on the `/sign-in` entry
+- one function builds every website link: websiteLinkOf answers SITE_URL plus the album address the asked page lands on (AL67): the root for the home, the Quests page, the skill tree and the Book, `/leaderboard` for the Leaderboard whatever its period, `/book#milestones` for the Book's earned page, `/book#hoggies` for its Collection, `/settings` with its section, and `/book#level-up/{level}` for a level up's page, never a crate, quest, perk, panel or period, so a link never names a path the website doesn't serve and lands with no rewrite.
+  over: websiteLinkOf while the website is open, for every page, the Leaderboard's three periods, and the targets a link drops: a perk, a quest, a feature's crate, the Journey's crate, an earlier week's weekly crate and group crate, a bought crate, the crate offer and the inventory panel; `/settings` with no section and with each of its three sections; a level up's page; and urlOf on the `/sign-in` entry
   via: SW11: one function builds every website link
   refuted: routeOf answered an unlisted page's own path instead of the root -> the three unlisted pages linked to /quests, /skills and /book (2026-10-14)
   because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link through one function, which names the album address each page lands on once the old shell is gone, so a link needs no rewrite and Slack's older links still land through the router's old-URL map (SW11, SW13, AL44, AL67)
@@ -625,3 +627,12 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: commit-ordered-effects dismissed: building the header writes nothing
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
   checklist: declared-target-coverage dismissed: there is no fan-out; one header per HTML response
+- a level up's page answers only the member's own level up: getLevelUp answers off while `album` or `level-up-reveal` is off for the signed-in member, both read without an exposure; none while the member has no level up recorded at the level asked or that level up dropped nothing; and otherwise that level, when it was reached and the find each of its crates `level:{level}:1`, `:2` and `:3` dropped, in slot order, each shown as every drop is, with its name, rarity, art, copy and whether it is new, beside the level emojis that level up earned: each level of the emoji catalogue above the member's previous recorded level up, else level 1, and at or below the one asked, named from the registry, as the album answers its emojis, earned at the level up's time; it reads only through indexes, at most two level-up rows, three drop records and one seen-emoji row per level emoji.
+  over: a member reaching level 3 with three pinned finds, a find of level 2 found again at level 3, level ups at 4, 10 and 11 with the registry open, a level reached before `level-up-reveal` was on and a level never reached, and a level up that dropped its finds read while `level-up-reveal` or `album` is off
+  via: getLevelUp answers one level up's reveal
+  because: the product owner asked, 2026-10-20, that a level up show its three finds and the emojis it unlocked on one page the level-up DM links to; the page names only what that level up brought, so an emoji earned at an earlier level up never shows as new there, and a bounded read keeps a member with a long history inside a query's limits
+  crossing: browser -> domain
+  entrances: query getLevelUp
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: the answer holds only the member's own finds and the workspace's emoji names, no member ID, Slack ID or kudos words
