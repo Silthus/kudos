@@ -305,6 +305,17 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(screen.getByText("Unlocked 18 Oct 2026")).toHaveFocus();
   });
 
+  it("#736: with emoji-mapping-in-place on, a member's unlock moment says the team emoji is coming soon to Slack, with no Slack action", async () => {
+    preferReducedMotion();
+    visit("/book#teams/kettle-works", { album: { ...midway, emojiWizard: true, emojiInPlace: "member" } });
+
+    await userEvent.click(await unlockOnThePhoto());
+
+    const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
+    expect(within(moment).getByText("Your new team emoji. Coming soon to Slack.")).toBeInTheDocument();
+    expect(within(moment).queryByRole("button", { name: /in Slack$|^Add to Slack/ })).not.toBeInTheDocument();
+  });
+
   it("under reduced motion it shows its end state at once: the coloured sticker, its name, its emoji and the way back, with no lift and no confetti", async () => {
     preferReducedMotion();
     visit("/book#teams/kettle-works");

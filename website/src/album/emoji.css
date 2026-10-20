@@ -722,3 +722,10 @@
     height: 9rem;
   }
 }
+
+.al-coming-soon {
+  color: var(--al-quiet);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}

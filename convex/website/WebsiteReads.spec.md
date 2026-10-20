@@ -99,6 +99,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: mapSlackEmoji in convex/website/emojiMappings.ts
   trust: browser
 
+- mutation mapMyEmoji: a browser asks to map one earned emoji to a Slack custom emoji from the mini wizard, with the earned emoji's ID as getAlbum or getAlbumPerson gave it and the Slack emoji's name as its only arguments: a member's own held emoji, or, behind `emoji-mapping-in-place`, any app emoji for the maintainer
+  handler: mapMyEmoji in convex/website/emojiWizard.ts
+  trust: browser
+
 - query getProfileCard: a browser asks for the signed-in member's own profile card, with no arguments
   handler: getProfileCard in convex/website/profileCard.ts
   trust: browser

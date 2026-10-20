@@ -63,7 +63,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   if (album.kind !== "album") return <Frame busy={false}>{album.kind === "off" ? <ClosedPage /> : <AnswerPage answer={album} {...answers} />}</Frame>;
   return (
     <NavigateProvider value={arriveAt}>
-      <EmojiWizardHost on={album.emojiWizard} emojis={album.emojis} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>
+      <EmojiWizardHost on={album.emojiWizard} inPlace={album.emojiInPlace} emojis={album.emojis} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>
       <AlbumShell
         album={album}
         place={place}

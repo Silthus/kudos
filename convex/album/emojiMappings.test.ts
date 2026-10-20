@@ -355,6 +355,34 @@ describe("only the maintainer maps Slack emojis", { timeout: 90_000 }, () => {
     expect(await everyTable()).toEqual(flagsOff);
     expect(withoutFlagRows(flagsOff)).toEqual(withoutFlagRows(before));
   });
+
+  test("#736: with emoji-mapping-in-place on, a workspace admin who isn't the maintainer, every member while KUDOS_MAINTAINER is unset, and the maintainer while workspace-settings is off map nothing in place", async () => {
+    await aliceCollects(otters[0]!);
+    await slackHas("otters", "spare");
+    await t.run(async (ctx) => {
+      const row = (await ctx.db.query("members").collect()).find(({ user }) => user === bruno.user)!;
+      await ctx.db.patch(row._id, { admin: true });
+    });
+    await switchWebsite(t, postHog, true, ...albumOpen, "emoji-wizard", "emoji-mapping-in-place");
+    const hype = `hype:${await memberOf(otters[0]!)}`;
+    const asOwner = await signedIn(owner);
+    const asBruno = await signedIn(bruno);
+    const before = await everyTable();
+    const attempts = async (reader: Reader, who: string) => {
+      for (const emoji of ["team:lanterns", "level:5", hype]) expect(await reader.mutation(api.website.emojiWizard.mapMyEmoji, { emoji, to: "spare" }), `${who} mapping ${emoji}`).toEqual({ kind: "refused" });
+    };
+
+    await attempts(asBruno, "a workspace admin");
+    vi.stubEnv("KUDOS_MAINTAINER", "");
+    await attempts(asOwner, "the maintainer while KUDOS_MAINTAINER is unset");
+    vi.stubEnv("KUDOS_MAINTAINER", maintainer);
+    await switchWebsite(t, postHog, true, ...albumOpen.filter((flag) => flag !== "workspace-settings"), "emoji-wizard", "emoji-mapping-in-place");
+    const flagsOff = await everyTable();
+    await attempts(asOwner, "the maintainer with workspace-settings off");
+
+    expect(await everyTable()).toEqual(flagsOff);
+    expect(withoutFlagRows(flagsOff)).toEqual(withoutFlagRows(before));
+  });
 });
 
 describe("website reads pass one guard", { timeout: 90_000 }, () => {

@@ -279,6 +279,18 @@ describe("#719: the maintainer lists every app emoji, not mapped first, and maps
     expect(list.getByRole("button", { name: "Mapped · 2" })).toHaveFocus();
   });
 
+  it("#736: Change opens the wizard as a change, and a refused pick gives the maintainer's reasons", async () => {
+    const view = visit({ path: "/settings", appEmojis: fixedAppEmojis(appEmojis), mapSlackEmoji: async () => ({ kind: "refused" }) });
+    const list = await theAppEmojis();
+    await view.user.click(list.getByRole("button", { name: "Mapped · 2" }));
+
+    await view.user.click(list.getByRole("button", { name: "Change :five: in Slack" }));
+    const wizard = within(await screen.findByRole("dialog", { name: "Change :five: in Slack" }, arrival));
+    await view.user.click(wizard.getByRole("button", { name: "Map to :ines-cheer:" }));
+
+    expect(await wizard.findByRole("alert")).toHaveTextContent("That didn't save. The Slack emoji may be gone from Slack, or only the workspace maintainer can map emojis. Pick another one.");
+  });
+
   it("an Undo that can't reach HedgeHug says so and can be tried again", async () => {
     const view = visit({ path: "/settings", appEmojis: fixedAppEmojis(appEmojis), mapSlackEmoji: async () => Promise.reject(new Error("HedgeHug didn't answer in time.")) });
     const list = await theAppEmojis();

@@ -25,7 +25,7 @@ import {
 import { keepFocusIn } from "./focusTrap";
 import { CardBack, Confetti, HoggieCard, PackWrapper, PersonCard, Ring, Shine, Sparkles } from "./PackCards";
 import "./opening.css";
-import { FindInSlackWhileOn, useLiveEmoji } from "./findInSlack";
+import { ComingSoonToSlack, FindInSlackWhileOn, useLiveEmoji, useSlackWay } from "./findInSlack";
 
 export type Held = { level: AlbumLevel | null; tray: number | null };
 
@@ -364,12 +364,9 @@ function TeamLines({ contents }: { contents: PackContents }) {
 
 function HypeInSlack({ hype }: { hype: AlbumEmoji }) {
   const live = useLiveEmoji(hype);
+  const comingSoon = useSlackWay() === "coming-soon";
   if (live.inSlack) return null;
-  return (
-    <p className="al-opening-in-slack">
-      <FindInSlackWhileOn emoji={live} />
-    </p>
-  );
+  return <p className="al-opening-in-slack">{comingSoon ? <ComingSoonToSlack /> : <FindInSlackWhileOn emoji={live} />}</p>;
 }
 
 function TurnActions({ contents, beat, onTurn, onSkip }: { contents: PackContents; beat: Beat; onTurn: () => void; onSkip: () => void }) {

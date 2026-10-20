@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { appEmojisIn, mapHeldEmoji, slackEmojisNear, type AppEmojiKind, type SlackEmojiMatch } from "../album/emojiWizard";
+import { appEmojisIn, emojiInPlaceFor, mapAppEmojiInPlace, mapHeldEmoji, slackEmojisNear, type AppEmojiKind, type SlackEmojiMatch } from "../album/emojiWizard";
 import { targetOf } from "../album/emojiMappings";
 import { emojiWizardShownTo } from "../album/flag";
 import type { EmojiMapper } from "../album/records";
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { nameAndPictureOf } from "../workspace/directory";
 import { customEmojiPageOf } from "../workspace/url";
 import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
@@ -40,7 +40,7 @@ export const mapMyEmoji = memberMutation({
   args: { emoji: v.string(), to: v.string() },
   handler: async (ctx, me, _person, { emoji, to }): Promise<MyEmojiMappingAnswer> => {
     if (!(await emojiWizardShownTo(ctx, me.member))) return { kind: "refused" };
-    return (await mapHeldEmoji(ctx, me.workspace, me.member, emoji, to)) ? { kind: "mapped" } : { kind: "refused" };
+    return (await mapsAs(ctx, me, emoji, to)) ? { kind: "mapped" } : { kind: "refused" };
   },
 });
 
@@ -55,6 +55,12 @@ export const getAppEmojis = memberQuery(async (ctx, me): Promise<AppEmojisRead> 
   }
   return { kind: "app-emojis", emojis, more, emojiPage: await customEmojiPageOf(ctx, me.workspace) };
 });
+
+async function mapsAs(ctx: MutationCtx, me: VerifiedMember, emoji: string, to: string): Promise<boolean> {
+  const inPlace = await emojiInPlaceFor(ctx, me.member);
+  if (inPlace === "admin") return mapAppEmojiInPlace(ctx, me.workspace, me.member, emoji, to);
+  return inPlace === null && (await mapHeldEmoji(ctx, me.workspace, me.member, emoji, to));
+}
 
 async function shownPlaceOf(me: VerifiedMember, target: ReturnType<typeof targetOf>): Promise<ShownTarget | null> {
   if (target === null || target.kind === "random") return null;
