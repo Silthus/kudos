@@ -13,7 +13,7 @@ import { hrefOf } from "./place";
 import "./opening.css";
 import "./levelUp.css";
 
-export const levelUpTiming = { burstMs: 1_200, turnMs: 650 };
+const levelUpTiming = { burstMs: 1_200, turnMs: 650 };
 
 const ordinals = ["first", "second", "third"];
 

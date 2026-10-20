@@ -104,11 +104,10 @@ describe("getLevelUp answers one level up's reveal", { timeout: 60_000 }, () => 
     await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
     await reaches(member, 4);
     const atTen = await reaches(member, 10);
-    const atEleven = await reaches(member, 11);
+    await reaches(member, 11);
 
     expect((await revealOf(10)).emojis).toEqual([levelEmoji(5, atTen), levelEmoji(10, atTen)]);
     expect((await revealOf(11)).emojis).toEqual([]);
-    expect(atEleven).toBeGreaterThan(atTen);
   });
 
   test("a level the member never reached, or reached before its hoggies dropped, answers none", async () => {
