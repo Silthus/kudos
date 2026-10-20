@@ -82,6 +82,30 @@ export async function emojisEarnedBetween(ctx: QueryCtx, { workspace, member }: 
   return [...earned, ...dropped.map(({ name, image }) => ({ name, picture: image, inSlack: true }))];
 }
 
+export type LevelsReached = { above: number; upTo: number; at: number };
+
+export async function levelEmojisEarnedIn(ctx: QueryCtx, { workspace, member }: PageOwner, { above, upTo, at }: LevelsReached): Promise<EarnedEmoji[]> {
+  const emojis: EarnedEmoji[] = [];
+  for (const reward of emojiLevels.filter((level) => level > above && level <= upTo)) {
+    const cause = levelReachedCauseOf(reward, at);
+    const name = await emojiNameOf(ctx, workspace, cause.id);
+    if (name !== null) emojis.push(await emojiOf(ctx, workspace, cause, name, await seenAmong(ctx, member, cause.id)));
+  }
+  return emojis;
+}
+
+function levelReachedCauseOf(reward: number, at: number): Cause {
+  return { id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: emojiArtPictureOf("level", reward), earned: true, earnedAt: at, progress: { have: reward, need: reward } };
+}
+
+async function seenAmong(ctx: QueryCtx, member: MemberId, emoji: string): Promise<Set<string>> {
+  const seen = await ctx.db
+    .query("seenEmojis")
+    .withIndex("by_member_emoji", (q) => q.eq("member", member).eq("emoji", emoji))
+    .first();
+  return new Set(seen === null ? [] : [emoji]);
+}
+
 export async function teamEmojiOf(ctx: QueryCtx, workspace: string, { team, art }: Pick<TeamSticker, "team" | "art">): Promise<ShownEmoji | null> {
   const name = await emojiNameOf(ctx, workspace, `team:${team}`);
   return name === null ? null : shownEmojiOf(ctx, workspace, teamPictureOf(art), name);

@@ -8,3 +8,20 @@ export async function levelFirstReachedAt(ctx: QueryCtx, member: MemberId, level
     .first();
   return reached?.at ?? null;
 }
+
+export async function levelUpAt(ctx: QueryCtx, member: MemberId, level: number): Promise<number | null> {
+  const reached = await ctx.db
+    .query("levelUps")
+    .withIndex("by_member_level", (q) => q.eq("member", member).eq("level", level))
+    .first();
+  return reached?.at ?? null;
+}
+
+export async function levelUpBefore(ctx: QueryCtx, member: MemberId, level: number): Promise<number> {
+  const previous = await ctx.db
+    .query("levelUps")
+    .withIndex("by_member_level", (q) => q.eq("member", member).lt("level", level))
+    .order("desc")
+    .first();
+  return previous?.level ?? 1;
+}

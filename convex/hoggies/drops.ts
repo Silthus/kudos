@@ -120,6 +120,11 @@ export async function dropOf(ctx: MutationCtx, member: MemberId, crate: CrateKey
   return shownDrop(record, { crests });
 }
 
+export async function foundIn(ctx: QueryCtx, member: MemberId, crate: CrateKey, shown: CrestsShown): Promise<Drop | null> {
+  const record = await dropRecordOf(ctx, member, crate);
+  return record === null ? null : shownDrop(record, shown);
+}
+
 export async function* dropsByDecision(ctx: QueryCtx, member: MemberId, below: DecidedBelow, shown: CrestsShown): AsyncGenerator<DroppedAt> {
   const rows = ctx.db
     .query("drops")
