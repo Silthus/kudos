@@ -439,6 +439,23 @@ describe("AL46: the person page", () => {
     expect(screen.getByText("Unlocked by your first thoughtful kudos to Ines")).toBeInTheDocument();
   });
 
+  it("opens them in Slack in a new tab, from the link getAlbumPerson gives", async () => {
+    visit("/book#people/ines-okafor", { people: (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), slackProfile: "https://kudos-test.slack.com/team/U_INES" } : undefined) });
+
+    const inSlack = await screen.findByRole("link", { name: "Open in Slack, Ines's profile (opens in a new tab)" });
+    expect(inSlack).toHaveAttribute("href", "https://kudos-test.slack.com/team/U_INES");
+    expect(inSlack).toHaveAttribute("target", "_blank");
+    expect(inSlack).toHaveAttribute("rel", "noreferrer");
+    expect(inSlack).toHaveClass("ph-no-capture");
+  });
+
+  it("offers no Open in Slack for them while getAlbumPerson has no Slack link", async () => {
+    visit("/book#people/ines-okafor", { people: (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), slackProfile: null } : undefined) });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ines Okafor" })).toBeInTheDocument();
+    expect(screen.getByRole("article")).not.toHaveTextContent("Ines's profile");
+  });
+
   it("someone not in your album yet stands as a silhouette, with how to collect them and how to unlock their hype emoji", async () => {
     visit("/book#people/juno-park");
 
