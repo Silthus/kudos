@@ -453,6 +453,10 @@ button.al-seal[aria-disabled] {
   gap: 0.75rem;
 }
 
+.al-person-slack {
+  align-self: flex-start;
+}
+
 .al-person-teams {
   display: flex;
   margin: 0;
