@@ -178,7 +178,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
     expect(within(weeklyPostSection()).queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("sends the pasted link once, says it is checking the channel, and once the read names it says it is picked", async () => {
+  it("sends the pasted link once, says it is checking the channel, and once the read names it says it is picked and empties the field", async () => {
     let answer: (reply: WeeklyPostChannelReply) => void = () => undefined;
     const later = new Promise<WeeklyPostChannelReply>((resolve) => (answer = resolve));
     const { user, actions, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.unpicked), undefined, () => later);
@@ -190,12 +190,13 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
     expect(actions.pickWeeklyPostChannel).toHaveBeenCalledTimes(1);
     expect(actions.pickWeeklyPostChannel).toHaveBeenCalledWith(pickedLink);
     expect(useThisChannel()).toHaveAttribute("aria-disabled", "true");
-    await act(async () => answer({ kind: "checking" }));
     showSettingsAnswer(forTheMaintainer(withCheck("checking")));
+    await act(async () => answer({ kind: "checking" }));
     expect(channelStatus()).toHaveTextContent("Checking the channel…");
-    expect(linkField()).toHaveValue("");
+    expect(linkField()).toHaveValue(pickedLink);
     showSettingsAnswer(forTheMaintainer({ ...weeklyPostParts.picked, on: false }));
-    expect(channelStatus()).toHaveTextContent("Picked. From now on I post it in #kudos-weekly.");
+    expect(channelStatus()).toHaveTextContent("Picked #kudos-weekly.");
+    expect(linkField()).toHaveValue("");
   });
 
   it("says the channel is picked when the same channel is picked again and the read never shows the check", async () => {
@@ -204,19 +205,46 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
     await user.type(linkField(), pickedLink);
     await user.click(useThisChannel());
 
-    expect(channelStatus()).toHaveTextContent("Picked. From now on I post it in #kudos-weekly.");
+    expect(channelStatus()).toHaveTextContent("Picked #kudos-weekly.");
+  });
+
+  it("shows no line for a pick's outcome stored before this page was opened", async () => {
+    await showSettings(forTheMaintainer(withCheck("not-found", weeklyPostParts.picked)));
+
+    expect(channelStatus()).toHaveTextContent("");
   });
 
   it.each([
     ["private", "That channel is private. I only post in public channels, since the post quotes public kudos."],
+    ["shared", "That channel is shared with another organization. I only post in this workspace's own channels, since the post quotes kudos."],
     ["not-found", "I couldn't find that channel in this workspace. Check the link and try again."],
     ["archived", "That channel is archived. Pick another one."],
     ["failed", "Slack didn't answer about that channel. Try again."],
-  ] as const)("says why the channel wasn't picked when its check reads %s, and that the post stays where it was", async (check, line) => {
-    await showSettings(forTheMaintainer(withCheck(check, weeklyPostParts.picked)));
+  ] as const)("says why the channel wasn't picked when its check reads %s, keeps the pasted link, and the post stays where it was", async (check, line) => {
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.picked), undefined, async () => ({ kind: "checking" }));
+
+    await user.type(linkField(), "https://hedgehug.slack.com/archives/C0OTHER");
+    await user.click(useThisChannel());
+    showSettingsAnswer(forTheMaintainer(withCheck(check, weeklyPostParts.picked)));
 
     expect(channelStatus()).toHaveTextContent(line);
+    expect(linkField()).toHaveValue("https://hedgehug.slack.com/archives/C0OTHER");
     expect(weeklyPostSection()).toHaveTextContent("I post last week's top thoughtful kudos in #kudos-weekly.");
+  });
+
+  it("after an answer that never came, says what the read then shows about the pick", async () => {
+    const { user, showSettingsAnswer } = await showSettings(forTheMaintainer(weeklyPostParts.unpicked), undefined, async () => {
+      throw new Error("no answer within the budget");
+    });
+
+    await user.type(linkField(), pickedLink);
+    await user.click(useThisChannel());
+    expect(channelStatus()).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    showSettingsAnswer(forTheMaintainer(withCheck("checking")));
+    expect(channelStatus()).toHaveTextContent("Checking the channel…");
+    showSettingsAnswer(forTheMaintainer(weeklyPostParts.picked));
+
+    expect(channelStatus()).toHaveTextContent("Picked #kudos-weekly.");
   });
 
   it("says so when the pasted text isn't a channel link", async () => {

@@ -23,11 +23,11 @@ export const weeklyPostChannelFlag = { key: "weekly-post-channel", safeDefault: 
 
 export type MondayPostChange = { on: boolean; timeZone?: string };
 
-export type MondayPostSwitch = { channel: string; on: boolean; timeZone: string; cantPost: boolean; posts: WeeklyPost["kind"] };
+export type MondayPostSwitch = { channel: string; channelPicked: boolean; on: boolean; timeZone: string; cantPost: boolean; posts: WeeklyPost["kind"] };
 
 export type ChannelPick = { picked: string | null; check: ChannelCheck | null };
 
-export type ChannelPickOutcome = { kind: "checking"; picking: string };
+export type ChannelPickOutcome = { kind: "checking" };
 
 export type WeeklyPostSwitch = MondayPostSwitch & { channelPick?: ChannelPick };
 
@@ -66,7 +66,7 @@ async function mondayPostSwitchIn(ctx: QueryCtx, workspace: string, person: Swit
   if (channel === null) return null;
   const settings = await settingsRow(ctx, workspace);
   const posts = (await albumSlackAppliesToWorkspace(ctx, workspace)) ? "topKudos" : "groups";
-  return { channel, on: settings?.on ?? false, timeZone: zoneASwitchOnUses(settings, person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
+  return { channel, channelPicked: channel === (await pickedChannelIn(ctx, workspace)), on: settings?.on ?? false, timeZone: zoneASwitchOnUses(settings, person), cantPost: await couldNotPostIn(ctx, workspace, channel), posts };
 }
 
 export async function setMondayPost(ctx: MutationCtx, workspace: string, person: Admin, change: MondayPostChange): Promise<boolean> {
@@ -85,31 +85,31 @@ export async function pickMondayPostChannel(ctx: MutationCtx, workspace: string,
   if (!(await setsMondayPost(ctx, { ...maintainer, admin: false })) || !(await picksChannelIn(ctx, workspace, maintainer.member))) return null;
   if ((await switchableChannelIn(ctx, workspace)) === null) return null;
   const settings = await settingsRow(ctx, workspace);
-  const channelCheck = { channel, outcome: "checking" as const };
+  const channelCheck = { channel, pick: (settings?.channelCheck?.pick ?? 0) + 1, outcome: "checking" as const };
   if (settings === null) await ctx.db.insert("mondayPostSettings", { workspace, on: false, timeZone: zoneOf(maintainer), generation: 0, channelCheck });
   else await ctx.db.patch(settings._id, { channelCheck });
-  await ctx.scheduler.runAfter(0, internal.slack.mondayPost.checkPickedChannel, { workspace, channel });
-  return { kind: "checking", picking: channel };
+  await ctx.scheduler.runAfter(0, internal.slack.mondayPost.checkPickedChannel, { workspace, channel, pick: channelCheck.pick });
+  return { kind: "checking" };
 }
 
 export const foundChannelValidator = v.union(v.object({ kind: v.literal("public"), name: v.string() }), v.object({ kind: v.literal("refused"), reason: channelRefusalValidator }));
 
 export const recordChannelCheck = internalMutation({
-  args: { workspace: v.string(), channel: v.string(), found: foundChannelValidator },
-  handler: async (ctx, { workspace, channel, found }) => {
+  args: { workspace: v.string(), channel: v.string(), pick: v.number(), found: foundChannelValidator },
+  handler: async (ctx, { workspace, channel, pick, found }) => {
     const settings = await settingsRow(ctx, workspace);
-    if (settings === null || !isChecking(settings, channel)) return;
+    if (settings === null || !isChecking(settings, channel, pick)) return;
     if (found.kind === "refused") {
-      await ctx.db.patch(settings._id, { channelCheck: { channel, outcome: found.reason } });
+      await ctx.db.patch(settings._id, { channelCheck: { channel, pick, outcome: found.reason } });
       return;
     }
-    await ctx.db.patch(settings._id, { channel: { id: channel, name: found.name }, channelCheck: { channel, outcome: "picked" } });
+    await ctx.db.patch(settings._id, { channel: { id: channel, name: found.name }, channelCheck: { channel, pick, outcome: "picked" } });
     await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
   },
 });
 
-function isChecking({ channelCheck }: Settings, channel: string) {
-  return channelCheck?.channel === channel && channelCheck.outcome === "checking";
+function isChecking({ channelCheck }: Settings, channel: string, pick: number) {
+  return channelCheck?.channel === channel && channelCheck.pick === pick && channelCheck.outcome === "checking";
 }
 
 function channelPickOf(settings: Settings | null): ChannelPick {

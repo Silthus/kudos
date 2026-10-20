@@ -24,7 +24,7 @@ export function WeeklyPost({ setting, setWeeklyPost, pickWeeklyPostChannel }: We
   const { pending, settled, choose } = useSentChoice(on, async (asked: boolean) => answerOf(await setWeeklyPost(asked)));
   return (
     <Panel id="weekly-post" label="Weekly post">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm break-words text-muted-foreground">
         Every Monday at 9:00, {timeZone.replaceAll("_", " ")} time, I {on ? "post" : "can post"} {postNamed[posts]} in <PostChannel link={channelLink} picked={picked} />.
       </p>
       <label className="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold sm:max-w-sm">
@@ -57,6 +57,7 @@ type ChannelPickerProps = { pick: ChannelPick; pickWeeklyPostChannel: ShellActio
 const checkLines: Record<Exclude<ChannelCheck, "picked">, string> = {
   checking: "Checking the channel…",
   private: "That channel is private. I only post in public channels, since the post quotes public kudos.",
+  shared: "That channel is shared with another organization. I only post in this workspace's own channels, since the post quotes kudos.",
   "not-found": "I couldn't find that channel in this workspace. Check the link and try again.",
   archived: "That channel is archived. Pick another one.",
   failed: "Slack didn't answer about that channel. Try again.",
@@ -66,13 +67,13 @@ const notAChannelLinkLine = "That isn't a link to a Slack channel. Copy it from 
 
 function ChannelPicker({ pick, pickWeeklyPostChannel }: ChannelPickerProps) {
   const [link, setLink] = useState("");
-  const { pending, sent, send } = useSentPick(pickWeeklyPostChannel);
+  const { pending, sent, send } = useSentPick(pick.check, pickWeeklyPostChannel, () => setLink(""));
   const id = useId();
   const hintId = `${id}-hint`;
   const sendable = !pending && link.trim() !== "";
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (sendable && (await send(link))) setLink("");
+    if (sendable) await send(link);
   };
   return (
     <form aria-label="Weekly post channel" onSubmit={(event) => void submit(event)} className="flex flex-col gap-2 sm:max-w-sm">
@@ -97,21 +98,25 @@ const inputClass = "h-10 w-full rounded-lg border border-muted-foreground bg-car
 
 type Sent = Answer | "not-a-channel-link";
 
-function useSentPick(pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"]) {
+function useSentPick(check: ChannelCheck | null, pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"], onPicked: () => void) {
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<Sent | null>(null);
+  const [readCheck, setReadCheck] = useState(check);
+
+  if (readCheck !== check) {
+    setReadCheck(check);
+    if (sent === "unreachable") setSent("landed");
+    if (check === "picked" && (sent === "landed" || sent === "unreachable")) onPicked();
+  }
 
   const send = async (link: string) => {
-    if (pending) return false;
+    if (pending) return;
     setPending(true);
     setSent(null);
     try {
-      const reply = await pickWeeklyPostChannel(link);
-      setSent(sentOf(reply));
-      return reply.kind === "checking";
+      setSent(sentOf(await pickWeeklyPostChannel(link)));
     } catch {
       setSent("unreachable");
-      return false;
     } finally {
       setPending(false);
     }
@@ -128,9 +133,9 @@ function sentOf(reply: WeeklyPostChannelReply): Sent {
 
 function lineOf(sent: Sent | null, { picked, check }: ChannelPick): string {
   if (sent === "not-a-channel-link") return notAChannelLinkLine;
-  if (sent !== null && sent !== "landed") return lineAfter(sent, "");
+  if (sent !== "landed") return sent === null ? "" : lineAfter(sent, "");
   if (check === null) return "";
-  return check === "picked" ? `Picked. From now on I post it in ${channelNameOf(picked)}.` : checkLines[check];
+  return check === "picked" ? `Picked ${channelNameOf(picked)}.` : checkLines[check];
 }
 
 function answerOf(reply: WeeklyPostReply): Answer {

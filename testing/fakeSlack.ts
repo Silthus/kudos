@@ -24,7 +24,7 @@ export type SlackUserGroup = {
 
 export type UserGroupOptions = { handle?: string; name?: string; users?: string[]; disabled?: boolean; autoType?: "admin" | "owner" };
 
-export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" };
+export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared" };
 
 export type SlackArgs = Record<string, unknown>;
 
@@ -228,7 +228,7 @@ export class FakeSlack {
     if (channel === undefined) return { ok: true, channel: { id } };
     if (channel.kind === "private") return { ok: false, error: "method_not_supported_for_channel_type" };
     if (channel.kind === "archived") return { ok: false, error: "is_archived" };
-    return { ok: true, channel: { id, name: channel.name, is_channel: true, is_private: false, is_archived: false } };
+    return { ok: true, channel: { id, name: channel.name, is_channel: true, is_private: false, is_archived: false, is_ext_shared: channel.kind === "shared" } };
   }
 
   private userGroupsListed(args: SlackArgs) {

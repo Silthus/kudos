@@ -726,7 +726,7 @@ export default defineSchema({
     generation: v.number(),
     nextPostAt: v.optional(v.number()),
     channel: v.optional(v.object({ id: v.string(), name: v.string() })),
-    channelCheck: v.optional(v.object({ channel: v.string(), outcome: channelCheckValidator })),
+    channelCheck: v.optional(v.object({ channel: v.string(), pick: v.number(), outcome: channelCheckValidator })),
   }).index("by_workspace", ["workspace"]),
 
   mondayPostClaims: defineTable({

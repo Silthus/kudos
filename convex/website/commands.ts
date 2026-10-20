@@ -355,7 +355,7 @@ export const pickWeeklyPostChannel = memberMutation({
     const channel = channelOfLink(link);
     if (channel === null) return { kind: "refused", reason: "not-a-channel-link" };
     const outcome = await runFromWebsite(ctx, me, person, { type: "pickMondayPostChannel", channel }, `website:pickWeeklyPostChannel:${me.member}`);
-    return outcome !== null && "picking" in outcome ? { kind: "checking" } : { kind: "refused", reason: null };
+    return outcome?.kind === "checking" ? { kind: "checking" } : { kind: "refused", reason: null };
   },
 });
 

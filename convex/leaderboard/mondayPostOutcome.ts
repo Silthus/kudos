@@ -4,9 +4,7 @@ export const mondayPostOutcomeValidator = v.union(v.literal("claimed"), v.litera
 
 export type MondayPostOutcome = Infer<typeof mondayPostOutcomeValidator>;
 
-export const channelRefusalValidator = v.union(v.literal("private"), v.literal("not-found"), v.literal("archived"), v.literal("failed"));
-
-export type ChannelRefusal = Infer<typeof channelRefusalValidator>;
+export const channelRefusalValidator = v.union(v.literal("private"), v.literal("shared"), v.literal("not-found"), v.literal("archived"), v.literal("failed"));
 
 export const channelCheckValidator = v.union(v.literal("checking"), v.literal("picked"), channelRefusalValidator);
 

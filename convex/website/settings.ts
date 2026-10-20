@@ -31,7 +31,7 @@ export type AdminProfiles = {
   profiles: Array<ProfileChoice & { heldBy: string | null; by: MatchedBy | null }>;
 };
 
-export type WeeklyPostSetting = Omit<WeeklyPostSwitch, "channel"> & { channelLink: string | null };
+export type WeeklyPostSetting = Omit<WeeklyPostSwitch, "channel" | "channelPicked"> & { channelLink: string | null };
 
 export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles; workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting } & SectionSettings;
 
@@ -60,7 +60,7 @@ async function workspacePartOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ wor
 async function weeklyPostSettingOf(ctx: QueryCtx, me: VerifiedMember): Promise<WeeklyPostSetting | null> {
   const shown = await mondayPostSwitchReadBy(ctx, me.workspace, { member: me.member, timeZone: (await timeZoneOf(ctx, me.member)) ?? undefined });
   if (shown === null) return null;
-  const { channel, ...setting } = shown;
+  const { channel, channelPicked: _, ...setting } = shown;
   const workspaceUrl = await workspaceUrlOf(ctx, me.workspace);
   return { ...setting, channelLink: workspaceUrl === null ? null : channelLinkOf(workspaceUrl, channel) };
 }

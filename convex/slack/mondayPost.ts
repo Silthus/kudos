@@ -16,9 +16,11 @@ const refusedInChannel = new Set(["no_permission", "restricted_action", "restric
 
 type FoundChannel = Infer<typeof foundChannelValidator>;
 
-type JoinedChannel = { channel?: { name?: string; is_private?: boolean } };
+type JoinedChannel = { channel?: { name?: string; is_private?: boolean; is_ext_shared?: boolean } };
 
 const privateChannel: FoundChannel = { kind: "refused", reason: "private" };
+
+const sharedChannel: FoundChannel = { kind: "refused", reason: "shared" };
 
 const joinRefusals: Record<string, FoundChannel> = {
   method_not_supported_for_channel_type: privateChannel,
@@ -29,9 +31,9 @@ const joinRefusals: Record<string, FoundChannel> = {
 const uncheckable: FoundChannel = { kind: "refused", reason: "failed" };
 
 export const checkPickedChannel = observedAction({
-  args: { workspace: v.string(), channel: v.string() },
-  handler: async (ctx, { workspace, channel }) => {
-    await ctx.runMutation(internal.leaderboard.mondayPost.recordChannelCheck, { workspace, channel, found: await joined(channel) });
+  args: { workspace: v.string(), channel: v.string(), pick: v.number() },
+  handler: async (ctx, { workspace, channel, pick }) => {
+    await ctx.runMutation(internal.leaderboard.mondayPost.recordChannelCheck, { workspace, channel, pick, found: await joined(channel) });
   },
 });
 
@@ -47,6 +49,7 @@ async function joined(channel: string): Promise<FoundChannel> {
 function foundChannelOf(answer: SlackAnswer<JoinedChannel>): FoundChannel {
   if (!answer.ok) return joinRefusals[answer.error] ?? uncheckable;
   if (answer.channel?.is_private === true) return privateChannel;
+  if (answer.channel?.is_ext_shared === true) return sharedChannel;
   const name = answer.channel?.name;
   return name === undefined ? uncheckable : { kind: "public", name };
 }

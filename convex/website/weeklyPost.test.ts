@@ -245,6 +245,7 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
   test.each([
     ["private", { name: "secret-plans", kind: "private" as const }],
     ["archived", { name: "old-news", kind: "archived" as const }],
+    ["shared", { name: "partners", kind: "shared" as const }],
   ])("a %s channel is refused with why, nothing is picked, and the post stays in the announcement channel", async (check, channel) => {
     slack.withChannel(pickedChannel, channel);
     const owner = await aWorkspaceWithGroups({ flags: withPicker });
@@ -279,7 +280,7 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     const owner = await aWorkspaceWithGroups({ flags: withPicker });
     await owner.pickChannel(pickedLink);
     const earlierJoin = slack.holdNext("conversations.join");
-    const earlierCheck = t.action(internal.slack.mondayPost.checkPickedChannel, { workspace: "T1", channel: pickedChannel });
+    const earlierCheck = t.action(internal.slack.mondayPost.checkPickedChannel, { workspace: "T1", channel: pickedChannel, pick: 1 });
     await earlierJoin.reached;
 
     await owner.pickChannel("https://app.slack.com/client/T1/C0SECOND");
@@ -289,6 +290,33 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     await earlierCheck;
 
     expect(await owner.weeklyPost()).toMatchObject({ channelLink: "https://hedgehug.slack.com/archives/C0SECOND", channelPick: { picked: "shout-outs", check: "picked" } });
+  });
+
+  test("of two picks of the same channel, the later one's check wins even when the earlier one's fails first", async () => {
+    slack.withChannel(pickedChannel, { name: "kudos-weekly" }).answering("conversations.join", slackError("internal_error"));
+    const owner = await aWorkspaceWithGroups({ flags: withPicker });
+
+    await owner.pickChannel(pickedLink);
+    await owner.pickChannel(pickedLink);
+    await settle(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: pickedChannel }, { channel: pickedChannel }]);
+    expect(await owner.weeklyPost()).toMatchObject({ channelLink: pickedLink, channelPick: { picked: "kudos-weekly", check: "picked" } });
+  });
+
+  test("when the post can't go to a picked channel, an admin's App Home sends them to the maintainer rather than to the announcement channel's picker", async () => {
+    slack.withChannel(pickedChannel, { name: "kudos-weekly" });
+    await aWorkspaceWithGroups({ flags: withPicker });
+    const owner = await signedIn(maintainer, { endsIn: week });
+    await owner.pickChannel(pickedLink);
+    await settle(t);
+    await owner.switchWeeklyPost(true);
+    await adminTabOpen("U_ADMIN");
+    await giveKudos("U_ANN", "U_BOB");
+    slack.answering("chat.postMessage", slackError("is_archived"));
+    await settleUpTo(t, mondayAtNineInBerlin + 60_000);
+
+    expect(publishedHome(slack, "U_ADMIN")).toContain(`section: I can't post in <#${pickedChannel}>. Ask HedgeHug's maintainer to pick another channel in the website's Settings.`);
   });
 
   test.each(["#kudos-weekly", "https://example.com/archives/C0PICKED1", "http://hedgehug.slack.com/archives/C0PICKED1", "https://hedgehug.slack.com/team/U_ANN", ""])("%j isn't a channel link: refused as such, and nothing is picked or asked of Slack", async (link) => {
