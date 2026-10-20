@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { Message, Segment } from "../shell";
+import { AppLink } from "../AppLink";
+import { hrefOf } from "../album/place";
 import { CustomEmoji, EmojiName } from "../CustomEmoji";
 import { emojiCharacterOf, skinTonedCharacterOf } from "./emoji";
 
@@ -34,7 +36,7 @@ function SegmentOf({ segment, linked }: { segment: Segment; linked: boolean }): 
     case "text":
       return <StyledText segment={segment} />;
     case "person":
-      return <Mention>{`@${segment.name}`}</Mention>;
+      return <PersonMention segment={segment} linked={linked} />;
     case "group":
       return <Mention>{`@${segment.handle}`}</Mention>;
     case "broadcast":
@@ -74,6 +76,16 @@ function EmojiOf({ segment }: { segment: Emoji }) {
 
 function Mention({ children }: { children: string }) {
   return <span className="font-medium">{children}</span>;
+}
+
+function PersonMention({ segment, linked }: { segment: Extract<Segment, { kind: "person" }>; linked: boolean }) {
+  const name = `@${segment.name}`;
+  if (!linked || segment.person === undefined) return <Mention>{name}</Mention>;
+  return (
+    <AppLink href={hrefOf({ kind: "person", person: segment.person })} className="font-medium underline underline-offset-4">
+      {name}
+    </AppLink>
+  );
 }
 
 function LinkOf({ url, label, linked }: { url: string; label: string; linked: boolean }) {

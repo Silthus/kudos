@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import type { Message } from "../activity/entries";
-import { kudosWordsOf, mentionsOfOnePage, permalinkOfMessage, type Mentions } from "../activity/kudos";
+import { kudosWordsOf, mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, type Mentions } from "../activity/kudos";
 import { personPageOf, type HypeEmoji, type PersonTeam } from "../album/personPage";
 import { lastKindNoteTo, newestStickersOf, type KindNote } from "../album/profile";
 import type { HoggieFound } from "../album/records";
@@ -10,7 +10,9 @@ import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { givenFactsOf } from "../engine/awards";
 import type { DayKey } from "../engine/allowance";
 import type { MessageRef } from "../engine/messageEvent";
-import { nameAndPictureOf, type MemberId } from "../workspace/directory";
+import { profileLinkOf } from "../slack/permalink";
+import { chatUserOf, nameAndPictureOf, type MemberId } from "../workspace/directory";
+import { workspaceUrlOf } from "../workspace/url";
 import { companyTeammateOf, type Face } from "./faces";
 import type { VerifiedMember } from "./memberQuery";
 
@@ -31,6 +33,7 @@ export type AlbumPersonAnswer = AlbumPersonFace & {
   best: AlbumKudos | null;
   teams: PersonTeam[];
   hype: HypeEmoji;
+  slackProfile: string | null;
 };
 
 export type PeopleShown = { people: AlbumPersonFace[]; more: number };
@@ -61,8 +64,19 @@ export async function albumPersonOf(ctx: QueryCtx, me: VerifiedMember, person: M
   const page = await personPageOf(ctx, me, person);
   if (page === null) return { kind: "no-person" };
   const { best, ...history } = page;
-  const mentions = mentionsOfOnePage(ctx);
-  return { kind: "person", ...(await faceIn(ctx, me.workspace, person)), ...history, best: best === null ? null : await kudosShown(ctx, mentions, best.message, best.at) };
+  const mentions = mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked");
+  return {
+    kind: "person",
+    ...(await faceIn(ctx, me.workspace, person)),
+    ...history,
+    best: best === null ? null : await kudosShown(ctx, mentions, best.message, best.at),
+    slackProfile: await slackProfileOf(ctx, me.workspace, person),
+  };
+}
+
+async function slackProfileOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<string | null> {
+  const workspaceUrl = await workspaceUrlOf(ctx, workspace);
+  return workspaceUrl === null ? null : profileLinkOf(workspaceUrl, (await chatUserOf(ctx, person)).user);
 }
 
 export async function albumWeekOf(ctx: QueryCtx, me: VerifiedMember, asked: DayKey | undefined): Promise<AlbumWeekAnswer> {
@@ -81,12 +95,12 @@ export async function albumProfileOf(ctx: QueryCtx, me: VerifiedMember, peopleSe
 }
 
 async function kindNoteShown(ctx: QueryCtx, workspace: string, { giver, message, at }: KindNote): Promise<AlbumKindNote> {
-  return { giver: await faceIn(ctx, workspace, giver), ...(await kudosShown(ctx, mentionsOfOnePage(ctx), message, at)) };
+  return { giver: await faceIn(ctx, workspace, giver), ...(await kudosShown(ctx, mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked"), message, at)) };
 }
 
 async function issueShown(ctx: QueryCtx, workspace: string, { kudosOfWeek, thanked, thankedBy, hugged, huggedBy, newFaces, hoggiesFound, given, received, ...counts }: Issue): Promise<AlbumIssue> {
   const people = async ({ people: listed, more }: { people: MemberId[]; more: number }): Promise<PeopleShown> => ({ people: await Promise.all(listed.map((person) => faceIn(ctx, workspace, person))), more });
-  const mentions = mentionsOfOnePage(ctx, mentionLookupsAnIssue);
+  const mentions = mentionsOfOnePage(ctx, mentionLookupsAnIssue, "linked");
   const kudosList = async ({ kudos, more }: WeekKudosList): Promise<AlbumWeekKudosList> => ({ kudos: await Promise.all(kudos.map((each) => weekKudosShown(ctx, workspace, mentions, each))), more });
   return {
     ...counts,

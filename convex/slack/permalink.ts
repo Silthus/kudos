@@ -9,6 +9,10 @@ export function channelLinkOf(workspaceUrl: string, channel: string): string {
   return `${withTrailingSlash(workspaceUrl)}archives/${channel}`;
 }
 
+export function profileLinkOf(workspaceUrl: string, user: string): string {
+  return `${withTrailingSlash(workspaceUrl)}team/${encodeURIComponent(user)}`;
+}
+
 function withTrailingSlash(url: string) {
   return url.endsWith("/") ? url : `${url}/`;
 }

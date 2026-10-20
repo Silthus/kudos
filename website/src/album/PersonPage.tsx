@@ -68,6 +68,13 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
               ))}
             </ul>
           )}
+          {person.slackProfile !== null && (
+            <div className="al-person-slack">
+              <SlackLink chatUrl={person.slackProfile} variant="outline">
+                Open in Slack<span className="sr-only">, {first}&apos;s profile</span>
+              </SlackLink>
+            </div>
+          )}
           <HypeEmoji person={person} first={first} />
           {!person.held && (
             <div className="al-howto">
