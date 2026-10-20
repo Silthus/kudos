@@ -153,7 +153,7 @@ export type PersonPage = {
   best: AlbumKudos | null;
   teams: PersonTeam[];
   hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean };
-  slackProfile: string;
+  slackProfile: string | null;
 };
 
 export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };

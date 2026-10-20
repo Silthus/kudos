@@ -449,6 +449,13 @@ describe("AL46: the person page", () => {
     expect(inSlack).toHaveClass("ph-no-capture");
   });
 
+  it("offers no Open in Slack for them while getAlbumPerson has no Slack link", async () => {
+    visit("/book#people/ines-okafor", { people: (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), slackProfile: null } : undefined) });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ines Okafor" })).toBeInTheDocument();
+    expect(screen.getByRole("article")).not.toHaveTextContent("Ines's profile");
+  });
+
   it("someone not in your album yet stands as a silhouette, with how to collect them and how to unlock their hype emoji", async () => {
     visit("/book#people/juno-park");
 

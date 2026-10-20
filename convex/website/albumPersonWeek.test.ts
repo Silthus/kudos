@@ -109,7 +109,7 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
     ]);
   });
 
-  test("a person's page opens them in Slack: their profile on the workspace's address, else Slack's own link by team and user", async () => {
+  test("a person's page opens them in Slack at their profile on the workspace's address, and offers nothing while that address isn't known", async () => {
     await thanks(alice, why, bob);
 
     expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", slackProfile: `${workspaceUrl}team/${bob.user}` });
@@ -118,7 +118,7 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
       for (const row of await ctx.db.query("workspaces").collect()) await ctx.db.patch(row._id, { url: undefined });
     });
 
-    expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", slackProfile: `slack://user?team=T1&id=${bob.user}` });
+    expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", slackProfile: null });
   });
 
   test("a person you only thanked briefly, or who only thanked you, shows no best message and their hype emoji still locked", async () => {

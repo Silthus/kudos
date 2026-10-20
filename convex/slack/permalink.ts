@@ -9,8 +9,7 @@ export function channelLinkOf(workspaceUrl: string, channel: string): string {
   return `${withTrailingSlash(workspaceUrl)}archives/${channel}`;
 }
 
-export function profileLinkOf(workspaceUrl: string | null, { workspace, user }: { workspace: string; user: string }): string {
-  if (workspaceUrl === null) return `slack://user?team=${encodeURIComponent(workspace)}&id=${encodeURIComponent(user)}`;
+export function profileLinkOf(workspaceUrl: string, user: string): string {
   return `${withTrailingSlash(workspaceUrl)}team/${encodeURIComponent(user)}`;
 }
 

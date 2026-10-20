@@ -33,7 +33,7 @@ export type AlbumPersonAnswer = AlbumPersonFace & {
   best: AlbumKudos | null;
   teams: PersonTeam[];
   hype: HypeEmoji;
-  slackProfile: string;
+  slackProfile: string | null;
 };
 
 export type PeopleShown = { people: AlbumPersonFace[]; more: number };
@@ -70,8 +70,13 @@ export async function albumPersonOf(ctx: QueryCtx, me: VerifiedMember, person: M
     ...(await faceIn(ctx, me.workspace, person)),
     ...history,
     best: best === null ? null : await kudosShown(ctx, mentions, best.message, best.at),
-    slackProfile: profileLinkOf(await workspaceUrlOf(ctx, me.workspace), await chatUserOf(ctx, person)),
+    slackProfile: await slackProfileOf(ctx, me.workspace, person),
   };
+}
+
+async function slackProfileOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<string | null> {
+  const workspaceUrl = await workspaceUrlOf(ctx, workspace);
+  return workspaceUrl === null ? null : profileLinkOf(workspaceUrl, (await chatUserOf(ctx, person)).user);
 }
 
 export async function albumWeekOf(ctx: QueryCtx, me: VerifiedMember, asked: DayKey | undefined): Promise<AlbumWeekAnswer> {
