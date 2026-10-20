@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
 import type { ShellActions } from "../shell";
@@ -16,23 +16,27 @@ type EmojiWizard = { open: OpenWizard; emojis: AlbumEmoji[]; inPlace: EmojiInPla
 
 const EmojiWizardContext = createContext<EmojiWizard | null>(null);
 
-type Open = { emoji: HeldEmoji; opener: HTMLElement; fallback: HTMLElement | null };
+type Open = { emoji: HeldEmoji; opener: HTMLElement; fallback: HTMLElement | null; inPlace: EmojiInPlace };
 
 type HostProps = { on: boolean; inPlace: EmojiInPlace; emojis: AlbumEmoji[]; emojiPage: string | null; useSlackEmojiMatches: SlackEmojiMatchesRead; mapMyEmoji: ShellActions["mapMyEmoji"]; children: ReactNode };
 
 export function EmojiWizardHost({ on, inPlace, emojis, emojiPage, useSlackEmojiMatches, mapMyEmoji, children }: HostProps) {
   const [open, setOpen] = useState<Open | null>(null);
-  const openWizard = useCallback<OpenWizard>((emoji, opener) => setOpen({ emoji, opener, fallback: opener.closest<HTMLElement>('[role="region"], [role="dialog"], section, main') }), []);
+  const openWizard = useCallback<OpenWizard>((emoji, opener) => setOpen({ emoji, opener, fallback: opener.closest<HTMLElement>('[role="region"], [role="dialog"], section, main'), inPlace }), [inPlace]);
   const wizard = useMemo(() => ({ open: openWizard, emojis, inPlace }), [openWizard, emojis, inPlace]);
   const byTheAdmin = inPlace === "admin";
-  const close = () => {
+  const close = useCallback(() => {
     if (open !== null) giveFocusBack(open.opener, open.fallback);
     setOpen(null);
-  };
+  }, [open]);
+  const openedUnderOtherRights = open !== null && open.inPlace !== inPlace;
+  useEffect(() => {
+    if (openedUnderOtherRights) close();
+  }, [openedUnderOtherRights, close]);
   return (
     <EmojiWizardContext value={on ? wizard : null}>
       {children}
-      {on && open !== null && inPlace !== "member" && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
+      {on && open !== null && !openedUnderOtherRights && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
     </EmojiWizardContext>
   );
 }

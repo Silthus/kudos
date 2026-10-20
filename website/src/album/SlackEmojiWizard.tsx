@@ -120,7 +120,7 @@ type MatchesProps = { emoji: WizardEmoji; matches: SlackEmojiMatchesShown | unde
 function Matches({ emoji, matches, search, takesAnyEmoji, saving, emojiPage, onPick }: MatchesProps) {
   if (matches === undefined || matches.kind === "connecting") return <p className="al-wizard-quiet">Looking in Slack…</p>;
   if (matches.kind !== "matches") return <p className="al-wizard-quiet">Slack's emojis didn't load. Try again in a moment.</p>;
-  const pickable = (match: SlackEmojiMatch) => takesAnyEmoji || match.free;
+  const pickable = (match: SlackEmojiMatch) => (takesAnyEmoji ? match.name !== emoji.name : match.free);
   if (matches.matches.length === 0) return <NoneFound emoji={emoji} said={search === "" ? `No Slack emoji has a name like :${emoji.name}:. Search for one, or add this one to Slack under its name.` : `No Slack emoji found for “${search}”. Add this one to Slack under its name.`} emojiPage={emojiPage} />;
   return (
     <>
@@ -137,7 +137,7 @@ function Matches({ emoji, matches, search, takesAnyEmoji, saving, emojiPage, onP
         ))}
       </ul>
       {takesAnyEmoji && matches.matches.some((match) => !match.free && match.name !== emoji.name) && <p className="al-wizard-quiet">Picking one in use gives it to this emoji: an earned emoji that had it moves to a free name, and a random drop or a held-back name stops being one.</p>}
-      {!matches.matches.some(pickable) && <NoneFound emoji={emoji} said={`Every Slack emoji found${search === "" ? "" : ` for “${search}”`} is in use. Add this one to Slack under its name.`} emojiPage={emojiPage} />}
+      {!matches.matches.some((match) => pickable(match) || match.name === emoji.name) && <NoneFound emoji={emoji} said={`Every Slack emoji found${search === "" ? "" : ` for “${search}”`} is in use. Add this one to Slack under its name.`} emojiPage={emojiPage} />}
     </>
   );
 }

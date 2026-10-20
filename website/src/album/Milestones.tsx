@@ -145,7 +145,7 @@ function MedalEmoji({ tier, emoji: { name, picture, answered }, emojiPage }: { t
 function EmojiSays({ earned, at, answered, emojiPage }: { earned: boolean; at: number; answered: TierEmoji["answered"]; emojiPage: string | null }) {
   const inPlace = useMapsInPlace();
   return (
-    <span className="al-ms-emoji-says">
+    <span className="al-ms-emoji-says" data-in-place={inPlace ? "" : undefined}>
       {emojiSaysOf(earned, at, answered, emojiPage, inPlace)}
       {inPlace && answered !== null && <MapInPlace emoji={answered} />}
     </span>

@@ -172,6 +172,7 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
     const wizard = within(await screen.findByRole("dialog", { name: "Change :quiet-harbour: in Slack" }, arrival));
 
     expect(wizard.getByRole("button", { name: "Map to :quiet-harbour:, current" })).toHaveTextContent("Current");
+    expect(wizard.getByRole("button", { name: "Map to :quiet-harbour:, current" }), "picking the current one would take a member's mapping over").toBeDisabled();
     expect(wizard.getByRole("button", { name: "Map to :harbour-old:, in use" })).toBeEnabled();
   });
 
@@ -233,7 +234,30 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
     act(() => live.listeners.forEach((listener) => listener()));
 
     expect(screen.queryByRole("dialog", { name: "Find :familiar-faces: in Slack" })).not.toBeInTheDocument();
+    expect(document.activeElement, "focus goes back to the page, not lost").not.toBe(document.body);
     offersNoWayToSlack();
+
+    live.album = { ...live.album, emojiInPlace: null };
+    act(() => live.listeners.forEach((listener) => listener()));
+    expect(await screen.findByRole("button", { name: "Find :familiar-faces: in Slack" }, arrival)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Find :familiar-faces: in Slack" }), "the wizard stays closed").not.toBeInTheDocument();
+  });
+
+  it("the maintainer's open wizard closes when in-place mapping turns off under it", async () => {
+    const live = { album: albumAs("admin"), listeners: new Set<() => void>() };
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.album);
+      return asking ? shown : undefined;
+    };
+    window.history.replaceState(null, "", "/book#teams/lanterns");
+    const { user } = renderAlbum(shellFixtures.member, read, { people: fixedPeople(live.album), slackEmojiMatches: found });
+    await user.click(await screen.findByRole("button", { name: "Find :lanterns: in Slack" }, arrival));
+    expect(await screen.findByRole("dialog", { name: "Find :lanterns: in Slack" }, arrival)).toBeInTheDocument();
+
+    live.album = { ...live.album, emojiInPlace: null };
+    act(() => live.listeners.forEach((listener) => listener()));
+
+    expect(screen.queryByRole("dialog", { name: "Find :lanterns: in Slack" })).not.toBeInTheDocument();
   });
 
   it("a member's emoji popup says coming soon too, never Find in Slack or Add to Slack", async () => {

@@ -120,7 +120,7 @@ function AppEmojiRow({ emoji, onFind, onUndone, mapSlackEmoji }: { emoji: AppEmo
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" aria-label={slack === null ? `Find :${name}: in Slack` : `Change :${name}:'s Slack emoji`} onClick={(event) => onFind(event.currentTarget)}>
+          <Button variant="outline" size="sm" aria-label={`${slack === null ? "Find" : "Change"} :${name}: in Slack`} onClick={(event) => onFind(event.currentTarget)}>
             {slack === null ? "Find in Slack" : "Change"}
           </Button>
           {memberSetIt !== null && (
