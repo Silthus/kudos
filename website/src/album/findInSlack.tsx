@@ -8,7 +8,7 @@ import { SlackEmojiWizard, type WizardPick } from "./SlackEmojiWizard";
 import { comingSoonToSlackWords, type SlackWay } from "./slackWay";
 import "./emoji.css";
 
-type HeldEmoji = Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from">;
+type HeldEmoji = Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">;
 
 type OpenWizard = (emoji: HeldEmoji, opener: HTMLElement) => void;
 
@@ -32,7 +32,7 @@ export function EmojiWizardHost({ on, inPlace, emojis, emojiPage, useSlackEmojiM
   return (
     <EmojiWizardContext value={on ? wizard : null}>
       {children}
-      {on && open !== null && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
+      {on && open !== null && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
     </EmojiWizardContext>
   );
 }
@@ -47,11 +47,10 @@ export function useMapsInPlace(): boolean {
   return useContext(EmojiWizardContext)?.inPlace === "admin";
 }
 
-type ShownEmoji = HeldEmoji & Pick<AlbumEmoji, "inSlack">;
 
-export function useLiveEmoji<Shown extends ShownEmoji>(emoji: Shown): Shown;
-export function useLiveEmoji<Shown extends ShownEmoji>(emoji: Shown | null): Shown | null;
-export function useLiveEmoji<Shown extends ShownEmoji>(emoji: Shown | null): Shown | null {
+export function useLiveEmoji<Shown extends HeldEmoji>(emoji: Shown): Shown;
+export function useLiveEmoji<Shown extends HeldEmoji>(emoji: Shown | null): Shown | null;
+export function useLiveEmoji<Shown extends HeldEmoji>(emoji: Shown | null): Shown | null {
   const wizard = useContext(EmojiWizardContext);
   const live = emoji === null ? undefined : wizard?.emojis.find(({ id }) => id === emoji.id);
   return emoji === null || live === undefined ? emoji : { ...emoji, name: live.name, picture: live.picture, inSlack: live.inSlack };
@@ -64,14 +63,14 @@ export function NotInSlack({ emoji, emojiPage }: { emoji: HeldEmoji; emojiPage: 
   return <FindInSlackButton name={emoji.name} onClick={(opener) => wizard.open(emoji, opener)} />;
 }
 
-export function FindInSlackWhileOn({ emoji }: { emoji: ShownEmoji }) {
+export function FindInSlackWhileOn({ emoji }: { emoji: HeldEmoji }) {
   const wizard = useContext(EmojiWizardContext);
   const live = useLiveEmoji(emoji);
   if (wizard === null || wizard.inPlace === "member" || live.inSlack) return null;
   return <FindInSlackButton name={live.name} onClick={(opener) => wizard.open(live, opener)} />;
 }
 
-export function MapInPlace({ emoji }: { emoji: ShownEmoji }) {
+export function MapInPlace({ emoji }: { emoji: HeldEmoji }) {
   const wizard = useContext(EmojiWizardContext);
   const live = useLiveEmoji(emoji);
   if (wizard?.inPlace !== "admin") return null;

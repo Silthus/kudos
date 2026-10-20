@@ -20,8 +20,9 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
   const onThePhoto = onThePhotoOf(album, team);
   const emoji = teamEmojiOf(album, team.team);
   const caption = useId();
+  const mapsInPlace = useMapsInPlace();
   const unlocked = team.state === "unlocked";
-  const emojiShown = unlocked || useMapsInPlace();
+  const emojiShown = unlocked || mapsInPlace;
   return (
     <article className="al-page-body al-team-page">
       <header>
