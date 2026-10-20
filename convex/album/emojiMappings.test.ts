@@ -70,7 +70,7 @@ afterEach(() => {
 describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 }, () => {
   test("Settings list every Slack custom emoji with its picture, a name the registry holds already mapped to its earned emoji and the rest unmapped, beside every team, milestone, level and person to map to", async () => {
     await aliceCollects(otters[0]!);
-    await slackHas("otters", "level-10", "full-of-friends", "otter-quillfeather1-hype", "party-parrot");
+    await slackHas("team-otters", "level-10", "full-of-friends", "otter-quillfeather1-hype", "party-parrot");
 
     const mappings = await mappingsOf(await signedIn(owner));
 
@@ -78,8 +78,8 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
       { name: "full-of-friends", image: slackPicture("full-of-friends"), mapping: { kind: "milestone", milestone: "people:gold" } },
       { name: "level-10", image: slackPicture("level-10"), mapping: { kind: "level", level: 10 } },
       { name: "otter-quillfeather1-hype", image: slackPicture("otter-quillfeather1-hype"), mapping: { kind: "hype", person: keyOf(mappings, otters[0]!) } },
-      { name: "otters", image: slackPicture("otters"), mapping: { kind: "team", team: "otters" } },
       { name: "party-parrot", image: slackPicture("party-parrot"), mapping: null },
+      { name: "team-otters", image: slackPicture("team-otters"), mapping: { kind: "team", team: "otters" } },
     ]);
     expect(mappings.more).toBe(false);
     expect(mappings.randomDrops).toBe(true);
@@ -145,49 +145,49 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
 
   test("mapping a Slack emoji that names another earned emoji moves it: the other one takes the next free name Slack doesn't have, and reads not in Slack with its catalogue picture", async () => {
     await aliceCollects(otters[0]!);
-    await slackHas("otters", "otters-2");
+    await slackHas("team-otters", "team-otters-2");
     const asOwner = await signedIn(owner);
 
-    await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to: { kind: "team", team: "lanterns" } });
+    await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "team-otters", to: { kind: "team", team: "lanterns" } });
 
     const asAlice = await signedIn(alice);
-    expect(await emojiWithId(asAlice, "team:lanterns")).toMatchObject({ name: "otters", picture: slackPicture("otters"), inSlack: true });
-    expect(await emojiWithId(asAlice, "team:otters")).toMatchObject({ name: "otters-3", picture: ottersCrestPicture, inSlack: false });
+    expect(await emojiWithId(asAlice, "team:lanterns")).toMatchObject({ name: "team-otters", picture: slackPicture("team-otters"), inSlack: true });
+    expect(await emojiWithId(asAlice, "team:otters")).toMatchObject({ name: "team-otters-3", picture: ottersCrestPicture, inSlack: false });
     expect((await mappingsOf(asOwner)).emoji.map(({ name, mapping }) => [name, mapping])).toEqual([
-      ["otters", { kind: "team", team: "lanterns" }],
-      ["otters-2", null],
+      ["team-otters", { kind: "team", team: "lanterns" }],
+      ["team-otters-2", null],
     ]);
   });
 
   test("an earned emoji mapped to a second Slack emoji leaves the first unmapped", async () => {
     await aliceCollects(otters[0]!);
-    await slackHas("otters", "sea-otters");
+    await slackHas("team-otters", "sea-otters");
     const asOwner = await signedIn(owner);
 
     await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "sea-otters", to: { kind: "team", team: "otters" } });
 
     expect((await mappingsOf(asOwner)).emoji.map(({ name, mapping }) => [name, mapping])).toEqual([
-      ["otters", null],
       ["sea-otters", { kind: "team", team: "otters" }],
+      ["team-otters", null],
     ]);
   });
 
   test("clearing a mapping leaves the Slack emoji unmapped for good, and its earned emoji reads not in Slack under a free name", async () => {
     await aliceCollects(otters[0]!);
-    await slackHas("otters");
+    await slackHas("team-otters");
     const asOwner = await signedIn(owner);
 
-    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to: { kind: "unmapped" } })).toEqual({ kind: "mapped" });
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "team-otters", to: { kind: "unmapped" } })).toEqual({ kind: "mapped" });
 
-    expect((await mappingsOf(asOwner)).emoji).toEqual([{ name: "otters", image: slackPicture("otters"), mapping: null }]);
-    expect(await emojiWithId(await signedIn(alice), "team:otters")).toMatchObject({ name: "otters-2", picture: ottersCrestPicture, inSlack: false });
+    expect((await mappingsOf(asOwner)).emoji).toEqual([{ name: "team-otters", image: slackPicture("team-otters"), mapping: null }]);
+    expect(await emojiWithId(await signedIn(alice), "team:otters")).toMatchObject({ name: "team-otters-2", picture: ottersCrestPicture, inSlack: false });
     await theCompanyCopyHolds(...twoTeams());
     expect((await mappingsOf(asOwner)).emoji[0]!.mapping, "after the next company sync").toBeNull();
   });
 
   test("a Slack emoji the maintainer doesn't have, and a team, milestone, level or person nobody knows, are refused and change nothing; a Slack emoji already in that place only records the maintainer as who mapped it", async () => {
     await aliceCollects(otters[0]!);
-    await slackHas("otters", "spare");
+    await slackHas("team-otters", "spare");
     const asOwner = await signedIn(owner);
     const before = await everyTable();
 
@@ -202,34 +202,34 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     ] as const) expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to }), `${name} to ${JSON.stringify(to)}`).toEqual({ kind: "refused" });
     expect(await everyTable()).toEqual(before);
 
-    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "team-otters", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
     const { emojiNames, ...after } = await everyTable();
     const { emojiNames: _namesBefore, ...beforeWithoutNames } = before;
     expect(after, "mapping a Slack emoji to the place it already has changes nothing else").toEqual(beforeWithoutNames);
-    expect(emojiNames!.find((row) => (row as { name: string }).name === "otters"), "and records the maintainer as who mapped it").toMatchObject({ name: "otters", mappedBy: { member: await memberOf(owner), as: "maintainer" } });
+    expect(emojiNames!.find((row) => (row as { name: string }).name === "team-otters"), "and records the maintainer as who mapped it").toMatchObject({ name: "team-otters", mappedBy: { member: await memberOf(owner), as: "maintainer" } });
   });
 
   test("a Slack emoji classed random or left unmapped keeps that place when the registry opens, when a person's first pack names their hype emoji and when a later sync adds a team named like it", async () => {
-    await slackHas("level-5", "lantern-wickfield1-hype", "beavers");
+    await slackHas("level-5", "lantern-wickfield1-hype", "team-beavers");
     const asOwner = await signedIn(owner);
     for (const [name, to] of [
       ["level-5", { kind: "random" }],
       ["lantern-wickfield1-hype", { kind: "unmapped" }],
-      ["beavers", { kind: "random" }],
+      ["team-beavers", { kind: "random" }],
     ] as const) await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to });
 
     await aliceCollects(lanterns[0]!);
     await theCompanyCopyHolds(...twoTeams(), { slug: "beavers", name: "Beavers", profiles: profilesOf(bruno) });
 
     expect((await mappingsOf(asOwner)).emoji.map(({ name, mapping }) => [name, mapping])).toEqual([
-      ["beavers", { kind: "random" }],
       ["lantern-wickfield1-hype", null],
       ["level-5", { kind: "random" }],
+      ["team-beavers", { kind: "random" }],
     ]);
     const asAlice = await signedIn(alice);
     expect(await emojiWithId(asAlice, "level:5")).toMatchObject({ name: "level-5-2", inSlack: false });
     expect(await emojiWithId(asAlice, `hype:${await memberOf(lanterns[0]!)}`)).toMatchObject({ name: "lantern-wickfield1-2-hype", inSlack: false });
-    expect(await emojiWithId(asAlice, "team:beavers")).toMatchObject({ name: "beavers-2", inSlack: false });
+    expect(await emojiWithId(asAlice, "team:beavers")).toMatchObject({ name: "team-beavers-2", inSlack: false });
   });
 
   test(`at most ${mostRandomEmojis} Slack emojis are random drops; one more is refused`, async () => {
@@ -325,7 +325,7 @@ describe("random emojis are dark where random-emojis is off", { timeout: 90_000 
 describe("only the maintainer maps Slack emojis", { timeout: 90_000 }, () => {
   test("a workspace admin who isn't the maintainer, every member while KUDOS_MAINTAINER is unset, and the maintainer while workspace-settings is off read no mappings and map nothing", async () => {
     await aliceCollects(otters[0]!);
-    await slackHas("otters", "spare");
+    await slackHas("team-otters", "spare");
     await t.run(async (ctx) => {
       const row = (await ctx.db.query("members").collect()).find(({ user }) => user === bruno.user)!;
       await ctx.db.patch(row._id, { admin: true });
@@ -338,7 +338,7 @@ describe("only the maintainer maps Slack emojis", { timeout: 90_000 }, () => {
     const attempts = async (reader: Reader, who: string) => {
       expect(await reader.query(api.website.emojiMappings.getEmojiMappings, {}), who).toEqual({ kind: "off" });
       for (const to of [{ kind: "team", team: "lanterns" }, { kind: "unmapped" }, { kind: "random" }, { kind: "hype", person: otterKey }] as const) {
-        expect(await reader.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otters", to }), `${who} mapping to ${to.kind}`).toEqual({ kind: "refused" });
+        expect(await reader.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "team-otters", to }), `${who} mapping to ${to.kind}`).toEqual({ kind: "refused" });
       }
     };
 

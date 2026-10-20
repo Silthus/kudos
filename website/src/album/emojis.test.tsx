@@ -115,7 +115,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Your emojis · 9 of 27");
     expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Team stickers 1 of 4", "Hype 1", "Milestones 6 of 20", "Levels 1 of 2"]);
-    expect(rowsIn(shelf(popup, "Team stickers"))[0]).toBe(":quiet-harbour:You unlocked the Quiet Harbour team sticker · 15 Oct 2026In Slack");
+    expect(rowsIn(shelf(popup, "Team stickers"))[0]).toBe(":team-quiet-harbour:You unlocked the Quiet Harbour team sticker · 15 Oct 2026In Slack");
     expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     expect(rowsIn(shelf(popup, "Levels"))[0]).toBe(":level-5:You reached level 5Add to Slack");
     const pictures = [...document.querySelectorAll<HTMLImageElement>(".al-popover .al-emoji-art:not([data-locked]) img")].map((picture) => picture.getAttribute("src"));
@@ -150,7 +150,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     const popup = await openTheEmojis(view);
 
-    expect(rowsIn(shelf(popup, "Team stickers")).slice(1)).toEqual([":kettle-works:Everyone on Kettle Works is in: unlock the sticker on its page", ":lanterns:Collect all 5 people on Lanterns · 4 of 5", ":copper-kite:Collect all 3 people on Copper Kite · 0 of 3"]);
+    expect(rowsIn(shelf(popup, "Team stickers")).slice(1)).toEqual([":team-kettle-works:Everyone on Kettle Works is in: unlock the sticker on its page", ":team-lanterns:Collect all 5 people on Lanterns · 4 of 5", ":team-copper-kite:Collect all 3 people on Copper Kite · 0 of 3"]);
     expect(rowsIn(shelf(popup, "Levels"))[1]).toBe(":level-10:Reach level 10 · 1,210 of 4,500 XP");
     expect(document.querySelectorAll(".al-popover .al-emoji-art[data-locked]")).toHaveLength(9);
     await view.user.click(shelf(popup, "Team stickers").getByRole("link", { name: /Kettle Works/ }));
@@ -158,7 +158,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
   });
 
   it("shows the nearest locked emojis of a kind first, then Show all lists the rest, leaving out a team nobody is matched on yet", async () => {
-    const nobodyMatched = anEmoji({ id: "team:empty", kind: "team", name: "empty", from: "Empty", progress: { have: 0, need: 0 } });
+    const nobodyMatched = anEmoji({ id: "team:empty", kind: "team", name: "team-empty", from: "Empty", progress: { have: 0, need: 0 } });
     const teams = [nobodyMatched, ...Array.from({ length: 6 }, (_, index) => anEmoji({ id: `team:team-${index}`, kind: "team", name: `team-${index}`, from: `Team ${index}`, progress: { have: index, need: 6 } }))];
     const view = visit("/", { album: { ...midway, emojis: teams } });
     const popup = await openTheEmojis(view);
@@ -319,7 +319,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     expect(view.marked).not.toHaveBeenCalled();
     expect(within(bundle).getByRole("heading", { level: 2 }).textContent).toBe("4 new emojis unlocked");
     const cards = cardsIn(bundle);
-    expect(cards.map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":quiet-harbour:", ":level-5:", ":bram-teller-hype:", ":fen-marlowe-hype:"]);
+    expect(cards.map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":team-quiet-harbour:", ":level-5:", ":bram-teller-hype:", ":fen-marlowe-hype:"]);
     expect(cards[0]).toHaveTextContent("The Quiet Harbour team sticker");
     expect(cards[1]).toHaveTextContent("Reaching level 5");
     expect(cards[2]).toHaveTextContent("Your first thoughtful pack for Bram Teller");
@@ -395,7 +395,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
 
     await view.user.click(within(first).getByRole("button", { name: "Add to my emojis" }));
 
-    expect(shown).toEqual([":quiet-harbour:", ":level-5:", ":bram-teller-hype:", ":fen-marlowe-hype:", ":dax-holm-hype:"]);
+    expect(shown).toEqual([":team-quiet-harbour:", ":level-5:", ":bram-teller-hype:", ":fen-marlowe-hype:", ":dax-holm-hype:"]);
     expect(view.marked).toHaveBeenCalledExactlyOnceWith(["team:quiet-harbour", "level:5", "hype:bram-teller", "hype:fen-marlowe", "hype:dax-holm"]);
     const next = await aBundle();
     await waitFor(() => expect(within(next).getByRole("heading", { level: 2 }).textContent).toBe("2 new emojis unlocked"));
@@ -408,7 +408,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
 
     const moment = await aMoment();
 
-    expect(within(moment).getByRole("heading", { level: 2 }).textContent).toBe(":quiet-harbour:");
+    expect(within(moment).getByRole("heading", { level: 2 }).textContent).toBe(":team-quiet-harbour:");
     expect(moment).toHaveTextContent("You unlocked the Quiet Harbour team sticker · 15 Oct 2026");
     expect(moment).toHaveTextContent("Use it in Slack: react with it and put it in the kudos you give.");
     expect(within(moment).queryByRole("list", { name: "Your new emojis" })).not.toBeInTheDocument();
@@ -423,7 +423,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     const bundle = await aBundle();
 
     expect(bundle).toHaveFocus();
-    expect(bundle).toHaveAccessibleDescription(expect.stringMatching(/^:quiet-harbour: The Quiet Harbour team sticker .*:fen-marlowe-hype:/));
+    expect(bundle).toHaveAccessibleDescription(expect.stringMatching(/^:team-quiet-harbour: The Quiet Harbour team sticker .*:fen-marlowe-hype:/));
     await view.user.keyboard(" ");
     expect(view.marked).not.toHaveBeenCalled();
   });
@@ -448,7 +448,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
 
     const bundle = await aBundle();
 
-    expect(cardsIn(bundle).map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":quiet-harbour:", ":level-5:"]);
+    expect(cardsIn(bundle).map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":team-quiet-harbour:", ":level-5:"]);
   });
 
   it("AL54: a team sticker's unlock moment counts as its team emoji's moment, which never plays a second time", async () => {
@@ -529,10 +529,10 @@ describe("#664 AL32: the Settings page shows workspace admins the shared list", 
 
     const rows = rowsIn(list);
     expect(rows.slice(0, 5)).toEqual([
-      ":quiet-harbour:The Quiet Harbour team stickerIn Slack",
-      ":lanterns:The Lanterns team stickerAdd to Slack",
-      ":kettle-works:The Kettle Works team stickerAdd to Slack",
-      ":copper-kite:The Copper Kite team stickerAdd to Slack",
+      ":team-quiet-harbour:The Quiet Harbour team stickerIn Slack",
+      ":team-lanterns:The Lanterns team stickerAdd to Slack",
+      ":team-kettle-works:The Kettle Works team stickerAdd to Slack",
+      ":team-copper-kite:The Copper Kite team stickerAdd to Slack",
       ":first-face:Bronze in Faces in the album: First faceIn Slack",
     ]);
     expect(rows).toContain(":heart-of-the-team:Gold in Kind words: Heart of the teamAdd to Slack");

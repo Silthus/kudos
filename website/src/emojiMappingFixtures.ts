@@ -73,7 +73,7 @@ export const fixtureSlackEmojiMatches: SlackEmojiMatchesRead = (near, search) =>
 
 const appEmojis: AppEmoji[] = [
   { key: "level:5", kind: "level", name: "level-5", from: "Level 5", picture: "/emoji/level-5.png", holders: 14, slack: { image: standardEmojiPicture(3), setBy: { by: "maintainer", name: "Sam Example" } }, place: { kind: "level", level: 5 } },
-  { key: "team:quiet-harbour", kind: "team", name: "quiet-harbour", from: "Quiet Harbour", picture: "/emoji/team-workflows.png", holders: 9, slack: null, place: { kind: "team", team: "quiet-harbour" } },
+  { key: "team:quiet-harbour", kind: "team", name: "team-quiet-harbour", from: "Quiet Harbour", picture: "/emoji/team-workflows.png", holders: 9, slack: null, place: { kind: "team", team: "quiet-harbour" } },
   { key: "team:lanterns", kind: "team", name: "lantern-glow", from: "Lanterns", picture: "/emoji/team.png", holders: 6, slack: { image: standardEmojiPicture(5), setBy: { by: "member", name: "Bram Teller" } }, place: { kind: "team", team: "lanterns" } },
   { key: "hype:k-ines", kind: "hype", name: "ines-okafor-hype", from: "Ines Okafor", picture: "/emoji/hype.png", holders: 4, slack: null, place: { kind: "hype", person: "k-ines" } },
   { key: "milestone:people:silver", kind: "milestone", name: "familiar-faces", from: "Familiar faces", picture: "/emoji/milestone-people-silver.png", holders: 3, slack: null, place: { kind: "milestone", milestone: "people:silver" } },

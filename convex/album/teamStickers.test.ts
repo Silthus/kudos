@@ -159,7 +159,7 @@ describe("AL19: unlocking a team sticker", { timeout: 60_000 }, () => {
     const unlocked = await unlock(asAlice, "otters");
 
     const at = Date.now();
-    expect(unlocked).toEqual({ kind: "unlocked", sticker: { team: "otters", name: "Otters", art: ready.art, emoji: "otters", at } });
+    expect(unlocked).toEqual({ kind: "unlocked", sticker: { team: "otters", name: "Otters", art: ready.art, emoji: "team-otters", at } });
     expect(await teamNamed(asAlice, "otters")).toEqual({ ...ready, state: "unlocked", unlockedAt: at });
   });
 
@@ -186,9 +186,9 @@ describe("AL19: unlocking a team sticker", { timeout: 60_000 }, () => {
     const asAlice = await signedIn(alice);
     expect(await emojiNamesIn("T1"), "no name before the unlock").toEqual([]);
 
-    expect(await unlock(asAlice, "otters")).toMatchObject({ kind: "unlocked", sticker: { team: "otters", emoji: "otters" } });
+    expect(await unlock(asAlice, "otters")).toMatchObject({ kind: "unlocked", sticker: { team: "otters", emoji: "team-otters" } });
 
-    expect(await emojiNamesIn("T1"), "the registry's names in the order they were reserved").toEqual([...levelNames, ...milestoneTierNames, "lanterns", "otters"]);
+    expect(await emojiNamesIn("T1"), "the registry's names in the order they were reserved").toEqual([...levelNames, ...milestoneTierNames, "team-lanterns", "team-otters"]);
   });
 
   test("a page with nobody to collect is never complete", async () => {

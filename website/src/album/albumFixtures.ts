@@ -95,12 +95,12 @@ const milestoneEmojisOf = (listed: AlbumMilestone[]): AlbumEmoji[] =>
   );
 
 const emojis: AlbumEmoji[] = [
-  { id: "team:quiet-harbour", kind: "team", name: "quiet-harbour", from: "Quiet Harbour", picture: "/emoji/team-support.png", earned: true, earnedAt: now - 3 * day, seen: true, inSlack: true, progress: null },
+  { id: "team:quiet-harbour", kind: "team", name: "team-quiet-harbour", from: "Quiet Harbour", picture: "/emoji/team-support.png", earned: true, earnedAt: now - 3 * day, seen: true, inSlack: true, progress: null },
   { id: "hype:ines-okafor", kind: "hype", name: "ines-okafor-hype", from: "Ines Okafor", picture: "/emoji/hype.png", earned: true, earnedAt: now - 9 * day, seen: true, inSlack: false, progress: null },
   { id: "level:5", kind: "level", name: "level-5", from: "Level 5", picture: "/emoji/level-5.png", earned: true, earnedAt: null, seen: true, inSlack: false, progress: null },
-  { id: "team:lanterns", kind: "team", name: "lanterns", from: "Lanterns", picture: "/emoji/team-workflows.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 4, need: 5 } },
-  { id: "team:kettle-works", kind: "team", name: "kettle-works", from: "Kettle Works", picture: "/emoji/team-experiments.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 3, need: 3 } },
-  { id: "team:copper-kite", kind: "team", name: "copper-kite", from: "Copper Kite", picture: "/emoji/team-apm.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 0, need: 3 } },
+  { id: "team:lanterns", kind: "team", name: "team-lanterns", from: "Lanterns", picture: "/emoji/team-workflows.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 4, need: 5 } },
+  { id: "team:kettle-works", kind: "team", name: "team-kettle-works", from: "Kettle Works", picture: "/emoji/team-experiments.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 3, need: 3 } },
+  { id: "team:copper-kite", kind: "team", name: "team-copper-kite", from: "Copper Kite", picture: "/emoji/team-apm.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 0, need: 3 } },
   { id: "level:10", kind: "level", name: "level-10", from: "Level 10", picture: "/emoji/level-10.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 1210, need: 4500 } },
   ...milestoneEmojisOf(milestones),
 ];
@@ -190,7 +190,7 @@ export function fixturePackOpeningOf(pack: string): PackOpenAnswer {
 export function fixtureUnlockOf(album: Album, team: string): UnlockAnswer {
   const page = album.teams.find((listed) => listed.team === team);
   if (page?.state !== "ready") return { kind: "refused" };
-  return { kind: "unlocked", sticker: { team, name: page.name, art: page.art, emoji: team, at: now } };
+  return { kind: "unlocked", sticker: { team, name: page.name, art: page.art, emoji: `team-${team}`, at: now } };
 }
 
 const bestWords = "Thanks for staying late to untangle the migration, the whole launch went out on time because of you.";

@@ -96,9 +96,9 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
 
     expect(await emojisOf(await signedIn(alice))).toEqual(
       byId([
-        locked("team:otters", "team", "otters", ottersCrestPicture, { have: 1, need: 3 }),
-        locked("team:lanterns", "team", "lanterns", "/emoji/team.png", { have: 0, need: 2 }),
-        locked("team:product-analytics", "team", "product-analytics", "/emoji/team-product-analytics.png", { have: 0, need: 2 }),
+        locked("team:otters", "team", "team-otters", ottersCrestPicture, { have: 1, need: 3 }),
+        locked("team:lanterns", "team", "team-lanterns", "/emoji/team.png", { have: 0, need: 2 }),
+        locked("team:product-analytics", "team", "team-product-analytics", "/emoji/team-product-analytics.png", { have: 0, need: 2 }),
         ...milestoneTiers.map(([milestone, tier, name, at]) =>
           reachedAtOne.has(`${milestone}:${tier}`) ? earned(`milestone:${milestone}:${tier}`, "milestone", name, `/emoji/milestone-${milestone}-${tier}.png`) : locked(`milestone:${milestone}:${tier}`, "milestone", name, `/emoji/milestone-${milestone}-${tier}.png`, { have: milestone === "people" || milestone === "reach" || milestone === "thoughtful" ? 1 : expect.any(Number), need: at }),
         ),
@@ -116,8 +116,8 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
 
     const unlocked = await asAlice.mutation(api.website.album.unlockTeamSticker, { team: "otters" });
 
-    expect(unlocked).toMatchObject({ kind: "unlocked", sticker: { emoji: "otters" } });
-    const teamEmoji = earned("team:otters", "team", "otters", ottersCrestPicture);
+    expect(unlocked).toMatchObject({ kind: "unlocked", sticker: { emoji: "team-otters" } });
+    const teamEmoji = earned("team:otters", "team", "team-otters", ottersCrestPicture);
     expect(await emojiWithId(asAlice, "team:otters")).toEqual(teamEmoji);
     await theCompanyCopyHolds({ slug: "otters", name: "Sea Otters", crest: aCutout("otters-crest-redrawn"), profiles: profilesOf(...otters, bruno) });
     expect(await emojiWithId(asAlice, "team:otters"), "renamed with a new crest and a newcomer").toEqual(teamEmoji);
@@ -345,14 +345,14 @@ describe("AL30: an earned emoji is in Slack while the workspace's custom emoji c
     await theCompanyCopyHolds(...threeTeams());
     await aliceCollects(otters[0]!);
     const asAlice = await signedIn(alice);
-    slack.withCustomEmoji("otters", "https://emoji.slack-edge.com/T1/otters/abc.png").withCustomEmoji("lanterns-old", "alias:otters");
+    slack.withCustomEmoji("team-otters", "https://emoji.slack-edge.com/T1/team-otters/abc.png").withCustomEmoji("lanterns-old", "alias:team-otters");
     expect(await emojiWithId(asAlice, "team:otters"), "before the sync").toMatchObject({ inSlack: false });
 
     await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
     await settle(t);
 
-    expect(await emojiWithId(asAlice, "team:otters")).toMatchObject({ name: "otters", inSlack: true });
-    expect(await emojiWithId(asAlice, "team:lanterns")).toMatchObject({ name: "lanterns", inSlack: false });
+    expect(await emojiWithId(asAlice, "team:otters")).toMatchObject({ name: "team-otters", inSlack: true });
+    expect(await emojiWithId(asAlice, "team:lanterns")).toMatchObject({ name: "team-lanterns", inSlack: false });
   });
 });
 
@@ -368,9 +368,9 @@ describe("AL32: workspace admins and owners get the shared list", { timeout: 90_
 
     expect(shared).toEqual(
       byId([
-        { id: "team:otters", kind: "team", name: "otters", from: "Otters", picture: ottersCrestPicture, inSlack: false },
-        { id: "team:lanterns", kind: "team", name: "lanterns", from: "Lanterns", picture: "/emoji/team.png", inSlack: false },
-        { id: "team:product-analytics", kind: "team", name: "product-analytics", from: "Product Analytics", picture: "/emoji/team-product-analytics.png", inSlack: false },
+        { id: "team:otters", kind: "team", name: "team-otters", from: "Otters", picture: ottersCrestPicture, inSlack: false },
+        { id: "team:lanterns", kind: "team", name: "team-lanterns", from: "Lanterns", picture: "/emoji/team.png", inSlack: false },
+        { id: "team:product-analytics", kind: "team", name: "team-product-analytics", from: "Product Analytics", picture: "/emoji/team-product-analytics.png", inSlack: false },
         ...milestoneTiers.map(([milestone, tier, name]) => ({ id: `milestone:${milestone}:${tier}`, kind: "milestone", name, from: expect.any(String), picture: `/emoji/milestone-${milestone}-${tier}.png`, inSlack: false })),
         ...levels.map((level) => ({ id: `level:${level}`, kind: "level", name: `level-${level}`, from: `Level ${level}`, picture: `/emoji/level-${level}.png`, inSlack: false })),
       ]),
