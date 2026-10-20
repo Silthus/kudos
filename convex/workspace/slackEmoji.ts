@@ -1,20 +1,37 @@
+import { memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import type { QueryCtx } from "../_generated/server";
 import { customEmojiImageOf, customEmojiListedIn, originalCustomEmojiOf, originalCustomEmojiStartingWith, type ListedEmoji } from "./customEmoji";
+import type { MemberId } from "./directory";
+import { standardEmojiListed, standardEmojiNamed, standardEmojiStartingWith } from "./standardEmoji";
 
 export type SlackEmoji = ListedEmoji;
 
-export function slackEmojiImageOf(ctx: QueryCtx, workspace: string, name: string): Promise<string | undefined> {
-  return customEmojiImageOf(ctx, workspace, name);
+export type SlackEmojiReach = "custom" | "customAndStandard";
+
+export const standardEmojiFlag = { key: "standard-emoji", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export async function slackEmojiReachOf(ctx: QueryCtx, member: MemberId): Promise<SlackEmojiReach> {
+  return (await memberDecisionWithoutWriting(ctx, standardEmojiFlag, member)) ? "customAndStandard" : "custom";
 }
 
-export function slackEmojiNamed(ctx: QueryCtx, workspace: string, name: string): Promise<SlackEmoji | null> {
-  return originalCustomEmojiOf(ctx, workspace, name);
+export async function slackEmojiImageOf(ctx: QueryCtx, workspace: string, name: string): Promise<string | undefined> {
+  return (await customEmojiImageOf(ctx, workspace, name)) ?? standardEmojiNamed(name)?.image;
 }
 
-export function slackEmojiStartingWith(ctx: QueryCtx, workspace: string, typed: string, limit: number): Promise<SlackEmoji[]> {
-  return originalCustomEmojiStartingWith(ctx, workspace, typed, limit);
+export async function slackEmojiNamed(ctx: QueryCtx, workspace: string, name: string, reach: SlackEmojiReach): Promise<SlackEmoji | null> {
+  return (await originalCustomEmojiOf(ctx, workspace, name)) ?? standardIn(reach, () => standardEmojiNamed(name)) ?? null;
 }
 
-export function slackEmojiListedIn(ctx: QueryCtx, workspace: string, most: number): Promise<SlackEmoji[]> {
-  return customEmojiListedIn(ctx, workspace, most);
+export async function slackEmojiStartingWith(ctx: QueryCtx, workspace: string, typed: string, limit: number, reach: SlackEmojiReach): Promise<SlackEmoji[]> {
+  const custom = await originalCustomEmojiStartingWith(ctx, workspace, typed, limit);
+  return [...custom, ...(standardIn(reach, () => standardEmojiStartingWith(typed, limit - custom.length)) ?? [])];
+}
+
+export async function slackEmojiListedIn(ctx: QueryCtx, workspace: string, most: number, reach: SlackEmojiReach): Promise<SlackEmoji[]> {
+  const custom = await customEmojiListedIn(ctx, workspace, most);
+  return [...custom, ...(standardIn(reach, standardEmojiListed) ?? [])].slice(0, most);
+}
+
+function standardIn<Found>(reach: SlackEmojiReach, find: () => Found): Found | undefined {
+  return reach === "customAndStandard" ? find() : undefined;
 }

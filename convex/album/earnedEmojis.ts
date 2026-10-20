@@ -5,6 +5,7 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { levelFirstReachedAt } from "../unlocks/levelUps";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
+import { slackEmojiImageOf } from "../workspace/slackEmoji";
 import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";
 import { emojiNameOf, type EarnedEmojiId } from "./emojiNames";
 import type { MilestoneAnswer } from "./milestones";
@@ -13,7 +14,6 @@ import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
 import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
-import { slackEmojiImageOf } from "../workspace/slackEmoji";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 

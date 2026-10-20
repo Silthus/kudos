@@ -2,10 +2,10 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { drawSecret } from "../hoggies/drops";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { slackEmojiImageOf } from "../workspace/slackEmoji";
 import { mostRandomEmojis, randomEmojiNamesIn } from "./emojiClasses";
 import { randomEmojisShownTo } from "./flag";
 import { emojiRollOf } from "./emojiRoll";
-import { slackEmojiImageOf } from "../workspace/slackEmoji";
 
 export { mostRandomEmojis };
 

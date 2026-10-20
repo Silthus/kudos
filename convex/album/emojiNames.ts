@@ -3,11 +3,11 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { companyTeamsReplacedEventValidator } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
+import { slackEmojiImageOf } from "../workspace/slackEmoji";
+import { isStandardEmojiName } from "../workspace/standardEmoji";
 import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
 import { isClassed } from "./emojiClasses";
 import type { EmojiMapper, MilestoneId, MilestoneTier } from "./records";
-import { standardEmojiNames } from "./standardEmojiNames";
-import { slackEmojiImageOf } from "../workspace/slackEmoji";
 
 export type EarnedEmojiId = `level:${number}` | `milestone:${MilestoneId}:${MilestoneTier}` | `team:${string}` | `hype:${MemberId}`;
 
@@ -212,7 +212,7 @@ async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty,
 }
 
 async function isFree(ctx: QueryCtx, workspace: string, name: string) {
-  return !standardEmojiNames.has(name) && !(await nameTaken(ctx, workspace, name)) && !(await isClassed(ctx, workspace, name));
+  return !isStandardEmojiName(name) && !(await nameTaken(ctx, workspace, name)) && !(await isClassed(ctx, workspace, name));
 }
 
 function numberingOf(ctx: QueryCtx, workspace: string, stem: string) {

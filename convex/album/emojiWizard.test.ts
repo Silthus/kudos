@@ -34,6 +34,7 @@ const crowdRows = 3_000;
 const crowdBatch = 500;
 
 const slackPicture = (name: string) => `https://emoji.slack-edge.com/T1/${name}/a1b2c3.png`;
+const standardPicture = (file: string) => `https://a.slack-edge.com/production-standard-emoji-assets/17.0/apple-large/${file}.png`;
 
 let postHog: FakePostHog;
 let postHogCom: FakePostHogCom;
@@ -114,6 +115,30 @@ describe("the emoji wizard finds an earned emoji in Slack", { timeout: 90_000 },
 
     expect(await (await signedIn(alice)).query(api.website.emojiWizard.findSlackEmojis, { near: "otters", search: "" })).toEqual({ kind: "off" });
     expect((await albumOf(await signedIn(alice))).emojiWizard).toBe(false);
+  });
+});
+
+describe("the emoji wizard offers Slack's standard emoji behind standard-emoji", { timeout: 90_000 }, () => {
+  test("a search finds Slack's standard emoji by any of their names, each under its own name with Slack's picture, and a member maps their earned emoji to one", async () => {
+    await unlocksOtters(alice);
+    await switchWebsite(t, postHog, true, ...wizardOpen, "standard-emoji");
+    const asAlice = await signedIn(alice);
+
+    expect(await matchesOf(asAlice, { near: "otters", search: "thumbsup" })).toContainEqual({ name: "+1", image: standardPicture("1f44d"), free: true });
+    expect(await matchesOf(asAlice, { near: "otters", search: "" })).toContainEqual({ name: "otter", image: standardPicture("1f9a6"), free: true });
+
+    expect(await asAlice.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "otter" })).toEqual({ kind: "mapped" });
+    expect(await emojiWithId(await signedIn(bruno), "team:otters")).toMatchObject({ name: "otter", picture: standardPicture("1f9a6"), inSlack: true });
+  });
+
+  test("with standard-emoji off, a search finds no standard emoji and mapping to one is refused and writes nothing", async () => {
+    await unlocksOtters(alice);
+    const asAlice = await signedIn(alice);
+    const before = await everyTable();
+
+    expect(await matchesOf(asAlice, { near: "otters", search: "otter" })).toEqual([]);
+    expect(await asAlice.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "otter" })).toEqual({ kind: "refused" });
+    expect(await everyTable()).toEqual(before);
   });
 });
 

@@ -2,7 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf, type CompanyTeam } from "../companyProfiles/teams";
 import { levelOf } from "../progression/levels";
 import { currentMembersOf, type MemberId } from "../workspace/directory";
-import { slackEmojiImageOf, slackEmojiNamed, slackEmojiStartingWith } from "../workspace/slackEmoji";
+import { slackEmojiImageOf, slackEmojiNamed, slackEmojiReachOf, slackEmojiStartingWith, type SlackEmojiReach } from "../workspace/slackEmoji";
 import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
 import { emojiMappingInPlaceShownTo, emojiWizardShownTo } from "./flag";
 import { emojiArtPictureOf, emojiLevels, milestoneTierArtOf, milestoneTierEmojiOf, slugOf } from "./emojiCatalogue";
@@ -36,12 +36,12 @@ const mostTerms = 9;
 
 const appEmojiKinds: readonly AppEmojiKind[] = ["team", "milestone", "level", "hype"];
 
-export async function slackEmojisNear(ctx: QueryCtx, workspace: string, near: string, search: string): Promise<SlackEmojiMatch[]> {
+export async function slackEmojisNear(ctx: QueryCtx, workspace: string, near: string, search: string, reach: SlackEmojiReach): Promise<SlackEmojiMatch[]> {
   const typed = typedNameOf(search);
   const target = typed === "" ? near : typed;
   if (slugOf(target) === "") return [];
   const found = new Map<string, string>();
-  for (const term of termsOf(target)) for (const { name, image } of await slackEmojiStartingWith(ctx, workspace, term, matchesReadPerTerm)) found.set(name, image);
+  for (const term of termsOf(target)) for (const { name, image } of await slackEmojiStartingWith(ctx, workspace, term, matchesReadPerTerm, reach)) found.set(name, image);
   const held = await namesHeldIn(ctx, workspace);
   const classed = await emojiClassesIn(ctx, workspace);
   const matches = [...found].map(([name, image]) => ({ name, image, free: !held.has(name) && !classed.has(name) }));
@@ -51,7 +51,7 @@ export async function slackEmojisNear(ctx: QueryCtx, workspace: string, near: st
 export async function mapHeldEmoji(ctx: MutationCtx, workspace: string, member: MemberId, emoji: string, name: string): Promise<boolean> {
   const id = earnedEmojiIdOf(emoji);
   if (id === null || !(await isEarnedBy(ctx, member, id))) return false;
-  if (!(await isMappableByMembers(ctx, workspace, id)) || !(await isFreeInSlack(ctx, workspace, name))) return false;
+  if (!(await isMappableByMembers(ctx, workspace, id)) || !(await isFreeInSlack(ctx, workspace, name, await slackEmojiReachOf(ctx, member)))) return false;
   await giveEmojiTheName(ctx, workspace, id, name, { member, as: "member" });
   return true;
 }
@@ -108,8 +108,8 @@ async function isMappableByMembers(ctx: QueryCtx, workspace: string, emoji: Earn
   return (await mapperOf(ctx, workspace, emoji))?.as !== "maintainer";
 }
 
-async function isFreeInSlack(ctx: QueryCtx, workspace: string, name: string): Promise<boolean> {
-  if ((await slackEmojiNamed(ctx, workspace, name))?.name !== name) return false;
+async function isFreeInSlack(ctx: QueryCtx, workspace: string, name: string, reach: SlackEmojiReach): Promise<boolean> {
+  if ((await slackEmojiNamed(ctx, workspace, name, reach))?.name !== name) return false;
   return (await emojiNamed(ctx, workspace, name)) === null && !(await isClassed(ctx, workspace, name));
 }
 

@@ -1,10 +1,10 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf } from "../companyProfiles/teams";
 import { personFactsOf, type MemberId } from "../workspace/directory";
+import { slackEmojiListedIn, slackEmojiNamed, slackEmojiReachOf, type SlackEmojiReach } from "../workspace/slackEmoji";
 import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis } from "./emojiCatalogue";
 import { classEmoji, emojiClassesIn, unclassEmoji } from "./emojiClasses";
 import { freeTheName, giveEmojiTheName, namesHeldIn, openTheRegistryIn, type EarnedEmojiId } from "./emojiNames";
-import { slackEmojiImageOf, slackEmojiListedIn } from "../workspace/slackEmoji";
 
 export type MappingTarget = { kind: "team"; team: string } | { kind: "milestone"; milestone: string } | { kind: "level"; level: number } | { kind: "hype"; person: MemberId } | { kind: "random" };
 
@@ -20,8 +20,8 @@ export type SlackEmojiMappings = { emoji: SlackEmojiMapping[]; more: boolean; ra
 
 export const mostSlackEmojiListed = 10_000;
 
-export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, randomDrops: boolean): Promise<SlackEmojiMappings> {
-  const listed = await slackEmojiListedIn(ctx, workspace, mostSlackEmojiListed + 1);
+export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, randomDrops: boolean, reach: SlackEmojiReach): Promise<SlackEmojiMappings> {
+  const listed = await slackEmojiListedIn(ctx, workspace, mostSlackEmojiListed + 1, reach);
   const named = await namesHeldIn(ctx, workspace);
   const classes = await emojiClassesIn(ctx, workspace);
   const mappingOf = (name: string): MappingTarget | null => (classes.get(name) === "random" ? { kind: "random" } : targetOf(named.get(name)));
@@ -36,7 +36,7 @@ export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, ran
 }
 
 export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace, randomDrops: boolean, maintainer: MemberId): Promise<boolean> {
-  if ((await slackEmojiImageOf(ctx, workspace, name)) === undefined || (place.kind === "random" && !randomDrops)) return false;
+  if ((await slackEmojiNamed(ctx, workspace, name, await slackEmojiReachOf(ctx, maintainer))) === null || (place.kind === "random" && !randomDrops)) return false;
   if (place.kind === "unmapped" || place.kind === "random") {
     await openTheRegistryIn(ctx, workspace);
     if (!(await classEmoji(ctx, workspace, name, place.kind))) return false;
