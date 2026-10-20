@@ -151,6 +151,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
 - the level-up DM links to its level up's page while its finds dropped: While the website's link function answers the member a link, the level-up DM's link is `Reveal your three new hoggies` to SITE_URL plus `/book#level-up/{level}` only while `album` and `level-up-reveal` are on for the member, read without an exposure when Slack takes the DM, and that level up's crates dropped their finds; otherwise it is today's `See your level on the web` to the root; a DM Slack held back decides again when it is sent again.
   over: the level-up DM of a member reaching level 2 with `album`, `collection` and `level-up-reveal` on, the same DM with each of the three off, and a DM Slack held back while `level-up-reveal` went off
   via: the level-up DM links to its reveal while its hoggies dropped
+  refuted: levelUpRevealedTo checked only that the level up's crates dropped, not whether `album` and `level-up-reveal` show to the member -> the DM of a member with `album` off and a DM held back while `level-up-reveal` went off linked to the page, 2 of 5 tests red (2026-10-20)
   because: the product owner decided, 2026-10-20, that the Slack link is the only way onto a level up's page for now, so the DM links there only when the page has finds to show and is open to the member, and every other member keeps today's link
   crossing: slack-request -> domain
   entrances: route POST /slack/events
