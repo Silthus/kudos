@@ -1,0 +1,12 @@
+     × while no channel is picked, the read offers the picker beside the announcement channel, and the post goes to the announcement channel 21ms
+     × a pasted link to a public channel is checked by joining it, then the read names it and links it, and the post goes there 20ms
+     × a private channel is refused with why, nothing is picked, and the post stays in the announcement channel 22ms
+     × a archived channel is refused with why, nothing is picked, and the post stays in the announcement channel 21ms
+     × a shared channel is refused with why, nothing is picked, and the post stays in the announcement channel 21ms
+     × says it is checking, not the last pick's outcome, while the reply has come but the read hasn't moved yet 181ms
+     × says the channel is picked and empties the field when the read lands before the pick is answered 211ms
+     × says the channel is picked and empties the field when the read lands before the pick is never answered 201ms
+     × keeps a link typed while the last pick was still being checked 331ms
+     × says when I couldn't post in the picked channel last time, and to pick another one 40ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  10 failed | 64 passed (74)

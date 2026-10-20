@@ -1,5 +1,5 @@
 import { Button, Switch } from "@posthog/quill";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { Panel } from "./Panel";
 import type { ShellActions, WeeklyPostChannelReply, WeeklyPostReply, WeeklyPostSetting } from "../shell";
 import { switchLook } from "./MessageSettingRow";
@@ -32,7 +32,7 @@ export function WeeklyPost({ setting, setWeeklyPost, pickWeeklyPostChannel }: We
         <Switch size="sm" className={`${switchLook} shrink-0`} checked={on} disabled={pending} onCheckedChange={(asked) => void choose(asked)} />
       </label>
       <StatusLine line={lineAfter(settled, on ? landedLines.on : landedLines.off)} />
-      {cantPost && <p className="text-sm text-muted-foreground">{channelPick === undefined ? "I can't post in the announcement channel. Add me to it, or ask a workspace admin to pick another channel in App Home's Admin tab." : `I can't post in ${channelNameOf(picked)}. Add me to it, or pick another channel below.`}</p>}
+      {cantPost && <p className="text-sm break-words text-muted-foreground">{cantPostLineOf(channelPick)}</p>}
       {channelPick !== undefined && <ChannelPicker pick={channelPick} pickWeeklyPostChannel={pickWeeklyPostChannel} />}
     </Panel>
   );
@@ -46,6 +46,12 @@ function PostChannel({ link, picked }: { link: string | null; picked: string | n
       {name}
     </a>
   );
+}
+
+function cantPostLineOf(channelPick: ChannelPick | undefined) {
+  if (channelPick === undefined) return "I can't post in the announcement channel. Add me to it, or ask a workspace admin to pick another channel in App Home's Admin tab.";
+  if (channelPick.picked === null) return "I can't post in the announcement channel. Add me to it, or pick another channel below.";
+  return `I can't post in ${channelNameOf(channelPick.picked)}. Pick another channel below.`;
 }
 
 function channelNameOf(picked: string | null) {
@@ -67,7 +73,12 @@ const notAChannelLinkLine = "That isn't a link to a Slack channel. Copy it from 
 
 function ChannelPicker({ pick, pickWeeklyPostChannel }: ChannelPickerProps) {
   const [link, setLink] = useState("");
-  const { pending, sent, send } = useSentPick(pick.check, pickWeeklyPostChannel, () => setLink(""));
+  const { pending, attempt, send } = useSentPick(pick, pickWeeklyPostChannel);
+  const [clearedFor, setClearedFor] = useState(0);
+  if (attempt !== null && attempt.id !== clearedFor && hasLanded(attempt, pick) && pick.check === "picked") {
+    setClearedFor(attempt.id);
+    if (link === attempt.link) setLink("");
+  }
   const id = useId();
   const hintId = `${id}-hint`;
   const sendable = !pending && link.trim() !== "";
@@ -89,53 +100,54 @@ function ChannelPicker({ pick, pickWeeklyPostChannel }: ChannelPickerProps) {
           Use this channel
         </Button>
       </div>
-      <StatusLine line={lineOf(sent, pick)} />
+      <StatusLine line={lineOf(attempt, pick)} />
     </form>
   );
 }
 
 const inputClass = "h-10 w-full rounded-lg border border-muted-foreground bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-type Sent = Answer | "not-a-channel-link";
+type Attempt = { id: number; link: string; before: number; answer: Answer | "not-a-channel-link" | null };
 
-function useSentPick(check: ChannelCheck | null, pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"], onPicked: () => void) {
+function useSentPick(pick: ChannelPick, pickWeeklyPostChannel: ShellActions["pickWeeklyPostChannel"]) {
   const [pending, setPending] = useState(false);
-  const [sent, setSent] = useState<Sent | null>(null);
-  const [readCheck, setReadCheck] = useState(check);
-
-  if (readCheck !== check) {
-    setReadCheck(check);
-    if (sent === "unreachable") setSent("landed");
-    if (check === "picked" && (sent === "landed" || sent === "unreachable")) onPicked();
-  }
+  const [attempt, setAttempt] = useState<Attempt | null>(null);
+  const attempts = useRef(0);
 
   const send = async (link: string) => {
     if (pending) return;
     setPending(true);
-    setSent(null);
+    attempts.current += 1;
+    const sent = { id: attempts.current, link, before: pick.pick };
+    setAttempt({ ...sent, answer: null });
     try {
-      setSent(sentOf(await pickWeeklyPostChannel(link)));
+      setAttempt({ ...sent, answer: pickAnswerOf(await pickWeeklyPostChannel(link)) });
     } catch {
-      setSent("unreachable");
+      setAttempt({ ...sent, answer: "unreachable" });
     } finally {
       setPending(false);
     }
   };
 
-  return { pending, sent, send };
+  return { pending, attempt, send };
 }
 
-function sentOf(reply: WeeklyPostChannelReply): Sent {
+function hasLanded(attempt: Attempt, read: ChannelPick) {
+  return read.pick > attempt.before;
+}
+
+function pickAnswerOf(reply: WeeklyPostChannelReply): Attempt["answer"] {
   if (reply.kind === "checking") return "landed";
   if (reply.kind === "refused") return reply.reason ?? "refused";
   return "denied";
 }
 
-function lineOf(sent: Sent | null, { picked, check }: ChannelPick): string {
-  if (sent === "not-a-channel-link") return notAChannelLinkLine;
-  if (sent !== "landed") return sent === null ? "" : lineAfter(sent, "");
-  if (check === null) return "";
-  return check === "picked" ? `Picked ${channelNameOf(picked)}.` : checkLines[check];
+function lineOf(attempt: Attempt | null, read: ChannelPick): string {
+  if (attempt === null) return "";
+  if (hasLanded(attempt, read) && read.check !== null) return read.check === "picked" ? `Picked ${channelNameOf(read.picked)}.` : checkLines[read.check];
+  if (attempt.answer === null || attempt.answer === "landed") return checkLines.checking;
+  if (attempt.answer === "not-a-channel-link") return notAChannelLinkLine;
+  return lineAfter(attempt.answer, "");
 }
 
 function answerOf(reply: WeeklyPostReply): Answer {

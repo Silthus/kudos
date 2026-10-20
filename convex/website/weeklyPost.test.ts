@@ -201,7 +201,7 @@ describe("only an admin or the maintainer switches the Monday post", { timeout: 
 const withPicker = [...everyFlag, "weekly-post-channel"];
 const pickedChannel = "C0PICKED1";
 const pickedLink = `https://hedgehug.slack.com/archives/${pickedChannel}`;
-const unpicked = { ...switchedOff, channelPick: { picked: null, check: null } };
+const unpicked = { ...switchedOff, channelPick: { picked: null, check: null, pick: 0 } };
 
 describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, () => {
   test("while no channel is picked, the read offers the picker beside the announcement channel, and the post goes to the announcement channel", async () => {
@@ -219,11 +219,11 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     const owner = await aWorkspaceWithGroups({ flags: withPicker });
 
     expect(await owner.pickChannel(pickedLink)).toEqual({ kind: "checking" });
-    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "checking" } });
+    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "checking", pick: 1 } });
     await settle(t);
 
     expect(slack.callsTo("conversations.join")).toEqual([{ channel: pickedChannel }]);
-    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelLink: pickedLink, channelPick: { picked: "kudos-weekly", check: "picked" } });
+    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelLink: pickedLink, channelPick: { picked: "kudos-weekly", check: "picked", pick: 1 } });
     await owner.switchWeeklyPost(true);
     await giveKudos("U_ANN", "U_BOB");
     await settleUpTo(t, mondayAtNineInBerlin);
@@ -253,7 +253,7 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     await owner.pickChannel(pickedLink);
     await settle(t);
 
-    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check } });
+    expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check, pick: 1 } });
     await owner.switchWeeklyPost(true);
     await giveKudos("U_ANN", "U_BOB");
     await settleUpTo(t, mondayAtNineInBerlin);
