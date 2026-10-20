@@ -292,10 +292,25 @@
 .al-ms-emoji-says {
   display: flex;
   min-height: 1.375rem;
+  flex-direction: column;
   align-items: center;
+  gap: 0.25rem;
   color: var(--al-quiet);
   font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.al-ms-emoji .al-add-to-slack-button {
+  min-height: 1.5rem;
+  padding: 0 0.5rem;
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.al-ms-emoji .al-coming-soon {
+  font-size: 0.6875rem;
+  white-space: normal;
 }
 
 .al-ms-emoji[data-earned] img {
