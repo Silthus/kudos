@@ -33,7 +33,7 @@ const noProfile: ProfileRead = (asking) => (asking ? { kind: "off" } : undefined
 
 const noHoggies: HoggiesRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "mapSlackEmoji" | "mapMyEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies };
 
@@ -60,6 +60,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     linkCompanyProfile: vi.fn(commands.linkCompanyProfile ?? (async () => ({ kind: "refused", reason: null }) as const)),
     setWorkspaceSettings: vi.fn(commands.setWorkspaceSettings ?? (async () => ({ kind: "refused", reason: null }) as const)),
     setWeeklyPost: vi.fn(commands.setWeeklyPost ?? (async () => ({ kind: "refused" }) as const)),
+    pickWeeklyPostChannel: vi.fn(commands.pickWeeklyPostChannel ?? (async () => ({ kind: "refused", reason: null }) as const)),
     mapSlackEmoji: vi.fn(commands.mapSlackEmoji ?? (async () => ({ kind: "refused" }) as const)),
     mapMyEmoji: vi.fn(commands.mapMyEmoji ?? (async () => ({ kind: "refused" }) as const)),
     openThoughtfulPack: vi.fn(commands.openThoughtfulPack ?? (async () => ({ kind: "refused" }) as const)),

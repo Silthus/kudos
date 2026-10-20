@@ -375,7 +375,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   refuted: the public-kudos rule the weekly post reads no longer checked that the words came from a public channel -> 1 of 2 tests failed on its assertion: the post quoted more kudos than the one public kudos (2026-10-19)
   because: AL63 lets kudos text into a proactive post only as the public channel already showed it; a post that quoted a private channel or a DM in the kudos channel would publish words their author shared with a few people to the whole workspace
   kinds: message, output
-  checklist: destination-confinement dismissed: the post goes to Slack's API at one configured base URL, to the announcement channel the workspace's admins set, with no destination taken from the quoted kudos
+  checklist: destination-confinement dismissed: the post goes to Slack's API at one configured base URL, to the announcement channel the workspace's admins set or, while `weekly-post-channel` applies, to the public channel the maintainer picked and the Slack adapter joined (Leaderboard), with no destination taken from the quoted kudos
   checklist: message-authenticity dismissed: the post is outbound; the kudos it quotes were verified by the Slack adapter's signed Slack requests when they arrived
   checklist: redaction declared as a weekly post quotes only public kudos
   checklist: input-validation dismissed: the post is rendered from stored rows, never from outside input; the quoted words are escaped so no `<!channel>` or link can be forged
@@ -386,4 +386,4 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: commit-ordered-effects dismissed: the post is sent by an action after the claim's mutation commits
   checklist: retry-classification dismissed: the Monday post's delivery classifies failures as it does for the groups post
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
-  checklist: declared-target-coverage dismissed: a post has exactly one target, the workspace's announcement channel
+  checklist: declared-target-coverage dismissed: a post has exactly one target, the public channel the maintainer picked or else the workspace's announcement channel

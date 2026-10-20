@@ -1,17 +1,55 @@
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { renderMondayPost, renderTopKudosPost, type TeamRow, type TopKudosEntry, type TopKudosMessage, type Words } from "../feedback/mondayPost";
-import type { ClaimedWeek } from "../leaderboard/mondayPost";
+import type { ClaimedWeek, foundChannelValidator } from "../leaderboard/mondayPost";
 import type { MondayPostOutcome } from "../leaderboard/mondayPostOutcome";
 import { escaped, mrkdwn } from "./blocks";
 import type { ActionCtx } from "../_generated/server";
 import { attemptCall, isRefusedForItsBlocks, slackTextOf, type Attempt } from "./delivery";
+import { callSlack, type SlackAnswer } from "./webApi";
 
 const attemptsAtMost = 3;
 const teamRowsShown = 10;
 const otherTeamsCharactersAtMost = 2_900;
 const refusedInChannel = new Set(["no_permission", "restricted_action", "restricted_action_read_only_channel", "restricted_action_thread_only_channel", "ekm_access_denied"]);
+
+type FoundChannel = Infer<typeof foundChannelValidator>;
+
+type JoinedChannel = { channel?: { name?: string; is_private?: boolean } };
+
+const privateChannel: FoundChannel = { kind: "refused", reason: "private" };
+
+const joinRefusals: Record<string, FoundChannel> = {
+  method_not_supported_for_channel_type: privateChannel,
+  channel_not_found: { kind: "refused", reason: "not-found" },
+  is_archived: { kind: "refused", reason: "archived" },
+};
+
+const uncheckable: FoundChannel = { kind: "refused", reason: "failed" };
+
+export const checkPickedChannel = observedAction({
+  args: { workspace: v.string(), channel: v.string() },
+  handler: async (ctx, { workspace, channel }) => {
+    await ctx.runMutation(internal.leaderboard.mondayPost.recordChannelCheck, { workspace, channel, found: await joined(channel) });
+  },
+});
+
+async function joined(channel: string): Promise<FoundChannel> {
+  try {
+    return foundChannelOf(await callSlack<JoinedChannel>("conversations.join", { channel }));
+  } catch (error) {
+    console.warn(`conversations.join has no known result: ${String(error)}`);
+    return uncheckable;
+  }
+}
+
+function foundChannelOf(answer: SlackAnswer<JoinedChannel>): FoundChannel {
+  if (!answer.ok) return joinRefusals[answer.error] ?? uncheckable;
+  if (answer.channel?.is_private === true) return privateChannel;
+  const name = answer.channel?.name;
+  return name === undefined ? uncheckable : { kind: "public", name };
+}
 
 export const postMondayPost = observedAction({
   args: { workspace: v.string(), generation: v.number(), attempt: v.optional(v.number()) },

@@ -78,6 +78,8 @@ export const workspaceParts = {
 export const weeklyPostParts = {
   off: { on: false, timeZone: "Europe/Berlin", channelLink: "https://hedgehug.slack.com/archives/C_ANNOUNCE", cantPost: false, posts: "topKudos" },
   on: { on: true, timeZone: "Europe/Berlin", channelLink: "https://hedgehug.slack.com/archives/C_ANNOUNCE", cantPost: false, posts: "topKudos" },
+  unpicked: { on: false, timeZone: "Europe/Berlin", channelLink: "https://hedgehug.slack.com/archives/C_ANNOUNCE", cantPost: false, posts: "topKudos", channelPick: { picked: null, check: null } },
+  picked: { on: true, timeZone: "Europe/Berlin", channelLink: "https://hedgehug.slack.com/archives/C0PICKED1", cantPost: false, posts: "topKudos", channelPick: { picked: "kudos-weekly", check: null } },
 } as const satisfies Record<string, WeeklyPostSetting>;
 
 export const settingsFixtures = {

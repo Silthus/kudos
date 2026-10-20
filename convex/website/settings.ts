@@ -5,7 +5,7 @@ import { companyProfileSettingOf, type CompanyProfileSetting, type ProfileChoice
 import type { MatchedBy } from "../companyProfiles/matcher";
 import { groupsShownTo } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
-import { mondayPostSwitchReadBy, type MondayPostSwitch } from "../leaderboard/mondayPost";
+import { mondayPostSwitchReadBy, type WeeklyPostSwitch } from "../leaderboard/mondayPost";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageSettingsOf, type MessageSetting } from "../messageSettings/messageSettings";
@@ -31,7 +31,7 @@ export type AdminProfiles = {
   profiles: Array<ProfileChoice & { heldBy: string | null; by: MatchedBy | null }>;
 };
 
-export type WeeklyPostSetting = Omit<MondayPostSwitch, "channel"> & { channelLink: string | null };
+export type WeeklyPostSetting = Omit<WeeklyPostSwitch, "channel"> & { channelLink: string | null };
 
 export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles; workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting } & SectionSettings;
 

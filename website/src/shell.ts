@@ -1,4 +1,4 @@
-import type { AdminProfileLinkAnswer, CompanyProfileLinkAnswer, GroupPickAnswer, MessageSettingAnswer, VisibilityAnswer, WeeklyPostAnswer, WorkspaceSettingsAnswer } from "../../convex/website/commands";
+import type { AdminProfileLinkAnswer, CompanyProfileLinkAnswer, GroupPickAnswer, MessageSettingAnswer, VisibilityAnswer, WeeklyPostAnswer, WeeklyPostChannelAnswer, WorkspaceSettingsAnswer } from "../../convex/website/commands";
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
 import type { EmojiMappingAnswer, EmojiMappings, EmojiMappingsRead as EmojiMappingsReadAnswer, ShownTarget } from "../../convex/website/emojiMappings";
 import type { AppEmojisRead as AppEmojisReadAnswer, MyEmojiMappingAnswer, SlackEmojiMatchesRead as SlackEmojiMatchesReadAnswer } from "../../convex/website/emojiWizard";
@@ -29,6 +29,8 @@ export type WorkspaceSettingsReply = WorkspaceSettingsAnswer | Denial;
 
 export type WeeklyPostReply = WeeklyPostAnswer | Denial;
 
+export type WeeklyPostChannelReply = WeeklyPostChannelAnswer | Denial;
+
 export type WorkspaceSettingsChange = { baseAllowance: number; kudosEmoji: string; hugBudget: number };
 
 export type AdminLinkTarget = number | "none" | null;
@@ -57,7 +59,7 @@ export type Visitor = Exclude<MyProfile, MemberProfile> | Member | { kind: "load
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setWeeklyPost(on: boolean): Promise<WeeklyPostReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; mapMyEmoji(emoji: string, to: string): Promise<MyEmojiMappingReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply>; markEmojisSeen(ids: string[]): Promise<SeenReply> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setWeeklyPost(on: boolean): Promise<WeeklyPostReply>; pickWeeklyPostChannel(link: string): Promise<WeeklyPostChannelReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; mapMyEmoji(emoji: string, to: string): Promise<MyEmojiMappingReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply>; markEmojisSeen(ids: string[]): Promise<SeenReply> };
 
 const member: Member = { kind: "member" };
 
@@ -96,4 +98,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), setWeeklyPost: async () => ({ kind: "set" }), mapSlackEmoji: async () => ({ kind: "mapped" }), mapMyEmoji: async () => ({ kind: "mapped" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team), markEmojisSeen: async (ids) => ({ kind: "seen", ids }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), setWeeklyPost: async () => ({ kind: "set" }), pickWeeklyPostChannel: async () => ({ kind: "checking" }), mapSlackEmoji: async () => ({ kind: "mapped" }), mapMyEmoji: async () => ({ kind: "mapped" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team), markEmojisSeen: async (ids) => ({ kind: "seen", ids }) };

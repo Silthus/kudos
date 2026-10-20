@@ -7,7 +7,7 @@ import { LoadingPage } from "./LoadingPage";
 import { NotFoundPage } from "./NotFoundPage";
 import { SettingsPage, ThemeAndSignOut } from "./SettingsPage";
 
-export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "mapSlackEmoji">;
+export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji">;
 
 type SettingsAnswerPageProps = { settings: SettingsShown | undefined; actions: SettingsActions; useEmojiMappings: EmojiMappingsRead; albumSections?: ReactNode } & Answers;
 

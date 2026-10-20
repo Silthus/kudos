@@ -8,7 +8,7 @@ import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHo
 import { setGroupMode } from "../groups/groupMode";
 import { groupModeValidator } from "../groups/mode";
 import { boardsShownTo } from "../leaderboard/boards";
-import { setMondayPost } from "../leaderboard/mondayPost";
+import { pickMondayPostChannel, setMondayPost } from "../leaderboard/mondayPost";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -54,6 +54,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
   v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
   v.object({ type: v.literal("setMondayPost"), on: v.boolean(), timeZone: v.optional(v.string()) }),
+  v.object({ type: v.literal("pickMondayPostChannel"), channel: v.string() }),
   v.object({ type: v.literal("buyItem"), item: v.string() }),
   v.object({ type: v.literal("setCustomKudosEmoji"), emoji: v.array(v.string()) }),
   v.object({ type: v.literal("buyCrate"), next: v.number() }),
@@ -70,7 +71,7 @@ export type CommandOrigin = { surface: Surface; idempotencyKey: string };
 
 export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | WorkspaceSettingsOutcome | null;
 
-const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile", "setWorkspaceSettings"]);
+const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile", "setWorkspaceSettings", "pickMondayPostChannel"]);
 
 export function isWebsiteOnly({ type }: Command): boolean {
   return websiteOnly.has(type);
@@ -133,6 +134,9 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       if (await setMondayPost(ctx, workspace, person, change)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;
     }
+    case "pickMondayPostChannel":
+      await pickMondayPostChannel(ctx, workspace, person, command.channel);
+      return null;
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       if (outcome !== null) await showHomeTab(ctx, workspace, person, "skillTree");
