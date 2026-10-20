@@ -631,6 +631,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   over: a member reaching level 3 with three pinned finds, a find of level 2 found again at level 3, level ups at 4, 10 and 11 with the registry open, a level reached before `level-up-reveal` was on and a level never reached, and a level up that dropped its finds read while `level-up-reveal` or `album` is off
   via: getLevelUp answers one level up's reveal
   refuted: levelUpBefore answered level 1 whatever level up came before -> level 11's page answered the level 5 emoji that level 4's level up had not earned but level 10's had, 1 of 6 tests red (2026-10-20)
+  refuted: levelUpBefore answered level 1 again, once the tests drew for real under a searched secret -> level 11's page again answered the level 5 emoji, 1 of 6 tests red (2026-10-20)
   because: the product owner asked, 2026-10-20, that a level up show its three finds and the emojis it unlocked on one page the level-up DM links to; the page names only what that level up brought, so an emoji earned at an earlier level up never shows as new there, and a bounded read keeps a member with a long history inside a query's limits
   crossing: browser -> domain
   entrances: query getLevelUp
