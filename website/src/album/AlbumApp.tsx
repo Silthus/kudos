@@ -17,6 +17,7 @@ import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, useBoardsOfPeriod } from "./boardPeriods";
 import { useHoggieAddress } from "./hoggieAddress";
 import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
+import { isWaitingForTheLevelUp, LevelUpAnswerPage } from "./LevelUp";
 import { LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
 import { SharedEmojis } from "./SharedEmojis";
@@ -26,7 +27,7 @@ import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { arrivals: number }) {
+export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp }: AppProps & { arrivals: number }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
@@ -39,6 +40,8 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const profile = useAlbumProfile(onProfile);
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
+  const onLevelUp = place.kind === "levelUp";
+  const levelUp = useLevelUp(place.kind === "levelUp" ? place.level : null);
   const onPerson = place.kind === "person";
   const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
@@ -67,12 +70,13 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
+        levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} {...answers} />}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}

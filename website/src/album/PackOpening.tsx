@@ -23,7 +23,7 @@ import {
   type PackContents,
 } from "./opening";
 import { keepFocusIn } from "./focusTrap";
-import { CardBack, Confetti, HoggieCard, PackWrapper, PersonCard, Ring, Shine, Sparkles } from "./PackCards";
+import { CardBack, CardSlot, Confetti, HoggieCard, PackWrapper, PersonCard, Sparkles } from "./PackCards";
 import "./opening.css";
 import { ComingSoonToSlack, FindInSlackWhileOn, useLiveEmoji, useSlackWay } from "./findInSlack";
 
@@ -289,29 +289,6 @@ function HypeEmoji({ hype }: { hype: AlbumEmoji }) {
       <EmojiPicture emoji={live} size={24} />
       <span className="al-emoji-name">:{live.name}:</span>
     </span>
-  );
-}
-
-type CardSlotProps = { label: string; up: boolean; rarity?: Rarity; glow: Rarity | null; flourish: boolean; back: ReactNode; children: ReactNode };
-
-function CardSlot({ label, up, rarity, glow, flourish, back, children }: CardSlotProps) {
-  return (
-    <div role="group" aria-label={label} className="al-slot" data-face-up={up ? "" : undefined} data-rarity={rarity} data-glow={glow ?? undefined}>
-      {flourish && up && <Ring />}
-      <span className="al-fly-x">
-        <span className="al-fly-y">
-          <span className="al-flip" data-flipped={up ? "" : undefined}>
-            <span className="al-flip-face al-flip-back" aria-hidden={up || undefined}>
-              {back}
-            </span>
-            <span className="al-flip-face al-flip-front" aria-hidden={!up || undefined}>
-              {children}
-              {flourish && up && <Shine />}
-            </span>
-          </span>
-        </span>
-      </span>
-    </div>
   );
 }
 

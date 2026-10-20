@@ -9,7 +9,7 @@ import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
-import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
+import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, LevelUpShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
 import { albumOf, openShown, putAllInShown, putInShown } from "./album/liveAlbum";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
@@ -54,6 +54,7 @@ function LiveApp() {
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
       useAlbumProfile={(asking) => useLiveAlbumProfile(asking, unreachable)}
       useAlbumHoggies={(asking) => useLiveAlbumHoggies(asking, unreachable)}
+      useLevelUp={(level) => useLiveLevelUp(level, unreachable)}
     />
   );
 }
@@ -101,6 +102,14 @@ function useLiveAlbumProfile(asking: boolean, unreachable: boolean): ProfileShow
 function useLiveAlbumHoggies(asking: boolean, unreachable: boolean): HoggiesShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { hoggies: { query: api.website.album.getAlbumHoggies, args: {} } } : {}), [asking]);
   const { hoggies: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
+}
+
+function useLiveLevelUp(level: number | null, unreachable: boolean): LevelUpShown | undefined {
+  const request = useMemo((): RequestForQueries => (level === null ? {} : { levelUp: { query: api.website.album.getLevelUp, args: { level } } }), [level]);
+  const { levelUp: answer } = useQueries(request);
   if (answer instanceof Error) return { kind: "broken" };
   if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return answer;

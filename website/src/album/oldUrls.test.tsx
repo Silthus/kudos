@@ -15,6 +15,7 @@ import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
+import { levelUpFixtures } from "./levelUpFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 
@@ -42,7 +43,7 @@ beforeEach(() => {
 
 function visit(address: string) {
   window.history.replaceState(null, "", address);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: fixedPeople(albumFixtures.midway), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway) });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: fixedPeople(albumFixtures.midway), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway), levelUp: (level) => (level === null ? undefined : { ...levelUpFixtures.levelSeven, level }) });
 }
 
 function addressNow() {
@@ -103,6 +104,8 @@ function albumPageFor(page: Page): Landing {
       return hoggies;
     case "settings":
       return page.section === undefined ? settings : { ...settings, address: `/settings?section=${page.section}` };
+    case "levelUp":
+      return { address: `/book#level-up/${page.level}`, title: `Level ${page.level}` };
   }
 }
 

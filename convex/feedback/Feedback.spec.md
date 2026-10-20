@@ -148,6 +148,19 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: commit-ordered-effects dismissed: the view is desired state rendered after the reads commit; a click on a link schedules nothing
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: App Home has exactly one target, the member it is about
+- the level-up DM links to its level up's page while its finds dropped: While the website's link function answers the member a link, the level-up DM's link is `Reveal your three new hoggies` to SITE_URL plus `/book#level-up/{level}` only while `album` and `level-up-reveal` are on for the member, read without an exposure when Slack takes the DM, and that level up's crates dropped their finds; otherwise it is today's `See your level on the web` to the root; a DM Slack held back decides again when it is sent again.
+  over: the level-up DM of a member reaching level 2 with `album`, `collection` and `level-up-reveal` on, the same DM with each of the three off, and a DM Slack held back while `level-up-reveal` went off
+  via: the level-up DM links to its reveal while its hoggies dropped
+  refuted: levelUpRevealedTo checked only that the level up's crates dropped, not whether `album` and `level-up-reveal` show to the member -> the DM of a member with `album` off and a DM held back while `level-up-reveal` went off linked to the page, 2 of 5 tests red (2026-10-20)
+  because: the product owner decided, 2026-10-20, that the Slack link is the only way onto a level up's page for now, so the DM links there only when the page has finds to show and is open to the member, and every other member keeps today's link
+  crossing: slack-request -> domain
+  entrances: route POST /slack/events
+  kinds: output
+  checklist: destination-confinement dismissed: the DM goes to Slack's chat.postMessage at one configured base URL for the member it is about; the link's origin is the deployment's own SITE_URL and its path comes from the route table
+  checklist: redaction dismissed: the link carries only a path and a level, never an identity
+  checklist: commit-ordered-effects dismissed: the DM is rendered at delivery after the drops commit with the level up
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: a DM has one target, the member it is about
 - a perk's purchase button links to the website: While the website's link function answers the member a link, by the same member decision App Home's front door reads, every `Buy` on a perk in a level-up DM is a link button to the skill tree's page, never a command, through the sign-in entry for a member previewing the website while it is closed for the workspace: its label stays `Buy`, its accessibility label names the perk and the page, it asks for no confirmation because it spends nothing, and a click on it spends nothing and answers nothing, while a `Buy` left from an earlier DM still spends a skill point on its perk; with the website closed the `Buy` is the command it was, with its confirmation.
   over: the level-up DM of a member who opened the skill tree at level 5 reaching level 6 with two skill points while the website is open, a click on its `Buy` link and on a `Buy` command left from a DM sent while the website was closed, the same DM while the website is closed, and the DM and App Home of a member previewing the website while it is closed for the workspace
   via: each perk's purchase button in Slack links to the skill tree's page while the website is open
