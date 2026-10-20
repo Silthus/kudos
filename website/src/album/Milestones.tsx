@@ -1,7 +1,7 @@
 import { useId, type CSSProperties } from "react";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { PageTitle } from "../PageTitle";
-import { NotInSlack } from "./findInSlack";
+import { MapInPlace, NotInSlack, useMapsInPlace } from "./findInSlack";
 import type { Album, AlbumMilestone } from "./answer";
 import { medalsOf } from "./facts";
 import { climbedShareOf, emblemOf, goalOf, isEarned, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
@@ -143,14 +143,20 @@ function MedalEmoji({ tier, emoji: { name, picture, answered }, emojiPage }: { t
 }
 
 function EmojiSays({ earned, at, answered, emojiPage }: { earned: boolean; at: number; answered: TierEmoji["answered"]; emojiPage: string | null }) {
-  return <span className="al-ms-emoji-says">{emojiSaysOf(earned, at, answered, emojiPage)}</span>;
+  const inPlace = useMapsInPlace();
+  return (
+    <span className="al-ms-emoji-says">
+      {emojiSaysOf(earned, at, answered, emojiPage, inPlace)}
+      {inPlace && answered !== null && <MapInPlace emoji={answered} />}
+    </span>
+  );
 }
 
-function emojiSaysOf(earned: boolean, at: number, answered: TierEmoji["answered"], emojiPage: string | null) {
+function emojiSaysOf(earned: boolean, at: number, answered: TierEmoji["answered"], emojiPage: string | null, inPlace: boolean) {
   if (!earned) return `Unlocks at ${at}`;
   if (answered === null) return null;
   if (answered.inSlack) return "In Slack";
-  return <NotInSlack emoji={answered} emojiPage={emojiPage} />;
+  return inPlace ? null : <NotInSlack emoji={answered} emojiPage={emojiPage} />;
 }
 
 const ringRadius = 46;

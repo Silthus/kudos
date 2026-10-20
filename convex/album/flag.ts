@@ -20,6 +20,12 @@ export function emojiWizardShownTo(ctx: QueryCtx, member: MemberId): Promise<boo
   return memberDecisionWithoutWriting(ctx, emojiWizardFlag, member);
 }
 
+export const emojiMappingInPlaceFlag = { key: "emoji-mapping-in-place", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function emojiMappingInPlaceShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, emojiMappingInPlaceFlag, member);
+}
+
 export type AlbumShown = { album?: true };
 
 export async function albumOnProfileOf(ctx: QueryCtx, member: MemberId): Promise<AlbumShown> {
