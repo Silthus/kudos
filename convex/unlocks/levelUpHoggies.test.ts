@@ -64,7 +64,16 @@ describe("a level up drops a hoggie from each of three crates", () => {
       await drawnFor(member, "level:3:2"),
       await drawnFor(member, "level:3:3", "rare"),
     ]);
-    expect(rareOrRarer).toContain((await dropsOf(member))[2]!.rarity);
+  });
+
+  test("over twenty level ups, every third find is rare or rarer", async () => {
+    const member = await aMemberWith("level-up-hoggies", "collection");
+
+    for (let level = 2; level <= 21; level++) await reachesLevel(t, member, level);
+
+    const thirdFinds = (await dropsOf(member)).filter((_, index) => index % 3 === 2);
+    expect(thirdFinds).toHaveLength(20);
+    for (const [index, { rarity }] of thirdFinds.entries()) expect(rareOrRarer, `level ${index + 2}'s third find`).toContain(rarity);
   });
 
   test("each level reached drops its own three", async () => {
