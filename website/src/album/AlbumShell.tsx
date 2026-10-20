@@ -28,13 +28,14 @@ export type AlbumShellProps = {
   person: ReactNode;
   profile: ReactNode;
   hoggies: ReactNode;
+  levelUp: (emojisShown: (ids: string[]) => void, covered: boolean) => ReactNode;
   busy: boolean;
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
   markEmojisSeen: (ids: string[]) => Promise<SeenReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
@@ -60,7 +61,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     },
     [show],
   );
-  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy;
+  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp";
   const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
   const finishUnlocking = (team: string) => {
@@ -86,7 +87,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} unlocking={unlocking} />
+            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
           </ErrorBoundary>
         </main>
       </div>

@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
+import { levelUpRevealedTo } from "../album/levelUp";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { recordedRewardsOf, tierRewardsRecordedFor, type TierRewardsRecorded } from "../achievements/tierRewards";
 import { laddersShownTo } from "../achievements/shown";
@@ -32,7 +33,7 @@ import { isCoinPerk, perkOf } from "../progression/tree";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { coinsOpenedLineOf, inventoryOpenedLineOf } from "./coins";
-import { deepLinkFrom, deepLinks, type DeepLink } from "./deepLinks";
+import { deepLinkFrom, deepLinks, levelUpRevealOf, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 import { settingsFooterFor, type SettingsFooter } from "./settingsFooter";
@@ -126,7 +127,7 @@ export const linesStillWanted = internalQuery({
     const website = await websiteOriginFor(ctx, workspace, member);
     const lines = told === null ? [] : renderNotification(told, await deliveryFactsOf(ctx, workspace, member, told, website));
     if (lines.length === 0) return null;
-    const link = deepLinkFrom(website, linkedPages[notification.kind]);
+    const link = deepLinkFrom(website, await linkedPageOf(ctx, member, notification));
     const footer = await settingsFooterFor(ctx, member);
     return [...lines, ...(link === null ? [] : [{ link }]), ...(footer === null ? [] : [{ footer }])];
   },
@@ -141,6 +142,11 @@ export const purchaseReplyStillWanted = internalQuery({
     return purchaseReplyOf(outcome, namedFor(scheduled("coins"), { storeShown: await storeShownTo(ctx, member) }).name);
   },
 });
+
+async function linkedPageOf(ctx: QueryCtx, member: MemberId, notification: Notification) {
+  if (notification.kind === "level-reached" && (await levelUpRevealedTo(ctx, member, notification.level))) return levelUpRevealOf(notification.level);
+  return linkedPages[notification.kind];
+}
 
 type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null; waiting: ReadonlySet<string>; thisWeek: WeekKey };
 

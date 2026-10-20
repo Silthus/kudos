@@ -9,6 +9,7 @@ export type Place =
   | { kind: "hoggies"; hoggie: string | null; rarity?: Rarity }
   | { kind: "milestones" }
   | { kind: "packs" }
+  | { kind: "levelUp"; level: number }
   | { kind: "activity" }
   | { kind: "leaderboard" }
   | { kind: "settings"; section?: SettingsSection }
@@ -35,7 +36,7 @@ export function placeOf(route: Route, hash: string, landingState: unknown): Plac
   }
 }
 
-const pageSections = new Set(["teams", "people", "me", "hoggies", "milestones", "packs"]);
+const pageSections = new Set(["teams", "people", "me", "hoggies", "milestones", "packs", "level-up"]);
 
 export function isAnAlbumHash(hash: string) {
   return pageSections.has(hash.replace(/^#/, "").split("/", 1)[0]!);
@@ -49,7 +50,13 @@ function albumPlaceIn(hash: string, landingState: unknown): Place | undefined {
   if (section === "hoggies") return hoggiesPlaceOf(key || null, landingState);
   if (section === "milestones") return { kind: "milestones" };
   if (section === "packs") return { kind: "packs" };
+  if (section === "level-up") return levelUpPlaceOf(key);
   return undefined;
+}
+
+function levelUpPlaceOf(key: string | undefined): Place | undefined {
+  const level = Number(key);
+  return key && Number.isSafeInteger(level) && level > 1 ? { kind: "levelUp", level } : undefined;
 }
 
 function isARetiredGroupAlbum(team: string) {
@@ -109,6 +116,8 @@ export function hrefOf(place: Place): string {
     case "milestones":
     case "packs":
       return `/book#${place.kind}`;
+    case "levelUp":
+      return `/book#level-up/${place.level}`;
     case "settings":
       return place.section === undefined ? "/settings" : `/settings?section=${place.section}`;
     case "elsewhere":

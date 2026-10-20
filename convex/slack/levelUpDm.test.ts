@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
+import { flagsLoaded, flagsOnForEveryone, onForEveryone } from "../../testing/flags";
+import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { components, internal } from "../_generated/api";
 import { standingOf } from "../progression/progression";
 
 const now = new Date("2026-10-13T10:00:00Z");
+const siteUrl = "https://kudos-site.test";
+const revealOn = ["xp-levels", "website", "album", "collection", "level-up-reveal"];
 
 let slack: FakeSlack;
 let sentMessages = 0;
@@ -134,6 +138,61 @@ describe("R34 R35: a level-up DM is tried at most 3 times", () => {
     expect(slack.messagesIn("U_ALICE").filter(isLevelUpDm)).toEqual([]);
   });
 });
+
+describe("the level-up DM links to its reveal while its hoggies dropped", () => {
+  beforeEach(() => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    vi.stubEnv("SITE_URL", siteUrl);
+  });
+
+  test("a level up that dropped its three hoggies links to their reveal on the web", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book#level-up/2|Reveal your three new hoggies>` }]);
+  });
+
+  test.each([
+    ["level-up-reveal is off", revealOn.filter((flag) => flag !== "level-up-reveal")],
+    ["collection is off, so nothing dropped", revealOn.filter((flag) => flag !== "collection")],
+    ["the album is off", revealOn.filter((flag) => flag !== "album")],
+  ])("while %s, the level-up DM keeps today's link to the member's level", async (_, flags) => {
+    const t = await websiteWorkspaceWith(...flags);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
+  });
+
+  test("a DM Slack held back while level-up-reveal went off links to the member's level when it is sent again", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await switchFlags(t, ...revealOn.filter((flag) => flag !== "level-up-reveal"));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(levelUpDms()).toHaveLength(2);
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` });
+  });
+});
+
+let postHog: FakePostHog;
+
+async function websiteWorkspaceWith(...flags: string[]) {
+  postHog = flagsOnForEveryone(slack.fetch, ...flags);
+  const t = await workspaceWithAllowance(10);
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  return t;
+}
+
+async function switchFlags(t: Backend, ...flags: string[]) {
+  postHog.withFlags(...flags.map(onForEveryone));
+  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+}
 
 async function workspaceWithAllowance(baseAllowance: number) {
   const t = await flagsLoaded(testBackend());

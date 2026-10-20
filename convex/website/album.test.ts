@@ -223,18 +223,18 @@ describe("AL11: the open, Put in and Put them all in answer each sticker with th
 });
 
 describe("website reads pass one guard", () => {
-  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read closed while the website flag is off, even with album on", async () => {
+  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek, getAlbumProfile and getLevelUp read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);
     await switchWebsite(t, postHog, false, "album");
 
     expect(await everyAlbumReadOf(asAlice, await aMember(t, dana.user))).toEqual(everyAnswer({ kind: "closed" }));
   });
 
-  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read signed out without a session", async () => {
+  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek, getAlbumProfile and getLevelUp read signed out without a session", async () => {
     expect(await everyAlbumReadOf(t, await aMember(t, dana.user))).toEqual(everyAnswer({ kind: "signed-out" }));
   });
 
-  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek and getAlbumProfile read not-a-member for a former member with a live session", async () => {
+  test("getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson, getAlbumWeek, getAlbumProfile and getLevelUp read not-a-member for a former member with a live session", async () => {
     const former = await aMember(t, juno.user, "not-a-member");
     const { asSignedIn } = await aSession(t, juno);
 
@@ -255,11 +255,11 @@ function boardsOf(reader: Reader): Promise<ThoughtfulBoardsRead | { kind: string
 const everyAlbumRead = [api.website.album.getAlbum, api.website.album.getAlbumHoggies, api.website.album.getThoughtfulBoards, api.website.album.getAlbumWeek, api.website.album.getAlbumProfile];
 
 function everyAlbumReadOf(reader: Reader, person: MemberId): Promise<Array<{ kind: string }>> {
-  return Promise.all([...everyAlbumRead.map((read) => reader.query(read, {})), reader.query(api.website.album.getAlbumPerson, { person })]);
+  return Promise.all([...everyAlbumRead.map((read) => reader.query(read, {})), reader.query(api.website.album.getAlbumPerson, { person }), reader.query(api.website.album.getLevelUp, { level: 2 })]);
 }
 
 function everyAnswer(answer: { kind: string }) {
-  return [...everyAlbumRead, api.website.album.getAlbumPerson].map(() => answer);
+  return [...everyAlbumRead, api.website.album.getAlbumPerson, api.website.album.getLevelUp].map(() => answer);
 }
 
 async function kindNoteGiverOf(reader: Reader) {

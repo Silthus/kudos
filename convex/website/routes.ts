@@ -90,6 +90,7 @@ const pathOf: Record<Page["page"], string> = {
   bookEarned: "/book/earned",
   bookCollection: "/book/collection",
   settings: "/settings",
+  levelUp: "/book",
 };
 
 const albumAddressOf: Record<Page["page"], string> = {
@@ -101,6 +102,7 @@ const albumAddressOf: Record<Page["page"], string> = {
   bookEarned: "/book#milestones",
   bookCollection: "/book#hoggies",
   settings: "/settings",
+  levelUp: "/book",
 };
 
 const featurePages: Partial<Record<Feature, CratePage>> = {
@@ -116,6 +118,7 @@ export function listed(page: Page): boolean {
 
 export function routeOf(page: Page): string {
   if (page.page === "settings" && page.section !== undefined) return `${albumAddressOf.settings}?section=${page.section}`;
+  if (page.page === "levelUp") return `${albumAddressOf.levelUp}#level-up/${page.level}`;
   return albumAddressOf[page.page];
 }
 

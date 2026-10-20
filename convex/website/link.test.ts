@@ -35,6 +35,7 @@ describe("SW11: one function builds every website link", () => {
     { page: { page: "bookEarned" }, link: `${siteUrl}/book#milestones` },
     { page: { page: "bookCollection" }, link: `${siteUrl}/book#hoggies` },
     { page: { page: "settings" }, link: `${siteUrl}/settings` },
+    { page: { page: "levelUp", level: 3 }, link: `${siteUrl}/book#level-up/3` },
   ])("AL67: $page.page links to SITE_URL plus the album address it lands on: $link", async ({ page, link }) => {
     expect(await linkTo(page)).toBe(link);
   });

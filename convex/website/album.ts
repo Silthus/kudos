@@ -4,6 +4,7 @@ import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardT
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
 import { albumShownTo, emojiWizardShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
+import { levelUpRevealOf, levelUpRevealShownTo, type LevelUpAnswer } from "../album/levelUp";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
@@ -95,6 +96,8 @@ export type AlbumProfileRead = { kind: "off" } | AlbumProfileAnswer;
 export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies;
 
 export type AlbumHoggiesRead = { kind: "off" } | AlbumHoggiesAnswer;
+
+export type LevelUpRead = { kind: "off" } | { kind: "none" } | LevelUpAnswer;
 
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
@@ -216,6 +219,14 @@ export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggies
 async function albumHoggiesShownTo(ctx: QueryCtx, member: MemberId) {
   return (await albumShownTo(ctx, member)) && (await hoggiesShownTo(ctx, member));
 }
+
+export const getLevelUp = memberQuery({
+  args: { level: v.number() },
+  handler: async (ctx, me, { level }): Promise<LevelUpRead> => {
+    if (!(await levelUpRevealShownTo(ctx, me.member))) return { kind: "off" };
+    return (await levelUpRevealOf(ctx, me, level)) ?? { kind: "none" };
+  },
+});
 
 export const getThoughtfulBoards = memberQuery({
   args: { team: v.optional(v.string()), period: v.optional(boardPeriodValidator) },

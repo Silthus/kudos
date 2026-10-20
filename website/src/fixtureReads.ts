@@ -2,6 +2,7 @@ import type { AppReads } from "./App";
 import { fixedAlbum, fixedPeople, albumFixtures } from "./album/albumFixtures";
 import { boardsFixtures, fixedBoards } from "./album/boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./album/hoggiesFixtures";
+import { fixedLevelUp, levelUpFixtures } from "./album/levelUpFixtures";
 import { fixedProfile, profileFixtures } from "./album/profileFixtures";
 import { fixtureWeeks } from "./album/weekFixtures";
 import { emojiMappingsFixtures, fixtureAppEmojis, fixtureSlackEmojiMatches } from "./emojiMappingFixtures";
@@ -30,6 +31,8 @@ const fixtureProfile = fixedProfile(profileFixtures.noted);
 
 const fixtureHoggies = fixedHoggies(hoggiesFixtures.midway);
 
+const fixtureLevelUp = fixedLevelUp(levelUpFixtures.levelFive);
+
 export function fixtureReadsFor(fixture?: string): AppReads {
   return {
     useSettings: fixture === "album-maintainer" || fixture === withTheEmojiWizard ? fixtureMaintainerSettings : fixtureSettings,
@@ -42,5 +45,6 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useAlbumWeek: fixtureWeek,
     useAlbumProfile: fixtureProfile,
     useAlbumHoggies: fixtureHoggies,
+    useLevelUp: fixtureLevelUp,
   };
 }
