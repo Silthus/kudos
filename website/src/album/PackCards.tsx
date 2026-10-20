@@ -1,9 +1,10 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import stackedMonoLogo from "virtual:posthog-stacked-logo";
 import { MemberFace } from "../Face";
 import { hoggiePictureOf } from "../crates/Hoggie";
 import { TeamCrest } from "../crates/TeamCrest";
 import { HedgehogSitting } from "../hoggies";
+import type { Rarity } from "../shell";
 import type { Thanked } from "./answer";
 import { nameOf, rarityWordOf, type OpenedHoggie, type TeamTick } from "./opening";
 
@@ -59,6 +60,29 @@ function TeamTally({ tick }: { tick: TeamTick }) {
         <span className="al-tally-fill" />
       </span>
     </span>
+  );
+}
+
+type CardSlotProps = { label: string; up: boolean; rarity?: Rarity; glow: Rarity | null; flourish: boolean; back: ReactNode; children: ReactNode };
+
+export function CardSlot({ label, up, rarity, glow, flourish, back, children }: CardSlotProps) {
+  return (
+    <div role="group" aria-label={label} className="al-slot" data-face-up={up ? "" : undefined} data-rarity={rarity} data-glow={glow ?? undefined}>
+      {flourish && up && <Ring />}
+      <span className="al-fly-x">
+        <span className="al-fly-y">
+          <span className="al-flip" data-flipped={up ? "" : undefined}>
+            <span className="al-flip-face al-flip-back" aria-hidden={up || undefined}>
+              {back}
+            </span>
+            <span className="al-flip-face al-flip-front" aria-hidden={!up || undefined}>
+              {children}
+              {flourish && up && <Shine />}
+            </span>
+          </span>
+        </span>
+      </span>
+    </div>
   );
 }
 

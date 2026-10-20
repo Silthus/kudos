@@ -181,3 +181,11 @@ export type FoundHoggie = Pick<AlbumHoggie, "hoggie" | "name" | "rarity" | "firs
 export type HoggiesShown = AlbumHoggies | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type HoggiesRead = (asking: boolean) => HoggiesShown | undefined;
+
+export type LevelUpHoggie = { hoggie: string; name: string; rarity: Rarity; isNew: boolean };
+
+export type AlbumLevelUp = { kind: "levelUp"; level: number; at: number; hoggies: LevelUpHoggie[]; emojis: AlbumEmoji[] };
+
+export type LevelUpShown = AlbumLevelUp | { kind: "off" } | { kind: "none" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type LevelUpRead = (asking: boolean, level: number | null) => LevelUpShown | undefined;
