@@ -180,10 +180,7 @@ describe("an admin picks Slack's standard emoji as kudos emoji behind standard-e
     expect(await suggested(t, "U_DANA", "rock")).toEqual([":rock:"]);
 
     await send(t, blockActions("U_DANA", stalePicksOf(picker, "tada", "thumbsup", "rocket", "hedgehog")));
-    expect((await pickedRowsOf(t)).map(({ name, url }) => ({ name, url }))).toEqual([
-      { name: "+1", url: standardPicture("1f44d") },
-      { name: "tada", url: standardPicture("1f389") },
-    ]);
+    expect((await pickedRowsOf(t)).map(({ name, url }) => ({ name, url }))).toEqual([{ name: "tada", url: standardPicture("1f389") }]);
 
     await openInventory(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", buyButtonBeside(":tada: · 100 🪙")));

@@ -7,23 +7,25 @@ const named = standardEmojiRows.map(([name, picture, ...aliases]) => ({ emoji: {
 
 const listed: readonly ListedEmoji[] = named.map(({ emoji }) => emoji);
 
-const emojiByName: ReadonlyMap<string, ListedEmoji> = new Map(named.flatMap(({ emoji, aliases }) => [emoji.name, ...aliases].map((name) => [name, emoji] as const)));
+const emojiByOwnName: ReadonlyMap<string, ListedEmoji> = new Map(listed.map((emoji) => [emoji.name, emoji]));
 
-const namesInOrder: readonly string[] = [...emojiByName.keys()].sort();
+const emojiByAnyName: ReadonlyMap<string, ListedEmoji> = new Map(named.flatMap(({ emoji, aliases }) => [emoji.name, ...aliases].map((name) => [name, emoji] as const)));
+
+const namesInOrder: readonly string[] = [...emojiByAnyName.keys()].sort();
 
 export function isStandardEmojiName(name: string): boolean {
-  return emojiByName.has(name);
+  return emojiByAnyName.has(name);
 }
 
 export function standardEmojiNamed(name: string): ListedEmoji | null {
-  return emojiByName.get(name) ?? null;
+  return emojiByOwnName.get(name) ?? null;
 }
 
 export function standardEmojiStartingWith(typed: string, limit: number): ListedEmoji[] {
   const found = new Map<string, ListedEmoji>();
   for (const name of namesInOrder) {
     if (found.size === limit) break;
-    const emoji = name.startsWith(typed) ? emojiByName.get(name) : undefined;
+    const emoji = name.startsWith(typed) ? emojiByAnyName.get(name) : undefined;
     if (emoji !== undefined) found.set(emoji.name, emoji);
   }
   return [...found.values()];

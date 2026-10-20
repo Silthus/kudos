@@ -266,21 +266,25 @@ describe("the maintainer maps Slack's standard emoji behind standard-emoji", { t
   });
 
   test("a custom emoji named like a standard one stays the workspace's own: listed and found once, with its custom picture", async () => {
-    await slackHas("orca");
+    await slackHas("orca", "acme-hug");
+    slack.withCustomEmoji("tada", "alias:acme-hug");
+    await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+    await settle(t);
     await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji", "emoji-wizard");
     const asOwner = await signedIn(owner);
 
     expect((await mappingsOf(asOwner)).emoji.filter(({ name }) => name === "orca")).toEqual([{ name: "orca", image: slackPicture("orca"), mapping: null }]);
     expect(await asOwner.query(api.website.emojiWizard.findSlackEmojis, { near: "orca", search: "orca" })).toEqual({ kind: "matches", matches: [{ name: "orca", image: slackPicture("orca"), free: true }] });
+    expect(await asOwner.query(api.website.emojiWizard.findSlackEmojis, { near: "orca", search: "tada" })).toEqual({ kind: "matches", matches: [{ name: "acme-hug", image: slackPicture("acme-hug"), free: true }] });
   });
 
-  test("a standard emoji maps by its base name, which stands for every skin tone, and mapping one writes nothing to the custom emoji copy", async () => {
+  test("a standard emoji maps by its own base name, which stands for every skin tone and alias, and mapping one writes nothing to the custom emoji copy", async () => {
     await aliceCollects(otters[0]!);
     await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji");
     const asOwner = await signedIn(owner);
     const customEmojiBefore = (await everyTable()).customEmoji;
 
-    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "wave::skin-tone-2", to: { kind: "team", team: "otters" } })).toEqual({ kind: "refused" });
+    for (const notItsOwnName of ["wave::skin-tone-2", "thumbsup"]) expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: notItsOwnName, to: { kind: "team", team: "otters" } }), notItsOwnName).toEqual({ kind: "refused" });
     for (const name of ["wave", "raised_hands", "rocket", "star2", "clap", "sparkling_heart", "tada", "fire"]) {
       expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to: { kind: "team", team: "otters" } }), name).toEqual({ kind: "mapped" });
     }
