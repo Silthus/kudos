@@ -33,6 +33,7 @@ import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { boughtCratePageOf, crateOfferPageOf, earlierWeekCratePageOf, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page, type SettingsSection } from "../website/routes";
+import type { SlackEmojiReach } from "../workspace/slackEmoji";
 import { coinsPartOf, inCoins } from "./coins";
 import type { CrateStoreShown, HoggiesShown, HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { countsFor, pickQuestion } from "./groupCopy";
@@ -65,7 +66,7 @@ export type HomeLine =
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
   | { kind: "pick-group"; text: string; groups: GroupRef[]; picked: GroupId }
   | { kind: "pick-groups"; text: string; groups: GroupModeFacts["groups"]; picked: GroupModeFacts["allowlist"] }
-  | { kind: "pick-custom-emoji"; text: string; picked: string[] }
+  | { kind: "pick-custom-emoji"; text: string; placeholder: string; picked: string[] }
   | { kind: "pick"; id: string; text: string; placeholder: string; options: Choice[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
@@ -568,9 +569,11 @@ function customKudosEmojiLinesOf(picker: CustomKudosEmojiPicker): HomeLine[] {
   const pick: HomeLine =
     picker.kind === "reinstall"
       ? { kind: "text", text: "Reinstall the app to pick custom emoji." }
-      : { kind: "pick-custom-emoji", text: "Pick custom emoji members can buy as kudos emoji for 100 🪙.", picked: picker.picked };
+      : { kind: "pick-custom-emoji", text: `Pick ${pickableEmojiWords[picker.reach]} members can buy as kudos emoji for 100 🪙.`, placeholder: `Search ${pickableEmojiWords[picker.reach]}`, picked: picker.picked };
   return [{ kind: "text", text: bold("Custom kudos emoji") }, pick];
 }
+
+const pickableEmojiWords: Record<SlackEmojiReach, string> = { custom: "custom emoji", customAndStandard: "Slack emoji" };
 
 function groupModeLinesOf({ mode, groups, allowlist }: GroupModeFacts): HomeLine[] {
   const modes: HomeLine = {

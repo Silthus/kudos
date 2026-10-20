@@ -41,6 +41,8 @@ export const catalogue = {
   ],
 } as const satisfies { version: string; items: readonly CatalogueItem[] };
 
+const catalogueEmoji: ReadonlySet<string> = new Set(catalogue.items.map(({ emoji }) => emoji));
+
 export const starterItem: ItemId = starter.item;
 
 export const starterEmoji: string = starter.emoji;
@@ -51,6 +53,10 @@ export type StoreItem = CatalogueItem & { source: { kind: "store"; price: number
 
 export function itemOf(item: ItemId): CatalogueItem | undefined {
   return catalogue.items.find((entry) => entry.item === item);
+}
+
+export function isCatalogueEmoji(name: string): boolean {
+  return catalogueEmoji.has(name);
 }
 
 export function customItemOf(name: string, url: string): StoreItem {

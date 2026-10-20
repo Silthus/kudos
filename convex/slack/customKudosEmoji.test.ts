@@ -28,6 +28,7 @@ const form = { contentType: "application/x-www-form-urlencoded" };
 const shipitArt = "https://emoji.slack-edge.com/T1/shipit/0a1b2c.png";
 const remadeShipitArt = "https://emoji.slack-edge.com/T1/shipit/9f8e7d.png";
 const partyArt = "https://emoji.slack-edge.com/T1/partyparrot/3c4d5e.gif";
+const standardPicture = (file: string) => `https://a.slack-edge.com/production-standard-emoji-assets/17.0/apple-large/${file}.png`;
 const shipit = "custom:shipit";
 const picker = "setCustomKudosEmoji";
 const reinstall = "Reinstall the app to pick custom emoji.";
@@ -161,6 +162,41 @@ describe("ST31 ST32: an admin picks custom kudos emoji that join the store", { t
     await openAdmin(t, "U_DANA");
 
     await send(t, blockActions("U_DANA", stalePicksOf(picker, "rocket", "nothere", "shipit")));
+
+    expect((await pickedRowsOf(t)).map(({ name }) => name)).toEqual(["shipit"]);
+  });
+});
+
+describe("an admin picks Slack's standard emoji as kudos emoji behind standard-emoji", { timeout: 60_000 }, () => {
+  test("the picker finds Slack's standard emoji after the workspace's custom ones, never one of the catalogue's, and a picked one sells and gives kudos like a custom emoji", async () => {
+    const t = await workspaceDeciding(...everyoneDeciding, onForEveryone("standard-emoji"));
+    await aliceOpensCoinsWith(t, 100);
+    await openAdmin(t, "U_DANA");
+
+    expect(adminSection(publishedHome(slack, "U_DANA"))).toEqual(["section: *Custom kudos emoji*", "section: Pick Slack emoji members can buy as kudos emoji for 100 🪙. [multi_external_select: none]"]);
+    expect(accessoryBeside("U_DANA", "Pick Slack emoji members can buy as kudos emoji for 100 🪙.").placeholder).toEqual({ type: "plain_text", text: "Search Slack emoji" });
+    expect((await suggested(t, "U_DANA", "s")).slice(0, 2)).toEqual([":shipit:", ":sa:"]);
+    expect(await suggested(t, "U_DANA", "thumbs")).toEqual([":-1:", ":+1:"]);
+    expect(await suggested(t, "U_DANA", "rock")).toEqual([":rock:"]);
+
+    await send(t, blockActions("U_DANA", stalePicksOf(picker, "tada", "thumbsup", "rocket", "hedgehog")));
+    expect((await pickedRowsOf(t)).map(({ name, url }) => ({ name, url }))).toEqual([{ name: "tada", url: standardPicture("1f389") }]);
+
+    await openInventory(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buyButtonBeside(":tada: · 100 🪙")));
+    expect(await coinsOf(t, "U_ALICE")).toBe(0);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["tada"]);
+
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "tada", ownedEmoji: ["tada"], awards: [{ kudos: 1 }] });
+  });
+
+  test("with standard-emoji off, the picker says custom emoji, finds no standard one, and a stale pick of one picks nothing", async () => {
+    const t = await workspaceDeciding(...everyoneDeciding);
+    await openAdmin(t, "U_DANA");
+
+    expect(accessoryBeside("U_DANA", "Pick custom emoji members can buy as kudos emoji for 100 🪙.").placeholder).toEqual({ type: "plain_text", text: "Search custom emoji" });
+    expect(await suggested(t, "U_DANA", "s")).toEqual([":shipit:"]);
+    await send(t, blockActions("U_DANA", stalePicksOf(picker, "tada", "shipit")));
 
     expect((await pickedRowsOf(t)).map(({ name }) => name)).toEqual(["shipit"]);
   });

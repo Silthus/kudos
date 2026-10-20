@@ -93,15 +93,15 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: markEmojisSeen in convex/website/album.ts
   trust: browser
 
-- query getEmojiMappings: a browser asks, for the maintainer, for the workspace's Slack custom emoji with the earned emoji each one is mapped to, and the teams, milestones, levels and people to map to, with no arguments
+- query getEmojiMappings: a browser asks, for the maintainer, for the workspace's Slack custom emoji, and behind `standard-emoji` Slack's standard emoji, with the earned emoji each one is mapped to, and the teams, milestones, levels and people to map to, with no arguments
   handler: getEmojiMappings in convex/website/emojiMappings.ts
   trust: browser
 
-- mutation mapSlackEmoji: a browser asks, for the maintainer, to map one Slack custom emoji to a team, a person's hype, a milestone, a level or the random drops, or to leave it unmapped, with the emoji's name and its place as its arguments, a person named by the opaque key the read gave
+- mutation mapSlackEmoji: a browser asks, for the maintainer, to map one Slack custom emoji, or behind `standard-emoji` a standard one, to a team, a person's hype, a milestone, a level or the random drops, or to leave it unmapped, with the emoji's name and its place as its arguments, a person named by the opaque key the read gave
   handler: mapSlackEmoji in convex/website/emojiMappings.ts
   trust: browser
 
-- mutation mapMyEmoji: a browser asks to map one earned emoji to a Slack custom emoji from the mini wizard, with the earned emoji's ID as getAlbum or getAlbumPerson gave it and the Slack emoji's name as its only arguments: a member's own held emoji, or, behind `emoji-mapping-in-place`, any app emoji for the maintainer
+- mutation mapMyEmoji: a browser asks to map one earned emoji to a Slack custom emoji, or behind `standard-emoji` a standard one, from the mini wizard, with the earned emoji's ID as getAlbum or getAlbumPerson gave it and the Slack emoji's name as its only arguments: a member's own held emoji, or, behind `emoji-mapping-in-place`, any app emoji for the maintainer
   handler: mapMyEmoji in convex/website/emojiWizard.ts
   trust: browser
 

@@ -5,6 +5,7 @@ import { emojiWizardShownTo } from "../album/flag";
 import type { EmojiMapper } from "../album/records";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { nameAndPictureOf } from "../workspace/directory";
+import { slackEmojiReachOf } from "../workspace/slackEmoji";
 import { customEmojiPageOf } from "../workspace/url";
 import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
 import type { ShownTarget } from "./emojiMappings";
@@ -32,7 +33,7 @@ export const findSlackEmojis = memberQuery({
   args: { near: v.string(), search: v.string() },
   handler: async (ctx, me, { near, search }): Promise<SlackEmojiMatchesRead> => {
     if (!(await emojiWizardShownTo(ctx, me.member))) return { kind: "off" };
-    return { kind: "matches", matches: await slackEmojisNear(ctx, me.workspace, near, search) };
+    return { kind: "matches", matches: await slackEmojisNear(ctx, me.workspace, near, search, await slackEmojiReachOf(ctx, me.member)) };
   },
 });
 

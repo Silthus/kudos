@@ -2,13 +2,14 @@ import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, memberDecision } from "../analytics/flags";
-import { customEmojiImageOf, customEmojiScopeMissingIn, originalCustomEmojiOf, originalCustomEmojiStartingWith } from "../workspace/customEmoji";
+import { customEmojiScopeMissingIn } from "../workspace/customEmoji";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
-import { customItemOf, type StoreItem } from "./catalogue";
+import { slackEmojiImageOf, slackEmojiNamed, slackEmojiReachOf, slackEmojiStartingWith, type SlackEmojiReach } from "../workspace/slackEmoji";
+import { customItemOf, isCatalogueEmoji, type StoreItem } from "./catalogue";
 import { customKudosEmojiFlag } from "./customKudosEmojiFlag";
 import { storeShownAndExposedTo, storeShownTo } from "./visibility";
 
-export type CustomKudosEmojiPicker = { kind: "reinstall" } | { kind: "pick"; picked: string[] };
+export type CustomKudosEmojiPicker = { kind: "reinstall" } | { kind: "pick"; picked: string[]; reach: SlackEmojiReach };
 
 export type CustomItems = { all: StoreItem[]; picked: StoreItem[] };
 
@@ -26,7 +27,8 @@ export const customKudosEmojiOptions = internalQuery({
   handler: async (ctx, { workspace, user, typed }): Promise<string[]> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member" || !person.admin || !(await customKudosEmojiShownTo(ctx, person.member))) return [];
-    return (await originalCustomEmojiStartingWith(ctx, workspace, typed.trim().toLowerCase().replace(/^:|:$/g, ""), optionsPerSearch)).map(({ name }) => name);
+    const found = await slackEmojiStartingWith(ctx, workspace, typed.trim().toLowerCase().replace(/^:|:$/g, ""), optionsPerSearch, await slackEmojiReachOf(ctx, person.member));
+    return found.map(({ name }) => name).filter((name) => !isCatalogueEmoji(name));
   },
 });
 
@@ -61,12 +63,12 @@ export async function customKudosEmojiPickerFor(ctx: MutationCtx, workspace: str
   if (await customEmojiScopeMissingIn(ctx, workspace)) return { kind: "reinstall" };
   const rows = await customRowsIn(ctx, workspace);
   for (const row of rows) await refreshArt(ctx, workspace, row);
-  return { kind: "pick", picked: rows.filter(isPicked).map(({ name }) => name) };
+  return { kind: "pick", picked: rows.filter(isPicked).map(({ name }) => name), reach: await slackEmojiReachOf(ctx, person.member) };
 }
 
 export async function setCustomKudosEmoji(ctx: MutationCtx, workspace: string, person: Admin, names: string[]): Promise<boolean> {
   if (!(await picksCustomKudosEmoji(ctx, person)) || (await customEmojiScopeMissingIn(ctx, workspace))) return false;
-  const wanted = await originalsOf(ctx, workspace, names);
+  const wanted = await originalsOf(ctx, workspace, names, await slackEmojiReachOf(ctx, person.member));
   const rows = await customRowsIn(ctx, workspace);
   const at = Date.now();
   let changed = false;
@@ -89,18 +91,18 @@ async function picksCustomKudosEmoji(ctx: MutationCtx, { member, admin }: Admin)
   return admin && (await customKudosEmojiShownAndExposedTo(ctx, member));
 }
 
-async function originalsOf(ctx: QueryCtx, workspace: string, names: string[]) {
+async function originalsOf(ctx: QueryCtx, workspace: string, names: string[], reach: SlackEmojiReach) {
   const originals = new Map<string, string>();
   for (const name of names) {
     if (originals.size === customKudosEmojiPerWorkspace) break;
-    const original = await originalCustomEmojiOf(ctx, workspace, name);
-    if (original !== null) originals.set(original.name, original.image);
+    const original = await slackEmojiNamed(ctx, workspace, name, reach);
+    if (original !== null && !isCatalogueEmoji(original.name)) originals.set(original.name, original.image);
   }
   return originals;
 }
 
 async function refreshArt(ctx: MutationCtx, workspace: string, row: Doc<"customKudosEmoji">) {
-  const url = await customEmojiImageOf(ctx, workspace, row.name);
+  const url = await slackEmojiImageOf(ctx, workspace, row.name);
   if (url !== undefined && url !== row.url) await ctx.db.patch(row._id, { url });
 }
 

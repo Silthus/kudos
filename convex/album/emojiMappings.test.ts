@@ -36,6 +36,7 @@ const everyone = [owner, alice, bruno, ...otters, ...lanterns];
 const ottersCrestPicture = expect.stringMatching(/\/v1\/otters-crest\.png$/) as string;
 
 const slackPicture = (name: string) => `https://emoji.slack-edge.com/T1/${name}/a1b2c3.png`;
+const standardPicture = (file: string) => `https://a.slack-edge.com/production-standard-emoji-assets/17.0/apple-large/${file}.png`;
 
 let postHog: FakePostHog;
 let postHogCom: FakePostHogCom;
@@ -242,6 +243,65 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     theRoll.next = { chance: 0, pick: 0.5 };
     await aliceCollects(otters[0]!);
     expect((await albumOf(await signedIn(alice))).emojis.filter(({ kind }) => kind === "random"), "a pack opens within Convex's limits with every random emoji classed").toHaveLength(1);
+  });
+});
+
+describe("the maintainer maps Slack's standard emoji behind standard-emoji", { timeout: 90_000 }, () => {
+  test("Settings list Slack's standard emoji after the workspace's custom ones, each once under its own name with Slack's picture, and one maps to a team like a custom emoji", async () => {
+    await aliceCollects(...otters);
+    const asAlice = await signedIn(alice);
+    await asAlice.mutation(api.website.album.unlockTeamSticker, { team: "otters" });
+    await slackHas("party-parrot");
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji");
+    const asOwner = await signedIn(owner);
+
+    const { emoji } = await mappingsOf(asOwner);
+    expect(emoji[0]).toEqual({ name: "party-parrot", image: slackPicture("party-parrot"), mapping: null });
+    expect(emoji).toContainEqual({ name: "tada", image: standardPicture("1f389"), mapping: null });
+    expect(emoji.filter(({ name }) => name === "+1" || name === "thumbsup")).toEqual([{ name: "+1", image: standardPicture("1f44d"), mapping: null }]);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "tada", to: { kind: "team", team: "otters" } })).toEqual({ kind: "mapped" });
+    expect(await emojiWithId(asAlice, "team:otters")).toMatchObject({ name: "tada", picture: standardPicture("1f389"), inSlack: true });
+    expect((await mappingsOf(asOwner)).emoji).toContainEqual({ name: "tada", image: standardPicture("1f389"), mapping: { kind: "team", team: "otters" } });
+  });
+
+  test("a custom emoji named like a standard one stays the workspace's own: listed and found once, with its custom picture", async () => {
+    await slackHas("orca", "acme-hug");
+    slack.withCustomEmoji("tada", "alias:acme-hug");
+    await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+    await settle(t);
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji", "emoji-wizard");
+    const asOwner = await signedIn(owner);
+
+    expect((await mappingsOf(asOwner)).emoji.filter(({ name }) => name === "orca")).toEqual([{ name: "orca", image: slackPicture("orca"), mapping: null }]);
+    expect(await asOwner.query(api.website.emojiWizard.findSlackEmojis, { near: "orca", search: "orca" })).toEqual({ kind: "matches", matches: [{ name: "orca", image: slackPicture("orca"), free: true }] });
+    expect(await asOwner.query(api.website.emojiWizard.findSlackEmojis, { near: "orca", search: "tada" })).toEqual({ kind: "matches", matches: [{ name: "acme-hug", image: slackPicture("acme-hug"), free: true }] });
+  });
+
+  test("a standard emoji maps by its own base name, which stands for every skin tone and alias, and mapping one writes nothing to the custom emoji copy", async () => {
+    await aliceCollects(otters[0]!);
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji");
+    const asOwner = await signedIn(owner);
+    const customEmojiBefore = (await everyTable()).customEmoji;
+
+    for (const notItsOwnName of ["wave::skin-tone-2", "thumbsup"]) expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: notItsOwnName, to: { kind: "team", team: "otters" } }), notItsOwnName).toEqual({ kind: "refused" });
+    for (const name of ["wave", "raised_hands", "rocket", "star2", "clap", "sparkling_heart", "tada", "fire"]) {
+      expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: name, to: { kind: "team", team: "otters" } }), name).toEqual({ kind: "mapped" });
+    }
+
+    expect((await mappingsOf(asOwner)).emoji.find(({ mapping }) => mapping?.kind === "team")).toEqual({ name: "fire", image: standardPicture("1f525"), mapping: { kind: "team", team: "otters" } });
+    expect((await everyTable()).customEmoji).toEqual(customEmojiBefore);
+  });
+
+  test("with standard-emoji off, Settings list only the workspace's custom emoji, and mapping a standard one is refused and writes nothing", async () => {
+    await aliceCollects(otters[0]!);
+    await slackHas("party-parrot");
+    const asOwner = await signedIn(owner);
+    const before = await everyTable();
+
+    expect((await mappingsOf(asOwner)).emoji.map(({ name }) => name)).toEqual(["party-parrot"]);
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "tada", to: { kind: "team", team: "otters" } })).toEqual({ kind: "refused" });
+    expect(await everyTable()).toEqual(before);
   });
 });
 

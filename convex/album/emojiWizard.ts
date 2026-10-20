@@ -1,8 +1,8 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf, type CompanyTeam } from "../companyProfiles/teams";
 import { levelOf } from "../progression/levels";
-import { customEmojiImageOf, originalCustomEmojiOf, originalCustomEmojiStartingWith } from "../workspace/customEmoji";
 import { currentMembersOf, type MemberId } from "../workspace/directory";
+import { slackEmojiImageOf, slackEmojiNamed, slackEmojiReachOf, slackEmojiStartingWith, type SlackEmojiReach } from "../workspace/slackEmoji";
 import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
 import { emojiMappingInPlaceShownTo, emojiWizardShownTo } from "./flag";
 import { emojiArtPictureOf, emojiLevels, milestoneTierArtOf, milestoneTierEmojiOf, slugOf } from "./emojiCatalogue";
@@ -36,12 +36,12 @@ const mostTerms = 9;
 
 const appEmojiKinds: readonly AppEmojiKind[] = ["team", "milestone", "level", "hype"];
 
-export async function slackEmojisNear(ctx: QueryCtx, workspace: string, near: string, search: string): Promise<SlackEmojiMatch[]> {
+export async function slackEmojisNear(ctx: QueryCtx, workspace: string, near: string, search: string, reach: SlackEmojiReach): Promise<SlackEmojiMatch[]> {
   const typed = typedNameOf(search);
   const target = typed === "" ? near : typed;
   if (slugOf(target) === "") return [];
   const found = new Map<string, string>();
-  for (const term of termsOf(target)) for (const { name, image } of await originalCustomEmojiStartingWith(ctx, workspace, term, matchesReadPerTerm)) found.set(name, image);
+  for (const term of termsOf(target)) for (const { name, image } of await slackEmojiStartingWith(ctx, workspace, term, matchesReadPerTerm, reach)) found.set(name, image);
   const held = await namesHeldIn(ctx, workspace);
   const classed = await emojiClassesIn(ctx, workspace);
   const matches = [...found].map(([name, image]) => ({ name, image, free: !held.has(name) && !classed.has(name) }));
@@ -51,7 +51,7 @@ export async function slackEmojisNear(ctx: QueryCtx, workspace: string, near: st
 export async function mapHeldEmoji(ctx: MutationCtx, workspace: string, member: MemberId, emoji: string, name: string): Promise<boolean> {
   const id = earnedEmojiIdOf(emoji);
   if (id === null || !(await isEarnedBy(ctx, member, id))) return false;
-  if (!(await isMappableByMembers(ctx, workspace, id)) || !(await isFreeInSlack(ctx, workspace, name))) return false;
+  if (!(await isMappableByMembers(ctx, workspace, id)) || !(await isFreeInSlack(ctx, workspace, name, await slackEmojiReachOf(ctx, member)))) return false;
   await giveEmojiTheName(ctx, workspace, id, name, { member, as: "member" });
   return true;
 }
@@ -78,7 +78,7 @@ export async function appEmojisIn(ctx: QueryCtx, workspace: string): Promise<App
     const shown = await shownAppEmojiOf(ctx, workspace, emoji, teams, currentMembers);
     if (shown === null) continue;
     if (rows.length === mostAppEmojisListed) return { rows, more: true };
-    const image = await customEmojiImageOf(ctx, workspace, name);
+    const image = await slackEmojiImageOf(ctx, workspace, name);
     rows.push({ emoji, ...shown, name, holders: held, slack: image === undefined ? null : { image, mappedBy } });
   }
   return { rows, more: false };
@@ -104,12 +104,12 @@ function appEmojiPlaceOf(ctx: QueryCtx, emoji: string): MappingTarget | null {
 
 async function isMappableByMembers(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId): Promise<boolean> {
   const name = await emojiNameOf(ctx, workspace, emoji);
-  if (name === null || (await customEmojiImageOf(ctx, workspace, name)) !== undefined) return false;
+  if (name === null || (await slackEmojiImageOf(ctx, workspace, name)) !== undefined) return false;
   return (await mapperOf(ctx, workspace, emoji))?.as !== "maintainer";
 }
 
-async function isFreeInSlack(ctx: QueryCtx, workspace: string, name: string): Promise<boolean> {
-  if ((await originalCustomEmojiOf(ctx, workspace, name))?.name !== name) return false;
+async function isFreeInSlack(ctx: QueryCtx, workspace: string, name: string, reach: SlackEmojiReach): Promise<boolean> {
+  if ((await slackEmojiNamed(ctx, workspace, name, reach))?.name !== name) return false;
   return (await emojiNamed(ctx, workspace, name)) === null && !(await isClassed(ctx, workspace, name));
 }
 

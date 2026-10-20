@@ -3,6 +3,7 @@ import { randomEmojisShownTo } from "../album/flag";
 import { placeSlackEmoji, slackEmojiMappingsIn, type EmojiPlace, type MappingTarget, type SlackEmojiMappings } from "../album/emojiMappings";
 import type { QueryCtx } from "../_generated/server";
 import { peopleIn, type MemberId } from "../workspace/directory";
+import { slackEmojiReachOf } from "../workspace/slackEmoji";
 import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
 import { memberMutation } from "./memberMutation";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
@@ -29,7 +30,7 @@ const placeValidator = v.union(
 
 export const getEmojiMappings = memberQuery(async (ctx, me): Promise<EmojiMappingsRead> => {
   if (!(await workspaceSettingsShownTo(ctx, me.member))) return { kind: "off" };
-  const { emoji, ...targets } = await slackEmojiMappingsIn(ctx, me.workspace, await randomEmojisShownTo(ctx, me.member));
+  const { emoji, ...targets } = await slackEmojiMappingsIn(ctx, me.workspace, await randomEmojisShownTo(ctx, me.member), await slackEmojiReachOf(ctx, me.member));
   const people = await mappablePeopleOf(ctx, me);
   const keyOf = new Map(people.map(({ member, key }) => [member, key]));
   return {
