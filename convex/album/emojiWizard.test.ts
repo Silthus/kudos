@@ -369,14 +369,14 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
 
   test("the maintainer remaps a member's mapping and takes a Slack emoji another earned emoji holds, which moves that one to a free name", async () => {
     await unlocksOtters(alice);
-    await slackHas("lanterns", "sea-otters");
+    await slackHas("team-lanterns", "sea-otters");
     const asOwner = await signedIn(owner);
 
-    expect(await asOwner.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "lanterns" })).toEqual({ kind: "mapped" });
+    expect(await asOwner.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "team-lanterns" })).toEqual({ kind: "mapped" });
     expect(await asOwner.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "sea-otters" })).toEqual({ kind: "mapped" });
 
     expect(emojiNamed(await appEmojisOf(asOwner), "sea-otters")).toMatchObject({ place: { kind: "team", team: "otters" }, slack: { image: slackPicture("sea-otters"), setBy: { by: "maintainer", name: owner.name } } });
-    expect(emojiNamed(await appEmojisOf(asOwner), "lanterns-2")).toMatchObject({ place: { kind: "team", team: "lanterns" }, slack: null });
+    expect(emojiNamed(await appEmojisOf(asOwner), "team-lanterns-2")).toMatchObject({ place: { kind: "team", team: "lanterns" }, slack: null });
   });
 
   test("a member is refused, for an earned emoji they hold and for one they don't, and nothing is written", async () => {
