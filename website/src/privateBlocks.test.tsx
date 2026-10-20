@@ -79,7 +79,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
 
     expect(exposedIn(container)).toEqual([]);
-    expect(within(moment).getByText(":kettle-works:").closest(".ph-no-capture")).not.toBeNull();
+    expect(within(moment).getByText(":team-kettle-works:").closest(".ph-no-capture")).not.toBeNull();
   });
 
   it("AL56: the emoji popup from the fixture build keeps every emoji's picture, its name and who it came from in blocks", async () => {
@@ -100,7 +100,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
 
     expect(exposedIn(container)).toEqual([]);
     const names = within(bundle).getAllByRole("heading", { level: 3 });
-    expect(names.map((name) => name.textContent)).toContain(":quiet-harbour:");
+    expect(names.map((name) => name.textContent)).toContain(":team-quiet-harbour:");
     expect(names.every((name) => name.closest(".ph-no-capture") !== null)).toBe(true);
   });
 
@@ -108,7 +108,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     const album = { ...albumFixtures.midway, emojis: albumFixtures.midway.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, inSlack: false } : emoji)) };
     window.history.replaceState(null, "", "/book#teams/quiet-harbour");
     const { container } = renderAlbum(shellFixtures.member, fixedAlbum(album), { people: fixedPeople(album) });
-    const addToSlack = await screen.findByRole("button", { name: "Add to Slack: :quiet-harbour:" }, { timeout: 10_000 });
+    const addToSlack = await screen.findByRole("button", { name: "Add to Slack: :team-quiet-harbour:" }, { timeout: 10_000 });
 
     expect(exposedIn(container)).toEqual([]);
     expect(blocked(addToSlack)).toBe(true);

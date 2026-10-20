@@ -79,8 +79,8 @@ describe("#719: with emoji-wizard on, a member finds an earned emoji in Slack in
 
     const album = { ...withTheWizard, emojis: withTheWizard.emojis.map((emoji) => (emoji.id === "team:quiet-harbour" ? { ...emoji, inSlack: false } : emoji)) };
     const onTheTeam = visit({ album, path: "/book#teams/quiet-harbour" });
-    expect(await screen.findByRole("button", { name: "Find :quiet-harbour: in Slack" }, arrival)).toBeInTheDocument();
-    expect(screen.getByText(/team emoji\./)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: find it in Slack, then react with it and put it in the kudos you give.");
+    expect(await screen.findByRole("button", { name: "Find :team-quiet-harbour: in Slack" }, arrival)).toBeInTheDocument();
+    expect(screen.getByText(/team emoji\./)).toHaveTextContent("You got the :team-quiet-harbour: team emoji. It isn't in Slack yet: find it in Slack, then react with it and put it in the kudos you give.");
     expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
     onTheTeam.unmount();
 
@@ -220,7 +220,7 @@ describe("#719: with emoji-wizard on, a member finds an earned emoji in Slack in
 
 const appEmojis: AppEmoji[] = [
   { key: "level:5", kind: "level", name: "five", from: "Level 5", picture: "/emoji/level-5.png", holders: 12, slack: { image: slackPicture("five"), setBy: { by: "maintainer", name: "Sam Example" } }, place: { kind: "level", level: 5 } },
-  { key: "team:quiet-harbour", kind: "team", name: "quiet-harbour", from: "Quiet Harbour", picture: "/emoji/team-quiet-harbour.png", holders: 9, slack: null, place: { kind: "team", team: "quiet-harbour" } },
+  { key: "team:quiet-harbour", kind: "team", name: "team-quiet-harbour", from: "Quiet Harbour", picture: "/emoji/team-quiet-harbour.png", holders: 9, slack: null, place: { kind: "team", team: "quiet-harbour" } },
   { key: "team:lanterns", kind: "team", name: "lantern-glow", from: "Lanterns", picture: "/emoji/team-lanterns.png", holders: 6, slack: { image: slackPicture("lantern-glow"), setBy: { by: "member", name: "Bram Teller" } }, place: { kind: "team", team: "lanterns" } },
   { key: "hype:k1", kind: "hype", name: "ines-okafor-hype", from: "Ines Okafor", picture: "/emoji/hype.png", holders: 4, slack: null, place: { kind: "hype", person: "k1" } },
   { key: "level:25", kind: "level", name: "level-25", from: "Level 25", picture: "/emoji/level-25.png", holders: 0, slack: null, place: { kind: "level", level: 25 } },
@@ -247,7 +247,7 @@ describe("#719: the maintainer lists every app emoji, not mapped first, and maps
     const list = await theAppEmojis();
 
     expect(list.getByRole("button", { name: "Not mapped · 3" })).toHaveAttribute("aria-pressed", "true");
-    expect(rowsOf(list)).toEqual([":quiet-harbour:Quiet Harbour team · 9 hold itFind in Slack", ":ines-okafor-hype:Ines Okafor's hype · 4 hold itFind in Slack", ":level-25:Level 25 · nobody yetFind in Slack"]);
+    expect(rowsOf(list)).toEqual([":team-quiet-harbour:Quiet Harbour team · 9 hold itFind in Slack", ":ines-okafor-hype:Ines Okafor's hype · 4 hold itFind in Slack", ":level-25:Level 25 · nobody yetFind in Slack"]);
   });
 
   it("Find in Slack opens the wizard, and the maintainer's pick maps the Slack emoji to that place, even one in use", async () => {

@@ -23,7 +23,7 @@ const found: SlackEmojiMatchesRead = () => ({
   matches: [
     { name: "harbour-wave", image: slackPicture("harbour-wave"), free: true },
     { name: "harbour-old", image: slackPicture("harbour-old"), free: false },
-    { name: "quiet-harbour", image: slackPicture("quiet-harbour"), free: false },
+    { name: "team-quiet-harbour", image: slackPicture("team-quiet-harbour"), free: false },
   ],
 });
 
@@ -84,30 +84,30 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
   describe("a team page", () => {
     it("the maintainer changes the team emoji Slack has, and finds the one it hasn't", async () => {
       const inSlack = visit({ as: "admin", path: "/book#teams/quiet-harbour" });
-      expect(await screen.findByRole("button", { name: "Change :quiet-harbour: in Slack" }, arrival)).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Change :team-quiet-harbour: in Slack" }, arrival)).toBeInTheDocument();
       inSlack.unmount();
 
       visit({ as: "admin", path: "/book#teams/quiet-harbour", inSlack: { "team:quiet-harbour": false } });
-      expect(await screen.findByRole("button", { name: "Find :quiet-harbour: in Slack" }, arrival)).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Find :team-quiet-harbour: in Slack" }, arrival)).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
     });
 
     it("the maintainer maps the team emoji of a team they haven't unlocked", async () => {
       visit({ as: "admin", path: "/book#teams/lanterns" });
 
-      expect(await screen.findByText(/team emoji unlocks with the sticker/, {}, arrival)).toHaveTextContent("The :lanterns: team emoji unlocks with the sticker.");
-      expect(screen.getByRole("button", { name: "Find :lanterns: in Slack" })).toBeInTheDocument();
+      expect(await screen.findByText(/team emoji unlocks with the sticker/, {}, arrival)).toHaveTextContent("The :team-lanterns: team emoji unlocks with the sticker.");
+      expect(screen.getByRole("button", { name: "Find :team-lanterns: in Slack" })).toBeInTheDocument();
     });
 
     it("a member sees coming soon for an unlocked team emoji Slack hasn't, the use line where Slack has it, and no team emoji on a team still locked", async () => {
       const notInSlack = visit({ as: "member", path: "/book#teams/quiet-harbour", inSlack: { "team:quiet-harbour": false } });
       expect(await screen.findByText(comingSoon, {}, arrival)).toBeInTheDocument();
-      expect(screen.getByText(/team emoji\./)).toHaveTextContent("You got the :quiet-harbour: team emoji.");
+      expect(screen.getByText(/team emoji\./)).toHaveTextContent("You got the :team-quiet-harbour: team emoji.");
       offersNoWayToSlack();
       notInSlack.unmount();
 
       const inSlack = visit({ as: "member", path: "/book#teams/quiet-harbour" });
-      expect(await screen.findByText(/team emoji\./, {}, arrival)).toHaveTextContent("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
+      expect(await screen.findByText(/team emoji\./, {}, arrival)).toHaveTextContent("You got the :team-quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
       expect(screen.queryByText(comingSoon)).not.toBeInTheDocument();
       offersNoWayToSlack();
       inSlack.unmount();
@@ -156,8 +156,8 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
     const mapMyEmoji = vi.fn(async () => ({ kind: "mapped" }) as const);
     const view = visit({ as: "admin", path: "/book#teams/quiet-harbour", mapMyEmoji });
 
-    await view.user.click(await screen.findByRole("button", { name: "Change :quiet-harbour: in Slack" }, arrival));
-    const wizard = within(await screen.findByRole("dialog", { name: "Change :quiet-harbour: in Slack" }, arrival));
+    await view.user.click(await screen.findByRole("button", { name: "Change :team-quiet-harbour: in Slack" }, arrival));
+    const wizard = within(await screen.findByRole("dialog", { name: "Change :team-quiet-harbour: in Slack" }, arrival));
     expect(wizard.getByText("Pick the Slack emoji that is the Quiet Harbour team emoji. Everyone who has it can use it in Slack at once.")).toBeInTheDocument();
     await view.user.click(wizard.getByRole("button", { name: "Map to :harbour-old:, in use" }));
 
@@ -168,30 +168,30 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
   it("Change opens the wizard as a change, with the emoji's own Slack emoji marked current, not in use", async () => {
     const view = visit({ as: "admin", path: "/book#teams/quiet-harbour" });
 
-    await view.user.click(await screen.findByRole("button", { name: "Change :quiet-harbour: in Slack" }, arrival));
-    const wizard = within(await screen.findByRole("dialog", { name: "Change :quiet-harbour: in Slack" }, arrival));
+    await view.user.click(await screen.findByRole("button", { name: "Change :team-quiet-harbour: in Slack" }, arrival));
+    const wizard = within(await screen.findByRole("dialog", { name: "Change :team-quiet-harbour: in Slack" }, arrival));
 
-    expect(wizard.getByRole("button", { name: "Map to :quiet-harbour:, current" })).toHaveTextContent("Current");
-    expect(wizard.getByRole("button", { name: "Map to :quiet-harbour:, current" }), "picking the current one would take a member's mapping over").toBeDisabled();
+    expect(wizard.getByRole("button", { name: "Map to :team-quiet-harbour:, current" })).toHaveTextContent("Current");
+    expect(wizard.getByRole("button", { name: "Map to :team-quiet-harbour:, current" }), "picking the current one would take a member's mapping over").toBeDisabled();
     expect(wizard.getByRole("button", { name: "Map to :harbour-old:, in use" })).toBeEnabled();
   });
 
   it("the note about taking an emoji in use stays away while the only one in use is the current one", async () => {
-    const onlyTheCurrent: SlackEmojiMatchesRead = () => ({ kind: "matches", matches: [{ name: "quiet-harbour", image: slackPicture("quiet-harbour"), free: false }, { name: "harbour-wave", image: slackPicture("harbour-wave"), free: true }] });
+    const onlyTheCurrent: SlackEmojiMatchesRead = () => ({ kind: "matches", matches: [{ name: "team-quiet-harbour", image: slackPicture("team-quiet-harbour"), free: false }, { name: "harbour-wave", image: slackPicture("harbour-wave"), free: true }] });
     const view = visit({ as: "admin", path: "/book#teams/quiet-harbour", matches: onlyTheCurrent });
 
-    await view.user.click(await screen.findByRole("button", { name: "Change :quiet-harbour: in Slack" }, arrival));
-    const wizard = within(await screen.findByRole("dialog", { name: "Change :quiet-harbour: in Slack" }, arrival));
+    await view.user.click(await screen.findByRole("button", { name: "Change :team-quiet-harbour: in Slack" }, arrival));
+    const wizard = within(await screen.findByRole("dialog", { name: "Change :team-quiet-harbour: in Slack" }, arrival));
 
-    expect(wizard.getByRole("button", { name: "Map to :quiet-harbour:, current" })).toBeInTheDocument();
+    expect(wizard.getByRole("button", { name: "Map to :team-quiet-harbour:, current" })).toBeInTheDocument();
     expect(wizard.queryByText(/^Picking one in use/)).not.toBeInTheDocument();
   });
 
   it("a refused pick tells the maintainer why it can fail for them, not a member's reasons", async () => {
     const view = visit({ as: "admin", path: "/book#teams/quiet-harbour", inSlack: { "team:quiet-harbour": false }, mapMyEmoji: async () => ({ kind: "refused" }) });
 
-    await view.user.click(await screen.findByRole("button", { name: "Find :quiet-harbour: in Slack" }, arrival));
-    const wizard = within(await screen.findByRole("dialog", { name: "Find :quiet-harbour: in Slack" }, arrival));
+    await view.user.click(await screen.findByRole("button", { name: "Find :team-quiet-harbour: in Slack" }, arrival));
+    const wizard = within(await screen.findByRole("dialog", { name: "Find :team-quiet-harbour: in Slack" }, arrival));
     await view.user.click(wizard.getByRole("button", { name: "Map to :harbour-wave:" }));
 
     expect(await wizard.findByRole("alert")).toHaveTextContent("That didn't save. The Slack emoji may be gone from Slack, or only the workspace maintainer can map emojis. Pick another one.");
@@ -210,8 +210,8 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
     window.history.replaceState(null, "", "/book#teams/quiet-harbour");
     const { user } = renderAlbum(shellFixtures.member, read, { people: fixedPeople(live.album), slackEmojiMatches: found, commands: { mapMyEmoji } });
 
-    await user.click(await screen.findByRole("button", { name: "Find :quiet-harbour: in Slack" }, arrival));
-    await user.click(within(await screen.findByRole("dialog", { name: "Find :quiet-harbour: in Slack" }, arrival)).getByRole("button", { name: "Map to :harbour-wave:" }));
+    await user.click(await screen.findByRole("button", { name: "Find :team-quiet-harbour: in Slack" }, arrival));
+    await user.click(within(await screen.findByRole("dialog", { name: "Find :team-quiet-harbour: in Slack" }, arrival)).getByRole("button", { name: "Map to :harbour-wave:" }));
     act(() => live.listeners.forEach((listener) => listener()));
     await user.click(await screen.findByRole("button", { name: "Done" }));
 
@@ -251,13 +251,13 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
     };
     window.history.replaceState(null, "", "/book#teams/lanterns");
     const { user } = renderAlbum(shellFixtures.member, read, { people: fixedPeople(live.album), slackEmojiMatches: found });
-    await user.click(await screen.findByRole("button", { name: "Find :lanterns: in Slack" }, arrival));
-    expect(await screen.findByRole("dialog", { name: "Find :lanterns: in Slack" }, arrival)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Find :team-lanterns: in Slack" }, arrival));
+    expect(await screen.findByRole("dialog", { name: "Find :team-lanterns: in Slack" }, arrival)).toBeInTheDocument();
 
     live.album = { ...live.album, emojiInPlace: null };
     act(() => live.listeners.forEach((listener) => listener()));
 
-    expect(screen.queryByRole("dialog", { name: "Find :lanterns: in Slack" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Find :team-lanterns: in Slack" })).not.toBeInTheDocument();
   });
 
   it("a member's emoji popup says coming soon too, never Find in Slack or Add to Slack", async () => {

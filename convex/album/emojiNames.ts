@@ -12,6 +12,7 @@ import { standardEmojiNames } from "./standardEmojiNames";
 export type EarnedEmojiId = `level:${number}` | `milestone:${MilestoneId}:${MilestoneTier}` | `team:${string}` | `hype:${MemberId}`;
 
 const hypeSuffix = "-hype";
+const teamStem = "team";
 const firstUse: EarnedEmojiId = `level:${emojiLevels[0]}`;
 
 export async function emojiNameOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId): Promise<string | null> {
@@ -94,7 +95,7 @@ async function naturalShapeOf(ctx: QueryCtx, emoji: EarnedEmojiId): Promise<Name
   const [kind, cause] = splitOnce(emoji);
   if (kind === "level") return { slug: `level-${cause}`, empty: "level", suffix: "" };
   if (kind === "milestone") return { slug: slugOf(milestoneTierEmojiOf(cause)?.name ?? cause), empty: "milestone", suffix: "" };
-  if (kind === "team") return { slug: slugOf((await companyTeamsOf(ctx)).find(({ team }) => team === cause)?.name ?? cause), empty: "team", suffix: "" };
+  if (kind === "team") return teamNameShapeOf((await companyTeamsOf(ctx)).find(({ team }) => team === cause)?.name ?? cause);
   return { slug: slugOf(await fullNameOf(ctx, cause as MemberId)), empty: "person", suffix: hypeSuffix };
 }
 
@@ -108,6 +109,7 @@ export const reserveTeamNamesAfterTheSync = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     for (const workspace of await workspacesWithARegistry(ctx)) {
+      await moveBareTeamNamesToTheTeamPrefixIn(ctx, workspace);
       await reserveCatalogueNamesIn(ctx, workspace);
       await reserveCompanyTeamNamesIn(ctx, workspace);
     }
@@ -143,6 +145,22 @@ async function reserveSharedNamesIn(ctx: MutationCtx, workspace: string) {
   await reserveCompanyTeamNamesIn(ctx, workspace);
 }
 
+async function moveBareTeamNamesToTheTeamPrefixIn(ctx: MutationCtx, workspace: string) {
+  const teamNames = new Map((await companyTeamsOf(ctx)).map(({ team, name }) => [team, name]));
+  for (const row of await teamEmojiRowsIn(ctx, workspace)) {
+    if (row.mappedBy !== undefined || row.name.startsWith(teamPrefixed(""))) continue;
+    const [, team] = splitOnce(row.emoji);
+    await ctx.db.patch(row._id, { name: await firstFreeName(ctx, workspace, teamNameShapeOf(teamNames.get(team) ?? team)) });
+  }
+}
+
+function teamEmojiRowsIn(ctx: QueryCtx, workspace: string) {
+  return ctx.db
+    .query("emojiNames")
+    .withIndex("by_workspace_emoji", (q) => q.eq("workspace", workspace).gte("emoji", "team:").lt("emoji", "team:\uffff"))
+    .collect();
+}
+
 async function reserveCatalogueNamesIn(ctx: MutationCtx, workspace: string) {
   for (const level of emojiLevels) await allocate(ctx, workspace, `level:${level}`, { slug: `level-${level}`, empty: "level", suffix: "" });
   for (const { milestone, tier, name } of milestoneTierEmojis) await allocate(ctx, workspace, `milestone:${milestone}:${tier}`, { slug: slugOf(name), empty: "milestone", suffix: "" });
@@ -150,7 +168,10 @@ async function reserveCatalogueNamesIn(ctx: MutationCtx, workspace: string) {
 
 async function reserveCompanyTeamNamesIn(ctx: MutationCtx, workspace: string, only: (slug: string) => boolean = () => true) {
   const teams = (await companyTeamsOf(ctx)).toSorted((one, other) => one.team.localeCompare(other.team));
-  for (const { team, name } of teams) if (only(slugOf(name))) await allocate(ctx, workspace, `team:${team}`, { slug: slugOf(name), empty: "team", suffix: "" });
+  for (const { team, name } of teams) {
+    const shape = teamNameShapeOf(name);
+    if (only(shape.slug)) await allocate(ctx, workspace, `team:${team}`, shape);
+  }
 }
 
 function reserveTeamNamesShapedLikeHypes(ctx: MutationCtx, workspace: string) {
@@ -158,6 +179,15 @@ function reserveTeamNamesShapedLikeHypes(ctx: MutationCtx, workspace: string) {
 }
 
 type NameShape = { slug: string; empty: string; suffix: string };
+
+function teamNameShapeOf(teamName: string): NameShape {
+  const slug = slugOf(teamName);
+  return { slug: slug === "" ? "" : teamPrefixed(slug), empty: teamStem, suffix: "" };
+}
+
+export function teamPrefixed(slug: string): string {
+  return `${teamStem}-${slug}`;
+}
 
 async function allocate(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiId, shape: NameShape): Promise<void> {
   if ((await registeredAs(ctx, workspace, emoji)) !== null) return;

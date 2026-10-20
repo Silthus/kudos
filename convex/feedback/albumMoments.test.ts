@@ -85,19 +85,19 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
 
     expect(recapTo(alice)).toEqual({
       channel: alice.user,
-      text: [...alicesWeekInHugs, "Emojis you earned last week: lanterns, bob-okonkwo-hype, :carol-lindqvist-hype:, first-face, first-full-page, first-thank-you", footer].join("\n"),
+      text: [...alicesWeekInHugs, "Emojis you earned last week: team-lanterns, bob-okonkwo-hype, :carol-lindqvist-hype:, first-face, first-full-page, first-thank-you", footer].join("\n"),
       blocks: [
         { type: "section", text: { type: "mrkdwn", text: alicesWeekInHugs.join("\n") } },
         {
           type: "context",
           elements: [
-            { type: "image", image_url: `${site}/emoji/team.png`, alt_text: "lanterns" },
+            { type: "image", image_url: `${site}/emoji/team.png`, alt_text: "team-lanterns" },
             { type: "image", image_url: `${site}/emoji/hype.png`, alt_text: "bob-okonkwo-hype" },
             { type: "image", image_url: "https://emoji.slack-edge.com/T1/carol-lindqvist-hype/1.png", alt_text: "carol-lindqvist-hype" },
             { type: "image", image_url: `${site}/emoji/milestone-people-bronze.png`, alt_text: "first-face" },
             { type: "image", image_url: `${site}/emoji/milestone-teams-bronze.png`, alt_text: "first-full-page" },
             { type: "image", image_url: `${site}/emoji/milestone-thoughtful-bronze.png`, alt_text: "first-thank-you" },
-            { type: "mrkdwn", text: "Emojis you earned last week: lanterns, bob-okonkwo-hype, :carol-lindqvist-hype:, first-face, first-full-page, first-thank-you" },
+            { type: "mrkdwn", text: "Emojis you earned last week: team-lanterns, bob-okonkwo-hype, :carol-lindqvist-hype:, first-face, first-full-page, first-thank-you" },
           ],
         },
         { type: "context", elements: [{ type: "mrkdwn", text: footer }] },
@@ -205,8 +205,8 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
         },
         { type: "section", text: { type: "mrkdwn", text: `*3. Dana Ferreira* thanked *Carol Lindqvist*\n>Thanks for covering the support rotation @Carol Lindqvist :taco:\n<${permalinkOf(newest)}|Open in Slack>` } },
         { type: "section", text: { type: "mrkdwn", text: "*Team stickers unlocked last week*" } },
-        { type: "context", elements: [{ type: "image", image_url: `${site}/emoji/team.png`, alt_text: "otters" }, { type: "mrkdwn", text: "*Otters* ×2" }] },
-        { type: "context", elements: [{ type: "image", image_url: `${site}/emoji/team.png`, alt_text: "lanterns" }, { type: "mrkdwn", text: "*Lanterns* ×1" }] },
+        { type: "context", elements: [{ type: "image", image_url: `${site}/emoji/team.png`, alt_text: "team-otters" }, { type: "mrkdwn", text: "*Otters* ×2" }] },
+        { type: "context", elements: [{ type: "image", image_url: `${site}/emoji/team.png`, alt_text: "team-lanterns" }, { type: "mrkdwn", text: "*Lanterns* ×1" }] },
       ],
     });
     expect(quotedMessagesOf(mondayPost()), "the unhugged kudos is fourth").not.toContain(unhugged);

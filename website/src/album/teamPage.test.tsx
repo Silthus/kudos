@@ -13,7 +13,7 @@ const memberWithTheAlbum = shellFixtures.member;
 
 const midway = albumFixtures.midway;
 
-const kettleWorksEmoji: AlbumEmoji = { id: "team:kettle-works", kind: "team", name: "kettle-works", from: "Kettle Works", picture: "/emoji/team-kettle-works.png", earned: false, earnedAt: null, seen: false, inSlack: true, progress: { have: 3, need: 3 } };
+const kettleWorksEmoji: AlbumEmoji = { id: "team:kettle-works", kind: "team", name: "team-kettle-works", from: "Kettle Works", picture: "/emoji/team-kettle-works.png", earned: false, earnedAt: null, seen: false, inSlack: true, progress: { have: 3, need: 3 } };
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -285,14 +285,14 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(moment).toHaveAttribute("data-phase", "lift");
     await act(async () => vi.advanceTimersByTime(1000));
     expect(moment).toHaveAttribute("data-phase", "reveal");
-    expect(within(moment).queryByText(":kettle-works:")).not.toBeInTheDocument();
+    expect(within(moment).queryByText(":team-kettle-works:")).not.toBeInTheDocument();
     await act(async () => vi.advanceTimersByTime(2100));
     expect(moment).toHaveAttribute("data-phase", "named");
     expect(within(moment).getByRole("heading", { name: "Kettle Works sticker unlocked" })).toBeInTheDocument();
     expect(within(moment).getByText("18 Oct 2026 · 3 of 3 people collected")).toBeInTheDocument();
     await act(async () => vi.advanceTimersByTime(800));
     expect(moment).toHaveAttribute("data-phase", "emoji");
-    expect(within(moment).getByText(":kettle-works:")).toBeInTheDocument();
+    expect(within(moment).getByText(":team-kettle-works:")).toBeInTheDocument();
     expect(within(moment).getByText("Your new team emoji. Use it in Slack: react with it and put it in the kudos you give.")).toBeInTheDocument();
     expect(within(moment).getByRole("button", { name: "Put it on the page" })).toHaveFocus();
 
@@ -326,7 +326,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(moment).toHaveAttribute("data-phase", "emoji");
     expect(moment).toHaveAttribute("data-reduced");
     expect(moment.querySelector("[data-confetti]")).toBeNull();
-    expect(within(moment).getByText(":kettle-works:")).toBeInTheDocument();
+    expect(within(moment).getByText(":team-kettle-works:")).toBeInTheDocument();
     expect(within(moment).getByText("Your new team emoji. Add it to Slack from this page, then react with it and put it in the kudos you give.")).toBeInTheDocument();
     await userEvent.click(within(moment).getByRole("button", { name: "Put it on the page" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -362,7 +362,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
 
     expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
     expect(screen.getByText("Unlocked 15 Oct 2026")).toBeInTheDocument();
-    expect(teamEmojiLine()).toHaveTextContent("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
+    expect(teamEmojiLine()).toHaveTextContent("You got the :team-quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
     expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
   });
 
@@ -374,12 +374,12 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     });
     const { user } = visit("/book#teams/quiet-harbour", { album: withTheTeamEmojiOutOfSlack(midway, "quiet-harbour") });
 
-    expect(await screen.findByText(/team emoji\./, undefined, arrival)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
+    expect(await screen.findByText(/team emoji\./, undefined, arrival)).toHaveTextContent("You got the :team-quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
     expect(screen.queryByText(/Use it in Slack/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Add to Slack: :quiet-harbour:" }));
+    await user.click(screen.getByRole("button", { name: "Add to Slack: :team-quiet-harbour:" }));
 
-    await waitFor(() => expect(saved).toEqual([{ href: "/emoji/team-support.png", download: "quiet-harbour.png" }]));
+    await waitFor(() => expect(saved).toEqual([{ href: "/emoji/team-support.png", download: "team-quiet-harbour.png" }]));
     expect(window.open).toHaveBeenCalledExactlyOnceWith("https://hedgehug.slack.com/customize/emoji", "_blank", "noopener,noreferrer");
   });
 
@@ -393,9 +393,9 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     const { user } = visit("/book#teams/quiet-harbour", { album });
 
     vi.spyOn(window, "open").mockReturnValue(null);
-    await user.click(await screen.findByRole("button", { name: "Add to Slack: :quiet-harbour:" }, arrival));
+    await user.click(await screen.findByRole("button", { name: "Add to Slack: :team-quiet-harbour:" }, arrival));
 
-    await waitFor(() => expect(saved).toEqual(["/emoji/team.png as quiet-harbour.png"]));
+    await waitFor(() => expect(saved).toEqual(["/emoji/team.png as team-quiet-harbour.png"]));
   });
 });
 
@@ -416,7 +416,7 @@ describe("AL74: a team emoji mapped to a Slack emoji", () => {
 
     expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
     expect(teamEmojiLine()).toHaveTextContent("You got the :harbour-hogs: team emoji.");
-    expect(screen.queryByText(":quiet-harbour:")).not.toBeInTheDocument();
+    expect(screen.queryByText(":team-quiet-harbour:")).not.toBeInTheDocument();
     expect(teamEmojiLine().closest(".al-emoji-line")?.querySelector("img")).toHaveAttribute("src", mappedPicture);
   });
 

@@ -9,7 +9,7 @@ import { emojiArtPictureOf, emojiLevels, milestoneTierArtOf, milestoneTierEmojiO
 import { emojiClassesIn, isClassed } from "./emojiClasses";
 import { hypeFaceOf, isEarnedBy, teamPictureOf, type EarnedEmojiKind } from "./earnedEmojis";
 import { placeSlackEmoji, targetOf, type MappingTarget } from "./emojiMappings";
-import { emojiNamed, emojiNameOf, giveEmojiTheName, mapperOf, namesHeldIn, registeredEmojisIn, type EarnedEmojiId } from "./emojiNames";
+import { emojiNamed, emojiNameOf, giveEmojiTheName, mapperOf, namesHeldIn, registeredEmojisIn, teamPrefixed, type EarnedEmojiId } from "./emojiNames";
 import type { EmojiMapper } from "./records";
 
 export type SlackEmojiMatch = { name: string; image: string; free: boolean };
@@ -121,7 +121,7 @@ function termsOf(target: string): string[] {
   const slug = slugOf(target);
   const words = slug.split("-").filter((word) => word.length >= shortestWord);
   const stems = words.filter((word) => word.length > stemLength).map((word) => word.slice(0, stemLength));
-  return [...new Set([target, slug, ...words, ...stems])].slice(0, mostTerms);
+  return [...new Set([target, slug, teamPrefixed(slug), ...words, ...stems])].slice(0, mostTerms);
 }
 
 function closestTo(target: string) {

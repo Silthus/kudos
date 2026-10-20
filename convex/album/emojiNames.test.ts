@@ -50,7 +50,7 @@ describe("an earned emoji's name never moves", () => {
     expect(await namesOf("milestone:people:bronze", "milestone:people:silver", "milestone:people:gold", "milestone:people:diamond")).toEqual(["first-face", "familiar-faces", "full-of-friends", "everyone-s-album"]);
     expect(await namesOf("milestone:teams:gold", "milestone:reach:gold", "milestone:hoggies:gold", "milestone:thoughtful:gold")).toEqual(["most-of-the-company", "well-travelled", "hoarder", "heart-of-the-team"]);
     expect(await namesOf("milestone:hoggies:bronze", "milestone:thoughtful:diamond")).toEqual(["curious", "patron-of-praise"]);
-    expect(await namesOf("team:lanterns", "team:kites")).toEqual(["lanterns", "kites"]);
+    expect(await namesOf("team:lanterns", "team:kites")).toEqual(["team-lanterns", "team-kites"]);
     expect(await hypeNameOf(wren)).toBe("wren-halloway-hype");
   });
 
@@ -107,26 +107,79 @@ describe("an earned emoji's name never moves", () => {
     expect([await hypeNameOf(zoe), await hypeNameOf(lei), await hypeNameOf(mei)]).toEqual(["zoe-angstrom-nunez-hype", "person-1-hype", "person-2-hype"]);
   });
 
-  test("a team named like a milestone, like a standard emoji or with no Latin letter gets the first free name, and a team that appears later is reserved by the next sync", async () => {
-    await companyTeams(team("hoarders", "Hoarder"), team("rockets", "Rocket"), team("kanji", "数据"));
+  test("a team named team-<slug> of its name gets the first free number where another team took it, a team with no Latin letter becomes team-n, and a team that appears later is reserved by the next sync", async () => {
+    await companyTeams(team("hoarders", "Hoarders"), team("hoarders-guild", "Hoarders!"), team("kanji", "数据"));
     await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
 
-    await companyTeams(team("hoarders", "Hoarder"), team("rockets", "Rocket"), team("kanji", "数据"), team("lanterns", "Lanterns"));
+    await companyTeams(team("hoarders", "Hoarders"), team("hoarders-guild", "Hoarders!"), team("kanji", "数据"), team("lanterns", "Lanterns"));
     await companyTeams(team("lanterns", "Lantern Bearers"));
 
-    expect(await namesOf("team:hoarders", "team:rockets", "team:kanji", "team:lanterns")).toEqual(["hoarder-2", "rocket-2", "team-1", "lanterns"]);
+    expect(await namesOf("team:hoarders", "team:hoarders-guild", "team:kanji", "team:lanterns")).toEqual(["team-hoarders", "team-hoarders-2", "team-1", "team-lanterns"]);
   });
 
   test("a team named like a hype emoji keeps its name when a first pack comes before the sync's reservation runs", async () => {
     await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
-    const sam = await aMember({ user: "U_SAM", name: "Sam Rivera" });
+    const sam = await aMember({ user: "U_SAM", name: "Team Sam Rivera" });
     postHogCom.withTeams(team("sam-rivera-hype", "Sam Rivera Hype"));
     await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
     await convexStops(t, "album/emojiNames:reserveTeamNamesAfterTheSync");
 
     await thanks(sam);
 
-    expect([await hypeNameOf(sam), ...(await namesOf("team:sam-rivera-hype"))]).toEqual(["sam-rivera-2-hype", "sam-rivera-hype"]);
+    expect([await hypeNameOf(sam), ...(await namesOf("team:sam-rivera-hype"))]).toEqual(["team-sam-rivera-2-hype", "team-sam-rivera-hype"]);
+  });
+
+  test("a registry opened before team emojis were named team-<slug> moves every team nobody mapped to team-<slug> at the next sync, even where Slack already has that name, keeping a mapped team's name and every row, and a later rename moves nothing", async () => {
+    const teams = [team("lanterns", "Lanterns"), team("kites", "Kites"), team("people-ops", "People & Ops")];
+    await companyTeams(...teams);
+    const maintainer = await aMember({ user: "U_MAINTAINER", name: "Maya Brandt" });
+    await slackHasCustomEmoji("team-lanterns", "team-people-ops");
+    await aRegistryOpenedBeforeTheTeamPrefix([
+      { emoji: "team:lanterns", name: "lanterns" },
+      { emoji: "team:kites", name: "kites", mappedBy: { member: maintainer, as: "maintainer" } },
+      { emoji: "team:people-ops", name: "people-ops" },
+      { emoji: "team:otters", name: "otters" },
+    ]);
+    const teamRowsBefore = await teamEmojisNamed();
+
+    await companyTeams(...teams);
+    const moved = await namesOf("team:lanterns", "team:kites", "team:people-ops", "team:otters");
+    await companyTeams(team("lanterns", "Lantern Bearers"), team("kites", "Kites"), team("people-ops", "People & Ops"));
+
+    expect([moved, await teamEmojisNamed()], "a team that left posthog.com moves to team- and its own slug").toEqual([["team-lanterns", "kites", "team-people-ops", "team-otters"], teamRowsBefore]);
+    expect(await namesOf("team:lanterns", "team:kites", "team:people-ops", "team:otters"), "after the team's rename").toEqual(moved);
+  });
+
+  test("a bare team name the registry still holds after a rollback, or one whose team was renamed to a name with no Latin letter, moves at the next sync", async () => {
+    await companyTeams(team("lanterns", "Lanterns"));
+    await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
+    await namedByTheCodeBeforeTheTeamPrefix({ emoji: "team:kites", name: "kites" }, { emoji: "team:kanji", name: "kanji-club" });
+
+    await companyTeams(team("lanterns", "Lanterns"), team("kites", "Kites"), team("kanji", "数据"));
+
+    expect(await namesOf("team:lanterns", "team:kites", "team:kanji")).toEqual(["team-lanterns", "team-kites", "team-1"]);
+  });
+
+  test("a legacy team name already under team- stays, so the team whose team-<slug> name it holds gets the next number", async () => {
+    const teams = [team("lanterns", "Lanterns"), team("team-lanterns", "Team Lanterns")];
+    await companyTeams(...teams);
+    await aRegistryOpenedBeforeTheTeamPrefix([
+      { emoji: "team:lanterns", name: "lanterns" },
+      { emoji: "team:team-lanterns", name: "team-lanterns" },
+    ]);
+
+    await companyTeams(...teams);
+
+    expect(await namesOf("team:lanterns", "team:team-lanterns")).toEqual(["team-lanterns-2", "team-lanterns"]);
+  });
+
+  test("a registry opened with team-<slug> names keeps a renamed team's name at the next sync", async () => {
+    await companyTeams(team("lanterns", "Lanterns"));
+    await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
+
+    await companyTeams(team("lanterns", "Lantern Bearers"));
+
+    expect(await namesOf("team:lanterns")).toEqual(["team-lanterns"]);
   });
 
   test("a hype name is lower-cased, accent-free, one hyphen per run of other characters, trimmed and cut to 80 characters before its suffix", async () => {
@@ -169,6 +222,28 @@ async function thanks(recipient: MemberId, words = why, ...others: MemberId[]) {
   const users = await t.run(async (ctx) => Promise.all([recipient, ...others].map(async (member) => (await ctx.db.get(member))!.user)));
   await post(t, [section(text(`${words} `), ...users.map((user) => mention(user)), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}` });
   await settle(t);
+}
+
+type OldRegistryRow = { emoji: EarnedEmojiId; name: string; mappedBy?: { member: MemberId; as: "member" | "maintainer" } };
+
+function aRegistryOpenedBeforeTheTeamPrefix(teamRows: OldRegistryRow[]) {
+  return namedByTheCodeBeforeTheTeamPrefix({ emoji: "level:5", name: "level-5" }, ...teamRows);
+}
+
+async function namedByTheCodeBeforeTheTeamPrefix(...rows: OldRegistryRow[]) {
+  await t.run(async (ctx) => {
+    for (const { emoji: key, name, mappedBy } of rows) await ctx.db.insert("emojiNames", { workspace: "T1", emoji: key, name, mappedBy });
+  });
+}
+
+async function slackHasCustomEmoji(...names: string[]) {
+  for (const name of names) slack.withCustomEmoji(name, `https://emoji.slack-edge.com/T1/${name}/abc.png`);
+  await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+  await settle(t);
+}
+
+function teamEmojisNamed() {
+  return t.run(async (ctx) => (await ctx.db.query("emojiNames").collect()).flatMap(({ emoji: key }) => (key.startsWith("team:") ? [key] : [])).toSorted());
 }
 
 function namesOf(...emojis: EarnedEmojiId[]) {
