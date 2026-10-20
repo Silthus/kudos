@@ -10,7 +10,7 @@ import type { Album } from "./answer";
 
 type Mapper = "admin" | "member";
 
-type Visit = { as: Mapper; path: string; inSlack?: Record<string, boolean>; mapMyEmoji?: (emoji: string, to: string) => Promise<{ kind: "mapped" } | { kind: "refused" }> };
+type Visit = { as: Mapper; path: string; inSlack?: Record<string, boolean>; matches?: SlackEmojiMatchesRead; mapMyEmoji?: (emoji: string, to: string) => Promise<{ kind: "mapped" } | { kind: "refused" }> };
 
 const arrival = { timeout: 10_000 };
 
@@ -41,10 +41,10 @@ function albumAs(as: Mapper, inSlack: Record<string, boolean> = {}): Album {
   return { ...midway, emojiWizard: true, emojiInPlace: as, emojis: midway.emojis.map((emoji) => (emoji.id in inSlack ? { ...emoji, inSlack: inSlack[emoji.id]! } : emoji)) };
 }
 
-function visit({ as, path, inSlack, mapMyEmoji = async () => ({ kind: "mapped" }) }: Visit) {
+function visit({ as, path, inSlack, matches = found, mapMyEmoji = async () => ({ kind: "mapped" }) }: Visit) {
   window.history.replaceState(null, "", path);
   const album = albumAs(as, inSlack);
-  return renderAlbum(shellFixtures.member, fixedAlbum(album), { people: fixedPeople(album), slackEmojiMatches: found, commands: { mapMyEmoji } });
+  return renderAlbum(shellFixtures.member, fixedAlbum(album), { people: fixedPeople(album), slackEmojiMatches: matches, commands: { mapMyEmoji } });
 }
 
 function offersNoWayToSlack() {
@@ -173,6 +173,17 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
 
     expect(wizard.getByRole("button", { name: "Map to :quiet-harbour:, current" })).toHaveTextContent("Current");
     expect(wizard.getByRole("button", { name: "Map to :harbour-old:, in use" })).toBeEnabled();
+  });
+
+  it("the note about taking an emoji in use stays away while the only one in use is the current one", async () => {
+    const onlyTheCurrent: SlackEmojiMatchesRead = () => ({ kind: "matches", matches: [{ name: "quiet-harbour", image: slackPicture("quiet-harbour"), free: false }, { name: "harbour-wave", image: slackPicture("harbour-wave"), free: true }] });
+    const view = visit({ as: "admin", path: "/book#teams/quiet-harbour", matches: onlyTheCurrent });
+
+    await view.user.click(await screen.findByRole("button", { name: "Change :quiet-harbour: in Slack" }, arrival));
+    const wizard = within(await screen.findByRole("dialog", { name: "Change :quiet-harbour: in Slack" }, arrival));
+
+    expect(wizard.getByRole("button", { name: "Map to :quiet-harbour:, current" })).toBeInTheDocument();
+    expect(wizard.queryByText(/^Picking one in use/)).not.toBeInTheDocument();
   });
 
   it("a refused pick tells the maintainer why it can fail for them, not a member's reasons", async () => {

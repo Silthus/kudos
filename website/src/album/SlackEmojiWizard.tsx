@@ -136,7 +136,7 @@ function Matches({ emoji, matches, search, takesAnyEmoji, saving, emojiPage, onP
           </li>
         ))}
       </ul>
-      {takesAnyEmoji && matches.matches.some(({ free }) => !free) && <p className="al-wizard-quiet">Picking one in use gives it to this emoji: an earned emoji that had it moves to a free name, and a random drop or a held-back name stops being one.</p>}
+      {takesAnyEmoji && matches.matches.some((match) => !match.free && match.name !== emoji.name) && <p className="al-wizard-quiet">Picking one in use gives it to this emoji: an earned emoji that had it moves to a free name, and a random drop or a held-back name stops being one.</p>}
       {!matches.matches.some(pickable) && <NoneFound emoji={emoji} said={`Every Slack emoji found${search === "" ? "" : ` for “${search}”`} is in use. Add this one to Slack under its name.`} emojiPage={emojiPage} />}
     </>
   );
