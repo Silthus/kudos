@@ -3,15 +3,20 @@ import { companyTeamsOf, type CompanyTeam } from "../companyProfiles/teams";
 import { levelOf } from "../progression/levels";
 import { customEmojiImageOf, originalCustomEmojiOf, originalCustomEmojiStartingWith } from "../workspace/customEmoji";
 import { currentMembersOf, type MemberId } from "../workspace/directory";
+import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
+import { emojiMappingInPlaceShownTo, emojiWizardShownTo } from "./flag";
 import { emojiArtPictureOf, emojiLevels, milestoneTierArtOf, milestoneTierEmojiOf, slugOf } from "./emojiCatalogue";
 import { emojiClassesIn, isClassed } from "./emojiClasses";
 import { hypeFaceOf, isEarnedBy, teamPictureOf, type EarnedEmojiKind } from "./earnedEmojis";
+import { placeSlackEmoji, targetOf, type MappingTarget } from "./emojiMappings";
 import { emojiNamed, emojiNameOf, giveEmojiTheName, mapperOf, namesHeldIn, registeredEmojisIn, type EarnedEmojiId } from "./emojiNames";
 import type { EmojiMapper } from "./records";
 
 export type SlackEmojiMatch = { name: string; image: string; free: boolean };
 
 export type AppEmojiKind = Exclude<EarnedEmojiKind, "random">;
+
+export type EmojiInPlace = "admin" | "member" | null;
 
 export type AppEmojiRow = { emoji: EarnedEmojiId; kind: AppEmojiKind; name: string; from: string; picture: string; holders: number; slack: { image: string; mappedBy: EmojiMapper | null } | null };
 
@@ -51,6 +56,16 @@ export async function mapHeldEmoji(ctx: MutationCtx, workspace: string, member: 
   return true;
 }
 
+export async function emojiInPlaceFor(ctx: QueryCtx, member: MemberId): Promise<EmojiInPlace> {
+  if (!(await emojiWizardShownTo(ctx, member)) || !(await emojiMappingInPlaceShownTo(ctx, member))) return null;
+  return (await workspaceSettingsShownTo(ctx, member)) ? "admin" : "member";
+}
+
+export async function mapAppEmojiInPlace(ctx: MutationCtx, workspace: string, maintainer: MemberId, emoji: string, name: string): Promise<boolean> {
+  const place = appEmojiPlaceOf(ctx, emoji);
+  return place !== null && (await placeSlackEmoji(ctx, workspace, name, place, false, maintainer));
+}
+
 export type AppEmojiRows = { rows: AppEmojiRow[]; more: boolean };
 
 export async function appEmojisIn(ctx: QueryCtx, workspace: string): Promise<AppEmojiRows> {
@@ -77,6 +92,14 @@ function splitOnce(id: string): [string, string] {
 function earnedEmojiIdOf(emoji: string): EarnedEmojiId | null {
   const kind = emoji.slice(0, emoji.indexOf(":"));
   return appEmojiKinds.some((each) => each === kind) ? (emoji as EarnedEmojiId) : null;
+}
+
+function appEmojiPlaceOf(ctx: QueryCtx, emoji: string): MappingTarget | null {
+  const id = earnedEmojiIdOf(emoji);
+  const target = id === null ? null : targetOf(id);
+  if (target?.kind !== "hype") return target;
+  const person = ctx.db.normalizeId("members", target.person);
+  return person === null ? null : { kind: "hype", person };
 }
 
 async function isMappableByMembers(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId): Promise<boolean> {

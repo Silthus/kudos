@@ -8,12 +8,14 @@ import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
 import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
-import type { Album, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
-import { FindInSlackWhileOn } from "./findInSlack";
+import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
+import { ComingSoonToSlack, FindInSlackWhileOn, MapInPlace, useMapsInPlace, useSlackWay } from "./findInSlack";
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
 import "./team.css";
+
+type HypeShown = Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">;
 
 type PersonAnswerProps = { shown: PersonShown | undefined; album: Album; onSignIn: () => void; onSignOut: () => void };
 
@@ -103,9 +105,18 @@ function HypeEmoji({ person, first }: { person: Person; first: string }) {
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
       </p>
-      {earned && name !== null && <FindInSlackWhileOn emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} />}
+      {name !== null && <HypeInSlack emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} earned={earned} />}
     </div>
   );
+}
+
+function HypeInSlack({ emoji, earned }: { emoji: HypeShown; earned: boolean }) {
+  const inPlace = useMapsInPlace();
+  const way = useSlackWay();
+  if (inPlace) return <MapInPlace emoji={emoji} />;
+  if (!earned) return null;
+  if (way === "coming-soon") return emoji.inSlack ? null : <ComingSoonToSlack />;
+  return <FindInSlackWhileOn emoji={emoji} />;
 }
 
 function History({ person }: { person: Person }) {

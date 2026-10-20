@@ -37,14 +37,15 @@ export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, ran
 
 export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace, randomDrops: boolean, maintainer: MemberId): Promise<boolean> {
   if ((await customEmojiImageOf(ctx, workspace, name)) === undefined || (place.kind === "random" && !randomDrops)) return false;
-  await openTheRegistryIn(ctx, workspace);
   if (place.kind === "unmapped" || place.kind === "random") {
+    await openTheRegistryIn(ctx, workspace);
     if (!(await classEmoji(ctx, workspace, name, place.kind))) return false;
     await freeTheName(ctx, workspace, name);
     return true;
   }
   const emoji = await earnedEmojiAt(ctx, workspace, place);
   if (emoji === null) return false;
+  await openTheRegistryIn(ctx, workspace);
   await unclassEmoji(ctx, workspace, name);
   await giveEmojiTheName(ctx, workspace, emoji, name, { member: maintainer, as: "maintainer" });
   return true;

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
+import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
 import { albumShownTo, emojiWizardShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
@@ -44,6 +45,7 @@ export type AlbumAnswer = {
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
   emojiWizard: boolean;
+  emojiInPlace: EmojiInPlace;
 };
 
 export const mostPeopleShown = 500;
@@ -108,7 +110,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member) };
 });
 
 async function teamsOf(ctx: QueryCtx, pagesAndPeople: TeamPagesAndPeople, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {

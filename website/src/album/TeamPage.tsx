@@ -3,7 +3,7 @@ import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { PageTitle } from "../PageTitle";
-import { NotInSlack, useEmojiWizardOn } from "./findInSlack";
+import { MapInPlace, NotInSlack, useMapsInPlace, useSlackWay } from "./findInSlack";
 import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
 import { plural } from "./facts";
 import { PersonPicture } from "./PersonPicture";
@@ -20,6 +20,9 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
   const onThePhoto = onThePhotoOf(album, team);
   const emoji = teamEmojiOf(album, team.team);
   const caption = useId();
+  const mapsInPlace = useMapsInPlace();
+  const unlocked = team.state === "unlocked";
+  const emojiShown = unlocked || mapsInPlace;
   return (
     <article className="al-page-body al-team-page">
       <header>
@@ -43,7 +46,7 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
       <p role="status" aria-label="Unlocking the sticker" className="al-unlock-problem">
         {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
       </p>
-      {team.state === "unlocked" && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} emojiPage={album.emojiPage} />}
+      {emojiShown && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} unlocked={unlocked} emojiPage={album.emojiPage} />}
     </article>
   );
 }
@@ -140,16 +143,24 @@ function problemWordsOf(reason: "refused" | "unreachable", team: AlbumTeam) {
   return reason === "refused" ? `The ${team.name} sticker couldn't be unlocked. Reload the page to see where it stands.` : "Couldn't reach HedgeHug. Try again.";
 }
 
-function TeamEmojiLine({ team, emoji, emojiPage }: { team: AlbumTeam; emoji: AlbumEmoji; emojiPage: string | null }) {
+function TeamEmojiLine({ team, emoji, unlocked, emojiPage }: { team: AlbumTeam; emoji: AlbumEmoji; unlocked: boolean; emojiPage: string | null }) {
+  const way = useSlackWay();
+  const inPlace = useMapsInPlace();
   return (
     <div className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
         <TeamEmojiPicture art={team.art} name={team.name} emoji={emoji} size={32} />
       </span>
-      <p>
-        You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji, useEmojiWizardOn())}
-      </p>
-      {!emoji.inSlack && <NotInSlack emoji={emoji} emojiPage={emojiPage} />}
+      {unlocked ? (
+        <p>
+          You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji, way)}
+        </p>
+      ) : (
+        <p>
+          The <code>:{emoji.name}:</code> team emoji unlocks with the sticker.
+        </p>
+      )}
+      {inPlace ? <MapInPlace emoji={emoji} /> : !emoji.inSlack && <NotInSlack emoji={emoji} emojiPage={emojiPage} />}
     </div>
   );
 }

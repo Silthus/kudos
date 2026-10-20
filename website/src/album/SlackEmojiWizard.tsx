@@ -15,6 +15,7 @@ export type SlackEmojiWizardProps = {
   emoji: WizardEmoji;
   whose: "your" | "the";
   takesAnyEmoji: boolean;
+  changes: boolean;
   emojiPage: string | null;
   useSlackEmojiMatches: SlackEmojiMatchesRead;
   pick: (slackEmoji: string) => Promise<WizardPick>;
@@ -25,7 +26,7 @@ type Step = { kind: "picking" } | { kind: "saving"; name: string } | { kind: "ma
 
 const searchSettlesMs = 250;
 
-export function SlackEmojiWizard({ emoji, whose, takesAnyEmoji, emojiPage, useSlackEmojiMatches, pick, onClose }: SlackEmojiWizardProps) {
+export function SlackEmojiWizard({ emoji, whose, takesAnyEmoji, changes, emojiPage, useSlackEmojiMatches, pick, onClose }: SlackEmojiWizardProps) {
   const title = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
@@ -60,7 +61,7 @@ export function SlackEmojiWizard({ emoji, whose, takesAnyEmoji, emojiPage, useSl
         <header className="al-wizard-head">
           <EmojiPicture emoji={emoji} size={40} />
           <div className="al-wizard-words">
-            <h2 id={title} className="al-wizard-title">{`Find :${emoji.name}: in Slack`}</h2>
+            <h2 id={title} className="al-wizard-title">{`${changes ? "Change" : "Find"} :${emoji.name}: in Slack`}</h2>
             <p className="al-wizard-hint">{`Pick the Slack emoji that is ${whose} ${words}. Everyone who has it can use it in Slack at once.`}</p>
           </div>
           <button type="button" className="al-wizard-close" aria-label="Close" onClick={onClose}>
@@ -77,7 +78,7 @@ export function SlackEmojiWizard({ emoji, whose, takesAnyEmoji, emojiPage, useSl
             </label>
             {(step.kind === "refused" || step.kind === "unreachable") && (
               <p role="alert" className="al-wizard-problem">
-                {step.kind === "refused" ? "That didn't save. It may be mapped already, or the maintainer set this one. Pick another one." : "Couldn't reach HedgeHug. Try again."}
+                {step.kind === "refused" ? refusalWordsOf(whose) : "Couldn't reach HedgeHug. Try again."}
               </p>
             )}
             <Matches emoji={emoji} matches={matches} search={settledSearch} takesAnyEmoji={takesAnyEmoji} saving={step.kind === "saving" ? step.name : null} emojiPage={emojiPage} onPick={choose} />
@@ -86,6 +87,11 @@ export function SlackEmojiWizard({ emoji, whose, takesAnyEmoji, emojiPage, useSl
       </div>
     </div>
   );
+}
+
+function refusalWordsOf(whose: SlackEmojiWizardProps["whose"]) {
+  if (whose === "the") return "That didn't save. The Slack emoji may be gone from Slack, or only the workspace maintainer can map emojis. Pick another one.";
+  return "That didn't save. It may be mapped already, or the maintainer set this one. Pick another one.";
 }
 
 function closeOnTheBackdrop(event: PointerEvent<HTMLDivElement>, onClose: () => void) {
@@ -114,7 +120,7 @@ type MatchesProps = { emoji: WizardEmoji; matches: SlackEmojiMatchesShown | unde
 function Matches({ emoji, matches, search, takesAnyEmoji, saving, emojiPage, onPick }: MatchesProps) {
   if (matches === undefined || matches.kind === "connecting") return <p className="al-wizard-quiet">Looking in Slack…</p>;
   if (matches.kind !== "matches") return <p className="al-wizard-quiet">Slack's emojis didn't load. Try again in a moment.</p>;
-  const pickable = (match: SlackEmojiMatch) => takesAnyEmoji || match.free;
+  const pickable = (match: SlackEmojiMatch) => (takesAnyEmoji ? match.name !== emoji.name : match.free);
   if (matches.matches.length === 0) return <NoneFound emoji={emoji} said={search === "" ? `No Slack emoji has a name like :${emoji.name}:. Search for one, or add this one to Slack under its name.` : `No Slack emoji found for “${search}”. Add this one to Slack under its name.`} emojiPage={emojiPage} />;
   return (
     <>
@@ -122,18 +128,23 @@ function Matches({ emoji, matches, search, takesAnyEmoji, saving, emojiPage, onP
       <ul className="al-wizard-matches" aria-label="Slack emojis">
         {matches.matches.map((match) => (
           <li key={match.name}>
-            <button type="button" className="al-wizard-match" aria-label={match.free ? `Map to :${match.name}:` : `Map to :${match.name}:, in use`} title={`:${match.name}:`} disabled={!pickable(match)} aria-disabled={saving !== null || undefined} onClick={() => onPick(match.name)}>
+            <button type="button" className="al-wizard-match" aria-label={matchLabelOf(match, emoji.name)} title={`:${match.name}:`} disabled={!pickable(match)} aria-disabled={saving !== null || undefined} onClick={() => onPick(match.name)}>
               <img src={match.image} alt="" width={28} height={28} loading="lazy" decoding="async" />
               <code>{saving === match.name ? "Saving…" : `:${match.name}:`}</code>
-              {!match.free && <span className="al-wizard-in-use">In use</span>}
+              {!match.free && <span className="al-wizard-in-use">{match.name === emoji.name ? "Current" : "In use"}</span>}
             </button>
           </li>
         ))}
       </ul>
-      {takesAnyEmoji && matches.matches.some(({ free }) => !free) && <p className="al-wizard-quiet">Picking one in use gives it to this emoji: an earned emoji that had it moves to a free name, and a random drop or a held-back name stops being one.</p>}
-      {!matches.matches.some(pickable) && <NoneFound emoji={emoji} said={`Every Slack emoji found${search === "" ? "" : ` for “${search}”`} is in use. Add this one to Slack under its name.`} emojiPage={emojiPage} />}
+      {takesAnyEmoji && matches.matches.some((match) => !match.free && match.name !== emoji.name) && <p className="al-wizard-quiet">Picking one in use gives it to this emoji: an earned emoji that had it moves to a free name, and a random drop or a held-back name stops being one.</p>}
+      {!matches.matches.some((match) => pickable(match) || match.name === emoji.name) && <NoneFound emoji={emoji} said={`Every Slack emoji found${search === "" ? "" : ` for “${search}”`} is in use. Add this one to Slack under its name.`} emojiPage={emojiPage} />}
     </>
   );
+}
+
+function matchLabelOf(match: SlackEmojiMatch, current: string) {
+  if (match.free) return `Map to :${match.name}:`;
+  return match.name === current ? `Map to :${match.name}:, current` : `Map to :${match.name}:, in use`;
 }
 
 function NoneFound({ emoji, said, emojiPage }: { emoji: WizardEmoji; said: string; emojiPage: string | null }) {

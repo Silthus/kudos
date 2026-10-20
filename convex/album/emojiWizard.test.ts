@@ -338,6 +338,106 @@ describe("the maintainer lists every app emoji, mapped or not", { timeout: 180_0
   });
 });
 
+describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis where they show and members map none", { timeout: 120_000 }, () => {
+  beforeEach(async () => {
+    await switchWebsite(t, postHog, true, ...wizardOpen, "emoji-mapping-in-place");
+  });
+
+  test("the maintainer maps a team, hype, milestone tier and level emoji they don't hold, Slack's or not, to any Slack emoji, as the maintainer, at once for everyone who holds it", async () => {
+    await unlocksOtters(alice);
+    await aliceCollects(lanterns[0]!);
+    await reachesXp(alice, xpToReach(5));
+    await slackHas("otter", "lantern-cheer", "first-face-medal", "level-5", "five");
+    const asOwner = await signedIn(owner);
+    const hype = `hype:${await memberOf(lanterns[0]!)}`;
+
+    for (const [id, to] of [
+      ["team:otters", "otter"],
+      [hype, "lantern-cheer"],
+      ["milestone:people:bronze", "first-face-medal"],
+      ["level:5", "five"],
+    ] as const) expect(await asOwner.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: id, to }), id).toEqual({ kind: "mapped" });
+
+    const asAlice = await signedIn(alice);
+    expect(await emojiWithId(asAlice, "team:otters")).toMatchObject({ name: "otter", picture: slackPicture("otter"), inSlack: true });
+    expect(await emojiWithId(asAlice, hype)).toMatchObject({ name: "lantern-cheer", inSlack: true });
+    expect(await emojiWithId(asAlice, "milestone:people:bronze")).toMatchObject({ name: "first-face-medal", inSlack: true });
+    expect(await emojiWithId(asAlice, "level:5")).toMatchObject({ name: "five", inSlack: true });
+    const listed = await appEmojisOf(asOwner);
+    for (const name of ["otter", "lantern-cheer", "first-face-medal", "five"]) expect(emojiNamed(listed, name).slack, name).toEqual({ image: slackPicture(name), setBy: { by: "maintainer", name: owner.name } });
+  });
+
+  test("the maintainer remaps a member's mapping and takes a Slack emoji another earned emoji holds, which moves that one to a free name", async () => {
+    await unlocksOtters(alice);
+    await slackHas("lanterns", "sea-otters");
+    const asOwner = await signedIn(owner);
+
+    expect(await asOwner.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "lanterns" })).toEqual({ kind: "mapped" });
+    expect(await asOwner.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "sea-otters" })).toEqual({ kind: "mapped" });
+
+    expect(emojiNamed(await appEmojisOf(asOwner), "sea-otters")).toMatchObject({ place: { kind: "team", team: "otters" }, slack: { image: slackPicture("sea-otters"), setBy: { by: "maintainer", name: owner.name } } });
+    expect(emojiNamed(await appEmojisOf(asOwner), "lanterns-2")).toMatchObject({ place: { kind: "team", team: "lanterns" }, slack: null });
+  });
+
+  test("a member is refused, for an earned emoji they hold and for one they don't, and nothing is written", async () => {
+    await unlocksOtters(alice);
+    await reachesXp(alice, xpToReach(5));
+    await slackHas("otter", "five", "lantern-glow");
+    const asAlice = await signedIn(alice);
+    const before = await everyTable();
+
+    for (const [id, to] of [
+      ["team:otters", "otter"],
+      ["level:5", "five"],
+      ["team:lanterns", "lantern-glow"],
+    ] as const) expect(await asAlice.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: id, to }), id).toEqual({ kind: "refused" });
+
+    expect(await everyTable()).toEqual(before);
+  });
+
+  test("the maintainer is refused a name Slack doesn't have, a random drop, and a team, tier, level or person nobody knows, and nothing is written", async () => {
+    await slackHas("fresh");
+    const asOwner = await signedIn(owner);
+    const before = await everyTable();
+
+    for (const [id, to] of [
+      ["team:otters", "not-in-slack"],
+      ["random:fresh", "fresh"],
+      ["team:walruses", "fresh"],
+      ["milestone:people", "fresh"],
+      ["level:7", "fresh"],
+      ["hype:not-a-member", "fresh"],
+      ["nonsense", "fresh"],
+    ] as const) expect(await asOwner.mutation(api.website.emojiWizard.mapMyEmoji, { emoji: id, to }), `${id} to ${to}`).toEqual({ kind: "refused" });
+
+    expect(await everyTable()).toEqual(before);
+  });
+
+  test("getAlbum answers emojiInPlace: admin for the maintainer, member for everyone else, and null while emoji-mapping-in-place, emoji-wizard or workspace-settings says otherwise", async () => {
+    expect((await albumOf(await signedIn(owner))).emojiInPlace).toBe("admin");
+    expect((await albumOf(await signedIn(alice))).emojiInPlace).toBe("member");
+
+    await switchWebsite(t, postHog, true, ...wizardOpen.filter((flag) => flag !== "workspace-settings"), "emoji-mapping-in-place");
+    expect((await albumOf(await signedIn(owner))).emojiInPlace, "the maintainer without workspace-settings").toBe("member");
+
+    await switchWebsite(t, postHog, true, ...wizardOpen.filter((flag) => flag !== "emoji-wizard"), "emoji-mapping-in-place");
+    expect((await albumOf(await signedIn(owner))).emojiInPlace, "without emoji-wizard").toBeNull();
+
+    await switchWebsite(t, postHog, true, ...wizardOpen);
+    expect((await albumOf(await signedIn(owner))).emojiInPlace, "without emoji-mapping-in-place").toBeNull();
+    expect((await albumOf(await signedIn(alice))).emojiInPlace).toBeNull();
+  });
+
+  test("with emoji-mapping-in-place off a member maps their own emoji as before, and the maintainer can't map one they don't hold", async () => {
+    await unlocksOtters(alice);
+    await slackHas("otter", "lantern-glow");
+    await switchWebsite(t, postHog, true, ...wizardOpen);
+
+    expect(await (await signedIn(alice)).mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:otters", to: "otter" })).toEqual({ kind: "mapped" });
+    expect(await (await signedIn(owner)).mutation(api.website.emojiWizard.mapMyEmoji, { emoji: "team:lanterns", to: "lantern-glow" })).toEqual({ kind: "refused" });
+  });
+});
+
 function holdersOrder(emojis: AppEmoji[]): number[] {
   return emojis.map(({ holders }) => holders);
 }
