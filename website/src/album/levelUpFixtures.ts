@@ -29,5 +29,5 @@ const levelFive: AlbumLevelUp = {
 export const levelUpFixtures = { levelSeven, levelFive };
 
 export function fixedLevelUp(answer: LevelUpShown): LevelUpRead {
-  return (asking) => (asking ? answer : undefined);
+  return (level) => (level === null ? undefined : answer);
 }

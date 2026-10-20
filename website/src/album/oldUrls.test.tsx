@@ -43,7 +43,7 @@ beforeEach(() => {
 
 function visit(address: string) {
   window.history.replaceState(null, "", address);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: fixedPeople(albumFixtures.midway), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway), levelUp: (asking, level) => (asking && level !== null ? { ...levelUpFixtures.levelSeven, level } : undefined) });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: fixedPeople(albumFixtures.midway), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway), levelUp: (level) => (level === null ? undefined : { ...levelUpFixtures.levelSeven, level }) });
 }
 
 function addressNow() {

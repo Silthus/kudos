@@ -189,4 +189,4 @@ export type AlbumLevelUp = { kind: "levelUp"; level: number; at: number; hoggies
 
 export type LevelUpShown = AlbumLevelUp | { kind: "off" } | { kind: "none" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
-export type LevelUpRead = (asking: boolean, level: number | null) => LevelUpShown | undefined;
+export type LevelUpRead = (level: number | null) => LevelUpShown | undefined;

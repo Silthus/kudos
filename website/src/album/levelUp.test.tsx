@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
@@ -122,6 +122,17 @@ describe("the level-up reveal plays where the DM's link lands", () => {
 
     expect(await reveal.findByText(line)).toBeInTheDocument();
     expect(reveal.getByRole("link", { name: "See all your hoggies" })).toHaveAttribute("href", "/book#hoggies");
+  });
+
+  it("asks getLevelUp for the page's level there and for nothing elsewhere in the album", async () => {
+    const read = vi.fn(fixedLevelUp(levelUpFixtures.levelSeven));
+    const { user } = visit(7, read);
+    await theReveal();
+    expect(read).toHaveBeenLastCalledWith(7);
+
+    await user.click(within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: "Hoggies" }));
+
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith(null));
   });
 
   it("waits for the read without showing an empty reveal", async () => {

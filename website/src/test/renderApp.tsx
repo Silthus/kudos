@@ -33,7 +33,7 @@ const noProfile: ProfileRead = (asking) => (asking ? { kind: "off" } : undefined
 
 const noHoggies: HoggiesRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-const noLevelUp: LevelUpRead = (asking) => (asking ? { kind: "off" } : undefined);
+const noLevelUp: LevelUpRead = (level) => (level === null ? undefined : { kind: "off" });
 
 type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen">>;
 

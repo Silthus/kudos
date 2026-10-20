@@ -41,7 +41,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
   const onLevelUp = place.kind === "levelUp";
-  const levelUp = useLevelUp(onLevelUp, place.kind === "levelUp" ? place.level : null);
+  const levelUp = useLevelUp(place.kind === "levelUp" ? place.level : null);
   const onPerson = place.kind === "person";
   const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);

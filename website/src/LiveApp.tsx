@@ -54,7 +54,7 @@ function LiveApp() {
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
       useAlbumProfile={(asking) => useLiveAlbumProfile(asking, unreachable)}
       useAlbumHoggies={(asking) => useLiveAlbumHoggies(asking, unreachable)}
-      useLevelUp={(asking, level) => useLiveLevelUp(asking, level, unreachable)}
+      useLevelUp={(level) => useLiveLevelUp(level, unreachable)}
     />
   );
 }
@@ -107,8 +107,8 @@ function useLiveAlbumHoggies(asking: boolean, unreachable: boolean): HoggiesShow
   return answer;
 }
 
-function useLiveLevelUp(asking: boolean, level: number | null, unreachable: boolean): LevelUpShown | undefined {
-  const request = useMemo((): RequestForQueries => (asking && level !== null ? { levelUp: { query: api.website.album.getLevelUp, args: { level } } } : {}), [asking, level]);
+function useLiveLevelUp(level: number | null, unreachable: boolean): LevelUpShown | undefined {
+  const request = useMemo((): RequestForQueries => (level === null ? {} : { levelUp: { query: api.website.album.getLevelUp, args: { level } } }), [level]);
   const { levelUp: answer } = useQueries(request);
   if (answer instanceof Error) return { kind: "broken" };
   if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
