@@ -271,6 +271,18 @@ describe("AL47: the opening turns one card a beat", () => {
     expect(dialog.queryByText(/unlocked/)).not.toBeInTheDocument();
   });
 
+  it("#736: with emoji-mapping-in-place on, a member sees the hype emoji Slack hasn't as coming soon, with no Find in Slack", async () => {
+    const { user } = visit({ ...notCompleting, emojiWizard: true, emojiInPlace: "member", emojis: [...notCompleting.emojis, junoHype] }, async () => opened(stickerAndHoggie("juno-park")));
+    const dialog = await openThePacks(user);
+    await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
+    await user.click(await dialog.findByRole("button", { name: "Turn the first card" }));
+    await user.click(await dialog.findByRole("button", { name: "Next card" }));
+    await user.click(await dialog.findByRole("button", { name: "Turn the hoggie" }));
+
+    expect(await dialog.findByText("Coming soon to Slack")).toBeInTheDocument();
+    expect(dialog.queryByRole("button", { name: /in Slack$/ })).not.toBeInTheDocument();
+  });
+
   it("a pack that holds no sticker shows no hype emoji, even for a person who has one", async () => {
     const { user } = visit({ ...notCompleting, emojis: [...notCompleting.emojis, junoHype] }, async () => opened([{ item: "tray-h", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: true }]));
     const dialog = await openThePacks(user);
