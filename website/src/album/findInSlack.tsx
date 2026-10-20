@@ -32,7 +32,7 @@ export function EmojiWizardHost({ on, inPlace, emojis, emojiPage, useSlackEmojiM
   return (
     <EmojiWizardContext value={on ? wizard : null}>
       {children}
-      {on && open !== null && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
+      {on && open !== null && inPlace !== "member" && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
     </EmojiWizardContext>
   );
 }

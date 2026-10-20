@@ -207,6 +207,24 @@ describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis w
     expect(screen.getByRole("button", { name: "Change :harbour-wave: in Slack" })).toBeInTheDocument();
   });
 
+  it("a member's open wizard closes when emoji-mapping-in-place turns on under it", async () => {
+    const live = { album: { ...albumAs("member"), emojiInPlace: null } as Album, listeners: new Set<() => void>() };
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.album);
+      return asking ? shown : undefined;
+    };
+    window.history.replaceState(null, "", "/book#milestones");
+    const { user } = renderAlbum(shellFixtures.member, read, { people: fixedPeople(live.album), slackEmojiMatches: found });
+    await user.click(await screen.findByRole("button", { name: "Find :familiar-faces: in Slack" }, arrival));
+    expect(await screen.findByRole("dialog", { name: "Find :familiar-faces: in Slack" }, arrival)).toBeInTheDocument();
+
+    live.album = { ...live.album, emojiInPlace: "member" };
+    act(() => live.listeners.forEach((listener) => listener()));
+
+    expect(screen.queryByRole("dialog", { name: "Find :familiar-faces: in Slack" })).not.toBeInTheDocument();
+    offersNoWayToSlack();
+  });
+
   it("a member's emoji popup says coming soon too, never Find in Slack or Add to Slack", async () => {
     const view = visit({ as: "member", path: "/" });
     const [bar] = await screen.findAllByRole("banner", {}, arrival);
