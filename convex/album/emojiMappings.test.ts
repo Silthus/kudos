@@ -265,6 +265,15 @@ describe("the maintainer maps Slack's standard emoji behind standard-emoji", { t
     expect((await mappingsOf(asOwner)).emoji).toContainEqual({ name: "tada", image: standardPicture("1f389"), mapping: { kind: "team", team: "otters" } });
   });
 
+  test("a custom emoji named like a standard one stays the workspace's own: listed and found once, with its custom picture", async () => {
+    await slackHas("orca");
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji", "emoji-wizard");
+    const asOwner = await signedIn(owner);
+
+    expect((await mappingsOf(asOwner)).emoji.filter(({ name }) => name === "orca")).toEqual([{ name: "orca", image: slackPicture("orca"), mapping: null }]);
+    expect(await asOwner.query(api.website.emojiWizard.findSlackEmojis, { near: "orca", search: "orca" })).toEqual({ kind: "matches", matches: [{ name: "orca", image: slackPicture("orca"), free: true }] });
+  });
+
   test("a standard emoji maps by its base name, which stands for every skin tone, and mapping one writes nothing to the custom emoji copy", async () => {
     await aliceCollects(otters[0]!);
     await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji");
