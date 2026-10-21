@@ -5,7 +5,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import type { BoardItem, LoopLesson } from "../../../convex/website/album";
 import { shellFixtures, type TurnReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
-import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixtureTurnOf } from "./albumFixtures";
 import type { Album, AlbumRead } from "./answer";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
@@ -17,6 +17,7 @@ const tacoLesson: LoopLesson = { kudosEmoji: "taco", kudosEmojiImage: null };
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
+  preferReducedMotion();
 });
 
 function anAlbumThatAnswers(first: Album) {

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MemberId } from "../../../convex/workspace/directory";
 import { shellFixtures, type TurnReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
-import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedPeople } from "./albumFixtures";
 import type { Album, AlbumRead } from "./answer";
 
@@ -17,6 +17,7 @@ const nothingUnlocked = { teamStickers: [], hype: null, milestones: [] };
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
+  preferReducedMotion();
 });
 
 afterEach(() => {
@@ -76,7 +77,7 @@ function landedSticker() {
   });
 }
 
-describe("LP13 LP19: a turned sticker lands on its page, plain path", () => {
+describe("LP13 LP19 LP21: a turned sticker lands on its page, plain path under reduced motion", () => {
   it("goes to the person's team page, scrolls the landed sticker into view at once and marks it, names the person and shows their hype emoji beside the sticker", async () => {
     const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
     const hype = { name: "dov-esker-hype", picture: "/emoji/hype-dov.png", inSlack: false };

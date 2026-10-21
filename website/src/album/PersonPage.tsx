@@ -14,7 +14,7 @@ import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
 import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { dateOf, firstNameOf, howToCollectWords, personIn } from "./teamPage";
-import { useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
+import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
 import { NewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
@@ -39,7 +39,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
   const pet = petOf(album, person.person);
   const sticker = useRef<HTMLDivElement>(null);
   const landing = useLandedSticker(person.person);
-  useBroughtIntoViewOnLanding(sticker, landing?.turn ?? null);
+  useBroughtIntoViewOnLanding(sticker, landing);
   const teams = person.teams.map(({ team, name, art }) => album.teams.find((page) => page.team === team) ?? { team, name, art, held: 0, total: 0, mine: false });
   return (
     <article className="al-page-body al-person">
@@ -50,7 +50,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
       )}
       <div className="al-person-entry">
         <figure className="al-mount al-mount-single" aria-labelledby={caption}>
-          <div ref={sticker} className="al-photo" data-landed={landing === null ? undefined : ""}>
+          <div ref={sticker} className="al-photo" {...landedMarksOf(landing)}>
             <PersonPicture face={person.face} name={person.name} collected={person.held} frame="al-photo-sticker al-photo-sticker-large" className="al-photo-face" />
             {pet !== null && <PetHoggie pet={pet} owner={petOwnerWordsOf(album, person.person, person.name)} className="al-person-pet-art" />}
           </div>

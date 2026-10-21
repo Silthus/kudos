@@ -54,3 +54,22 @@ export function hoggieLabelOf(hoggie: AlbumHoggie) {
 export function hoggieNameShownOf(hoggie: AlbumHoggie) {
   return hoggie.found ? hoggie.name : "Not found yet";
 }
+
+export function withoutOneCopyOf(answer: AlbumHoggies, arriving: string): AlbumHoggies {
+  const held = answer.hoggies.find(({ hoggie }) => hoggie === arriving);
+  if (held === undefined || held.count === 0) return answer;
+  const before = withOneCopyLess(held);
+  const unfound = !before.found;
+  return {
+    ...answer,
+    hoggies: answer.hoggies.map((hoggie) => (hoggie === held ? before : hoggie)),
+    rarities: answer.rarities.map((share) => (unfound && share.rarity === held.rarity ? { ...share, found: share.found - 1 } : share)),
+    found: unfound ? answer.found - 1 : answer.found,
+    rarest: unfound ? answer.rarest.filter(({ hoggie }) => hoggie !== arriving) : answer.rarest,
+  };
+}
+
+function withOneCopyLess(hoggie: AlbumHoggie): AlbumHoggie {
+  const count = hoggie.count - 1;
+  return { ...hoggie, count, found: count > 0, spares: Math.max(0, count - 1), firstAt: count > 0 ? hoggie.firstAt : null };
+}
