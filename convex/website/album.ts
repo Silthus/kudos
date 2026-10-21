@@ -3,7 +3,7 @@ import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, typ
 import { hypesHeldFor } from "../items/hypes";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
-import { albumShownTo, emojiWizardShownTo } from "../album/flag";
+import { albumShownTo, emojiWizardShownTo, shareableUrlsShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
 import { levelUpRevealOf, levelUpRevealShownTo, type LevelUpAnswer } from "../album/levelUp";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
@@ -61,6 +61,7 @@ export type AlbumAnswer = {
   board?: ItemBoard;
   pets?: Pet[];
   lastVisit?: number | null;
+  shareableUrls?: true;
   linkPreviews?: true;
 } & ShareOffers;
 
@@ -144,8 +145,12 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)), ...(await linkPreviewsOn(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)), ...(await shareableUrlsTo(ctx, me)), ...(await linkPreviewsOn(ctx, me)) };
 });
+
+async function shareableUrlsTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "shareableUrls">> {
+  return (await shareableUrlsShownTo(ctx, me.member)) ? { shareableUrls: true } : {};
+}
 
 async function linkPreviewsOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "linkPreviews">> {
   return (await linkPreviewsShownTo(ctx, me.member)) ? { linkPreviews: true } : {};

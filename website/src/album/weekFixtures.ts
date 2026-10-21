@@ -123,7 +123,7 @@ const tabs: WeekTab[] = [
 const issues: Record<string, WeekIssue> = { [thisWeek]: fullIssue, "2026-10-05": quietIssue, "2026-09-28": overflowingIssue, "2026-09-21": ownKudosIssue };
 
 function editionOf(week: string): AlbumWeek {
-  return { kind: "week", week, weeks: tabs, issue: issues[week] ?? null };
+  return { kind: "week", week, thisWeek, weeks: tabs, issue: issues[week] ?? null };
 }
 
 export const weekFixtures = {
@@ -131,7 +131,7 @@ export const weekFixtures = {
   quiet: editionOf("2026-10-05"),
   overflowing: editionOf("2026-09-28"),
   ownKudos: editionOf("2026-09-21"),
-  noHistory: { kind: "week", week: thisWeek, weeks: [], issue: null },
+  noHistory: { kind: "week", week: thisWeek, thisWeek, weeks: [], issue: null },
 } satisfies Record<string, AlbumWeek>;
 
 export function fixtureWeeks(): WeekRead {
