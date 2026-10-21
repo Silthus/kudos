@@ -6,6 +6,8 @@ import { isFirstPackGrantedFor } from "../album/packs";
 import type { GrantOutcome } from "../album/records";
 import { isComplete, teamPagesAndPeopleOf, teamProgressWith, type TeamPagesAndPeople, type TeamProgress } from "../album/teamPages";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
+import { hiddenItemsShownTo } from "../items/flag";
+import { waitingCountOf } from "../items/ledger";
 import { placeOf } from "../messageSettings/messageSettings";
 import { websiteOrigin } from "../website/link";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
@@ -21,9 +23,11 @@ export type AlbumReplyPicture = { url: string; label: string };
 
 export type AlbumReplyRecipient = { headline: string; lines: string[]; hype: { picture: AlbumReplyPicture | null; line: string } | null };
 
-export type AlbumReplyButton = { label: string; url: string; id: "album-open-packs" | `album-see-person:${MemberId}` };
+export type AlbumReplyButton = { label: string; url: string; id: "album-open-packs" | "album-see-items" | `album-see-person:${MemberId}` };
 
-export type AlbumReply = { workspace: string; destination: AlbumReplyDestination; recipients: AlbumReplyRecipient[]; more: number; buttons: AlbumReplyButton[]; gains: Line | null };
+export type AlbumReply = { workspace: string; destination: AlbumReplyDestination; recipients: AlbumReplyRecipient[]; more: number; waiting: string | null; buttons: AlbumReplyButton[]; gains: Line | null };
+
+type ReplyBody = Pick<AlbumReply, "recipients" | "waiting" | "buttons">;
 
 type Outcome = ThoughtfulPacksGrantedEvent["outcomes"][number];
 
@@ -46,19 +50,34 @@ export const albumReply = internalQuery({
     if (destination === null) return null;
     const origin = await websiteOrigin(ctx, event.workspace);
     const named = event.outcomes.slice(0, mostRecipientsNamed);
-    const album = await newcomersOf(ctx, event);
-    const recipients: AlbumReplyRecipient[] = [];
-    for (const outcome of named) recipients.push(await recipientOf(ctx, event, outcome, album, origin));
+    const body = (await hiddenItemsShownTo(ctx, event.giver)) ? await itemsBodyOf(ctx, event, named, origin) : await packsBodyOf(ctx, event, named, origin);
     return {
       workspace: event.workspace,
       destination,
-      recipients,
+      ...body,
       more: event.outcomes.length - named.length,
-      buttons: origin === null ? [] : await buttonsOf(ctx, event.outcomes, named, origin),
       gains: await gainsLineWithoutQuestsOf(ctx, event.workspace, event.giver, given.gains),
     };
   },
 });
+
+async function itemsBodyOf(ctx: QueryCtx, { giver }: ThoughtfulPacksGrantedEvent, named: Outcome[], origin: string | null): Promise<ReplyBody> {
+  const recipients: AlbumReplyRecipient[] = [];
+  for (const { recipient, outcome } of named) recipients.push({ ...itemWordsOf(outcome, await firstNameOf(ctx, recipient)), hype: null });
+  const waiting = await waitingCountOf(ctx, giver);
+  return { recipients, waiting: waiting === 0 ? null : `${waiting} wait`, buttons: origin === null ? [] : [{ label: "See your items", url: `${origin}/book`, id: "album-see-items" }] };
+}
+
+function itemWordsOf(outcome: GrantOutcome, first: string) {
+  return outcome === "nextWeek" ? { headline: "Kudos counted.", lines: [`Your next item for ${first} comes next week.`] } : { headline: `An item for thanking ${first}`, lines: [] };
+}
+
+async function packsBodyOf(ctx: QueryCtx, event: ThoughtfulPacksGrantedEvent, named: Outcome[], origin: string | null): Promise<ReplyBody> {
+  const album = await newcomersOf(ctx, event);
+  const recipients: AlbumReplyRecipient[] = [];
+  for (const outcome of named) recipients.push(await recipientOf(ctx, event, outcome, album, origin));
+  return { recipients, waiting: null, buttons: origin === null ? [] : await buttonsOf(ctx, event.outcomes, named, origin) };
+}
 
 async function destinationOf(ctx: QueryCtx, { giver, message }: ThoughtfulPacksGrantedEvent, { to, threadRoot }: { to: string; threadRoot?: string }): Promise<AlbumReplyDestination | null> {
   const place = await placeOf(ctx, giver, "kudos-reply");
