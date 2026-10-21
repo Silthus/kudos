@@ -12,6 +12,7 @@ import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } 
 import { ComingSoonToSlack, FindInSlackWhileOn, MapInPlace, useMapsInPlace, useSlackWay } from "./findInSlack";
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
+import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
 import "./team.css";
 
@@ -33,6 +34,7 @@ export function isWaitingForThePerson(shown: PersonShown | undefined) {
 function PersonPage({ album, person }: { album: Album; person: Person }) {
   const first = firstNameOf(person.name);
   const caption = useId();
+  const pet = petOf(album, person.person);
   const teams = person.teams.map(({ team, name, art }) => album.teams.find((page) => page.team === team) ?? { team, name, art, held: 0, total: 0, mine: false });
   return (
     <article className="al-page-body al-person">
@@ -45,6 +47,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
         <figure className="al-mount al-mount-single" aria-labelledby={caption}>
           <div className="al-photo">
             <PersonPicture face={person.face} name={person.name} collected={person.held} frame="al-photo-sticker al-photo-sticker-large" className="al-photo-face" />
+            {pet !== null && <PetHoggie pet={pet} owner={petOwnerWordsOf(album, person.person, person.name)} className="al-person-pet-art" />}
           </div>
           <figcaption id={caption} className="al-photo-caption">{person.held ? "In your album" : "Not in your album yet"}</figcaption>
         </figure>
@@ -67,6 +70,11 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
                 </li>
               ))}
             </ul>
+          )}
+          {pet !== null && (
+            <p className="al-person-pet">
+              <span className="al-quiet">Pet:</span> <strong>{pet.name}</strong>
+            </p>
           )}
           {person.slackProfile !== null && (
             <div className="al-person-slack">

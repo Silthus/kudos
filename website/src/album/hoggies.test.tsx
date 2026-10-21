@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { useSyncExternalStore } from "react";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contrast } from "../test/themeContrast";
@@ -7,7 +8,7 @@ import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
-import type { HoggiesRead } from "./answer";
+import type { HoggiesRead, PetReply } from "./answer";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 
 const arrival = 10_000;
@@ -542,4 +543,132 @@ describe("AL55: the hoggie page's rarity words meet 4.5:1 on its surfaces in bot
       expect(measured.filter(({ ratio }) => ratio < 4.5)).toEqual([]);
     });
   }
+});
+
+describe("LP57: Make my pet on a hoggie the member found makes it their one pet", { timeout: 60_000 }, () => {
+  function visitWithPets(path: string, pet: string | null | undefined, makePet: (hoggie: string) => Promise<PetReply> = async (hoggie) => ({ kind: "picked", pet: hoggie })) {
+    window.history.replaceState(null, "", path);
+    const answer = pet === undefined ? hoggiesFixtures.midway : { ...hoggiesFixtures.midway, pet };
+    return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { hoggies: fixedHoggies(answer), commands: { makePet } });
+  }
+
+  it("a found hoggie's entry offers Make my pet, and one click sends makePet once and calls it the member's pet, keeping focus there", async () => {
+    const { user, actions } = visitWithPets("/book#hoggies/asleep", null);
+
+    const shown = await entry();
+    expect(shown.queryByText("Your pet")).not.toBeInTheDocument();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+
+    expect(actions.makePet).toHaveBeenCalledExactlyOnceWith("asleep");
+    expect(await shown.findByText("Your pet")).toHaveFocus();
+    expect(shown.queryByRole("button", { name: "Make my pet" })).not.toBeInTheDocument();
+  });
+
+  it("the pet's own entry says it is their pet, and another found hoggie's entry offers to replace it", async () => {
+    const { user, actions } = visitWithPets("/book#hoggies/asleep", "asleep");
+
+    const shown = await entry();
+    expect(shown.getByText("Your pet")).toBeInTheDocument();
+    expect(shown.queryByRole("button", { name: "Make my pet" })).not.toBeInTheDocument();
+
+    await user.keyboard("{ArrowRight}");
+    await waitFor(() => expect(screen.getByRole("dialog")).toHaveAccessibleName("Not found yet"));
+    expect(shown.queryByRole("button", { name: "Make my pet" })).not.toBeInTheDocument();
+    await user.keyboard("{ArrowRight}");
+    await user.keyboard("{ArrowRight}");
+    await waitFor(() => expect(screen.getByRole("dialog")).toHaveAccessibleName("Beaker"));
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+
+    expect(actions.makePet).toHaveBeenCalledExactlyOnceWith("beaker");
+    expect(await shown.findByText("Your pet")).toBeInTheDocument();
+  });
+
+  it("stepping on after a pick keeps focus in the entry, so Escape still closes it", async () => {
+    const { user } = visitWithPets("/book#hoggies/asleep", null);
+
+    const shown = await entry();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+    expect(await shown.findByText("Your pet")).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    await waitFor(() => expect(screen.getByRole("dialog")).toHaveAccessibleName("Not found yet"));
+
+    expect(shown.getByRole("button", { name: "Close" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("once the read confirms a pick, a later pick from elsewhere shows as the pet here too, and focus stays in the entry", async () => {
+    const live = { answer: { ...hoggiesFixtures.midway, pet: "beaker" }, listeners: new Set<() => void>() };
+    const read: HoggiesRead = (asking) => {
+      const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.answer);
+      return asking ? shown : undefined;
+    };
+    const readSays = (pet: string) => {
+      live.answer = { ...live.answer, pet };
+      act(() => live.listeners.forEach((listener) => listener()));
+    };
+    window.history.replaceState(null, "", "/book#hoggies/asleep");
+    const { user } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { hoggies: read, commands: { makePet: async (hoggie) => ({ kind: "picked", pet: hoggie }) } });
+
+    const shown = await entry();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+    expect(await shown.findByText("Your pet")).toBeInTheDocument();
+    readSays("asleep");
+    readSays("beaker");
+
+    expect(shown.queryByText("Your pet")).not.toBeInTheDocument();
+    expect(shown.getByRole("button", { name: "Make my pet" })).toBeInTheDocument();
+    expect(shown.getByRole("button", { name: "Close" })).toHaveFocus();
+  });
+
+  it("a hoggie not found yet offers no Make my pet", async () => {
+    visitWithPets("/book#hoggies/ball", null);
+
+    const shown = await entry();
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Not found yet");
+    expect(shown.queryByRole("button", { name: "Make my pet" })).not.toBeInTheDocument();
+  });
+
+  it("a refusal says so in the entry and keeps Make my pet to try again", async () => {
+    const { user } = visitWithPets("/book#hoggies/asleep", null, async () => ({ kind: "refused" }));
+
+    const shown = await entry();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+
+    expect(await shown.findByText("Asleep couldn't be made your pet. Reload the page to see where it stands.")).toBeInTheDocument();
+    expect(shown.getByRole("button", { name: "Make my pet" })).toBeInTheDocument();
+    expect(shown.queryByText("Your pet")).not.toBeInTheDocument();
+  });
+
+  it("pressing Make my pet again before the answer sends nothing more", async () => {
+    let answer: (reply: PetReply) => void = () => {};
+    const { user, actions } = visitWithPets("/book#hoggies/asleep", null, () => new Promise((resolve) => (answer = resolve)));
+
+    const shown = await entry();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+    await user.click(shown.getByRole("button", { name: "Making it your pet…" }));
+    act(() => answer({ kind: "picked", pet: "asleep" }));
+
+    expect(await shown.findByText("Your pet")).toBeInTheDocument();
+    expect(actions.makePet).toHaveBeenCalledExactlyOnceWith("asleep");
+  });
+
+  it("an unreachable server says to try again and keeps Make my pet", async () => {
+    const { user } = visitWithPets("/book#hoggies/asleep", null, async () => Promise.reject(new Error("offline")));
+
+    const shown = await entry();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+
+    expect(await shown.findByText("Couldn't reach HedgeHug. Try again.")).toBeInTheDocument();
+    expect(shown.getByRole("button", { name: "Make my pet" })).toBeInTheDocument();
+  });
+
+  it("with pet-hoggie off, a found hoggie's entry is as before: no Make my pet and no pet", async () => {
+    visitWithPets("/book#hoggies/asleep", undefined);
+
+    const shown = await entry();
+    expect(shown.getByText("Copies").nextSibling).toHaveTextContent("3 copies");
+    expect(shown.queryByRole("button", { name: "Make my pet" })).not.toBeInTheDocument();
+    expect(shown.queryByText("Your pet")).not.toBeInTheDocument();
+  });
 });

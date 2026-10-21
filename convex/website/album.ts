@@ -15,7 +15,8 @@ import { teamPagesAndPeopleOf, type StoredMatch, type TeamPage, type TeamPagesAn
 import { unlockTeamStickerOf } from "../album/teamStickers";
 import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
-import { hoggiesShownTo } from "../hoggies/flag";
+import { hoggiesShownTo, petHoggieShownTo } from "../hoggies/flag";
+import { makePetOf, petOf, petsIn, type Pet } from "../hoggies/pet";
 import { hiddenItemsShownTo } from "../items/flag";
 import { boardOf, type FaceDown } from "../items/ledger";
 import { turn, type Turned } from "../items/turn";
@@ -51,6 +52,7 @@ export type AlbumAnswer = {
   emojiWizard: boolean;
   emojiInPlace: EmojiInPlace;
   board?: ItemBoard;
+  pets?: Pet[];
 };
 
 export const mostPeopleShown = 500;
@@ -103,7 +105,9 @@ export type AlbumWeekRead = { kind: "off" } | AlbumWeekAnswer;
 
 export type AlbumProfileRead = { kind: "off" } | AlbumProfileAnswer;
 
-export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies;
+export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies & { pet?: string | null };
+
+export type PetAnswer = { kind: "picked"; pet: string } | { kind: "refused" };
 
 export type AlbumHoggiesRead = { kind: "off" } | AlbumHoggiesAnswer;
 
@@ -124,7 +128,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(itemsShown && { board: await boardShownTo(ctx, me, thanked) }) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(itemsShown && { board: await boardShownTo(ctx, me, thanked) }), ...(await petsShownTo(ctx, me)) };
 });
 
 const noPacks = { packs: [], more: false };
@@ -137,6 +141,10 @@ async function boardShownTo(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedP
   const shown: BoardItem[] = [];
   for (const { reason, ...item } of items) shown.push({ ...item, reason: { kind: reason.kind, thanked: await thanked(reason.person) } });
   return { items: shown, more };
+}
+
+async function petsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "pets">> {
+  return (await petHoggieShownTo(ctx, me.member)) ? { pets: await petsIn(ctx, me.workspace) } : {};
 }
 
 async function teamsOf(ctx: QueryCtx, pagesAndPeople: TeamPagesAndPeople, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
@@ -249,7 +257,23 @@ export const markEmojisSeen = memberMutation({
   },
 });
 
-export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)) } : { kind: "off" }));
+export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)), ...(await petPickOf(ctx, me)) } : { kind: "off" }));
+
+async function petPickOf(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumHoggiesAnswer, "pet">> {
+  return (await petHoggieShownTo(ctx, me.member)) ? { pet: await petOf(ctx, me) } : {};
+}
+
+export const makePet = memberMutation({
+  args: { hoggie: v.string() },
+  handler: async (ctx, me, _person, { hoggie }): Promise<PetAnswer> => {
+    const pet = (await picksPets(ctx, me.member)) ? await makePetOf(ctx, me, hoggie) : null;
+    return pet === null ? { kind: "refused" } : { kind: "picked", pet };
+  },
+});
+
+async function picksPets(ctx: QueryCtx, member: MemberId) {
+  return (await albumHoggiesShownTo(ctx, member)) && (await petHoggieShownTo(ctx, member));
+}
 
 async function albumHoggiesShownTo(ctx: QueryCtx, member: MemberId) {
   return (await albumShownTo(ctx, member)) && (await hoggiesShownTo(ctx, member));

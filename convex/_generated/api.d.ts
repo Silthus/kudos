@@ -137,6 +137,7 @@ import type * as hoggies_crateKey from "../hoggies/crateKey.js";
 import type * as hoggies_draw from "../hoggies/draw.js";
 import type * as hoggies_drops from "../hoggies/drops.js";
 import type * as hoggies_flag from "../hoggies/flag.js";
+import type * as hoggies_pet from "../hoggies/pet.js";
 import type * as hoggies_records from "../hoggies/records.js";
 import type * as hoggies_waitingPacks from "../hoggies/waitingPacks.js";
 import type * as http from "../http.js";
@@ -460,6 +461,7 @@ declare const fullApi: ApiFromModules<{
   "hoggies/draw": typeof hoggies_draw;
   "hoggies/drops": typeof hoggies_drops;
   "hoggies/flag": typeof hoggies_flag;
+  "hoggies/pet": typeof hoggies_pet;
   "hoggies/records": typeof hoggies_records;
   "hoggies/waitingPacks": typeof hoggies_waitingPacks;
   http: typeof http;

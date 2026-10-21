@@ -34,6 +34,8 @@ export type MilestoneTierId = "bronze" | "silver" | "gold" | "diamond";
 
 export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null }[] };
 
+export type AlbumPet = { person: string; hoggie: string; name: string; rarity: Rarity };
+
 export type GettingStarted = { hugged: boolean; thoughtful: boolean; opened: boolean; completed: boolean };
 
 export type Album = {
@@ -54,6 +56,7 @@ export type Album = {
   milestones: AlbumMilestone[];
   gettingStarted: GettingStarted | null;
   board: ItemBoard | null;
+  pets?: AlbumPet[];
 };
 
 export type AlbumAnswer = { kind: "off" } | Album;
@@ -167,7 +170,11 @@ export type PersonRead = (asking: boolean, person: string | null) => PersonShown
 
 export type { AlbumHoggie, AlbumRarity };
 
-export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered;
+export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null };
+
+export type PetAnswer = { kind: "picked"; pet: string } | { kind: "refused" };
+
+export type PetReply = PetAnswer | Denial;
 
 export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };
 
