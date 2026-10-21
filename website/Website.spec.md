@@ -383,6 +383,17 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: the shell stores nothing; it shows the pet makePet answered only until getAlbumHoggies names another
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one press sends one command
   checklist: declared-target-coverage dismissed: there is no fan-out; one press names one hoggie
+- the own hype picker shows only on the member's own page: While getAlbumPerson answers the hype pick on the member's own person page, the hype emoji offers `Pick in Slack`, or `Change` while it is in Slack, which opens the Slack emoji wizard titled for their hype emoji; a Slack emoji picked sends pickMyHypeEmoji once with its name, and once picked says it is their hype emoji in Slack now; an emoji in use may be picked, and a refusal says what holds it, a team, a medal, a level, the random drops or someone else's hype; a person page without the hype pick, anyone else's or the member's own with `own-hype-pick` off, offers no picker.
+  over: the member's own page with the hype pick, opened and picked; their own page with the hype emoji in Slack; a pick refused for a team, a milestone, a level, a random drop and another member's hype; a teammate's page; and the member's own page without the hype pick
+  via: a member picks their own hype emoji on their own page
+  refuted: wizardPickOf in website/src/album/OwnHypePick.tsx answered a taken pick as a plain refusal -> 5 of 9 tests red: a refused pick no longer said what holds the emoji (2026-10-21)
+  because: the product owner asked that a member pick their own hype emoji on their own page without admin access (2026-10-21): a picker on a teammate's page would promise a change pickMyHypeEmoji refuses, and a refusal that said nothing would leave the member guessing why their pick didn't save
+  kinds: output
+  checklist: destination-confinement dismissed: the picker sends only pickMyHypeEmoji, once per pick, with the Slack emoji's name, and nothing on arrival
+  checklist: redaction dismissed: the picker sits in a ph-no-capture element and shows Slack emoji names and the member's own hype emoji
+  checklist: commit-ordered-effects dismissed: the page stores nothing; it shows the hype emoji getAlbumPerson answers
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; one pick sends one command
+  checklist: declared-target-coverage dismissed: there is no fan-out; one pick names one Slack emoji
 - a member's pet shows in colour beside their sticker: While getAlbum lists pets, a team page's class photo draws each member's pet in colour beside their sticker, named "{first name}'s pet, {hoggie}", even while their sticker is still grey, and their person page draws it in colour beside the sticker in its mount, with a `Pet: {hoggie}` line; a member without a pet gets none; while getAlbum lists no pets, no page draws one; the Leaderboard and Slack never draw a pet.
   over: a team page with two members' pets, one of them not in the viewer's album yet; that member's person page; a person page of a member without a pet; and a team page while getAlbum lists no pets
   via: LP58: a member's pet shows in colour beside their sticker on team pages and on their person page
