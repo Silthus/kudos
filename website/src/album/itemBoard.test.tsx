@@ -117,6 +117,19 @@ describe("The item board", () => {
     expect((await theBoard()).getAllByRole("button", { name: "A face-down item. Turn it over" })).toHaveLength(3);
   });
 
+  it("LP20: shows the pointer that taps the first item once a visit, so after a hover it stays gone when the board opens again", async () => {
+    const { user } = visit(withItems);
+    const board = await theBoard();
+    expect(document.querySelector(".ib-pointer")).not.toBeNull();
+    await user.hover(board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+    await user.click(board.getByRole("button", { name: "Later" }));
+
+    await user.click(screen.getByRole("button", { name: "3 items wait" }));
+
+    await theBoard();
+    expect(document.querySelector(".ib-pointer")).toBeNull();
+  });
+
   it("turns the clicked item once and, under reduced motion, lands its hoggie on the Hoggies page at once, saying what it was and the XP", async () => {
     preferReducedMotion();
     const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");

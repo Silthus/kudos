@@ -29,6 +29,8 @@ export type ItemTurns = {
   flight: Flight | null;
   boxes: FlightBoxes;
   heldLevel: AlbumLevel | null;
+  touched: boolean;
+  touch: () => void;
   show: () => void;
   later: () => void;
   turn: (item: string, from: HTMLElement | null) => void;
@@ -58,6 +60,8 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const [trouble, setTrouble] = useState<string | null>(null);
   const [landing, setLanding] = useState<Landing | null>(null);
   const [heldLevel, setHeldLevel] = useState<AlbumLevel | null>(null);
+  const [touched, setTouched] = useState(false);
+  const touch = useCallback(() => setTouched(true), []);
   const { flight, boxes, fly } = useTurnFlight();
   const board = useMemo(() => (answered === null ? null : withoutTurned(answered, turnedOver)), [answered, turnedOver]);
   const turnedThisVisit = useMemo(() => [...turnedOver].map(([item, face]) => ({ item, face })), [turnedOver]);
@@ -119,7 +123,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
     setShown("board");
   }, []);
   const later = useCallback(() => setShown("later"), []);
-  return { board, turnedThisVisit, shown, turning, trouble, landing, closedByLater: shown === "later", flight, boxes, heldLevel, show, later, turn: (item, from) => void turn(item, from) };
+  return { board, turnedThisVisit, shown, turning, trouble, landing, closedByLater: shown === "later", flight, boxes, heldLevel, touched, touch, show, later, turn: (item, from) => void turn(item, from) };
 }
 
 async function turnedOf(sent: Promise<TurnReply>, say: (trouble: string) => void): Promise<Turned | null> {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
 import type { ShareReply } from "../shell";
@@ -14,12 +14,10 @@ import type { Landing, ShownTurns } from "./useItemBoard";
 import type { Flight } from "./useTurnFlight";
 import "./itemBoard.css";
 
-type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; flight: Flight | null; lead?: ReactNode; landed?: ReactNode; onTurn: (item: string, from: HTMLElement) => void; onLater: () => void };
+type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; flight: Flight | null; lead?: ReactNode; landed?: ReactNode; touched: boolean; onTouch: () => void; onTurn: (item: string, from: HTMLElement) => void; onLater: () => void };
 
-export function ItemBoard({ board, turning, trouble, flight, lead, landed, onTurn, onLater }: ItemBoardProps) {
+export function ItemBoard({ board, turning, trouble, flight, lead, landed, touched, onTouch, onTurn, onLater }: ItemBoardProps) {
   const dialog = useRef<HTMLElement>(null);
-  const [touched, setTouched] = useState(false);
-  const touch = () => setTouched(true);
   useFirstItemFocused(dialog, flight !== null);
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Tab") return keepFocusIn(dialog.current, event);
@@ -42,9 +40,9 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, onTur
                 data-active={flight?.item === item ? "" : undefined}
                 aria-label={itemLabelOf(reason)}
                 aria-disabled={turning || undefined}
-                onPointerEnter={touch}
+                onPointerEnter={onTouch}
                 onClick={(event) => {
-                  touch();
+                  onTouch();
                   onTurn(item, event.currentTarget);
                 }}
               >
