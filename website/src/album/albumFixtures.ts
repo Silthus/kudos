@@ -2,7 +2,8 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { BoardItem, ItemBoard, TurnAnswer } from "../../../convex/website/album";
-import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, SharedEmoji, TrayItem, UnlockAnswer } from "./answer";
+import type { GettingStarted, GettingStartedSteps } from "../../../convex/website/onboarding";
+import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, SharedEmoji, TrayItem, UnlockAnswer } from "./answer";
 
 const day = 86_400_000;
 
@@ -118,9 +119,13 @@ const sharedEmojis: SharedEmoji[] = emojis.filter(({ kind }) => kind !== "hype")
 
 const emojiPage = "https://hedgehug.slack.com/customize/emoji";
 
+export function startedWith(steps: GettingStartedSteps): GettingStarted {
+  return { steps, kudos: { kudosEmoji: "hedgehog", kudosEmojiImage: null } };
+}
+
 const me = { name: "Sam Example", face: { kind: "initials", initials: "SE" }, person: "sam-example" } as const;
 
-function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugged: true, thoughtful: true, opened: false, completed: false }, packs = 2 }: { mine?: string | null; cast?: CastTeam[]; gettingStarted?: GettingStarted; packs?: number } = {}): Album {
+function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = startedWith({ hugged: true, thoughtful: true, turned: false, levelTwo: false }), packs = 2 }: { mine?: string | null; cast?: CastTeam[]; gettingStarted?: GettingStarted; packs?: number } = {}): Album {
   const teams = teamsOf(cast, mine);
   const people = peopleOf(teams);
   return {
@@ -165,8 +170,8 @@ const newcomerCast = castTeams.slice(0, 4).map((team) => ({ ...team, held: 0, st
 export const albumFixtures = {
   midway: albumOf(),
   teamless: albumOf({ mine: null }),
-  newcomer: { ...albumOf({ mine: null, cast: newcomerCast, gettingStarted: { hugged: false, thoughtful: false, opened: false, completed: false }, packs: 0 }), emojis: emojis.map((emoji) => ({ ...emoji, earned: false, seen: false, progress: emoji.progress ?? { have: 0, need: 1 } })), milestones: milestones.map((milestone) => ({ ...milestone, count: 0, tiers: milestone.tiers.map((tier) => ({ ...tier, earnedAt: null })) })) },
-  started: albumOf({ gettingStarted: { hugged: true, thoughtful: true, opened: true, completed: true } }),
+  newcomer: { ...albumOf({ mine: null, cast: newcomerCast, gettingStarted: startedWith({ hugged: false, thoughtful: false, turned: false, levelTwo: false }), packs: 0 }), emojis: emojis.map((emoji) => ({ ...emoji, earned: false, seen: false, progress: emoji.progress ?? { have: 0, need: 1 } })), milestones: milestones.map((milestone) => ({ ...milestone, count: 0, tiers: milestone.tiers.map((tier) => ({ ...tier, earnedAt: null })) })) },
+  started: albumOf({ gettingStarted: startedWith({ hugged: true, thoughtful: true, turned: true, levelTwo: true }) }),
   onePack: albumOf({ packs: 1 }),
   fewTeams: albumOf({ cast: castTeams.slice(0, 3) }),
   trayed: { ...albumOf(), tray: midwayTray },

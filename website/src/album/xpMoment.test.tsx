@@ -673,6 +673,54 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
   });
 });
 
+const newcomersCard = { slack: "https://app.slack.com/client/T1", toLevelTwo: true, kudos: { kudosEmoji: "taco", kudosEmojiImage: null } };
+
+function theHowItWorksCard() {
+  return screen.queryByRole("dialog", { name: "How HedgeHug works" });
+}
+
+describe("LP67: the how-it-works card opens once, at the end of the arrival's sequence", { timeout: 30_000 }, () => {
+  it("opens once the moment's XP and its takeover have landed, before the waiting items, which land when it closes", async () => {
+    await returnTo({ album: { ...withLevelSevenItems, howItWorks: newcomersCard } });
+    await collectAt(arrivedAndRead);
+    expect(theHowItWorksCard(), "while the moment plays").toBeNull();
+
+    await at(collectedAndStreamed + 0.02);
+    expect(theTakeover()).toBeInTheDocument();
+    expect(theHowItWorksCard(), "while the takeover shows").toBeNull();
+
+    await act(async () => fireEvent.click(theTakeover()!));
+    expect(theHowItWorksCard()).toBeInTheDocument();
+    expect(theItemBoard(), "the items wait for the card").toBeNull();
+
+    await act(async () => fireEvent.click(within(theHowItWorksCard()!).getByRole("button", { name: "Got it" })));
+    expect(theHowItWorksCard()).toBeNull();
+    expect(within(theItemBoard()!).getAllByRole("button", { name: "A face-down item from level 7. Turn it over" })).toHaveLength(3);
+  });
+
+  it("with nothing waiting, opens once All caught up has left", async () => {
+    await returnTo({ moment: quietReturn, album: { ...caughtUp, howItWorks: newcomersCard } });
+    await collectAt(canvasArrival + 0.17 + 0.55);
+    await at(1.42 + 0.55 + 0.7 + 0.38 + 0.02);
+    expect(within(theCanvas()!).getByText("All caught up")).toBeInTheDocument();
+    expect(theHowItWorksCard()).toBeNull();
+
+    await inAnother(2.7);
+
+    expect(theCanvas()).toBeNull();
+    expect(theHowItWorksCard()).toBeInTheDocument();
+  });
+
+  it("with reduced motion, the moment lands at once and the card opens before the items", async () => {
+    preferReducedMotion();
+    await returnTo({ album: { ...returning, howItWorks: newcomersCard } });
+
+    expect(xpWords()).toBe("460 XP to level 8");
+    expect(theHowItWorksCard()).toBeInTheDocument();
+    expect(theItemBoard()).toBeNull();
+  });
+});
+
 const cameInLater: XpMoment = { ...quietReturn, since: busyReturn.until, until: busyReturn.until + 10 * minute };
 
 function theGlow() {

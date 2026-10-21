@@ -1,0 +1,8 @@
+PostHog project "HedgeHug" (662840), execute-sql, 2026-10-21 after the sandbox close:
+SELECT event, timestamp, properties.tried_slack, properties.environment FROM events WHERE event = 'onboarding card closed' AND timestamp > now() - INTERVAL 1 DAY
+event                  | timestamp                   | tried_slack | environment
+onboarding card closed | 2026-10-21T22:24:37.249000Z | True        | sandbox
+(one row: the one close of the newcomer's card through Try it in Slack)
+
+Sandbox different-dog-467, howItWorksCloses after the close:
+{ "_creationTime": 1792621477249.8362, "_id": "n57v5g3cqbcg5tjgfg6q0q0fsn8gpcg8", "at": 1792621477249, "member": "js78dstara3jhza5m4cy985dr58gpnnq", "triedSlack": true }

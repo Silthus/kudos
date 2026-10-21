@@ -96,6 +96,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         endXpMoment={visit.endTheMoment}
         missedXpMoment={visit.missed}
         shareItem={actions.shareItem}
+        closeHowItWorks={actions.closeHowItWorks}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>
