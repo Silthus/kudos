@@ -149,20 +149,24 @@ describe("LP14: the first item turned from thanking a person unlocks their hype 
   });
 });
 
-describe("LP13: every turn answers the milestone tiers it reached", { timeout: 60_000 }, () => {
-  test("a sticker's turn and a hoggie's turn each answer exactly the tiers recorded in their mutation", async () => {
+describe("LP13 LP14: every turn answers the milestone tiers it unlocks", { timeout: 60_000 }, () => {
+  test("a hoggie's turn answers the thoughtful tier its thanks reached in Slack, and each sticker's turn exactly the tiers recorded in its mutation, the teams tier when it fills a team", async () => {
     await thanks(alice, bob, carol);
     const asAlice = await signedIn(alice);
 
     const hoggie = await turn(asAlice, await itemOf(alice, "hoggie", bob));
-    const hoggieTiers = await tiersRecordedAt(alice, Date.now());
     vi.setSystemTime(Date.now() + minuteMs);
-    await turnTheSticker(asAlice, bob);
+    const first = await turnTheSticker(asAlice, bob);
+    const firstTiers = await tiersRecordedAt(alice, Date.now());
     vi.setSystemTime(Date.now() + minuteMs);
     const filling = await turnTheSticker(asAlice, carol);
+    const fillingTiers = await tiersRecordedAt(alice, Date.now());
 
-    expect(hoggie).toMatchObject({ kind: "turned", unlocked: { milestones: hoggieTiers } });
-    expect(filling.unlocked.milestones).toEqual(await tiersRecordedAt(alice, Date.now()));
+    expect(hoggie).toMatchObject({ kind: "turned", unlocked: { milestones: [{ milestone: "thoughtful", tier: "bronze" }] } });
+    expect(first.unlocked.milestones).toEqual(expect.arrayContaining(firstTiers));
+    expect(first.unlocked.milestones).toHaveLength(firstTiers.length);
+    expect(filling.unlocked.milestones).toEqual(expect.arrayContaining(fillingTiers));
+    expect(filling.unlocked.milestones).toHaveLength(fillingTiers.length);
     expect(filling.unlocked.milestones).toContainEqual({ milestone: "teams", tier: "bronze" });
   });
 });

@@ -1,3 +1,8 @@
+.ib-ground,
+.ib-air {
+  --ib-time: 1.25ms;
+}
+
 .ib-ground {
   position: fixed;
   inset: 0;
@@ -5,12 +10,29 @@
   display: grid;
   padding: calc(var(--al-top-height) + 1rem) 1rem 4rem;
   overflow-y: auto;
-  background: color-mix(in oklab, var(--background) 90%, transparent);
   overscroll-behavior: contain;
   place-items: center;
 }
 
+.ib-scrim {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in oklab, var(--background) 90%, transparent);
+  transition: opacity calc(480 * var(--ib-time)) ease;
+}
+
+.ib-ground:not([data-stage="idle"], [data-stage="back"]) .ib-scrim {
+  opacity: 0.1;
+}
+
+.ib-ground[data-dark] .ib-scrim {
+  opacity: 1;
+  background: var(--background);
+  transition-duration: calc(200 * var(--ib-time));
+}
+
 .ib-board {
+  position: relative;
   display: flex;
   margin-block: auto;
   width: min(44rem, 100%);
@@ -18,6 +40,15 @@
   align-items: center;
   gap: 0.75rem;
   text-align: center;
+  transition:
+    transform calc(520 * var(--ib-time)) cubic-bezier(0.3, 0.8, 0.3, 1),
+    opacity calc(400 * var(--ib-time)) ease;
+}
+
+.ib-ground:not([data-stage="idle"], [data-stage="back"]) .ib-board {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(42vh) scale(0.85);
 }
 
 .ib-title {
@@ -79,6 +110,23 @@
 .ib-item:focus-visible {
   outline: 3px solid var(--al-accent);
   outline-offset: 4px;
+}
+
+.ib-item[data-active] {
+  visibility: hidden;
+}
+
+.ib-pointer {
+  position: absolute;
+  right: -0.75rem;
+  bottom: -0.875rem;
+  width: 2rem;
+  height: 2rem;
+  background: var(--foreground);
+  filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--foreground) 40%, transparent));
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 2.5v17.2l4.6-4.4 3 6.6 3-1.4-3-6.4H19L5 2.5z'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+  animation: ib-pointer 1600ms cubic-bezier(0.3, 0.8, 0.3, 1) 900ms 2 both;
 }
 
 .ib-back {
@@ -237,6 +285,38 @@
   pointer-events: auto;
 }
 
+.ib-share {
+  padding: 0.375rem 1rem;
+  border: 1px solid color-mix(in oklab, var(--al-accent) 45%, var(--border));
+  border-radius: 999px;
+  background: var(--al-accent-ink);
+  box-shadow: 0 8px 20px -10px color-mix(in oklab, var(--foreground) 45%, transparent);
+  color: var(--al-count-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  pointer-events: auto;
+}
+
+.ib-share[aria-disabled] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.ib-share:focus-visible {
+  outline: 3px solid var(--al-accent);
+  outline-offset: 2px;
+}
+
+.ib-shared {
+  margin: 0;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 8px 20px -10px color-mix(in oklab, var(--foreground) 45%, transparent);
+  font-weight: 600;
+}
+
 .ib-wait:focus-visible {
   outline: 3px solid var(--al-accent);
   outline-offset: 2px;
@@ -287,17 +367,341 @@
   }
 }
 
+.ib-air {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.ib-flyer {
+  position: fixed;
+  perspective: 700px;
+  will-change: transform;
+}
+
+.ib-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.ib-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.ib-front-face {
+  transform: rotateY(180deg);
+}
+
+.ib-front {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  container-type: inline-size;
+  place-items: center;
+}
+
+.ib-disc {
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--burst);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, color-mix(in oklab, var(--burst) 22%, var(--card)), var(--card) 70%);
+  box-shadow: 0 10px 22px -10px color-mix(in oklab, var(--burst) 70%, transparent);
+}
+
+.ib-front > :not(.ib-disc) {
+  position: relative;
+}
+
+.ib-front[data-kind="sticker"] .ib-disc {
+  border-color: var(--card);
+  background: color-mix(in oklab, var(--al-accent) 12%, var(--card));
+}
+
+.ib-front .al-hoggie-art {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+
+.ib-sticker {
+  display: grid;
+  width: 82%;
+  height: 82%;
+  overflow: hidden;
+  border-radius: 50%;
+  place-items: center;
+}
+
+.ib-sticker-face {
+  width: 100%;
+  height: 100%;
+  font-size: 34cqw;
+}
+
+.ib-burst {
+  position: fixed;
+  translate: -50% -50%;
+}
+
+.ib-burst .al-sparkles {
+  top: 50%;
+}
+
+.ib-rays {
+  position: absolute;
+  inset: -70%;
+  border-radius: 50%;
+  animation: ib-rays calc(1300 * var(--ib-time)) cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--burst) 55%, transparent) 0 7deg, transparent 7deg 20deg);
+  mask: radial-gradient(circle, black 28%, transparent 68%);
+}
+
+.ib-burst:not([data-rare]) .ib-rays {
+  inset: -40%;
+  opacity: 0.7;
+}
+
+.ib-flash {
+  position: absolute;
+  inset: -6%;
+  border: 5px solid var(--burst);
+  border-radius: 50%;
+  animation: ib-flash calc(700 * var(--ib-time)) ease-out both;
+}
+
+.ib-caption {
+  position: fixed;
+  display: flex;
+  min-width: 14rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.875rem;
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  box-shadow: 0 8px 24px -12px color-mix(in oklab, var(--foreground) 50%, transparent);
+  animation: ib-rise calc(320 * var(--ib-time)) cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  translate: -50% 0;
+}
+
+.ib-caption-name {
+  font-family: RoundHog, var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.ib-caption-what {
+  color: var(--burst);
+  font-size: 0.875rem;
+  font-weight: 700;
+  filter: brightness(0.85);
+}
+
+.ib-chip {
+  position: fixed;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: var(--al-accent);
+  box-shadow: 0 6px 14px -6px color-mix(in oklab, var(--al-accent) 80%, transparent);
+  color: white;
+  font-family: RoundHog, var(--font-sans);
+  font-size: 1rem;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: ib-chip calc(820 * var(--ib-time)) cubic-bezier(0.4, 0, 0.3, 1) both;
+}
+
+.ib-rings {
+  position: fixed;
+}
+
+.ib-ring {
+  position: absolute;
+  inset: 0;
+  border: 4px solid var(--burst);
+  border-radius: 50%;
+  animation: ib-ring calc(620 * var(--ib-time)) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.ib-ring[data-late] {
+  border-width: 2px;
+  animation-delay: calc(110 * var(--ib-time));
+  animation-name: ib-ring-wide;
+}
+
+.ib-skip {
+  position: fixed;
+  bottom: 6.5rem;
+  left: 50%;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 70%, transparent);
+  color: var(--background);
+  font-size: 0.75rem;
+  translate: -50% 0;
+  animation: ib-rise 300ms ease 600ms both;
+}
+
+[data-landed][data-arriving] :is(.al-photo-sticker, .al-hoggies-plate-art) {
+  visibility: hidden;
+}
+
+.ib-landed-hype {
+  animation: ib-hype-pop calc(420 * var(--ib-time, 1ms)) cubic-bezier(0.2, 0.9, 0.3, 1.4) calc(200 * var(--ib-time, 1ms)) both;
+}
+
+@keyframes ib-rays {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.2) rotate(50deg);
+  }
+}
+
+@keyframes ib-flash {
+  0% {
+    opacity: 1;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes ib-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ib-chip {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--mx)), calc(-50% + var(--my))) scale(1);
+  }
+
+  100% {
+    opacity: 0.4;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.5);
+  }
+}
+
+@keyframes ib-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+@keyframes ib-ring-wide {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+@keyframes ib-pointer {
+  0% {
+    opacity: 0;
+    transform: translate(18px, 18px);
+  }
+
+  35% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(0, 0) scale(0.82);
+  }
+
+  65%,
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes ib-hype-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (max-width: 40rem) {
   .ib-slot {
     width: calc(4.5rem * var(--size, 1));
     height: calc(4.5rem * var(--size, 1));
     margin: 0.5rem;
   }
+
+  .ib-caption {
+    min-width: 12rem;
+  }
+
+  .ib-skip {
+    bottom: 9.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ib-back {
     transition: none;
+  }
+
+  .ib-pointer,
+  .ib-landed-hype {
+    animation: none;
   }
 
   .ib-item:is(:hover, :focus-visible) .ib-back,
@@ -341,4 +745,32 @@
   font-size: 0.75rem;
   font-weight: 800;
   vertical-align: 0.2em;
+}
+
+.ib-medal-burst .al-confetti {
+  top: 50%;
+}
+
+.ib-medal-caption {
+  min-width: 0;
+  font-family: RoundHog, var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ib-medals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ib-medal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
 }

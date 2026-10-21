@@ -93,6 +93,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: unlockTeamSticker in convex/website/album.ts
   trust: browser
 
+- mutation shareItem: a browser asks to share one of the signed-in member's own turned wins into the weekly-post channel, with the item's ID as its only argument
+  handler: shareItem in convex/website/itemShare.ts
+  trust: browser
+
 - mutation makePet: a browser asks to make one hoggie the signed-in member holds their pet, with the hoggie's slug as its only argument
   handler: makePet in convex/website/album.ts
   trust: browser
@@ -195,6 +199,14 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: arrive in convex/website/lastVisit.ts
   trust: browser
 
+- query getXpMoment: a browser asks for the signed-in member's XP moment, what was decided since their last visit, with no arguments
+  handler: getXpMoment in convex/website/xpMoment.ts
+  trust: browser
+
+- mutation endXpMoment: a browser says the signed-in member's XP moment ended, with the last visit and the newest instant the moment read and whether the member skipped it as its arguments
+  handler: endXpMoment in convex/website/xpMoment.ts
+  trust: browser
+
 ## invariants
 - the route list is the paths the router serves: The backend's route list holds exactly the paths the website's router serves, so a website link Slack shows never opens the not-found page, and a page that ships adds its path to both in one change.
   over: routeList in convex/website/routes.ts and servedPaths in website/src/route.ts, the list routeOf matches a path against
@@ -260,7 +272,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   via: website reads pass one guard
   because: the shell is public and a JWT outlives sign-out and membership, so every read must recheck the live session, the workspace, the directory and the flag, or a closed site, a signed-out browser or a former member would read a member's kudos; the flag comes last because a member's own decision can open the site while the workspace decision keeps it closed, and anyone the directory doesn't know gets the workspace decision (WS3, WS9, WS11, WS14, F19, F27)
   crossing: browser -> domain
-  entrances: query getMyProfile, query getMyFace, query getLeaderboard, query getGroupBoards, query getQuests, query getSkillTree, query getBook, query getCollection, query getAlbum, query getAlbumHoggies, query getAlbumPerson, query getAlbumWeek, query getAlbumProfile, query getThoughtfulBoards, query getProfileCard, query getActivity, query getRecentKudos, query getSpotlight, query getSettings, query getBrowserAnalytics, query getEmojiMappings
+  entrances: query getMyProfile, query getMyFace, query getLeaderboard, query getGroupBoards, query getQuests, query getSkillTree, query getBook, query getCollection, query getAlbum, query getAlbumHoggies, query getAlbumPerson, query getAlbumWeek, query getAlbumProfile, query getThoughtfulBoards, query getProfileCard, query getActivity, query getRecentKudos, query getSpotlight, query getSettings, query getBrowserAnalytics, query getEmojiMappings, query getXpMoment
   refuted: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID -> the leftover session after SLACK_WORKSPACE_ID changes read member instead of signed-out (2026-10-13)
   kinds: read, identity
   checklist: scoped-reads declared as website reads pass one guard
@@ -273,7 +285,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   via: website commands pass one guard
   because: a mutation is the first public function that can write, so a denial that wrote a workspace key, an exposure or a scheduled job would let anyone on the internet change state through a closed or signed-out call; the guard is memberQuery's in the same order and reads the website flag through the seam's read-only path (WS61, WS11)
   crossing: browser -> domain
-  entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation setAvatar, mutation openThoughtfulPack, mutation putIn, mutation putAllIn, mutation unlockTeamSticker, mutation makePet, mutation markEmojisSeen, mutation mapSlackEmoji, mutation setWeeklyPost, mutation pickWeeklyPostChannel, mutation turnItem, mutation arrive
+  entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation setAvatar, mutation openThoughtfulPack, mutation putIn, mutation putAllIn, mutation unlockTeamSticker, mutation makePet, mutation markEmojisSeen, mutation mapSlackEmoji, mutation setWeeklyPost, mutation pickWeeklyPostChannel, mutation turnItem, mutation arrive, mutation endXpMoment
   refuted: memberQuery's guard read the website flag through the seam's writing path instead of its read-only one -> the call with a flags key but no workspace key made a key and answered refused instead of closed (2026-10-14)
   kinds: state, identity
   checklist: scoped-reads declared as website reads pass one guard
@@ -652,7 +664,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
   checklist: redaction dismissed: the answer holds only the member's own finds and the workspace's emoji names, no member ID, Slack ID or kudos words
-- the last visit only moves forward: A member's last visit moves only forward, and only at an arrival from the stored one: arrive moves it to the newest instant among the member's turned items, album stickers, team stickers, first hoggie finds and kudos received, never to the clock; an arrival from any other last visit, a stale tab's or a replayed one, moves nothing, so every tab reads the same one; a move to an earlier instant keeps it; while `hidden-items` is off for the member arrive answers refused, writing nothing, and getAlbum answers no last visit and no sticker's instant.
+- the last visit only moves forward: A member's last visit moves only forward, and only at an arrival from the stored one: arrive moves it to the newest instant among the member's turned items, album stickers, team stickers, first hoggie finds and kudos received, and while `xp-moments` is on the newest instant Activity decided, never to the clock; an arrival from any other last visit, a stale tab's or a replayed one, moves nothing, so every tab reads the same one; a move to an earlier instant keeps it; while neither `hidden-items` nor `xp-moments` is on for the member arrive answers refused, writing nothing, and while `hidden-items` is off getAlbum answers no last visit and no sticker's instant.
   over: a first arrival after a sticker's turn and a second from it after the next turn, an arrival after a kudos received, a stale tab's arrival after another tab's, a move to an earlier instant, and an arrival and a read with hidden-items off
   via: LP26: the last visit moves forward once per visit
   refuted: arrive moved the last visit whatever last visit the tab read -> 1 of 5 tests failed: a stale tab's arrival, holding an older last visit, moved it to what another tab had turned since (2026-10-21)
@@ -667,3 +679,28 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: worker-fencing dismissed: no worker owns a last visit; two arrivals conflict on the row they both read, so one retries and finds it moved
   checklist: commit-ordered-effects dismissed: moving the last visit issues no external effect
   checklist: resumption-coverage dismissed: no batch operation resumes; each arrival is one mutation
+- an XP moment reads what was decided since the last visit: While `xp-moments` is on for the member, getXpMoment reads Activity above the stored last visit, one index range per source and at most 50 entries, and answers none with the last visit when there is none yet or nothing was decided since it, or else the moment: the kudos received, the hugs on the member's messages that came since it, the kudos given, the hugs given and the level-ups, up to five shown oldest first with every level-up crossed among them and then the newest of the rest, the rest folded into one count with its XP, each with the XP it paid and never a pack's, the climb from the standing before the moment's XP to now, and the waiting items while `hidden-items` is on; while it is off getXpMoment answers off and arrive moves the last visit as before.
+  over: a member with no last visit and with nothing since it, a busy return with each kind, a return past five entries, a level-up among newer kudos, hugs on a message before and after the last visit, xp-moments off, and xp-moments on with hidden-items off
+  via: LP27 LP28: getXpMoment plays what happened since the last visit
+  refuted: getXpMoment read Activity without the last visit as its lower bound -> 6 of 7 tests failed: a member with nothing since the last visit read a moment instead of none, and a busy return replayed the kudos from before it (2026-10-21)
+  because: the core-loop spec plays what happened since the last visit as one XP moment (LP27, LP28); a read without the lower bound would replay old kudos, one that counted a message's earlier hugs would pay them twice, and a level-up left out would hide the climb the takeover celebrates (LP34)
+  crossing: browser -> domain
+  entrances: query getXpMoment
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: the moment holds only the member's own activity entries, as the Activity page shows them, and the norm count, which names nobody
+- an XP moment ends at the newest instant it read: endXpMoment moves the member's last visit only from the one the moment read and only to the newest instant it read, never to the clock, so what was decided while it played waits for the next moment; a second tab's end of the same moment, an end from an older last visit, or an instant nothing was read at moves nothing and records nothing; each end that moves it records xp moment ended with skipped and the excerpts shown and folded, counted on the server; while `xp-moments` is off it answers refused and writes nothing.
+  over: an end while a kudos is decided during the moment, a second tab's end and an older moment's end, an end at an instant past what was read, an end that skips with a level crossed, and an end with xp-moments off
+  via: LP26 LP35: endXpMoment moves the last visit to the newest instant the moment read
+  refuted: endXpMoment moved the last visit to the clock instead of the newest instant the moment read -> 2 of 5 tests failed: the kudos decided while the moment played was skipped by the next moment, and the second tab read a later last visit than the moment it ended (2026-10-21)
+  because: LP26 moves the last visit once per visit at the moment's end, to the newest instant it read; a move to the clock would drop entries decided while it played, a stale tab's end would replay or skip another tab's moment (LP35), and a count the browser sent could claim excerpts it never showed (LP36)
+  crossing: browser -> domain
+  entrances: mutation endXpMoment
+  kinds: state
+  checklist: revalidated-permission dismissed: endXpMoment reads the flags and the session in the same mutation that moves the last visit
+  checklist: separation-of-duties dismissed: no approval policy; a member ends only their own moment
+  checklist: legal-state-succession declared as the last visit only moves forward
+  checklist: supersession-safety dismissed: an end moves the last visit only from the one the moment read, and Convex retries an end whose read of it changed before it committed
+  checklist: worker-fencing dismissed: no worker owns a last visit; two ends conflict on the row they both read, so one retries and finds it moved
+  checklist: commit-ordered-effects dismissed: the usage fact is scheduled in the mutation that moves the last visit, so only a committed end records it
+  checklist: resumption-coverage dismissed: no batch operation resumes; each end is one mutation

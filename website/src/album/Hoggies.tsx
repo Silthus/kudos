@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type CSSProperties } from "react";
+import { useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AnswerPage } from "../pages/AnswerPage";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
@@ -7,10 +7,10 @@ import type { AlbumHoggie, AlbumHoggies, HoggiesShown, PetReply } from "./answer
 import { HoggieArt } from "./HoggieArt";
 import type { HoggieAddress } from "./hoggieAddress";
 import { HoggieEntry } from "./HoggieEntry";
-import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, numberOf, rarityTintOf, shelvesOf, type Filter, type Shelf } from "./hoggieGuide";
+import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, numberOf, rarityTintOf, shelvesOf, withoutOneCopyOf, type Filter, type Shelf } from "./hoggieGuide";
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
-import { useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
+import { landedMarksOf, useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
 import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
 import { usePetPick } from "./usePetPick";
 import { useRarityStrip } from "./useRarityStrip";
@@ -34,7 +34,8 @@ export function isWaitingForTheHoggies(shown: HoggiesShown | undefined) {
 
 type Open = (hoggie: AlbumHoggie) => void;
 
-function HoggiesPage({ answer, place, address, makePet }: { answer: AlbumHoggies; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet }) {
+function HoggiesPage({ answer: answered, place, address, makePet }: { answer: AlbumHoggies; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet }) {
+  const answer = useWithoutTheArrivingFind(answered);
   const [filter, setFilter] = useFilterShowingEachLanding();
   const shown = keptBy(filter, answer.hoggies, place.rarity);
   const chosen = answer.hoggies.find(({ hoggie }) => hoggie === place.hoggie) ?? null;
@@ -255,11 +256,11 @@ function Group({ group, answer, onOpen }: { group: Shelf; answer: AlbumHoggies; 
 
 function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string; onOpen: Open }) {
   const plate = useRef<HTMLButtonElement>(null);
-  const landedTurn = useLandedTurnOf(hoggie);
+  const landing = useLandingOf(hoggie);
   const foundSinceTheLastVisit = useNewSinceTheLastVisit(hoggie.firstAt);
-  useBroughtIntoViewOnLanding(plate, landedTurn);
+  useBroughtIntoViewOnLanding(plate, landing);
   return (
-    <button type="button" ref={plate} className="al-hoggies-plate" data-hoggie={hoggie.hoggie} data-landed={landedTurn === null ? undefined : ""} data-found={hoggie.found ? "" : undefined} aria-label={foundSinceTheLastVisit ? `${hoggieLabelOf(hoggie)}, new` : hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
+    <button type="button" ref={plate} className="al-hoggies-plate" data-hoggie={hoggie.hoggie} {...landedMarksOf(landing)} data-found={hoggie.found ? "" : undefined} aria-label={foundSinceTheLastVisit ? `${hoggieLabelOf(hoggie)}, new` : hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
       <NewSinceTheLastVisit at={hoggie.firstAt} />
       <span className="al-hoggies-plate-number">{number}</span>
       {hoggie.count > 1 && <span className="al-hoggies-copies">{`×${hoggie.count}`}</span>}
@@ -272,7 +273,13 @@ function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string
   );
 }
 
-function useLandedTurnOf(hoggie: AlbumHoggie) {
+function useLandingOf(hoggie: AlbumHoggie) {
   const landing = useLanding();
-  return landing?.face.kind === "hoggie" && landing.face.drop.hoggie === hoggie.hoggie ? landing.turn : null;
+  return landing?.face.kind === "hoggie" && landing.face.drop.hoggie === hoggie.hoggie ? landing : null;
+}
+
+function useWithoutTheArrivingFind(answer: AlbumHoggies): AlbumHoggies {
+  const landing = useLanding();
+  const arriving = landing?.phase === "arriving" && landing.face.kind === "hoggie" ? landing.face.drop.hoggie : null;
+  return useMemo(() => (arriving === null ? answer : withoutOneCopyOf(answer, arriving)), [answer, arriving]);
 }

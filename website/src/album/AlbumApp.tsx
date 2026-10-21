@@ -26,13 +26,15 @@ import { AppEmojiSection } from "../settings/AppEmojiList";
 import { EmojiWizardHost } from "./findInSlack";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
+import { useVisitArrival } from "./visitArrival";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp }: AppProps & { arrivals: number }) {
+export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp, useXpMoment }: AppProps & { arrivals: number }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
-  const newLabelsSince = useNewLabelsSince(album, actions.arrive);
+  const visit = useVisitArrival(album, useXpMoment(album?.kind === "album"), actions);
+  const newLabelsSince = useNewLabelsSince(album, visit.arrive);
   useCanonicalAddressOnceShown(place, album?.kind === "album", replaceAddress);
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);
@@ -87,6 +89,9 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         putAllIn={actions.putAllIn}
         markEmojisSeen={actions.markEmojisSeen}
         turnItem={actions.turnItem}
+        xpMoment={visit.moment}
+        endXpMoment={visit.endTheMoment}
+        shareItem={actions.shareItem}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>

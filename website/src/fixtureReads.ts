@@ -48,5 +48,6 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useAlbumProfile: fixtureProfile,
     useAlbumHoggies: fixtureHoggies,
     useLevelUp: fixtureLevelUp,
+    useXpMoment: (asking) => (asking ? { kind: "off" } : undefined),
   };
 }

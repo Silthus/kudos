@@ -45,7 +45,7 @@ function leadOf({ giver, recipients, moreRecipients, find }: QuotedKudos, place:
   return [{ text: `${place}. ${giver}`, strong: true }, { text: " thanked " }, ...listedNames(recipients, moreRecipients), ...(find === null ? [] : [{ text: ` and found ${findWordsOf(find)}` }])];
 }
 
-function findWordsOf({ name, rarity }: Find) {
+export function findWordsOf({ name, rarity }: Find) {
   return `${rarity === "epic" ? "an" : "a"} ${rarity} ${name}`;
 }
 

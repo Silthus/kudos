@@ -113,3 +113,25 @@ export const recordHugsRecapSent = internalMutation({
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "hugsRecapSent", ...recap }));
   },
 });
+
+const xpMomentEndingValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  skipped: v.boolean(),
+  excerptsShown: v.number(),
+  folded: v.number(),
+  at: v.number(),
+});
+
+export type XpMomentEnding = Infer<typeof xpMomentEndingValidator>;
+
+export async function reportXpMomentEnded(ctx: MutationCtx, ending: XpMomentEnding) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordXpMomentEnded, ending);
+}
+
+export const recordXpMomentEnded = internalMutation({
+  args: xpMomentEndingValidator,
+  handler: async (ctx, ending): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "xpMomentEnded", ...ending }));
+  },
+});

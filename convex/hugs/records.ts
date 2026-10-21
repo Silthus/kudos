@@ -127,6 +127,15 @@ export async function* hugsReceivedByDecision(ctx: QueryCtx, member: MemberId, b
   for await (const version of versions) if (isLiveAt(version, snapshot)) yield receivedHugsOf(version);
 }
 
+export async function hugsOnTheMessageAsOf(ctx: QueryCtx, member: MemberId, { workspace, conversation, message }: MessageRef, at: number): Promise<number> {
+  const version = await ctx.db
+    .query("hugsReceived")
+    .withIndex("by_member_message", (q) => q.eq("member", member).eq("workspace", workspace).eq("conversation", conversation).eq("message", message).lte("_creationTime", at))
+    .order("desc")
+    .first();
+  return version?.hugs ?? 0;
+}
+
 function isLiveAt({ _creationTime, supersededAt }: HugsReceivedRow, snapshot: number | undefined): boolean {
   if (snapshot === undefined) return supersededAt === undefined;
   return _creationTime <= snapshot && (supersededAt === undefined || supersededAt > snapshot);

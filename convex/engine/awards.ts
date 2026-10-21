@@ -133,6 +133,14 @@ export async function newestReceivedBy(ctx: QueryCtx, recipient: MemberId, atMos
   return received.map(({ giver, workspace, conversation, message, at }) => ({ giver, message: { workspace, conversation, message }, at }));
 }
 
+export async function receivedAfter(ctx: QueryCtx, recipient: MemberId, after: number, atMost: number): Promise<number> {
+  const received = await ctx.db
+    .query("awards")
+    .withIndex("by_recipient_at", (q) => q.eq("recipient", recipient).gt("at", after))
+    .take(atMost);
+  return received.length;
+}
+
 export type GivenMessageFacts = { giver: MemberId; day: DayKey; at: number };
 
 export async function givenFactsOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<GivenMessageFacts | null> {
@@ -435,15 +443,18 @@ async function* awardsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: B
   }
 }
 
-export type DecidedBelow = { decided: number; inclusive: boolean };
+export type DecidedBelow = { decided: number; inclusive: boolean; above?: number };
 
 export const fromTheNewestDecided: DecidedBelow = { decided: Infinity, inclusive: true };
 
-type DecidedIndex<Q> = { lt(field: "_creationTime", value: number): Q; lte(field: "_creationTime", value: number): Q } & Q;
+type UpperBounded<Q> = { lt(field: "_creationTime", value: number): Q; lte(field: "_creationTime", value: number): Q } & Q;
 
-export function decidedBelow<Q>(q: DecidedIndex<Q>, { decided, inclusive }: DecidedBelow): Q {
-  if (decided === Infinity) return q;
-  return inclusive ? q.lte("_creationTime", decided) : q.lt("_creationTime", decided);
+type DecidedIndex<Q> = { gt(field: "_creationTime", value: number): UpperBounded<Q> } & UpperBounded<Q>;
+
+export function decidedBelow<Q>(q: DecidedIndex<Q>, { decided, inclusive, above }: DecidedBelow): Q {
+  const bounded = above === undefined ? q : q.gt("_creationTime", above);
+  if (decided === Infinity) return bounded;
+  return inclusive ? bounded.lte("_creationTime", decided) : bounded.lt("_creationTime", decided);
 }
 
 export async function* awardsReceivedByDecision(ctx: QueryCtx, recipient: MemberId, below: DecidedBelow): AsyncGenerator<ReceivedAward> {

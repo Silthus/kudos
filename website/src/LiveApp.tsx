@@ -9,7 +9,7 @@ import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
-import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, LevelUpShown, PersonShown, ProfileShown, WeekShown } from "./album/answer";
+import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, LevelUpShown, PersonShown, ProfileShown, WeekShown, XpMomentShown } from "./album/answer";
 import { albumOf, openShown, putAllInShown, putInShown } from "./album/liveAlbum";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
@@ -55,6 +55,7 @@ function LiveApp() {
       useAlbumProfile={(asking) => useLiveAlbumProfile(asking, unreachable)}
       useAlbumHoggies={(asking) => useLiveAlbumHoggies(asking, unreachable)}
       useLevelUp={(level) => useLiveLevelUp(level, unreachable)}
+      useXpMoment={(asking) => useLiveXpMoment(asking, unreachable)}
     />
   );
 }
@@ -113,6 +114,14 @@ function useLiveLevelUp(level: number | null, unreachable: boolean): LevelUpShow
   if (answer instanceof Error) return { kind: "broken" };
   if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return answer;
+}
+
+function useLiveXpMoment(asking: boolean, unreachable: boolean): XpMomentShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { moment: { query: api.website.xpMoment.getXpMoment, args: {} } } : {}), [asking]);
+  const { moment } = useQueries(request);
+  if (moment instanceof Error) return { kind: "broken" };
+  if (moment === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return moment;
 }
 
 function useLiveSettings(asking: boolean, unreachable: boolean): SettingsShown | undefined {
@@ -179,8 +188,10 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const putAllIn = useSentOnce(api.website.album.putAllIn);
   const markEmojisSeen = useSentOnce(api.website.album.markEmojisSeen);
   const turnItem = useSentOnce(api.website.album.turnItem);
+  const shareItem = useSentOnce(api.website.itemShare.shareItem);
   const arrive = useSentOnce(api.website.lastVisit.arrive);
   const makePet = useSentOnce(api.website.album.makePet);
+  const endXpMoment = useSentOnce(api.website.xpMoment.endXpMoment);
   return useMemo(
     () => ({
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
@@ -199,8 +210,10 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})).then(putAllInShown),
       markEmojisSeen: (ids) => answerWithin(commandAnswerBudgetMs, markEmojisSeen({ ids })),
       turnItem: (item) => answerWithin(commandAnswerBudgetMs, turnItem({ item: item as Id<"items"> })),
+      shareItem: (item) => answerWithin(commandAnswerBudgetMs, shareItem({ item: item as Id<"items"> })),
       arrive: (from) => answerWithin(commandAnswerBudgetMs, arrive({ from })),
       makePet: (hoggie) => answerWithin(commandAnswerBudgetMs, makePet({ hoggie })),
+      endXpMoment: (from, until, skipped) => answerWithin(commandAnswerBudgetMs, endXpMoment({ from, until, skipped })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -208,7 +221,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, makePet, arrive, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, arrive, endXpMoment, onSignInFailure],
   );
 }
 
