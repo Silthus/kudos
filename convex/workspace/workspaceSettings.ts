@@ -46,7 +46,7 @@ async function workspaceSettingsApplyTo(ctx: MutationCtx, member: MemberId): Pro
   return applies;
 }
 
-async function isTheMaintainer(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+export async function isTheMaintainer(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   const maintainer = process.env.KUDOS_MAINTAINER?.trim();
   return maintainer !== undefined && maintainer !== "" && (await chatUserOf(ctx, member)).user === maintainer;
 }

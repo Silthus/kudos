@@ -18,6 +18,8 @@ import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { mondayPostSwitchShownTo, type MondayPostSwitch } from "../leaderboard/mondayPost";
+import { welcomeNudgeSwitchOf } from "./welcomeNudge";
+import { thoughtfulGiversShownTo } from "../album/thoughtfulGivers";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -61,13 +63,14 @@ export type ShownTab =
       journey: JourneyStepShown[] | null;
       hoggies: HoggiesShown | null;
       boughtCrates: string[] | null;
+      thoughtfulGivers: number | null;
     }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoardView | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
   | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string; refused: ItemRefusal | null }
   | { tab: "settings"; onTheBoards: boolean | null; progress: NotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean; groups: GroupChoice | null }
-  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null; customKudosEmoji: CustomKudosEmojiPicker | null };
+  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null; welcomeNudge: boolean | null; customKudosEmoji: CustomKudosEmojiPicker | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
@@ -202,9 +205,10 @@ type Viewer = { workspace: string; user: string; member: MemberId; timeZone: str
 
 async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: HomeRefusal | null): Promise<ShownTab> {
   switch (tab) {
-    case "profile":
-      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null };
-      if (!slices.unlocks) return { tab, progression: await levelsOnlyProgressionOf(ctx, viewer.member), unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null };
+    case "profile": {
+      const thoughtfulGivers = await thoughtfulGiversShownTo(ctx, viewer);
+      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null, thoughtfulGivers };
+      if (!slices.unlocks) return { tab, progression: await levelsOnlyProgressionOf(ctx, viewer.member), unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null, thoughtfulGivers };
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
@@ -215,7 +219,9 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         journey: slices.quests ? await journeyShownTo(ctx, viewer.member) : null,
         hoggies: await hoggiesInTheBookOf(ctx, viewer.member, slices, refused),
         boughtCrates: (await hoggiesShownTo(ctx, viewer.member)) ? await waitingCratesOf(ctx, viewer.member) : null,
+        thoughtfulGivers,
       };
+    }
     case "leaderboard":
       return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null, myGroup: null };
     case "book":
@@ -241,6 +247,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
         groupMode: await groupModeShownTo(ctx, viewer.workspace, viewer),
         mondayPost: await mondayPostSwitchShownTo(ctx, viewer.workspace, viewer),
+        welcomeNudge: await welcomeNudgeSwitchOf(ctx, viewer),
         customKudosEmoji: await customKudosEmojiPickerFor(ctx, viewer.workspace, viewer),
       };
   }

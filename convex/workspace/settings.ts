@@ -24,6 +24,10 @@ export async function hugBudgetOf(ctx: QueryCtx, workspace: string): Promise<num
   return (await workspaceRow(ctx, workspace))?.hugBudget ?? defaultHugBudget;
 }
 
+export async function welcomeNudgeOn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await workspaceRow(ctx, workspace))?.welcomeNudge ?? true;
+}
+
 export const setHugBudget = internalMutation({
   args: { workspace: v.string(), hugBudget: v.number() },
   handler: async (ctx, { workspace, hugBudget }) => {

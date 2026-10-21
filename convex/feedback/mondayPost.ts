@@ -56,7 +56,7 @@ function listedNames(names: string[], more: number): Words[] {
   return last === undefined ? joined : [...joined, ...(joined.length > 0 ? [{ text: " and " }] : []), last];
 }
 
-function quoteOf(words: Segment[]): string {
+export function quoteOf(words: Segment[]): string {
   const characters = Array.from(words.map(plainTextOf).join("").replace(/\s+/g, " ").trim());
   return characters.length <= quotedCharactersAtMost ? characters.join("") : `${characters.slice(0, quotedCharactersAtMost).join("")}…`;
 }
