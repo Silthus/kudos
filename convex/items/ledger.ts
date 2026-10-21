@@ -5,7 +5,11 @@ import type { Earning, ItemReason, ItemSource } from "./records";
 
 export const mostItemsShown = 100;
 
+export const mostWaitingCounted = 50;
+
 export type FaceDown = { item: Id<"items">; earnedAt: number; reason: ItemReason };
+
+export type WaitingCount = number | `${typeof mostWaitingCounted}+`;
 
 export async function earnItem(ctx: MutationCtx, earning: Earning): Promise<Id<"items">> {
   const earned = await itemOf(ctx, earning.member, earning.source, earning.key);
@@ -18,11 +22,20 @@ export async function markTurned(ctx: MutationCtx, member: MemberId, source: Ite
 }
 
 export async function boardOf(ctx: QueryCtx, member: MemberId): Promise<{ items: FaceDown[]; more: boolean }> {
-  const oldestFirst = await ctx.db
+  const oldestFirst = await waitingOf(ctx, member, mostItemsShown + 1);
+  return { items: oldestFirst.slice(0, mostItemsShown).map(faceDown), more: oldestFirst.length > mostItemsShown };
+}
+
+export async function waitingCountOf(ctx: QueryCtx, member: MemberId): Promise<WaitingCount> {
+  const { length } = await waitingOf(ctx, member, mostWaitingCounted + 1);
+  return length > mostWaitingCounted ? `${mostWaitingCounted}+` : length;
+}
+
+function waitingOf(ctx: QueryCtx, member: MemberId, most: number): Promise<Doc<"items">[]> {
+  return ctx.db
     .query("items")
     .withIndex("by_member_turned", (q) => q.eq("member", member).eq("turnedAt", undefined))
-    .take(mostItemsShown + 1);
-  return { items: oldestFirst.slice(0, mostItemsShown).map(faceDown), more: oldestFirst.length > mostItemsShown };
+    .take(most);
 }
 
 function faceDown({ _id, earnedAt, reason }: Doc<"items">): FaceDown {

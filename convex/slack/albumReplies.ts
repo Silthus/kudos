@@ -53,10 +53,11 @@ function fallbackTextOf({ recipients }: AlbumReply) {
   return recipients.map(({ headline }) => escaped(headline)).join(" · ");
 }
 
-function blocksOf({ recipients, more, buttons, gains }: AlbumReply) {
+function blocksOf({ recipients, more, waiting, buttons, gains }: AlbumReply) {
   return [
     ...recipients.flatMap(recipientBlocksOf),
     ...(more > 0 ? [{ type: "context", elements: [mrkdwn(`And ${more} more.`)] }] : []),
+    ...(waiting === null ? [] : [{ type: "context", elements: [mrkdwn(escaped(waiting))] }]),
     ...(buttons.length > 0 ? [{ type: "actions", elements: buttons.map(buttonOf) }] : []),
     ...(gains === null ? [] : [{ type: "context", elements: [mrkdwn(slackTextOf([gains]))] }]),
   ];
