@@ -135,6 +135,7 @@ export function currentAddress() {
 }
 
 export function keepingSignInCode(href: string) {
+  if (import.meta.env.VITE_SHELL_FIXTURE) return keepingThePrototypeSettings(href);
   const code = new URLSearchParams(window.location.search).get("code");
   if (code === null) return href;
   const address = new URL(href, window.location.origin);
@@ -176,4 +177,10 @@ export function useRoute() {
   }, []);
 
   return { route, navigate, replaceAddress };
+}
+
+function keepingThePrototypeSettings(href: string) {
+  const address = new URL(href, window.location.origin);
+  new URLSearchParams(window.location.search).forEach((value, key) => address.searchParams.set(key, value));
+  return address.pathname + address.search + address.hash;
 }

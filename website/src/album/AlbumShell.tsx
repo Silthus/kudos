@@ -17,6 +17,7 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { usePopover } from "./usePopover";
 import { useTeamUnlock } from "./useTeamUnlock";
+import { useXpMomentsPrototype } from "./xpMomentsPrototype/XpMomentsPrototype";
 import "./album.css";
 
 export type AlbumShellProps = {
@@ -69,15 +70,17 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     finish();
   };
   const awaitingAMoment = playing || unlocking.sending !== null;
+  const xpMoments = useXpMomentsPrototype(album);
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={xpMoments.album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={held} moving={opening || xpMoments.moving} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
+      {xpMoments.overlay}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
@@ -87,7 +90,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+            <AlbumPage album={xpMoments.album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
           </ErrorBoundary>
         </main>
       </div>
