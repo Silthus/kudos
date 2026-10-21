@@ -209,7 +209,7 @@ describe("LP51 LP53 LP54: Share posts a turned win into the weekly-post channel,
     await sharesThe(asAlice, team);
     await sharesThe(asAlice, tier);
 
-    expect(leadsPosted()).toEqual(["*Alice Marchetti* filled the Product Analytics page and found a legendary Rocket", "*Alice Marchetti* earned the First thank-you medal and found an epic Angel"]);
+    expect(leadsPosted()).toEqual(["*Alice Marchetti* filled the Product Analytics page and found a legendary Rocket", "*Alice Marchetti* earned the bronze First thank-you medal and found an epic Angel"]);
   });
 });
 

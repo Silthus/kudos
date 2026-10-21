@@ -234,8 +234,8 @@ describe("The item board", () => {
   it("tags a filled team's item with its team and a medal's item with its medal, beside a back that is the same as every other back", async () => {
     visit(withAchievementItems());
     const board = await theBoard();
-    const teamItem = board.getByRole("button", { name: "A face-down item for filling Lanterns. Turn it over" });
-    const medalItem = board.getByRole("button", { name: "A face-down item for Hoarder · Gold. Turn it over" });
+    const teamItem = board.getByRole("button", { name: "A face-down item for filling the Lanterns page. Turn it over" });
+    const medalItem = board.getByRole("button", { name: "A face-down item for the Hoarder gold medal. Turn it over" });
     expect(within(teamItem).getByText("Lanterns")).toBeVisible();
     expect(within(medalItem).getByText("Hoarder · Gold")).toBeVisible();
     const thanksItems = board.getAllByRole("button", { name: "A face-down item. Turn it over" });

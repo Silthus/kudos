@@ -7,7 +7,7 @@ import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
 import { ShareWin, type WinShares } from "./ShareWin";
-import { emblemOf, medalEmojiOf, medalKeyOf, medalWordsOf } from "./milestones";
+import { emblemOf, medalEmojiOf, medalKeyOf, medalSpokenOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
 import type { Flight } from "./useTurnFlight";
@@ -180,8 +180,8 @@ function tagOf(reason: BoardReason) {
 
 function itemLabelOf(reason: BoardReason) {
   if (reason.kind === "levelUp") return `A face-down item from level ${reason.level}. Turn it over`;
-  if (reason.kind === "team") return `A face-down item for filling ${reason.name}. Turn it over`;
-  if (reason.kind === "milestone") return `A face-down item for ${medalWordsOf(reason)}. Turn it over`;
+  if (reason.kind === "team") return `A face-down item for filling the ${reason.name} page. Turn it over`;
+  if (reason.kind === "milestone") return `A face-down item for ${medalSpokenOf(reason)}. Turn it over`;
   return "A face-down item. Turn it over";
 }
 
