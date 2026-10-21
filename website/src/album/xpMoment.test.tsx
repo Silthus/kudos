@@ -9,6 +9,7 @@ import type { XpMoment } from "../../../convex/website/xpMoment";
 import { shellFixtures, type TurnReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
+import { contrastUnderScrim } from "../test/themeContrast";
 import { albumFixtures, fixedAlbum, fixedPeople, fixtureTurnOf } from "./albumFixtures";
 import type { Album, AlbumRead, XpMomentRead, XpMomentShown } from "./answer";
 
@@ -58,6 +59,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 function aMomentAnsweredLater() {
@@ -243,6 +245,60 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
     const lowestCard = Math.max(...theCards().map((card) => px(card, "top")));
     expect(px(theOrb(), "top")).toBeGreaterThan(lowestCard);
     expect(px(theOrb(), "left")).toBe(phone.width / 2);
+  });
+});
+
+const barelyThere = 1.5;
+
+function theTopBarEndsAt(bottom: number) {
+  const measured = HTMLElement.prototype.getBoundingClientRect;
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    return this.matches(".al-top") ? new DOMRect(0, 0, window.innerWidth, bottom) : measured.call(this);
+  });
+}
+
+function aWatchedTopBar() {
+  const watchers = new Map<Element, () => void>();
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(private readonly changed: () => void) {}
+      observe(element: Element) {
+        watchers.set(element, this.changed);
+      }
+      disconnect() {}
+    },
+  );
+  return { changesSize: () => act(async () => watchers.get(document.querySelector(".al-top")!)?.()) };
+}
+
+describe("LP29 LP33: the canvas covers the page in both themes and on a phone", { timeout: 30_000 }, () => {
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode} the page's words show through the canvas at under ${barelyThere}:1, on the page and on its cards`, () => {
+      const throughTheCanvas = ["background", "card"].map((surface) => ({ surface, ratio: contrastUnderScrim(mode, "foreground", surface, { scrim: "xpm-canvas-scrim" }) }));
+
+      expect(throughTheCanvas.filter(({ ratio }) => ratio >= barelyThere)).toEqual([]);
+    });
+  }
+
+  it("on a phone, where the top bar wraps the XP row under the brand, the canvas starts under the whole bar", async () => {
+    theTopBarEndsAt(80);
+    await returnTo({ screenSize: phone });
+    await at(canvasArrival);
+
+    expect(theCanvas()!.style.getPropertyValue("--xpm-top")).toBe("80px");
+  });
+
+  it("follows the top bar when it wraps after the window narrows", async () => {
+    const theBar = aWatchedTopBar();
+    theTopBarEndsAt(56);
+    await returnTo();
+    await at(canvasArrival);
+
+    theTopBarEndsAt(80);
+    await theBar.changesSize();
+
+    expect(theCanvas()!.style.getPropertyValue("--xpm-top")).toBe("80px");
   });
 });
 
