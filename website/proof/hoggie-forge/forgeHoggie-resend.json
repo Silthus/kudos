@@ -1,0 +1,15 @@
+{
+  "drop": {
+    "art": {
+      "kind": "hoggie",
+      "slug": "data-thief"
+    },
+    "copy": 1,
+    "crest": null,
+    "hoggie": "data-thief",
+    "isNew": true,
+    "name": "Data Thief",
+    "rarity": "uncommon"
+  },
+  "kind": "forged"
+}

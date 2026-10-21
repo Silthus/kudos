@@ -1,0 +1,5 @@
+PostHog project 662840, execute-sql, 2026-10-21:
+SELECT timestamp, event, properties.crate_kind, properties.rarity, properties.is_new, properties.surface, properties.pack_xp, properties.environment FROM events WHERE event = 'hoggie dropped' AND properties.crate_kind = 'forge' AND timestamp > now() - INTERVAL 2 HOUR
+2026-10-21T17:34:42.007000Z|hoggie dropped|forge|uncommon|True|website|(null)|sandbox
+2026-10-21T17:35:13.958000Z|hoggie dropped|forge|uncommon|True|website|(null)|sandbox
+Two forges, two events; the resend of the second forge's request added none.
