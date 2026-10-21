@@ -21,6 +21,7 @@ import { hiddenItemsShownTo } from "../items/flag";
 import { boardOf, type FaceDown } from "../items/ledger";
 import type { ItemReason } from "../items/records";
 import { turn, type Turned, type TurnedFace } from "../items/turn";
+import { lessonAfter, type LoopLesson, type Taught } from "../items/welcome";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
@@ -76,9 +77,11 @@ export type BoardItem = Omit<FaceDown, "reason"> & { reason: BoardReason };
 
 export type ItemBoard = { items: BoardItem[]; more: boolean };
 
+export type { LoopLesson };
+
 export type TurnedFaceShown = Exclude<TurnedFace, { kind: "sticker" }> | (Extract<TurnedFace, { kind: "sticker" }> & { thanked: Thanked });
 
-export type TurnAnswer = ({ kind: "turned" } & Omit<Turned, "face"> & { face: TurnedFaceShown }) | { kind: "refused" };
+export type TurnAnswer = ({ kind: "turned" } & Omit<Turned, "face"> & { face: TurnedFaceShown } & Taught) | { kind: "refused" };
 
 export type OpenAnswer = { kind: "opened"; items: AlbumTrayItem[]; applied: Opening["applied"] } | { kind: "refused" };
 
@@ -235,7 +238,8 @@ export const turnItem = memberMutation({
   handler: async (ctx, me, _person, { item }): Promise<TurnAnswer> => {
     const turned = (await turnsItems(ctx, me)) ? await turn(ctx, me, item, Date.now()) : null;
     if (turned === null) return { kind: "refused" };
-    return { kind: "turned", ...turned, face: await turnedFaceShownOf(turned.face, thankedPeopleOf(ctx, me.workspace)), applied: await appliedShownTo(ctx, me, turned.applied) };
+    const face = await turnedFaceShownOf(turned.face, thankedPeopleOf(ctx, me.workspace));
+    return { kind: "turned", ...turned, face, applied: await appliedShownTo(ctx, me, turned.applied), ...(await lessonAfter(ctx, me, item, turned)) };
   },
 });
 

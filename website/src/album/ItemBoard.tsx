@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
 import type { HypeEmoji } from "../../../convex/album/earnedEmojis";
-import type { ItemBoard as Board } from "../../../convex/website/album";
+import type { ItemBoard as Board, LoopLesson } from "../../../convex/website/album";
+import { NamedEmoji } from "../Emoji";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
 import { rarityWordOf } from "./opening";
@@ -51,6 +52,7 @@ export function ItemsWait({ turns }: { turns: ItemTurns }) {
       <p role="status" aria-label="Turned over" className="ib-turned">
         {landing !== null && !open && <LandedWords landing={landing} />}
       </p>
+      {landing?.teaches && !open && <LoopLine lesson={landing.teaches} />}
       {offered && board !== null && (
         <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
           <span className="ib-wait-disc" aria-hidden="true">
@@ -91,6 +93,14 @@ export function LandedHype({ hype, from }: { hype: HypeEmoji; from: string }) {
 
 export function NewLabel() {
   return <span className="ib-new">New</span>;
+}
+
+function LoopLine({ lesson: { kudosEmoji, kudosEmojiImage } }: { lesson: LoopLesson }) {
+  return (
+    <p role="note" aria-label="How the next item comes" className="ib-loop">
+      Your next item comes when you thank a teammate with <NamedEmoji name={kudosEmoji} image={kudosEmojiImage ?? undefined} /> and say why.
+    </p>
+  );
 }
 
 function ItemBack() {

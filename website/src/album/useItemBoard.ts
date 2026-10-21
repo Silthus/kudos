@@ -1,14 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Unlocked } from "../../../convex/items/turn";
 import type { AppliedReward } from "../../../convex/progression/rewards";
-import type { ItemBoard, TurnAnswer, TurnedFaceShown } from "../../../convex/website/album";
+import type { ItemBoard, LoopLesson, TurnAnswer, TurnedFaceShown } from "../../../convex/website/album";
 import { useNavigate } from "../AppLink";
 import type { TurnReply } from "../shell";
 import { hrefOf, type Place } from "./place";
 
 type Turned = Extract<TurnAnswer, { kind: "turned" }>;
 
-export type Landing = { face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; turn: number };
+export type Landing = { face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number };
 
 type Shown = "board" | "later" | "landed";
 
@@ -33,10 +33,10 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const board = useMemo(() => (answered === null ? null : withoutTurned(answered, turnedOver)), [answered, turnedOver]);
   const waiting = (board?.items.length ?? 0) > 0 && !waits;
   const land = useCallback(
-    (item: string, { face, applied, unlocked, page }: Turned) => {
+    (item: string, { face, applied, unlocked, page, teaches }: Turned) => {
       setTurnedOver((turned) => new Set(turned).add(item));
       setShown("landed");
-      setLanding((last) => ({ face, applied, unlocked, turn: (last?.turn ?? 0) + 1 }));
+      setLanding((last) => ({ face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1 }));
       navigate(hrefOf(placeOf(page)));
     },
     [navigate],
