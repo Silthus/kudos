@@ -128,6 +128,10 @@ async function at(seconds: number) {
   while (Date.now() < due) await act(() => vi.advanceTimersByTimeAsync(Math.min(frameMs, due - Date.now())));
 }
 
+async function inAnother(seconds: number) {
+  await at((Date.now() - started) / 1000 + seconds);
+}
+
 async function collectAt(seconds: number) {
   await at(seconds);
   started = Date.now();
@@ -476,6 +480,21 @@ function theEmojiPopUp() {
   return screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ });
 }
 
+async function theLevelEmojiPlaysInThePopUpAndIsThenSeen(markEmojisSeen: (ids: string[]) => unknown) {
+  expect(markEmojisSeen).not.toHaveBeenCalled();
+  await inAnother(3);
+  const popUp = within(theEmojiPopUp()!);
+  expect(popUp.getByRole("heading", { name: ":level-10:" })).toBeInTheDocument();
+  expect(markEmojisSeen).not.toHaveBeenCalled();
+
+  await act(async () => fireEvent.click(popUp.getByRole("button", { name: "Add to my emojis" })));
+  await inAnother(3);
+
+  expect(theEmojiPopUp()).toBeNull();
+  expect(markEmojisSeen).toHaveBeenCalledTimes(1);
+  expect(markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+}
+
 async function crossTheLevel(visit: Visit = {}) {
   const view = await returnTo(visit);
   await collectAt(arrivedAndRead);
@@ -555,30 +574,26 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theItemBoard()).toBeInTheDocument();
   });
 
-  it("Skip lands on the board with the XP in the bar and no takeover, and the crossed level's emoji counts as seen without the pop-up", async () => {
+  it("Skip lands on the board with the XP in the bar and no takeover, and LP14: the crossed level's emoji, never played, plays in the arrival emoji pop-up and only then counts as seen", async () => {
     const { actions } = await returnTo({ moment: toLevelTen, album: atLevelTen });
     await at(canvasArrival + 0.2);
 
     await act(async () => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })));
-    await at(canvasArrival + 4);
 
     expect(theTakeover()).toBeNull();
     expect(xpWords()).toBe("772 XP to level 11");
     expect(theItemBoard()).toBeInTheDocument();
-    expect(theEmojiPopUp()).toBeNull();
-    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+    await theLevelEmojiPlaysInThePopUpAndIsThenSeen(actions.markEmojisSeen);
   });
 
-  it("reduced motion lands on the board at once with the XP in the bar, and the crossed level's emoji counts as seen without the pop-up", async () => {
+  it("reduced motion lands on the board at once with the XP in the bar, and LP14: the crossed level's emoji, never played, plays in the arrival emoji pop-up and only then counts as seen", async () => {
     preferReducedMotion();
     const { actions } = await returnTo({ moment: toLevelTen, album: atLevelTen });
-    await at(3);
 
     expect(theTakeover()).toBeNull();
     expect(xpWords()).toBe("772 XP to level 11");
     expect(theItemBoard()).toBeInTheDocument();
-    expect(theEmojiPopUp()).toBeNull();
-    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+    await theLevelEmojiPlaysInThePopUpAndIsThenSeen(actions.markEmojisSeen);
   });
 
   it("with xp-moments off the level's emoji pops up on arrival as before", async () => {

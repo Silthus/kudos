@@ -79,7 +79,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const sinceTheLastVisit = useXpMomentSequence(xpMoment, { itemsWait: (album.board?.items.length ?? 0) > 0, onEnd: endXpMoment });
   const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits;
   const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
-  const levelUnlocks = useLevelUnlocks(album, sinceTheLastVisit.ended, emojiMoments.shownElsewhere);
+  const levelUnlocks = useLevelUnlocks(album, sinceTheLastVisit, emojiMoments.shownElsewhere);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
   const finishUnlocking = (team: string) => {
     emojiMoments.shownElsewhere([`team:${team}`]);

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Climb, XpMoment } from "../../../convex/website/xpMoment";
 import type { Album, AlbumEmoji } from "./answer";
+import type { XpMomentSequence } from "./useXpMoment";
 
 export type LevelUnlocks = { items: number; emojis: AlbumEmoji[] };
 
@@ -8,21 +9,21 @@ type Kept = { moment: XpMoment; unlocks: LevelUnlocks };
 
 const levelEmojiPrefix = "level:";
 
-export function useLevelUnlocks(album: Album, ended: XpMoment | null, unlocked: (ids: string[]) => void): LevelUnlocks | null {
+export function useLevelUnlocks(album: Album, { ended, play }: XpMomentSequence, unlocked: (ids: string[]) => void): LevelUnlocks | null {
   const [kept, keep] = useState<Kept | null>(null);
   if (ended !== null && kept?.moment !== ended) keep({ moment: ended, unlocks: levelUnlocksOf(album, ended.climb) });
-  useUnlockedOnce(kept, unlocked);
+  useUnlockedOnceTheTakeoverShows(kept, play?.phase === "takeover", unlocked);
   return ended !== null && kept?.moment === ended ? kept.unlocks : null;
 }
 
-function useUnlockedOnce(kept: Kept | null, unlocked: (ids: string[]) => void) {
+function useUnlockedOnceTheTakeoverShows(kept: Kept | null, takingOver: boolean, unlocked: (ids: string[]) => void) {
   const told = useRef<XpMoment | null>(null);
   useEffect(() => {
-    if (kept === null || told.current === kept.moment) return;
+    if (kept === null || !takingOver || told.current === kept.moment) return;
     told.current = kept.moment;
     const ids = kept.unlocks.emojis.map(({ id }) => id);
     if (ids.length > 0) unlocked(ids);
-  }, [kept, unlocked]);
+  }, [kept, takingOver, unlocked]);
 }
 
 function levelUnlocksOf({ board, emojis }: Album, climb: Climb): LevelUnlocks {
