@@ -79,10 +79,11 @@ export default defineSchema({
     attempts: v.number(),
     state: v.union(v.literal("pending"), v.literal("failed")),
     nextTryAt: v.optional(v.number()),
-    firstSignIn: v.optional(v.boolean()),
   })
     .index("by_user", ["workspace", "user"])
     .index("by_state_and_next_try", ["state", "nextTryAt"]),
+
+  firstSignIns: defineTable({ workspace: v.string(), user: v.string() }).index("by_user", ["workspace", "user"]),
 
   websiteClock: defineTable({
     tick: v.number(),
@@ -143,7 +144,6 @@ export default defineSchema({
     hugBudget: v.optional(v.number()),
     url: v.optional(v.string()),
     urlRequestedAt: v.optional(v.number()),
-    welcomeNudge: v.optional(v.boolean()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({
@@ -385,6 +385,8 @@ export default defineSchema({
   }).index("by_member", ["member"]),
 
   welcomeNudges: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
+
+  welcomeNudgeSwitches: defineTable({ workspace: v.string(), on: v.boolean() }).index("by_workspace", ["workspace"]),
 
   thoughtfulGiverCounts: defineTable({ workspace: v.string(), week: v.string(), givers: v.number() }).index("by_workspace_week", ["workspace", "week"]),
 

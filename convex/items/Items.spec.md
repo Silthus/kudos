@@ -276,7 +276,7 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: supersession-safety dismissed: a second earn finds the first by its member, source and key and writes nothing
   checklist: worker-fencing dismissed: no worker owns the item; two sign-ins conflict on the range they both read, so one retries and finds the other's
   checklist: commit-ordered-effects dismissed: earning the item issues no external effect
-  checklist: durable-dispatch-intent dismissed: the item is earned in the sign-in's own mutation, beside the account it creates, so it commits with it or not at all; for a newcomer the first sign-in's verification row carries firstSignIn, and the mutation that records the verified lookup earns the item and deletes the row together
+  checklist: durable-dispatch-intent dismissed: the item is earned in the sign-in's own mutation, beside the account it creates, so it commits with it or not at all; for a newcomer the first sign-in leaves a firstSignIns row beside its verification row, and the mutation that records the verified lookup earns the item and deletes both together; the mark lives in its own table so a revert's schema still reads every verification row
   checklist: resumption-coverage dismissed: no batch operation resumes; each sign-in is one mutation
   checklist: declared-target-coverage dismissed: the sign-in callback is the only writer in this slice; the welcome nudge joins it in a later slice through the same earnWelcomeItem
   checklist: completion-evidence dismissed: nothing waits on the earn; the board reads the stored item

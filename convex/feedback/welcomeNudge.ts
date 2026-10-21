@@ -11,7 +11,7 @@ import { welcomeItemShownTo } from "../items/welcomeFlag";
 import { websiteOriginFor } from "../website/link";
 import { signInEntry } from "../website/routes";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { saveWorkspaceSettings, settingsOf, welcomeNudgeOn } from "../workspace/settings";
+import { saveWelcomeNudge, settingsOf, welcomeNudgeOn } from "../workspace/settings";
 import { isTheMaintainer } from "../workspace/workspaceSettings";
 import { quoteOf } from "./mondayPost";
 
@@ -64,7 +64,7 @@ export async function welcomeNudgeSwitchOf(ctx: QueryCtx, viewer: { workspace: s
 
 export async function setWelcomeNudge(ctx: MutationCtx, workspace: string, member: MemberId, on: boolean): Promise<boolean> {
   if (!(await isTheMaintainer(ctx, member))) return false;
-  await saveWorkspaceSettings(ctx, workspace, { welcomeNudge: on });
+  await saveWelcomeNudge(ctx, workspace, on);
   return true;
 }
 

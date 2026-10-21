@@ -18,9 +18,21 @@ export async function verifyLater(ctx: MutationCtx, workspace: string, user: str
   const earlier = await verificationOf(ctx, workspace, user);
   if (earlier?.state === "pending") return;
   const fresh = { attempts: 0, state: "pending" as const, nextTryAt: Date.now() };
-  if (earlier === null) await ctx.db.insert("memberVerifications", { workspace, user, ...fresh, ...(firstSignIn && { firstSignIn }) });
+  if (earlier === null) await ctx.db.insert("memberVerifications", { workspace, user, ...fresh });
   else await ctx.db.patch(earlier._id, fresh);
+  if (firstSignIn) await rememberFirstSignIn(ctx, workspace, user);
   await ctx.scheduler.runAfter(0, internal.slack.verifyMember.verifyMember, { workspace, user });
+}
+
+async function rememberFirstSignIn(ctx: MutationCtx, workspace: string, user: string) {
+  if ((await firstSignInOf(ctx, workspace, user)) === null) await ctx.db.insert("firstSignIns", { workspace, user });
+}
+
+function firstSignInOf(ctx: QueryCtx, workspace: string, user: string) {
+  return ctx.db
+    .query("firstSignIns")
+    .withIndex("by_user", (q) => q.eq("workspace", workspace).eq("user", user))
+    .unique();
 }
 
 export function verificationOf(ctx: QueryCtx, workspace: string, user: string) {
@@ -64,10 +76,17 @@ export const recordAttempt = internalMutation({
 
 async function verified(ctx: MutationCtx, verification: Doc<"memberVerifications">) {
   await ctx.db.delete(verification._id);
+  const wasFirstSignIn = await forgetFirstSignIn(ctx, verification.workspace, verification.user);
   const person = await lookup(ctx, verification.workspace, verification.user);
   if (person?.kind !== "member") return;
   await readyFromTheStartOnceVerified(ctx, person.member);
-  if (verification.firstSignIn === true) await earnWelcomeItem(ctx, verification.workspace, person.member, Date.now());
+  if (wasFirstSignIn) await earnWelcomeItem(ctx, verification.workspace, person.member, Date.now());
+}
+
+async function forgetFirstSignIn(ctx: MutationCtx, workspace: string, user: string): Promise<boolean> {
+  const firstSignIn = await firstSignInOf(ctx, workspace, user);
+  if (firstSignIn !== null) await ctx.db.delete(firstSignIn._id);
+  return firstSignIn !== null;
 }
 
 function failed(ctx: MutationCtx, verification: Doc<"memberVerifications">, attempts: number) {
