@@ -63,11 +63,11 @@ describe("LP7: a thanks earns its hoggie and, where the pack holds one, the pers
     await redeliver(alice, ts, bob);
 
     const pack = await packOf(alice, bob);
-    expect(await itemsEarnedBy(alice)).toEqual([
+    expect(await thanksItemsEarnedBy(alice)).toEqual([
       { source: "hoggie", key: `thoughtful:${pack}`, reason: { kind: "thanks", person: await memberOf(bob) } },
       { source: "sticker", key: pack, reason: { kind: "thanks", person: await memberOf(bob) } },
     ]);
-    expect((await boardOf(await signedIn(alice))).items).toHaveLength(2);
+    expect(await thanksItemsOf(await signedIn(alice))).toHaveLength(2);
   });
 
   test("a thanks whose pack holds no sticker, because the person's sticker already waits, earns only its hoggie", async () => {
@@ -75,7 +75,7 @@ describe("LP7: a thanks earns its hoggie and, where the pack holds one, the pers
     vi.setSystemTime(Date.now() + weekMs);
     await thanks(alice, bob);
 
-    expect((await itemsEarnedBy(alice)).map(({ source }) => source)).toEqual(["hoggie", "sticker", "hoggie"]);
+    expect((await thanksItemsEarnedBy(alice)).map(({ source }) => source)).toEqual(["hoggie", "sticker", "hoggie"]);
   });
 });
 
@@ -178,11 +178,11 @@ describe("LP6: the old put-in and put-all-in mark the sticker item turned", { ti
     await asAlice.mutation(api.website.album.putIn, { item: bobsSticker!.item });
 
     await switchWebsite(t, postHog, true, ...itemsOn);
-    expect((await boardOf(asAlice)).items.map(({ reason }) => reason.kind === "thanks" && reason.thanked.name)).toEqual([carol.name]);
+    expect((await thanksItemsOf(asAlice)).map(({ reason }) => reason.kind === "thanks" && reason.thanked.name)).toEqual([carol.name]);
     await switchWebsite(t, postHog, true, ...albumOpen);
     await asAlice.mutation(api.website.album.putAllIn, {});
     await switchWebsite(t, postHog, true, ...itemsOn);
-    expect((await boardOf(asAlice)).items).toEqual([]);
+    expect(await thanksItemsOf(asAlice)).toEqual([]);
   });
 });
 
@@ -232,10 +232,10 @@ async function albumOf(reader: Reader): Promise<AlbumAnswer> {
   return album as AlbumAnswer;
 }
 
-async function boardOf(reader: Reader) {
+async function thanksItemsOf(reader: Reader) {
   const { board } = await albumOf(reader);
   if (board === undefined) throw new Error("expected the item board");
-  return board;
+  return board.items.filter(({ reason }) => reason.kind === "thanks");
 }
 
 async function signedIn(someone: Person) {
@@ -263,8 +263,8 @@ async function itemsOf(giver: Person): Promise<Doc<"items">[]> {
   );
 }
 
-async function itemsEarnedBy(giver: Person) {
-  return (await itemsOf(giver)).map(({ source, key, reason }) => ({ source, key, reason: reason.kind === "thanks" ? { kind: reason.kind, person: reason.person } : reason }));
+async function thanksItemsEarnedBy(giver: Person) {
+  return (await itemsOf(giver)).flatMap(({ source, key, reason }) => (reason.kind === "thanks" ? [{ source, key, reason: { kind: reason.kind, person: reason.person } }] : []));
 }
 
 async function itemOf(giver: Person, source: Doc<"items">["source"], thanked: Person): Promise<Id<"items">> {
