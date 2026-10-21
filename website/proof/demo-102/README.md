@@ -24,4 +24,4 @@ The seed waits until Robin is past level 4's 300 XP, has eight items waiting (fo
 
 Every run joins a new cast, because the cast's givers have a daily allowance of three kudos. So each run's hype emojis carry a number (`juno-vale-4-hype`), and the week's norm line counts every run's givers. Keep the emoji names off camera.
 
-Kudos and hugs use the sandbox's own kudos emoji (its workspace setting, else `KUDOS_EMOJI`) and are signed Slack-shaped events sent to the sandbox's `/slack/events` with its own signing secret, in a made-up channel `C0DEMO102`. Replies to the made-up members fail at Slack, which is harmless. The Share posts to the sandbox workspace's weekly-post channel.
+Kudos and hugs use the sandbox's own kudos emoji (its workspace setting, else `KUDOS_EMOJI`; the seed refuses a sandbox that names neither) and are signed Slack-shaped events sent to the sandbox's `/slack/events` with its own signing secret, in a made-up channel `C0DEMO102`. Replies to the made-up members fail at Slack, which is harmless. The Share posts to the sandbox workspace's weekly-post channel.

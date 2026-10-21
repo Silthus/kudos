@@ -7,6 +7,7 @@ import { signedRequest } from "../../../testing/signedSlack";
 import { drawOf } from "../../../convex/hoggies/draw";
 import { catalogue } from "../../../convex/hoggies/catalogue";
 import { xpToReach } from "../../../convex/progression/levels";
+import { emojiNameOf } from "../../../convex/workspace/settingsBounds";
 
 const sandbox = "different-dog-467";
 const site = `https://${sandbox}.convex.site`;
@@ -62,7 +63,9 @@ async function envOf(name: string) {
 
 async function kudosEmojiOfTheSandbox() {
   const setting = (await everyRow("workspaces")).find((row) => row.workspace === workspace)?.kudosEmoji as string | undefined;
-  return setting ?? (await envOf("KUDOS_EMOJI"));
+  const configured = setting ?? emojiNameOf(await convex("env", "get", "KUDOS_EMOJI"));
+  if (configured === "") throw new Error(`${sandbox} names no kudos emoji: set its workspace setting or KUDOS_EMOJI`);
+  return configured;
 }
 
 const nameOf = ({ first, last }: Person) => `${first} ${last}`;
@@ -100,8 +103,12 @@ async function append(table: string, rows: Record<string, unknown>[]) {
 
 async function post(path: string, body: string, contentType?: string) {
   sent += 1;
-  const response = await fetch(`${site}${path}`, await signedRequest(body, { secret: signingSecret, ...(contentType && { contentType }) }));
-  if (!response.ok) throw new Error(`${path} answered ${response.status}: ${await response.text()}`);
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(`${site}${path}`, await signedRequest(body, { secret: signingSecret, ...(contentType && { contentType }) }));
+    if (response.ok) return;
+    if (response.status < 500 || attempt === 3) throw new Error(`${path} answered ${response.status}: ${await response.text()}`);
+    await pause(2000);
+  }
 }
 
 async function event(body: Record<string, unknown>, at = Date.now()) {
@@ -286,8 +293,9 @@ async function seed() {
 async function settledAtLevel(demo: Member) {
   let previous = -1;
   return until(`level ${demoLevel} with every award paid`, async () => {
+    if ((await dueJobsOfThisRun()) > 0) return null;
     const standing = { xp: await xpOf(demo), items: (await itemsOf(demo)).filter((row) => row.turnedAt === undefined) };
-    const settled = standing.xp === previous && standing.xp >= xpToReach(demoLevel) && standing.items.length >= 8 && (await dueJobsOfThisRun()) === 0;
+    const settled = standing.xp === previous && standing.xp >= xpToReach(demoLevel) && standing.items.length >= 8;
     previous = standing.xp;
     return settled ? standing : null;
   }, 240);
