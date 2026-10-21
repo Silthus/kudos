@@ -597,7 +597,7 @@ describe("LP57: Make my pet on a hoggie the member found makes it their one pet"
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("once the read confirms a pick, a later pick from elsewhere shows as the pet here too", async () => {
+  it("once the read confirms a pick, a later pick from elsewhere shows as the pet here too, and focus stays in the entry", async () => {
     const live = { answer: { ...hoggiesFixtures.midway, pet: "beaker" }, listeners: new Set<() => void>() };
     const read: HoggiesRead = (asking) => {
       const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.answer);
@@ -618,6 +618,7 @@ describe("LP57: Make my pet on a hoggie the member found makes it their one pet"
 
     expect(shown.queryByText("Your pet")).not.toBeInTheDocument();
     expect(shown.getByRole("button", { name: "Make my pet" })).toBeInTheDocument();
+    expect(shown.getByRole("button", { name: "Close" })).toHaveFocus();
   });
 
   it("a hoggie not found yet offers no Make my pet", async () => {

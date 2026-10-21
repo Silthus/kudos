@@ -140,7 +140,7 @@ function useFocusWhileOpen(hoggie: AlbumHoggie) {
   }, []);
   useEffect(() => {
     if (focusWasDropped()) closeButton.current?.focus({ preventScroll: true });
-  }, [hoggie.hoggie]);
+  });
   return closeButton;
 }
 
