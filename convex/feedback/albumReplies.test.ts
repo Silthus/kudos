@@ -62,6 +62,7 @@ let postHogCom: FakePostHogCom;
 let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
+const kudosSent = new Map<string, { from: number; giver: string; threadRoot?: string }>();
 let weeksLater = 0;
 const albumPostAnswers: Array<"lands without an answer" | "rate limited" | "refused as rate_limited" | "lands with an internal error" | "refuses its pictures" | "refused as not in the channel"> = [];
 const albumPostsWithPictures: boolean[] = [];
@@ -93,7 +94,6 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     expect(threadRepliesTo(ts)).toEqual([
       {
         channel,
-        thread_ts: ts,
         user: alice.user,
         text: "Bob is new in your album · A pack for thanking Carol",
         blocks: [
@@ -160,8 +160,7 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     await choosesKudosRepliesIn(dana, "none");
     await thanks(dana, why, bob);
 
-    expect(threadRepliesTo(root).map(({ thread_ts }) => thread_ts)).toEqual([root]);
-    expect(threadRepliesTo(inAThread)).toEqual([]);
+    expect(threadRepliesTo(inAThread).map(({ thread_ts }) => thread_ts)).toEqual([root]);
     expect(threadRepliesTo(carolsKudos)).toEqual([]);
     expect(albumRepliesIn(carol.user).map((reply) => sectionsOf([reply]))).toEqual([["*Bob is new in your album*\nLanterns 1/2\nOtters 1/2"]]);
     expect(everyAlbumReply().map(({ channel: to, user }) => ({ to, user }))).toEqual([
@@ -331,7 +330,7 @@ describe("AL58: album moments are dark where album-slack is off", { timeout: 60_
     const walk = await walkWith(albumOn, [onForEmails(albumSlack, alice.email)]);
 
     const added = walk.calls.filter((call) => !withoutTheReply.calls.includes(call)).map((call) => JSON.parse(call) as SlackCall);
-    expect(added.map(({ method, args }) => ({ method, channel: args.channel, thread_ts: args.thread_ts, user: args.user }))).toEqual([{ method: "chat.postEphemeral", channel, thread_ts: walk.alicesThoughtfulKudos, user: alice.user }]);
+    expect(added.map(({ method, args }) => ({ method, channel: args.channel, thread_ts: args.thread_ts, user: args.user }))).toEqual([{ method: "chat.postEphemeral", channel, thread_ts: undefined, user: alice.user }]);
     expect(withoutTheReply.calls.every((call) => walk.calls.includes(call))).toBe(true);
   });
 });
@@ -352,6 +351,7 @@ async function fourMembers(flags: FlagDefinition[], more: Person[] = [], albumFl
   vi.stubEnv("SITE_URL", site);
   messages = 0;
   weeksLater = 0;
+  kudosSent.clear();
   postHog = new FakePostHog();
   postHogCom = new FakePostHogCom().withTeams(lanterns, otters, ...(more.length > 0 ? [{ slug: "guests", name: "Guests", profiles: more.map((guest) => profileOf(guest)) }] : []));
   slack = new FakeSlack();
@@ -391,6 +391,7 @@ async function thanks(giver: Person, words: string, ...recipientsAndOptions: Arr
   messages += 1;
   vi.setSystemTime(tuesday.getTime() + weeksLater * weekMs + messages * minuteMs);
   const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
+  kudosSent.set(ts, { from: slack.calls.length, giver: giver.user, ...(threadTs && { threadRoot: threadTs }) });
   await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts, channel, ...(threadTs && { threadTs }) });
   if (settling === "until the first answer") await settleUntil(t, new Date(Date.now() + 5_000));
   else await settle(t);
@@ -424,7 +425,12 @@ function albumPostsInPublic(): Posted[] {
 }
 
 function threadRepliesTo(ts: string): Posted[] {
-  return (slack.callsTo("chat.postEphemeral") as unknown as Posted[]).filter(({ channel: to, thread_ts, blocks }) => to === channel && thread_ts === ts && JSON.stringify(blocks ?? []).includes("album"));
+  const kudos = kudosSent.get(ts);
+  if (kudos === undefined) return [];
+  const nextKudos = Math.min(slack.calls.length, ...[...kudosSent.values()].map(({ from }) => from).filter((from) => from > kudos.from));
+  return (slack.calls.slice(kudos.from, nextKudos) as unknown as Array<{ method: string; args: Posted }>)
+    .filter(({ method, args }) => method === "chat.postEphemeral" && args.channel === channel && args.user === kudos.giver && args.thread_ts === kudos.threadRoot && JSON.stringify(args.blocks ?? []).includes("album"))
+    .map(({ args }) => args);
 }
 
 function albumRepliesIn(conversation: string): Posted[] {

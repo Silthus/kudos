@@ -338,7 +338,7 @@ type Posted = SlackCall["args"] & { channel: string; text: string; thread_ts?: s
 function momentsSent() {
   const posted = slack.callsTo("chat.postMessage") as Posted[];
   return {
-    threadReplies: (slack.callsTo("chat.postEphemeral") as Posted[]).filter(({ thread_ts, blocks }) => thread_ts !== undefined && JSON.stringify(blocks ?? []).includes("album-")),
+    threadReplies: (slack.callsTo("chat.postEphemeral") as Posted[]).filter(({ blocks }) => JSON.stringify(blocks ?? []).includes("album-")),
     recaps: posted.filter(({ text }) => String(text).startsWith(":taco: Your week in hugs")),
     weeklyPosts: posted.filter(({ channel: to, text }) => to === announcementChannel && String(text).startsWith("🏆")),
   };

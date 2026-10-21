@@ -34,7 +34,7 @@ async function postAlbumReply(ctx: ActionCtx, reply: AlbumReply): Promise<Attemp
 async function postBesideOrAsDirectMessage(ctx: ActionCtx, reply: AlbumReply): Promise<Attempt> {
   const { destination } = reply;
   if (destination.kind === "dm") return postAsDirectMessage(ctx, reply, destination);
-  const ephemeral = { channel: destination.conversation, thread_ts: destination.threadTs, user: destination.user, ...contentOf(reply) };
+  const ephemeral = { channel: destination.conversation, user: destination.user, ...(destination.threadRoot !== undefined && { thread_ts: destination.threadRoot }), ...contentOf(reply) };
   const result = await attemptCall(ctx, reply.workspace, "chat.postEphemeral", ephemeral);
   return isRefusedAsEphemeral(result) ? postAsDirectMessage(ctx, reply, destination) : result;
 }
