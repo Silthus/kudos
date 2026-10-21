@@ -439,6 +439,15 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
   checklist: redaction dismissed: the answer is the profile card module's card, which holds only the member's name, level and medal names; no XP, coins, kudos counts or IDs
+- getAlbum says shareable URLs only where shareable-urls is on: getAlbum answers `shareableUrls` true while the signed-in member's own decision of the `shareable-urls` flag is on, read without an exposure, and leaves the field out otherwise, so a member the flag is off for reads today's album answer and the website keeps today's addresses (Silthus/personal#134).
+  over: getAlbum with shareable-urls on for everyone, off for everyone, and on for one email, read by that member and by another
+  via: getAlbum says shareable URLs are on only for a member shareable-urls is on for
+  because: every new website piece ships dark behind its own sandbox-only flag, read without an exposure as album is, so a member the flag is off for keeps today's answer and a read counts no member who decided nothing
+  crossing: browser -> domain
+  entrances: query getAlbum
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: the field is one boolean about the reader's own flag and names nobody
 - the website card waits for profile-card: getProfileCard answers not-found while the signed-in member's own decision of the profile-card flag is off, read without an exposure, whatever the workspace decision or the member's progress, so with the flag off the website reads no card.
   over: getProfileCard with profile-card off for everyone, for a member with a tier who opened the Book; and with profile-card on for one email, read by that member and by another
   via: PC15 PC17: getProfileCard follows the member's own profile-card decision

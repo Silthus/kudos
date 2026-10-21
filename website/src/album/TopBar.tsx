@@ -11,7 +11,7 @@ import type { Album, AlbumLevel } from "./answer";
 import { EmojiPanel } from "./EmojiPanel";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
-import { home, hrefOf, type Place } from "./place";
+import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
 import { TrayPanel } from "./TrayPanel";
 import type { Popover } from "./usePopover";
 
@@ -27,7 +27,7 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTh
   useTrayOpenOnThePacksPage(place, popover);
   return (
     <header className="al-top" inert={inert}>
-      <AppLink href={hrefOf(home)} className="al-brand" data-slot="home">
+      <AppLink href={addressOf(home, myPageOf(album))} className="al-brand" data-slot="home">
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
       </AppLink>
@@ -216,7 +216,7 @@ function PageLinks({ place }: { place: Place }) {
 function MeAndSettings({ album, place, onFollow }: { album: Album; place: Place; onFollow?: () => void }) {
   return (
     <span className="al-me-group">
-      <AppLink href={hrefOf({ kind: "profile" })} className="al-me" aria-label={`Your profile, ${album.me.name}`} aria-current={place.kind === "profile" ? "page" : undefined} onFollow={onFollow}>
+      <AppLink href={addressOf(home, myPageOf(album))} className="al-me" aria-label={`Your profile, ${album.me.name}`} aria-current={place.kind === "profile" ? "page" : undefined} onFollow={onFollow}>
         <MemberFace face={album.me.face} className="al-me-face" />
         <span className="al-me-name ph-no-capture">{album.me.name}</span>
       </AppLink>

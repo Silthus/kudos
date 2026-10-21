@@ -3,8 +3,7 @@ import { perkValidator, type PerkId } from "../../convex/progression/tree";
 import { crateParamOf, crateTargetIn, settingsSections, signInEntry, type CrateTarget, type HomePanel, type SettingsSection } from "../../convex/website/routes";
 import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { spreadIn, type Spread } from "./book/spread/spreads";
-import { periods } from "./leaderboard/periods";
-import type { Period } from "./shell";
+import type { BoardPeriod } from "./album/answer";
 
 export type QuestTarget = number | "journey" | "group";
 
@@ -16,8 +15,8 @@ type Targets = { crate?: CrateTarget };
 
 export type Route =
   | ({ page: "home"; panel?: HomePanel } & Targets)
-  | { page: "activity"; filter: ActivityFilter }
-  | ({ page: "leaderboard"; period: Period } & Targets)
+  | { page: "activity"; filter: ActivityFilter; week?: string }
+  | ({ page: "leaderboard"; period: BoardPeriod } & Targets)
   | ({ page: "quests"; quest?: QuestTarget } & Targets)
   | ({ page: "book"; bookPage: BookPageId; spread?: Spread } & Targets)
   | ({ page: "skills"; perk?: PerkId } & Targets)
@@ -28,7 +27,7 @@ export type BookPageId = CategoryId | "overview" | "earned" | "collection";
 
 const routeAt = {
   "/": (search) => ({ page: "home", panel: panelIn(search), crate: crateIn(search) }),
-  "/activity": (search) => ({ page: "activity", filter: filterIn(search) }),
+  "/activity": (search) => ({ page: "activity", filter: filterIn(search), ...weekIn(search) }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search), crate: crateIn(search) }),
   "/quests": (search) => ({ page: "quests", quest: questIn(search), crate: crateIn(search) }),
   "/skills": (search) => ({ page: "skills", perk: perkIn(search), crate: crateIn(search) }),
@@ -60,7 +59,7 @@ function pageHrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
   if (route.page === "quests") return questsHref(route.quest);
   if (route.page === "book") return bookHref(route.bookPage);
-  if (route.page === "activity") return activityHref(route.filter);
+  if (route.page === "activity") return activityHref(route.filter, route.week);
   if (route.page === "home" || route.page === "not-found") return "/";
   return `/${route.page}`;
 }
@@ -80,12 +79,15 @@ export function questsHref(quest?: QuestTarget) {
   return quest === undefined ? "/quests" : `/quests?quest=${quest}`;
 }
 
-export function leaderboardHref(period: Period) {
+export function leaderboardHref(period: BoardPeriod) {
   return period === "week" ? "/leaderboard" : `/leaderboard?period=${period}`;
 }
 
-export function activityHref(filter: ActivityFilter) {
-  return filter === "all" ? "/activity" : `/activity?filter=${filter}`;
+export function activityHref(filter: ActivityFilter, week?: string) {
+  const asked = new URLSearchParams();
+  if (filter !== "all") asked.set("filter", filter);
+  if (week !== undefined) asked.set("week", week);
+  return asked.size === 0 ? "/activity" : `/activity?${asked}`;
 }
 
 const filters: ActivityFilter[] = ["all", "received", "given"];
@@ -95,9 +97,16 @@ function filterIn(search: string): ActivityFilter {
   return filters.find((filter) => filter === asked) ?? "all";
 }
 
-function periodIn(search: string): Period {
+const boardPeriods: readonly BoardPeriod[] = ["week", "last-week", "month", "all"];
+
+function periodIn(search: string): BoardPeriod {
   const asked = new URLSearchParams(search).get("period");
-  return periods.find(({ period }) => period === asked)?.period ?? "week";
+  return boardPeriods.find((period) => period === asked) ?? "week";
+}
+
+function weekIn(search: string): { week?: string } {
+  const asked = new URLSearchParams(search).get("week");
+  return asked !== null && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? { week: asked } : {};
 }
 
 function questIn(search: string): QuestTarget | undefined {
