@@ -1,0 +1,23 @@
+## join
+event 1 (team_join) answered 200
+event 2 (team_join) answered 200
+## first-hug
+event 1 (reaction_added) answered 200
+  :hedgehog: by Fern Newcomb (U0PRF139FERNA) on Ada Quill's message 1792618833.850000 in C0C9N9A4SE4
+## second-hug
+event 1 (reaction_added) answered 200
+  :hedgehog: by Fern Newcomb (U0PRF139FERNA) on Ada Quill's message 1792619154.194000 in C0C9N9A4SE4
+## read back (sandbox different-dog-467)
+hugs given by Fern Newcomb (U0PRF139FERNA):
+   C0C9N9A4SE4 1792619154.194000 emoji hedgehog author
+   C0C9N9A4SE4 1792618833.850000 emoji hedgehog author
+scheduled slack/firstHugReply jobs:
+   slack/firstHugReply.js:deliverFirstHugReply [{"conversation": "C0C9N9A4SE4", "hugged": {"kind": "author", "name": "Ada Quill"}, "user": "U0PRF139FERNA", "workspace": "T0C3US298SH"}] success
+log lines naming chat.postEphemeral or chat.postMessage during the run:
+  10/21/2026, 9:50:34 PM [CONVEX A(slack/firstHugReply:deliverFirstHugReply)] [WARN] 'chat.postEphemeral failed: user_not_in_channel'
+## check, run by hand: the deployed deliverFirstHugReply for the sandbox's human member, who is in C0C9N9A4SE4
+convex run slack/firstHugReply:deliverFirstHugReply '{"workspace":"T0C3US298SH","user":"U0C3XTQGFLN","conversation":"C0C9N9A4SE4","hugged":{"kind":"author","name":"Ada Quill"}}'
+exit=0
+## check: the same ephemeral posted once with the bot token, to read Slack's answer
+chat.postEphemeral {"channel": "C0C9N9A4SE4", "user": "U0C3XTQGFLN", "text": "That was a hug: +1 XP for you and Ada Quill. Thank them in a message and say why to earn an item."}
+answer {"ok": true, "message_ts": "1792619602.000200"}
