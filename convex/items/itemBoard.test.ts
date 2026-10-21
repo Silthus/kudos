@@ -10,7 +10,7 @@ import type { Id } from "../_generated/dataModel";
 import { catalogue } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
 import schema from "../schema";
-import type { AlbumAnswer, AlbumRead, TurnAnswer } from "../website/album";
+import type { AlbumAnswer, AlbumRead, ItemBoard, TurnAnswer } from "../website/album";
 import type { Denial } from "../website/memberQuery";
 import type { MemberId } from "../workspace/directory";
 
@@ -78,7 +78,7 @@ describe("LP8 LP9 LP17: with hidden-items on, getAlbum answers the item board an
 
     const album = await albumOf(await signedIn(alice));
 
-    expect(album.board?.items.map(({ reason }) => reason.kind === "thanks" && reason.thanked.name)).toEqual([bob.name, bob.name, carol.name, carol.name]);
+    expect(thanksItemsOn(album.board!).map(({ reason }) => reason.kind === "thanks" && reason.thanked.name)).toEqual([bob.name, bob.name, carol.name, carol.name]);
     for (const item of album.board!.items) expect(Object.keys(item).sort()).toEqual(["earnedAt", "item", "reason"]);
     expect(album.board?.more).toBe(false);
     expect(album).toMatchObject({ packs: [], morePacks: false, tray: [], moreTray: false });
@@ -111,7 +111,7 @@ describe("LP10 LP11 LP16: turnItem draws the hoggie at the turn, pays the pack's
     expect(turned).toMatchObject({ kind: "turned", again: false, face: { kind: "hoggie", drop: { hoggie: drawn.hoggie, rarity: drawn.rarity, isNew: true } }, applied: { xp: 15, coins: 0 }, page: { kind: "hoggies" } });
     const album = await albumOf(asAlice);
     expect(album.level.xp).toBe(before + 15);
-    expect(album.board?.items).toHaveLength(1);
+    expect(thanksItemsOn(album.board!)).toHaveLength(1);
     expect(await foundHoggiesOf(asAlice)).toEqual([drawn.hoggie]);
     expect(eventsNamed("item turned").map(({ properties: { source, rarity, is_new } }) => ({ source, rarity, is_new }))).toEqual([{ source: "hoggie", rarity: drawn.rarity, is_new: true }]);
   });
@@ -137,12 +137,12 @@ describe("LP12: a replayed turn answers the same face and applies nothing", () =
   test("two items turned at once both land", async () => {
     await thanks(alice, why, bob, carol);
     const asAlice = await signedIn(alice);
-    const items = (await boardOf(asAlice)).items;
+    const items = thanksItemsOn(await boardOf(asAlice));
 
     const answers = await Promise.all(items.map(({ item }) => turn(asAlice, item)));
 
     expect(answers.map(({ kind }) => kind)).toEqual(items.map(() => "turned"));
-    expect((await boardOf(asAlice)).items).toEqual([]);
+    expect(thanksItemsOn(await boardOf(asAlice))).toEqual([]);
   });
 });
 
@@ -306,6 +306,10 @@ async function boardOf(reader: Reader) {
   const { board } = await albumOf(reader);
   if (board === undefined) throw new Error("expected the item board");
   return board;
+}
+
+function thanksItemsOn({ items }: ItemBoard) {
+  return items.filter(({ reason }) => reason.kind === "thanks");
 }
 
 async function foundHoggiesOf(reader: Reader) {

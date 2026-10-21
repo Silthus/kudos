@@ -311,10 +311,13 @@ async function walkThroughTheItemBoard() {
   await giveKudos(t, "U_ALICE", 1);
   const { asSignedIn } = await aSignedInSession(t, { user: "U_ALICE" });
   const album = await asSignedIn.query(api.website.album.getAlbum, {});
-  for (const { item } of "board" in album && album.board !== undefined ? album.board.items : []) await asSignedIn.mutation(api.website.album.turnItem, { item });
+  const waiting = "board" in album && album.board !== undefined ? album.board.items : [];
+  for (const { item } of waiting) await asSignedIn.mutation(api.website.album.turnItem, { item });
   await settled(t);
 
-  expect(eventsNamed("item turned").map(({ properties }) => properties.source)).toEqual(["hoggie", "sticker"]);
+  expect(waiting.length, "items waiting on the board").toBeGreaterThan(0);
+  expect(eventsNamed("item turned")).toHaveLength(waiting.length);
+  expect(new Set(eventsNamed("item turned").map(({ properties }) => properties.source))).toEqual(new Set(["hoggie", "sticker"]));
   return { t };
 }
 

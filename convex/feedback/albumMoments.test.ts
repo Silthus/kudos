@@ -359,7 +359,7 @@ vi.mock("../hoggies/draw", async (importOriginal) => {
 async function turnsEverything(giver: Person, ...draws: string[]) {
   const { asSignedIn } = await aSignedInSession(t, { user: giver.user, name: giver.name });
   const album = await asSignedIn.query(api.website.album.getAlbum, {});
-  const board = album.kind === "album" ? (album.board?.items ?? []) : [];
+  const board = (album.kind === "album" ? (album.board?.items ?? []) : []).filter(({ reason }) => reason.kind === "thanks");
   theDraw.planned = [...draws];
   for (const { item } of board) expect((await asSignedIn.mutation(api.website.album.turnItem, { item })).kind, `${giver.name} turns an item`).toBe("turned");
   expect(theDraw.planned, `${giver.name}'s hoggies drawn`).toEqual([]);

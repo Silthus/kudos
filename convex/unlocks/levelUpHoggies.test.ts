@@ -116,6 +116,7 @@ describe("a level up drops a hoggie from each of three crates", () => {
   test.each([
     ["level-up-reveal is off", ["collection"]],
     ["collection is off", ["level-up-reveal"]],
+    ["hidden-items is on", ["level-up-reveal", "collection", "hidden-items"]],
   ])("while %s, a level-up drops nothing", async (_, flags) => {
     const member = await aMemberWith(...flags);
 

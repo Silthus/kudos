@@ -5,6 +5,7 @@ import { shellFixtures, type TurnReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixtureTurnOf } from "./albumFixtures";
+import type { BoardItem } from "../../../convex/website/album";
 import type { Album, AlbumRead, LevelUpRead } from "./answer";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { fixedLevelUp, levelUpFixtures } from "./levelUpFixtures";
@@ -40,6 +41,12 @@ function anAlbumThatAnswers(first: Album) {
     act(() => listeners.forEach((listener) => listener()));
   };
   return { read, answerNext, now: () => answer };
+}
+
+function withLevelItems(level: number): Album {
+  const board = withItems.board!;
+  const levelItems = [1, 2, 3].map((slot) => ({ item: `level-${level}-${slot}` as BoardItem["item"], earnedAt: board.items[0]!.earnedAt + slot, reason: { kind: "levelUp" as const, level } }));
+  return { ...withItems, board: { ...board, items: [...board.items, ...levelItems] } };
 }
 
 function withoutTheItem(album: Album, item: string): Album {
@@ -156,6 +163,18 @@ describe("The item board", () => {
     expect(turnItem).toHaveBeenCalledWith(withItems.board!.items[1]!.item);
     expect(await board.findByRole("alert")).toHaveTextContent("That item couldn't be turned over. Try again.");
     expect(board.getAllByRole("button", { name: "A face-down item. Turn it over" })).toHaveLength(3);
+  });
+
+  it("tags each level-up item with its level beside a back that is the same as every other back", async () => {
+    visit(withLevelItems(3));
+    const board = await theBoard();
+    const levelItems = board.getAllByRole("button", { name: "A face-down item from level 3. Turn it over" });
+    expect(levelItems).toHaveLength(3);
+    for (const item of levelItems) expect(within(item).getByText("Level 3")).toBeVisible();
+    const thanksItems = board.getAllByRole("button", { name: "A face-down item. Turn it over" });
+    for (const item of thanksItems) expect(within(item).queryByText(/^Level/)).toBeNull();
+    const backs = [...levelItems, ...thanksItems].map((item) => item.querySelector(".ib-back")!.outerHTML);
+    expect(new Set(backs).size, "distinct backs").toBe(1);
   });
 
   it("waits while the level-up page plays", async () => {

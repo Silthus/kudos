@@ -112,6 +112,10 @@ export async function packOf(ctx: QueryCtx, member: MemberId, crate: string): Pr
   return (await dropRecordOf(ctx, member, crate))?.pack ?? null;
 }
 
+export async function droppedIn(ctx: QueryCtx, member: MemberId, crate: CrateKey): Promise<boolean> {
+  return (await dropRecordOf(ctx, member, crate)) !== null;
+}
+
 export async function dropOf(ctx: MutationCtx, member: MemberId, crate: CrateKey): Promise<Drop | null> {
   const record = await dropRecordOf(ctx, member, crate);
   if (record === null) return null;
