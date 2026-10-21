@@ -1,9 +1,15 @@
+import type { ReachedTier } from "../../../convex/album/milestones";
 import type { Album, AlbumPerson } from "./answer";
+import { medalKeyOf } from "./milestones";
 import type { Landing } from "./useItemBoard";
 import { withTheUnlocked } from "./useTeamUnlock";
 
 export function albumAtTheLanding(album: Album, landing: Landing | null): Album {
   if (landing === null) return album;
+  return withTheMedalsStillHeld(albumAtTheStickers(album, landing), landing.unlocked.milestones.slice(landing.medalsShown));
+}
+
+function albumAtTheStickers(album: Album, landing: Landing): Album {
   const stickers = landing.unlocked.teamStickers;
   if (landing.phase === "done") return withTheUnlocked(album, stickers);
   const locked = withTheTeamsStillLocked(album, new Set(stickers.map(({ team }) => team)));
@@ -28,4 +34,10 @@ function withTheStickerStillOut(album: Album, face: Landing["face"]): Album {
 
 function notYetPutIn({ at: _putInAt, ...person }: AlbumPerson): AlbumPerson {
   return { ...person, held: false };
+}
+
+function withTheMedalsStillHeld(album: Album, tiers: ReachedTier[]): Album {
+  if (tiers.length === 0) return album;
+  const held = new Set(tiers.map(medalKeyOf));
+  return { ...album, milestones: album.milestones.map((milestone) => ({ ...milestone, tiers: milestone.tiers.map((step) => (held.has(medalKeyOf({ milestone: milestone.id, tier: step.tier })) ? { ...step, earnedAt: null } : step)) })) };
 }

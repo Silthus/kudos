@@ -91,7 +91,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
       {covered && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
-      {album.board !== null && <ItemsWait turns={turns} />}
+      {album.board !== null && <ItemsWait turns={turns} album={album} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}

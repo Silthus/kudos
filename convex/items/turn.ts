@@ -1,7 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { unlockHypeEmojiOf, type HypeEmoji } from "../album/earnedEmojis";
-import { recordMilestonesOf, type ReachedTier } from "../album/milestones";
+import type { ReachedTier } from "../album/milestones";
 import { isTrayKey, trayItemKeyed } from "../album/opening";
 import { crateKeyOf } from "../album/packs";
 import { markTrayStickerPutIn, placeFromTheTray, putStickerIn } from "../album/putIn";
@@ -16,6 +16,7 @@ import { dropFor, dropOf, foundIn, packOf, type Drop } from "../hoggies/drops";
 import { crestsShownTo } from "../hoggies/flag";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
+import { unlockMilestoneTiers } from "./milestoneUnlocks";
 
 export type TurnedFace = { kind: "hoggie"; drop: Drop } | { kind: "sticker"; person: MemberId; isNew: boolean };
 
@@ -40,7 +41,7 @@ export async function turn(ctx: MutationCtx, owner: PageOwner, item: Id<"items">
   const landed = await landFirstTime(ctx, owner, row, at);
   if (landed === null) return null;
   const hype = await hypeUnlockedBy(ctx, owner, row, at);
-  const milestones = await recordMilestonesOf(ctx, owner, at);
+  const milestones = await unlockMilestoneTiers(ctx, owner, at);
   await ctx.db.patch(row._id, { turnedAt: at });
   await publish(ctx, { type: "itemTurned", workspace: owner.workspace, member: owner.member, ...analyticsFaceOf(landed.face), at });
   return { face: landed.face, applied: landed.applied, page: landed.page, unlocked: { teamStickers: landed.teamStickers, hype, milestones }, again: false };

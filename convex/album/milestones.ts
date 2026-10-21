@@ -9,7 +9,7 @@ import type { MilestoneTier } from "./records";
 import { holdsAnySticker, nextStickerHolderAfter, peopleHeldBy } from "./stickers";
 import { teamPagesOf, type PageOwner, type TeamPage } from "./teamPages";
 
-export type MilestoneAnswer = { id: MilestoneId; count: number; tiers: (Step & { earnedAt: number | null })[] };
+export type MilestoneAnswer = { id: MilestoneId; count: number; tiers: (Step & { earnedAt: number | null; unlockedAt?: number })[] };
 
 export type ReachedTier = { milestone: MilestoneId; tier: MilestoneTier };
 
@@ -97,6 +97,11 @@ async function recordTiersOf(ctx: MutationCtx, member: MemberId, pagesOf: () => 
     }
   }
   return reached;
+}
+
+export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<ReachedTier[]> {
+  const earned = await earnedTiersOf(ctx, member);
+  return milestoneCatalogue.milestones.flatMap(({ id, steps }) => steps.filter(({ tier }) => earned.has(tierKey(id, tier))).map(({ tier }) => ({ milestone: id, tier })));
 }
 
 async function countsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>): Promise<Counts> {

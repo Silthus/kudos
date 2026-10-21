@@ -32,7 +32,7 @@ export type SharedEmoji = Pick<AlbumEmoji, "id" | "kind" | "name" | "from" | "pi
 
 export type MilestoneTierId = "bronze" | "silver" | "gold" | "diamond";
 
-export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null }[] };
+export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null; unlockedAt?: number }[] };
 
 export type AlbumPet = { person: string; hoggie: string; name: string; rarity: Rarity };
 

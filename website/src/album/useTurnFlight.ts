@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import type { ReachedTier } from "../../../convex/album/milestones";
 import type { TurnedFaceShown } from "../../../convex/website/album";
+import { medalKeyOf } from "./milestones";
 import { playTurn, turnClock, turnTiming, type FlightStage, type TurnClock, type Turned, type TurnSteps } from "./turnSequence";
 
 export type Point = { x: number; y: number };
 
-export type Flight = { item: string; from: DOMRect; stage: FlightStage; dark: boolean; face: TurnedFaceShown | null; spot: Point; size: number; burst: boolean; caption: boolean; chip: Chip | null; rings: DOMRect | null; flourish: DOMRect | null };
+export type Flight = { item: string; from: DOMRect; stage: FlightStage; dark: boolean; face: TurnedFaceShown | null; spot: Point; size: number; burst: boolean; caption: boolean; chip: Chip | null; rings: DOMRect | null; flourish: DOMRect | null; medal: MedalPop | null };
+
+export type MedalPop = { tier: ReachedTier; rect: DOMRect };
 
 export type Chip = { xp: number; from: Point; to: Point };
 
 export type FlightBoxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null> };
 
-export type Arrival = { land: (turned: Turned) => void; landed: () => void; unlocked: () => void; paid: () => void; nothingWaits: () => boolean };
+export type Arrival = { land: (turned: Turned) => void; landed: () => void; unlocked: () => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean };
 
 type FaceKind = TurnedFaceShown["kind"];
 
@@ -27,7 +31,7 @@ export function useTurnFlight() {
       const running = turnClock();
       clock.current = running;
       const { spot, size } = middleFor(from);
-      setFlight({ item, from, stage: "lift", dark: false, face: null, spot, size, burst: false, caption: false, chip: null, rings: null, flourish: null });
+      setFlight({ item, from, stage: "lift", dark: false, face: null, spot, size, burst: false, caption: false, chip: null, rings: null, flourish: null, medal: null });
       const change: Change = (patch) => setFlight((flying) => (flying === null ? null : { ...flying, ...patch }));
       const turned = await playTurn(running, stepsOf(running, { flyer, flip, disc }, change, arrival, { from, spot, size }), answer);
       clock.current = null;
@@ -100,8 +104,21 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
       seal?.getAnimations?.().forEach((animation) => animation.cancel());
     },
     endTheUnlock: () => change({ flourish: null }),
+    medalInView: (tier) => isInView(theMedal(tier)),
+    goToTheMilestones: arrival.toTheMilestones,
+    jumpToTheMedal: (tier) => jumpTo(theMedal(tier)),
+    popTheMedal: (tier) => popTheMedal(clock, change, arrival, tier),
+    endTheMedal: () => change({ medal: null }),
     nothingWaits: arrival.nothingWaits,
   };
+}
+
+async function popTheMedal(clock: TurnClock, change: Change, arrival: Arrival, tier: ReachedTier) {
+  arrival.medalShown();
+  const medal = theMedal(tier);
+  change({ medal: { tier, rect: medal?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2, window.innerHeight / 2, 0, 0) } });
+  const emoji = medal?.querySelector(".al-ms-emoji");
+  await Promise.all([clock.animate(medal?.querySelector(".al-ms-medal-art"), medalPopFrames, { duration: turnTiming.medalPopMs, easing: "cubic-bezier(0.3, 0.8, 0.3, 1)" }), clock.animate(emoji, emojiPopFrames, { duration: turnTiming.medalPopMs, easing: "ease-out" })]);
 }
 
 async function payTheXp(clock: TurnClock, change: Change, arrival: Arrival, { spot, size }: Start, xp: number) {
@@ -160,6 +177,10 @@ const slotPopFrames: Keyframe[] = [{ transform: "scale(1)" }, { transform: "scal
 
 const sealPopFrames: Keyframe[] = [{ transform: "scale(0.6) rotate(-14deg)", filter: "saturate(0)" }, { transform: "scale(1.28) rotate(6deg)", filter: "saturate(1.3)", offset: 0.45 }, { transform: "scale(0.96) rotate(-2deg)", offset: 0.75 }, { transform: "none", filter: "none" }];
 
+const medalPopFrames: Keyframe[] = [{ transform: "scale(0.7)", filter: "grayscale(1)" }, { transform: "scale(1.3)", filter: "grayscale(0) saturate(1.3)", offset: 0.45 }, { transform: "scale(0.95)", offset: 0.75 }, { transform: "none", filter: "none" }];
+
+const emojiPopFrames: Keyframe[] = [{ transform: "scale(0)", opacity: 0 }, { transform: "scale(0)", opacity: 0, offset: 0.4 }, { transform: "scale(1.25)", opacity: 1, offset: 0.75 }, { transform: "none", opacity: 1 }];
+
 function middleFor(from: DOMRect) {
   const big = Math.min(1.8, (Math.min(window.innerWidth, window.innerHeight) * 0.3) / Math.max(1, from.width));
   return { spot: { x: window.innerWidth / 2, y: window.innerHeight * 0.42 }, size: from.width * big };
@@ -174,6 +195,10 @@ function theTarget() {
   return slot?.querySelector<HTMLElement>(".al-photo-sticker, .al-hoggies-plate-art") ?? slot;
 }
 
+function theMedal(tier: ReachedTier) {
+  return document.querySelector<HTMLElement>(`main [data-al-medal="${medalKeyOf(tier)}"]`);
+}
+
 function theSealSpot(team: string) {
   return document.querySelector<HTMLElement>(`main [data-al-seal="${team}"]`)?.closest<HTMLElement>(".al-seal-spot") ?? null;
 }
@@ -182,6 +207,10 @@ function inView(element: HTMLElement | null) {
   if (element === null) return true;
   const { top, bottom } = element.getBoundingClientRect();
   return top > window.innerHeight * 0.15 && bottom < window.innerHeight * 0.8;
+}
+
+function isInView(element: HTMLElement | null) {
+  return element !== null && inView(element);
 }
 
 function jumpTo(element: HTMLElement | null) {
