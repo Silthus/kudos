@@ -85,15 +85,15 @@ describe("LP8 LP9 LP17: with hidden-items on, getAlbum answers the item board an
   });
 
   test("a board of 101 waiting items shows the oldest 100 with more", async () => {
-    const crowd = Array.from({ length: 101 }, (_, index) => ({ user: `U_CROWD_${index}`, name: `Crowd Person ${index}` }));
-    for (const person of crowd) slack.withMember(person.user, { real_name: person.name });
-    await thanks(alice, why, ...crowd.slice(0, 50));
-    await thanks(alice, why, ...crowd.slice(50));
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const newer = await moreItemsLikeTheFirstOf(alice, 101 - (await boardOf(asAlice)).items.length);
 
-    const board = await boardOf(await signedIn(alice));
+    const board = await boardOf(asAlice);
 
     expect(board.items).toHaveLength(100);
     expect(board.more).toBe(true);
+    expect(board.items.map(({ item }) => item)).not.toContain(newer.at(-1));
   });
 });
 
@@ -341,6 +341,16 @@ async function itemOf(person: Person): Promise<ItemId> {
       .first(),
   );
   return item!._id;
+}
+
+async function moreItemsLikeTheFirstOf(person: Person, count: number): Promise<ItemId[]> {
+  const first = await itemOf(person);
+  return t.run(async (ctx) => {
+    const { _id, _creationTime, ...earned } = (await ctx.db.get(first))!;
+    const newer: ItemId[] = [];
+    for (let n = 1; n <= count; n += 1) newer.push(await ctx.db.insert("items", { ...earned, key: `${earned.key}:${n}`, earnedAt: earned.earnedAt + minuteMs + n }));
+    return newer;
+  });
 }
 
 async function packOf(giver: Person) {

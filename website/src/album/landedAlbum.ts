@@ -1,12 +1,25 @@
 import type { ReachedTier } from "../../../convex/album/milestones";
-import type { Album, AlbumPerson } from "./answer";
+import type { Album, AlbumEmoji, AlbumPerson } from "./answer";
 import { medalKeyOf } from "./milestones";
 import type { Landing } from "./useItemBoard";
 import { withTheUnlocked } from "./useTeamUnlock";
 
 export function albumAtTheLanding(album: Album, landing: Landing | null): Album {
   if (landing === null) return album;
-  return withTheMedalsStillHeld(albumAtTheStickers(album, landing), landing.unlocked.milestones.slice(landing.medalsShown));
+  const medalsStillHeld = landing.unlocked.milestones.slice(landing.medalsShown);
+  return withTheEmojisStillHeld(withTheMedalsStillHeld(albumAtTheStickers(album, landing), medalsStillHeld), emojisStillHeldAt(landing, medalsStillHeld));
+}
+
+function emojisStillHeldAt(landing: Landing, medalsStillHeld: ReachedTier[]): (emoji: AlbumEmoji) => boolean {
+  const teams = new Set(landing.unlocked.teamStickers.slice(landing.teamsShown).map(({ team }) => `team:${team}`));
+  const medals = new Set(medalsStillHeld.map((tier) => `milestone:${medalKeyOf(tier)}`));
+  const hype = landing.phase === "arriving" ? landing.unlocked.hype?.name : undefined;
+  return ({ id, kind, name }) => teams.has(id) || medals.has(id) || (kind === "hype" && name === hype);
+}
+
+function withTheEmojisStillHeld(album: Album, stillHeld: (emoji: AlbumEmoji) => boolean): Album {
+  if (!album.emojis.some(stillHeld)) return album;
+  return { ...album, emojis: album.emojis.map((emoji) => (stillHeld(emoji) ? { ...emoji, earned: false, earnedAt: null } : emoji)) };
 }
 
 function albumAtTheStickers(album: Album, landing: Landing): Album {

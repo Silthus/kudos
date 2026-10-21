@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { randomEmojisShownTo } from "../album/flag";
-import { placeSlackEmoji, slackEmojiMappingsIn, type EmojiPlace, type MappingTarget, type SlackEmojiMappings } from "../album/emojiMappings";
+import { ownHypePickShownTo, randomEmojisShownTo } from "../album/flag";
+import { pickOwnHypeEmoji, placeSlackEmoji, slackEmojiMappingsIn, type EmojiPlace, type MappingTarget, type OwnHypePick, type SlackEmojiMappings } from "../album/emojiMappings";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { peopleIn, type MemberId } from "../workspace/directory";
 import { recordListedMember, unknownListedMembersIn } from "../workspace/listedMembers";
@@ -48,7 +48,15 @@ export const mapSlackEmoji = memberMutation({
   handler: async (ctx, me, _person, { emoji, to }): Promise<EmojiMappingAnswer> => {
     if (!(await workspaceSettingsShownTo(ctx, me.member))) return { kind: "refused" };
     const place = await placeOf(ctx, me, emoji, to);
-    return place !== null && (await placeSlackEmoji(ctx, me.workspace, emoji, place, await randomEmojisShownTo(ctx, me.member), me.member)) ? { kind: "mapped" } : { kind: "refused" };
+    return place !== null && (await placeSlackEmoji(ctx, me.workspace, emoji, place, await randomEmojisShownTo(ctx, me.member), { member: me.member, as: "maintainer" })) ? { kind: "mapped" } : { kind: "refused" };
+  },
+});
+
+export const pickMyHypeEmoji = memberMutation({
+  args: { emoji: v.string() },
+  handler: async (ctx, me, _person, { emoji }): Promise<OwnHypePick> => {
+    if (!(await ownHypePickShownTo(ctx, me.member))) return { kind: "refused" };
+    return pickOwnHypeEmoji(ctx, me.workspace, me.member, emoji);
   },
 });
 

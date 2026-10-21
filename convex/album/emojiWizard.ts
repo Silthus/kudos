@@ -63,7 +63,7 @@ export async function emojiInPlaceFor(ctx: QueryCtx, member: MemberId): Promise<
 
 export async function mapAppEmojiInPlace(ctx: MutationCtx, workspace: string, maintainer: MemberId, emoji: string, name: string): Promise<boolean> {
   const place = appEmojiPlaceOf(ctx, emoji);
-  return place !== null && (await placeSlackEmoji(ctx, workspace, name, place, false, maintainer));
+  return place !== null && (await placeSlackEmoji(ctx, workspace, name, place, false, { member: maintainer, as: "maintainer" }));
 }
 
 export type AppEmojiRows = { rows: AppEmojiRow[]; more: boolean };

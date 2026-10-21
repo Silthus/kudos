@@ -166,6 +166,12 @@ function sidebarLinkTo(team: string) {
   return within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: new RegExp(team) });
 }
 
+function earnedInTheTopBar() {
+  const [bar] = screen.getAllByRole("banner", { hidden: true });
+  const label = within(bar!).getByRole("button", { name: /^Your emojis, \d+ earned/, hidden: true }).getAttribute("aria-label")!;
+  return Number(/(\d+) earned/.exec(label)![1]);
+}
+
 function theSpotOfCassVey() {
   return screen.getByText("Cass Vey", { selector: ".al-photo-name" }).closest("li");
 }
@@ -325,6 +331,30 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(screen.queryByRole("img", { name: ":cass-vey-hype: hype emoji unlocked" })).toBeNull();
     await at(4.1);
     expect(screen.getByRole("img", { name: ":cass-vey-hype: hype emoji unlocked" })).toBeInTheDocument();
+  });
+
+  it("counts each emoji the turn brings in the top bar only as its beat lands: the hype with the sticker, the team emoji with the seal", async () => {
+    placeTheSealInView();
+    const hype = { name: "cass-vey-hype", picture: "/emoji/hype-cass.png", inSlack: false, from: "Cass Vey" };
+    const earnedNow = { earned: true, earnedAt: unlockedAt, seen: false, inSlack: false, progress: null };
+    const withTheirEmojis = (album: Album, item: string): Album => ({
+      ...withTinOrchardFilled(album, item),
+      emojis: [...album.emojis, { id: "hype:cass-vey", kind: "hype", name: hype.name, from: hype.from, picture: hype.picture, ...earnedNow }, { id: "team:tin-orchard", kind: "team", name: tinOrchard.emoji, from: tinOrchard.name, picture: "/emoji/team-tin-orchard.png", ...earnedNow }],
+    });
+    visit({ reply: async () => aStickerTurnOfCassVey({ teamStickers: [tinOrchard], hype, milestones: [] }), after: withTheirEmojis });
+    const item = await theFirstItem();
+    const before = earnedInTheTopBar();
+    await clickOnFakeTime(item);
+
+    expect(earnedInTheTopBar(), "as the answer comes").toBe(before);
+    await at(0.1);
+    expect(earnedInTheTopBar(), "before the turn lands anywhere").toBe(before);
+    await at(1.8);
+    expect(earnedInTheTopBar(), "while the sticker holds").toBe(before);
+    await at(4.1);
+    expect(earnedInTheTopBar(), "once the sticker lands with its hype").toBe(before + 1);
+    await at(4.8);
+    expect(earnedInTheTopBar(), "once the seal unlocks").toBe(before + 2);
   });
 
   it("keeps New off a sticker's spot on its page until the sticker lands", async () => {
@@ -518,7 +548,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(stage()).toBe("land");
     await at(5.9);
     expect(stage()).toBe("idle");
-    expect(itemBoardCss).toMatch(/@media \(max-width: 40rem\) \{\s*\.ib-slot \{\s*width: calc\(4\.5rem \* var\(--size, 1\)\);\s*height: calc\(4\.5rem \* var\(--size, 1\)\);/);
+    expect(itemBoardCss, "every item on a phone is 72 px, whatever its size on a wide screen").toMatch(/@media \(max-width: 40rem\) \{\s*\.ib-slot \{\s*width: 4\.5rem;\s*height: 4\.5rem;/);
   });
 
   it("keeps the plain path under reduced motion: a click puts the item in place at once and says what it was, with no flight", async () => {
