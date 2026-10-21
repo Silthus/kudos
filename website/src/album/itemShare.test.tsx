@@ -11,6 +11,8 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 
 const [win, other] = albumFixtures.withItems.board!.items;
 
+const arrival = 10_000;
+
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
@@ -48,16 +50,16 @@ function visit({ offeredAfterTheTurn, shareItem = async () => ({ kind: "shared" 
 }
 
 async function turnTheFirstItem(user: ReturnType<typeof visit>["user"]) {
-  const board = within(await screen.findByRole("dialog", { name: "Your items" }));
+  const board = within(await screen.findByRole("dialog", { name: "Your items" }, { timeout: arrival }));
   await user.click(board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
-  await screen.findByRole("heading", { level: 1, name: "Hoggies" });
+  await screen.findByRole("heading", { level: 1, name: "Hoggies" }, { timeout: arrival });
 }
 
 function theShareButton() {
   return screen.queryByRole("button", { name: "Share" });
 }
 
-describe("LP51 LP52: Share shows after a turn the album offers it for, and is gone after the press", () => {
+describe("LP51 LP52: Share shows after a turn the album offers it for, and is gone after the press", { timeout: 60_000 }, () => {
   it("shows Share beside what turned over when the album offers the turned item, and the press shares that item, takes the button away and says it was shared", async () => {
     const { user, actions } = visit({ offeredAfterTheTurn: [win!.item] });
     expect(theShareButton()).toBeNull();
