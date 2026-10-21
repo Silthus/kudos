@@ -173,6 +173,19 @@ describe("The item board", () => {
     expect(within(plate).getByRole("img", { name: ":bram-teller-hype: hype emoji unlocked" }), "the hype emoji beside the landed hoggie").toBeInTheDocument();
   });
 
+  it("takes what turned over away once the member moves to another page", async () => {
+    preferReducedMotion();
+    const { user } = visit(withItems);
+    await user.click((await theBoard()).getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+    await screen.findByRole("heading", { level: 1, name: "Hoggies" });
+    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("70's Dance: Rare hoggie · New");
+
+    await user.click(within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: /Milestones/ }));
+
+    await screen.findByRole("heading", { level: 1, name: "Milestones" });
+    expect(screen.getByRole("status", { name: "Turned over" })).toBeEmptyDOMElement();
+  });
+
   it("lands the hoggie in view even when the Hoggies page was filtered to hoggies that leave it out", async () => {
     const dance = hoggiesFixtures.midway.hoggies.find(({ hoggie }) => hoggie === "70s-dance")!;
     const { user } = visit(withItems, { path: "/book#hoggies" });

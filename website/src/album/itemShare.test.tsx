@@ -91,6 +91,18 @@ describe("LP51 LP52: Share shows after a turn the album offers it for, and is go
     expect(theShareButton()).toBeNull();
   });
 
+  it("keeps the win's Share once the member moves to another page, which takes what turned over away", async () => {
+    const { user, actions } = visit({ offeredAfterTheTurn: [win!.item] });
+    await turnTheFirstItem(user);
+
+    await user.click(within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: /Milestones/ }));
+    await screen.findByRole("heading", { level: 1, name: "Milestones" });
+    expect(screen.getByRole("status", { name: "Turned over" })).toBeEmptyDOMElement();
+    await user.click(theShareButton()!);
+
+    expect(actions.shareItem).toHaveBeenCalledWith(win!.item);
+  });
+
   it("takes the button away once the album stops offering the win, as after a press in another tab", async () => {
     const { user, live } = visit({ offeredAfterTheTurn: [win!.item] });
     await turnTheFirstItem(user);

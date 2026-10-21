@@ -51,7 +51,7 @@ export function shownUnless(turns: ItemTurns, waits: boolean): ShownTurns {
   return { ...turns, open: waiting && turns.shown === "board", offered: waiting && turns.shown !== "board" };
 }
 
-export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel): ItemTurns {
+export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel, page: string): ItemTurns {
   const navigate = useNavigate();
   const [shown, setShown] = useState<Shown>("board");
   const [turnedOver, setTurnedOver] = useState<ReadonlyMap<string, TurnedFaceShown>>(() => new Map());
@@ -67,10 +67,13 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const turnedThisVisit = useMemo(() => [...turnedOver].map(([item, face]) => ({ item, face })), [turnedOver]);
   const remaining = useRef(0);
   remaining.current = board?.items.length ?? 0;
+  const landings = useRef(0);
+  useForgottenOnLeavingThePage(page, landing !== null && flight === null && !turning, setLanding);
   const land = useCallback(
     (item: string, { face, applied, unlocked, page, teaches }: Turned, flown: boolean) => {
       setTurnedOver((turned) => new Map(turned).set(item, face));
-      setLanding((last) => ({ item, face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length }));
+      landings.current += 1;
+      setLanding({ item, face, applied, unlocked, teaches: teaches ?? null, turn: landings.current, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length });
       navigate(hrefOf(placeOf(page)));
     },
     [navigate],
@@ -124,6 +127,15 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   }, []);
   const later = useCallback(() => setShown("later"), []);
   return { board, turnedThisVisit, shown, turning, trouble, landing, closedByLater: shown === "later", flight, boxes, heldLevel, touched, touch, show, later, turn: (item, from) => void turn(item, from) };
+}
+
+function useForgottenOnLeavingThePage(page: string, settled: boolean, setLanding: (landing: null) => void) {
+  const settledOn = useRef<string | null>(null);
+  useEffect(() => {
+    if (!settled) settledOn.current = null;
+    else if (settledOn.current === null) settledOn.current = page;
+    else if (settledOn.current !== page) setLanding(null);
+  }, [page, settled, setLanding]);
 }
 
 async function turnedOf(sent: Promise<TurnReply>, say: (trouble: string) => void): Promise<Turned | null> {

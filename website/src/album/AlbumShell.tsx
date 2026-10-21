@@ -74,7 +74,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     },
     [show],
   );
-  const items = useItemBoard(album.board, turnItem, album.level);
+  const items = useItemBoard(album.board, turnItem, album.level, keyOf(place));
   const flying = items.flight !== null;
   const sinceTheLastVisit = useXpMomentSequence(xpMoment, { itemsWait: (album.board?.items.length ?? 0) > 0, onEnd: endXpMoment });
   const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits;
