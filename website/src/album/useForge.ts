@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { ForgeReply } from "./answer";
 
@@ -8,22 +8,24 @@ export type Forged = { from: string; drop: Drop };
 
 export type SendForge = (hoggie: string, request: string) => Promise<ForgeReply>;
 
-export type ForgeHoggie = (hoggie: string) => Promise<ForgeReply>;
+export type ForgeHoggie = { send: (hoggie: string) => Promise<ForgeReply>; unanswered: (hoggie: string) => boolean };
 
-export type Forging = { sending: string | null; problem: ForgeProblem | null; forged: Forged | null; forge: (hoggie: string) => void; done: () => void };
+export type Forging = { sending: string | null; problem: ForgeProblem | null; forged: Forged | null; forge: (hoggie: string) => void; done: () => void; unanswered: (hoggie: string) => boolean };
 
-export function useRequestKeptUntilAnswered(send: SendForge): ForgeHoggie {
+export function useRequestKeptUntilAnswered(sendForge: SendForge): ForgeHoggie {
   const unanswered = useRef(new Map<string, string>());
-  return useCallback(
+  const send = useCallback(
     async (hoggie: string) => {
       const request = unanswered.current.get(hoggie) ?? crypto.randomUUID();
       unanswered.current.set(hoggie, request);
-      const reply = await send(hoggie, request);
+      const reply = await sendForge(hoggie, request);
       unanswered.current.delete(hoggie);
       return reply;
     },
-    [send],
+    [sendForge],
   );
+  const isUnanswered = useCallback((hoggie: string) => unanswered.current.has(hoggie), []);
+  return useMemo(() => ({ send, unanswered: isUnanswered }), [send, isUnanswered]);
 }
 
 export function useForge(offered: boolean, forgeHoggie: ForgeHoggie): Forging | null {
@@ -37,7 +39,7 @@ export function useForge(offered: boolean, forgeHoggie: ForgeHoggie): Forging | 
       inFlight.current = true;
       setSending(hoggie);
       setProblem(null);
-      forgeHoggie(hoggie)
+      forgeHoggie.send(hoggie)
         .then((reply) => (reply.kind === "forged" ? setForged({ from: hoggie, drop: reply.drop }) : setProblem({ hoggie, reason: "refused" })))
         .catch(() => setProblem({ hoggie, reason: "unreachable" }))
         .finally(() => {
@@ -48,5 +50,5 @@ export function useForge(offered: boolean, forgeHoggie: ForgeHoggie): Forging | 
     [forgeHoggie],
   );
   const done = useCallback(() => setForged(null), []);
-  return offered ? { sending, problem, forged, forge, done } : null;
+  return offered ? { sending, problem, forged, forge, done, unanswered: forgeHoggie.unanswered } : null;
 }

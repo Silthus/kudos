@@ -21,12 +21,18 @@ export function ForgeOfferLine({ hoggie, answer, forging }: { hoggie: AlbumHoggi
   return <p className="al-entry-forge-note">{`${sparesForged + 1} copies forge into ${aRarityWordOf(offer.into)} you don't have yet.`}</p>;
 }
 
-function isPendingFor({ hoggie }: AlbumHoggie, { sending, problem }: Forging) {
-  return sending === hoggie || problem?.hoggie === hoggie;
+function isPendingFor({ hoggie }: AlbumHoggie, forging: Forging) {
+  return forging.sending === hoggie || shownProblemOf(hoggie, forging) !== null;
+}
+
+function shownProblemOf(hoggie: string, { sending, problem, unanswered }: Forging): ForgeProblem | null {
+  if (problem?.hoggie === hoggie) return problem;
+  return sending !== hoggie && unanswered(hoggie) ? { hoggie, reason: "unreachable" } : null;
 }
 
 function ForgeButton({ hoggie, offer, forging }: { hoggie: AlbumHoggie; offer: ForgeOffer; forging: Forging }) {
   const busy = forging.sending !== null;
+  const problem = shownProblemOf(hoggie.hoggie, forging);
   return (
     <div className="al-entry-forge">
       <button type="button" className="al-entry-pet-button" aria-disabled={busy || undefined} onClick={busy ? undefined : () => forging.forge(hoggie.hoggie)}>
@@ -34,7 +40,7 @@ function ForgeButton({ hoggie, offer, forging }: { hoggie: AlbumHoggie; offer: F
       </button>
       <p className="al-entry-forge-note">{`Keeps one ${hoggie.name}. Gives ${aRarityWordOf(offer.into)} you don't have yet.`}</p>
       <p role="status" className="al-entry-pet-problem">
-        {forging.problem?.hoggie === hoggie.hoggie ? forgeProblemWordsOf(forging.problem, hoggie) : ""}
+        {problem === null ? "" : forgeProblemWordsOf(problem, hoggie)}
       </p>
     </div>
   );

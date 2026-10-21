@@ -231,6 +231,32 @@ describe("HF9, HF10: Forge sends forgeHoggie once and plays the forged hoggie's 
     expect(again).toEqual(first);
   });
 
+  it("a forge that landed while its answer was lost still offers Forge after a visit to another page", async () => {
+    let shown = forgeOn({ asleep: 4 });
+    let calls = 0;
+    const lostAfterLanding = async () => {
+      if ((calls += 1) > 1) return forgedCake;
+      shown = forgeOn({ asleep: 1, cake: 1 });
+      throw new Error("offline");
+    };
+    window.history.replaceState(null, "", "/book#hoggies/asleep");
+    const { user, actions, showVisitor } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { hoggies: (asking) => (asking ? shown : undefined), commands: { forgeHoggie: lostAfterLanding } });
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await (await entry()).findByText("Couldn't reach HedgeHug. Try again.");
+    act(() => showVisitor({ ...memberWithTheAlbum }));
+    goTo("/book#leaderboard");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    goTo("/book#hoggies/asleep");
+    const back = await entry();
+    expect(back.getByText("Couldn't reach HedgeHug. Try again.")).toBeInTheDocument();
+    await user.click(back.getByRole("button", { name: "Forge 3 into an Uncommon" }));
+
+    expect(await screen.findByRole("status", { name: "Forged" })).toHaveTextContent("Forged: Cake · Uncommon · New");
+    const [first, again] = actions.forgeHoggie.mock.calls;
+    expect(again).toEqual(first);
+  });
+
   it("each answered forge sends a new request", async () => {
     const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }), async () => ({ kind: "refused" }));
 
