@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useId, useRef, useState, type CSSProperties } from "react";
 import { AnswerPage } from "../pages/AnswerPage";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
@@ -10,7 +10,7 @@ import { HoggieEntry } from "./HoggieEntry";
 import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, numberOf, rarityTintOf, shelvesOf, type Filter, type Shelf } from "./hoggieGuide";
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
-import { useLanding } from "./useItemBoard";
+import { useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
 import { usePetPick } from "./usePetPick";
 import { useRarityStrip } from "./useRarityStrip";
 import "./hoggies.css";
@@ -271,13 +271,5 @@ function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string
 
 function useLandedTurnOf(hoggie: AlbumHoggie) {
   const landing = useLanding();
-  return landing?.drop.hoggie === hoggie.hoggie ? landing.turn : null;
-}
-
-function useBroughtIntoViewOnLanding(plate: RefObject<HTMLElement | null>, landedTurn: number | null) {
-  useEffect(() => {
-    if (landedTurn === null) return;
-    const frame = requestAnimationFrame(() => plate.current?.scrollIntoView({ block: "center", behavior: "instant" }));
-    return () => cancelAnimationFrame(frame);
-  }, [plate, landedTurn]);
+  return landing?.face.kind === "hoggie" && landing.face.drop.hoggie === hoggie.hoggie ? landing.turn : null;
 }

@@ -97,9 +97,17 @@ async function packFor(ctx: MutationCtx, { workspace, giver, message, day, at }:
   if (await packEarnedIn(ctx, giver, recipient, week)) return "nextWeek";
   const outcome = await stickerOutcomeOf(ctx, giver, recipient);
   const pack = await ctx.db.insert("thoughtfulPacks", { workspace, giver, recipient, week, message, holdsSticker: outcome === "new", at });
-  await earnItem(ctx, { workspace, member: giver, source: "hoggie", key: crateKeyOf(pack), reason: { kind: "thanks", person: recipient, message }, earnedAt: at });
+  await earnThanksItems(ctx, { workspace, giver, recipient, message, at }, pack, outcome === "new");
   await nameHypeEmojiOf(ctx, workspace, recipient);
   return outcome;
+}
+
+type Thanks = { workspace: string; giver: MemberId; recipient: MemberId; message: MessageRef; at: number };
+
+async function earnThanksItems(ctx: MutationCtx, { workspace, giver, recipient, message, at }: Thanks, pack: PackId, holdsSticker: boolean) {
+  const earning = { workspace, member: giver, reason: { kind: "thanks" as const, person: recipient, message }, earnedAt: at };
+  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack) });
+  if (holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack });
 }
 
 export function crateKeyOf(pack: PackId): CrateKey {

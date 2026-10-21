@@ -19,7 +19,7 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
-import { useTeamUnlock } from "./useTeamUnlock";
+import { useTeamUnlock, withTheUnlocked } from "./useTeamUnlock";
 import "./album.css";
 
 export type AlbumShellProps = {
@@ -73,6 +73,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     finish();
   };
   const turns = useItemBoard(album.board, turnItem, anotherMoment || playing);
+  const landed = useMemo(() => withTheUnlocked(album, turns.landing?.unlocked.teamStickers ?? []), [album, turns.landing]);
   const awaitingAMoment = playing || unlocking.sending !== null || turns.open;
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
@@ -95,7 +96,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
             <LandingProvider value={turns.landing}>
-              <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+              <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
             </LandingProvider>
           </ErrorBoundary>
         </main>

@@ -2,6 +2,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import { putDropIn } from "../hoggies/drops";
+import { markTurned } from "../items/ledger";
 import type { MemberId } from "../workspace/directory";
 import { recordMilestonesOf } from "./milestones";
 import { shownTrayItem, type TrayItem } from "./opening";
@@ -59,9 +60,15 @@ function byTeamPage(stickers: StoredSticker[], pages: TeamPage[]): StoredSticker
 async function place(ctx: MutationCtx, workspace: string, item: Stored, at: number) {
   await ctx.db.patch(item._id, { putInAt: at });
   if (item.kind === "hoggie") return putHoggieIn(ctx, item, at);
-  if (!(await recordPackSticker(ctx, item.member, item.person, item.pack, at))) return;
-  await tallyNewFace(ctx, item.member, item.person, at);
-  await publish(ctx, { type: "stickerPutIn", workspace, member: item.member, person: item.person, at });
+  await markTurned(ctx, item.member, "sticker", item.pack, at);
+  await putStickerIn(ctx, { workspace, member: item.member }, item.person, item.pack, at);
+}
+
+export async function putStickerIn(ctx: MutationCtx, { workspace, member }: PageOwner, person: MemberId, pack: Id<"thoughtfulPacks">, at: number): Promise<boolean> {
+  if (!(await recordPackSticker(ctx, member, person, pack, at))) return false;
+  await tallyNewFace(ctx, member, person, at);
+  await publish(ctx, { type: "stickerPutIn", workspace, member, person, at });
+  return true;
 }
 
 async function putHoggieIn(ctx: MutationCtx, { member, pack, hoggie, rarity }: Extract<Stored, { kind: "hoggie" }>, at: number) {

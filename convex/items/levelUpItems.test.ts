@@ -103,7 +103,7 @@ describe("LP11 LP20: a level item is drawn at its turn, pays no XP, and the thir
     await settle(t);
 
     const drawn = await Promise.all(slots.map(({ slot, floor }) => drawnFor(member, `level:3:${slot}`, floor)));
-    expect(turned.map((answer) => answer.kind === "turned" && { hoggie: answer.face.drop.hoggie, rarity: answer.face.drop.rarity, applied: answer.applied })).toEqual(drawn.map(({ hoggie, rarity }) => ({ hoggie, rarity, applied: null })));
+    expect(turned.map((answer) => answer.kind === "turned" && { hoggie: hoggieDrawnBy(answer)?.hoggie, rarity: hoggieDrawnBy(answer)?.rarity, applied: answer.applied })).toEqual(drawn.map(({ hoggie, rarity }) => ({ hoggie, rarity, applied: null })));
     expect((await albumOf(asAlice)).level, "the member's level and XP").toEqual(before);
     expect((await boardOf(asAlice)).items).toEqual([]);
   });
@@ -117,10 +117,14 @@ describe("LP11 LP20: a level item is drawn at its turn, pays no XP, and the thir
     expect(thirds).toHaveLength(20);
     for (const { _id, key } of thirds) {
       const answer = await turn(asAlice, _id);
-      expect(answer.kind === "turned" && rareOrRarer.includes(answer.face.drop.rarity), `${key}'s turned rarity`).toBe(true);
+      expect(rareOrRarer.includes(hoggieDrawnBy(answer)?.rarity ?? "common"), `${key}'s turned rarity`).toBe(true);
     }
   });
 });
+
+function hoggieDrawnBy(answer: Awaited<ReturnType<typeof turn>>) {
+  return answer.kind === "turned" && answer.face.kind === "hoggie" ? answer.face.drop : null;
+}
 
 async function kudos(giver: Person, recipient: Person, count: number) {
   messages += 1;

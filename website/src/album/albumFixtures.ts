@@ -214,6 +214,7 @@ export function fixtureTurnOf(item: string): TurnAnswer {
     face: { kind: "hoggie", drop: turnedDrops[index % turnedDrops.length]! },
     applied: { xp: 15, coins: 0, from: { xp, level, coins: 0, skillPoints: 0 }, to: { xp: xp + 15, level, coins: 0, skillPoints: 0 } },
     page: { kind: "hoggies" },
+    unlocked: { teamStickers: [], hype: null, milestones: [] },
     again: false,
   };
 }

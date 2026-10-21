@@ -3,14 +3,29 @@ import { teamEmojiNameOf } from "./emojiNames";
 import { recordMilestonesOf } from "./milestones";
 import type { Instants } from "./packs";
 import type { TeamSticker } from "./records";
-import { teamPagesOf, type PageOwner } from "./teamPages";
+import { markEmojiSeen } from "./earnedEmojis";
+import { teamPagesOf, type PageOwner, type TeamPage } from "./teamPages";
 
 export async function unlockTeamStickerOf(ctx: MutationCtx, owner: PageOwner, team: string, at: number): Promise<TeamSticker | null> {
   const page = (await teamPagesOf(ctx, owner)).find((page) => page.team === team);
   if (page?.state !== "ready") return null;
-  const sticker = { team, name: page.name, art: page.art, emoji: await teamEmojiNameOf(ctx, owner.workspace, team), at };
-  await ctx.db.insert("teamStickers", { member: owner.member, workspace: owner.workspace, ...sticker });
+  const sticker = await insertTeamSticker(ctx, owner, page, at);
   await recordMilestonesOf(ctx, owner, at);
+  return sticker;
+}
+
+export async function unlockReadyTeamsAmong(ctx: MutationCtx, owner: PageOwner, pages: TeamPage[], at: number): Promise<TeamSticker[]> {
+  const unlocked: TeamSticker[] = [];
+  for (const page of pages.filter(({ state }) => state === "ready")) {
+    unlocked.push(await insertTeamSticker(ctx, owner, page, at));
+    await markEmojiSeen(ctx, owner.member, `team:${page.team}`, at);
+  }
+  return unlocked;
+}
+
+async function insertTeamSticker(ctx: MutationCtx, owner: PageOwner, { team, name, art }: TeamPage, at: number): Promise<TeamSticker> {
+  const sticker = { team, name, art, emoji: await teamEmojiNameOf(ctx, owner.workspace, team), at };
+  await ctx.db.insert("teamStickers", { member: owner.member, workspace: owner.workspace, ...sticker });
   return sticker;
 }
 

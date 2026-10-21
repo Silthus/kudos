@@ -317,6 +317,7 @@ async function walkThroughTheItemBoard() {
 
   expect(waiting.length, "items waiting on the board").toBeGreaterThan(0);
   expect(eventsNamed("item turned")).toHaveLength(waiting.length);
+  expect(new Set(eventsNamed("item turned").map(({ properties }) => properties.source))).toEqual(new Set(["hoggie", "sticker"]));
   return { t };
 }
 

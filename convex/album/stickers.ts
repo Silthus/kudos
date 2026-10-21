@@ -20,6 +20,14 @@ export async function inTheAlbumOf(ctx: QueryCtx, member: MemberId, person: Memb
   return sticker !== null;
 }
 
+export async function isPutInFrom(ctx: QueryCtx, member: MemberId, person: MemberId, pack: Id<"thoughtfulPacks">): Promise<boolean> {
+  const sticker = await ctx.db
+    .query("albumStickers")
+    .withIndex("by_member_person", (q) => q.eq("member", member).eq("person", person))
+    .unique();
+  return sticker?.from === "pack" && sticker.pack === pack;
+}
+
 export async function recordHistorySticker(ctx: MutationCtx, member: MemberId, person: MemberId, at: number) {
   if (member === person || (await inTheAlbumOf(ctx, member, person))) return;
   await ctx.db.insert("albumStickers", { member, person, from: "history", at });

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
+import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type HypesHeld, type SharedEmoji } from "../album/earnedEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
 import { albumShownTo, emojiWizardShownTo } from "../album/flag";
@@ -20,7 +20,7 @@ import { makePetOf, petOf, petsIn, type Pet } from "../hoggies/pet";
 import { hiddenItemsShownTo } from "../items/flag";
 import { boardOf, type FaceDown } from "../items/ledger";
 import type { ItemReason } from "../items/records";
-import { turn, type Turned } from "../items/turn";
+import { turn, type Turned, type TurnedFace } from "../items/turn";
 import { lessonAfter, type LoopLesson, type Taught } from "../items/welcome";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
@@ -79,7 +79,9 @@ export type ItemBoard = { items: BoardItem[]; more: boolean };
 
 export type { LoopLesson };
 
-export type TurnAnswer = ({ kind: "turned" } & Turned & Taught) | { kind: "refused" };
+export type TurnedFaceShown = Exclude<TurnedFace, { kind: "sticker" }> | (Extract<TurnedFace, { kind: "sticker" }> & { thanked: Thanked });
+
+export type TurnAnswer = ({ kind: "turned" } & Omit<Turned, "face"> & { face: TurnedFaceShown } & Taught) | { kind: "refused" };
 
 export type OpenAnswer = { kind: "opened"; items: AlbumTrayItem[]; applied: Opening["applied"] } | { kind: "refused" };
 
@@ -123,6 +125,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
   const thanked = thankedPeopleOf(ctx, me.workspace);
   const itemsShown = await hiddenItemsShownTo(ctx, me.member);
+  const waiting = itemsShown ? await waitingItemsOf(ctx, me) : null;
   const { packs, more: morePacks } = itemsShown ? noPacks : await packsToOpenOf(ctx, me, thanked);
   const { people: held, morePeople } = await peopleHeldBy(ctx, me);
   const { tray, more: moreTray } = itemsShown ? noTray : await trayShownTo(ctx, me, thanked);
@@ -130,20 +133,28 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
   const level = await levelOf(ctx, me.member);
   const milestones = await milestonesOf(ctx, me, pagesAndPeople.pages);
-  const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level });
+  const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level, ...(waiting !== null && { hypesHeld: hypesHeldFor(waiting) }) });
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(itemsShown && { board: await boardShownTo(ctx, me, thanked) }), ...(await petsShownTo(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)) };
 });
 
 const noPacks = { packs: [], more: false };
 
 const noTray = { tray: [], more: false };
 
-async function boardShownTo(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedPeople): Promise<ItemBoard> {
-  if (!(await noLaunchWaitsFor(ctx, me))) return { items: [], more: false };
-  const { items, more } = await boardOf(ctx, me.member);
+type Waiting = { items: FaceDown[]; more: boolean };
+
+async function waitingItemsOf(ctx: QueryCtx, me: VerifiedMember): Promise<Waiting> {
+  return (await noLaunchWaitsFor(ctx, me)) ? boardOf(ctx, me.member) : { items: [], more: false };
+}
+
+function hypesHeldFor({ items, more }: Waiting): HypesHeld {
+  return { people: new Set(items.flatMap(({ reason }) => (reason.kind === "thanks" ? [reason.person] : []))), every: more };
+}
+
+async function boardShownOf({ items, more }: Waiting, thanked: ThankedPeople): Promise<ItemBoard> {
   const shown: BoardItem[] = [];
   for (const { reason, ...item } of items) shown.push({ ...item, reason: await boardReasonOf(reason, thanked) });
   return { items: shown, more };
@@ -226,9 +237,15 @@ export const turnItem = memberMutation({
   args: { item: v.id("items") },
   handler: async (ctx, me, _person, { item }): Promise<TurnAnswer> => {
     const turned = (await turnsItems(ctx, me)) ? await turn(ctx, me, item, Date.now()) : null;
-    return turned === null ? { kind: "refused" } : { kind: "turned", ...turned, applied: await appliedShownTo(ctx, me, turned.applied), ...(await lessonAfter(ctx, me, item, turned)) };
+    if (turned === null) return { kind: "refused" };
+    const face = await turnedFaceShownOf(turned.face, thankedPeopleOf(ctx, me.workspace));
+    return { kind: "turned", ...turned, face, applied: await appliedShownTo(ctx, me, turned.applied), ...(await lessonAfter(ctx, me, item, turned)) };
   },
 });
+
+async function turnedFaceShownOf(face: TurnedFace, thanked: ThankedPeople): Promise<TurnedFaceShown> {
+  return face.kind === "sticker" ? { ...face, thanked: await thanked(face.person) } : face;
+}
 
 async function turnsItems(ctx: QueryCtx, me: VerifiedMember) {
   return (await albumShownTo(ctx, me.member)) && (await hiddenItemsShownTo(ctx, me.member)) && (await hoggiesShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));

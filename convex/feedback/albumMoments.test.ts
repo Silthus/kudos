@@ -360,12 +360,9 @@ async function turnsEverything(giver: Person, ...draws: string[]) {
   const { asSignedIn } = await aSignedInSession(t, { user: giver.user, name: giver.name });
   const album = await asSignedIn.query(api.website.album.getAlbum, {});
   const board = (album.kind === "album" ? (album.board?.items ?? []) : []).filter(({ reason }) => reason.kind === "thanks");
-  expect(board, `${giver.name}'s waiting thanks items`).toHaveLength(draws.length);
-  for (const [index, { item }] of board.entries()) {
-    theDraw.planned = [draws[index]!];
-    expect((await asSignedIn.mutation(api.website.album.turnItem, { item })).kind, `${giver.name} turns an item`).toBe("turned");
-  }
-  theDraw.planned = [];
+  theDraw.planned = [...draws];
+  for (const { item } of board) expect((await asSignedIn.mutation(api.website.album.turnItem, { item })).kind, `${giver.name} turns an item`).toBe("turned");
+  expect(theDraw.planned, `${giver.name}'s hoggies drawn`).toEqual([]);
   await settle(t);
 }
 
