@@ -583,6 +583,20 @@ describe("LP57: Make my pet on a hoggie the member found makes it their one pet"
     expect(await shown.findByText("Your pet")).toBeInTheDocument();
   });
 
+  it("stepping on after a pick keeps focus in the entry, so Escape still closes it", async () => {
+    const { user } = visitWithPets("/book#hoggies/asleep", null);
+
+    const shown = await entry();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+    expect(await shown.findByText("Your pet")).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    await waitFor(() => expect(screen.getByRole("dialog")).toHaveAccessibleName("Not found yet"));
+
+    expect(shown.getByRole("button", { name: "Close" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
   it("once the read confirms a pick, a later pick from elsewhere shows as the pet here too", async () => {
     const live = { answer: { ...hoggiesFixtures.midway, pet: "beaker" }, listeners: new Set<() => void>() };
     const read: HoggiesRead = (asking) => {

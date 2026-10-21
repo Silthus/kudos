@@ -138,6 +138,9 @@ function useFocusWhileOpen(hoggie: AlbumHoggie) {
     closeButton.current?.focus({ preventScroll: true });
     return () => (plateOf(shown.current) ?? stillShown(opener))?.focus({ preventScroll: true });
   }, []);
+  useEffect(() => {
+    if (focusWasDropped()) closeButton.current?.focus({ preventScroll: true });
+  }, [hoggie.hoggie]);
   return closeButton;
 }
 
