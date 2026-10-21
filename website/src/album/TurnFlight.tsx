@@ -19,7 +19,7 @@ export function TurnFlight({ flight, boxes }: { flight: Flight; boxes: FlightBox
         {flight.flourish !== null && <GoldFlourish rect={flight.flourish} />}
         {flight.stage !== "back" && <p className="ib-skip">Click to skip</p>}
       </div>
-      <p role="status" aria-label="Turning over" className="al-sr">
+      <p role="status" aria-label="Turning over" className="al-sr ph-no-capture">
         {flight.caption && face !== null ? `${nameOf(face)}: ${whatOf(face)}` : ""}
       </p>
     </>
