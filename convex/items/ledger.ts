@@ -56,6 +56,11 @@ export async function newestTurnOf(ctx: QueryCtx, member: MemberId): Promise<num
   return newest?.turnedAt ?? null;
 }
 
+export async function isWaiting(ctx: QueryCtx, member: MemberId, source: ItemSource, key: string): Promise<boolean> {
+  const item = await itemOf(ctx, member, source, key);
+  return item !== null && item.turnedAt === undefined;
+}
+
 export async function isTurned(ctx: QueryCtx, member: MemberId, source: ItemSource, key: string): Promise<boolean> {
   return (await itemOf(ctx, member, source, key))?.turnedAt !== undefined;
 }

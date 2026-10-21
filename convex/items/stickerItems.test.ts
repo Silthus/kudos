@@ -168,6 +168,24 @@ describe("LP14: the first item turned from thanking a person unlocks their hype 
     expect(await kudosReceived(t, carol.user), "a kudos with the unlocked hype emoji").toBe(1);
   });
 
+  test("LP6: a hype emoji earned through the old put-in stays earned once hidden-items is on, while a later thanks to the same person waits face down", async () => {
+    await switchWebsite(t, postHog, true, ...albumOpen);
+    await thanks(alice, bob);
+    const asAlice = await signedIn(alice);
+    for (const { pack } of (await albumOf(asAlice)).packs) await asAlice.mutation(api.website.album.openThoughtfulPack, { pack });
+    await asAlice.mutation(api.website.album.putAllIn, {});
+    vi.setSystemTime(Date.now() + weekMs);
+    await switchWebsite(t, postHog, true, ...itemsOn);
+    await thanks(alice, bob);
+    const asAliceAWeekOn = await signedIn(alice);
+    expect((await thanksItemsOf(asAliceAWeekOn)).map(({ reason }) => reason.kind === "thanks" && reason.thanked.name), "the later thanks waits").toEqual([bob.name]);
+
+    await thanksWith(alice, "bob-okonkwo-hype", carol);
+
+    expect((await personPageOf(asAliceAWeekOn, bob)).hype, "the person page").toMatchObject({ earned: true });
+    expect(await kudosReceived(t, carol.user), "a kudos with the hype emoji earned before").toBe(1);
+  });
+
   test("with hidden-items off the hype emoji is earned and unseen at the thanks, on the person's page and in Slack, as today", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen);
     await thanks(alice, bob);

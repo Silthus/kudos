@@ -1,7 +1,8 @@
+import { crateKeyOf, firstPackGrantedFor } from "../album/packs";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { hiddenItemsShownTo } from "./flag";
-import { boardOf, type FaceDown } from "./ledger";
+import { isWaiting, type FaceDown } from "./ledger";
 
 export type HypesHeld = { people: ReadonlySet<MemberId>; every: boolean };
 
@@ -14,5 +15,11 @@ export function holdsTheHypeOf(held: HypesHeld, person: MemberId): boolean {
 }
 
 export async function hypeWaitsForItsItem(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
-  return (await hiddenItemsShownTo(ctx, member)) && holdsTheHypeOf(hypesHeldFor(await boardOf(ctx, member)), person);
+  return (await hiddenItemsShownTo(ctx, member)) && (await firstPackWaitsFaceDown(ctx, member, person));
+}
+
+async function firstPackWaitsFaceDown(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
+  const first = await firstPackGrantedFor(ctx, member, person);
+  if (first === null) return false;
+  return (await isWaiting(ctx, member, "sticker", first._id)) || (await isWaiting(ctx, member, "hoggie", crateKeyOf(first._id)));
 }
