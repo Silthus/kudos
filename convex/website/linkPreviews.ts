@@ -3,7 +3,6 @@ import { internalQuery, type QueryCtx } from "../_generated/server";
 import { memberDecisionWithoutWriting, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import { personTeamsOf } from "../album/personPage";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
-import { crestArtOf } from "../companyProfiles/teams";
 import { profileCardOf, type Medal } from "../profileCard/profileCard";
 import { isAPersonOf, lookup, nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { siteOriginFor } from "./link";
@@ -75,8 +74,7 @@ async function teamPreviewOf(ctx: QueryCtx, origin: string, url: string, key: st
     .withIndex("by_team", (q) => q.eq("team", key))
     .first();
   if (team === null) return null;
-  const crest = crestArtOf(team.team, team.crestImage);
-  return { kind: "team", url, page: pageUrlOf(origin, "teams", team.team), name: team.name, picture: crest?.kind === "image" ? crest.url : null, people: team.people.length };
+  return { kind: "team", url, page: pageUrlOf(origin, "teams", team.team), name: team.name, picture: team.crestImage ?? null, people: team.people.length };
 }
 
 function pageUrlOf(origin: string, section: "people" | "teams", key: string) {

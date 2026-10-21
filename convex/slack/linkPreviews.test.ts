@@ -63,7 +63,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
             blocks: [
               {
                 type: "section",
-                text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks` },
+                text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
                 accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" },
               },
               { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · person page" }] },
@@ -83,7 +83,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
 
     expect(cardOf(url)).toEqual({
       type: "section",
-      text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\nLevel 1` },
+      text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\nLevel 1`, verbatim: true },
       accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" },
     });
   });
@@ -99,7 +99,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
         blocks: [
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people` },
+            text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people`, verbatim: true },
             accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
           },
           { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · team page" }] },
@@ -108,24 +108,34 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
     });
   });
 
-  test("a team without a crest picture and a name Slack would read as markup unfold as plain text", async () => {
+  test("a team without a crest picture unfolds without one, and a name with a mention or Slack's brackets is escaped and read verbatim, so it neither links nor notifies", async () => {
     const t = await workspace();
-    await t.run((ctx) => ctx.db.insert("companyTeams", { team: "angle-brackets", name: "<Ops & *Co*>", leads: [], people: [9], asOf: 0 }));
+    await t.run((ctx) => ctx.db.insert("companyTeams", { team: "angle-brackets", name: "<!here> Ops & @channel", leads: [], people: [9], asOf: 0 }));
     const url = `${site}/book#teams/angle-brackets`;
 
     await shared(t, [url]);
 
-    expect(cardOf(url)).toEqual({ type: "section", text: { type: "mrkdwn", text: `*<${url}|&lt;Ops &amp; *Co*&gt;>*\n1 person` } });
+    expect(cardOf(url)).toEqual({ type: "section", text: { type: "mrkdwn", text: `*<${url}|&lt;!here&gt; Ops &amp; @channel>*\n1 person`, verbatim: true } });
   });
 
-  test("several links in one message unfold together in one call, and a link the composer is still drafting unfolds by its unfurl ID", async () => {
+  test("a team with the catalogue's own crest still shows its posthog.com crest picture", async () => {
+    const t = await workspace();
+    await t.run((ctx) => ctx.db.insert("companyTeams", { team: "people-ops", name: "People & Ops", crestImage: "https://res.cloudinary.com/posthog/people-ops.png", leads: [], people: [4, 5], asOf: 0 }));
+    const url = `${site}/book#teams/people-ops`;
+
+    await shared(t, [url]);
+
+    expect(cardOf(url)).toMatchObject({ accessory: { type: "image", image_url: "https://res.cloudinary.com/posthog/people-ops.png", alt_text: "People & Ops" } });
+  });
+
+  test("several links in one message unfold together in one call", async () => {
     const t = await workspace();
     const juno = `${site}/book#people/${await memberOf(t, "U_JUNO")}`;
     const team = `${site}/book#teams/lanterns`;
 
-    await shared(t, [juno, team], { source: "composer", unfurlId: "C123456.7890.U_BRAM" });
+    await shared(t, [juno, team]);
 
-    expect(slack.callsTo("chat.unfurl")).toEqual([{ unfurl_id: "C123456.7890.U_BRAM", source: "composer", unfurls: { [juno]: expect.anything(), [team]: expect.anything() } }]);
+    expect(slack.callsTo("chat.unfurl")).toEqual([{ channel: "C_GENERAL", ts: "1760349800.000100", unfurls: { [juno]: expect.anything(), [team]: expect.anything() } }]);
   });
 
   test("Slack holding the unfold back for a while gets it again once the wait is over", async () => {
@@ -184,6 +194,22 @@ describe("LP80: only a HedgeHug person or team page unfolds", { timeout: 30_000 
     await shared(t, [bot, outsider, team]);
 
     expect(Object.keys(slack.callsTo("chat.unfurl")[0]!.unfurls as object)).toEqual([team]);
+  });
+
+  test("a link still in the composer gets no card, since Slack doesn't say yet where it will be posted", async () => {
+    const t = await workspace();
+
+    await shared(t, [`${site}/book#teams/lanterns`], { source: "composer", unfurlId: "C123456.7890.U_BRAM" });
+
+    expect(slack.callsTo("chat.unfurl")).toEqual([]);
+  });
+
+  test("a link posted in a channel shared with another organization gets no card", async () => {
+    const t = await workspace();
+
+    await shared(t, [`${site}/book#people/${await memberOf(t, "U_JUNO")}`, `${site}/book#teams/lanterns`], { externallyShared: true });
+
+    expect(slack.callsTo("chat.unfurl")).toEqual([]);
   });
 
   test("a link shared in another workspace gets no card", async () => {

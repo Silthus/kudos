@@ -1,4 +1,4 @@
-import { v, type Infer } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { medalText } from "../feedback/profileCard";
@@ -8,26 +8,24 @@ import { escaped, mrkdwn } from "./blocks";
 import { textOf } from "./directory";
 import { callSlack, nextRateLimitedAttempt, retryDelayOf, slackErrorCodeOf } from "./webApi";
 
-type LinkShared = { type: "link_shared"; channel?: unknown; user?: unknown; message_ts?: unknown; unfurl_id?: unknown; source?: unknown; links?: unknown };
+type LinkShared = { type: "link_shared"; channel?: unknown; user?: unknown; message_ts?: unknown; source?: unknown; links?: unknown };
 
-export const unfoldTargetValidator = v.union(v.object({ kind: v.literal("message"), channel: v.string(), ts: v.string() }), v.object({ kind: v.literal("composer"), unfurlId: v.string() }));
+type LinkSharedCallback = { team_id?: unknown; event_id?: unknown; is_ext_shared_channel?: unknown; event: LinkShared };
 
-type UnfoldTarget = Infer<typeof unfoldTargetValidator>;
-
-export const linkSharingValidator = { workspace: v.string(), sharer: v.string(), links: v.array(v.string()), target: unfoldTargetValidator };
+export const linkSharingValidator = { workspace: v.string(), sharer: v.string(), links: v.array(v.string()), channel: v.string(), ts: v.string() };
 
 const unfoldArgs = { ...linkSharingValidator, attempt: v.optional(v.number()) };
 
 export const unfoldLinks = observedAction({
   args: unfoldArgs,
-  handler: async (ctx, { workspace, sharer, links, target, attempt = 1 }) => {
+  handler: async (ctx, { workspace, sharer, links, channel, ts, attempt = 1 }) => {
     const previews = await ctx.runQuery(internal.website.linkPreviews.linkPreviewsOf, { workspace, sharer, links });
     if (previews.length === 0) return;
-    const answer = await callSlack("chat.unfurl", { ...addressOf(target), unfurls: Object.fromEntries(previews.map((preview) => [preview.url, { blocks: cardBlocksOf(preview) }])) });
+    const answer = await callSlack("chat.unfurl", { channel, ts, unfurls: Object.fromEntries(previews.map((preview) => [preview.url, { blocks: cardBlocksOf(preview) }])) });
     if (answer.ok) return;
     if (answer.error === "ratelimited") {
       const next = nextRateLimitedAttempt(attempt, "chat.unfurl");
-      await ctx.scheduler.runAfter(retryDelayOf(answer), internal.slack.linkPreviews.unfoldLinks, { workspace, sharer, links, target, attempt: next });
+      await ctx.scheduler.runAfter(retryDelayOf(answer), internal.slack.linkPreviews.unfoldLinks, { workspace, sharer, links, channel, ts, attempt: next });
       return;
     }
     console.warn(`link previews: chat.unfurl failed: ${slackErrorCodeOf(answer.error)}`);
@@ -38,21 +36,12 @@ export function isLinkShared(event: { type: string }): event is LinkShared {
   return event.type === "link_shared";
 }
 
-export function linkSharingOf(workspace: unknown, eventId: unknown, event: LinkShared) {
-  const [team, receipt, sharer] = [textOf(workspace), textOf(eventId), textOf(event.user)];
-  const target = targetOf(event);
+export function linkSharingOf({ team_id, event_id, is_ext_shared_channel, event }: LinkSharedCallback) {
+  if (event.source === "composer" || is_ext_shared_channel === true) return null;
+  const [workspace, eventId, sharer, channel, ts] = [textOf(team_id), textOf(event_id), textOf(event.user), textOf(event.channel), textOf(event.message_ts)];
   const links = linksOf(event.links);
-  if (team === undefined || receipt === undefined || sharer === undefined || target === null || links.length === 0) return null;
-  return { workspace: team, eventId: receipt, sharer, links, target };
-}
-
-function targetOf({ source, channel, message_ts, unfurl_id }: LinkShared): UnfoldTarget | null {
-  if (source === "composer") {
-    const unfurlId = textOf(unfurl_id);
-    return unfurlId === undefined ? null : { kind: "composer", unfurlId };
-  }
-  const [conversation, ts] = [textOf(channel), textOf(message_ts)];
-  return conversation === undefined || ts === undefined ? null : { kind: "message", channel: conversation, ts };
+  if (workspace === undefined || eventId === undefined || sharer === undefined || channel === undefined || ts === undefined || links.length === 0) return null;
+  return { workspace, eventId, sharer, links, channel, ts };
 }
 
 function linksOf(links: unknown): string[] {
@@ -63,15 +52,11 @@ function linksOf(links: unknown): string[] {
   });
 }
 
-function addressOf(target: UnfoldTarget) {
-  return target.kind === "composer" ? { unfurl_id: target.unfurlId, source: "composer" } : { channel: target.channel, ts: target.ts };
-}
-
 function cardBlocksOf(preview: LinkPreview) {
   const lines = [`*<${preview.page}|${escaped(preview.name)}>*`, ...(preview.kind === "person" ? personLinesOf(preview) : [peopleCountOf(preview.people)])];
   const picture = preview.picture === null ? {} : { accessory: { type: "image", image_url: preview.picture, alt_text: preview.name } };
   return [
-    { type: "section", text: mrkdwn(lines.join("\n")), ...picture },
+    { type: "section", text: { ...mrkdwn(lines.join("\n")), verbatim: true }, ...picture },
     { type: "context", elements: [mrkdwn(`${productName} album · ${preview.kind} page`)] },
   ];
 }

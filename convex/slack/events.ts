@@ -41,7 +41,7 @@ async function receiveSlackEvent(ctx: ActionCtx, request: Request) {
     const channelCreated = channelCreationOf(envelope.team_id, envelope.event_id, envelope.event);
     if (channelCreated !== null) await ctx.runMutation(internal.slack.receipts.receiveChannelCreated, channelCreated);
   } else if (envelope.type === "event_callback" && isLinkShared(envelope.event)) {
-    const linkSharing = linkSharingOf(envelope.team_id, envelope.event_id, envelope.event);
+    const linkSharing = linkSharingOf({ ...envelope, event: envelope.event });
     if (linkSharing !== null) await ctx.runMutation(internal.slack.receipts.receiveLinkShared, linkSharing);
   } else if (envelope.type === "event_callback" && isReactionAdded(envelope)) {
     const reaction = hugReactionOf(envelope);
