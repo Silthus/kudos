@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
 import type { HypeEmoji } from "../../../convex/album/earnedEmojis";
+import type { ReachedTier } from "../../../convex/album/milestones";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
-import type { ShareOffers } from "../../../convex/website/itemShare";
 import type { ShareReply } from "../shell";
+import { LadderEmblem } from "../book/LadderEmblem";
 import { NamedEmoji } from "../Emoji";
+import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
 import { ShareWin } from "./ShareWin";
+import { emblemOf, medalEmojiOf, medalKeyOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
 import type { Flight } from "./useTurnFlight";
@@ -65,9 +68,9 @@ export function ItemBoard({ board, turning, trouble, flight, onTurn, onLater }: 
   );
 }
 
-type ItemsWaitProps = { turns: ShownTurns; shares: ShareOffers["shares"]; shareItem: (item: string) => Promise<ShareReply> };
+type ItemsWaitProps = { turns: ShownTurns; album: Album; shareItem: (item: string) => Promise<ShareReply> };
 
-export function ItemsWait({ turns, shares, shareItem }: ItemsWaitProps) {
+export function ItemsWait({ turns, album, shareItem }: ItemsWaitProps) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
   const said = landing !== null && !open && flight === null;
   return (
@@ -75,8 +78,9 @@ export function ItemsWait({ turns, shares, shareItem }: ItemsWaitProps) {
       <p role="status" aria-label="Turned over" className="ib-turned">
         {said && <LandedWords landing={landing} />}
       </p>
+      {said && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
       {said && landing.teaches && <LoopLine lesson={landing.teaches} />}
-      {said && <ShareWin key={landing.item} item={landing.item} offered={shares} shareItem={shareItem} />}
+      {said && <ShareWin key={landing.item} item={landing.item} offered={album.shares} shareItem={shareItem} />}
       {offered && board !== null && (
         <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
           <span className="ib-wait-disc" aria-hidden="true">
@@ -98,6 +102,28 @@ function LandedWords({ landing: { face, applied, unlocked } }: { landing: Landin
       ))}
       {applied !== null && <span className="ib-turned-xp">{`+${applied.xp} XP`}</span>}
     </>
+  );
+}
+
+function MedalsLine({ album, tiers }: { album: Album; tiers: ReachedTier[] }) {
+  return (
+    <p role="note" aria-label="Medals unlocked" className="ib-medals">
+      {tiers.map((tier) => (
+        <MedalUnlocked key={medalKeyOf(tier)} album={album} tier={tier} />
+      ))}
+    </p>
+  );
+}
+
+function MedalUnlocked({ album, tier }: { album: Album; tier: ReachedTier }) {
+  const emoji = medalEmojiOf(album, tier);
+  return (
+    <span className="ib-medal">
+      <LadderEmblem ladder={emblemOf(tier.milestone)} best={tier.tier} size={28} />
+      {medalWordsOf(tier)}
+      {emoji !== null && <img className="ph-no-capture" src={emoji.picture} alt={`:${emoji.name}:`} width={24} height={24} />}
+      <NewLabel />
+    </span>
   );
 }
 

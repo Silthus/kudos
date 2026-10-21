@@ -104,11 +104,15 @@ function levelReachedCauseOf(reward: number, at: number): Cause {
 }
 
 async function seenAmong(ctx: QueryCtx, member: MemberId, emoji: string): Promise<Set<string>> {
+  return new Set((await seenAtOf(ctx, member, emoji)) === null ? [] : [emoji]);
+}
+
+export async function seenAtOf(ctx: QueryCtx, member: MemberId, emoji: string): Promise<number | null> {
   const seen = await ctx.db
     .query("seenEmojis")
     .withIndex("by_member_emoji", (q) => q.eq("member", member).eq("emoji", emoji))
     .first();
-  return new Set(seen === null ? [] : [emoji]);
+  return seen?.at ?? null;
 }
 
 export async function teamEmojiOf(ctx: QueryCtx, workspace: string, { team, art }: Pick<TeamSticker, "team" | "art">): Promise<ShownEmoji | null> {

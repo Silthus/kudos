@@ -1,10 +1,12 @@
 import type { CSSProperties } from "react";
 import type { TurnedFaceShown } from "../../../convex/website/album";
+import { metalOf } from "../book/metal";
 import { HoggieArt } from "./HoggieArt";
+import { medalWordsOf } from "./milestones";
 import { rarityWordOf } from "./opening";
-import { Sparkles } from "./PackCards";
+import { Confetti, Sparkles } from "./PackCards";
 import { PersonPicture } from "./PersonPicture";
-import type { Chip, Flight, FlightBoxes } from "./useTurnFlight";
+import type { Chip, Flight, FlightBoxes, MedalPop } from "./useTurnFlight";
 
 export function TurnFlight({ flight, boxes }: { flight: Flight; boxes: FlightBoxes }) {
   const { face } = flight;
@@ -17,10 +19,11 @@ export function TurnFlight({ flight, boxes }: { flight: Flight; boxes: FlightBox
         {flight.chip !== null && <XpChip chip={flight.chip} />}
         {flight.rings !== null && face !== null && <Rings rect={flight.rings} face={face} />}
         {flight.flourish !== null && <GoldFlourish rect={flight.flourish} />}
+        {flight.medal !== null && <MedalFlourish medal={flight.medal} />}
         {flight.stage !== "back" && <p className="ib-skip">Click to skip</p>}
       </div>
       <p role="status" aria-label="Turning over" className="al-sr ph-no-capture">
-        {flight.caption && face !== null ? `${nameOf(face)}: ${whatOf(face)}` : ""}
+        {saidOf(flight)}
       </p>
     </>
   );
@@ -97,6 +100,29 @@ function GoldFlourish({ rect }: { rect: DOMRect }) {
       <Sparkles count={20} seed={rect.width + rect.top} />
     </span>
   );
+}
+
+function MedalFlourish({ medal: { tier, art, card } }: { medal: MedalPop }) {
+  const colour = metalOf(tier.tier);
+  const centre = { left: art.left + art.width / 2, top: art.top + art.height / 2 };
+  return (
+    <>
+      <span className="ib-burst ib-medal-burst" data-rare="" style={{ ...centre, width: art.width, height: art.width, "--burst": colour, "--rarity-color": colour } as CSSProperties}>
+        <span className="ib-rays" />
+        <span className="ib-flash" />
+        <Sparkles count={16} seed={art.width + art.top} />
+        {tier.tier === "diamond" && <Confetti size="gold" seed={art.left + art.top} />}
+      </span>
+      <span className="ib-caption ib-medal-caption" style={{ left: centre.left, top: card.bottom + 14, "--burst": colour } as CSSProperties}>
+        {medalWordsOf(tier)}
+      </span>
+    </>
+  );
+}
+
+function saidOf({ caption, face, medal }: Flight) {
+  if (medal !== null) return `${medalWordsOf(medal.tier)} medal unlocked`;
+  return caption && face !== null ? `${nameOf(face)}: ${whatOf(face)}` : "";
 }
 
 export function nameOf(face: TurnedFaceShown) {

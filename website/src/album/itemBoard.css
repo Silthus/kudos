@@ -746,3 +746,31 @@
   font-weight: 800;
   vertical-align: 0.2em;
 }
+
+.ib-medal-burst .al-confetti {
+  top: 50%;
+}
+
+.ib-medal-caption {
+  min-width: 0;
+  font-family: RoundHog, var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ib-medals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ib-medal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
