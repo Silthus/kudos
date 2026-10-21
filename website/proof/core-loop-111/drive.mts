@@ -87,6 +87,28 @@ const steps: Record<string, () => Promise<void>> = {
     await pause(1500);
     await say(teo, "", visitor, 1);
   },
+  again: async () => {
+    await say(ada, "because the incident write-up was clear enough to share with the whole team", visitor, 1);
+    await pause(1500);
+    await say(visitor, "for covering my on-call shift at short notice", pella, 1);
+    await pause(1500);
+    const demo = await say(visitor, "Demo recording from today is in the shared folder", null, 0);
+    await pause(1500);
+    for (const giver of [teo, bram]) await hug(giver, visitor, demo);
+    await pause(1500);
+    await say(bram, "for the patient walkthrough of the billing export", visitor, 1);
+    await pause(1500);
+    await say(ada, "", visitor, 1);
+    await pause(1500);
+    await say(bram, "because the checklist you wrote caught two missing steps", visitor, 1);
+  },
+  phone: async () => {
+    await say(pella, "for answering every question in the support rotation today", visitor, 1);
+    await pause(1500);
+    await say(teo, "because the pairing session made the parser change click", visitor, 1);
+    await pause(1500);
+    await say(visitor, "for the thorough review on the export fix", ada, 1);
+  },
 };
 
 const step = process.argv[2] ?? "";
