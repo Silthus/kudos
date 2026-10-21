@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { emojiArtPictureOf } from "../album/emojiCatalogue";
 import type { PageOwner } from "../album/teamPages";
+import type { MessageRef, WordSegment } from "../engine/messageEvent";
 import { publicPictureOf } from "../feedback/albumSlack";
 import { findWordsOf, type Words } from "../feedback/mondayPost";
 import { publicQuoteOf } from "../feedback/welcomeNudge";
@@ -17,6 +18,8 @@ import { hoggieSharePictureOf } from "./shareArt";
 import type { Win } from "./shareRecords";
 
 export const mostSharesOffered = 10;
+
+const separatorsAround = /^[\s,;:\-–—]+|[\s,;:\-–—]+$/gu;
 
 export type ShareOffers = { shares?: Id<"items">[] };
 
@@ -75,8 +78,23 @@ async function whoWonOf(ctx: QueryCtx, member: MemberId, reason: ItemReason): Pr
   const winner = { text: await nameOf(ctx, member), strong: true as const };
   if (reason.kind === "welcome") return [winner];
   if (reason.kind === "levelUp") return [winner, { text: ` reached level ${reason.level}` }];
-  const quote = await publicQuoteOf(ctx, reason.message);
+  const quote = await thanksQuoteOf(ctx, reason.message);
   return [winner, { text: " thanked " }, { text: await nameOf(ctx, reason.person), strong: true }, ...(quote === null ? [] : [{ text: `: '${quote}'` }])];
+}
+
+async function thanksQuoteOf(ctx: QueryCtx, message: MessageRef): Promise<string | null> {
+  const thanks = (await publicQuoteOf(ctx, message, thanksAmong))?.replace(separatorsAround, "");
+  return thanks === undefined || thanks === "" ? null : thanks;
+}
+
+function thanksAmong(segments: WordSegment[]): WordSegment[] {
+  const first = segments.findIndex(saysSomething);
+  return first === -1 ? [] : segments.slice(first, segments.findLastIndex(saysSomething) + 1);
+}
+
+function saysSomething(segment: WordSegment): boolean {
+  if (segment.kind === "text") return /[\p{L}\p{N}]/u.test(segment.text);
+  return segment.kind === "link" || segment.kind === "channel";
 }
 
 function winWordsOf(win: Win): string {
