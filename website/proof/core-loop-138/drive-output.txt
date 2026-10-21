@@ -1,0 +1,12 @@
+## join
+event 1 (team_join) answered 200
+event 2 (team_join) answered 200
+## first-kudos
+event 1 (message) answered 200
+  first kudos Juno Firstthanks -> Remy Helper at ts 1792619749.322000
+## join (cast C)
+event 1 (team_join) answered 200
+event 2 (team_join) answered 200
+## first-kudos (cast C)
+event 1 (message) answered 200
+  first kudos Ines Firstday -> Remy Helper at ts 1792620077.704000
