@@ -12,7 +12,7 @@ import { useTurnFlight, type Flight, type FlightBoxes } from "./useTurnFlight";
 
 export type LandingPhase = "arriving" | "landed" | "done";
 
-export type Landing = { face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number; phase: LandingPhase; flown: boolean };
+export type Landing = { item: string; face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number; phase: LandingPhase; flown: boolean };
 
 type Shown = "board" | "later" | "landed";
 
@@ -62,7 +62,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const land = useCallback(
     (item: string, { face, applied, unlocked, page, teaches }: Turned, flown: boolean) => {
       setTurnedOver((turned) => new Set(turned).add(item));
-      setLanding((last) => ({ face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1, phase: flown ? "arriving" : "done", flown }));
+      setLanding((last) => ({ item, face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1, phase: flown ? "arriving" : "done", flown }));
       navigate(hrefOf(placeOf(page)));
     },
     [navigate],

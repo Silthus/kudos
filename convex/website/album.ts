@@ -20,6 +20,7 @@ import { makePetOf, petOf, petsIn, type Pet } from "../hoggies/pet";
 import { hiddenItemsShownTo } from "../items/flag";
 import { boardOf, type FaceDown } from "../items/ledger";
 import type { ItemReason } from "../items/records";
+import { shareOffersTo, type ShareOffers } from "../items/share";
 import { turn, type Turned, type TurnedFace } from "../items/turn";
 import { lessonAfter, type LoopLesson, type Taught } from "../items/welcome";
 import { xpToReach } from "../progression/levels";
@@ -57,7 +58,7 @@ export type AlbumAnswer = {
   board?: ItemBoard;
   pets?: Pet[];
   lastVisit?: number | null;
-};
+} & ShareOffers;
 
 export const mostPeopleShown = 500;
 
@@ -139,7 +140,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)) };
 });
 
 const noPacks = { packs: [], more: false };

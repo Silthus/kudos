@@ -87,6 +87,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         putAllIn={actions.putAllIn}
         markEmojisSeen={actions.markEmojisSeen}
         turnItem={actions.turnItem}
+        shareItem={actions.shareItem}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>

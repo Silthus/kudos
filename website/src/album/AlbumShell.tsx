@@ -3,7 +3,7 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
-import type { TurnReply } from "../shell";
+import type { ShareReply, TurnReply } from "../shell";
 import type { Album, PackOpenReply, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
@@ -39,9 +39,10 @@ export type AlbumShellProps = {
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
   markEmojisSeen: (ids: string[]) => Promise<SeenReply>;
   turnItem: (item: string) => Promise<TurnReply>;
+  shareItem: (item: string) => Promise<ShareReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
@@ -91,7 +92,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
       {covered && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
-      {album.board !== null && <ItemsWait turns={turns} />}
+      {album.board !== null && <ItemsWait turns={turns} shares={album.shares} shareItem={shareItem} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}

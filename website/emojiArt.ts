@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
@@ -6,6 +6,7 @@ import type { Plugin } from "vite";
 import { emojiArtPictureOf, emojiArt as catalogue, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojis, teamEmblemPicture } from "../convex/album/emojiCatalogue";
 import type { MilestoneId } from "../convex/album/milestoneCatalogue";
 import type { MilestoneTier } from "../convex/album/records";
+import { hoggieSharePictureOf, sharedHoggies } from "../convex/items/shareArt";
 
 type Picture = { path: string; svg: () => string };
 
@@ -73,7 +74,7 @@ export function emojiArt(): Plugin {
 let rendered: { fileName: string; source: Uint8Array }[] | undefined;
 
 export function emojiArtFiles() {
-  rendered ??= pictures().map(({ path, svg }) => ({ fileName: path.slice(1), source: new Resvg(svg(), { fitTo: { mode: "width", value: size } }).render().asPng() }));
+  rendered ??= [...pictures().map(({ path, svg }) => ({ fileName: path.slice(1), source: new Resvg(svg(), { fitTo: { mode: "width", value: size } }).render().asPng() })), ...shareArtFiles()];
   return rendered;
 }
 
@@ -138,6 +139,16 @@ function rosette({ glint, mid, dark }: Metal) {
 
 function square(body: string) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${body}</svg>`;
+}
+
+function shareArtFiles() {
+  const folder = brandFolder("hoggies/png");
+  return sharedHoggies.map((hoggie) => ({ fileName: hoggieSharePictureOf(hoggie).slice(1), source: readFileSync(brandPictureOf(folder, hoggie)) }));
+}
+
+function brandPictureOf(folder: string, hoggie: string) {
+  const named = join(folder, `${hoggie}.png`);
+  return existsSync(named) ? named : join(folder, `${hoggie}-1.png`);
 }
 
 function pngData(folder: string, name: string) {

@@ -35,7 +35,7 @@ const noHoggies: HoggiesRead = (asking) => (asking ? { kind: "off" } : undefined
 
 const noLevelUp: LevelUpRead = (level) => (level === null ? undefined : { kind: "off" });
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "makePet" | "arrive">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "arrive">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp };
 
@@ -71,6 +71,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     putAllIn: vi.fn(commands.putAllIn ?? (async () => ({ kind: "refused" }) as const)),
     markEmojisSeen: vi.fn(commands.markEmojisSeen ?? (async (ids: string[]) => ({ kind: "seen", ids }) as const)),
     turnItem: vi.fn(commands.turnItem ?? (async () => ({ kind: "refused" }) as const)),
+    shareItem: vi.fn(commands.shareItem ?? (async () => ({ kind: "refused" }) as const)),
     makePet: vi.fn(commands.makePet ?? (async () => ({ kind: "refused" }) as const)),
     arrive: vi.fn(commands.arrive ?? (async (from: number | null) => ({ kind: "arrived", lastVisit: from }) as const)),
   };

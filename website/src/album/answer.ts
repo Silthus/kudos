@@ -7,6 +7,7 @@ import type { Denial } from "../../../convex/website/memberQuery";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
+import type { ShareOffers } from "../../../convex/website/itemShare";
 
 export type AlbumMe = { name: string; face: Face; person: string; team: string | null };
 
@@ -58,7 +59,7 @@ export type Album = {
   board: ItemBoard | null;
   pets?: AlbumPet[];
   lastVisit?: number | null;
-};
+} & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;
 

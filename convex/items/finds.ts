@@ -39,7 +39,7 @@ async function turnedSharedFindIn(ctx: QueryCtx, giver: MemberId, crate: ReturnT
   return drop !== null && isShared(drop.rarity) ? { name: drop.name, rarity: drop.rarity } : null;
 }
 
-function isShared(rarity: Rarity): rarity is SharedRarity {
+export function isShared(rarity: Rarity): rarity is SharedRarity {
   return (sharedRaritiesRarestFirst as readonly Rarity[]).includes(rarity);
 }
 
