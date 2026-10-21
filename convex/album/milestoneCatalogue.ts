@@ -20,6 +20,10 @@ export const milestoneCatalogue = {
   ],
 } as const satisfies { version: number; milestones: readonly { id: MilestoneId; steps: Steps }[] };
 
+export function stepNameOf(milestone: MilestoneId, tier: MilestoneTier): string {
+  return milestoneCatalogue.milestones.find(({ id }) => id === milestone)!.steps.find((step) => step.tier === tier)!.name;
+}
+
 function stepsOf([bronze, silver, gold, diamond]: [number, number, number, number], [first, second, third, fourth]: [string, string, string, string]): Steps {
   return [
     { tier: "bronze", at: bronze, name: first },

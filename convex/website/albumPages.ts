@@ -1,6 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import type { Message } from "../activity/entries";
 import { kudosWordsOf, mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, type Mentions } from "../activity/kudos";
+import { ownHypePickShownTo } from "../album/flag";
 import { personPageOf, type HypeEmoji, type PersonTeam } from "../album/personPage";
 import { lastKindNoteTo, newestStickersOf, type KindNote } from "../album/profile";
 import type { HoggieFound } from "../album/records";
@@ -34,6 +35,7 @@ export type AlbumPersonAnswer = AlbumPersonFace & {
   teams: PersonTeam[];
   hype: HypeEmoji;
   slackProfile: string | null;
+  hypePick?: true;
 };
 
 export type PeopleShown = { people: AlbumPersonFace[]; more: number };
@@ -71,7 +73,12 @@ export async function albumPersonOf(ctx: QueryCtx, me: VerifiedMember, person: M
     ...history,
     best: best === null ? null : await kudosShown(ctx, mentions, best.message, best.at),
     slackProfile: await slackProfileOf(ctx, me.workspace, person),
+    ...(await hypePickOn(ctx, me, person)),
   };
+}
+
+async function hypePickOn(ctx: QueryCtx, me: VerifiedMember, person: MemberId): Promise<Pick<AlbumPersonAnswer, "hypePick">> {
+  return person === me.member && (await ownHypePickShownTo(ctx, me.member)) ? { hypePick: true } : {};
 }
 
 async function slackProfileOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<string | null> {

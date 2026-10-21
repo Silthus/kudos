@@ -89,7 +89,7 @@ function AppEmojiList({ answer: { emojis, more, emojiPage }, useSlackEmojiMatche
         {undone === null ? "" : `Undone. :${undone}: is no longer mapped, and members can't take it again until you map it.`}
       </p>
       {more && <p className="text-sm text-muted-foreground">There are more app emojis than this list holds. The ones fewest members hold are left out.</p>}
-      {open !== null && <SlackEmojiWizard emoji={open.emoji} whose="the" takesAnyEmoji changes={open.emoji.slack !== null} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapSlackEmoji(slackEmoji, open.emoji.place))} onClose={close} />}
+      {open !== null && <SlackEmojiWizard emoji={open.emoji} whose="the" inUse="takes" changes={open.emoji.slack !== null} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapSlackEmoji(slackEmoji, open.emoji.place))} onClose={close} />}
     </Panel>
   );
 }

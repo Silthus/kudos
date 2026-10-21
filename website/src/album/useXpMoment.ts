@@ -29,6 +29,12 @@ export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: 
   const moment = ahead === "reading" ? null : ahead;
   const [started, setPhase] = useState<XpMomentPhase | null>(null);
   const [progress, setProgress] = useState<Progress>(unstarted);
+  const [played, setPlayed] = useState(moment);
+  if (played !== moment) {
+    setPlayed(moment);
+    setPhase(null);
+    setProgress(unstarted);
+  }
   const landed = itemsWait ? "done" : "caughtUp";
   if (moment !== null && started === null && prefersReducedMotion()) setPhase(landed);
   const phase = moment === null ? null : (started ?? "settle");
