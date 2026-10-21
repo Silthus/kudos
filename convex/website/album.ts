@@ -29,6 +29,7 @@ import { nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { customEmojiPageOf } from "../workspace/url";
 import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, type AlbumProfileAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
+import { lastVisitOf } from "./lastVisit";
 import { appliedShownTo } from "./commands";
 import { companyTeammateOf, nameless, storedFaceOf, type Face } from "./faces";
 import { noLaunchWaitsFor } from "./flag";
@@ -55,13 +56,14 @@ export type AlbumAnswer = {
   emojiInPlace: EmojiInPlace;
   board?: ItemBoard;
   pets?: Pet[];
+  lastVisit?: number | null;
 };
 
 export const mostPeopleShown = 500;
 
 export type AlbumTeam = Omit<TeamPage, "unmatched"> & { unmatched: string[] };
 
-export type AlbumPerson = { person: MemberId; name: string; face: Face; held: boolean };
+export type AlbumPerson = { person: MemberId; name: string; face: Face; held: boolean; at?: number };
 
 export type Thanked = { name: string | null; face: Face };
 
@@ -127,7 +129,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const itemsShown = await hiddenItemsShownTo(ctx, me.member);
   const waiting = itemsShown ? await waitingItemsOf(ctx, me) : null;
   const { packs, more: morePacks } = itemsShown ? noPacks : await packsToOpenOf(ctx, me, thanked);
-  const { people: held, morePeople } = await peopleHeldBy(ctx, me);
+  const { people: held, morePeople } = await peopleHeldBy(ctx, me, { withInstants: itemsShown });
   const { tray, more: moreTray } = itemsShown ? noTray : await trayShownTo(ctx, me, thanked);
   const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
   const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
@@ -137,7 +139,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }) };
 });
 
 const noPacks = { packs: [], more: false };
@@ -358,12 +360,12 @@ async function levelOf(ctx: QueryCtx, member: MemberId): Promise<AlbumAnswer["le
   return { level, xp, startsAt: xpToReach(level), nextAt: xpToReach(level + 1) };
 }
 
-async function peopleHeldBy(ctx: QueryCtx, me: VerifiedMember): Promise<{ people: AlbumPerson[]; morePeople: boolean }> {
+async function peopleHeldBy(ctx: QueryCtx, me: VerifiedMember, { withInstants }: { withInstants: boolean }): Promise<{ people: AlbumPerson[]; morePeople: boolean }> {
   const { stickers, more } = await albumStickersOf(ctx, me.member, mostPeopleShown);
   const people: AlbumPerson[] = [];
-  for (const { person } of stickers) {
+  for (const { person, at } of stickers) {
     const { name, face } = await storedPersonOf(ctx, me.workspace, person);
-    people.push({ person, name: name ?? nameless, face, held: true });
+    people.push({ person, name: name ?? nameless, face, held: true, ...(withInstants && { at }) });
   }
   return { people, morePeople: more };
 }
