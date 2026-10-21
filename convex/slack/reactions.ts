@@ -23,8 +23,8 @@ export function isReactionAdded(envelope: EventCallback): envelope is ReactionEn
 }
 
 export const mayHugWith = internalQuery({
-  args: { workspace: v.string(), emoji: v.string() },
-  handler: (ctx, { workspace, emoji }) => mayGiveHugWith(ctx, workspace, withoutSkinTone(emoji)),
+  args: { workspace: v.string(), giver: v.string(), emoji: v.string() },
+  handler: (ctx, { workspace, giver, emoji }) => mayGiveHugWith(ctx, workspace, giver, withoutSkinTone(emoji)),
 });
 
 export function hugReactionOf(envelope: ReactionEnvelope): HugReaction | null {

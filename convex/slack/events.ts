@@ -37,7 +37,7 @@ async function receiveSlackEvent(ctx: ActionCtx, request: Request) {
     if (emojiChanged !== null) await ctx.runMutation(internal.slack.receipts.receiveEmojiChanged, emojiChanged);
   } else if (envelope.type === "event_callback" && isReactionAdded(envelope)) {
     const reaction = hugReactionOf(envelope);
-    if (reaction !== null && (await ctx.runQuery(internal.slack.reactions.mayHugWith, { workspace: reaction.workspace, emoji: reaction.emoji }))) await ctx.runMutation(internal.slack.receipts.receiveReaction, { eventId: envelope.event_id, reaction });
+    if (reaction !== null && (await ctx.runQuery(internal.slack.reactions.mayHugWith, { workspace: reaction.workspace, giver: reaction.giver, emoji: reaction.emoji }))) await ctx.runMutation(internal.slack.receipts.receiveReaction, { eventId: envelope.event_id, reaction });
   } else if (envelope.type === "event_callback") {
     const event = messageEventOf(envelope);
     if (isMessage(envelope.event) && !mayAffectKudos(event)) return new Response(null, { status: 200 });

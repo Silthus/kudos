@@ -1,5 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { isEarnedEmojiNamed, mayBeEarnedEmojiNamed } from "../album/earnedEmojis";
+import { holdsEarnedEmojiNamed } from "../album/earnedEmojis";
 import { publish } from "../bus/publish";
 import { allowanceDay } from "../engine/allowance";
 import { authorOfGiven, receivedOn } from "../engine/awards";
@@ -18,8 +18,10 @@ export type HugDecision = { kind: "given" } | { kind: "nothing" } | { kind: "unk
 const dayMs = 24 * 60 * 60 * 1000;
 const nothing: HugDecision = { kind: "nothing" };
 
-export async function mayGiveHugWith(ctx: QueryCtx, workspace: string, emoji: string): Promise<boolean> {
-  return (await isKudosEmojiOf(ctx, workspace, emoji)) || (await mayBeEarnedEmojiNamed(ctx, workspace, emoji));
+export async function mayGiveHugWith(ctx: QueryCtx, workspace: string, user: string, emoji: string): Promise<boolean> {
+  if (await isKudosEmojiOf(ctx, workspace, emoji)) return true;
+  const giver = await lookup(ctx, workspace, user);
+  return giver?.kind === "member" && (await holdsEarnedEmojiNamed(ctx, workspace, giver.member, emoji));
 }
 
 export async function giveHug(ctx: MutationCtx, reaction: HugReaction, emoji: string): Promise<HugDecision> {
@@ -40,7 +42,7 @@ export async function giveHug(ctx: MutationCtx, reaction: HugReaction, emoji: st
 }
 
 async function givesHugs(ctx: MutationCtx, workspace: string, giver: MemberId, emoji: string) {
-  return (await isKudosEmojiOf(ctx, workspace, emoji)) || (await isEarnedEmojiNamed(ctx, workspace, giver, emoji));
+  return (await isKudosEmojiOf(ctx, workspace, emoji)) || (await holdsEarnedEmojiNamed(ctx, workspace, giver, emoji));
 }
 
 async function isKudosEmojiOf(ctx: QueryCtx, workspace: string, emoji: string) {
