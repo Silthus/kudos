@@ -3,6 +3,8 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { emojiArtPictureOf } from "../album/emojiCatalogue";
+import { milestoneCatalogue } from "../album/milestoneCatalogue";
+import type { ReachedTier } from "../album/milestones";
 import type { PageOwner } from "../album/teamPages";
 import { publicPictureOf } from "../feedback/albumSlack";
 import { findWordsOf, type Words } from "../feedback/mondayPost";
@@ -75,8 +77,14 @@ async function whoWonOf(ctx: QueryCtx, member: MemberId, reason: ItemReason): Pr
   const winner = { text: await nameOf(ctx, member), strong: true as const };
   if (reason.kind === "welcome") return [winner];
   if (reason.kind === "levelUp") return [winner, { text: ` reached level ${reason.level}` }];
+  if (reason.kind === "team") return [winner, { text: ` filled the ${reason.name} page` }];
+  if (reason.kind === "milestone") return [winner, { text: ` earned the ${medalNameOf(reason)} medal` }];
   const quote = await publicQuoteOf(ctx, reason.message);
   return [winner, { text: " thanked " }, { text: await nameOf(ctx, reason.person), strong: true }, ...(quote === null ? [] : [{ text: `: '${quote}'` }])];
+}
+
+function medalNameOf({ milestone, tier }: ReachedTier): string {
+  return milestoneCatalogue.milestones.find(({ id }) => id === milestone)?.steps.find((step) => step.tier === tier)?.name ?? milestone;
 }
 
 function winWordsOf(win: Win): string {

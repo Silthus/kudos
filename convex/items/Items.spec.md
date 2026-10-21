@@ -424,3 +424,84 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: supersession-safety dismissed: with either flag off only the win is written, and only a press with both on sets its sharedAt, once
   checklist: worker-fencing dismissed: no worker owns a win
   checklist: resumption-coverage dismissed: with either flag off nothing is scheduled to resume
+- a filled team earns one hoggie the member does not own, rare or rarer: Filling a team page earns its member one hoggie item keyed by the team with reason `team` naming the team and its name and a rare floor, shown on the item board with the team's name, and its turn draws a rare or rarer hoggie the member does not own at that moment, pays no XP and answers it new.
+  over: a team page of three filled by its member's two sticker turns, with the hoggie the team's crate key would draw at its floor already owned, read through the stored items, getAlbum's board and the team item's turn through turnItem
+  via: LP61 LP62: a filled team page earns one hoggie the member does not own, rare or rarer
+  because: a filled team is a hard achievement the old album paid only with a sticker (LP61), so an item without its floor would pay it like a common pack hoggie, and a draw that ignored what the member owns would hand back a hoggie they already hold and spoil the reward (LP62)
+  kinds: storage, state
+  checklist: scoped-reads dismissed: the earn and the draw read only the member's own items and hoggie tallies, by an equality on the member
+  checklist: revalidated-permission dismissed: the flags, the session and the item's owner are read in the same mutation that turns it
+  checklist: encrypted-storage dismissed: items are game data, not confidential
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted
+  checklist: input-validation dismissed: the earn takes the team page the album resolved for the member, checked by the items table's validator
+  checklist: revision-preservation dismissed: an item is never revised; only its turnedAt is set, once
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession declared as an item is earned once per member, source and key
+  checklist: supersession-safety dismissed: the team sticker is inserted once per filled page and the item in that mutation; a second earn finds the first by its key and writes nothing
+  checklist: worker-fencing dismissed: no worker owns an item; two turns of one item conflict on the row they both read
+  checklist: commit-ordered-effects dismissed: earning the item issues no external effect, and the turn publishes itemTurned in its own mutation
+  checklist: durable-dispatch-intent dismissed: the item is earned in the team sticker's own mutation, so it commits with it or not at all
+  checklist: resumption-coverage dismissed: no batch earns it; each team sticker and each turn is one mutation
+  checklist: declared-target-coverage dismissed: the album's insertTeamSticker is the only writer of a team sticker, reached by the oracle through the turn and by the old unlock in the flag oracle
+  checklist: completion-evidence dismissed: nothing waits on the earn; the board reads the stored item
+- each milestone tier earns one hoggie the member does not own at its tier's floor: Each milestone tier recorded for a member earns them one hoggie item keyed by the milestone and tier with reason `milestone`, its floor uncommon for bronze, rare for silver, epic for gold and legendary for diamond, once however often the tiers are recorded again, and its turn draws a hoggie at or above that floor the member does not own at that moment, counting the hoggies turned before it in the same visit.
+  over: a member owning every common and uncommon hoggie whose sticker turn records the hoggies tiers bronze, silver and gold, each tier's item turned in turn through turnItem; the same tiers recorded again by recordMilestonesInWorkspace
+  via: LP61 LP62: each milestone tier earns one hoggie the member does not own, at or above its tier's floor
+  because: harder tiers must pay better (LP61), so a floor that did not rise with the tier would pay a diamond medal like a bronze one, and a draw that read what the member owned before the visit rather than at the turn would pay the same new hoggie twice in one visit (LP62)
+  kinds: storage, state
+  checklist: scoped-reads dismissed: the earn and the draw read only the member's own items and hoggie tallies, by an equality on the member
+  checklist: revalidated-permission dismissed: the flags, the session and the item's owner are read in the same mutation that turns it
+  checklist: encrypted-storage dismissed: items are game data, not confidential
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted
+  checklist: input-validation dismissed: the milestone and tier come from the album's catalogue, checked by the items table's validator
+  checklist: revision-preservation dismissed: an item is never revised; only its turnedAt is set, once
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession declared as an item is earned once per member, source and key
+  checklist: supersession-safety dismissed: a tier is recorded once per member, and its item in that mutation; a second earn finds the first by its key and writes nothing
+  checklist: worker-fencing dismissed: no worker owns a tier; Convex serializes the mutations that read one member's tier range
+  checklist: commit-ordered-effects dismissed: earning the item issues no external effect
+  checklist: durable-dispatch-intent dismissed: the item is earned in the tier record's own mutation, so it commits with it or not at all
+  checklist: resumption-coverage dismissed: the workspace walks that record tiers resume from their own cursors, and each page earns the items of the tiers it records
+  checklist: declared-target-coverage dismissed: the album's recordTiersOf is the only writer of a tier, reached by the turn, the Slack tallies, the hoggie drop subscriber and the workspace walks
+  checklist: completion-evidence dismissed: nothing waits on the earn; the board reads the stored item
+- a reward whose floor and above the member owns whole draws a duplicate at its floor: When the member owns every hoggie at or above a team or tier item's floor, its turn draws an owned hoggie at or above the floor, never a lower one.
+  over: a member owning every hoggie whose sticker turn records the hoggies tiers up to diamond, the gold and diamond items turned through turnItem
+  via: LP63: a reward whose floor and above the member owns whole draws a duplicate at or above its floor
+  because: a harder achievement must never pay a lower rarity than an easier one (LP63), so a draw that fell below the floor to find a new hoggie would let a diamond medal pay a common, and a draw that found nothing would turn the item into nothing
+  kinds: state
+  checklist: revalidated-permission dismissed: the flags, the session and the item's owner are read in the same mutation that turns it
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession declared as a turn draws the hoggie and pays once
+  checklist: supersession-safety dismissed: turnedAt is set once and never moved
+  checklist: worker-fencing dismissed: no worker owns an item; two turns of one item conflict on the row they both read
+  checklist: commit-ordered-effects dismissed: itemTurned is published in the turn's mutation
+  checklist: resumption-coverage dismissed: no batch operation resumes; each turn is one mutation
+- every other draw keeps its duplicates: A thanks item's turn draws the hoggie its crate key draws, whether or not the member already owns it.
+  over: a thanks item whose crate key's draw the member already owns, turned through turnItem
+  via: LP62: every other draw keeps its duplicates
+  because: only achievements are deduplicated (LP62); a pack draw that read the collection would change every existing draw's pure function of the secret, the member, the crate key and the catalogue version (LP11), and with it every hoggie a replay or the old open answers
+  kinds: state
+  checklist: revalidated-permission dismissed: the flags, the session and the item's owner are read in the same mutation that turns it
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession declared as a turn draws the hoggie and pays once
+  checklist: supersession-safety dismissed: turnedAt is set once and never moved
+  checklist: worker-fencing dismissed: no worker owns an item
+  checklist: commit-ordered-effects dismissed: itemTurned is published in the turn's mutation
+  checklist: resumption-coverage dismissed: no batch operation resumes; each turn is one mutation
+- team and tier items wait unseen while achievement-hoggies or hidden-items is off: While `achievement-hoggies` or `hidden-items` is off for the member, their team and tier items are earned but neither shown on the item board nor turned, nothing about them is drawn, and once both are on each waits on the board once.
+  over: a team filled with achievement-hoggies off, read on the board, turned and read for drops, then read and turned with it on; a team filled through the old open, put-all-in and unlock with hidden-items off, then read and turned with it on; a team item waiting when achievement-hoggies turns off and on again
+  via: LP64: achievement items wait unseen while achievement-hoggies or hidden-items is off, and nothing is lost
+  because: the reward ships dark behind its flag (LP64), so an item shown or turned with the flag off would leak a dark feature onto every member's board; and the writers earn whatever the flags say (LP6), so an item hidden by deleting it or by drawing it would be lost when a flag turns back off
+  kinds: state, output
+  checklist: scoped-reads dismissed: the board reads only the signed-in member's own items
+  checklist: redaction dismissed: with either flag off the item is left out of the board and every count built on it
+  checklist: revalidated-permission dismissed: both flags are read in the board's read and in the turn's mutation
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession dismissed: with either flag off a refused turn moves nothing
+  checklist: supersession-safety dismissed: a refused turn writes nothing, so nothing it could displace
+  checklist: worker-fencing dismissed: no worker owns an item
+  checklist: commit-ordered-effects dismissed: a refused turn publishes nothing
+  checklist: resumption-coverage dismissed: no batch operation resumes
+  checklist: declared-target-coverage dismissed: the ledger's waitingOf is the one read under the board, the waiting count and the sticker check, and turn the one mutation that reveals an item
+  checklist: destination-confinement dismissed: nothing is sent
+  checklist: circuit-breaker-policy dismissed: nothing is sent
