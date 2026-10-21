@@ -110,6 +110,25 @@ describe("LP51 LP52: Share shows after a turn the album offers it for, and is go
     expect(screen.getByRole("alert")).toHaveTextContent("That win couldn't be shared.");
     expect(theShareButton()).toBeNull();
   });
+
+  it("says HedgeHug can't be reached when the press gets no answer, and keeps the button so a second press tries again", async () => {
+    let presses = 0;
+    const shareItem = async (): Promise<ShareReply> => {
+      presses += 1;
+      if (presses === 1) throw new Error("timed out");
+      return { kind: "shared" };
+    };
+    const { user, actions } = visit({ offeredAfterTheTurn: [win!.item], shareItem });
+    await turnTheFirstItem(user);
+
+    await user.click(theShareButton()!);
+    expect(screen.getByRole("alert")).toHaveTextContent("Can't reach HedgeHug. Try again.");
+    await user.click(theShareButton()!);
+
+    expect(actions.shareItem).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("status", { name: "Shared" })).toHaveTextContent("Shared with your workspace");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
 });
 
 async function theFaceDownItems() {
