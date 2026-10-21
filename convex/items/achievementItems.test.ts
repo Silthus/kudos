@@ -110,7 +110,7 @@ describe("LP61 LP62: each milestone tier earns one hoggie the member does not ow
 });
 
 describe("LP63: a reward whose floor and above the member owns whole draws a duplicate at or above its floor", { timeout: 60_000 }, () => {
-  test("with every epic and legendary hoggie owned, the gold tier's item draws an owned epic or legendary, and the diamond tier's an owned legendary", async () => {
+  test("with every hoggie owned, the gold tier's item draws an owned epic or legendary, and the diamond tier's an owned legendary", async () => {
     await ownsEvery(alice, () => true);
     await thanks(alice, bob);
     const asAlice = await signedIn(alice);
