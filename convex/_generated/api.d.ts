@@ -245,6 +245,7 @@ import type * as slack_delivery from "../slack/delivery.js";
 import type * as slack_directMessages from "../slack/directMessages.js";
 import type * as slack_directory from "../slack/directory.js";
 import type * as slack_events from "../slack/events.js";
+import type * as slack_firstHugReply from "../slack/firstHugReply.js";
 import type * as slack_groupPicker from "../slack/groupPicker.js";
 import type * as slack_hugLookups from "../slack/hugLookups.js";
 import type * as slack_hugsRecap from "../slack/hugsRecap.js";
@@ -595,6 +596,7 @@ declare const fullApi: ApiFromModules<{
   "slack/directMessages": typeof slack_directMessages;
   "slack/directory": typeof slack_directory;
   "slack/events": typeof slack_events;
+  "slack/firstHugReply": typeof slack_firstHugReply;
   "slack/groupPicker": typeof slack_groupPicker;
   "slack/hugLookups": typeof slack_hugLookups;
   "slack/hugsRecap": typeof slack_hugsRecap;
