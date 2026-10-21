@@ -24,13 +24,12 @@ export type CrestsShown = { crests: boolean };
 
 export type DroppedAt = { at: number; n: number; decided: number; drop: Drop };
 
-export type DropContext = { surface?: Surface; floor?: Rarity };
+export type DropContext = { surface?: Surface; floor?: Rarity; waits?: boolean };
 
-export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { surface, floor }: DropContext): Promise<void> {
+export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { surface, floor, waits = false }: DropContext): Promise<void> {
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
   const { hoggie, rarity } = await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, floor });
   const n = await countDrop(ctx, member);
-  const waits = waitsInTheTray(crate);
   const copy = waits ? await nextCopyOf(ctx, member, hoggie) : await countFound(ctx, member, hoggie, at, n);
   const crest = waits ? crestDecidedAtThePutIn() : await crestRecordedFor(ctx, member, hoggie, copy);
   const { workspace } = await chatUserOf(ctx, member);
@@ -84,7 +83,7 @@ function crestDecidedAtThePutIn(): { crest?: null } {
   return catalogue.version < firstVersionWithCrests ? {} : { crest: null };
 }
 
-function waitsInTheTray(crate: string) {
+function mayHaveWaitedInTheTray(crate: string) {
   return crateKindOf(crate) === "thoughtful";
 }
 
@@ -97,7 +96,7 @@ async function cratesWaitingInTheTrayOf(ctx: QueryCtx, member: MemberId): Promis
 }
 
 async function asFound(ctx: QueryCtx, record: DropRecord, shown: CrestsShown): Promise<DropRecord> {
-  if (!shown.crests || !waitsInTheTray(record.crate)) return record;
+  if (!shown.crests || !mayHaveWaitedInTheTray(record.crate)) return record;
   const putIn = await trayDropOf(ctx, record.member, record.crate);
   return putIn?.crest === undefined ? record : { ...record, crest: putIn.crest };
 }

@@ -17,6 +17,7 @@ import type {
   QuestSwappedEvent,
   StickersCollectedEvent,
   StickerPutInEvent,
+  ItemTurnedEvent,
   ThoughtfulPacksGrantedEvent,
   UnlockOpenedEvent,
   UnlockReadyEvent,
@@ -60,6 +61,7 @@ export type ProductEvent = {
     | "person collected"
     | "packs earned"
     | "album sticker collected"
+    | "item turned"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -250,6 +252,10 @@ export function projectPersonCollected({ stickers, at }: StickersCollectedEvent)
 export function projectPacksEarned({ giver, outcomes, at }: ThoughtfulPacksGrantedEvent): ProductEvent {
   const packsEarned = outcomes.filter(({ outcome }) => outcome !== "nextWeek").length;
   return { event: "packs earned", subject: { member: giver }, at, properties: { packs_earned: packsEarned, recipients: outcomes.length } };
+}
+
+export function projectItemTurned({ member, source, rarity, isNew, at }: ItemTurnedEvent): ProductEvent {
+  return { event: "item turned", subject: { member }, at, properties: { source, rarity, is_new: isNew } };
 }
 
 export function projectAlbumStickerCollected({ member, at }: StickerPutInEvent): ProductEvent {

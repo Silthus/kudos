@@ -1,0 +1,452 @@
+{
+ "rows": [
+  {
+   "modules": [
+    {
+     "id": "app",
+     "name": "Website app",
+     "note": "website/src/album",
+     "used": 45,
+     "seam": [
+      "AlbumApp",
+      {
+       "name": "Board",
+       "change": "added"
+      },
+      {
+       "name": "XpMoment",
+       "change": "added"
+      }
+     ],
+     "chips": [
+      {
+       "id": "app-board",
+       "text": "board: turn one item at a time",
+       "change": "added"
+      },
+      {
+       "id": "app-moment",
+       "text": "XP moment: excerpts fly into the bar",
+       "change": "added"
+      },
+      {
+       "text": "reply types from convex/website",
+       "change": "changed"
+      },
+      {
+       "text": "PackOpening, TrayPanel, PutInFlights",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "feedback",
+     "name": "Feedback",
+     "note": "album reply",
+     "used": 78,
+     "seam": [
+      {
+       "name": "albumReply",
+       "change": "changed"
+      }
+     ],
+     "chips": [
+      {
+       "id": "fb-reply",
+       "text": "An item for thanking X \u00b7 N wait",
+       "change": "changed"
+      },
+      {
+       "text": "outcome words, hype picture",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "analytics",
+     "name": "Analytics",
+     "used": 30,
+     "seam": [
+      "memberDecision",
+      "exposed"
+     ],
+     "chips": [
+      {
+       "id": "an-turned",
+       "text": "item turned",
+       "change": "added"
+      },
+      {
+       "id": "an-moment",
+       "text": "xp moment ended",
+       "change": "added"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "web",
+     "name": "Website reads",
+     "note": "convex/website",
+     "used": 54,
+     "flex": 2,
+     "seam": [
+      {
+       "name": "getAlbum",
+       "change": "changed"
+      },
+      {
+       "name": "turnItem",
+       "change": "added"
+      },
+      {
+       "name": "getXpMoment",
+       "change": "added"
+      },
+      {
+       "name": "endXpMoment",
+       "change": "added"
+      },
+      {
+       "name": "openThoughtfulPack",
+       "change": "removed"
+      },
+      {
+       "name": "putIn",
+       "change": "removed"
+      },
+      {
+       "name": "putAllIn",
+       "change": "removed"
+      }
+     ],
+     "chips": [
+      {
+       "id": "web-board",
+       "text": "getAlbum.board, packs and tray empty",
+       "change": "changed"
+      },
+      {
+       "id": "web-turn",
+       "text": "turnItem \u2192 Items.turn",
+       "change": "added"
+      },
+      {
+       "id": "web-visit",
+       "text": "lastVisits: one instant per member, forward only",
+       "change": "added"
+      },
+      {
+       "id": "web-old",
+       "text": "album internals: 64 symbols",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "bus",
+     "name": "Bus",
+     "used": 52,
+     "seam": [
+      "publish"
+     ],
+     "chips": [
+      {
+       "id": "bus-turned",
+       "text": "itemTurned",
+       "change": "added"
+      },
+      {
+       "id": "bus-sticker",
+       "text": "stickerPutIn \u2192 milestones",
+       "change": "changed"
+      },
+      {
+       "text": "hoggieDropped only-not-thoughtful",
+       "change": "removed"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "activity",
+     "name": "Activity",
+     "used": 16,
+     "seam": [
+      "activityOf",
+      {
+       "name": "activitySince",
+       "change": "added"
+      }
+     ],
+     "chips": [
+      {
+       "id": "act-since",
+       "text": "lower bound on decided",
+       "change": "added"
+      },
+      {
+       "text": "6 sources, one timeline"
+      }
+     ]
+    },
+    {
+     "id": "items",
+     "name": "Items",
+     "note": "convex/items",
+     "change": "added",
+     "flex": 1.6,
+     "seam": [
+      "earnItem",
+      "boardOf",
+      "waitingCountOf",
+      "turn",
+      "markTurned"
+     ],
+     "chips": [
+      {
+       "id": "items-ledger",
+       "text": "items ledger: one row per unseen reward",
+       "wide": true
+      },
+      {
+       "id": "items-sticker",
+       "text": "sticker source"
+      },
+      {
+       "id": "items-hoggie",
+       "text": "hoggie source"
+      },
+      {
+       "id": "items-emoji",
+       "text": "emoji source"
+      },
+      {
+       "id": "items-fill",
+       "text": "fillItems: backfill by hand"
+      }
+     ]
+    },
+    {
+     "id": "album",
+     "name": "Album",
+     "used": 113,
+     "seam": [
+      {
+       "name": "grantThoughtfulPacks",
+       "change": "changed"
+      },
+      "recordPackSticker",
+      "markEmojisSeenBy",
+      {
+       "name": "putItemIn",
+       "change": "removed"
+      }
+     ],
+     "chips": [
+      {
+       "id": "album-grant",
+       "text": "grant earns sticker, hoggie, hype",
+       "change": "changed"
+      },
+      {
+       "id": "album-earn",
+       "text": "milestone, team, random earn their emoji",
+       "change": "changed"
+      },
+      {
+       "text": "tray, put-in",
+       "change": "removed"
+      },
+      {
+       "id": "album-emojis",
+       "text": "one earned-emoji set",
+       "followUp": true,
+       "change": "added"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "unlocks",
+     "name": "Unlocks",
+     "used": 36,
+     "seam": [
+      {
+       "name": "dropLevelUpHoggies",
+       "change": "changed"
+      }
+     ],
+     "chips": [
+      {
+       "id": "unl-earn",
+       "text": "level-up earns 3 items",
+       "change": "changed"
+      }
+     ]
+    },
+    {
+     "id": "hoggies",
+     "name": "Hoggies",
+     "used": 60,
+     "seam": [
+      {
+       "name": "dropFor",
+       "change": "changed"
+      },
+      "foundIn",
+      "putDropIn"
+     ],
+     "chips": [
+      {
+       "id": "hog-waits",
+       "text": "waits: a caller option, no crate kinds",
+       "change": "changed"
+      },
+      {
+       "id": "hog-roll",
+       "text": "one SHA-256 roll, shared",
+       "change": "changed"
+      },
+      {
+       "text": "trayDrops: legacy rows only"
+      },
+      {
+       "text": "Hoggies \u2194 Unlocks \u2194 Quests",
+       "cycle": true,
+       "followUp": true
+      }
+     ]
+    },
+    {
+     "id": "progression",
+     "name": "Progression",
+     "used": 57,
+     "seam": [
+      "applyGain"
+     ],
+     "chips": [
+      {
+       "id": "prog-gain",
+       "text": "15 XP on the hoggie's turn"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "wires": [
+  {
+   "from": "app",
+   "to": "web-seam",
+   "toAt": 0.2,
+   "label": "4 functions"
+  },
+  {
+   "from": "web",
+   "fromAt": 0.1,
+   "to": "activity-seam",
+   "change": "added",
+   "label": "since"
+  },
+  {
+   "from": "web",
+   "fromAt": 0.45,
+   "to": "items-seam",
+   "toAt": 0.3,
+   "change": "added",
+   "label": "boardOf, turn"
+  },
+  {
+   "from": "web-old",
+   "to": "album",
+   "toAt": 0.3,
+   "kind": "leak",
+   "change": "removed",
+   "label": "64 symbols, 5 files",
+   "labelAt": 0.55,
+   "crossAt": 0.2,
+   "bend": 30
+  },
+  {
+   "from": "bus",
+   "fromSide": "top",
+   "fromAt": 0.2,
+   "to": "feedback",
+   "toSide": "bottom",
+   "toAt": 0.85,
+   "label": "sub granted"
+  },
+  {
+   "from": "bus",
+   "fromSide": "top",
+   "fromAt": 0.75,
+   "to": "analytics",
+   "toSide": "bottom",
+   "toAt": 0.75,
+   "straight": "from",
+   "change": "added",
+   "label": "sub itemTurned"
+  },
+  {
+   "from": "items",
+   "fromSide": "top",
+   "fromAt": 0.92,
+   "to": "bus",
+   "toSide": "bottom",
+   "toAt": 0.3,
+   "change": "added",
+   "label": "pub itemTurned",
+   "labelAt": 0.75,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ]
+  },
+  {
+   "from": "items",
+   "fromSide": "right",
+   "fromAt": 0.75,
+   "to": "album",
+   "toSide": "left",
+   "toAt": 0.75,
+   "change": "added"
+  },
+  {
+   "from": "items",
+   "fromAt": 0.55,
+   "to": "hoggies-seam",
+   "toAt": 0.6,
+   "change": "added",
+   "label": "dropFor",
+   "labelAt": 0.75
+  },
+  {
+   "from": "unlocks",
+   "fromSide": "top",
+   "fromAt": 0.85,
+   "to": "items",
+   "toSide": "bottom",
+   "toAt": 0.15,
+   "change": "added",
+   "label": "earnItem",
+   "labelAt": 0.3
+  },
+  {
+   "from": "hoggies",
+   "fromSide": "right",
+   "to": "progression",
+   "toSide": "left"
+  }
+ ]
+}

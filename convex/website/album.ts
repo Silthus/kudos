@@ -16,6 +16,9 @@ import { unlockTeamStickerOf } from "../album/teamStickers";
 import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { hoggiesShownTo } from "../hoggies/flag";
+import { hiddenItemsShownTo } from "../items/flag";
+import { boardOf, type FaceDown } from "../items/ledger";
+import { turn, type Turned } from "../items/turn";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
@@ -47,6 +50,7 @@ export type AlbumAnswer = {
   emojiPage: string | null;
   emojiWizard: boolean;
   emojiInPlace: EmojiInPlace;
+  board?: ItemBoard;
 };
 
 export const mostPeopleShown = 500;
@@ -62,6 +66,12 @@ export type AlbumPack = WaitingPack & { thanked: Thanked };
 export type AlbumTrayItem = Exclude<TrayItem, { kind: "sticker" }> | (Extract<TrayItem, { kind: "sticker" }> & { thanked: Thanked });
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
+
+export type BoardItem = Omit<FaceDown, "reason"> & { reason: { kind: "thanks"; thanked: Thanked } };
+
+export type ItemBoard = { items: BoardItem[]; more: boolean };
+
+export type TurnAnswer = ({ kind: "turned" } & Turned) | { kind: "refused" };
 
 export type OpenAnswer = { kind: "opened"; items: AlbumTrayItem[]; applied: Opening["applied"] } | { kind: "refused" };
 
@@ -102,9 +112,10 @@ export type LevelUpRead = { kind: "off" } | { kind: "none" } | LevelUpAnswer;
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
   const thanked = thankedPeopleOf(ctx, me.workspace);
-  const { packs, more: morePacks } = await packsToOpenOf(ctx, me, thanked);
+  const itemsShown = await hiddenItemsShownTo(ctx, me.member);
+  const { packs, more: morePacks } = itemsShown ? noPacks : await packsToOpenOf(ctx, me, thanked);
   const { people: held, morePeople } = await peopleHeldBy(ctx, me);
-  const { tray, more: moreTray } = await trayShownTo(ctx, me, thanked);
+  const { tray, more: moreTray } = itemsShown ? noTray : await trayShownTo(ctx, me, thanked);
   const pagesAndPeople = await teamPagesAndPeopleOf(ctx, me);
   const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
   const level = await levelOf(ctx, me.member);
@@ -113,8 +124,20 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(itemsShown && { board: await boardShownTo(ctx, me, thanked) }) };
 });
+
+const noPacks = { packs: [], more: false };
+
+const noTray = { tray: [], more: false };
+
+async function boardShownTo(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedPeople): Promise<ItemBoard> {
+  if (!(await noLaunchWaitsFor(ctx, me))) return { items: [], more: false };
+  const { items, more } = await boardOf(ctx, me.member);
+  const shown: BoardItem[] = [];
+  for (const { reason, ...item } of items) shown.push({ ...item, reason: { kind: reason.kind, thanked: await thanked(reason.person) } });
+  return { items: shown, more };
+}
 
 async function teamsOf(ctx: QueryCtx, pagesAndPeople: TeamPagesAndPeople, listed: Set<MemberId>): Promise<{ teams: AlbumTeam[]; unlisted: AlbumPerson[] }> {
   const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));
@@ -179,6 +202,18 @@ export const openThoughtfulPack = memberMutation({
 
 async function opensPacks(ctx: QueryCtx, me: VerifiedMember) {
   return (await albumShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+}
+
+export const turnItem = memberMutation({
+  args: { item: v.id("items") },
+  handler: async (ctx, me, _person, { item }): Promise<TurnAnswer> => {
+    const turned = (await turnsItems(ctx, me)) ? await turn(ctx, me, item, Date.now()) : null;
+    return turned === null ? { kind: "refused" } : { kind: "turned", ...turned, applied: await appliedShownTo(ctx, me, turned.applied) };
+  },
+});
+
+async function turnsItems(ctx: QueryCtx, me: VerifiedMember) {
+  return (await albumShownTo(ctx, me.member)) && (await hiddenItemsShownTo(ctx, me.member)) && (await hoggiesShownTo(ctx, me.member));
 }
 
 export const putIn = memberMutation({

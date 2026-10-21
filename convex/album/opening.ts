@@ -1,11 +1,12 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Rarity } from "../hoggies/catalogue";
-import type { CrateKey } from "../hoggies/crateKey";
 import { dropFor, dropOf, packOf, type Drop } from "../hoggies/drops";
 import { hoggiesShownTo } from "../hoggies/flag";
+import { markTurned } from "../items/ledger";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
+import { crateKeyOf } from "./packs";
 import { dropRandomEmojiFrom } from "./randomEmojis";
 import { tallyPackOpened } from "./tallies";
 
@@ -21,10 +22,11 @@ export async function openThoughtfulPack(ctx: MutationCtx, member: MemberId, pac
   const waiting = await ctx.db.get(pack);
   if (waiting?.giver !== member || waiting.openedAt !== undefined || !(await hoggiesShownTo(ctx, member))) return null;
   const crate = crateKeyOf(pack);
-  await dropFor(ctx, member, crate, at, { surface: "website" });
+  await dropFor(ctx, member, crate, at, { surface: "website", waits: true });
   const drop = await dropOf(ctx, member, crate);
   if (drop === null) return null;
   await ctx.db.patch(pack, { openedAt: at });
+  await markTurned(ctx, member, "hoggie", crate, at);
   await tallyPackOpened(ctx, member, at);
   await dropRandomEmojiFrom(ctx, member, pack, crate, at);
   return { items: await intoTheTray(ctx, waiting, drop, at), applied: await packOf(ctx, member, crate) };
@@ -36,10 +38,6 @@ export async function trayOf(ctx: QueryCtx, member: MemberId): Promise<{ tray: T
     .withIndex("by_member_put_in", (q) => q.eq("member", member).eq("putInAt", undefined))
     .take(mostTrayItemsShown + 1);
   return { tray: inOpeningOrder.slice(0, mostTrayItemsShown).map(shownTrayItem), more: inOpeningOrder.length > mostTrayItemsShown };
-}
-
-export function crateKeyOf(pack: PackId): CrateKey {
-  return `thoughtful:${pack}`;
 }
 
 async function intoTheTray(ctx: MutationCtx, { _id: pack, giver: member, recipient, holdsSticker }: Doc<"thoughtfulPacks">, drop: Drop, at: number): Promise<TrayItem[]> {

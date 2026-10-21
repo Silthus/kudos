@@ -265,6 +265,10 @@ export const stickerPutInEventValidator = v.object({ type: v.literal("stickerPut
 
 export type StickerPutInEvent = Infer<typeof stickerPutInEventValidator>;
 
+export const itemTurnedEventValidator = v.object({ type: v.literal("itemTurned"), workspace: v.string(), member: v.id("members"), source: v.literal("hoggie"), rarity: rarityValidator, isNew: v.boolean(), at: v.number() });
+
+export type ItemTurnedEvent = Infer<typeof itemTurnedEventValidator>;
+
 export const companyTeamsReplacedEventValidator = v.object({ type: v.literal("companyTeamsReplaced"), at: v.number() });
 
 export type CompanyTeamsReplacedEvent = Infer<typeof companyTeamsReplacedEventValidator>;
@@ -318,6 +322,7 @@ export type DomainEvent =
   | StickersCollectedEvent
   | ThoughtfulPacksGrantedEvent
   | StickerPutInEvent
+  | ItemTurnedEvent
   | CompanyTeamsReplacedEvent
   | CompanyMatchesKeptEvent;
 

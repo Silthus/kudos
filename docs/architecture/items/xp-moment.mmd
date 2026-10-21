@@ -1,0 +1,16 @@
+sequenceDiagram
+  participant App as Website app
+  participant Web as Website reads
+  participant Act as Activity
+  participant Items
+  App->>Web: getXpMoment()
+  Web->>Web: lastVisitOf(member), none: answer "none"
+  Web->>Act: activitySince(member, since, most 50)
+  Act-->>Web: entries after since, newest first, each with words and XP
+  Web->>Items: waitingCountOf(member)
+  Web-->>App: { until, excerpts: 5 newest, folded: { count, xp }, climb, waiting }
+  App->>App: excerpts float up, XP flies into the bar
+  App->>Web: endXpMoment({ until, skipped, shown })
+  Web->>Web: moveLastVisit(member, min(until, now)), forward only
+  Web-->>App: { kind: "ended" }
+  Note over Web: a second tab ending an older until moves nothing

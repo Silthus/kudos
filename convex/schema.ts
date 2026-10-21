@@ -25,6 +25,7 @@ import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, trayDropValidator } from "./hoggies/records";
+import { itemValidator } from "./items/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import {
@@ -542,6 +543,8 @@ export default defineSchema({
     .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
     .index("by_giver_opened_at", ["giver", "openedAt", "at"])
     .index("by_giver_at", ["giver", "at"]),
+
+  items: defineTable(itemValidator).index("by_member_turned", ["member", "turnedAt", "earnedAt"]).index("by_member_source_key", ["member", "source", "key"]),
 
   trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]),
 

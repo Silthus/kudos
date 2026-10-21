@@ -5,6 +5,8 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
+import type { CrateKey } from "../hoggies/crateKey";
+import { earnItem } from "../items/ledger";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
 import { nameHypeEmojiOf } from "./emojiNames";
@@ -19,6 +21,8 @@ export type WaitingPack = { pack: Id<"thoughtfulPacks">; person: MemberId; earne
 export type Instants = { from: number; to: number };
 
 export type ThoughtfulKudos = { message: MessageRef; at: number; recipients: number };
+
+type PackId = Id<"thoughtfulPacks">;
 
 export const grantThoughtfulPacks = internalMutation({
   args: { event: kudosGivenEventValidator, from: v.optional(v.number()) },
@@ -92,9 +96,14 @@ async function packFor(ctx: MutationCtx, { workspace, giver, message, day, at }:
   const week = givingWeekOf(day);
   if (await packEarnedIn(ctx, giver, recipient, week)) return "nextWeek";
   const outcome = await stickerOutcomeOf(ctx, giver, recipient);
-  await ctx.db.insert("thoughtfulPacks", { workspace, giver, recipient, week, message, holdsSticker: outcome === "new", at });
+  const pack = await ctx.db.insert("thoughtfulPacks", { workspace, giver, recipient, week, message, holdsSticker: outcome === "new", at });
+  await earnItem(ctx, { workspace, member: giver, source: "hoggie", key: crateKeyOf(pack), reason: { kind: "thanks", person: recipient, message }, earnedAt: at });
   await nameHypeEmojiOf(ctx, workspace, recipient);
   return outcome;
+}
+
+export function crateKeyOf(pack: PackId): CrateKey {
+  return `thoughtful:${pack}`;
 }
 
 async function stickerOutcomeOf(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Exclude<GrantOutcome, "nextWeek">> {
