@@ -1,11 +1,13 @@
 import { act, screen, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Message } from "../../../convex/activity/entries";
+import type { XpMoment } from "../../../convex/website/xpMoment";
 import { shellFixtures, type ArrivalReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
-import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedPeople } from "./albumFixtures";
-import type { Album, AlbumHoggies, AlbumRead } from "./answer";
+import type { Album, AlbumHoggies, AlbumRead, XpMomentRead } from "./answer";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 
 const day = 86_400_000;
@@ -42,6 +44,28 @@ const nothingPutIn: Album = {
   people: visitedAlbum.people.map(({ at: _at, ...person }) => ({ ...person, held: false })),
 };
 
+const decidedWhileTheMomentBeforePlayed = putInBeforeArriving;
+
+const words = (text: string): Message => ({ kind: "text", segments: [{ kind: "text", text }], edited: false });
+
+const { level, xp, startsAt, nextAt } = albumFixtures.midway.level;
+
+const momentOfWhatWaited: XpMoment = {
+  kind: "moment",
+  since: lastVisit,
+  until: decidedWhileTheMomentBeforePlayed,
+  excerpts: [{ entry: { kind: "kudosReceived", key: "k1", at: decidedWhileTheMomentBeforePlayed, giver: { name: "Ines Okafor", face: { kind: "initials", initials: "IO" } }, channel: { visibility: "public" }, saidWhy: true, permalink: null, message: words("thank you for pairing on the flaky deploy") }, xp: 5 }],
+  fold: null,
+  moments: 1,
+  xp: 5,
+  climb: { from: { level, xp: xp - 5, startsAt, nextAt }, to: { level, xp, startsAt, nextAt } },
+  waiting: 0,
+  thoughtfulGivers: null,
+  timeZone: "UTC",
+};
+
+const thePlayingMoment: XpMomentRead = (asking) => (asking ? momentOfWhatWaited : undefined);
+
 const perrinTurned: Album = { ...nothingPutIn, people: nothingPutIn.people.map((person) => (person.person === "perrin-holt" ? { ...person, held: true, at: turnedThisVisit } : person)) };
 
 beforeEach(() => {
@@ -77,10 +101,12 @@ const arrivedAt = (moved: number | null) => async (): Promise<ArrivalReply> => (
 
 const movedOn = arrivedAt(putInBeforeArriving);
 
-function visit(album: Album, { path = quietHarbour, arrive = movedOn } = {}) {
+type Visit = { path?: string; arrive?: () => Promise<ArrivalReply>; xpMoment?: XpMomentRead; endXpMoment?: () => Promise<ArrivalReply> };
+
+function visit(album: Album, { path = quietHarbour, arrive = movedOn, xpMoment, endXpMoment }: Visit = {}) {
   window.history.replaceState(null, "", path);
   const live = anAlbumThatAnswers(album);
-  const view = renderAlbum(shellFixtures.member, live.read, { hoggies: fixedHoggies(visitedHoggies), people: fixedPeople(album), commands: { arrive } });
+  const view = renderAlbum(shellFixtures.member, live.read, { hoggies: fixedHoggies(visitedHoggies), people: fixedPeople(album), xpMoment, commands: { arrive, ...(endXpMoment !== undefined && { endXpMoment }) } });
   return { ...view, ...live };
 }
 
@@ -173,6 +199,22 @@ describe("LP22: what was put in since the last visit carries New on its page", {
     expect(newLabels()).toEqual([]);
 
     answerNext({ ...visitedAlbum, lastVisit: turnedThisVisit, people: visitedAlbum.people.map((person) => (person.person === "ada-quill" ? { ...person, at: turnedNextVisit } : person)) });
+
+    expect(await within(await photoPerson("Ada Quill")).findByText("New")).toBeVisible();
+    expect(within(await photoPerson("Perrin Holt")).queryByText("New")).toBeNull();
+  });
+
+  it("clears what the visit before turned after its moment ended once this visit's moment ends, though the moment read only what was decided before those turns, and labels what this visit turns after it", async () => {
+    preferReducedMotion();
+    const { actions, answerNext } = visit(visitedAlbum, { xpMoment: thePlayingMoment, endXpMoment: arrivedAt(turnedThisVisit) });
+    expect(await screen.findByText(/^Unlocked /, {}, theAlbumLoads)).toBeVisible();
+    await act(async () => {});
+
+    expect(actions.endXpMoment).toHaveBeenCalledWith(lastVisit, decidedWhileTheMomentBeforePlayed, false);
+    expect(actions.arrive).not.toHaveBeenCalled();
+    expect(newLabels()).toEqual([]);
+
+    answerNext({ ...visitedAlbum, people: visitedAlbum.people.map((person) => (person.person === "ada-quill" ? { ...person, at: turnedNextVisit } : person)) });
 
     expect(await within(await photoPerson("Ada Quill")).findByText("New")).toBeVisible();
     expect(within(await photoPerson("Perrin Holt")).queryByText("New")).toBeNull();
