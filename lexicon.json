@@ -625,7 +625,7 @@
     },
     {
       "name": "hug",
-      "definition": "A member's emoji reaction with the workspace's kudos emoji on someone else's message in a channel the app is in, within 24 hours of the message, once per member and message and within the giver's hug budget, shown wherever it is named as the emoji they reacted. It gives each person it is for (a Given kudos message's recipients, any other message's author) 1 XP and the giver 1 XP. A hug is not kudos and not an award: it spends no daily allowance, counts on no board, pays no coins, drops nothing and is never thoughtful kudos."
+      "definition": "A member's emoji reaction with the workspace's kudos emoji, or an earned emoji they hold, on someone else's message in a channel the app is in, within 24 hours of the message, once per member and message and within the giver's hug budget, shown wherever it is named as the emoji they reacted. It gives each person it is for (a Given kudos message's recipients, any other message's author) 1 XP and the giver 1 XP. A hug is not kudos and not an award: it spends no daily allowance, counts on no board, pays no coins, drops nothing and is never thoughtful kudos."
     },
     {
       "name": "hug budget",
@@ -739,7 +739,7 @@
     },
     {
       "name": "earned emoji",
-      "definition": "A team, milestone, level, hype or random emoji a member earned. The first four are derived on every read from what earns them: a team sticker, a milestone's gold tier, a level of 5, 10, 15, 20 or 25, or a first thoughtful pack for a person (AL23, AL24); a random emoji is held from its stored drop. Its ID never changes; its name lives in the workspace's emoji name registry, which only the maintainer's mapping changes (AL74), and it is in Slack only while the workspace's custom emoji copy holds that name, pictured then as Slack pictures it (AL25, AL30). Not a kudos emoji: it decorates a message and gives nothing."
+      "definition": "A team, milestone, level, hype or random emoji a member earned. The first four are derived on every read from what earns them: a team sticker, a milestone's gold tier, a level of 2 (while onboarding is on, named the standard Slack emoji raised_hands, LP71), 5, 10, 15, 20 or 25, or a first thoughtful pack for a person (AL23, AL24); a random emoji is held from its stored drop. Its ID never changes; its name lives in the workspace's emoji name registry, which only the maintainer's mapping changes (AL74), and it is in Slack only while the workspace's custom emoji copy holds that name or Slack has a standard emoji of that name, pictured then as Slack pictures it (AL25, AL30, LP71). For its holder it gives kudos in a message and makes a hug as a reaction, as the workspace's kudos emoji does; for nobody else does it count."
     },
     {
       "name": "hype emoji",
@@ -792,6 +792,18 @@
     {
       "name": "pet hoggie",
       "definition": "The one hoggie a member picks to show on their person page and on team pages (LP1, LP57)."
+    },
+    {
+      "name": "how-it-works card",
+      "definition": "The one card that ends a newcomer's first visit and shows a hug and a kudos as they look in Slack (LP66, LP67). It shows only to a member who has never given a kudos, and never again once closed. Not a tour and not a welcome message."
+    },
+    {
+      "name": "first-thanks top-up",
+      "definition": "The one-off XP that takes a member's first kudos given to level 2 (LP66, LP70): a reward record keyed once per member, paying what the giver's XP after their first kudos lacks of level 2. Not a bonus and not a perk."
+    },
+    {
+      "name": "first-hug reply",
+      "definition": "The one ephemeral reply to a member's first hug ever, visible only to them, tried once and never as a DM (LP66, LP73). Not the welcome nudge."
     }
   ],
   "retired": [
