@@ -358,7 +358,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: a kudos message holding the giver's team emoji, one holding the level emoji of a level they reached, and one holding a team emoji only another member unlocked; a reaction with the giver's team emoji on a teammate's message, and one with a team emoji only another member unlocked, read through the recipients' kudos and both members' XP
   via: an emoji the giver unlocked in the album counts like the workspace's kudos emoji
   because: an earned emoji is a reward the member adds to Slack to use (AL23, AL31), and the team emoji line tells them to react with it and put it in the kudos they give, so it must count where the workspace's kudos emoji counts; one counting for a member who doesn't hold it would spend allowance and hand out hugs for an emoji nobody earned
-  refuted: isEarnedEmojiNamed answered true for any registered or random emoji name, whoever held it -> 2 of 5 tests failed on their assertions: Alice's kudos message with a team emoji only Carol unlocked gave Bob kudos, and Bob's reaction with it gave a hug (2026-10-21)
+  refuted: isEarnedEmojiNamed answered true for any registered or random emoji name, whoever held it -> 2 of 5 tests failed on their assertions: a kudos message with a team emoji only another member unlocked gave its recipient kudos, and a reaction with it gave a hug (2026-10-21)
   kinds: state
   checklist: scoped-reads declared as an earned emoji counts only for its holder
   checklist: revalidated-permission dismissed: no permission is involved; the hold is read in the mutation that decides the kudos or the hug
