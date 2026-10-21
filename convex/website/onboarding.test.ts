@@ -16,6 +16,8 @@ const albumOpen = ["album", "collection", "packs", "hugs"];
 const onboardingOn = [...albumOpen, "hidden-items", "onboarding"];
 const juno = { user: "U_JUNO", name: "Juno Whitlock" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
+const taco = { kudosEmoji: "taco", kudosEmojiImage: null };
+const slack = `https://app.slack.com/client/${allowedWorkspace}`;
 
 type Person = { user: string; name: string };
 type Reader = Pick<Backend, "query" | "mutation">;
@@ -28,9 +30,9 @@ beforeEach(async () => {
   vi.useFakeTimers({ now: tuesday });
   aDeploymentForWorkspace();
   postHog = new FakePostHog();
-  const slack = new FakeSlack();
-  for (const person of [juno, bob]) slack.withMember(person.user, { real_name: person.name });
-  vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  const fakeSlack = new FakeSlack();
+  for (const person of [juno, bob]) fakeSlack.withMember(person.user, { real_name: person.name });
+  vi.stubGlobal("fetch", routedFetch(postHog, fakeSlack.fetch));
   t = testBackend({ transactionLimits: true });
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: allowedWorkspace, kudosEmoji: "taco", baseAllowance: 200 }));
   await switchWebsite(t, postHog, true, ...onboardingOn);
@@ -50,8 +52,7 @@ describe("LP67 LP68: getAlbum answers the how-it-works card to a member who neve
   test("a newcomer reads the card with their Slack workspace's address and the level-2 lines, beside the workspace's kudos emoji", async () => {
     const album = await albumOf(await signedIn(juno));
 
-    expect(album.howItWorks, "the newcomer's card").toEqual({ slack: `https://app.slack.com/client/${allowedWorkspace}`, toLevelTwo: true });
-    expect(album.emojiHowTo, "the card's kudos emoji").toEqual({ kudosEmoji: "taco", kudosEmojiImage: null });
+    expect(album.howItWorks, "the newcomer's card").toEqual({ slack, toLevelTwo: true, kudos: taco });
   });
 
   test("a member who has given a kudos reads no card, while the teammate they thanked still does", async () => {
@@ -64,7 +65,7 @@ describe("LP67 LP68: getAlbum answers the how-it-works card to a member who neve
   test("a never-giver already at level 2 reads the card without the level-2 lines", async () => {
     await reachesXp(juno, xpToReach(2));
 
-    expect((await albumOf(await signedIn(juno))).howItWorks, "the card at level 2").toEqual({ slack: `https://app.slack.com/client/${allowedWorkspace}`, toLevelTwo: false });
+    expect((await albumOf(await signedIn(juno))).howItWorks, "the card at level 2").toEqual({ slack, toLevelTwo: false, kudos: taco });
   });
 
   test.each([
@@ -124,38 +125,38 @@ describe("LP69: closeHowItWorks stores the member's close once and records onboa
 
 describe("LP76: getAlbum answers Getting started, each step done from one read", { timeout: 60_000 }, () => {
   test("a newcomer has done none of the four steps", async () => {
-    expect((await albumOf(await signedIn(juno))).gettingStarted).toEqual({ hugged: false, thoughtful: false, turned: false, levelTwo: false });
+    expect((await albumOf(await signedIn(juno))).gettingStarted).toEqual({ steps: { hugged: false, thoughtful: false, turned: false, levelTwo: false }, kudos: taco });
   });
 
   test("a hug the member gave does Give a hug, and one they received does not", async () => {
     await thanks(bob, "Shipped the fix for the flaky deploy", juno);
     await hug(bob, juno);
 
-    expect((await albumOf(await signedIn(bob))).gettingStarted, "the hugger's steps").toMatchObject({ hugged: true });
-    expect((await albumOf(await signedIn(juno))).gettingStarted, "the hugged member's steps").toMatchObject({ hugged: false });
+    expect((await albumOf(await signedIn(bob))).gettingStarted?.steps, "the hugger's steps").toMatchObject({ hugged: true });
+    expect((await albumOf(await signedIn(juno))).gettingStarted?.steps, "the hugged member's steps").toMatchObject({ hugged: false });
   });
 
   test("a thoughtful kudos the member gave does Give a thoughtful kudos, and turning its item does Turn an item", async () => {
     await thanks(juno, saysWhy, bob);
     const asJuno = await signedIn(juno);
-    expect((await albumOf(asJuno)).gettingStarted, "after the thoughtful kudos").toMatchObject({ thoughtful: true, turned: false });
+    expect((await albumOf(asJuno)).gettingStarted?.steps, "after the thoughtful kudos").toMatchObject({ thoughtful: true, turned: false });
 
     for (const { item } of (await albumOf(asJuno)).board?.items ?? []) await asJuno.mutation(api.website.album.turnItem, { item });
 
-    expect((await albumOf(asJuno)).gettingStarted, "after the turn").toMatchObject({ thoughtful: true, turned: true });
-    expect((await albumOf(await signedIn(bob))).gettingStarted, "the thanked member's steps").toMatchObject({ thoughtful: false });
+    expect((await albumOf(asJuno)).gettingStarted?.steps, "after the turn").toMatchObject({ thoughtful: true, turned: true });
+    expect((await albumOf(await signedIn(bob))).gettingStarted?.steps, "the thanked member's steps").toMatchObject({ thoughtful: false });
   });
 
   test("a kudos that says no why leaves Give a thoughtful kudos undone", async () => {
     await thanks(juno, "ty", bob);
 
-    expect((await albumOf(await signedIn(juno))).gettingStarted).toMatchObject({ thoughtful: false });
+    expect((await albumOf(await signedIn(juno))).gettingStarted?.steps).toMatchObject({ thoughtful: false });
   });
 
   test("reaching level 2 does Reach level 2", async () => {
     await reachesXp(juno, xpToReach(2));
 
-    expect((await albumOf(await signedIn(juno))).gettingStarted).toMatchObject({ levelTwo: true });
+    expect((await albumOf(await signedIn(juno))).gettingStarted?.steps).toMatchObject({ levelTwo: true });
   });
 
   test.each([

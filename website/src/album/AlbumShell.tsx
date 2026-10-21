@@ -3,10 +3,11 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
-import type { ShareReply, TurnReply } from "../shell";
+import type { HowItWorksCloseReply, ShareReply, TurnReply } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
+import { HowItWorks } from "./HowItWorks";
 import { AfterTheLanding, ItemBoard, ItemsWait } from "./ItemBoard";
 import { useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
@@ -23,6 +24,7 @@ import { albumAtTheLanding } from "./landedAlbum";
 import { TurnFlight } from "./TurnFlight";
 import { shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
+import { cardShownAt, useHowItWorks } from "./useHowItWorks";
 import { useTeamUnlock } from "./useTeamUnlock";
 import { MomentGlow } from "./MomentGlow";
 import { useXpMomentSequence } from "./useXpMoment";
@@ -49,9 +51,10 @@ export type AlbumShellProps = {
   endXpMoment: (skipped: boolean) => void;
   missedXpMoment: MissedXpMoment;
   shareItem: (item: string) => Promise<ShareReply>;
+  closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -77,11 +80,13 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     },
     [show],
   );
-  const items = useItemBoard(album.board, turnItem, album.level, keyOf(place));
+  const visitCard = useHowItWorks(answered, closeHowItWorks);
+  const items = useItemBoard(album.board, turnItem, album.level, keyOf(place), { teachesTheLoop: visitCard.answered === null });
   const shares = useWinShares(shareItem);
   const flying = items.flight !== null;
   const sinceTheLastVisit = useXpMomentSequence(xpMoment, { itemsWait: (album.board?.items.length ?? 0) > 0, onEnd: endXpMoment });
-  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits;
+  const howItWorks = cardShownAt(visitCard, { landing: items.landing, turning: items.turning, momentWaits: sinceTheLastVisit.waits });
+  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits || howItWorks.holds;
   const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
   const levelUnlocks = useLevelUnlocks(album, sinceTheLastVisit, emojiMoments.shownElsewhere);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
@@ -92,7 +97,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const turns = shownUnless(items, anotherMoment || playing);
   const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
-  const covered = boardShown || sinceTheLastVisit.covers;
+  const covered = boardShown || sinceTheLastVisit.covers || howItWorks.card !== null;
   const awaitingAMoment = playing || unlocking.sending !== null || covered;
   const glows = missedXpMoment.glows && !anotherMoment && !awaitingAMoment && (missedXpMoment.moment !== null || turns.offered);
   const collectWhatWaits = () => {
@@ -111,6 +116,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {sinceTheLastVisit.play !== null && <XpMomentCanvas play={sinceTheLastVisit.play} me={album.me} levelUnlocks={levelUnlocks} />}
       {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} landed={<AfterTheLanding turns={turns} album={album} shares={shares} />} touched={turns.touched} onTouch={turns.touch} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
+      {howItWorks.card !== null && <HowItWorks card={howItWorks.card} onClose={visitCard.close} />}
       {album.board !== null && <ItemsWait turns={turns} album={album} shares={shares} pill={!missedXpMoment.glows} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">

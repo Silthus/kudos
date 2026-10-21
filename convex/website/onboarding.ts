@@ -13,9 +13,11 @@ import type { MemberId } from "../workspace/directory";
 import { memberMutation } from "./memberMutation";
 import type { VerifiedMember } from "./memberQuery";
 
-export type HowItWorksCard = { slack: string; toLevelTwo: boolean };
+export type HowItWorksCard = { slack: string; toLevelTwo: boolean; kudos: LoopLesson };
 
-export type GettingStarted = { hugged: boolean; thoughtful: boolean; turned: boolean; levelTwo: boolean };
+export type GettingStartedSteps = { hugged: boolean; thoughtful: boolean; turned: boolean; levelTwo: boolean };
+
+export type GettingStarted = { steps: GettingStartedSteps; kudos: LoopLesson };
 
 export type Onboarding = { emojiHowTo?: LoopLesson; gettingStarted?: GettingStarted; howItWorks?: HowItWorksCard };
 
@@ -25,10 +27,11 @@ const levelTwo = 2;
 
 export async function onboardingOf(ctx: QueryCtx, me: VerifiedMember, { level }: { level: number }): Promise<Onboarding> {
   if (!(await onboardingShownTo(ctx, me.member))) return {};
-  return { emojiHowTo: await loopLessonIn(ctx, me.workspace), gettingStarted: await gettingStartedOf(ctx, me, level), ...(await howItWorksFor(ctx, me, level)) };
+  const kudos = await loopLessonIn(ctx, me.workspace);
+  return { emojiHowTo: kudos, gettingStarted: { steps: await stepsDoneBy(ctx, me, level), kudos }, ...(await howItWorksFor(ctx, me, { level, kudos })) };
 }
 
-async function gettingStartedOf(ctx: QueryCtx, me: VerifiedMember, level: number): Promise<GettingStarted> {
+async function stepsDoneBy(ctx: QueryCtx, me: VerifiedMember, level: number): Promise<GettingStartedSteps> {
   return {
     hugged: await hasGivenAHug(ctx, me.member),
     thoughtful: await hasGivenAThoughtfulAward(ctx, me.workspace, me.member),
@@ -37,9 +40,9 @@ async function gettingStartedOf(ctx: QueryCtx, me: VerifiedMember, level: number
   };
 }
 
-async function howItWorksFor(ctx: QueryCtx, me: VerifiedMember, level: number): Promise<Pick<Onboarding, "howItWorks">> {
+async function howItWorksFor(ctx: QueryCtx, me: VerifiedMember, { level, kudos }: { level: number; kudos: LoopLesson }): Promise<Pick<Onboarding, "howItWorks">> {
   if ((await hasGivenAnAward(ctx, me.member)) || (await closeOf(ctx, me.member)) !== null) return {};
-  return { howItWorks: { slack: workspaceLink(me.workspace), toLevelTwo: level < levelTwo } };
+  return { howItWorks: { slack: workspaceLink(me.workspace), toLevelTwo: level < levelTwo, kudos } };
 }
 
 export const closeHowItWorks = memberMutation({

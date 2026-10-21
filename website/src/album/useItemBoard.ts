@@ -52,7 +52,7 @@ export function shownUnless(turns: ItemTurns, waits: boolean): ShownTurns {
   return { ...turns, open: waiting && turns.shown === "board", offered: waiting && turns.shown !== "board" };
 }
 
-export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel, page: string): ItemTurns {
+export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel, page: string, { teachesTheLoop }: { teachesTheLoop: boolean }): ItemTurns {
   const navigate = useNavigate();
   const [shown, setShown] = useState<Shown>("board");
   const [turnedOver, setTurnedOver] = useState<ReadonlyMap<string, TurnedFaceShown>>(() => new Map());
@@ -76,10 +76,10 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       setTurnedOver((turned) => new Map(turned).set(item, face));
       setLandingDue(false);
       landings.current += 1;
-      setLanding({ item, face, applied, unlocked, teaches: teaches ?? null, turn: landings.current, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length });
+      setLanding({ item, face, applied, unlocked, teaches: teachesTheLoop ? (teaches ?? null) : null, turn: landings.current, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length });
       navigate(hrefOf(placeOf(page)));
     },
-    [navigate],
+    [navigate, teachesTheLoop],
   );
   const phase = useCallback((next: LandingPhase) => setLanding((last) => (last === null ? null : { ...last, phase: next })), []);
   const medalShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, medalsShown: shown(last) })), []);
