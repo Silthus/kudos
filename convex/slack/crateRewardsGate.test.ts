@@ -456,16 +456,18 @@ function inAnyOrder(items: unknown[]) {
   return items.map((item) => JSON.stringify(item).replace(/\d+\.\d+\.trigger/g, "<trigger>")).sort();
 }
 
+const generatedId = /(?<=[":])\d+[A-Za-z]+(?=")/g;
+
 function withGeneratedIdsRanked<Observed>(observed: Observed): Observed {
   const json = jsonOf(observed, { except: "_creationTime" });
-  const ids = [...new Set(json.match(/"\d+[A-Za-z]+"/g) ?? [])].filter((id) => id.length === 34);
+  const ids = [...new Set(json.match(generatedId) ?? [])].filter((id) => id.length === 32);
   const ranks = new Map<string, string>();
   for (const table of new Set(ids.map(tableOf))) {
     const ofTable = ids.filter((id) => tableOf(id) === table).sort((a, b) => counterOf(a) - counterOf(b));
-    ofTable.forEach((id, rank) => ranks.set(id, `"${table}#${rank}"`));
+    ofTable.forEach((id, rank) => ranks.set(id, `${table}#${rank}`));
   }
   const uuids = [...new Set(json.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g) ?? [])];
-  const idsRanked = json.replace(/"\d+[A-Za-z]+"/g, (id) => ranks.get(id) ?? id);
+  const idsRanked = json.replace(generatedId, (id) => ranks.get(id) ?? id);
   return JSON.parse(uuids.reduce((ranked, uuid, rank) => ranked.replaceAll(uuid, `uuid#${rank}`), idsRanked));
 }
 
@@ -473,10 +475,10 @@ function jsonOf(value: unknown, { except }: { except?: string } = {}) {
   return JSON.stringify(value, (key, field: unknown) => (key === except ? undefined : typeof field === "bigint" ? `${field}n` : field));
 }
 
-function tableOf(quotedId: string) {
-  return quotedId.replace(/^"\d+|"$/g, "");
+function tableOf(id: string) {
+  return id.replace(/^\d+/, "");
 }
 
-function counterOf(quotedId: string) {
-  return Number(quotedId.match(/^"(\d+)/)![1]);
+function counterOf(id: string) {
+  return Number(id.match(/^(\d+)/)![1]);
 }

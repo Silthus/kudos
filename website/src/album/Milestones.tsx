@@ -4,9 +4,12 @@ import { PageTitle } from "../PageTitle";
 import { MapInPlace, NotInSlack, useMapsInPlace } from "./findInSlack";
 import type { Album, AlbumMilestone } from "./answer";
 import { medalsOf } from "./facts";
-import { climbedShareOf, emblemOf, goalOf, isEarned, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
+import { NewLabel } from "./ItemBoard";
+import { climbedShareOf, emblemOf, goalOf, isEarned, medalKeyOf, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
+import { useNewSinceTheLastVisit } from "./newLabels";
 import { closestNextOf, highestEarnedOf, type NextMedal } from "./profile";
 import { dateOf } from "./teamPage";
+import { useLanding } from "./useItemBoard";
 import "./milestones.css";
 
 export function MilestonesPage({ album }: { album: Album }) {
@@ -108,8 +111,9 @@ type Tier = AlbumMilestone["tiers"][number];
 
 function Medal({ milestone, tier, step, ladder, emoji, emojiPage }: { milestone: AlbumMilestone; tier: Tier; step: MedalStep; ladder: ReturnType<typeof emblemOf>; emoji: TierEmoji; emojiPage: string | null }) {
   const note = noteOf(milestone, tier, step);
+  const isNew = useNewMedal(milestone, tier);
   return (
-    <li className="al-ms-medal" data-step={step}>
+    <li className="al-ms-medal" data-step={step} data-al-medal={medalKeyOf({ milestone: milestone.id, tier: tier.tier })}>
       {step === "next" && <span className="al-ms-tag">Next</span>}
       <span className="al-ms-medal-art">
         {step === "next" && <ProgressRing milestone={milestone} tier={tier} />}
@@ -117,10 +121,17 @@ function Medal({ milestone, tier, step, ladder, emoji, emojiPage }: { milestone:
       </span>
       <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
       <span className="al-ms-medal-name">{tier.name}</span>
+      {isNew && <NewLabel />}
       <span className="al-ms-note">{note}</span>
-      <MedalEmoji tier={tier} emoji={emoji} emojiPage={emojiPage} />
+      <MedalEmoji tier={tier} emoji={emoji} emojiPage={emojiPage} isNew={isNew} />
     </li>
   );
+}
+
+function useNewMedal(milestone: AlbumMilestone, tier: Tier) {
+  const unlockedByTheTurn = useLanding()?.unlocked.milestones.some((reached) => reached.milestone === milestone.id && reached.tier === tier.tier) ?? false;
+  const unlockedSinceTheLastVisit = useNewSinceTheLastVisit(tier.unlockedAt ?? tier.earnedAt);
+  return isEarned(tier) && (unlockedByTheTurn || unlockedSinceTheLastVisit);
 }
 
 function noteOf(milestone: AlbumMilestone, tier: Tier, step: MedalStep) {
@@ -129,13 +140,14 @@ function noteOf(milestone: AlbumMilestone, tier: Tier, step: MedalStep) {
   return null;
 }
 
-function MedalEmoji({ tier, emoji: { name, picture, answered }, emojiPage }: { tier: Tier; emoji: TierEmoji; emojiPage: string | null }) {
+function MedalEmoji({ tier, emoji: { name, picture, answered }, emojiPage, isNew }: { tier: Tier; emoji: TierEmoji; emojiPage: string | null; isNew: boolean }) {
   const earned = isEarned(tier);
   return (
     <figure className="al-ms-emoji ph-no-capture" data-earned={earned ? "" : undefined}>
       <img src={picture} alt="" width={32} height={32} loading="lazy" decoding="async" />
       <figcaption>
         <code>{`:${name}:`}</code>
+        {isNew && <NewLabel />}
         <EmojiSays earned={earned} at={tier.at} answered={answered} emojiPage={emojiPage} />
       </figcaption>
     </figure>

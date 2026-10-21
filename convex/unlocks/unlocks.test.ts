@@ -178,7 +178,7 @@ describe("P5: a ready or opened feature is kept for good", () => {
     expect(published("unlockReady")).toHaveLength(1);
   });
 
-  test("a second open, a replayed levelReached, a later level up and the flag going off and on leave an opened Leaderboard open with its first times, publishing nothing and writing only the later level ups, which make nothing ready", async () => {
+  test("a second open, a replayed levelReached, a later level up and the flag going off and on leave an opened Leaderboard open with its first times, publishing nothing and writing only the later level ups and their items, which make nothing ready", async () => {
     const { t, alice } = await withMember();
     const reached = levelReachedEvent(alice, 3);
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
@@ -195,7 +195,8 @@ describe("P5: a ready or opened feature is kept for good", () => {
     await boardTurned(t, "on");
 
     const laterLevelUps = [4, 5].map((level) => expect.objectContaining({ member: alice, level, ready: [] }));
-    expect(await everyTable(t)).toEqual({ ...before, levelUps: [...before.levelUps!, ...laterLevelUps] });
+    const laterLevelItems = [4, 5].flatMap((level) => [1, 2, 3].map((slot) => expect.objectContaining({ member: alice, key: `level:${level}:${slot}`, reason: { kind: "levelUp", level } })));
+    expect(await everyTable(t)).toEqual({ ...before, levelUps: [...before.levelUps!, ...laterLevelUps], items: [...before.items!, ...laterLevelItems] });
     expect(await state(t, alice, "leaderboard")).toBe("open");
     expect(vi.mocked(publish)).not.toHaveBeenCalled();
   });

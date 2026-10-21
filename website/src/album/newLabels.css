@@ -1,0 +1,9 @@
+.al-hoggies-plate > .ib-new,
+.al-photo-person > .ib-new {
+  position: absolute;
+  z-index: 1;
+  top: -0.5rem;
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+}

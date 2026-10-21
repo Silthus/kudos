@@ -39,7 +39,7 @@ type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShow
 const now = new Date("2026-10-13T10:00:00Z");
 const stepMs = 10 * 60_000;
 const stepWindowMs = 9 * 60_000;
-const aTotalityOverEveryRecorderWalksFiveTimesMs = 40_000;
+const aTotalityOverEveryRecorderWalksSixTimesMs = 48_000;
 const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -181,10 +181,10 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of five whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes and one through the album's tray, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of six whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes, one through the album's tray and one through the item board ending an XP moment, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
-    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest, walkThroughTheAlbumsTray]) {
+    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest, walkThroughTheAlbumsTray, walkThroughTheItemBoard]) {
       const { t } = await walked();
       for (const spy of [memberDecision, workspaceDecision, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
       for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
@@ -194,7 +194,7 @@ describe("E11: recording a product event writes only analytics' own rows and sch
     }
 
     expect([...reRun].sort()).toEqual(everyRecorder().sort());
-  }, aTotalityOverEveryRecorderWalksFiveTimesMs);
+  }, aTotalityOverEveryRecorderWalksSixTimesMs);
 });
 
 async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
@@ -299,6 +299,39 @@ async function walkThroughTheAlbumsTray() {
   return { t };
 }
 
+async function walkThroughTheItemBoard() {
+  start("on", "flags key set");
+  aDeploymentForWorkspace();
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "website", "album", "hidden-items", "xp-moments"].map(onForEveryone));
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
+  await journeyShippedBeforeAnyoneJoined(t);
+
+  await openHome(t, "U_ALICE");
+  await giveKudos(t, "U_ALICE", 1);
+  const { asSignedIn } = await aSignedInSession(t, { user: "U_ALICE" });
+  const album = await asSignedIn.query(api.website.album.getAlbum, {});
+  const waiting = "board" in album && album.board !== undefined ? album.board.items : [];
+  for (const { item } of waiting) await asSignedIn.mutation(api.website.album.turnItem, { item });
+  await settled(t);
+
+  expect(waiting.length, "items waiting on the board").toBeGreaterThan(0);
+  expect(eventsNamed("item turned")).toHaveLength(waiting.length);
+  expect(new Set(eventsNamed("item turned").map(({ properties }) => properties.source))).toEqual(new Set(["hoggie", "sticker"]));
+  await endAnXpMoment(t, asSignedIn);
+  return { t };
+}
+
+async function endAnXpMoment(t: Backend, asSignedIn: Pick<Backend, "query" | "mutation">) {
+  await asSignedIn.mutation(api.website.lastVisit.arrive, { from: null });
+  await giveKudos(t, "U_ALICE", 1);
+  const moment = await asSignedIn.query(api.website.xpMoment.getXpMoment, {});
+  if (moment.kind !== "moment") throw new Error(`expected an XP moment, got ${moment.kind}`);
+  await asSignedIn.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false });
+  await settled(t);
+  expect(eventsNamed("xp moment ended")).toHaveLength(1);
+}
+
 async function everyoneOnOneTeam(t: Backend) {
   await t.run(async (ctx) => {
     const profiles = members.map((_, index) => 10_000 + index);
@@ -334,7 +367,7 @@ function everyRecorder() {
     .flat()
     .map((subscription) => getFunctionName("subscriber" in subscription ? subscription.subscriber : subscription))
     .filter((name) => name.startsWith("analytics/"));
-  return [...new Set(subscribed), "analytics/isolatedUsage:recordLeaderboardViewed", "analytics/isolatedUsage:recordLeaderboardVisibilityChanged", "slack/commands:recordLeaderboardViewed"];
+  return [...new Set(subscribed), "analytics/isolatedUsage:recordLeaderboardViewed", "analytics/isolatedUsage:recordLeaderboardVisibilityChanged", "analytics/isolatedUsage:recordXpMomentEnded", "slack/commands:recordLeaderboardViewed"];
 }
 
 async function walk(setup: Setup, capture: Capture) {
@@ -595,12 +628,18 @@ function withLabelledIds(stored: Record<string, Row[]>) {
   const labels = new Map<string, string>();
   for (const [table, rows] of Object.entries(stored)) rows.forEach((row, index) => labels.set(row._id, `${table}#${index}`));
   const relabelled = (value: unknown): unknown => {
-    if (typeof value === "string") return labels.get(value) ?? value;
+    if (typeof value === "string") return labels.get(value) ?? withKeyedIdLabelled(value, labels);
     if (Array.isArray(value)) return value.map(relabelled);
     if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "_creationTime").map(([key, inner]) => [key, relabelled(inner)]));
     return value;
   };
   return relabelled(stored);
+}
+
+function withKeyedIdLabelled(value: string, labels: Map<string, string>) {
+  const [kind, id] = value.split(":");
+  const label = id === undefined ? undefined : labels.get(id);
+  return label === undefined ? value : `${kind}:${label}`;
 }
 
 function productEvents(): CapturedEvent[] {

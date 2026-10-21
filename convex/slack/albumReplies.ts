@@ -4,9 +4,8 @@ import { observedAction } from "../analytics/boundary";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
 import type { AlbumReply, AlbumReplyButton, AlbumReplyDestination, AlbumReplyRecipient } from "../feedback/albumReplies";
 import { escaped, mrkdwn, urlButtonOf } from "./blocks";
-import { attemptArgs, attemptCall, isRefusedAsEphemeral, isRefusedForItsBlocks, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
+import { attemptArgs, attemptCall, isRateLimited, isRefusedAsEphemeral, isRefusedForItsBlocks, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
 
-const rateLimitErrors = new Set(["ratelimited", "rate_limited"]);
 
 export const deliverAlbumReply = observedAction({
   args: { event: thoughtfulPacksGrantedEventValidator, ...attemptArgs },
@@ -43,10 +42,6 @@ function postAsDirectMessage(ctx: ActionCtx, reply: AlbumReply, { user }: AlbumR
   return attemptCall(ctx, reply.workspace, "chat.postMessage", { channel: user, ...contentOf(reply), unfurl_links: false, unfurl_media: false });
 }
 
-function isRateLimited(result: Attempt): result is Extract<Attempt, { kind: "held" | "failed" }> {
-  return result.kind === "held" || (result.kind === "failed" && (result.retryAt !== undefined || rateLimitErrors.has(result.error ?? "")));
-}
-
 function hasPictures({ recipients }: AlbumReply) {
   return recipients.some(({ hype }) => hype?.picture);
 }
@@ -63,10 +58,11 @@ function fallbackTextOf({ recipients }: AlbumReply) {
   return recipients.map(({ headline }) => escaped(headline)).join(" · ");
 }
 
-function blocksOf({ recipients, more, buttons, gains }: AlbumReply) {
+function blocksOf({ recipients, more, waiting, buttons, gains }: AlbumReply) {
   return [
     ...recipients.flatMap(recipientBlocksOf),
     ...(more > 0 ? [{ type: "context", elements: [mrkdwn(`And ${more} more.`)] }] : []),
+    ...(waiting === null ? [] : [{ type: "context", elements: [mrkdwn(escaped(waiting))] }]),
     ...(buttons.length > 0 ? [{ type: "actions", elements: buttons.map(buttonOf) }] : []),
     ...(gains === null ? [] : [{ type: "context", elements: [mrkdwn(slackTextOf([gains]))] }]),
   ];

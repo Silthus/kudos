@@ -24,6 +24,23 @@ export async function hugBudgetOf(ctx: QueryCtx, workspace: string): Promise<num
   return (await workspaceRow(ctx, workspace))?.hugBudget ?? defaultHugBudget;
 }
 
+export async function welcomeNudgeOn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await welcomeNudgeSwitchIn(ctx, workspace))?.on ?? true;
+}
+
+export async function saveWelcomeNudge(ctx: MutationCtx, workspace: string, on: boolean): Promise<void> {
+  const saved = await welcomeNudgeSwitchIn(ctx, workspace);
+  if (saved === null) await ctx.db.insert("welcomeNudgeSwitches", { workspace, on });
+  else await ctx.db.patch(saved._id, { on });
+}
+
+function welcomeNudgeSwitchIn(ctx: QueryCtx, workspace: string) {
+  return ctx.db
+    .query("welcomeNudgeSwitches")
+    .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
+    .unique();
+}
+
 export const setHugBudget = internalMutation({
   args: { workspace: v.string(), hugBudget: v.number() },
   handler: async (ctx, { workspace, hugBudget }) => {

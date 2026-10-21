@@ -10,6 +10,7 @@ import { questIdValidator } from "../quests/pool";
 import { journeyStepValidator, questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import { rarityValidator } from "../hoggies/catalogue";
+import { itemSourceValidator } from "../items/records";
 import { surfaceValidator } from "../commands/surface";
 import type { MemberId } from "../workspace/directory";
 import { grantOutcomeValidator } from "../album/records";
@@ -265,6 +266,10 @@ export const stickerPutInEventValidator = v.object({ type: v.literal("stickerPut
 
 export type StickerPutInEvent = Infer<typeof stickerPutInEventValidator>;
 
+export const itemTurnedEventValidator = v.object({ type: v.literal("itemTurned"), workspace: v.string(), member: v.id("members"), source: itemSourceValidator, rarity: v.optional(rarityValidator), isNew: v.boolean(), at: v.number() });
+
+export type ItemTurnedEvent = Infer<typeof itemTurnedEventValidator>;
+
 export const companyTeamsReplacedEventValidator = v.object({ type: v.literal("companyTeamsReplaced"), at: v.number() });
 
 export type CompanyTeamsReplacedEvent = Infer<typeof companyTeamsReplacedEventValidator>;
@@ -318,6 +323,7 @@ export type DomainEvent =
   | StickersCollectedEvent
   | ThoughtfulPacksGrantedEvent
   | StickerPutInEvent
+  | ItemTurnedEvent
   | CompanyTeamsReplacedEvent
   | CompanyMatchesKeptEvent;
 

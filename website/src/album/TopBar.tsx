@@ -1,5 +1,5 @@
 import { IconCrown, IconEmoji, IconGear, IconPulse, IconStack } from "@posthog/icons";
-import { useEffect, useId, type ComponentType, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode, type RefObject } from "react";
 import { AppLink } from "../AppLink";
 import { useCapturing } from "../browserAnalytics/capturing";
 import { useCountUp } from "../countUp";
@@ -21,9 +21,9 @@ export type TopBarPopups = "tray" | "emojis" | "menu";
 
 type TopBarPopover = Popover<TopBarPopups>;
 
-type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
 
-export function TopBar({ album, place, wide, popover, justUnlocked, held, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
+export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTheLevel = false, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
   useTrayOpenOnThePacksPage(place, popover);
   return (
     <header className="al-top" inert={inert}>
@@ -31,10 +31,10 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, moving
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
       </AppLink>
-      <XpBar level={held.level ?? album.level} moving={moving} />
+      <XpBar level={held.level ?? album.level} moving={moving} pops={popsTheLevel} />
       <div className="al-top-end">
-        <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />
-        <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />
+        {album.board === null && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />}
+        {album.board === null && <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />}
         {wide && <PageLinks place={place} />}
         <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} />
         <FeedbackButton />
@@ -44,12 +44,15 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, moving
   );
 }
 
-function XpBar({ level: settled, moving }: { level: AlbumLevel; moving: boolean }) {
+function XpBar({ level: settled, moving, pops }: { level: AlbumLevel; moving: boolean; pops: boolean }) {
   const counted = useCountUp(settled.xp);
   const level = moving && !prefersReducedMotion() ? { ...settled, xp: counted } : settled;
+  const popped = usePoppedWhenItRises(level.level, pops);
   return (
     <div className="al-xp">
-      <span className="al-level">Level {level.level}</span>
+      <span className="al-level" data-popped={popped ? "" : undefined}>
+        Level {level.level}
+      </span>
       <span className="al-xp-track" aria-hidden="true">
         <span className="al-xp-fill" style={{ width: `${Math.max(3, levelShareOf(level) * 100)}%` }} />
       </span>
@@ -58,6 +61,23 @@ function XpBar({ level: settled, moving }: { level: AlbumLevel; moving: boolean 
       </span>
     </div>
   );
+}
+
+const levelPopMs = 1100;
+
+function usePoppedWhenItRises(level: number, pops: boolean) {
+  const [popped, setPopped] = useState(false);
+  const before = useRef(level);
+  useEffect(() => {
+    if (pops && level > before.current) setPopped(true);
+    before.current = level;
+  }, [level, pops]);
+  useEffect(() => {
+    if (!popped) return;
+    const settle = window.setTimeout(() => setPopped(false), levelPopMs);
+    return () => window.clearTimeout(settle);
+  }, [popped]);
+  return popped;
 }
 
 function useTrayOpenOnThePacksPage(place: Place, popover: TopBarPopover) {

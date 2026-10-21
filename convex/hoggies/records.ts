@@ -23,6 +23,8 @@ export const dropTallyValidator = v.object({ member: v.id("members"), drops: v.n
 
 export const hoggieAvatarValidator = v.object({ member: v.id("members"), hoggie: v.string() });
 
+export const petHoggieValidator = v.object({ workspace: v.string(), member: v.id("members"), hoggie: v.string() });
+
 export const boughtCrateValidator = v.object({ member: v.id("members"), crate: v.string(), n: v.number(), boughtAt: v.number(), openedAt: v.optional(v.number()) });
 
 const crateRefusalReasonValidator = v.union(v.literal("stale"), v.literal("coins-not-open"), v.literal("no-coins"));

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
-import type { AlbumRead, BoardsRead, HoggiesRead, LevelUpRead, PersonRead, ProfileRead, WeekRead } from "./album/answer";
+import type { AlbumRead, BoardsRead, HoggiesRead, LevelUpRead, PersonRead, ProfileRead, WeekRead, XpMomentRead } from "./album/answer";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import { AlbumWaits } from "./pages/AlbumWaits";
@@ -18,7 +18,7 @@ import { forgetSignInStarted, rememberSignInStarted, useSignInOutcome, useSignIn
 
 export type AppReads = Omit<AppProps, "visitor" | "actions">;
 
-export type AppProps = { visitor: ShellState; actions: ShellActions; useSettings: SettingsRead; useEmojiMappings: EmojiMappingsRead; useSlackEmojiMatches: SlackEmojiMatchesRead; useAppEmojis: AppEmojisRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead; useLevelUp: LevelUpRead };
+export type AppProps = { visitor: ShellState; actions: ShellActions; useSettings: SettingsRead; useEmojiMappings: EmojiMappingsRead; useSlackEmojiMatches: SlackEmojiMatchesRead; useAppEmojis: AppEmojisRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead; useLevelUp: LevelUpRead; useXpMoment: XpMomentRead };
 
 const AlbumApp = lazy(() => import("./album/AlbumApp"));
 

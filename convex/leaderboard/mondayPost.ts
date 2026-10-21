@@ -218,6 +218,10 @@ async function postableChannelIn(ctx: MutationCtx, workspace: string) {
   return (await switchableChannelIn(ctx, workspace))?.id ?? null;
 }
 
+export async function weeklyPostChannelOf(ctx: QueryCtx, workspace: string): Promise<string | null> {
+  return (await switchableChannelIn(ctx, workspace))?.id ?? null;
+}
+
 async function switchableChannelIn(ctx: QueryCtx, workspace: string): Promise<PostChannel | null> {
   if (!(await xpLevelsShownIn(ctx, workspace)) || !(await availableIn(ctx, workspace))) return null;
   const picked = await pickedChannelIn(ctx, workspace);

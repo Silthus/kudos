@@ -9,6 +9,7 @@ import { setGroupMode } from "../groups/groupMode";
 import { groupModeValidator } from "../groups/mode";
 import { boardsShownTo } from "../leaderboard/boards";
 import { pickMondayPostChannel, setMondayPost, type ChannelPickOutcome } from "../leaderboard/mondayPost";
+import { setWelcomeNudge } from "../feedback/welcomeNudge";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -54,6 +55,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
   v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
   v.object({ type: v.literal("setMondayPost"), on: v.boolean(), timeZone: v.optional(v.string()) }),
+  v.object({ type: v.literal("setWelcomeNudge"), on: v.boolean() }),
   v.object({ type: v.literal("pickMondayPostChannel"), channel: v.string() }),
   v.object({ type: v.literal("buyItem"), item: v.string() }),
   v.object({ type: v.literal("setCustomKudosEmoji"), emoji: v.array(v.string()) }),
@@ -134,6 +136,9 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       if (await setMondayPost(ctx, workspace, person, change)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;
     }
+    case "setWelcomeNudge":
+      if (await setWelcomeNudge(ctx, workspace, member, command.on)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      return null;
     case "pickMondayPostChannel":
       return pickMondayPostChannel(ctx, workspace, person, command.channel);
     case "buyPerk": {

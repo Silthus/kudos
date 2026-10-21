@@ -222,6 +222,7 @@ function orderFree<T>(rows: T[]): T[] {
 }
 
 const convexTestId = /^\d+[a-zA-Z]+$/;
+const keyedId = /^([a-z]+):(\d+[a-zA-Z]+)$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const positioned = new Set(["cursor", "seen", "eventId", "position"]);
 const activityPosition = /^\d+(\.\d+)?_\d_[\d.]+$/;
@@ -235,6 +236,7 @@ function withStableIds<T>(value: T): T {
     if (typeof field !== "string") return field;
     if (activityPosition.test(field)) return "<position>";
     if (namedIds.has(field)) return namedIds.get(field);
+    if (keyedId.test(field)) return field.replace(keyedId, (_, kind: string, id: string) => `${kind}:${stable("document", id)}`);
     if (convexTestId.test(field)) return stable("document", field);
     return uuid.test(field) ? stable("uuid", field) : field;
   });

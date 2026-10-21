@@ -24,7 +24,9 @@ import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
-import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, trayDropValidator } from "./hoggies/records";
+import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, petHoggieValidator, trayDropValidator } from "./hoggies/records";
+import { itemValidator } from "./items/records";
+import { itemShareValidator } from "./items/shareRecords";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import {
@@ -69,7 +71,7 @@ export default defineSchema({
     familyName: v.optional(v.string()),
     image: v.optional(v.string()),
     chatIdentity: v.optional(v.object({ workspace: v.string(), user: v.string() })),
-  }),
+  }).index("by_chat_identity", ["chatIdentity.workspace", "chatIdentity.user"]),
 
   memberVerifications: defineTable({
     workspace: v.string(),
@@ -81,9 +83,13 @@ export default defineSchema({
     .index("by_user", ["workspace", "user"])
     .index("by_state_and_next_try", ["state", "nextTryAt"]),
 
+  firstSignIns: defineTable({ workspace: v.string(), user: v.string() }).index("by_user", ["workspace", "user"]),
+
   websiteClock: defineTable({
     tick: v.number(),
   }),
+
+  lastVisits: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
 
   companyProfiles: defineTable({
     firstName: v.string(),
@@ -378,6 +384,12 @@ export default defineSchema({
     welcomed: v.optional(welcomedAsValidator),
   }).index("by_member", ["member"]),
 
+  welcomeNudges: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
+
+  welcomeNudgeSwitches: defineTable({ workspace: v.string(), on: v.boolean() }).index("by_workspace", ["workspace"]),
+
+  thoughtfulGiverCounts: defineTable({ workspace: v.string(), week: v.string(), givers: v.number() }).index("by_workspace_week", ["workspace", "week"]),
+
   indicators: defineTable({
     workspace: v.string(),
     conversation: v.string(),
@@ -533,17 +545,23 @@ export default defineSchema({
 
   hoggieAvatars: defineTable(hoggieAvatarValidator).index("by_member", ["member"]),
 
+  petHoggies: defineTable(petHoggieValidator).index("by_workspace_member", ["workspace", "member"]),
+
   stickers: defineTable(stickerValidator).index("by_member_person", ["member", "person"]).index("by_member_firstAt", ["member", "firstAt"]),
 
   stickerBackfills: defineTable(stickerBackfillValidator).index("by_workspace", ["workspace"]),
 
   thoughtfulPacks: defineTable(thoughtfulPackValidator)
     .index("by_giver_recipient_week", ["giver", "recipient", "week"])
+    .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
     .index("by_giver_opened_at", ["giver", "openedAt", "at"])
     .index("by_giver_at", ["giver", "at"]),
 
-  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]),
+  items: defineTable(itemValidator).index("by_member_turned", ["member", "turnedAt", "earnedAt"]).index("by_member_source_key", ["member", "source", "key"]),
+  itemShares: defineTable(itemShareValidator).index("by_item", ["item"]).index("by_member_shared", ["member", "sharedAt"]),
+
+  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]).index("by_pack_kind", ["pack", "kind"]),
 
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 

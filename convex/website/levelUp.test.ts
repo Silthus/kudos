@@ -127,6 +127,7 @@ describe("getLevelUp answers one level up's reveal", { timeout: 60_000 }, () => 
   test.each([
     ["level-up-reveal is off", ["album", "collection"]],
     ["the album is off", ["collection", "level-up-reveal"]],
+    ["hidden-items is on", [...revealOn, "hidden-items"]],
   ])("while %s, a level up that dropped its hoggies answers off", async (_, flags) => {
     const member = await junoWith(...revealOn);
     await reaches(member, 3);

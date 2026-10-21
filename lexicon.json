@@ -569,7 +569,7 @@
     },
     {
       "name": "item",
-      "definition": "A kudos emoji or hedgehog a member can own, with a stable ID, a name, its art and exactly one source: the starter, the store or an achievement tier."
+      "definition": "Something a member owns or has waiting. In its first sense, a kudos emoji or hedgehog a member can own, with a stable ID, a name, its art and exactly one source: the starter, the store or an achievement tier. Since the core loop it is also a reward the member has not seen, a thanked person's sticker or a hoggie, that lies face down on the item board until its turn (LP1). An earned emoji is never an item (LP3)."
     },
     {
       "name": "inventory",
@@ -589,7 +589,7 @@
     },
     {
       "name": "hoggie",
-      "definition": "An official PostHog hedgehog illustration from @posthog/brand, named by its slug, that a member collects in the Book: every crate a member opens drops one, drawn by its rarity at the open, and duplicates count up. A hoggie is not an item: it fills no slot, is never sold and is never a kudos emoji."
+      "definition": "An official PostHog hedgehog illustration from @posthog/brand, named by its slug, that a member collects. A hoggie waits as an item, face down on the item board, and is drawn by its rarity at its turn, not at an open (LP1, LP11); duplicates count up. It fills no slot, is never sold and is never a kudos emoji."
     },
     {
       "name": "crest",
@@ -748,6 +748,50 @@
     {
       "name": "random emoji",
       "definition": "A Slack custom emoji the maintainer classes as a random drop in Settings (AL74). An opened thoughtful pack rolls once for one, one time in ten, among the random emojis the member holds no drop of; a drop is stored, so a random emoji is the one earned emoji with a stored cause, and it stays the member's under its Slack name and picture whatever the name is mapped to later."
+    },
+    {
+      "name": "item board",
+      "definition": "The one place on the website where every waiting item lies face down (LP1). Named item board, not board, because a board is the leaderboard's ranking."
+    },
+    {
+      "name": "face down",
+      "definition": "An item not yet turned, which shows nothing of what it holds (LP1, LP9)."
+    },
+    {
+      "name": "turn",
+      "definition": "The member's click that reveals one item and puts it in the album (LP1, LP10). An item turns once."
+    },
+    {
+      "name": "last visit",
+      "definition": "One instant per member, stored on the server, moved forward once per visit (LP1, LP26)."
+    },
+    {
+      "name": "XP moment",
+      "definition": "What plays when a member comes back: the excerpts since the last visit, their XP into the bar, a level-up takeover when a level was crossed, then the waiting items (LP1, LP32)."
+    },
+    {
+      "name": "teaser",
+      "definition": "A line in a Slack surface the member opens or already receives that counts what waits and never says what it holds (LP1, LP38)."
+    },
+    {
+      "name": "norm line",
+      "definition": "A count of people who gave thoughtful kudos in a period, with no names (LP1, LP40)."
+    },
+    {
+      "name": "share",
+      "definition": "A member's own press that posts one win to the weekly-post channel (LP1, LP51)."
+    },
+    {
+      "name": "welcome nudge",
+      "definition": "The one DM a member gets after receiving a kudos or hug while they have never opened the website (LP1, LP45). Not the welcome message."
+    },
+    {
+      "name": "welcome item",
+      "definition": "A member's first hoggie, with a rare floor, waiting for their first visit (LP1, LP44)."
+    },
+    {
+      "name": "pet hoggie",
+      "definition": "The one hoggie a member picks to show on their person page and on team pages (LP1, LP57)."
     }
   ],
   "retired": [

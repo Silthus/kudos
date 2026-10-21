@@ -418,6 +418,7 @@ function orderFree<T>(rows: T[]): T[] {
 }
 
 const convexTestId = /^\d+[a-zA-Z_]+$/;
+const keyedId = /^([a-z]+):(\d+[a-zA-Z_]+)$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const createdInTheSameMillisecond = /(\d{13})\.\d+$/;
 const opaque = new Set(["cursor", "eventId"]);
@@ -432,6 +433,7 @@ function withStableIds<T>(value: T): T {
     if (namedIds.has(field)) return namedIds.get(field);
     if (namedWithin(field) !== field) return namedWithin(field);
     if (createdInTheSameMillisecond.test(field)) return field.replace(createdInTheSameMillisecond, "$1.<tie>");
+    if (keyedId.test(field)) return field.replace(keyedId, (_, kind: string, id: string) => `${kind}:${stable("document", id)}`);
     if (convexTestId.test(field)) return stable("document", field);
     return uuid.test(field) ? stable("uuid", field) : field;
   });

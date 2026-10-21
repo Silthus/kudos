@@ -1,0 +1,53 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { XpMoment } from "../../../convex/website/xpMoment";
+import type { ArrivalReply, ShellActions } from "../shell";
+import type { AlbumShown, XpMomentShown } from "./answer";
+
+export type XpMomentAhead = XpMoment | "reading" | null;
+
+type ArrivedAt = number | null | undefined;
+
+type Arrival = { arrivedAt: ArrivedAt; endTheMoment: (skipped: boolean) => void; moment: XpMomentAhead };
+
+export function useVisitArrival(album: AlbumShown | undefined, read: XpMomentShown | undefined, actions: Pick<ShellActions, "arrive" | "endXpMoment">): Arrival {
+  const answered = useFirstAnswerOfTheVisit(read);
+  const [arrivedAt, setArrivedAt] = useState<ArrivedAt>(undefined);
+  const sent = useRef(false);
+  const send = useCallback((reply: () => Promise<ArrivalReply>) => {
+    if (sent.current) return;
+    sent.current = true;
+    reply().then(
+      (answer) => answer.kind === "arrived" && setArrivedAt(answer.lastVisit),
+      () => undefined,
+    );
+  }, []);
+  const from = arrivalFromOf(album, answered);
+  const { arrive } = actions;
+  useEffect(() => {
+    if (from !== undefined) send(() => arrive(from));
+  }, [from, send, arrive]);
+  const moment = answered?.kind === "moment" ? answered : null;
+  const { endXpMoment } = actions;
+  const endTheMoment = useCallback(
+    (skipped: boolean) => {
+      if (moment !== null) send(() => endXpMoment(moment.since, moment.until, skipped));
+    },
+    [moment, send, endXpMoment],
+  );
+  return { arrivedAt, endTheMoment, moment: answered === undefined ? "reading" : moment };
+}
+
+function useFirstAnswerOfTheVisit(read: XpMomentShown | undefined): XpMomentShown | undefined {
+  const [first, setFirst] = useState<XpMomentShown | undefined>(undefined);
+  const settled = read !== undefined && read.kind !== "connecting";
+  useEffect(() => {
+    if (settled) setFirst((kept) => kept ?? read);
+  }, [settled, read]);
+  return first ?? (settled ? read : undefined);
+}
+
+function arrivalFromOf(album: AlbumShown | undefined, moment: XpMomentShown | undefined): number | null | undefined {
+  if (moment === undefined || moment.kind === "moment") return undefined;
+  if (moment.kind === "none") return moment.lastVisit;
+  return album?.kind === "album" ? album.lastVisit : undefined;
+}

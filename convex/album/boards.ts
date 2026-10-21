@@ -6,8 +6,9 @@ import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyP
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
 import type { AwardId } from "../engine/awards";
 import { ranking } from "../leaderboard/board";
-import { keyOf, periods, wholeWeekBefore, type PeriodKey } from "../leaderboard/periods";
+import { keyOf, periods, wholeWeekBefore, type Period, type PeriodKey } from "../leaderboard/periods";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { countThoughtfulGiver } from "./thoughtfulGivers";
 import { currentNameAndPictureOf, timeZoneOf, type MemberId } from "../workspace/directory";
 
 export const boardPeriodValidator = v.union(v.literal("week"), v.literal("last-week"), v.literal("month"), v.literal("all"));
@@ -45,9 +46,14 @@ export async function countOnTheBoardsOnce(ctx: MutationCtx, { award, workspace,
   for (const period of periods) {
     const key = keyOf(period, day);
     const tally = await tallyOf(ctx, workspace, key, giver);
-    if (tally === null) await ctx.db.insert("thoughtfulBoardTallies", { workspace, period: key, giver, awards: 1 });
+    if (tally === null) await firstTallyOf(ctx, { workspace, period, key, giver });
     else await ctx.db.patch(tally._id, { awards: tally.awards + 1 });
   }
+}
+
+async function firstTallyOf(ctx: MutationCtx, { workspace, period, key, giver }: { workspace: string; period: Period; key: PeriodKey; giver: MemberId }) {
+  await ctx.db.insert("thoughtfulBoardTallies", { workspace, period: key, giver, awards: 1 });
+  if (period === "week") await countThoughtfulGiver(ctx, workspace, key);
 }
 
 export async function thoughtfulBoardsOf(ctx: QueryCtx, viewer: BoardViewer, { whoGave, period }: BoardsAsked): Promise<ThoughtfulBoards> {

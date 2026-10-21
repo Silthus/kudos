@@ -289,6 +289,95 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
   });
 });
 
+describe("LP55: the Monday post marks a turned epic or legendary find", { timeout: 180_000 }, () => {
+  test("a quoted kudos whose giver turned a legendary or an epic hoggie from it says so beside its lead, the rarest of a kudos to two people, and one whose find was rare says nothing", async () => {
+    await fourMembers([onForEveryone(albumSlack), ...itemsOn, onForEveryone(itemShare)]);
+    const legendary = await thanks(alice, "Thanks for staying late on the release checklist", bob);
+    const twoRecipients = await thanks(carol, "Thanks for the careful design review today", dana, alice);
+    const rare = await thanks(dana, "Thanks for covering the support rotation", carol);
+    for (const hugger of [carol, dana, bob]) await hugs(hugger, legendary);
+    for (const hugger of [bob, alice]) await hugs(hugger, twoRecipients);
+    await hugs(alice, rare);
+    await turnsEverything(alice, "rocket");
+    await turnsEverything(carol, "70s-dance", "angel");
+    await turnsEverything(dana, "996");
+
+    await mondayPostSent();
+
+    expect(leadsOf(mondayPost())).toEqual([
+      "*1. Alice Marchetti* thanked *Bob Okonkwo* and found a legendary Rocket",
+      "*2. Carol Lindqvist* thanked *Dana Ferreira* and *Alice Marchetti* and found an epic Angel",
+      "*3. Dana Ferreira* thanked *Carol Lindqvist*",
+    ]);
+    expect(String(mondayPost()?.text).split("\n").slice(1, 3)).toEqual([
+      `1. Alice Marchetti thanked Bob Okonkwo and found a legendary Rocket: Thanks for staying late on the release checklist @Bob Okonkwo :taco: ${permalinkOf(legendary)}`,
+      `2. Carol Lindqvist thanked Dana Ferreira and Alice Marchetti and found an epic Angel: Thanks for the careful design review today @Dana Ferreira @Alice Marchetti :taco: ${permalinkOf(twoRecipients)}`,
+    ]);
+  });
+
+  test("a quoted kudos whose item still lies face down says nothing, beside one whose giver turned a legendary", async () => {
+    await fourMembers([onForEveryone(albumSlack), ...itemsOn, onForEveryone(itemShare)]);
+    await thanks(alice, "Thanks for staying late on the release checklist", bob);
+    await thanks(carol, "Thanks for the careful design review today", dana);
+    await turnsEverything(carol, "rocket");
+
+    await mondayPostSent();
+
+    expect(leadsOf(mondayPost())).toEqual(["*1. Carol Lindqvist* thanked *Dana Ferreira* and found a legendary Rocket", "*2. Alice Marchetti* thanked *Bob Okonkwo*"]);
+  });
+
+  test.each([
+    { condition: "with item-share off", flags: [offForEveryone(itemShare)] },
+    { condition: "while PostHog has no item-share flag", flags: [] },
+    { condition: "with item-share on for someone else's email only", flags: [onForEmails(itemShare, dana.email)] },
+  ])("$condition, a week whose quoted kudos brought a turned legendary posts the same Monday post as the week whose find still lies face down", async ({ flags }) => {
+    const faceDown = await aWeekWithAFind(flags, { turned: false });
+
+    const turned = await aWeekWithAFind(flags, { turned: true });
+
+    expect(turned).toEqual(faceDown);
+    expect(leadsOf(turned)).toEqual(["*1. Alice Marchetti* thanked *Bob Okonkwo*"]);
+  });
+});
+
+const itemShare = "item-share";
+const itemsOn = ["hidden-items", "collection"].map(onForEveryone);
+const theDraw = vi.hoisted(() => ({ planned: [] as string[] }));
+
+vi.mock("../hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+  const { hoggieNamed } = await import("../hoggies/catalogue");
+  return {
+    ...actual,
+    drawOf: async (input: Parameters<typeof actual.drawOf>[0]) => {
+      const planned = theDraw.planned.shift();
+      return planned === undefined ? actual.drawOf(input) : { hoggie: planned, rarity: hoggieNamed(planned)!.rarity };
+    },
+  };
+});
+
+async function turnsEverything(giver: Person, ...draws: string[]) {
+  const { asSignedIn } = await aSignedInSession(t, { user: giver.user, name: giver.name });
+  const album = await asSignedIn.query(api.website.album.getAlbum, {});
+  const board = (album.kind === "album" ? (album.board?.items ?? []) : []).filter(({ reason }) => reason.kind === "thanks");
+  theDraw.planned = [...draws];
+  for (const { item } of board) expect((await asSignedIn.mutation(api.website.album.turnItem, { item })).kind, `${giver.name} turns an item`).toBe("turned");
+  expect(theDraw.planned, `${giver.name}'s hoggies drawn`).toEqual([]);
+  await settle(t);
+}
+
+async function aWeekWithAFind(flags: FlagDefinition[], { turned }: { turned: boolean }) {
+  await fourMembers([onForEveryone(albumSlack), ...itemsOn, ...flags]);
+  await thanks(alice, "Thanks for staying late on the release checklist", bob);
+  if (turned) await turnsEverything(alice, "rocket");
+  await mondayPostSent();
+  return mondayPost();
+}
+
+function leadsOf(posted: Posted | undefined) {
+  return (posted?.blocks ?? []).flatMap(({ type, text }) => (type === "section" && text?.text.includes(" thanked ") ? [text.text.split("\n")[0]] : []));
+}
+
 describe("AL61 AL63: a weekly post quotes only public kudos", { timeout: 180_000 }, () => {
   test("a thoughtful kudos in a private channel, in a group DM or in a DM, or one deleted since, is never quoted however hugged, and a public one is", async () => {
     await fourMembers([onForEveryone(albumSlack)]);

@@ -2,12 +2,13 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MemberId } from "../../../convex/workspace/directory";
 import { shellFixtures, type Face } from "../shell";
 import { drawnPicturesIn } from "../test/pictures";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf, fixtureUnlockOf, stickerFor } from "./albumFixtures";
-import type { Album, AlbumEmoji, PersonPage, PersonRead, PutAllInReply, UnlockReply } from "./answer";
+import type { Album, AlbumEmoji, AlbumPet, PersonPage, PersonRead, PutAllInReply, UnlockReply } from "./answer";
 
 const memberWithTheAlbum = shellFixtures.member;
 
@@ -357,6 +358,14 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
 });
 
 describe("AL45: an unlocked page says plainly what the member got", () => {
+  it("LP19: with the item board answered, the seal reads Unlocked with its date and team emoji, and no line follows under it", async () => {
+    visit("/book#teams/quiet-harbour", { album: { ...midway, board: { items: [], more: false } } });
+
+    expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
+    expect(screen.getByText("Unlocked 15 Oct 2026").closest("p")).toHaveTextContent(":team-quiet-harbour:");
+    expect(screen.queryByText(/You got the/), "the second line under the seal").toBeNull();
+  });
+
   it("while Slack has the team emoji: the gold sticker with its date, and how to use the emoji in Slack", async () => {
     visit("/book#teams/quiet-harbour");
 
@@ -527,5 +536,52 @@ describe("AL46: the person page", () => {
     await screen.findByRole("heading", { level: 1, name: "Lanterns" });
     await waitFor(() => expect(asked.length).toBeGreaterThan(0));
     expect(asked.every((asking) => !asking)).toBe(true);
+  });
+});
+
+describe("LP58: a member's pet shows in colour beside their sticker on team pages and on their person page", () => {
+  const rocket: AlbumPet = { person: "juno-park" as MemberId, hoggie: "rocket", name: "Rocket", rarity: "legendary" };
+  const banana: AlbumPet = { person: "ines-okafor" as MemberId, hoggie: "banana", name: "Banana", rarity: "common" };
+  const withPets = (...pets: AlbumPet[]): Album => ({ ...midway, pets });
+
+  function petOf(name: string) {
+    return screen.getByRole("img", { name });
+  }
+
+  it("on a team page each member with a pet has it beside their sticker, in colour even while their sticker is still grey, and the others have none", async () => {
+    visit("/book#teams/lanterns", { album: withPets(rocket, banana) });
+
+    const shown = await photo();
+    const juno = shown.getAllByRole("listitem").find((person) => person.textContent?.includes("Juno Park"))!;
+    expect(within(juno).getByRole("img", { name: "Juno's pet, Rocket" })).toBeInTheDocument();
+    expect(drawnPicturesIn(petOf("Juno's pet, Rocket"))).toEqual([expect.stringContaining("rocket")]);
+    expect(petOf("Juno's pet, Rocket").querySelector("[data-silhouette]")).toBeNull();
+    expect(within(juno).getByRole("link", { name: "Juno Park Not in your album yet" })).toBeInTheDocument();
+    expect(shown.getAllByRole("img", { name: /'s pet, / }).map((pet) => pet.getAttribute("aria-label"))).toEqual(["Ines's pet, Banana", "Juno's pet, Rocket"]);
+  });
+
+  it("on a person page their pet stands beside their sticker in colour, named, even before they are in the viewer's album", async () => {
+    visit("/book#people/juno-park", { album: withPets(rocket) });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Juno Park" })).toBeInTheDocument();
+    const mount = screen.getByRole("figure", { name: "Not in your album yet" });
+    expect(within(mount).getByRole("img", { name: "Juno's pet, Rocket" })).toBeInTheDocument();
+    expect(petOf("Juno's pet, Rocket").querySelector("[data-silhouette]")).toBeNull();
+    expect(screen.getByText("Pet:").closest("p")).toHaveTextContent("Pet: Rocket");
+  });
+
+  it("someone without a pet shows none on their person page", async () => {
+    visit("/book#people/ines-okafor", { album: withPets(rocket) });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ines Okafor" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /'s pet, / })).not.toBeInTheDocument();
+    expect(screen.queryByText("Pet:")).not.toBeInTheDocument();
+  });
+
+  it("with pet-hoggie off, getAlbum names no pets and no page shows one", async () => {
+    visit("/book#teams/lanterns");
+
+    expect((await photo()).getAllByRole("listitem")).toHaveLength(6);
+    expect(screen.queryByRole("img", { name: /'s pet, / })).not.toBeInTheDocument();
   });
 });

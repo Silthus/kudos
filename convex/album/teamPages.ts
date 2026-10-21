@@ -44,7 +44,7 @@ export async function teamPagesAndPeopleOf(ctx: QueryCtx, { workspace, member }:
   return { pages: [...listed, ...gone].sort(inSidebarOrder), held, matchOf: new Map([...holders].map(([profile, { member, face }]) => [member, { profile, face }])) };
 }
 
-async function teamStickersOf(ctx: QueryCtx, member: MemberId): Promise<Map<string, TeamSticker>> {
+export async function teamStickersOf(ctx: QueryCtx, member: MemberId): Promise<Map<string, TeamSticker>> {
   const stickers = await ctx.db
     .query("teamStickers")
     .withIndex("by_member_team", (q) => q.eq("member", member))

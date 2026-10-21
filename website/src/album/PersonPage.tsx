@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { AnswerPage } from "../pages/AnswerPage";
 import { KudosMessage } from "../activity/KudosMessage";
 import { AppLink } from "../AppLink";
@@ -12,7 +12,11 @@ import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } 
 import { ComingSoonToSlack, FindInSlackWhileOn, MapInPlace, useMapsInPlace, useSlackWay } from "./findInSlack";
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
-import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
+import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
+import { dateOf, firstNameOf, howToCollectWords, personIn } from "./teamPage";
+import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
+import { LandedHype } from "./ItemBoard";
+import { NewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
 type HypeShown = Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">;
@@ -33,6 +37,10 @@ export function isWaitingForThePerson(shown: PersonShown | undefined) {
 function PersonPage({ album, person }: { album: Album; person: Person }) {
   const first = firstNameOf(person.name);
   const caption = useId();
+  const pet = petOf(album, person.person);
+  const sticker = useRef<HTMLDivElement>(null);
+  const landing = useLandedSticker(person.person);
+  useBroughtIntoViewOnLanding(sticker, landing);
   const teams = person.teams.map(({ team, name, art }) => album.teams.find((page) => page.team === team) ?? { team, name, art, held: 0, total: 0, mine: false });
   return (
     <article className="al-page-body al-person">
@@ -43,10 +51,15 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
       )}
       <div className="al-person-entry">
         <figure className="al-mount al-mount-single" aria-labelledby={caption}>
-          <div className="al-photo">
+          <div ref={sticker} className="al-photo" {...landedMarksOf(landing)}>
             <PersonPicture face={person.face} name={person.name} collected={person.held} frame="al-photo-sticker al-photo-sticker-large" className="al-photo-face" />
+            {pet !== null && <PetHoggie pet={pet} owner={petOwnerWordsOf(album, person.person, person.name)} className="al-person-pet-art" />}
+            <LandedHype landing={landing} />
           </div>
-          <figcaption id={caption} className="al-photo-caption">{person.held ? "In your album" : "Not in your album yet"}</figcaption>
+          <figcaption id={caption} className="al-photo-caption">
+            {person.held ? "In your album" : "Not in your album yet"}
+            <NewSinceTheLastVisit at={personIn(album, person.person).at} />
+          </figcaption>
         </figure>
         <div className="al-person-words">
           <p className="al-eyebrow">{person.person === album.me.person ? "You" : "Teammate"}</p>
@@ -67,6 +80,11 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
                 </li>
               ))}
             </ul>
+          )}
+          {pet !== null && (
+            <p className="al-person-pet">
+              <span className="al-quiet">Pet:</span> <strong>{pet.name}</strong>
+            </p>
           )}
           {person.slackProfile !== null && (
             <div className="al-person-slack">

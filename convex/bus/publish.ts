@@ -13,6 +13,7 @@ type Registry = { [T in DomainEvent["type"]]: Array<Subscription<Extract<DomainE
 export const subscribers: Registry = {
   kudosGiven: [
     internal.welcome.welcome.welcomeNewMembers,
+    internal.feedback.welcomeNudge.nudgeTheThanked,
     internal.progression.progression.recordEffects,
     internal.quests.quests.followKudosGiven,
     internal.achievements.achievements.countKudosGiven,
@@ -54,11 +55,12 @@ export const subscribers: Registry = {
   awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
   hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped, { subscriber: internal.album.milestones.recordMilestonesAfterAHoggieDrop, only: ({ crate }) => crateKindOf(crate) !== "thoughtful" }],
   crateBought: [],
-  hugGiven: [internal.hugs.people.payHugPeople, internal.album.tallies.tallyHugGiven, internal.analytics.subscribers.recordHugGiven],
+  hugGiven: [internal.hugs.people.payHugPeople, internal.feedback.welcomeNudge.nudgeTheHugged, internal.album.tallies.tallyHugGiven, internal.analytics.subscribers.recordHugGiven],
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
   thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned, internal.feedback.albumReplies.replyAfterTheGrant],
   stickerPutIn: [internal.analytics.subscribers.recordAlbumStickerCollected],
+  itemTurned: [internal.analytics.subscribers.recordItemTurned],
   companyTeamsReplaced: [internal.album.emojiNames.reserveTeamNamesAfterTheSync],
   companyMatchesKept: [internal.album.milestones.recordMilestonesAfterTheMatches],
 };

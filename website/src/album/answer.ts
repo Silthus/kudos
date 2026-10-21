@@ -1,11 +1,15 @@
 import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { Drop } from "../../../convex/hoggies/drops";
+import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
+import type { ItemBoard, PetAnswer } from "../../../convex/website/album";
 import type { Denial } from "../../../convex/website/memberQuery";
+import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
+import type { ShareOffers } from "../../../convex/website/itemShare";
 
 export type AlbumMe = { name: string; face: Face; person: string; team: string | null };
 
@@ -15,7 +19,7 @@ export type TeamState = "progress" | "ready" | "unlocked";
 
 export type AlbumTeam = { team: string; name: string; art: TeamArt; mine: boolean; people: string[]; unmatched: string[]; held: number; total: number; state: TeamState; unlockedAt: number | null };
 
-export type AlbumPerson = { person: string; name: string; face: Face; teams: string[]; held: boolean; packedThisWeek: boolean };
+export type AlbumPerson = { person: string; name: string; face: Face; teams: string[]; held: boolean; packedThisWeek: boolean; at?: number };
 
 export type Thanked = { name: string | null; face: Face | null };
 
@@ -31,7 +35,9 @@ export type SharedEmoji = Pick<AlbumEmoji, "id" | "kind" | "name" | "from" | "pi
 
 export type MilestoneTierId = "bronze" | "silver" | "gold" | "diamond";
 
-export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null }[] };
+export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null; unlockedAt?: number }[] };
+
+export type { AlbumPet };
 
 export type GettingStarted = { hugged: boolean; thoughtful: boolean; opened: boolean; completed: boolean };
 
@@ -52,7 +58,10 @@ export type Album = {
   emojiInPlace: EmojiInPlace;
   milestones: AlbumMilestone[];
   gettingStarted: GettingStarted | null;
-};
+  board: ItemBoard | null;
+  pets?: AlbumPet[];
+  lastVisit?: number | null;
+} & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;
 
@@ -165,7 +174,11 @@ export type PersonRead = (asking: boolean, person: string | null) => PersonShown
 
 export type { AlbumHoggie, AlbumRarity };
 
-export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered;
+export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null };
+
+export type { PetAnswer };
+
+export type PetReply = PetAnswer | Denial;
 
 export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };
 
@@ -190,3 +203,7 @@ export type AlbumLevelUp = { kind: "levelUp"; level: number; at: number; hoggies
 export type LevelUpShown = AlbumLevelUp | { kind: "off" } | { kind: "none" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type LevelUpRead = (level: number | null) => LevelUpShown | undefined;
+
+export type XpMomentShown = XpMomentAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type XpMomentRead = (asking: boolean) => XpMomentShown | undefined;

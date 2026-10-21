@@ -1,17 +1,21 @@
-import { Fragment, useId } from "react";
+import { Fragment, useId, useRef } from "react";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { PageTitle } from "../PageTitle";
 import { MapInPlace, NotInSlack, useMapsInPlace, useSlackWay } from "./findInSlack";
-import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
+import type { Album, AlbumEmoji, AlbumPet, AlbumTeam } from "./answer";
 import { plural } from "./facts";
 import { PersonPicture } from "./PersonPicture";
+import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { hrefOf } from "./place";
 import { SealArt } from "./Seal";
 import { Silhouette } from "./Silhouette";
 import { dateOf, nameOnThePhoto, onThePhotoOf, teamEmojiOf, teamEmojiUseWords, type OnThePhoto } from "./teamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
+import { LandedHype, NewLabel } from "./ItemBoard";
+import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker, useLanding } from "./useItemBoard";
+import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
 const sealSize = 128;
@@ -35,7 +39,7 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
       <figure className="al-mount" aria-labelledby={caption}>
         <ul className="al-photo" data-size={onThePhoto.length > 5 ? "many" : "few"}>
           {onThePhoto.map((shown) => (
-            <PhotoPerson key={shown.kind === "person" ? shown.person.person : `unmatched:${shown.name}`} shown={shown} />
+            <PhotoPerson key={shown.kind === "person" ? shown.person.person : `unmatched:${shown.name}`} shown={shown} pet={petShownWith(album, shown)} />
           ))}
         </ul>
         <figcaption id={caption} className="al-photo-caption">
@@ -46,14 +50,22 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
       <p role="status" aria-label="Unlocking the sticker" className="al-unlock-problem">
         {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
       </p>
-      {emojiShown && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} unlocked={unlocked} emojiPage={album.emojiPage} />}
+      {emojiShown && emoji !== undefined && (unlocked && album.board !== null ? <TeamEmojiActions emoji={emoji} emojiPage={album.emojiPage} /> : <TeamEmojiLine team={team} emoji={emoji} unlocked={unlocked} emojiPage={album.emojiPage} />)}
     </article>
   );
 }
 
-function PhotoPerson({ shown }: { shown: OnThePhoto }) {
-  if (shown.kind === "unmatched")
-    return (
+type ShownPet = { pet: AlbumPet; owner: string };
+
+function petShownWith(album: Album, shown: OnThePhoto): ShownPet | null {
+  if (shown.kind !== "person") return null;
+  const pet = petOf(album, shown.person.person);
+  return pet === null ? null : { pet, owner: petOwnerWordsOf(album, shown.person.person, shown.person.name) };
+}
+
+function PhotoPerson({ shown, pet }: { shown: OnThePhoto; pet: ShownPet | null }) {
+  if (shown.kind === "person") return <PersonOnThePhoto person={shown.person} pet={pet} />;
+  return (
       <li className="al-photo-person" data-out="">
         <span className="al-photo-sticker" data-picture="grey" aria-hidden="true">
           <Silhouette name={shown.name} />
@@ -61,15 +73,23 @@ function PhotoPerson({ shown }: { shown: OnThePhoto }) {
         <span className="al-photo-name ph-no-capture">{shown.name}</span>{" "}
         <span className="al-photo-role">Not in Slack yet</span>
       </li>
-    );
-  const { person, name, face, held } = shown.person;
+  );
+}
+
+function PersonOnThePhoto({ person: { person, name, face, held, at }, pet }: { person: Extract<OnThePhoto, { kind: "person" }>["person"]; pet: ShownPet | null }) {
+  const spot = useRef<HTMLLIElement>(null);
+  const landing = useLandedSticker(person);
+  useBroughtIntoViewOnLanding(spot, landing);
   return (
-    <li className="al-photo-person" data-out={held ? undefined : ""}>
+    <li ref={spot} className="al-photo-person" data-out={held ? undefined : ""} {...landedMarksOf(landing)}>
       <AppLink href={hrefOf({ kind: "person", person })} className="al-photo-link">
         <PersonPicture face={face} name={name} collected={held} frame="al-photo-sticker" className="al-photo-face" />
         <span className="al-photo-name ph-no-capture">{name}</span>{" "}
         <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>
+      <NewSinceTheLastVisit at={at} />
+      <LandedHype landing={landing} />
+      {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
     </li>
   );
 }
@@ -88,6 +108,9 @@ function Caption({ onThePhoto }: { onThePhoto: OnThePhoto[] }) {
 }
 
 function Seal({ team, emoji, unlocking }: { team: AlbumTeam; emoji: AlbumEmoji | undefined; unlocking: TeamUnlocking }) {
+  const unlockedByTheTurn = useLanding()?.unlocked.teamStickers.find((sticker) => sticker.team === team.team);
+  const unlockedSinceTheLastVisit = useNewSinceTheLastVisit(team.unlockedAt);
+  const emojiName = emoji?.name ?? unlockedByTheTurn?.emoji;
   return (
     <div className="al-seal-spot">
       {team.state === "ready" ? (
@@ -102,7 +125,8 @@ function Seal({ team, emoji, unlocking }: { team: AlbumTeam; emoji: AlbumEmoji |
           <span tabIndex={-1} data-al-unlocked="">
             Unlocked {dateOf(team.unlockedAt ?? 0)}
           </span>
-          {emoji !== undefined && <code className="ph-no-capture">:{emoji.name}:</code>}
+          {emojiName !== undefined && <code className="ph-no-capture">:{emojiName}:</code>}
+          {(unlockedByTheTurn !== undefined || unlockedSinceTheLastVisit) && <NewLabel />}
         </p>
       )}
     </div>
@@ -143,9 +167,21 @@ function problemWordsOf(reason: "refused" | "unreachable", team: AlbumTeam) {
   return reason === "refused" ? `The ${team.name} sticker couldn't be unlocked. Reload the page to see where it stands.` : "Couldn't reach HedgeHug. Try again.";
 }
 
+function TeamEmojiActions({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: string | null }) {
+  return (
+    <div className="al-emoji-actions ph-no-capture">
+      <TeamEmojiAction emoji={emoji} emojiPage={emojiPage} />
+    </div>
+  );
+}
+
+function TeamEmojiAction({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: string | null }) {
+  const inPlace = useMapsInPlace();
+  return inPlace ? <MapInPlace emoji={emoji} /> : !emoji.inSlack && <NotInSlack emoji={emoji} emojiPage={emojiPage} />;
+}
+
 function TeamEmojiLine({ team, emoji, unlocked, emojiPage }: { team: AlbumTeam; emoji: AlbumEmoji; unlocked: boolean; emojiPage: string | null }) {
   const way = useSlackWay();
-  const inPlace = useMapsInPlace();
   return (
     <div className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
@@ -160,7 +196,7 @@ function TeamEmojiLine({ team, emoji, unlocked, emojiPage }: { team: AlbumTeam; 
           The <code>:{emoji.name}:</code> team emoji unlocks with the sticker.
         </p>
       )}
-      {inPlace ? <MapInPlace emoji={emoji} /> : !emoji.inSlack && <NotInSlack emoji={emoji} emojiPage={emojiPage} />}
+      <TeamEmojiAction emoji={emoji} emojiPage={emojiPage} />
     </div>
   );
 }

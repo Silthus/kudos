@@ -23,6 +23,8 @@ const grantJob = vi.hoisted(() => "album/packs:grantThoughtfulPacks");
 const replyJob = vi.hoisted(() => "feedback/albumReplies:replyAfterTheGrant");
 const albumOn = ["website", "album", "collection", "packs", "xp-levels", "message-settings"];
 const albumSlack = "album-slack";
+const hiddenItems = "hidden-items";
+const levelTwoItems = 3;
 
 type Person = { user: string; name: string; email: string; profile: number };
 
@@ -289,6 +291,72 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     expect(reply!.blocks.length).toBeLessThanOrEqual(50);
   });
 });
+
+describe("LP25: while hidden-items is on for the giver, the reply says only that an item waits", { timeout: 60_000 }, () => {
+  test("a thoughtful kudos to someone new and to someone already thanked names an item for each, how many wait counting this grant's, one See your items button and the gains line, and no face, page progress, emoji or rarity", async () => {
+    await fourMembers([onForEveryone(albumSlack), onForEveryone(hiddenItems)]);
+    await thanks(alice, why, carol);
+    weeksLater += 1;
+
+    const ts = await thanks(alice, why, bob, carol);
+
+    expect(threadRepliesTo(ts)).toEqual([
+      {
+        channel,
+        user: alice.user,
+        text: "An item for thanking Bob · An item for thanking Carol",
+        blocks: [
+          { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Bob*" } },
+          { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Carol*" } },
+          { type: "context", elements: [{ type: "mrkdwn", text: `${5 + levelTwoItems} wait` }] },
+          { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your items" }, url: `${site}/book`, action_id: "album-see-items" }] },
+          { type: "context", elements: [{ type: "mrkdwn", text: "+20 XP" }] },
+        ],
+      },
+    ]);
+  });
+
+  test("a second thoughtful kudos the same week says the next item comes next week, still counts what waits and offers See your items", async () => {
+    await fourMembers([onForEveryone(albumSlack), onForEveryone(hiddenItems)]);
+    await thanks(alice, why, dana);
+
+    const sameWeek = await thanks(alice, "Thanks again for pairing on the rollback", dana);
+
+    expect(sectionsOf(threadRepliesTo(sameWeek))).toEqual(["*Kudos counted.*\nYour next item for Dana comes next week."]);
+    expect(contextsOf(threadRepliesTo(sameWeek))[0]).toEqual([{ type: "mrkdwn", text: `${2 + levelTwoItems} wait` }]);
+    expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See your items", url: `${site}/book`, action_id: "album-see-items" }]);
+  });
+
+  test("past fifty waiting items the count reads 50+ wait, and fifty read 50 wait", async () => {
+    await fourMembers([onForEveryone(albumSlack), onForEveryone(hiddenItems)]);
+    const first = await thanks(alice, why, bob);
+    await aliceHasWaiting(46 - levelTwoItems);
+    weeksLater += 1;
+    const fiftieth = await thanks(alice, why, carol);
+    weeksLater += 1;
+
+    const fiftyFirst = await thanks(alice, why, dana);
+
+    expect(contextsOf(threadRepliesTo(first))[0]).toEqual([{ type: "mrkdwn", text: "2 wait" }]);
+    expect(contextsOf(threadRepliesTo(fiftieth))[0]).toEqual([{ type: "mrkdwn", text: "50 wait" }]);
+    expect(contextsOf(threadRepliesTo(fiftyFirst))[0]).toEqual([{ type: "mrkdwn", text: "50+ wait" }]);
+  });
+
+  test("with hidden-items on for someone else's email only, the same walk makes every Slack call byte for byte as with no hidden-items flag", async () => {
+    const today = await walkWith(albumOn, [onForEveryone(albumSlack)]);
+
+    const walk = await walkWith(albumOn, [onForEveryone(albumSlack), onForEmails(hiddenItems, dana.email)]);
+
+    expect(walk.calls).toEqual(today.calls);
+  });
+});
+
+async function aliceHasWaiting(count: number) {
+  const [member, person] = [await memberOf(alice), await memberOf(bob)];
+  await t.run(async (ctx) => {
+    for (let index = 0; index < count; index += 1) await ctx.db.insert("items", { workspace: "T1", member, source: "hoggie", key: `thoughtful:seeded-${index}`, reason: { kind: "thanks", person, message: { workspace: "T1", conversation: channel, message: `1.${index}` } }, earnedAt: Date.now() });
+  });
+}
 
 const albumSlackOff: Array<{ condition: string; flags: FlagDefinition[]; turnOff?: () => void }> = [
   { condition: "with album-slack off", flags: [offForEveryone(albumSlack)] },

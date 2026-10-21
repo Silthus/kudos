@@ -1,0 +1,392 @@
+{
+ "rows": [
+  {
+   "modules": [
+    {
+     "id": "member",
+     "name": "Member on the website",
+     "external": true,
+     "seam": [],
+     "note": "turns items, sees the XP moment"
+    },
+    {
+     "id": "giver",
+     "name": "Giver in Slack",
+     "external": true,
+     "seam": [],
+     "note": "earns items with thoughtful kudos"
+    },
+    {
+     "id": "posthog",
+     "name": "PostHog",
+     "external": true,
+     "seam": [],
+     "note": "flags, events"
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "app",
+     "name": "Website app",
+     "note": "website/src/album",
+     "used": 45,
+     "seam": [
+      "AlbumApp",
+      {
+       "name": "Board",
+       "change": "added"
+      },
+      {
+       "name": "XpMoment",
+       "change": "added"
+      },
+      {
+       "name": "PackOpening",
+       "change": "removed"
+      },
+      {
+       "name": "TrayPanel",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "feedback",
+     "name": "Feedback",
+     "note": "convex/feedback",
+     "used": 78,
+     "seam": [
+      {
+       "name": "albumReply",
+       "change": "changed"
+      },
+      "replyAfterTheGrant"
+     ]
+    },
+    {
+     "id": "analytics",
+     "name": "Analytics",
+     "note": "convex/analytics",
+     "used": 30,
+     "seam": [
+      "memberDecision",
+      "exposed",
+      {
+       "name": "item turned",
+       "change": "added",
+       "q": "Q5"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "web",
+     "name": "Website reads",
+     "note": "convex/website",
+     "used": 54,
+     "flex": 2,
+     "seam": [
+      {
+       "name": "getAlbum",
+       "change": "changed"
+      },
+      {
+       "name": "turnItem",
+       "change": "added"
+      },
+      {
+       "name": "getXpMoment",
+       "change": "added"
+      },
+      {
+       "name": "endXpMoment",
+       "change": "added"
+      },
+      "markEmojisSeen",
+      {
+       "name": "openThoughtfulPack",
+       "change": "removed"
+      },
+      {
+       "name": "putIn",
+       "change": "removed"
+      },
+      {
+       "name": "putAllIn",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "bus",
+     "name": "Bus",
+     "note": "convex/bus",
+     "used": 52,
+     "seam": [
+      "publish",
+      {
+       "name": "itemTurned",
+       "change": "added"
+      },
+      {
+       "name": "stickerPutIn",
+       "change": "removed"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "activity",
+     "name": "Activity",
+     "note": "convex/activity",
+     "used": 16,
+     "seam": [
+      "activityOf",
+      {
+       "name": "activitySince",
+       "change": "added",
+       "q": "Q4"
+      }
+     ]
+    },
+    {
+     "id": "visit",
+     "name": "Last visit",
+     "note": "one instant per member",
+     "change": "added",
+     "q": "Q4",
+     "seam": [
+      "lastVisitOf",
+      "moveLastVisit"
+     ]
+    },
+    {
+     "id": "album",
+     "name": "Album",
+     "note": "convex/album",
+     "used": 113,
+     "seam": [
+      "grantThoughtfulPacks",
+      "earnedEmojisOf",
+      {
+       "name": "waitingPacksOf",
+       "change": "removed"
+      },
+      {
+       "name": "openThoughtfulPack",
+       "change": "removed"
+      },
+      {
+       "name": "putItemIn",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "items",
+     "name": "Items",
+     "note": "every unseen reward, face down",
+     "change": "added",
+     "q": "Q3",
+     "seam": [
+      "boardOf",
+      "turn"
+     ]
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "unlocks",
+     "name": "Unlocks",
+     "note": "convex/unlocks",
+     "used": 36,
+     "seam": [
+      {
+       "name": "dropLevelUpHoggies",
+       "change": "changed"
+      },
+      "levelUpAt"
+     ]
+    },
+    {
+     "id": "hoggies",
+     "name": "Hoggies",
+     "note": "convex/hoggies",
+     "used": 60,
+     "seam": [
+      {
+       "name": "dropFor",
+       "change": "changed"
+      },
+      "foundIn",
+      {
+       "name": "putDropIn",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "progression",
+     "name": "Progression",
+     "note": "convex/progression",
+     "used": 57,
+     "seam": [
+      "applyGain"
+     ]
+    }
+   ]
+  }
+ ],
+ "wires": [
+  {
+   "from": "member",
+   "to": "app-seam",
+   "label": "clicks"
+  },
+  {
+   "from": "feedback",
+   "fromSide": "top",
+   "to": "giver",
+   "toSide": "bottom",
+   "label": "Slack reply",
+   "change": "changed"
+  },
+  {
+   "from": "analytics",
+   "fromSide": "top",
+   "to": "posthog",
+   "toSide": "bottom",
+   "label": "flags, events"
+  },
+  {
+   "from": "app",
+   "to": "web-seam",
+   "toAt": 0.25,
+   "label": "12 functions"
+  },
+  {
+   "from": "web",
+   "fromAt": 0.12,
+   "to": "activity-seam",
+   "change": "added",
+   "q": "Q4",
+   "label": "since"
+  },
+  {
+   "from": "web",
+   "fromAt": 0.4,
+   "to": "visit-seam",
+   "change": "added",
+   "label": "lastVisit"
+  },
+  {
+   "from": "web",
+   "fromAt": 0.7,
+   "to": "album",
+   "toAt": 0.5,
+   "kind": "leak",
+   "label": "64 symbols, 5 files",
+   "labelAt": 0.45
+  },
+  {
+   "from": "web",
+   "fromAt": 0.95,
+   "to": "items-seam",
+   "toAt": 0.2,
+   "change": "added",
+   "label": "boardOf, turn",
+   "labelAt": 0.6
+  },
+  {
+   "from": "bus",
+   "fromSide": "top",
+   "fromAt": 0.2,
+   "to": "feedback",
+   "toSide": "bottom",
+   "toAt": 0.85,
+   "label": "sub granted"
+  },
+  {
+   "from": "feedback",
+   "fromAt": 0.3,
+   "to": "album",
+   "toAt": 0.8,
+   "kind": "leak",
+   "change": "removed",
+   "label": "15 symbols, 5 files",
+   "labelAt": 0.3,
+   "crossAt": 0.12
+  },
+  {
+   "from": "bus",
+   "fromSide": "top",
+   "fromAt": 0.7,
+   "to": "analytics",
+   "toSide": "bottom",
+   "toAt": 0.7,
+   "straight": "from",
+   "change": "added",
+   "q": "Q5",
+   "label": "sub itemTurned"
+  },
+  {
+   "from": "items",
+   "fromSide": "top",
+   "fromAt": 0.75,
+   "to": "bus",
+   "toSide": "bottom",
+   "toAt": 0.75,
+   "straight": "from",
+   "change": "added",
+   "label": "pub itemTurned"
+  },
+  {
+   "from": "items",
+   "fromSide": "left",
+   "fromAt": 0.8,
+   "to": "album",
+   "toSide": "right",
+   "toAt": 0.85,
+   "change": "added"
+  },
+  {
+   "from": "items",
+   "fromAt": 0.45,
+   "to": "hoggies-seam",
+   "toAt": 0.75,
+   "change": "added",
+   "label": "draw, record",
+   "labelAt": 0.8,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ]
+  },
+  {
+   "from": "items",
+   "fromAt": 0.15,
+   "to": "unlocks-seam",
+   "toAt": 0.8,
+   "change": "added",
+   "label": "level-up",
+   "labelAt": 0.75
+  },
+  {
+   "from": "hoggies",
+   "fromSide": "right",
+   "to": "progression",
+   "toSide": "left"
+  }
+ ]
+}

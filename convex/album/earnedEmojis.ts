@@ -15,6 +15,7 @@ import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
 import type { ParseHook } from "../parser/parser";
+import { holdsTheHypeOf, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
@@ -24,7 +25,7 @@ export type EarnedEmoji = { id: EarnedEmojiId | RandomEmojiId; kind: EarnedEmoji
 
 export type SharedEmoji = Pick<EarnedEmoji, "id" | "kind" | "name" | "from" | "picture" | "inSlack">;
 
-export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number } };
+export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number }; hypesHeld?: HypesHeld };
 
 export type EarnedEmojis = { emojis: EarnedEmoji[]; more: boolean };
 
@@ -52,7 +53,7 @@ type EarnedCause = Pick<Cause, "id" | "picture">;
 
 export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: EmojiCauses): Promise<EarnedEmojis> {
   const seen = await seenBy(ctx, owner.member);
-  const hype = await hypeCausesOf(ctx, owner, seen);
+  const hype = await hypeCausesOf(ctx, owner, seen, causes.hypesHeld);
   const emojis: EarnedEmoji[] = [];
   for (const cause of [...teamCausesOf(causes.pages), ...hype.causes, ...milestoneCausesOf(causes.milestones), ...levelCausesOf(causes.level)]) {
     const name = await emojiNameOf(ctx, owner.workspace, cause.id);
@@ -102,11 +103,15 @@ function levelReachedCauseOf(reward: number, at: number): Cause {
 }
 
 async function seenAmong(ctx: QueryCtx, member: MemberId, emoji: string): Promise<Set<string>> {
+  return new Set((await seenAtOf(ctx, member, emoji)) === null ? [] : [emoji]);
+}
+
+export async function seenAtOf(ctx: QueryCtx, member: MemberId, emoji: string): Promise<number | null> {
   const seen = await ctx.db
     .query("seenEmojis")
     .withIndex("by_member_emoji", (q) => q.eq("member", member).eq("emoji", emoji))
     .first();
-  return new Set(seen === null ? [] : [emoji]);
+  return seen?.at ?? null;
 }
 
 export async function teamEmojiOf(ctx: QueryCtx, workspace: string, { team, art }: Pick<TeamSticker, "team" | "art">): Promise<ShownEmoji | null> {
@@ -124,6 +129,16 @@ export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: 
     marked.push(id);
   }
   return marked;
+}
+
+export async function unlockHypeEmojiOf(ctx: MutationCtx, { workspace, member }: PageOwner, person: MemberId, at: number): Promise<HypeEmoji | null> {
+  return (await markEmojiSeen(ctx, member, `hype:${person}`, at)) ? hypeEmojiOf(ctx, workspace, person) : null;
+}
+
+export async function markEmojiSeen(ctx: MutationCtx, member: MemberId, emoji: string, at: number): Promise<boolean> {
+  if ((await seenAmong(ctx, member, emoji)).size > 0) return false;
+  await ctx.db.insert("seenEmojis", { member, emoji, at });
+  return true;
 }
 
 async function emojiOf(ctx: QueryCtx, workspace: string, { id, kind, from, picture, earned, earnedAt, progress }: Cause, name: string, seen: Set<string>): Promise<EarnedEmoji> {
@@ -198,14 +213,24 @@ function levelCausesOf({ level, xp }: EmojiCauses["level"]): Cause[] {
   return emojiLevels.map((reward) => ({ id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: emojiArtPictureOf("level", reward), earned: level >= reward, earnedAt: null, progress: { have: xp, need: xpToReach(reward) } }));
 }
 
-async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>): Promise<{ causes: Cause[]; more: boolean }> {
+async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>, held: HypesHeld | undefined): Promise<{ causes: Cause[]; more: boolean }> {
   const people = unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen);
   const causes: Cause[] = [];
   for (const { person, firstPackAt } of people.slice(0, mostHypeEmojisShown)) {
     const { name, picture } = await hypeFaceOf(ctx, workspace, person);
-    causes.push({ id: `hype:${person}`, kind: "hype", from: name, picture, earned: true, earnedAt: firstPackAt, progress: { have: 1, need: 1 } });
+    const earned = !isHeldForItsItem(person, seen, held);
+    causes.push({ id: `hype:${person}`, kind: "hype", from: name, picture, earned, earnedAt: earned ? firstPackAt : null, progress: { have: earned ? 1 : 0, need: 1 } });
   }
   return { causes, more: people.length > mostHypeEmojisShown };
+}
+
+function isHeldForItsItem(person: MemberId, seen: Set<string>, held: HypesHeld | undefined) {
+  return held !== undefined && !seen.has(`hype:${person}`) && holdsTheHypeOf(held, person);
+}
+
+export async function hypeEarnedBy(ctx: QueryCtx, member: MemberId, person: MemberId | null): Promise<boolean> {
+  if (person === null || !(await hasPackedFor(ctx, member, person))) return false;
+  return (await seenAtOf(ctx, member, `hype:${person}`)) !== null || !(await hypeWaitsForItsItem(ctx, member, person));
 }
 
 function unseenFirst(people: PackedPerson[], seen: Set<string>): PackedPerson[] {
@@ -278,7 +303,7 @@ export async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): P
   if (kind === "team") return (await teamStickerOf(ctx, member, cause)) !== null;
   if (kind === "milestone") return holdsMilestoneTier(ctx, member, cause);
   if (kind === "level") return emojiLevels.some((reward) => String(reward) === cause) && (await progressionHomeOf(ctx, member)).level >= Number(cause);
-  if (kind === "hype") return hasPackedFor(ctx, member, ctx.db.normalizeId("members", cause));
+  if (kind === "hype") return hypeEarnedBy(ctx, member, ctx.db.normalizeId("members", cause));
   if (kind === "random") return (await randomEmojisShownTo(ctx, member)) && (await holdsRandomEmoji(ctx, member, cause));
   return false;
 }
@@ -307,8 +332,7 @@ function tierOf(ctx: QueryCtx, member: MemberId, milestone: MilestoneId, tier: M
     .first();
 }
 
-async function hasPackedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId | null): Promise<boolean> {
-  if (recipient === null) return false;
+async function hasPackedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<boolean> {
   const pack = await ctx.db
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))

@@ -5,6 +5,8 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
+import type { CrateKey } from "../hoggies/crateKey";
+import { earnItem } from "../items/ledger";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
 import { nameHypeEmojiOf } from "./emojiNames";
@@ -19,6 +21,8 @@ export type WaitingPack = { pack: Id<"thoughtfulPacks">; person: MemberId; earne
 export type Instants = { from: number; to: number };
 
 export type ThoughtfulKudos = { message: MessageRef; at: number; recipients: number };
+
+type PackId = Id<"thoughtfulPacks">;
 
 export const grantThoughtfulPacks = internalMutation({
   args: { event: kudosGivenEventValidator, from: v.optional(v.number()) },
@@ -66,12 +70,11 @@ export async function isFirstPackGrantedFor(ctx: QueryCtx, giver: MemberId, reci
   return first !== null && isTheSameMessage(first.message, message);
 }
 
-async function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
-  const packs = await ctx.db
+export function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
+  return ctx.db
     .query("thoughtfulPacks")
-    .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
-    .collect();
-  return packs.reduce<Doc<"thoughtfulPacks"> | null>((earliest, pack) => (earliest === null || pack._creationTime < earliest._creationTime ? pack : earliest), null);
+    .withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))
+    .first();
 }
 
 function isTheSameMessage(one: MessageRef, other: MessageRef) {
@@ -92,9 +95,32 @@ async function packFor(ctx: MutationCtx, { workspace, giver, message, day, at }:
   const week = givingWeekOf(day);
   if (await packEarnedIn(ctx, giver, recipient, week)) return "nextWeek";
   const outcome = await stickerOutcomeOf(ctx, giver, recipient);
-  await ctx.db.insert("thoughtfulPacks", { workspace, giver, recipient, week, message, holdsSticker: outcome === "new", at });
+  const pack = await ctx.db.insert("thoughtfulPacks", { workspace, giver, recipient, week, message, holdsSticker: outcome === "new", at });
+  await earnThanksItems(ctx, { workspace, giver, recipient, message, at }, pack, outcome === "new");
   await nameHypeEmojiOf(ctx, workspace, recipient);
   return outcome;
+}
+
+type Thanks = { workspace: string; giver: MemberId; recipient: MemberId; message: MessageRef; at: number };
+
+async function earnThanksItems(ctx: MutationCtx, thanks: Thanks, pack: PackId, holdsSticker: boolean) {
+  const earning = thanksEarningOf(thanks);
+  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack) });
+  if (holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack });
+}
+
+export function earnPackItemsOf(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">) {
+  return earnThanksItems(ctx, pack, pack._id, pack.holdsSticker);
+}
+
+export function thanksEarningOf({ workspace, giver, recipient, message, at }: Thanks) {
+  return { workspace, member: giver, reason: { kind: "thanks" as const, person: recipient, message }, earnedAt: at };
+}
+
+export const thoughtfulCratePrefix = "thoughtful:";
+
+export function crateKeyOf(pack: PackId): CrateKey {
+  return `${thoughtfulCratePrefix}${pack}`;
 }
 
 async function stickerOutcomeOf(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Exclude<GrantOutcome, "nextWeek">> {

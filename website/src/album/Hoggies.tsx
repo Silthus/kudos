@@ -1,26 +1,32 @@
-import { useId, useRef, useState, type CSSProperties } from "react";
+import { useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AnswerPage } from "../pages/AnswerPage";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import type { Rarity } from "../shell";
-import type { AlbumHoggie, AlbumHoggies, HoggiesShown } from "./answer";
+import type { AlbumHoggie, AlbumHoggies, HoggiesShown, PetReply } from "./answer";
 import { HoggieArt } from "./HoggieArt";
 import type { HoggieAddress } from "./hoggieAddress";
 import { HoggieEntry } from "./HoggieEntry";
-import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, numberOf, rarityTintOf, shelvesOf, type Filter, type Shelf } from "./hoggieGuide";
+import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, numberOf, rarityTintOf, shelvesOf, withoutOneCopyOf, type Filter, type Shelf } from "./hoggieGuide";
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
+import { landedMarksOf, useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
+import { LandedHype } from "./ItemBoard";
+import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
+import { usePetPick } from "./usePetPick";
 import { useRarityStrip } from "./useRarityStrip";
 import "./hoggies.css";
 
 type HoggiesPlace = { hoggie: string | null; rarity?: Rarity };
 
-type HoggiesAnswerProps = { shown: HoggiesShown | undefined; place: HoggiesPlace; address: HoggieAddress; onSignIn: () => void; onSignOut: () => void };
+type MakePet = (hoggie: string) => Promise<PetReply>;
 
-export function HoggiesAnswerPage({ shown, place, address, ...answers }: HoggiesAnswerProps) {
+type HoggiesAnswerProps = { shown: HoggiesShown | undefined; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet; onSignIn: () => void; onSignOut: () => void };
+
+export function HoggiesAnswerPage({ shown, place, address, makePet, ...answers }: HoggiesAnswerProps) {
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "hoggies") return <AnswerPage answer={shown} {...answers} />;
-  return <HoggiesPage answer={shown} place={place} address={address} />;
+  return <HoggiesPage answer={shown} place={place} address={address} makePet={makePet} />;
 }
 
 export function isWaitingForTheHoggies(shown: HoggiesShown | undefined) {
@@ -29,19 +35,32 @@ export function isWaitingForTheHoggies(shown: HoggiesShown | undefined) {
 
 type Open = (hoggie: AlbumHoggie) => void;
 
-function HoggiesPage({ answer, place, address }: { answer: AlbumHoggies; place: HoggiesPlace; address: HoggieAddress }) {
-  const [filter, setFilter] = useState<Filter>("all");
+function HoggiesPage({ answer: answered, place, address, makePet }: { answer: AlbumHoggies; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet }) {
+  const answer = useWithoutTheArrivingFind(answered);
+  const [filter, setFilter] = useFilterShowingEachLanding();
   const shown = keptBy(filter, answer.hoggies, place.rarity);
   const chosen = answer.hoggies.find(({ hoggie }) => hoggie === place.hoggie) ?? null;
   const open: Open = (hoggie) => address.open(hoggie.hoggie);
+  const picking = usePetPick(answer.pet, makePet);
   return (
     <article className="al-page-body al-hoggies">
       <Header answer={answer} />
       <RarestFinds answer={answer} onOpen={open} />
       <Collection answer={answer} shown={shown} filter={filter} rarity={place.rarity} onFilter={setFilter} onShowEveryRarity={address.showEveryRarity} onOpen={open} />
-      {chosen !== null && <HoggieEntry hoggie={chosen} answer={answer} steps={answer.hoggies.filter((hoggie) => hoggie === chosen || shown.includes(hoggie))} onStep={(hoggie) => address.step(hoggie.hoggie)} onClose={address.close} />}
+      {chosen !== null && <HoggieEntry hoggie={chosen} answer={answer} picking={picking} steps={answer.hoggies.filter((hoggie) => hoggie === chosen || shown.includes(hoggie))} onStep={(hoggie) => address.step(hoggie.hoggie)} onClose={address.close} />}
     </article>
   );
+}
+
+function useFilterShowingEachLanding() {
+  const landedTurn = useLanding()?.turn ?? null;
+  const [filter, setFilter] = useState<Filter>("all");
+  const [filteredSince, setFilteredSince] = useState(landedTurn);
+  if (filteredSince !== landedTurn) {
+    setFilteredSince(landedTurn);
+    setFilter("all");
+  }
+  return [filter, setFilter] as const;
 }
 
 function Header({ answer }: { answer: AlbumHoggies }) {
@@ -237,8 +256,13 @@ function Group({ group, answer, onOpen }: { group: Shelf; answer: AlbumHoggies; 
 }
 
 function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string; onOpen: Open }) {
+  const plate = useRef<HTMLButtonElement>(null);
+  const landing = useLandingOf(hoggie);
+  const foundSinceTheLastVisit = useNewSinceTheLastVisit(hoggie.firstAt);
+  useBroughtIntoViewOnLanding(plate, landing);
   return (
-    <button type="button" className="al-hoggies-plate" data-hoggie={hoggie.hoggie} data-found={hoggie.found ? "" : undefined} aria-label={hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
+    <button type="button" ref={plate} className="al-hoggies-plate" data-hoggie={hoggie.hoggie} {...landedMarksOf(landing)} data-found={hoggie.found ? "" : undefined} aria-label={foundSinceTheLastVisit ? `${hoggieLabelOf(hoggie)}, new` : hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
+      <NewSinceTheLastVisit at={hoggie.firstAt} />
       <span className="al-hoggies-plate-number">{number}</span>
       {hoggie.count > 1 && <span className="al-hoggies-copies">{`×${hoggie.count}`}</span>}
       <span className="al-hoggies-plate-art">
@@ -246,6 +270,18 @@ function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string
       </span>
       <span className="al-hoggies-plate-name">{hoggie.found ? hoggie.name : "Not found yet"}</span>
       <span className="al-hoggies-rarity">{rarityWordOf(hoggie.rarity)}</span>
+      <LandedHype landing={landing} />
     </button>
   );
+}
+
+function useLandingOf(hoggie: AlbumHoggie) {
+  const landing = useLanding();
+  return landing?.face.kind === "hoggie" && landing.face.drop.hoggie === hoggie.hoggie ? landing : null;
+}
+
+function useWithoutTheArrivingFind(answer: AlbumHoggies): AlbumHoggies {
+  const landing = useLanding();
+  const arriving = landing?.phase === "arriving" && landing.face.kind === "hoggie" ? landing.face.drop.hoggie : null;
+  return useMemo(() => (arriving === null ? answer : withoutOneCopyOf(answer, arriving)), [answer, arriving]);
 }

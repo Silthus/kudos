@@ -17,6 +17,7 @@ import type {
   QuestSwappedEvent,
   StickersCollectedEvent,
   StickerPutInEvent,
+  ItemTurnedEvent,
   ThoughtfulPacksGrantedEvent,
   UnlockOpenedEvent,
   UnlockReadyEvent,
@@ -60,6 +61,8 @@ export type ProductEvent = {
     | "person collected"
     | "packs earned"
     | "album sticker collected"
+    | "item turned"
+    | "xp moment ended"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -83,7 +86,8 @@ export type UsageFact =
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
-  | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number };
+  | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number }
+  | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number };
 
 export type PickSurface = "welcome" | "settings" | "website";
 
@@ -252,6 +256,10 @@ export function projectPacksEarned({ giver, outcomes, at }: ThoughtfulPacksGrant
   return { event: "packs earned", subject: { member: giver }, at, properties: { packs_earned: packsEarned, recipients: outcomes.length } };
 }
 
+export function projectItemTurned({ member, source, rarity, isNew, at }: ItemTurnedEvent): ProductEvent {
+  return { event: "item turned", subject: { member }, at, properties: { source, ...(rarity !== undefined && { rarity }), is_new: isNew } };
+}
+
 export function projectAlbumStickerCollected({ member, at }: StickerPutInEvent): ProductEvent {
   return { event: "album sticker collected", subject: { member }, at, properties: {} };
 }
@@ -283,5 +291,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
     case "hugsRecapSent":
       return { event: "hugs recap sent", subject, at: fact.at, properties: { hugs_given: fact.given, hugs_received: fact.received, xp: fact.xp } };
+    case "xpMomentEnded":
+      return { event: "xp moment ended", subject, at: fact.at, properties: { skipped: fact.skipped, excerpts_shown: fact.excerptsShown, folded: fact.folded } };
   }
 }

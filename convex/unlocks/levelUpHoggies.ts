@@ -2,8 +2,10 @@ import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Rarity } from "../hoggies/catalogue";
 import type { CrateKey } from "../hoggies/crateKey";
-import { dropFor, foundIn, type Drop } from "../hoggies/drops";
+import { dropFor, droppedIn, foundIn, type Drop } from "../hoggies/drops";
 import { crestsShownTo } from "../hoggies/flag";
+import { hiddenItemsShownTo } from "../items/flag";
+import { earnItem, markTurned } from "../items/ledger";
 import type { MemberId } from "../workspace/directory";
 
 export const levelUpRevealFlag = { key: "level-up-reveal", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -14,9 +16,24 @@ export function levelUpCrateKeyOf(level: number, slot: number): CrateKey {
   return `level:${level}:${slot}`;
 }
 
-export async function dropLevelUpHoggies(ctx: MutationCtx, member: MemberId, level: number, at: number): Promise<void> {
-  if (!(await levelUpRevealDropsFor(ctx, member))) return;
-  for (const { slot, floor } of slots) await dropFor(ctx, member, levelUpCrateKeyOf(level, slot), at, { floor });
+export type LevelUp = { workspace: string; member: MemberId; level: number; at: number };
+
+export async function dropLevelUpHoggies(ctx: MutationCtx, levelUp: LevelUp): Promise<void> {
+  await earnLevelUpItems(ctx, levelUp);
+  if (await hiddenItemsShownTo(ctx, levelUp.member)) return;
+  if (await levelUpRevealDropsFor(ctx, levelUp.member)) await revealLevelUpHoggies(ctx, levelUp);
+}
+
+async function earnLevelUpItems(ctx: MutationCtx, { workspace, member, level, at }: LevelUp): Promise<void> {
+  for (const { slot, floor } of slots) await earnItem(ctx, { workspace, member, source: "hoggie", key: levelUpCrateKeyOf(level, slot), ...(floor && { floor }), reason: { kind: "levelUp", level }, earnedAt: at });
+}
+
+async function revealLevelUpHoggies(ctx: MutationCtx, { member, level, at }: LevelUp): Promise<void> {
+  for (const { slot, floor } of slots) {
+    const crate = levelUpCrateKeyOf(level, slot);
+    await dropFor(ctx, member, crate, at, { floor });
+    if (await droppedIn(ctx, member, crate)) await markTurned(ctx, member, "hoggie", crate, at);
+  }
 }
 
 async function levelUpRevealDropsFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {

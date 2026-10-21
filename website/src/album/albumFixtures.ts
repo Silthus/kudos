@@ -1,4 +1,7 @@
+import type { Id } from "../../../convex/_generated/dataModel";
 import { milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
+import type { Drop } from "../../../convex/hoggies/drops";
+import type { BoardItem, ItemBoard, TurnAnswer } from "../../../convex/website/album";
 import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, SharedEmoji, TrayItem, UnlockAnswer } from "./answer";
 
 const day = 86_400_000;
@@ -140,6 +143,7 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugge
     emojiInPlace: null,
     milestones,
     gettingStarted,
+    board: null,
   };
 }
 
@@ -149,6 +153,12 @@ const midwayTray: TrayItem[] = [
   stickerFor("tray-dov-esker", "dov-esker"),
   { item: "tray-banana", kind: "hoggie", hoggie: "banana", rarity: "common", isNew: false },
 ];
+
+function boardItemFor(index: number, person: string): BoardItem {
+  return { item: `item-${index + 1}` as Id<"items">, earnedAt: now - (index + 1) * day, reason: { kind: "thanks", thanked: { name: nameOf(person), face: { kind: "initials", initials: initialsOf(person) } } } };
+}
+
+const waitingItems: ItemBoard = { items: ["cass-vey", "dov-esker", "rook-dale"].map((person, index) => boardItemFor(index, person)), more: false };
 
 const newcomerCast = castTeams.slice(0, 4).map((team) => ({ ...team, held: 0, state: undefined }));
 
@@ -162,6 +172,7 @@ export const albumFixtures = {
   trayed: { ...albumOf(), tray: midwayTray },
   newEmojis: { ...albumOf(), emojis: newEmojis },
   admin: { ...albumOf(), sharedEmojis },
+  withItems: { ...albumOf(), packs: [], board: waitingItems },
 } satisfies Record<string, Album>;
 
 export function fixedAlbum(answer: MyAlbum): AlbumRead {
@@ -185,6 +196,26 @@ export function fixturePackOpeningOf(pack: string): PackOpenAnswer {
       { item: `${pack}:hoggie`, kind: "hoggie", ...fixtureHoggies[index % fixtureHoggies.length]! },
     ],
     applied: { xp: 15, coins: 0, from: { xp, level, coins: 0, skillPoints: 0 }, to: { xp: xp + 15, level, coins: 0, skillPoints: 0 } },
+  };
+}
+
+const turnedDrops: Drop[] = [
+  { hoggie: "70s-dance", name: "70's Dance", rarity: "rare", art: { kind: "hoggie", slug: "70s-dance" }, copy: 1, isNew: true },
+  { hoggie: "banana", name: "Banana", rarity: "common", art: { kind: "hoggie", slug: "banana" }, copy: 2, isNew: false },
+  { hoggie: "coffee-run", name: "Coffee Run", rarity: "rare", art: { kind: "hoggie", slug: "coffee-run" }, copy: 1, isNew: true },
+];
+
+export function fixtureTurnOf(item: string): TurnAnswer {
+  const index = waitingItems.items.findIndex((waiting) => waiting.item === item);
+  if (index === -1) return { kind: "refused" };
+  const { xp, level } = albumFixtures.midway.level;
+  return {
+    kind: "turned",
+    face: { kind: "hoggie", drop: turnedDrops[index % turnedDrops.length]! },
+    applied: { xp: 15, coins: 0, from: { xp, level, coins: 0, skillPoints: 0 }, to: { xp: xp + 15, level, coins: 0, skillPoints: 0 } },
+    page: { kind: "hoggies" },
+    unlocked: { teamStickers: [], hype: null, milestones: [] },
+    again: false,
   };
 }
 
