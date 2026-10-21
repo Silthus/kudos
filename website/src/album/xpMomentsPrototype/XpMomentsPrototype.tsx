@@ -7,6 +7,7 @@ import { prefersReducedMotion } from "../../reducedMotion";
 import { HedgehogSitting } from "../../hoggies";
 import type { Album } from "../answer";
 import { paceKeys, paces, partsOf, scenarioKeys, scenarios, type Excerpt } from "./moments";
+import { levelUpStyles, type LevelUpStyle } from "./LevelUpMoment";
 import { ScatterSequence } from "./Scatter";
 import { useRun, type Beat, type Run } from "./sequence";
 import "./xpMoments.css";
@@ -25,7 +26,7 @@ const variants = [
 
 type VariantKey = (typeof variants)[number]["key"];
 
-type Settings = { variant: VariantKey; scenario: string; pace: string; motion: "full" | "reduced" };
+type Settings = { variant: VariantKey; scenario: string; pace: string; motion: "full" | "reduced"; levelup: LevelUpStyle };
 
 const on = Boolean(import.meta.env.VITE_SHELL_FIXTURE);
 
@@ -37,7 +38,8 @@ function settingsFromTheAddress(): Settings {
   const scenario = scenarioKeys.includes(search.get("scenario") ?? "") ? search.get("scenario")! : "busy";
   const pace = paceKeys.includes(search.get("pace") ?? "") ? search.get("pace")! : "brisk";
   const motion = search.get("motion") === "reduced" ? "reduced" : "full";
-  return { variant, scenario, pace, motion };
+  const levelup = levelUpStyles.find(({ key }) => key === search.get("levelup"))?.key ?? "takeover";
+  return { variant, scenario, pace, motion, levelup };
 }
 
 function usePrototype(album: Album) {
@@ -54,7 +56,7 @@ function usePrototype(album: Album) {
     setReplays((count) => count + 1);
   }, []);
   const [shown, setShown] = useState<{ level: Album["level"]; moving: boolean }>({ level: album.level, moving: false });
-  const runKey = `${settings.variant}:${settings.scenario}:${settings.pace}:${settings.motion}:${replays}`;
+  const runKey = `${settings.variant}:${settings.scenario}:${settings.pace}:${settings.motion}:${settings.levelup}:${replays}`;
   const overlay = (
     <>
       <Sequence key={runKey} album={album} settings={settings} onShown={setShown} />
@@ -68,7 +70,7 @@ type SequenceProps = { album: Album; settings: Settings; onShown: (shown: { leve
 
 function Sequence({ album, settings, onShown }: SequenceProps) {
   const reduced = settings.motion === "reduced" || prefersReducedMotion();
-  if (settings.variant === "D" || settings.variant === "E" || settings.variant === "F" || settings.variant === "G" || settings.variant === "H" || settings.variant === "I") return <ScatterSequence variant={settings.variant} scenario={scenarios[settings.scenario]!} pace={paces[settings.pace]!} reduced={reduced} me={album.me.name} onShown={onShown} />;
+  if (settings.variant === "D" || settings.variant === "E" || settings.variant === "F" || settings.variant === "G" || settings.variant === "H" || settings.variant === "I") return <ScatterSequence variant={settings.variant} levelUpStyle={settings.levelup} scenario={scenarios[settings.scenario]!} pace={paces[settings.pace]!} reduced={reduced} me={album.me.name} onShown={onShown} />;
   return <BeatSequence album={album} settings={settings} onShown={onShown} reduced={reduced} />;
 }
 
@@ -473,6 +475,13 @@ function PrototypeBar({ settings, onChange, onReplay }: { settings: Settings; on
         <select value={settings.motion} onChange={(event) => onChange({ motion: event.target.value as Settings["motion"] })} aria-label="Motion">
           <option value="full">Full motion</option>
           <option value="reduced">Reduced motion</option>
+        </select>
+        <select value={settings.levelup} onChange={(event) => onChange({ levelup: event.target.value as LevelUpStyle })} aria-label="Level-up">
+          {levelUpStyles.map(({ key, name }) => (
+            <option key={key} value={key}>
+              {name}
+            </option>
+          ))}
         </select>
         <button type="button" onClick={onReplay}>
           ↻ Replay

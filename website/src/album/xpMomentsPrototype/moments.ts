@@ -66,3 +66,7 @@ export function partsOf(text: string): Part[] {
     .filter((part) => part !== "")
     .map((part) => (part.startsWith("@") ? { kind: "mention", value: part } : part.startsWith(":") && emojiOf[part] ? { kind: "emoji", value: emojiOf[part] } : { kind: "text", value: part }));
 }
+
+export function skillPointsAt(level: number) {
+  return level >= 5 ? 1 : 0;
+}

@@ -7,7 +7,8 @@
 // F "Wall & crumble": a tidy wall; the incoming XP already shows as a ghost on the XP bar with a countdown; excerpts crumble left to right.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Album, AlbumLevel } from "../answer";
-import { levelOf, xpToReach, type Pace, type Scenario } from "./moments";
+import { LevelUpMoment, hoggiesPerLevel, type LevelUpStyle } from "./LevelUpMoment";
+import { levelOf, skillPointsAt, xpToReach, type Pace, type Scenario } from "./moments";
 import { centreOf, clearParticles, crumble, dust, particlesFor, poof, stream, toTheBar } from "./particles";
 import { popTheLevel } from "./sequence";
 import { ExcerptCard, FoldLine, HandoffBoard, itemsWords, publishLine } from "./XpMomentsPrototype";
@@ -19,21 +20,27 @@ function hasOrb(variant: ScatterVariant) {
   return variant === "E" || variant === "G" || variant === "H" || variant === "I";
 }
 
-type Phase = "settle" | "arrive" | "hold" | "collect" | "items";
+type Phase = "settle" | "arrive" | "hold" | "collect" | "levelUp" | "items";
 
 type Card = { key: number; xp: number; node: (compact: boolean) => ReactNode; moments: number };
 
 type Placed = { x: number; y: number; rot: number; width: number };
 
-type Props = { variant: ScatterVariant; scenario: Scenario; pace: Pace; reduced: boolean; me: string; onShown: (shown: { level: Album["level"]; moving: boolean }) => void };
+type Props = { variant: ScatterVariant; levelUpStyle: LevelUpStyle; scenario: Scenario; pace: Pace; reduced: boolean; me: string; onShown: (shown: { level: Album["level"]; moving: boolean }) => void };
 
 const noChip = () => {};
 
-export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown }: Props) {
+export function ScatterSequence({ variant, levelUpStyle, scenario, pace, reduced, me, onShown }: Props) {
   const cards = useMemo(() => cardsOf(scenario, me), [scenario, me]);
   const total = cards.reduce((sum, card) => sum + card.xp, 0);
   const moments = cards.reduce((sum, card) => sum + card.moments, 0);
   const final = scenario.startXp + total;
+  const reached = levelOf(final);
+  const gained = reached - levelOf(scenario.startXp);
+  const levelItems = gained * hoggiesPerLevel;
+  const itemCount = scenario.items + levelItems;
+  const celebrate = gained > 0 && levelUpStyle !== "off";
+  const toItems = useCallback(() => setPhase("items"), []);
   const [phase, setPhase] = useState<Phase>(reduced ? "items" : "settle");
   const [xp, setXp] = useState(reduced ? final : scenario.startXp);
   const [orbXp, setOrbXp] = useState(0);
@@ -60,8 +67,8 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
     settled.current = true;
     setXp(final);
     setOrbXp(0);
-    later(380, () => setPhase("items"));
-  }, [final]);
+    later(380, () => setPhase(celebrate ? "levelUp" : "items"));
+  }, [final, celebrate]);
 
   const collect = () => {
     if (phase !== "arrive" && phase !== "hold") return;
@@ -211,6 +218,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (phase === "items") setClosed("later");
+      else if (phase === "levelUp") setPhase("items");
       else skip();
     };
     window.addEventListener("keydown", onKey);
@@ -223,7 +231,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
   useLayoutEffect(() => onShown({ level, moving: false }), [level.xp, level.level]);
   useLevelPop(level.level, reduced);
   useSpotlight(closed === "open");
-  useEffect(() => publishLine(`${variant} · ${phase}${phase === "hold" ? ` ${Math.round(holdMs / 100) / 10}s` : ""} · ${cards.length} excerpts, ${moments} moments · XP ${Math.round(xp)} · level ${level.level} · last visit ${phase === "items" ? "moved" : `still ${scenario.lastVisit}`}${closed === "open" ? "" : ` · ${closed}`}`));
+  useEffect(() => publishLine(`${variant} · ${phase}${phase === "hold" ? ` ${Math.round(holdMs / 100) / 10}s` : ""} · ${cards.length} excerpts, ${moments} moments · XP ${Math.round(xp)} · level ${level.level} · last visit ${phase === "items" || phase === "levelUp" ? "moved" : `still ${scenario.lastVisit}`}${closed === "open" ? "" : ` · ${closed}`}`));
 
   if (closed === "board") return <HandoffBoard count={scenario.items} onClose={() => setClosed("later")} />;
   if (closed === "later") return null;
@@ -232,6 +240,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
   return (
     <div className="xpm-canvas" style={{ top: viewport.top }} data-variant={variant} data-orb={hasOrb(variant) ? "" : undefined} data-phase={phase} data-narrow={narrow ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={canCollect ? collect : undefined} role="dialog" aria-label="Since your last visit">
       {phase !== "items" &&
+        phase !== "levelUp" &&
         cards.map((card, index) => {
           const spot = placed[index]!;
           const style = { left: spot.x, top: spot.y, width: spot.width, "--rot": `${spot.rot}deg`, "--d": `${index * pace.stagger}ms`, "--from-x": `${viewport.width / 2 - spot.x}px`, "--from-y": `${viewport.height / 2 - spot.y}px` } as CSSProperties;
@@ -250,14 +259,15 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
           );
         })}
       {variant === "D" && canCollect && <DrainCue holdMs={holdMs} running={phase === "hold"} />}
-      {hasOrb(variant) && phase !== "items" && <Orb orb={orb} mystery={variant === "I"} xp={orbXp} holdMs={holdMs} phase={phase} narrow={narrow} viewport={viewport} />}
+      {hasOrb(variant) && phase !== "items" && phase !== "levelUp" && <Orb orb={orb} mystery={variant === "I"} xp={orbXp} holdMs={holdMs} phase={phase} narrow={narrow} viewport={viewport} />}
       {variant === "F" && canCollect && <BarGhost from={scenario.startXp} to={final} holdMs={holdMs} running={phase === "hold"} />}
-      {phase !== "items" && phase !== "collect" && (
+      {phase !== "items" && phase !== "collect" && phase !== "levelUp" && (
         <button type="button" className="xpm-canvas-skip" onClick={(event) => (event.stopPropagation(), skip())}>
           Skip
         </button>
       )}
-      {phase === "items" && <ItemsScene variant={variant} count={scenario.items} xp={total} moments={moments} lastVisit={scenario.lastVisit} onTurn={() => setClosed("board")} onLater={() => setClosed("later")} />}
+      {phase === "levelUp" && levelUpStyle !== "off" && <LevelUpMoment style={levelUpStyle} level={reached} nextIn={xpToReach(reached + 1) - final} onDone={toItems} />}
+      {phase === "items" && <ItemsScene variant={variant} count={itemCount} levelItems={levelItems} reached={gained > 0 ? reached : null} xp={total} moments={moments} lastVisit={scenario.lastVisit} onTurn={() => setClosed("board")} onLater={() => setClosed("later")} />}
     </div>
   );
 }
@@ -429,7 +439,7 @@ function BarGhost({ from, to, holdMs, running }: { from: number; to: number; hol
   );
 }
 
-function ItemsScene({ variant, count, xp, moments, lastVisit, onTurn, onLater }: { variant: ScatterVariant; count: number; xp: number; moments: number; lastVisit: string; onTurn: () => void; onLater: () => void }) {
+function ItemsScene({ variant, count, levelItems, reached, xp, moments, lastVisit, onTurn, onLater }: { variant: ScatterVariant; count: number; levelItems: number; reached: number | null; xp: number; moments: number; lastVisit: string; onTurn: () => void; onLater: () => void }) {
   useEffect(() => {
     if (count > 0) return;
     const leave = window.setTimeout(onLater, 2600);
@@ -442,12 +452,17 @@ function ItemsScene({ variant, count, xp, moments, lastVisit, onTurn, onLater }:
           <strong>+{xp} XP</strong> from {moments} {moments === 1 ? "moment" : "moments"} since {lastVisit}
         </p>
       )}
+      {reached !== null && (
+        <p className="xpm-levelled">
+          Level {reached} · +{levelItems} items{skillPointsAt(reached) > 0 ? ` · +${skillPointsAt(reached)} skill point` : ""}
+        </p>
+      )}
       <p className="xpm-items-big">{count === 0 ? "All caught up" : itemsWords(count)}</p>
       {count > 0 && (
         <>
           <div className="xpm-items-row">
             {Array.from({ length: count }, (_, index) => (
-              <button key={index} type="button" className="xpm-item" style={{ "--i": index, "--tilt": `${jitter(index, 7) * 8}deg`, "--lift": `${jitter(index, 8) * 18}px` } as CSSProperties} onClick={onTurn} aria-label={`Turn over item ${index + 1}`} autoFocus={index === 0}>
+              <button key={index} type="button" className="xpm-item" style={{ "--i": index, "--tilt": `${jitter(index, 7) * 8}deg`, "--lift": `${jitter(index, 8) * 18}px` } as CSSProperties} data-level={reached !== null && index >= count - levelItems ? `Level ${reached}` : undefined} onClick={onTurn} aria-label={`Turn over item ${index + 1}`} autoFocus={index === 0}>
                 <span aria-hidden="true">?</span>
               </button>
             ))}
