@@ -9,6 +9,7 @@ import { Feedback } from "../Feedback";
 import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
 import { EmojiPanel } from "./EmojiPanel";
+import { usableCountOf } from "./emojiShelf";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
 import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
@@ -167,16 +168,25 @@ function trayLabelOf(items: number, busy: boolean) {
 }
 
 function EmojiButton({ album, popover, button, justUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[] }) {
-  const earned = earnedEmojisOf(album);
+  const { count, label } = emojiCountOf(album);
   return (
-    <PopoverButton name="emojis" popover={popover} button={button} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} onFollow={popover.close} />}>
+    <PopoverButton name="emojis" popover={popover} button={button} label={label} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} onFollow={popover.close} />}>
       <IconEmoji />
       <span className="al-emojis-count" aria-hidden="true">
-        {earned}
+        {count}
       </span>
       <OpensOut>Emojis</OpensOut>
     </PopoverButton>
   );
+}
+
+function emojiCountOf(album: Album) {
+  if (album.emojiHowTo === undefined) {
+    const earned = earnedEmojisOf(album);
+    return { count: earned, label: `Your emojis, ${earned} earned` };
+  }
+  const usable = usableCountOf(album.emojis);
+  return { count: usable, label: `Your emojis, ${usable} you can use` };
 }
 
 type PopoverButtonProps = { name: TopBarPopups; popover: TopBarPopover; label: string; panelLabel: string; className: string; panelClassName?: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };

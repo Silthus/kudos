@@ -1,21 +1,150 @@
 import { IconSearch } from "@posthog/icons";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
+import type { LoopLesson } from "../../../convex/items/welcome";
 import { AppLink } from "../AppLink";
+import { NamedEmoji } from "../Emoji";
 import type { Album, AlbumEmoji } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
-import { NotInSlack } from "./findInSlack";
-import { howToUnlockWords, isReadyToUnlock, matchesSearch, milestoneGroupsOf, milestonesShown, shareOf, shelvesOf, teamOf, tierWords, useItInSlackWords, whyWords, type MilestoneGroup, type Shelf } from "./emojiShelf";
+import { NotInSlack, SetItUp } from "./findInSlack";
+import { howToUnlockWords, isReadyToUnlock, matchesSearch, milestoneGroupsOf, milestonesShown, shareOf, shelvesOf, shownCountOf, teamOf, tierWords, unlockNextOf, usableNowOf, useItInSlackWords, whyWords, type MilestoneGroup, type NextEmoji, type Shelf } from "./emojiShelf";
 import { hrefOf } from "./place";
 import "./emoji.css";
 
 type PanelProps = { album: Album; justUnlocked: string[]; onFollow: () => void };
 
-export function EmojiPanel({ album, justUnlocked, onFollow }: PanelProps) {
+export function EmojiPanel(props: PanelProps) {
+  const { emojiHowTo } = props.album;
+  if (emojiHowTo === undefined) return <AllEmojis {...props} />;
+  return <EmojisToUse {...props} howTo={emojiHowTo} />;
+}
+
+function EmojisToUse({ album, justUnlocked, onFollow, howTo }: PanelProps & { howTo: LoopLesson }) {
+  const [all, setAll] = useState(justUnlocked.length > 0);
+  const [moved, setMoved] = useState(false);
+  const back = useRef<HTMLButtonElement>(null);
+  const toAll = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (moved) (all ? back : toAll).current?.focus();
+  }, [all, moved]);
+  const show = (allShown: boolean) => {
+    setAll(allShown);
+    setMoved(true);
+  };
+  if (all)
+    return (
+      <>
+        <button type="button" ref={back} className="al-emoji-back" aria-label="Back to the emojis you can use" onClick={() => show(false)}>
+          <span aria-hidden="true">←</span> Use these now
+        </button>
+        <AllEmojis album={album} justUnlocked={justUnlocked} onFollow={onFollow} />
+      </>
+    );
+  return (
+    <div className="al-emoji-panel">
+      <UseTheseNow album={album} howTo={howTo} />
+      <UnlockNext album={album} onFollow={onFollow} />
+      <button type="button" ref={toAll} className="al-emoji-all" onClick={() => show(true)}>
+        All emojis · {shownCountOf(shelvesOf(album.emojis))} <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  );
+}
+
+function UseTheseNow({ album, howTo }: { album: Album; howTo: LoopLesson }) {
+  return (
+    <LeadingSection title="Use these now">
+      <p className="al-emoji-panel-hint">
+        React with any of them or put them in a kudos. Each one counts like <NamedEmoji name={howTo.kudosEmoji} image={howTo.kudosEmojiImage ?? undefined} />: XP for you both, and an item when you say why.
+      </p>
+      <ul className="al-emoji-rows">
+        <li className="al-emoji-row">
+          <KudosEmojiPicture howTo={howTo} />
+          <span className="al-emoji-words">
+            <code className="al-emoji-code ph-no-capture">:{howTo.kudosEmoji}:</code>
+            <span className="al-emoji-why">Your kudos emoji · works from the start</span>
+          </span>
+          <InSlack />
+        </li>
+        {usableNowOf(album.emojis).map((emoji) => (
+          <li key={emoji.id} className="al-emoji-row">
+            <EarnedEmoji emoji={emoji} status={emoji.inSlack ? <InSlack /> : <SetItUp emoji={emoji} emojiPage={album.emojiPage} />} />
+          </li>
+        ))}
+      </ul>
+    </LeadingSection>
+  );
+}
+
+function KudosEmojiPicture({ howTo: { kudosEmoji, kudosEmojiImage } }: { howTo: LoopLesson }) {
+  return (
+    <span className="al-emoji-art ph-no-capture" data-kind="kudos" style={{ width: 36, height: 36 }} aria-hidden="true">
+      {kudosEmojiImage === null ? <NamedEmoji name={kudosEmoji} /> : <img src={kudosEmojiImage} alt="" width={36} height={36} decoding="async" />}
+    </span>
+  );
+}
+
+function UnlockNext({ album, onFollow }: { album: Album; onFollow: () => void }) {
+  const next = unlockNextOf(album.emojis);
+  if (next.length === 0) return null;
+  return (
+    <LeadingSection title="Unlock next">
+      <ul className="al-emoji-rows">
+        {next.map((emoji) => (
+          <li key={emoji.kind === "hype" ? "hype" : emoji.emoji.id} className="al-emoji-row" data-locked="">
+            <NextEmojiRow next={emoji} onFollow={onFollow} />
+          </li>
+        ))}
+      </ul>
+    </LeadingSection>
+  );
+}
+
+function NextEmojiRow({ next, onFollow }: { next: NextEmoji; onFollow: () => void }) {
+  switch (next.kind) {
+    case "levelTwo":
+      return <LockedEmoji emoji={next.emoji} words="Reach level 2 · your first kudos does it" onFollow={onFollow} />;
+    case "hype":
+      return <HypeToUnlock />;
+    case "nearest":
+      return <LockedEmoji emoji={next.emoji} onFollow={onFollow} />;
+  }
+}
+
+function HypeToUnlock() {
+  return (
+    <>
+      <span className="al-emoji-art" data-kind="hype" data-locked="" style={{ width: 36, height: 36 }} aria-hidden="true">
+        <img src={hypeEmblemPicture} alt="" width={36} height={36} loading="lazy" decoding="async" />
+      </span>
+      <span className="al-emoji-words">
+        <span className="al-emoji-why">Thank someone and say why: unlock their hype emoji</span>
+        <span className="al-emoji-bar" aria-hidden="true">
+          <span style={{ width: "4%" }} />
+        </span>
+      </span>
+    </>
+  );
+}
+
+function LeadingSection({ title, children }: { title: string; children: ReactNode }) {
+  const heading = useId();
+  return (
+    <section className="al-emoji-shelf" aria-labelledby={heading}>
+      <h2 id={heading} className="al-emoji-panel-title">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function AllEmojis({ album, justUnlocked, onFollow }: PanelProps) {
   const [search, setSearch] = useState("");
   const searching = search.trim() !== "";
   const shelves = shelvesOf(album.emojis);
   const earned = shelves.reduce((count, shelf) => count + shelf.earned.length, 0);
-  const shown = shelves.reduce((count, shelf) => count + shelf.earned.length + shelf.locked.length, 0);
+  const shown = shownCountOf(shelves);
   return (
     <div className="al-emoji-panel">
       <div className="al-emoji-panel-head">
@@ -153,14 +282,14 @@ function EmojiRows({ album, emojis, onFollow }: { album: Album; emojis: AlbumEmo
     <ul className="al-emoji-rows">
       {emojis.map((emoji) => (
         <li key={emoji.id} className="al-emoji-row" data-locked={emoji.earned ? undefined : ""}>
-          {emoji.earned ? <EarnedEmoji emoji={emoji} emojiPage={album.emojiPage} /> : <LockedEmoji emoji={emoji} onFollow={onFollow} />}
+          {emoji.earned ? <EarnedEmoji emoji={emoji} status={<SlackStatus emoji={emoji} emojiPage={album.emojiPage} />} /> : <LockedEmoji emoji={emoji} onFollow={onFollow} />}
         </li>
       ))}
     </ul>
   );
 }
 
-function EarnedEmoji({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: string | null }) {
+function EarnedEmoji({ emoji, status }: { emoji: AlbumEmoji; status: ReactNode }) {
   return (
     <>
       <EmojiPicture emoji={emoji} size={36} />
@@ -168,13 +297,17 @@ function EarnedEmoji({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: strin
         <code className="al-emoji-code ph-no-capture">:{emoji.name}:</code>
         <span className="al-emoji-why ph-no-capture">{whyWords(emoji)}</span>
       </span>
-      <SlackStatus emoji={emoji} emojiPage={emojiPage} />
+      {status}
     </>
   );
 }
 
 export function SlackStatus({ emoji, emojiPage }: { emoji: Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">; emojiPage: string | null }) {
   if (!emoji.inSlack) return <NotInSlack emoji={emoji} emojiPage={emojiPage} />;
+  return <InSlack />;
+}
+
+function InSlack() {
   return (
     <span className="al-emoji-in-slack" title={useItInSlackWords}>
       In Slack
@@ -182,14 +315,14 @@ export function SlackStatus({ emoji, emojiPage }: { emoji: Pick<AlbumEmoji, "id"
   );
 }
 
-function LockedEmoji({ emoji, onFollow }: { emoji: AlbumEmoji; onFollow: () => void }) {
+function LockedEmoji({ emoji, words = howToUnlockWords(emoji), onFollow }: { emoji: AlbumEmoji; words?: string; onFollow: () => void }) {
   const team = teamOf(emoji);
   const body = (
     <>
       <EmojiPicture emoji={emoji} size={36} locked />
       <span className="al-emoji-words">
         <code className="al-emoji-code ph-no-capture">:{emoji.name}:</code>
-        <span className="al-emoji-why">{howToUnlockWords(emoji)}</span>
+        <span className="al-emoji-why">{words}</span>
         <ProgressBar emoji={emoji} />
       </span>
     </>

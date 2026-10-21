@@ -1,3 +1,4 @@
+import { levelTwoEmoji } from "../../../convex/album/emojiCatalogue";
 import { milestoneCatalogue, type MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Album, AlbumEmoji, EarnedEmojiKind, MilestoneTierId } from "./answer";
 import { metalOrder, milestoneNameOf, tierWordOf } from "./milestones";
@@ -28,6 +29,37 @@ export function shelvesOf(emojis: AlbumEmoji[]): Shelf[] {
     const ofKind = emojis.filter((emoji) => emoji.kind === kind.kind && (emoji.earned || canBeEarned(emoji)));
     return { kind, earned: ofKind.filter(({ earned }) => earned).toSorted(newestFirst), locked: ofKind.filter(({ earned }) => !earned).toSorted(nearestFirst) };
   });
+}
+
+export function shownCountOf(shelves: Shelf[]) {
+  return shelves.reduce((count, shelf) => count + shelf.earned.length + shelf.locked.length, 0);
+}
+
+export function usableNowOf(emojis: AlbumEmoji[]): AlbumEmoji[] {
+  return emojis.filter(({ earned }) => earned).toSorted(newestFirst);
+}
+
+export function usableCountOf(emojis: AlbumEmoji[]) {
+  const kudosEmoji = 1;
+  return kudosEmoji + emojis.filter(({ earned, inSlack }) => earned && inSlack).length;
+}
+
+export type NextEmoji = { kind: "levelTwo"; emoji: AlbumEmoji } | { kind: "hype" } | { kind: "nearest"; emoji: AlbumEmoji };
+
+export const unlockNextShown = 3;
+
+const levelTwoEmojiId = `level:${levelTwoEmoji.level}`;
+
+export function unlockNextOf(emojis: AlbumEmoji[]): NextEmoji[] {
+  const levelTwo = emojis.find(({ id, earned }) => id === levelTwoEmojiId && !earned);
+  const holdsAHypeEmoji = emojis.some(({ kind, earned }) => kind === "hype" && earned);
+  const nearest = shelvesOf(emojis)
+    .filter(({ kind }) => kind.kind !== "hype")
+    .flatMap(({ locked }) => locked)
+    .filter(({ id }) => id !== levelTwoEmojiId)
+    .toSorted((first, second) => shareOf(second) - shareOf(first));
+  const next: NextEmoji[] = [...(levelTwo === undefined ? [] : [{ kind: "levelTwo" as const, emoji: levelTwo }]), ...(holdsAHypeEmoji ? [] : [{ kind: "hype" as const }]), ...nearest.map((emoji) => ({ kind: "nearest" as const, emoji }))];
+  return next.slice(0, unlockNextShown);
 }
 
 function canBeEarned({ progress }: AlbumEmoji) {
