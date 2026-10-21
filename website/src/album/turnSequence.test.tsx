@@ -346,6 +346,9 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     const before = earnedInTheTopBar();
     await clickOnFakeTime(item);
 
+    expect(earnedInTheTopBar(), "as the answer comes").toBe(before);
+    await at(0.1);
+    expect(earnedInTheTopBar(), "before the turn lands anywhere").toBe(before);
     await at(1.8);
     expect(earnedInTheTopBar(), "while the sticker holds").toBe(before);
     await at(4.1);

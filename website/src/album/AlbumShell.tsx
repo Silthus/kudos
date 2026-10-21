@@ -21,7 +21,7 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { albumAtTheLanding } from "./landedAlbum";
 import { TurnFlight } from "./TurnFlight";
-import { shownUnless, useItemBoard, LandingProvider } from "./useItemBoard";
+import { shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
 import { useTeamUnlock } from "./useTeamUnlock";
 import { useXpMomentSequence } from "./useXpMoment";
@@ -88,7 +88,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     finish();
   };
   const turns = shownUnless(items, anotherMoment || playing);
-  const landed = useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]);
+  const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
   const covered = boardShown || sinceTheLastVisit.covers;
   const awaitingAMoment = playing || unlocking.sending !== null || covered;
