@@ -21,9 +21,8 @@ const unfoldArgs = { ...linkSharingValidator, attempt: v.optional(v.number()) };
 export const unfoldLinks = observedAction({
   args: unfoldArgs,
   handler: async (ctx, { workspace, sharer, links, channel, ts, sharedOutside, attempt = 1 }) => {
-    if (sharedOutside === "unsaid" && !(await isUnshared(channel))) return;
     const previews = await ctx.runQuery(internal.website.linkPreviews.linkPreviewsOf, { workspace, sharer, links });
-    if (previews.length === 0) return;
+    if (previews.length === 0 || (sharedOutside === "unsaid" && !(await isUnshared(channel)))) return;
     const answer = await callSlack("chat.unfurl", { channel, ts, unfurls: Object.fromEntries(previews.map((preview) => [preview.url, { blocks: cardBlocksOf(preview) }])) });
     if (answer.ok) return;
     if (answer.error === "ratelimited") {

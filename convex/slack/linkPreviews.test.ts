@@ -264,6 +264,7 @@ describe("LP82: link previews are behind link-previews", { timeout: 30_000 }, ()
     const callsBefore = slack.calls.length;
 
     await shared(t, [`${site}/book#people/${await memberOf(t, "U_JUNO")}`, `${site}/book#teams/lanterns`]);
+    await shared(t, [`${site}/book#teams/lanterns`], { externallyShared: "unsaid" });
 
     expect(slack.calls.slice(callsBefore)).toEqual([]);
   });
