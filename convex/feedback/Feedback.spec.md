@@ -416,6 +416,23 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: retry-classification dismissed: the Monday post's delivery classifies failures as it does for the groups post
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a post has exactly one target, the public channel the maintainer picked or else the workspace's announcement channel
+- the welcome nudge is one DM ever to a member who has never opened the website: Where `welcome-item` and `hidden-items` apply to the receiving member, the first kudos or hug they receive while no website sign-in is recorded for them sends them one DM: the giver, the quoted thanks for a public kudos or `hugged your message` linking the hugged message for a hug, with the workspace's kudos emoji, then `Your rare hoggie is waiting for you to collect it.`, then an `Open your HedgeHug album` button to the website's album or its sign-in entry, and their welcome item is earned with it; the nudge is recorded before it is sent, so a second kudos, a hug, a redelivered kudos or two kudos at once never send a second one, ever; the giver, a member who has signed in before, and every member while the workspace maintainer has switched the nudge off in App Home's Admin tab get none, and only the maintainer sees that switch; with `welcome-item` off, `hidden-items` off, or `welcome-item` on for someone else's email only, every Slack call equals the same walk's calls without the nudge (LP45, LP46, LP47, LP48, LP50).
+  over: a public kudos to a member who never signed in, then their first sign-in; a hug on a member's own message and a kudos in a private channel; a second kudos, a redelivery, a hug and two kudos at once; a member who signed in before and the giver; the maintainer switching it off and on beside another admin; and three off states walked beside the walk without the nudge
+  via: LP45 LP46 LP47 LP48: the welcome nudge is one DM ever to a member who has never opened the website
+  because: LP45 brings a newcomer to the website once, at the moment a teammate thanked them, without nagging anyone who already knows it, and LP48 leaves the maintainer a way to stop it
+  kinds: message, output, state
+  checklist: destination-confinement dismissed: the nudge is a DM to the receiving member only, quoting a kudos only when it was posted in a public channel
+  checklist: message-authenticity dismissed: the nudge follows only kudos and hugs the Slack adapter verified by their signed Slack requests
+  checklist: redaction dismissed: the nudge names only the giver, the kudos the member was thanked in, and the welcome item's rarity, never another item or a face
+  checklist: input-validation dismissed: the switch is a command checked by its validator and written only for the maintainer
+  checklist: retry-recognition dismissed: the nudge's record is inserted before its delivery is scheduled, and each delivery attempt is sent once
+  checklist: duplicate-suppression dismissed: one welcome nudge record per member, read before the insert in the same transaction, so concurrent kudos conflict and retry
+  checklist: keyed-ordering dismissed: one DM per member, with no order promised between members
+  checklist: acknowledgment-barrier dismissed: nothing waits on Slack's answer; the record stands whatever Slack answers
+  checklist: commit-ordered-effects dismissed: the DM is sent by an action scheduled from the mutation that records the nudge, so it runs only after that commit
+  checklist: retry-classification dismissed: the delivery retries at most three times as the welcome DM does
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: a nudge has exactly one target, the receiving member's DM
 - a weekly post quotes only public kudos: The Monday post that `album-slack` turns into the week's top thoughtful kudos quotes a kudos message, its words, giver, recipients and link, only while that message's words are stored, are from a public channel, still say why, and its giver and every recipient are members on the leaderboards; a kudos from a private channel, a group DM or a DM, or one deleted since, is never quoted however many hugs it got, and its words appear nowhere in the post (AL61, AL63).
   over: a week of thoughtful kudos in a private channel, a group DM and a DM, each hugged twice, one in a public channel deleted after two hugs, and one public kudos with no hug; and a week where a public kudos is to a member who left the leaderboards, beside one that is not
   via: AL61 AL63: a weekly post quotes only public kudos

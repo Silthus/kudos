@@ -536,13 +536,20 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements, groupMode, mondayPost, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode, mondayPost, welcomeNudge, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
   const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
   const mondayPostLines = mondayPost === null ? [] : [mondayPostLinesOf(mondayPost)];
+  const welcomeNudgeLines = welcomeNudge === null ? [] : [welcomeNudgeLinesOf(welcomeNudge)];
   const customKudosEmojiLines = customKudosEmoji === null ? [] : [customKudosEmojiLinesOf(customKudosEmoji)];
-  return [channelLines, ...groupModeLines, ...mondayPostLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  return [channelLines, ...groupModeLines, ...mondayPostLines, ...welcomeNudgeLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function welcomeNudgeLinesOf(on: boolean): HomeLine[] {
+  const heading: HomeLine = { kind: "text", text: bold("Welcome nudge") };
+  if (!on) return [heading, { kind: "action", text: `I don't DM teammates who have never opened the ${productName} website.`, action: { label: "Switch on", command: { type: "setWelcomeNudge", on: true } } }];
+  return [heading, { kind: "action", text: `I send a teammate one DM, the first time they are thanked or hugged while they have never opened the ${productName} website, so they can collect their rare hoggie.`, action: { label: "Switch off", command: { type: "setWelcomeNudge", on: false } } }];
 }
 
 const weeklyPostNamed = { groups: "last week's top groups", topKudos: "last week's top thoughtful kudos" } as const;
