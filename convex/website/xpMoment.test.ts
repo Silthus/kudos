@@ -4,7 +4,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import type { Infer } from "convex/values";
+import { api, internal } from "../_generated/api";
+import type { kudosGivenEventValidator } from "../bus/events";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "./album";
 import type { ArrivalAnswer } from "./lastVisit";
@@ -127,6 +129,34 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect(moment.excerpts.map(({ entry, xp }) => [entry.kind, "hugs" in entry ? entry.hugs : null, xp])).toEqual([["hugReceived", 1, 1]]);
   });
 
+  test("a kudos whose XP progression hasn't recorded yet waits out of the moment, with everything after it, and plays with its XP once recorded", async () => {
+    const asAlice = await aReturningMember(alice);
+    const recorded = await thanks(bob, alice);
+    const held = await thanksWhileItsXpWaits(carol, alice);
+    const after = await thanks(bob, alice);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.map(({ entry }) => entry.at), "the moment while the XP waits").toEqual([recorded.at]);
+    await endOf(asAlice, moment);
+    await held.record();
+
+    const next = await theMomentOf(asAlice);
+    expect(next.excerpts.filter(({ entry }) => entry.kind === "kudosReceived").map(({ entry, xp }) => [entry.at, xp]), "the next moment").toEqual([
+      [held.at, 5],
+      [after.at, 5],
+    ]);
+  });
+
+  test("a kudos whose XP progression never records stops holding the moment ten minutes after it was decided", async () => {
+    const asAlice = await aReturningMember(alice);
+    const held = await thanksWhileItsXpWaits(carol, alice);
+    expect(await momentOf(asAlice), "while the XP waits").toMatchObject({ kind: "none" });
+
+    vi.setSystemTime(Date.now() + 10 * minuteMs);
+
+    expect((await theMomentOf(asAlice)).excerpts.map(({ entry }) => entry.at), "ten minutes on").toEqual([held.at]);
+  });
+
   test("with xp-moments off, getXpMoment answers off and the arrival moves the last visit as it did before", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen, "hidden-items");
     const receivedAt = (await thanks(bob, alice)).at;
@@ -165,6 +195,19 @@ describe("LP26 LP35: endXpMoment moves the last visit to the newest instant the 
     const next = await theMomentOf(asAlice);
     expect(next.since).toBe(moment.until);
     expect(next.excerpts.map(({ entry }) => entry.at)).toEqual([whilePlaying.at]);
+  });
+
+  test("an arrival after a read that answered none moves nothing past a kudos decided since that read, so the next read plays it", async () => {
+    const asAlice = await aReturningMember(alice);
+    const read = await momentOf(asAlice);
+    expect(read).toMatchObject({ kind: "none" });
+    const lastVisit = (read as { lastVisit: number }).lastVisit;
+    const sinceTheRead = await thanks(bob, alice);
+
+    expect(await arrive(asAlice, lastVisit), "the arrival after the read").toEqual({ kind: "arrived", lastVisit });
+
+    const next = await theMomentOf(asAlice);
+    expect(next.excerpts.map(({ entry }) => entry.at), "the next read").toEqual([sinceTheRead.at]);
   });
 
   test("a second tab reads the same moment until one ends it, and ending the older moment moves nothing", async () => {
@@ -260,6 +303,39 @@ async function thanks(giver: Person, ...recipients: Person[]) {
   await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settle(t);
   return { at: Number(ts.split(".")[0]) * 1000, ts };
+}
+
+async function thanksWhileItsXpWaits(giver: Person, ...recipients: Person[]) {
+  messages += 1;
+  later();
+  const ts = `${Math.floor(Date.now() / 1000)}.${String(messages).padStart(6, "0")}`;
+  await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
+  const heldBack = await settleHoldingBack(progressionRecord);
+  return { at: Number(ts.split(".")[0]) * 1000, record: async () => {
+    for (const args of heldBack) await t.mutation(internal.progression.progression.recordEffects, args);
+    await settle(t);
+  } };
+}
+
+const progressionRecord = "progression/progression:recordEffects";
+
+async function settleHoldingBack(name: string) {
+  const heldBack: { event: Infer<typeof kudosGivenEventValidator> }[] = [];
+  for (let round = 0; round < 200; round += 1) {
+    heldBack.push(...(await cancelled(name)));
+    if ((await t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).some(({ state }) => state.kind === "pending" || state.kind === "inProgress"))) === false) return heldBack;
+    vi.advanceTimersToNextTimer();
+    await t.finishInProgressScheduledFunctions();
+  }
+  throw new Error("the jobs never settled");
+}
+
+function cancelled(name: string) {
+  return t.run(async (ctx) => {
+    const jobs = (await ctx.db.system.query("_scheduled_functions").collect()).filter((job) => job.name === name && job.state.kind === "pending");
+    for (const job of jobs) await ctx.scheduler.cancel(job._id);
+    return jobs.map(({ args }) => args[0] as { event: Infer<typeof kudosGivenEventValidator> });
+  });
 }
 
 function aMessageNow() {

@@ -27,7 +27,7 @@ type GainsShown = { xp: boolean; quests: boolean; bonuses: boolean };
 
 type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean>; hugsAsOf: number | undefined };
 
-type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry>; xp: () => Promise<number> };
+type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry>; xp: () => Promise<number | null> };
 
 type Read = { pending: Pending[]; cut: boolean };
 
@@ -157,18 +157,22 @@ export const mostReadSince = 50;
 
 export type EntrySince = Exclude<ActivityEntry, Found>;
 
-export type ReadSince = { decided: number; entry: EntrySince; xp: number };
+export type ReadSince = { decided: number; entry: EntrySince; xp: number; recorded: boolean };
 
 export type Since = { above?: number; upTo?: number };
 
 export async function activitySince(ctx: QueryCtx, member: MemberId, since: Since): Promise<ReadSince[]> {
   const page = await pendingSince(ctx, member, since, mostReadSince);
   const mentions = mentionsOfOnePage(ctx);
-  return Promise.all(page.map(async ({ position, entry, xp }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, xp: await xp() })));
+  return Promise.all(page.map(async ({ position, entry, xp }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp()) })));
 }
 
 export async function positionsSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<Position[]> {
   return (await pendingSince(ctx, member, since, mostReadSince)).map(({ position }) => position);
+}
+
+function recordedXpOf(xp: number | null) {
+  return { xp: xp ?? 0, recorded: xp !== null };
 }
 
 export async function newestDecidedSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<number | null> {
@@ -225,9 +229,9 @@ async function hugsBefore(ctx: QueryCtx, member: MemberId, message: MessageRef, 
   return above === undefined ? 0 : hugsOnTheMessageAsOf(ctx, member, message, above);
 }
 
-async function giverXpRecordedFor(ctx: QueryCtx, { awards }: GivenMessageAwards): Promise<number> {
+async function giverXpRecordedFor(ctx: QueryCtx, { awards }: GivenMessageAwards): Promise<number | null> {
   const paid = await Promise.all(awards.map(({ award }) => xpRecordedFor(ctx, award, "giver")));
-  return paid.reduce((sum, xp) => sum + xp, 0);
+  return paid.includes(null) ? null : paid.reduce((sum: number, xp) => sum + (xp ?? 0), 0);
 }
 
 function cutPositionOf(reads: Read[]): Position | undefined {

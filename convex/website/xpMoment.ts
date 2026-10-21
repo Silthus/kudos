@@ -44,13 +44,15 @@ export type XpMomentEndReply = ArrivalAnswer;
 
 const mostExcerpts = 5;
 
+const progressionWaitedFor = 10 * 60_000;
+
 const off = { kind: "off" } as const;
 
 export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> => {
   if (!(await xpMomentsShownTo(ctx, me.member))) return off;
   const since = await lastVisitOf(ctx, me.member);
   if (since === null) return { kind: "none", lastVisit: null };
-  const read = await activitySince(ctx, me.member, { above: since });
+  const read = playableOf(await activitySince(ctx, me.member, { above: since }), Date.now());
   if (read.length === 0) return { kind: "none", lastVisit: since };
   return momentOf(ctx, me, since, read);
 });
@@ -73,6 +75,11 @@ async function end(ctx: MutationCtx, me: VerifiedMember, { from, until, skipped 
 async function wasRead(ctx: QueryCtx, member: MemberId, from: number, until: number): Promise<boolean> {
   const newest = await newestDecidedSince(ctx, member, { above: from });
   return until > from && newest !== null && until <= newest;
+}
+
+function playableOf(newestFirst: ReadSince[], now: number): ReadSince[] {
+  const oldestWaiting = newestFirst.findLastIndex(({ decided, recorded }) => !recorded && decided > now - progressionWaitedFor);
+  return newestFirst.slice(oldestWaiting + 1);
 }
 
 async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, read: ReadSince[]): Promise<XpMoment> {

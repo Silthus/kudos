@@ -18,9 +18,9 @@ export async function isRecorded(ctx: QueryCtx, award: AwardId, side: Side) {
   return recorded !== null;
 }
 
-export async function xpRecordedFor(ctx: QueryCtx, award: AwardId, side: Side): Promise<number> {
+export async function xpRecordedFor(ctx: QueryCtx, award: AwardId, side: Side): Promise<number | null> {
   const recorded = await recordOf(ctx, award, side);
-  if (recorded === null) return 0;
+  if (recorded === null) return null;
   return recorded.baseXp + bonusPaidIn([recorded]).reduce((sum, { xp }) => sum + xp, 0);
 }
 

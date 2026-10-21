@@ -34,10 +34,14 @@ export const arrive = memberMutation({
   args: { from: v.union(v.number(), v.null()) },
   handler: async (ctx, me, _person, { from }): Promise<ArrivalAnswer> => {
     if (!(await lastVisitKeptFor(ctx, me.member))) return { kind: "refused" };
-    if ((await lastVisitOf(ctx, me.member)) === from) await moveToTheNewestOf(ctx, me.member);
+    if ((await lastVisitOf(ctx, me.member)) === from && !(await activityAwaitsTheMoment(ctx, me.member, from))) await moveToTheNewestOf(ctx, me.member);
     return { kind: "arrived", lastVisit: await lastVisitOf(ctx, me.member) };
   },
 });
+
+async function activityAwaitsTheMoment(ctx: QueryCtx, member: MemberId, lastVisit: number | null): Promise<boolean> {
+  return lastVisit !== null && (await xpMomentsShownTo(ctx, member)) && (await newestDecidedSince(ctx, member, { above: lastVisit })) !== null;
+}
 
 async function moveToTheNewestOf(ctx: MutationCtx, member: MemberId) {
   const newest = await newestPutInOrReceivedBy(ctx, member);
