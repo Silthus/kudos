@@ -156,6 +156,7 @@ import type * as items_fill from "../items/fill.js";
 import type * as items_finds from "../items/finds.js";
 import type * as items_flag from "../items/flag.js";
 import type * as items_ledger from "../items/ledger.js";
+import type * as items_milestoneUnlocks from "../items/milestoneUnlocks.js";
 import type * as items_records from "../items/records.js";
 import type * as items_share from "../items/share.js";
 import type * as items_shareArt from "../items/shareArt.js";
@@ -499,6 +500,7 @@ declare const fullApi: ApiFromModules<{
   "items/finds": typeof items_finds;
   "items/flag": typeof items_flag;
   "items/ledger": typeof items_ledger;
+  "items/milestoneUnlocks": typeof items_milestoneUnlocks;
   "items/records": typeof items_records;
   "items/share": typeof items_share;
   "items/shareArt": typeof items_shareArt;
