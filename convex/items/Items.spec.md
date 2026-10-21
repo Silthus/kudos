@@ -345,6 +345,7 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
 - a shared win posts one card into the weekly-post channel: While `hidden-items` and `item-share` are on for the member and the workspace has a weekly-post channel, the press of Share on a win the member turned posts exactly one card into that channel: the winner and the thanked person in bold, the quoted thanks only for a public kudos, ` reached level N` for a level-up hoggie and the find alone for the welcome item, then the legendary or epic find or the completed team page, the hoggie's art or the team's crest, and an Open HedgeHug link, never a colleague's face; once pressed the win is offered on no device and a second press, from any session, refuses and posts nothing.
   over: a public thanks turned legendary, pressed and read through getAlbum in two sessions, pressed again from both; a private-channel thanks turned epic; the sticker that completes a team page beside the page's earlier sticker; a level-up hoggie and the welcome item, each turned and pressed through the signed-in website and read in the fake Slack's posts
   via: LP51 LP53 LP54: Share posts a turned win into the weekly-post channel, the thanks first
+  refuted: shareWin no longer refused a win already shared -> 1 of 5 tests failed: a second press of the shared win answered shared instead of refused (2026-10-21)
   because: LP51 lets a member show a rare find or a finished team page to the workspace at the moment it lands, and LP53 and LP54 make the card say who thanked whom first, so a post that repeated, quoted a private kudos or showed a colleague's face would spam the channel or leak what was not public
   kinds: message, output, state
   checklist: destination-confinement dismissed: a card goes only to the weekly-post channel, the public channel the maintainer picked or else the announcement channel, and quotes a kudos only when it was posted in a public channel
@@ -359,9 +360,16 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: retry-classification dismissed: the delivery retries only a rate-limited send, at most three times, resends once without the picture when Slack refuses the blocks, and gives up on a lost answer rather than risk a second card
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a card has exactly one target, the weekly-post channel
+  checklist: revalidated-permission dismissed: the flags, the channel and the win's owner are read in the press's own mutation, and read again by shareCardOf before the card is posted
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession dismissed: a win moves once, from unshared to shared, in the press's mutation, and never back
+  checklist: supersession-safety dismissed: no late write displaces a share; two presses read the same row, so one commits and the other retries and finds it shared
+  checklist: worker-fencing dismissed: no worker owns a win; concurrent presses conflict on the row they both read
+  checklist: resumption-coverage dismissed: one card per press, scheduled in the press's mutation; a rate-limited send reschedules itself with its attempt count
 - Share is offered only for its owner's win and only with a weekly-post channel: getAlbum offers Share only for a turned hoggie drawn epic or legendary or a sticker that completed a team page, only to the member who turned it and only while the workspace has a weekly-post channel; a rare find, a sticker that completes no page and a replayed turn offer nothing, and another member's press of a win, or any press without the channel, refuses and posts nothing.
   over: a rare find, a sticker that completes no page and a replayed turn read through getAlbum, another member pressing a win; a legendary find in a workspace without a weekly-post channel, pressed, then the same win once the workspace has one
   via: LP51 LP52: Share is offered only for a win, only to its owner and only with a weekly-post channel
+  refuted: shareWin no longer checked that the win is the signed-in member's own -> 1 of 2 tests failed: another member's press of the win answered shared instead of refused (2026-10-21)
   because: an item ID reaches the browser, so a press that accepted another member's item would post their win in their name, and Share offered for every turn or with nowhere to post would nag the member and post what LP52 does not count as a win
   crossing: browser -> domain
   entrances: mutation shareItem
@@ -372,9 +380,15 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: identity-continuity dismissed: a win belongs to the member who turned it for its whole life; a press by anyone else is refused
   checklist: separation-of-duties dismissed: no approval policy
   checklist: legal-state-succession dismissed: a refusal moves no state; a share moves sharedAt once from unset
+  checklist: supersession-safety dismissed: a refused press writes nothing, so nothing it could displace
+  checklist: worker-fencing dismissed: no worker owns a win; the owner is checked in the press's mutation
+  checklist: commit-ordered-effects dismissed: a refused press schedules nothing; an accepted one schedules its card in its own mutation
+  checklist: resumption-coverage dismissed: a press is a single mutation; nothing resumes
 - the share is dark unless item-share and hidden-items are on for the member: With `item-share` off, absent from PostHog or on only for another member's email, a legendary find records no win, getAlbum offers no Share, the press refuses and nothing is posted; a win turned while `hidden-items` was on is neither offered nor shared once it is off for the member.
   over: a legendary find turned and pressed in three item-share off states; a legendary find turned with every flag on, then pressed and read with hidden-items off for the member
   via: LP56: the share is behind item-share, and needs hidden-items on for the member
+  refuted: the sharing channel no longer read hidden-items for the member -> 1 of 4 tests failed: getAlbum still offered shares once hidden-items was off for the member (2026-10-21)
+  refuted: recordWinOf recorded a win without reading item-share -> 3 of 4 tests failed: each item-share off state stored a win for the legendary find (2026-10-21)
   because: LP56 ships the share dark behind its flag, and the share has no sense without the hidden items it follows: a win recorded or offered with either off would show a dark feature or post into a workspace that never opted in
   kinds: state, output
   checklist: destination-confinement dismissed: with either flag off nothing is posted
@@ -383,3 +397,8 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: the flags gate the one recorder, the one read and the one press of the share
   checklist: legal-state-succession dismissed: with either flag off nothing moves
+  checklist: revalidated-permission dismissed: both flags are read in the turn, the read and the press, and again by shareCardOf before the card is posted
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: supersession-safety dismissed: with either flag off nothing is written that a later write could displace
+  checklist: worker-fencing dismissed: no worker owns a win
+  checklist: resumption-coverage dismissed: with either flag off nothing is scheduled to resume
