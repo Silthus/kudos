@@ -545,7 +545,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(stage()).toBe("land");
     await at(5.9);
     expect(stage()).toBe("idle");
-    expect(itemBoardCss).toMatch(/@media \(max-width: 40rem\) \{\s*\.ib-slot \{\s*width: calc\(4\.5rem \* var\(--size, 1\)\);\s*height: calc\(4\.5rem \* var\(--size, 1\)\);/);
+    expect(itemBoardCss, "every item on a phone is 72 px, whatever its size on a wide screen").toMatch(/@media \(max-width: 40rem\) \{\s*\.ib-slot \{\s*width: 4\.5rem;\s*height: 4\.5rem;/);
   });
 
   it("keeps the plain path under reduced motion: a click puts the item in place at once and says what it was, with no flight", async () => {
