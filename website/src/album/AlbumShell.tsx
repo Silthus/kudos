@@ -7,6 +7,7 @@ import type { ShareReply, TurnReply } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
+import { GettingStartedPrototype, OnboardingPrototype, onboardingPrototypeOn } from "./OnboardingPrototype";
 import { AfterTheLanding, ItemBoard, ItemsWait } from "./ItemBoard";
 import { useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
@@ -105,6 +106,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} landed={<AfterTheLanding turns={turns} album={album} shares={shares} />} touched={turns.touched} onTouch={turns.touch} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
       {album.board !== null && <ItemsWait turns={turns} album={album} shares={shares} />}
+      {onboardingPrototypeOn && <OnboardingPrototype />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
@@ -112,7 +114,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       <div className="al-body" inert={playing || covered}>
         <Sidebar album={landed} place={place} wide={wide} />
         <main className="al-main" aria-busy={busy || undefined}>
-          {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
+          {place.kind === "profile" && (onboardingPrototypeOn ? <GettingStartedPrototype /> : <GettingStarted facts={album.gettingStarted} />)}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
             <LandingProvider value={turns.landing}>
               <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />

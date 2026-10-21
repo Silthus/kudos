@@ -9,6 +9,7 @@ import { Feedback } from "../Feedback";
 import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
 import { EmojiPanel } from "./EmojiPanel";
+import { EmojiPanelPrototype, onboardingPrototypeOn, usableEmojiCount, useScene } from "./OnboardingPrototype";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
 import { home, hrefOf, type Place } from "./place";
@@ -145,9 +146,11 @@ function trayLabelOf(items: number, busy: boolean) {
 }
 
 function EmojiButton({ album, popover, button, justUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[] }) {
-  const earned = earnedEmojisOf(album);
+  const scene = useScene();
+  const earned = onboardingPrototypeOn ? usableEmojiCount(scene) : earnedEmojisOf(album);
+  const panel = <EmojiPanel album={album} justUnlocked={justUnlocked} onFollow={popover.close} />;
   return (
-    <PopoverButton name="emojis" popover={popover} button={button} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} onFollow={popover.close} />}>
+    <PopoverButton name="emojis" popover={popover} button={button} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={onboardingPrototypeOn ? <EmojiPanelPrototype allEmojis={panel} /> : panel}>
       <IconEmoji />
       <span className="al-emojis-count" aria-hidden="true">
         {earned}

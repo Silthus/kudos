@@ -42,7 +42,7 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
     useSlackEmojiMatches: fixtureSlackEmojiMatches,
     useAppEmojis: fixture === withTheEmojiWizard ? fixtureAppEmojis : (asking) => (asking ? { kind: "off" } : undefined),
-    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === asANewcomer ? fixedAlbum(albumFixtures.newcomer) : fixtureAlbum,
+    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === asANewcomer ? fixedAlbum({ ...albumFixtures.newcomer, level: { level: 1, xp: 5, startsAt: 0, nextAt: 20 }}) : fixtureAlbum,
     useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
