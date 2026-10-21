@@ -52,9 +52,9 @@ export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> 
   if (!(await xpMomentsShownTo(ctx, me.member))) return off;
   const since = await lastVisitOf(ctx, me.member);
   if (since === null) return { kind: "none", lastVisit: null };
-  const read = playableOf(await activitySince(ctx, me.member, { above: since }), Date.now());
-  if (read.length === 0) return { kind: "none", lastVisit: since };
-  return momentOf(ctx, me, since, read);
+  const { playable, heldBack } = playableOf(await activitySince(ctx, me.member, { above: since }), Date.now());
+  if (playable.length === 0) return { kind: "none", lastVisit: since };
+  return momentOf(ctx, me, since, playable, xpOf(heldBack));
 });
 
 export const endXpMoment = memberMutation({
@@ -77,12 +77,12 @@ async function wasRead(ctx: QueryCtx, member: MemberId, from: number, until: num
   return until > from && newest !== null && until <= newest;
 }
 
-function playableOf(newestFirst: ReadSince[], now: number): ReadSince[] {
+function playableOf(newestFirst: ReadSince[], now: number): { playable: ReadSince[]; heldBack: ReadSince[] } {
   const oldestWaiting = newestFirst.findLastIndex(({ decided, recorded }) => !recorded && decided > now - progressionWaitedFor);
-  return newestFirst.slice(oldestWaiting + 1);
+  return { playable: newestFirst.slice(oldestWaiting + 1), heldBack: newestFirst.slice(0, oldestWaiting + 1) };
 }
 
-async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, read: ReadSince[]): Promise<XpMoment> {
+async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, read: ReadSince[], heldBackXp: number): Promise<XpMoment> {
   const { shown, folded } = chosenOf(read, ({ entry }) => entry.kind === "levelUp");
   const xp = xpOf(read);
   const timeZone = await timeZoneOf(ctx, me.member);
@@ -94,7 +94,7 @@ async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, read: 
     fold: folded.length === 0 ? null : { count: folded.length, xp: xpOf(folded) },
     moments: read.filter(({ entry }) => entry.kind !== "levelUp").length,
     xp,
-    climb: await climbOf(ctx, me.member, xp),
+    climb: await climbOf(ctx, me.member, { gained: xp, heldBack: heldBackXp }),
     waiting: (await hiddenItemsShownTo(ctx, me.member)) ? await waitingCountOf(ctx, me.member) : 0,
     thoughtfulGivers: await thoughtfulGiversThisWeek(ctx, { workspace: me.workspace, timeZone: timeZone ?? undefined }),
     timeZone,
@@ -117,9 +117,9 @@ function xpOf(read: Pick<ReadSince, "xp">[]) {
   return read.reduce((sum, { xp }) => sum + xp, 0);
 }
 
-async function climbOf(ctx: QueryCtx, member: MemberId, gained: number): Promise<Climb> {
-  const { xp } = await progressionHomeOf(ctx, member);
-  return { from: standingAt(Math.max(0, xp - gained)), to: standingAt(xp) };
+async function climbOf(ctx: QueryCtx, member: MemberId, { gained, heldBack }: { gained: number; heldBack: number }): Promise<Climb> {
+  const reached = Math.max(0, (await progressionHomeOf(ctx, member)).xp - heldBack);
+  return { from: standingAt(Math.max(0, reached - gained)), to: standingAt(reached) };
 }
 
 function standingAt(xp: number): Standing {

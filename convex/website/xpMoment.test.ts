@@ -147,6 +147,24 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     ]);
   });
 
+  test("a moment held short of a kudos whose XP waits climbs from the standing at the last visit by only the XP it plays, and the next moment climbs on from where it ended", async () => {
+    const asAlice = await aReturningMember(alice);
+    const before = (await albumOf(asAlice)).level;
+    await thanks(bob, alice);
+    const held = await thanksWhileItsXpWaits(carol, alice);
+    await thanks(bob, alice);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.climb.from, "the held-short moment's start").toEqual(before);
+    expect(moment.climb.to.xp - moment.climb.from.xp, "the held-short moment's climb").toBe(moment.xp);
+    await endOf(asAlice, moment);
+    await held.record();
+
+    const next = await theMomentOf(asAlice);
+    expect(next.climb.from, "the next moment's start").toEqual(moment.climb.to);
+    expect(next.climb.to, "the next moment's end").toEqual((await albumOf(asAlice)).level);
+  });
+
   test("a kudos whose XP progression never records stops holding the moment ten minutes after it was decided", async () => {
     const asAlice = await aReturningMember(alice);
     const held = await thanksWhileItsXpWaits(carol, alice);
