@@ -146,6 +146,18 @@ describe("LP74 LP75: the emoji popup leads with what the member can use", () => 
     expect(namesIn(section(await openTheEmojis(view), "Unlock next"))).toEqual([":team-lanterns:", ":bronze-people:", ":level-10:"]);
     view.unmount();
 
+    const tiedMilestones: Album = {
+      ...atLevelTwo,
+      emojis: [
+        ...atLevelTwo.emojis.filter(({ earned }) => earned),
+        anEmoji({ id: "milestone:hoggies:bronze", kind: "milestone", name: "curious", from: "Curious", progress: halfway }),
+        anEmoji({ id: "milestone:people:silver", kind: "milestone", name: "familiar-faces", from: "Familiar faces", progress: halfway }),
+      ],
+    };
+    const milestones = visit({ album: tiedMilestones });
+    expect(namesIn(section(await openTheEmojis(milestones), "Unlock next"))).toEqual([":familiar-faces:", ":curious:"]);
+    milestones.unmount();
+
     const nothingLeft = visit({ album: { ...atLevelTwo, emojis: atLevelTwo.emojis.filter(({ earned }) => earned) } });
     const popup = await openTheEmojis(nothingLeft);
     expect(popup.getByRole("region", { name: "Use these now" })).toBeInTheDocument();
@@ -193,7 +205,7 @@ describe("LP74 LP75: the emoji popup leads with what the member can use", () => 
     expect(popup.getByRole("button", { name: "All emojis · 8" })).toHaveFocus();
   });
 
-  it("+N more opens the popup on All emojis, where Just unlocked lists what it marked seen", async () => {
+  it("+N more opens the popup on All emojis, where Just unlocked lists what it marked seen, and the next opening leads with what the member can use", async () => {
     preferReducedMotion();
     const people = ["ada", "bo", "cy", "di", "ed", "fi"];
     const sixNew: Album = { ...atLevelTwo, emojis: [...atLevelTwo.emojis, ...people.map((person, index) => held({ id: `hype:${person}`, kind: "hype", name: `${person}-hype`, from: person, picture: "/emoji/hype.png", earnedAt: Date.now() - index * 60_000, seen: false }))] };
@@ -205,6 +217,11 @@ describe("LP74 LP75: the emoji popup leads with what the member can use", () => 
     const popup = within(await screen.findByRole("region", { name: "Your emojis" }));
     expect(namesIn(section(popup, "Just unlocked"))).toEqual(people.map((person) => `:${person}-hype:`));
     expect(popup.getByRole("button", { name: "Back to the emojis you can use" })).toBeInTheDocument();
+
+    await view.user.keyboard("{Escape}");
+    const reopened = await openTheEmojis(view);
+
+    expect(reopened.getByRole("region", { name: "Use these now" })).toBeInTheDocument();
   });
 
   it("while onboarding is off, the button counts the earned emojis and the popup is today's", async () => {

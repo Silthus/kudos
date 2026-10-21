@@ -13,14 +13,14 @@ import "./emoji.css";
 
 type PanelProps = { album: Album; justUnlocked: string[]; onFollow: () => void };
 
-export function EmojiPanel(props: PanelProps) {
+export function EmojiPanel({ opensOnJustUnlocked, ...props }: PanelProps & { opensOnJustUnlocked: boolean }) {
   const { emojiHowTo } = props.album;
   if (emojiHowTo === undefined) return <AllEmojis {...props} />;
-  return <EmojisToUse {...props} howTo={emojiHowTo} />;
+  return <EmojisToUse key={String(opensOnJustUnlocked)} {...props} howTo={emojiHowTo} opensOnAll={opensOnJustUnlocked} />;
 }
 
-function EmojisToUse({ album, justUnlocked, onFollow, howTo }: PanelProps & { howTo: LoopLesson }) {
-  const [all, setAll] = useState(justUnlocked.length > 0);
+function EmojisToUse({ album, justUnlocked, onFollow, howTo, opensOnAll }: PanelProps & { howTo: LoopLesson; opensOnAll: boolean }) {
+  const [all, setAll] = useState(opensOnAll);
   const [moved, setMoved] = useState(false);
   const back = useRef<HTMLButtonElement>(null);
   const toAll = useRef<HTMLButtonElement>(null);

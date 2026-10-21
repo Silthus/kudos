@@ -55,11 +55,15 @@ export function unlockNextOf(emojis: AlbumEmoji[]): NextEmoji[] {
   const holdsAHypeEmoji = emojis.some(({ kind, earned }) => kind === "hype" && earned);
   const nearest = shelvesOf(emojis)
     .filter(({ kind }) => kind.kind !== "hype")
-    .flatMap(({ locked }) => locked)
+    .flatMap(lockedAsShown)
     .filter(({ id }) => id !== levelTwoEmojiId)
     .toSorted((first, second) => shareOf(second) - shareOf(first));
   const next: NextEmoji[] = [...(levelTwo === undefined ? [] : [{ kind: "levelTwo" as const, emoji: levelTwo }]), ...(holdsAHypeEmoji ? [] : [{ kind: "hype" as const }]), ...nearest.map((emoji) => ({ kind: "nearest" as const, emoji }))];
   return next.slice(0, unlockNextShown);
+}
+
+function lockedAsShown({ kind, locked }: Shelf): AlbumEmoji[] {
+  return kind.kind === "milestone" ? milestoneGroupsOf(locked).flatMap(({ emojis }) => emojis) : locked;
 }
 
 function canBeEarned({ progress }: AlbumEmoji) {
