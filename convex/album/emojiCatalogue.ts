@@ -1,6 +1,5 @@
 import { catalogue as hoggieCatalogue } from "../hoggies/catalogue";
 import { milestoneCatalogue, type MilestoneId } from "./milestoneCatalogue";
-import { standardEmojiNamed } from "../workspace/standardEmoji";
 import type { MilestoneTier } from "./records";
 
 export const emojiLevels = [5, 10, 15, 20, 25] as const;
@@ -35,11 +34,6 @@ export const hypeEmblemPicture = "/emoji/hype.png";
 
 export function emojiArtPictureOf(kind: EmojiArtKind, catalogueId: string | number): string {
   return `/emoji/${kind}-${catalogueId}.png`;
-}
-
-export function levelEmojiPictureOf(level: number): string {
-  const standard = level === levelTwoEmoji.level ? standardEmojiNamed(levelTwoEmoji.name) : null;
-  return standard?.image ?? emojiArtPictureOf("level", level);
 }
 
 const longestSlug = 80;
