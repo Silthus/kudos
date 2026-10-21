@@ -137,7 +137,7 @@ export type WeekIssue = {
 
 export type WeekTab = { week: string; days: number[] };
 
-export type AlbumWeek = { kind: "week"; week: string; weeks: WeekTab[]; issue: WeekIssue | null };
+export type AlbumWeek = { kind: "week"; week: string; thisWeek: string; weeks: WeekTab[]; issue: WeekIssue | null };
 
 export type WeekShown = AlbumWeek | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 

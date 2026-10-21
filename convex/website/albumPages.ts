@@ -56,7 +56,7 @@ export type AlbumIssue = Omit<Issue, "kudosOfWeek" | "thanked" | "thankedBy" | "
   received: AlbumWeekKudosList;
 };
 
-export type AlbumWeekAnswer = { kind: "week"; week: DayKey; weeks: WeekTab[]; issue: AlbumIssue | null };
+export type AlbumWeekAnswer = { kind: "week"; week: DayKey; thisWeek: DayKey; weeks: WeekTab[]; issue: AlbumIssue | null };
 
 export type AlbumKindNote = AlbumKudos & { giver: AlbumPersonFace };
 
@@ -87,8 +87,8 @@ async function slackProfileOf(ctx: QueryCtx, workspace: string, person: MemberId
 }
 
 export async function albumWeekOf(ctx: QueryCtx, me: VerifiedMember, asked: DayKey | undefined): Promise<AlbumWeekAnswer> {
-  const { week, weeks, issue } = await weekEditionOf(ctx, me.member, asked, Date.now());
-  return { kind: "week", week, weeks, issue: issue === null ? null : await issueShown(ctx, me.workspace, issue) };
+  const { week, thisWeek, weeks, issue } = await weekEditionOf(ctx, me.member, asked, Date.now());
+  return { kind: "week", week, thisWeek, weeks, issue: issue === null ? null : await issueShown(ctx, me.workspace, issue) };
 }
 
 export async function albumProfileOf(ctx: QueryCtx, me: VerifiedMember, peopleSearched: number): Promise<AlbumProfileAnswer> {

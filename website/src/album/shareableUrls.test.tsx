@@ -4,7 +4,7 @@ import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
-import type { Album, AlbumPerson, BoardPeriod } from "./answer";
+import type { Album, AlbumPerson, BoardPeriod, WeekRead } from "./answer";
 import { boardsByPeriod, boardsFixtures } from "./boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { levelUpFixtures } from "./levelUpFixtures";
@@ -27,13 +27,13 @@ beforeEach(() => {
   preferWideScreen();
 });
 
-function visit(address: string, album: Album = withShareableUrls) {
+function visit(address: string, album: Album = withShareableUrls, weeks: WeekRead = fixtureWeeks()) {
   window.history.replaceState(null, "", address);
   const boards: BoardPeriod[] = [];
   const view = renderAlbum(shellFixtures.member, fixedAlbum(album), {
     settings: fixedSettings(settingsFixtures.everything),
     boards: boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.lastWeek, month: boardsFixtures.twoTeams, all: boardsFixtures.hidden }, boards),
-    weeks: fixtureWeeks(),
+    weeks,
     people: fixedPeople(withMeListed(album)),
     profile: fixedProfile(profileFixtures.noted),
     hoggies: fixedHoggies(hoggiesFixtures.midway),
@@ -45,6 +45,15 @@ function visit(address: string, album: Album = withShareableUrls) {
 function withMeListed(album: Album): Album {
   const me: AlbumPerson = { person: album.me.person, name: album.me.name, face: album.me.face, teams: [], held: true, packedThisWeek: false };
   return { ...album, people: [...album.people, me] };
+}
+
+function withNextWeekFilled(read: WeekRead): WeekRead {
+  return (asking, week) => {
+    const answer = read(asking, week);
+    if (answer?.kind !== "week") return answer;
+    const [newest] = answer.weeks;
+    return { ...answer, weeks: [{ week: "2026-10-19", days: newest!.days }, ...answer.weeks] };
+  };
 }
 
 function addressNow() {
@@ -179,6 +188,17 @@ describe("every album place has one shareable address", () => {
       await user.click(within(screen.getByRole("tablist", { name: "Weeks" })).getByRole("tab", { name: /^This week/ }));
 
       await waitFor(() => expect(addressNow()).toBe("/activity"));
+    });
+
+    it("a week opened from its URL keeps This week on the member's own week when a giver east of them already filled next week", async () => {
+      const { user } = visit("/activity?week=2026-09-28", withShareableUrls, withNextWeekFilled(fixtureWeeks()));
+      await expectToLand({ address: "/activity?week=2026-09-28", title: "Weekly edition" });
+      const weeks = within(screen.getByRole("tablist", { name: "Weeks" }));
+
+      expect(weeks.getByRole("tab", { name: /^This week/ })).toHaveTextContent(/12–18 Oct/);
+      await user.click(weeks.getByRole("tab", { name: /^Week of 19 Oct/ }));
+
+      await waitFor(() => expect(addressNow()).toBe("/activity?week=2026-10-19"));
     });
 
     it.each(["soon", "2026-99-99", "2026-02-30", "2026-09-30"])("a week of %s, which starts no week, lands on this week", async (week) => {

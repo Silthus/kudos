@@ -15,18 +15,12 @@ export function useWeekEdition(read: WeekRead, asking: boolean, addressed: Addre
   }
   const { chosen, choose: setChosen } = addressed ?? { chosen: chosenHere, choose: setChosenHere };
   const answer = read(asking, asking ? chosen : undefined);
-  const answeredThisWeek = answer?.kind === "week" ? thisWeekIn(answer, chosen) : undefined;
-  if (answeredThisWeek !== undefined && answeredThisWeek !== thisWeek) setThisWeek(answeredThisWeek);
+  if (answer?.kind === "week" && answer.thisWeek !== thisWeek) setThisWeek(answer.thisWeek);
   const lastAnswered = useLastAnswered(answer, asking);
   const choose = useCallback((week: string) => setChosen(week === thisWeek ? undefined : week), [setChosen, thisWeek]);
   const waiting = answer === undefined || answer.kind === "off";
   const loading = waiting && lastAnswered !== undefined;
   return { shown: loading ? lastAnswered : answer, chosen: chosen ?? thisWeek, thisWeek, loading, choose };
-}
-
-function thisWeekIn(answer: AlbumWeek, chosen: string | undefined): string | undefined {
-  const [newestTab] = answer.weeks;
-  return chosen === undefined ? answer.week : newestTab?.week;
 }
 
 function useLastAnswered(answer: WeekShown | undefined, asking: boolean): AlbumWeek | undefined {
