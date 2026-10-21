@@ -22,3 +22,10 @@ The leaderboard rank in the phone stills is painted over.
 ## Sandbox leftovers
 
 - Cast A's member has two `analyticsIds` rows: the kudos flow recorded one, and `analyticsIds.jsonl` added a second. `identityOf` reads that row with `.unique()`, so the flag falls to its safe default and the website answers "Not open yet" for that member. Cast B has no imported analytics row and works. Delete the `proof-125-visitor-a` row to restore cast A.
+
+## After the review
+
+Local fixture build on a 375 × 667 phone, scrolled to the foot of Hoggies:
+
+- `7-fixture-page-foot-clear-of-the-line.png`: the page leaves room at its foot, so its last cards end above the loop line.
+- `8-fixture-strip-capped-five-wins.png`: five Share rows, added to the page by hand to stand in for a visit with many wins. The strip stops at 12 rem and scrolls, and the cards above stay clear.

@@ -111,7 +111,8 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
     await turnTheFirstItem(user);
 
     expect(theLesson()!.closest(".ib-after")!.parentElement).toHaveClass("al-shell");
-    expect(itemBoardCss).toMatch(/\.al-shell:has\(> \.ib-after:not\(:empty\)\) \.al-main \{\s*padding-bottom: /);
+    expect(itemBoardCss, "the room is the strip's tallest").toMatch(/\.al-shell:has\(> \.ib-after:not\(:empty\)\) \.al-main \{\s*padding-bottom: calc\(var\(--ib-after-most\) \+ /);
+    expect(itemBoardCss, "however many wins pile up, the strip stops at its tallest and scrolls").toMatch(/\.ib-after \{[^}]*max-height: var\(--ib-after-most\);\s*overflow-y: auto;/);
   });
 
   it("shows only once: the next item's turn takes the line away, and a thanks item's turn never shows it", async () => {
