@@ -15,7 +15,7 @@ import type { Line } from "./segments";
 
 export const mostRecipientsNamed = 10;
 
-export type AlbumReplyDestination = { kind: "thread"; conversation: string; threadTs: string } | { kind: "dm"; user: string };
+export type AlbumReplyDestination = { kind: "thread"; conversation: string; threadTs: string; user: string } | { kind: "dm"; user: string };
 
 export type AlbumReplyPicture = { url: string; label: string };
 
@@ -64,7 +64,7 @@ async function destinationOf(ctx: QueryCtx, { giver, message }: ThoughtfulPacksG
   const place = await placeOf(ctx, giver, "kudos-reply");
   if (place === "none") return null;
   if (place === "dm") return { kind: "dm", user: to };
-  return { kind: "thread", conversation: message.conversation, threadTs: threadRoot ?? message.message };
+  return { kind: "thread", conversation: message.conversation, threadTs: threadRoot ?? message.message, user: to };
 }
 
 type Newcomers = { pages: TeamPagesAndPeople; arriving: Set<MemberId> };

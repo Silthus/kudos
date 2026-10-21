@@ -69,7 +69,7 @@ export async function sendBesideOrAsDirectMessage(ctx: ActionCtx, workspace: str
   return result.kind === "gone" ? null : retryAfter(result, attempt);
 }
 
-function isRefusedAsEphemeral(result: Attempt) {
+export function isRefusedAsEphemeral(result: Attempt) {
   return (result.kind === "gone" || result.kind === "failed") && result.error !== undefined && refusedAsEphemeral.has(result.error);
 }
 
