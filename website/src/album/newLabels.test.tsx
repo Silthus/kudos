@@ -57,7 +57,9 @@ function anAlbumThatAnswers(first: Album) {
   return { read, answerNext };
 }
 
-function visit(album: Album, { path = quietHarbour, arrive = async (from: number | null): Promise<ArrivalReply> => ({ kind: "arrived", lastVisit: from }) } = {}) {
+const movedOn = async (): Promise<ArrivalReply> => ({ kind: "arrived", lastVisit: sinceTheLastVisit });
+
+function visit(album: Album, { path = quietHarbour, arrive = movedOn } = {}) {
   window.history.replaceState(null, "", path);
   const live = anAlbumThatAnswers(album);
   const view = renderAlbum(shellFixtures.member, live.read, { hoggies: fixedHoggies(visitedHoggies), people: fixedPeople(album), commands: { arrive } });
@@ -112,17 +114,18 @@ describe("LP22: what was put in since the last visit carries New on its page", {
 
     await photoPerson("Perrin Holt");
     expect(newLabels()).toEqual([]);
-    await act(async () => arrival.resolve({ kind: "arrived", lastVisit }));
+    await act(async () => arrival.resolve({ kind: "arrived", lastVisit: sinceTheLastVisit }));
 
     expect(await within(await photoPerson("Perrin Holt")).findByText("New")).toBeVisible();
     expect(actions.arrive).toHaveBeenCalledTimes(1);
     expect(actions.arrive).toHaveBeenCalledWith(lastVisit);
   });
 
-  it("keeps the labels when the member comes back to the page in the same visit, without arriving again", async () => {
-    const { user, actions } = visit(visitedAlbum);
+  it("keeps the labels when the member comes back to the page in the same visit, after the arrival moved the last visit, without arriving again", async () => {
+    const { user, actions, answerNext } = visit(visitedAlbum);
     await within(await photoPerson("Perrin Holt")).findByText("New");
 
+    answerNext({ ...visitedAlbum, lastVisit: sinceTheLastVisit });
     await goTo(user, /^Hoggies/);
     await screen.findAllByRole("button", { name: /, new$/ });
     await goTo(user, /^Quiet Harbour/);
@@ -132,17 +135,25 @@ describe("LP22: what was put in since the last visit carries New on its page", {
     expect(actions.arrive).toHaveBeenCalledTimes(1);
   });
 
-  it("clears the labels once the next visit moves the last visit, whether the read or the arrival's answer brings it first", async () => {
-    const { answerNext, unmount } = visit(visitedAlbum);
+  it("clears the labels at the next visit, which reads the moved last visit", async () => {
+    const { unmount } = visit(visitedAlbum);
     await within(await photoPerson("Perrin Holt")).findByText("New");
 
-    answerNext({ ...visitedAlbum, lastVisit: sinceTheLastVisit });
-
-    expect(newLabels()).toEqual([]);
     unmount();
-    visit(visitedAlbum, { arrive: async () => ({ kind: "arrived", lastVisit: sinceTheLastVisit }) });
+    const { actions } = visit({ ...visitedAlbum, lastVisit: sinceTheLastVisit });
     expect(await screen.findByText(/^Unlocked /, {}, theAlbumLoads)).toBeVisible();
     await act(async () => {});
+
+    expect(actions.arrive).toHaveBeenCalledWith(sinceTheLastVisit);
+    expect(newLabels()).toEqual([]);
+  });
+
+  it("labels nothing on the first visit, which has no last visit to compare against", async () => {
+    const { actions } = visit({ ...visitedAlbum, lastVisit: null });
+    await photoPerson("Perrin Holt");
+    await act(async () => {});
+
+    expect(actions.arrive).toHaveBeenCalledWith(null);
     expect(newLabels()).toEqual([]);
   });
 

@@ -4,41 +4,38 @@ import type { AlbumShown } from "./answer";
 import { NewLabel } from "./ItemBoard";
 import "./newLabels.css";
 
-type LabelledSince = number | null | undefined;
+type LabelledSince = number | undefined;
+
+type ReadLastVisit = number | null | undefined;
+
+type Arrive = (from: number | null) => Promise<ArrivalReply>;
 
 const NewLabelsSince = createContext<LabelledSince>(undefined);
 
 export const NewLabelsProvider = NewLabelsSince.Provider;
 
-export function useNewLabelsSince(album: AlbumShown | undefined, arrive: (from: number | null) => Promise<ArrivalReply>): LabelledSince {
+export function useNewLabelsSince(album: AlbumShown | undefined, arrive: Arrive): LabelledSince {
   const read = album?.kind === "album" ? album.lastVisit : undefined;
-  const arrived = useArrivalOnce(read, arrive);
-  return arrived === undefined || read === undefined ? undefined : laterOf(arrived, read);
+  return useLastVisitBeforeArrival(read, arrive) ?? undefined;
 }
 
-function useArrivalOnce(read: LabelledSince, arrive: (from: number | null) => Promise<ArrivalReply>): LabelledSince {
-  const [arrived, setArrived] = useState<LabelledSince>(undefined);
+function useLastVisitBeforeArrival(read: ReadLastVisit, arrive: Arrive): ReadLastVisit {
+  const [arrivedFrom, setArrivedFrom] = useState<ReadLastVisit>(undefined);
   const sent = useRef(false);
   useEffect(() => {
     if (read === undefined || sent.current) return;
     sent.current = true;
     arrive(read).then(
-      (reply) => reply.kind === "arrived" && setArrived(reply.lastVisit),
+      (reply) => reply.kind === "arrived" && setArrivedFrom(read),
       () => undefined,
     );
   }, [read, arrive]);
-  return arrived;
-}
-
-function laterOf(one: number | null, other: number | null) {
-  if (one === null) return other;
-  return other === null ? one : Math.max(one, other);
+  return arrivedFrom;
 }
 
 export function useNewSinceTheLastVisit(at: number | null | undefined): boolean {
   const since = useContext(NewLabelsSince);
-  if (since === undefined || at === null || at === undefined) return false;
-  return since === null || at > since;
+  return since !== undefined && at !== null && at !== undefined && at > since;
 }
 
 export function NewSinceTheLastVisit({ at }: { at: number | null | undefined }) {
