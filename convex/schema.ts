@@ -551,6 +551,7 @@ export default defineSchema({
 
   thoughtfulPacks: defineTable(thoughtfulPackValidator)
     .index("by_giver_recipient_week", ["giver", "recipient", "week"])
+    .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
     .index("by_giver_opened_at", ["giver", "openedAt", "at"])
     .index("by_giver_at", ["giver", "at"]),

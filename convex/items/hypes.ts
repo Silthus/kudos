@@ -1,4 +1,4 @@
-import { crateKeyOf, earliestWeekPackFor } from "../album/packs";
+import { crateKeyOf, firstPackGrantedFor } from "../album/packs";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { hiddenItemsShownTo } from "./flag";
@@ -19,7 +19,7 @@ export async function hypeWaitsForItsItem(ctx: QueryCtx, member: MemberId, perso
 }
 
 async function firstPackWaitsFaceDown(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
-  const first = await earliestWeekPackFor(ctx, member, person);
+  const first = await firstPackGrantedFor(ctx, member, person);
   if (first === null) return false;
   return (await isWaiting(ctx, member, "sticker", first._id)) || (await isWaiting(ctx, member, "hoggie", crateKeyOf(first._id)));
 }
