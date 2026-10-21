@@ -127,6 +127,16 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect(moment.excerpts.map(({ entry, xp }) => [entry.kind, "hugs" in entry ? entry.hugs : null, xp])).toEqual([["hugReceived", 1, 1]]);
   });
 
+  test("LP40 LP41: the moment carries this week's thoughtful givers where xp-moments is on, with teasers off, and none below three", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, bob);
+    expect((await theMomentOf(asAlice)).thoughtfulGivers).toBeNull();
+
+    await thanks(carol, bob);
+
+    expect((await theMomentOf(asAlice)).thoughtfulGivers).toBe(3);
+  });
+
   test("with xp-moments off, getXpMoment answers off and the arrival moves the last visit as it did before", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen, "hidden-items");
     const receivedAt = (await thanks(bob, alice)).at;
