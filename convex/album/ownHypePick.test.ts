@@ -7,8 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import schema from "../schema";
-import type { AlbumAnswer, AlbumPersonRead } from "../website/album";
-import type { EmojiMappings, EmojiMappingsRead } from "../website/emojiMappings";
+import type { EmojiMappings } from "../website/emojiMappings";
 import type { MemberId } from "../workspace/directory";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -199,9 +198,9 @@ async function slackHas(...names: string[]) {
 }
 
 async function mappingsOf(reader: Reader): Promise<EmojiMappings> {
-  const read: EmojiMappingsRead | { kind: string } = await reader.query(api.website.emojiMappings.getEmojiMappings, {});
+  const read = await reader.query(api.website.emojiMappings.getEmojiMappings, {});
   if (read.kind !== "mappings") throw new Error(`expected the mappings, got ${JSON.stringify(read)}`);
-  return read as EmojiMappings;
+  return read;
 }
 
 function keyOf(mappings: EmojiMappings, someone: Person): string {
@@ -211,16 +210,16 @@ function keyOf(mappings: EmojiMappings, someone: Person): string {
 }
 
 async function hypeOf(reader: Reader, someone: Person) {
-  const album: { kind: string } = await reader.query(api.website.album.getAlbum, {});
+  const album = await reader.query(api.website.album.getAlbum, {});
   if (album.kind !== "album") throw new Error(`expected an album, got ${JSON.stringify(album)}`);
   const id = `hype:${await memberOf(someone)}`;
-  return (album as AlbumAnswer).emojis.find((entry) => entry.id === id);
+  return album.emojis.find((entry) => entry.id === id);
 }
 
 async function personPageOf(reader: Reader, someone: Person) {
-  const page: AlbumPersonRead | { kind: string } = await reader.query(api.website.album.getAlbumPerson, { person: await memberOf(someone) });
+  const page = await reader.query(api.website.album.getAlbumPerson, { person: await memberOf(someone) });
   if (page.kind !== "person") throw new Error(`expected a person page, got ${JSON.stringify(page)}`);
-  return page as Extract<AlbumPersonRead, { kind: "person" }>;
+  return page;
 }
 
 async function aliceCollects(...people: Person[]) {
