@@ -3,7 +3,7 @@ import { AnswerPage } from "../pages/AnswerPage";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import type { Rarity } from "../shell";
-import type { AlbumHoggie, AlbumHoggies, ForgeReply, HoggiesShown, PetReply } from "./answer";
+import type { AlbumHoggie, AlbumHoggies, HoggiesShown, PetReply } from "./answer";
 import { HoggieArt } from "./HoggieArt";
 import type { HoggieAddress } from "./hoggieAddress";
 import { HoggieEntry } from "./HoggieEntry";
@@ -13,7 +13,7 @@ import { dateOf } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
 import { LandedHype } from "./ItemBoard";
 import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
-import { useForge } from "./useForge";
+import { useForge, type ForgeHoggie } from "./useForge";
 import { usePetPick } from "./usePetPick";
 import { useRarityStrip } from "./useRarityStrip";
 import "./hoggies.css";
@@ -21,8 +21,6 @@ import "./hoggies.css";
 type HoggiesPlace = { hoggie: string | null; rarity?: Rarity };
 
 type MakePet = (hoggie: string) => Promise<PetReply>;
-
-type ForgeHoggie = (hoggie: string, request: string) => Promise<ForgeReply>;
 
 type HoggiesAnswerProps = { shown: HoggiesShown | undefined; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet; forgeHoggie: ForgeHoggie; onSignIn: () => void; onSignOut: () => void };
 

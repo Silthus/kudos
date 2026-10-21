@@ -1,4 +1,5 @@
 import type { MutationCtx } from "../_generated/server";
+import { tallyHoggieFound } from "../album/tallies";
 import type { MemberId } from "../workspace/directory";
 import { catalogue, hoggieNamed, hoggiesOfRarity, rarityAbove, sparesForged, type CatalogueHoggie } from "./catalogue";
 import { talliesOf } from "./collection";
@@ -19,7 +20,9 @@ async function forgeAnew(ctx: MutationCtx, member: MemberId, hoggie: string, cra
   const unheld = await unheldAbove(ctx, member, hoggie);
   if (spent === null || spent.count - 1 < sparesForged || unheld.length === 0) return null;
   await ctx.db.patch(spent._id, { count: spent.count - sparesForged });
-  await recordFind(ctx, member, crate, await pickOf({ secret: drawSecret(), member, crate, version: catalogue.version, among: unheld }), at, { surface: "website" });
+  const forged = await pickOf({ secret: drawSecret(), member, crate, version: catalogue.version, among: unheld });
+  await recordFind(ctx, member, crate, forged, at, { surface: "website" });
+  await tallyHoggieFound(ctx, member, forged, at);
   return dropOf(ctx, member, crate);
 }
 

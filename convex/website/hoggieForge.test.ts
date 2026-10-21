@@ -128,6 +128,17 @@ describe("HF5, HF12: a forged hoggie is a find with no pack, captured as hoggie 
     expect(dropped[0]!.properties).not.toHaveProperty("pack_xp");
     expect(dropped[0]!.properties).not.toHaveProperty("pack_coins");
   });
+
+  test("Activity lists a forged hoggie once among the week's finds, though the forge is sent again", async () => {
+    const member = await aTeammate(ann);
+    await holds(t, member, "banana", "banana", "banana", "banana", ...everyUncommonBut("cake"));
+    const before = (await weekOf(ann))?.hoggies.hoggies ?? [];
+
+    await forges(ann, "banana", "sent-twice");
+    await forges(ann, "banana", "sent-twice");
+
+    expect((await weekOf(ann))?.hoggies).toEqual({ hoggies: [...before, { hoggie: "cake", rarity: "uncommon" }], more: 0 });
+  });
 });
 
 describe("HF11: hoggie-forge is read for the member without an exposure", { timeout: 60_000 }, () => {
@@ -212,6 +223,12 @@ async function hoggiesOf(person: Person) {
   const hoggies = await (await signedIn(person)).query(api.website.album.getAlbumHoggies, {});
   if (hoggies.kind !== "hoggies") throw new Error(`getAlbumHoggies answered ${hoggies.kind}`);
   return hoggies;
+}
+
+async function weekOf(person: Person) {
+  const week = await (await signedIn(person)).query(api.website.album.getAlbumWeek, {});
+  if (week.kind !== "week") throw new Error(`getAlbumWeek answered ${week.kind}`);
+  return week.issue;
 }
 
 async function held(person: Person, hoggie: string) {

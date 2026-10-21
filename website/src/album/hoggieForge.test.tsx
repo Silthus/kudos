@@ -39,6 +39,13 @@ function forgeOn(copies: Record<string, number>) {
   return { ...withCopies(hoggiesFixtures.midway, copies), forge: true as const };
 }
 
+function goTo(path: string) {
+  act(() => {
+    window.history.pushState(null, "", path);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+}
+
 async function entry() {
   return within(await screen.findByRole("dialog", undefined, { timeout: arrival }));
 }
@@ -113,6 +120,24 @@ describe("HF9, HF10: Forge sends forgeHoggie once and plays the forged hoggie's 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("while the reveal plays, Tab keeps focus on it and the entry behind it takes no press", async () => {
+    const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }));
+
+    const shown = await entry();
+    const forgeButton = shown.getByRole("button", { name: "Forge 3 into an Uncommon" });
+    await user.click(forgeButton);
+    const reveal = await screen.findByRole("status", { name: "Forged" });
+    await user.tab();
+    await user.tab({ shift: true });
+
+    expect(reveal).toHaveFocus();
+    expect(forgeButton.closest("[inert]")).not.toBeNull();
+    expect(shown.getByRole("button", { name: "Close", hidden: true }).closest("[inert]")).not.toBeNull();
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(window.location.hash).toBe("#hoggies/cake"));
+    expect(actions.forgeHoggie).toHaveBeenCalledOnce();
+  });
+
   it("with reduced motion the reveal shows the forged hoggie at once, with no movement", async () => {
     preferReducedMotion();
     const { user } = visit("/book#hoggies/asleep", forgeOn({ asleep: 4 }));
@@ -158,6 +183,50 @@ describe("HF9, HF10: Forge sends forgeHoggie once and plays the forged hoggie's 
     await user.click(shown.getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await screen.findByRole("status", { name: "Forged" });
 
+    const [first, again] = actions.forgeHoggie.mock.calls;
+    expect(again).toEqual(first);
+  });
+
+  it("a lost answer keeps its request through a visit to another page, and per hoggie", async () => {
+    let calls = 0;
+    const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7, ball: 4 }), async () => ((calls += 1) <= 2 ? Promise.reject(new Error("offline")) : forgedCake));
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await (await entry()).findByText("Couldn't reach HedgeHug. Try again.");
+    goTo("/book#hoggies/ball");
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await (await entry()).findByText("Couldn't reach HedgeHug. Try again.");
+    goTo("/book#leaderboard");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    goTo("/book#hoggies/asleep");
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await screen.findByRole("status", { name: "Forged" });
+
+    const [first, other, again] = actions.forgeHoggie.mock.calls;
+    expect(again, "asleep's request after the visit").toEqual(first);
+    expect(other![1], "ball's own request").not.toBe(first![1]);
+  });
+
+  it("a forge that landed while its answer was lost keeps Forge to fetch that answer, though one copy is left", async () => {
+    let shown = forgeOn({ asleep: 4 });
+    let calls = 0;
+    const lostAfterLanding = async () => {
+      if ((calls += 1) > 1) return forgedCake;
+      shown = forgeOn({ asleep: 1, cake: 1 });
+      throw new Error("offline");
+    };
+    window.history.replaceState(null, "", "/book#hoggies/asleep");
+    const { user, actions, showVisitor } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { hoggies: (asking) => (asking ? shown : undefined), commands: { forgeHoggie: lostAfterLanding } });
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await (await entry()).findByText("Couldn't reach HedgeHug. Try again.");
+    act(() => showVisitor({ ...memberWithTheAlbum }));
+    const shownAfter = await entry();
+    expect(shownAfter.getByText("Couldn't reach HedgeHug. Try again.")).toBeInTheDocument();
+    expect(shownAfter.getByText("Copies").nextSibling).toHaveTextContent("one copy");
+    await user.click(shownAfter.getByRole("button", { name: "Forge 3 into an Uncommon" }));
+
+    expect(await screen.findByRole("status", { name: "Forged" })).toHaveTextContent("Forged: Cake · Uncommon · New");
     const [first, again] = actions.forgeHoggie.mock.calls;
     expect(again).toEqual(first);
   });

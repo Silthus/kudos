@@ -16,9 +16,13 @@ const restMs = 2500;
 export function ForgeOfferLine({ hoggie, answer, forging }: { hoggie: AlbumHoggie; answer: AlbumHoggies; forging: Forging }) {
   const offer = forgeOfferOf(hoggie, answer);
   if (offer === null) return null;
+  if (offer.kind === "ready" || isPendingFor(hoggie, forging)) return <ForgeButton hoggie={hoggie} offer={offer} forging={forging} />;
   if (offer.kind === "full") return <p className="al-entry-forge-note">{`You hold every ${rarityWordOf(offer.into)}.`}</p>;
-  if (offer.kind === "short") return <p className="al-entry-forge-note">{`${sparesForged + 1} copies forge into ${aRarityWordOf(offer.into)} you don't have yet.`}</p>;
-  return <ForgeButton hoggie={hoggie} offer={offer} forging={forging} />;
+  return <p className="al-entry-forge-note">{`${sparesForged + 1} copies forge into ${aRarityWordOf(offer.into)} you don't have yet.`}</p>;
+}
+
+function isPendingFor({ hoggie }: AlbumHoggie, { sending, problem }: Forging) {
+  return sending === hoggie || problem?.hoggie === hoggie;
 }
 
 function ForgeButton({ hoggie, offer, forging }: { hoggie: AlbumHoggie; offer: ForgeOffer; forging: Forging }) {

@@ -16,9 +16,11 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   const title = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useFocusWhileOpen(hoggie);
+  const revealing = forging?.forged != null;
   const stepBy = (by: number) => onStep(neighbourOf(hoggie, steps, by));
   const keys: Record<string, () => void> = { Escape: onClose, ArrowLeft: () => stepBy(-1), ArrowRight: () => stepBy(1) };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (revealing) return event.key === "Tab" && event.preventDefault();
     if (event.key === "Tab") return keepFocusIn(dialog.current, event);
     const press = keys[event.key];
     if (press === undefined || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -28,13 +30,13 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   return (
     <div className="al-entry-scrim" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div ref={dialog} className="al-entry" role="dialog" aria-modal="true" aria-labelledby={title} style={rarityTintOf(hoggie.rarity)} onKeyDown={onKeyDown} data-found={hoggie.found ? "" : undefined}>
-        <div className="al-entry-top">
+        <div className="al-entry-top" inert={revealing}>
           <span className="al-eyebrow">Field guide entry</span>
           <button ref={closeButton} type="button" className="al-entry-close" aria-label="Close" onClick={onClose}>
             <IconX />
           </button>
         </div>
-        <div className="al-entry-detail">
+        <div className="al-entry-detail" inert={revealing}>
           <figure className="al-entry-art">
             <HoggieArt hoggie={hoggie.hoggie} hidden={!hoggie.found} />
           </figure>
@@ -50,7 +52,7 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
           </div>
         </div>
         {forging?.forged && <ForgeReveal forged={forging.forged} onEnd={() => endTheForge(forging, answer, onStep)} />}
-        <div className="al-entry-steps">
+        <div className="al-entry-steps" inert={revealing}>
           <button type="button" className="al-entry-step" onClick={() => stepBy(-1)}>
             <span aria-hidden="true">←</span> Previous
           </button>

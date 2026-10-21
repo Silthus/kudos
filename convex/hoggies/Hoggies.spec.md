@@ -265,8 +265,8 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: resumption-coverage dismissed: no batch forges
   checklist: declared-target-coverage dismissed: the one surface that forges is the website's forgeHoggie, reached by the oracle
   checklist: completion-evidence dismissed: forgeHoggie answers the drop it recorded
-- a forged hoggie is a find from a forge crate that pays nothing: A hoggie forge records its hoggie as a drop of the `forge` crate kind, whose first copy is new, and publishes hoggieDropped, which PostHog receives as one hoggie dropped with crate_kind forge, its rarity and is_new, and no pack XP or coins
-  over: one forge of four Bananas into the one hoggie a rarity up left, read through the PostHog captures after the outbox drains
+- a forged hoggie is a find from a forge crate that pays nothing: A hoggie forge records its hoggie as a drop of the `forge` crate kind, whose first copy is new, and publishes hoggieDropped, which PostHog receives as one hoggie dropped with crate_kind forge, its rarity and is_new, and no pack XP or coins; it joins the member's week once, so getAlbumWeek lists it among the week's hoggies found, however often its request is sent
+  over: one forge of four Bananas into the one hoggie a rarity up left, read through the PostHog captures after the outbox drains; the same forge sent twice with one request, read through getAlbumWeek
   via: HF5, HF12: a forged hoggie is a find with no pack, captured as hoggie dropped from a forge crate
   refuted: packBands in convex/hoggies/catalogue.ts gave the forge crate kind the thoughtful band -> 1 of 1 tests failed: with packs on, the forge's hoggie dropped carried pack XP (2026-10-21)
   because: the forge is a find like any other, so Milestones, Activity and crests count it, and the product owner measures it through the existing projection rather than a new event (spec/hoggie-forge.md HF5, HF12); a pack band would pay XP for a spend
