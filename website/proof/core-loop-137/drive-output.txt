@@ -1,0 +1,44 @@
+## join
+event 1 (team_join by [object Object]) answered 200
+event 2 (team_join by [object Object]) answered 200
+event 3 (team_join by [object Object]) answered 200
+## climb
+event 1 (message by U0PRF137LVTWO) answered 200
+  kudos Wren Twofold -> Kit Helper with :hedgehog: at ts 1792614979.448000
+event 2 (message by U0PRF137LVTWO) answered 200
+  kudos Wren Twofold -> Kit Helper with :hedgehog: at ts 1792614981.294000
+## raised-hands
+event 1 (message by U0PRF137LVTWO) answered 200
+  kudos Wren Twofold -> Kit Helper with :raised_hands: at ts 1792615024.371000
+event 2 (message by U0PRF137LVONE) answered 200
+  kudos Oli Firstday -> Kit Helper with :raised_hands: at ts 1792615024.662000
+event 3 (reaction_added :raised_hands: by U0PRF137LVTWO) answered 200
+  reaction :raised_hands: by Wren Twofold on Kit Helper's message 1792614724.780000
+event 4 (reaction_added :raised_hands::skin-tone-3: by U0PRF137LVTWO) answered 200
+  reaction :raised_hands::skin-tone-3: by Wren Twofold on Kit Helper's message 1792614735.391000
+event 5 (reaction_added :raised_hands: by U0PRF137LVONE) answered 200
+  reaction :raised_hands: by Oli Firstday on Kit Helper's message 1792614745.608000
+event 6 (reaction_added :raised_hands::skin-tone-3: by U0PRF137LVONE) answered 200
+  reaction :raised_hands::skin-tone-3: by Oli Firstday on Kit Helper's message 1792614755.714000
+
+## read back (sandbox different-dog-467)
+awards in C0PRF137RHS:
+  1792615024.371000 Wren Twofold (level 2) -> Kit Helper (teammate) kudos 1
+  1792614981.294000 Wren Twofold (level 2) -> Kit Helper (teammate) kudos 1
+  1792614979.448000 Wren Twofold (level 2) -> Kit Helper (teammate) kudos 1
+hugs in C0PRF137RHS:
+  1792614735.391000 giver Wren Twofold (level 2) emoji raised_hands::skin-tone-3 author Kit Helper (teammate)
+  1792614724.780000 giver Wren Twofold (level 2) emoji raised_hands author Kit Helper (teammate)
+xp (memberProgress):
+  Kit Helper (teammate) 17
+  Wren Twofold (level 2) 32
+  Oli Firstday (level 1): no memberProgress row (0 XP)
+
+## level:2 registry rows after the deploy step (all sandbox registries)
+{ "_creationTime": 1792614928425.331, "_id": "h97kmxwsr7cxtxm6k4enww9x718gqv7s", "emoji": "level:2", "name": "raised_hands", "workspace": "T0PRFSLKWKB" }
+{ "_creationTime": 1792614928425.3308, "_id": "h97kn1emfvz567avx4dmyfd32d8gpndc", "emoji": "level:2", "name": "raised_hands", "workspace": "T0PRF741WKS" }
+{ "_creationTime": 1792614928425.3306, "_id": "h97mv97jr1cfn4hcwx8pmc27nx8gqc1a", "emoji": "level:2", "name": "raised_hands", "workspace": "T0PRF741WK2" }
+{ "_creationTime": 1792614928425.3303, "_id": "h97xft71c2cezzsv230exzb89h8gps8d", "emoji": "level:2", "name": "raised_hands", "workspace": "T0PRF646C" }
+{ "_creationTime": 1792614928425.33, "_id": "h97wstjwyt4f833qc4vwkd0d6s8gq55r", "emoji": "level:2", "name": "raised_hands", "workspace": "T0PRF646B" }
+{ "_creationTime": 1792614928425.3298, "_id": "h97jpnp10gepgfm462y6b509818gqw6a", "emoji": "level:2", "name": "raised_hands", "workspace": "T0PRF104WK" }
+{ "_creationTime": 1792614928425.3296, "_id": "h97mm46w7t1c11rqfw3da62jm58gqvme", "emoji": "level:2", "name": "raised_hands", "workspace": "T0C3US298SH" }

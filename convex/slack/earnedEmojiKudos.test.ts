@@ -3,7 +3,8 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
 import { edit, kudosReceived, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { emoji, mention, section, text, tonedEmoji } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
 import { recordReward, standingOf } from "../progression/progression";
 import type { MemberId } from "../workspace/directory";
@@ -14,6 +15,8 @@ const carolsMessageTs = `${Math.floor(now.getTime() / 1000) - 1800}.000100`;
 const teamEmoji = "team-workflows";
 const levelEmoji = "level-5";
 const randomEmoji = "party-parrot";
+const levelTwoEmoji = "raised_hands";
+const onboardingOn = ["hugs", "hidden-items", "onboarding"];
 const saysWhy = "thanks for untangling the release notes today ";
 
 let slack: FakeSlack;
@@ -109,6 +112,40 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
     expect(await xpOf(t, "U_CAROL")).toBe(1);
   });
 
+  test.each([
+    ["🙌", emoji(levelTwoEmoji), levelTwoEmoji],
+    ["a skin-toned 🙌", tonedEmoji(levelTwoEmoji, 3, "1f64c-1f3fc"), `${levelTwoEmoji}::skin-tone-3`],
+  ])("LP71: while onboarding is on, a level-2 member's kudos message with %s gives kudos and their reaction with it is a hug", async (_, element, reaction) => {
+    flagsOnForEveryone(slack.fetch, ...onboardingOn);
+    const t = await workspaceWithReservedNames();
+    await reachedLevelTwo(t, "U_ALICE");
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), element)], { user: "U_ALICE", ts: messageTs });
+    await react(t, { user: "U_ALICE", itemUser: "U_CAROL", reaction, ts: carolsMessageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+    expect(await xpOf(t, "U_CAROL")).toBe(1);
+  });
+
+  test.each([
+    ["onboarding is on and the member is at level 1", onboardingOn, false],
+    ["onboarding is off", ["hugs", "hidden-items"], true],
+    ["hidden-items is off", ["hugs", "onboarding"], true],
+  ])("LP71 LP77: while %s, a 🙌 kudos message gives nothing and a 🙌 reaction is no hug", async (_, flags, atLevelTwo) => {
+    flagsOnForEveryone(slack.fetch, ...flags);
+    const t = await workspaceWithReservedNames();
+    if (atLevelTwo) await reachedLevelTwo(t, "U_ALICE");
+    else await memberOf(t, "U_ALICE");
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), emoji(levelTwoEmoji))], { user: "U_ALICE", ts: messageTs });
+    await react(t, { user: "U_ALICE", itemUser: "U_CAROL", reaction: levelTwoEmoji, ts: carolsMessageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+    expect(await xpOf(t, "U_CAROL")).toBe(0);
+  });
+
   test("an edit to a kudos with the workspace emoji and 700 other emoji keeps its kudos", { timeout: 60_000 }, async () => {
     const t = await workspaceWithEmojiNames({ transactionLimits: true });
     await unlockedTeamEmoji(t, "U_ALICE");
@@ -191,6 +228,18 @@ async function workspaceWithEmojiNames({ transactionLimits = false } = {}) {
     await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "level:5", name: levelEmoji });
   });
   return flagsLoaded(t);
+}
+
+async function workspaceWithReservedNames() {
+  const t = await workspaceWithEmojiNames();
+  await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, {});
+  return t;
+}
+
+async function reachedLevelTwo(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:level-2", xp: xpToReach(2), coins: 0, item: null, catalogueVersion: "test", at: now.getTime() }));
+  await settle(t);
 }
 
 async function unlockedTeamEmoji(t: Backend, user: string) {

@@ -11,6 +11,8 @@ const buildTimeout = 120_000;
 
 const albumShellModule = /\/src\/album\/AlbumShell\.tsx$/;
 
+const standardEmojiTable = /\/convex\/workspace\/standardEmoji(Rows)?\.ts$/;
+
 const slackEmojiBytes = 128 * 1024;
 
 const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -31,6 +33,12 @@ describe("AL57: the album loads in its own chunk", () => {
 
     expect(firstLoadOf(chunks).filter(holdsTheAlbum)).toEqual([]);
     expect(chunks.filter((chunk) => !chunk.isEntry && holdsTheAlbum(chunk))).toHaveLength(1);
+  });
+
+  test("no chunk holds Slack's standard emoji table, which only the backend reads", { timeout: buildTimeout }, async () => {
+    const { chunks } = await productionBuild();
+
+    expect(chunks.filter((chunk) => chunk.moduleIds.some((id) => standardEmojiTable.test(id))).map((chunk) => chunk.fileName)).toEqual([]);
   });
 
   test("the album's stylesheet is never one the entry loads, so the visitors' pages keep their own CSS", { timeout: buildTimeout }, async () => {

@@ -4,7 +4,7 @@ import type { OwnHypePick } from "../../../convex/album/emojiMappings";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
-import type { ItemBoard, PetAnswer } from "../../../convex/website/album";
+import type { ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
 import type { AppliedReward } from "../../../convex/progression/rewards";
@@ -62,6 +62,7 @@ export type Album = {
   board: ItemBoard | null;
   pets?: AlbumPet[];
   lastVisit?: number | null;
+  emojiHowTo?: LoopLesson;
   shareableUrls?: true;
 } & ShareOffers;
 

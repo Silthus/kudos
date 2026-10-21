@@ -371,6 +371,19 @@ describe("the maintainer lists every app emoji, mapped or not", { timeout: 180_0
     expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "team-lanterns", to: emojiNamed(await appEmojisOf(asOwner), "team-otters").place })).toEqual({ kind: "mapped" });
     expect(await emojiWithId(await signedIn(alice), "team:otters")).toMatchObject({ name: "team-lanterns", inSlack: true });
   });
+
+  test("LP71: while onboarding is on for the maintainer, level 2's emoji is listed under raised_hands, in Slack, with every member at level 2 or above as a holder; while off it is not listed", async () => {
+    await aliceCollects(lanterns[0]!);
+    await reachesXp(alice, xpToReach(2));
+    await reachesXp(bruno, xpToReach(10));
+    await switchWebsite(t, postHog, true, ...wizardOpen, "hidden-items", "onboarding");
+    const asOwner = await signedIn(owner);
+
+    expect(emojiNamed(await appEmojisOf(asOwner), "raised_hands")).toEqual({ key: "level:2", kind: "level", name: "raised_hands", from: "Level 2", picture: standardPicture("1f64c"), holders: 2, slack: { image: standardPicture("1f64c"), setBy: null }, place: { kind: "level", level: 2 } });
+
+    await switchWebsite(t, postHog, true, ...wizardOpen, "hidden-items");
+    expect((await appEmojisOf(asOwner)).emojis.some(({ name }) => name === "raised_hands")).toBe(false);
+  });
 });
 
 describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis where they show and members map none", { timeout: 120_000 }, () => {

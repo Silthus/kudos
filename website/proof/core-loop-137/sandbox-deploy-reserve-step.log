@@ -1,0 +1,7 @@
+﻿2026-10-21T20:35:28.3899460Z ##[group]Run pnpm exec convex run album/emojiNames:reserveSharedEmojiNames
+2026-10-21T20:35:28.3899943Z ^[[36;1mpnpm exec convex run album/emojiNames:reserveSharedEmojiNames^[[0m
+2026-10-21T20:35:28.3947192Z shell: /usr/bin/bash -e {0}
+2026-10-21T20:35:28.3947431Z env:
+2026-10-21T20:35:28.3947660Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2026-10-21T20:35:28.3948517Z   CONVEX_DEPLOY_KEY: ***
+2026-10-21T20:35:28.3948788Z ##[endgroup]

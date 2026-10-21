@@ -99,6 +99,25 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     expect(mappings.people.map(({ name }) => name)).toEqual([alice, bruno, ...lanterns, owner, ...otters].map(({ name }) => name).toSorted((one, other) => one.localeCompare(other)));
   });
 
+  test("LP71: while onboarding is on for the maintainer, Settings offer level 2 and list raised_hands as its emoji; while off, raised_hands is Slack's own emoji with no place and mapping to level 2 is refused, writing nothing", async () => {
+    await aliceCollects(otters[0]!);
+    await slackHas("party-parrot");
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji", "hidden-items", "onboarding");
+    const asOwner = await signedIn(owner);
+
+    const offered = await mappingsOf(asOwner);
+    expect(offered.levels).toEqual([2, 5, 10, 15, 20, 25]);
+    expect(offered.emoji).toContainEqual({ name: "raised_hands", image: standardPicture("1f64c"), mapping: { kind: "level", level: 2 } });
+
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji", "hidden-items");
+    const withheld = await mappingsOf(asOwner);
+    expect(withheld.levels).toEqual([5, 10, 15, 20, 25]);
+    expect(withheld.emoji).toContainEqual({ name: "raised_hands", image: standardPicture("1f64c"), mapping: null });
+    const before = await everyTable();
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "party-parrot", to: { kind: "level", level: 2 } })).toEqual({ kind: "refused" });
+    expect(await everyTable()).toEqual(before);
+  });
+
   test("a Slack emoji mapped to a team is that team's emoji at once: named and pictured as in Slack, in Slack, and kept by a member who unlocked it before", async () => {
     await aliceCollects(...otters);
     const asAlice = await signedIn(alice);
