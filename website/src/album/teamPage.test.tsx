@@ -357,6 +357,14 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
 });
 
 describe("AL45: an unlocked page says plainly what the member got", () => {
+  it("LP19: with the item board answered, the seal reads Unlocked with its date and team emoji, and no line follows under it", async () => {
+    visit("/book#teams/quiet-harbour", { album: { ...midway, board: { items: [], more: false } } });
+
+    expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" }, arrival)).toBeInTheDocument();
+    expect(screen.getByText("Unlocked 15 Oct 2026").closest("p")).toHaveTextContent(":team-quiet-harbour:");
+    expect(screen.queryByText(/You got the/), "the second line under the seal").toBeNull();
+  });
+
   it("while Slack has the team emoji: the gold sticker with its date, and how to use the emoji in Slack", async () => {
     visit("/book#teams/quiet-harbour");
 

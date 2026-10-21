@@ -50,7 +50,7 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
       <p role="status" aria-label="Unlocking the sticker" className="al-unlock-problem">
         {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
       </p>
-      {emojiShown && emoji !== undefined && <TeamEmojiLine team={team} emoji={emoji} unlocked={unlocked} emojiPage={album.emojiPage} />}
+      {emojiShown && emoji !== undefined && (unlocked && album.board !== null ? <TeamEmojiActions emoji={emoji} emojiPage={album.emojiPage} /> : <TeamEmojiLine team={team} emoji={emoji} unlocked={unlocked} emojiPage={album.emojiPage} />)}
     </article>
   );
 }
@@ -167,9 +167,21 @@ function problemWordsOf(reason: "refused" | "unreachable", team: AlbumTeam) {
   return reason === "refused" ? `The ${team.name} sticker couldn't be unlocked. Reload the page to see where it stands.` : "Couldn't reach HedgeHug. Try again.";
 }
 
+function TeamEmojiActions({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: string | null }) {
+  return (
+    <div className="al-emoji-actions ph-no-capture">
+      <TeamEmojiAction emoji={emoji} emojiPage={emojiPage} />
+    </div>
+  );
+}
+
+function TeamEmojiAction({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: string | null }) {
+  const inPlace = useMapsInPlace();
+  return inPlace ? <MapInPlace emoji={emoji} /> : !emoji.inSlack && <NotInSlack emoji={emoji} emojiPage={emojiPage} />;
+}
+
 function TeamEmojiLine({ team, emoji, unlocked, emojiPage }: { team: AlbumTeam; emoji: AlbumEmoji; unlocked: boolean; emojiPage: string | null }) {
   const way = useSlackWay();
-  const inPlace = useMapsInPlace();
   return (
     <div className="al-emoji-line ph-no-capture">
       <span className="al-emoji-picture">
@@ -184,7 +196,7 @@ function TeamEmojiLine({ team, emoji, unlocked, emojiPage }: { team: AlbumTeam; 
           The <code>:{emoji.name}:</code> team emoji unlocks with the sticker.
         </p>
       )}
-      {inPlace ? <MapInPlace emoji={emoji} /> : !emoji.inSlack && <NotInSlack emoji={emoji} emojiPage={emojiPage} />}
+      <TeamEmojiAction emoji={emoji} emojiPage={emojiPage} />
     </div>
   );
 }
