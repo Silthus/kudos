@@ -20,13 +20,13 @@ export async function turn(ctx: MutationCtx, owner: PageOwner, item: Id<"items">
   if (row?.member !== owner.member) return null;
   if (row.turnedAt !== undefined) return turnedAgain(ctx, row);
   const crate = row.key as CrateKey;
-  await dropFor(ctx, owner.member, crate, at, { surface: "website" });
+  await dropFor(ctx, owner.member, crate, at, { surface: "website", floor: row.floor });
   const drop = await dropOf(ctx, owner.member, crate);
   if (drop === null) return null;
   await tallyHoggieFound(ctx, owner.member, { hoggie: drop.hoggie, rarity: drop.rarity }, at);
   await recordMilestonesOf(ctx, owner, at);
   await ctx.db.patch(row._id, { turnedAt: at });
-  await publish(ctx, { type: "itemTurned", workspace: owner.workspace, member: owner.member, source: row.source, rarity: drop.rarity, isNew: drop.isNew, at });
+  await publish(ctx, { type: "itemTurned", workspace: owner.workspace, member: owner.member, source: "hoggie", rarity: drop.rarity, isNew: drop.isNew, at });
   return { face: { kind: "hoggie", drop }, applied: await packOf(ctx, owner.member, crate), page: { kind: "hoggies" }, again: false };
 }
 

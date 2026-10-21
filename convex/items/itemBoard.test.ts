@@ -77,7 +77,7 @@ describe("LP8 LP9 LP17: with hidden-items on, getAlbum answers the item board an
 
     const album = await albumOf(await signedIn(alice));
 
-    expect(album.board?.items.map(({ reason }) => reason.thanked.name)).toEqual([bob.name, carol.name]);
+    expect(album.board?.items.map(({ reason }) => reason.kind === "thanks" && reason.thanked.name)).toEqual([bob.name, carol.name]);
     for (const item of album.board!.items) expect(Object.keys(item).sort()).toEqual(["earnedAt", "item", "reason"]);
     expect(album.board?.more).toBe(false);
     expect(album).toMatchObject({ packs: [], morePacks: false, tray: [], moreTray: false });

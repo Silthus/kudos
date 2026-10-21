@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
-import type { ItemBoard as Board } from "../../../convex/website/album";
+import type { ItemBoard as Board, LoopLesson } from "../../../convex/website/album";
+import { NamedEmoji } from "../Emoji";
 import { keepFocusIn } from "./focusTrap";
 import { rarityWordOf } from "./opening";
 import type { ItemTurns, Landing } from "./useItemBoard";
@@ -49,6 +50,7 @@ export function ItemsWait({ turns }: { turns: ItemTurns }) {
       <p role="status" aria-label="Turned over" className="ib-turned">
         {landing !== null && !open && <LandedWords landing={landing} />}
       </p>
+      {landing?.teaches && !open && <LoopLine lesson={landing.teaches} />}
       {offered && board !== null && (
         <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
           <span className="ib-wait-disc" aria-hidden="true">
@@ -67,6 +69,14 @@ function LandedWords({ landing: { drop, applied } }: { landing: Landing }) {
       <span>{`${drop.name}: ${rarityWordOf(drop.rarity)} hoggie${drop.isNew ? " · New" : ""}`}</span>
       {applied !== null && <span className="ib-turned-xp">{`+${applied.xp} XP`}</span>}
     </>
+  );
+}
+
+function LoopLine({ lesson: { kudosEmoji, kudosEmojiImage } }: { lesson: LoopLesson }) {
+  return (
+    <p role="note" aria-label="How the next item comes" className="ib-loop">
+      Your next item comes when you thank a teammate with <NamedEmoji name={kudosEmoji} image={kudosEmojiImage ?? undefined} /> and say why.
+    </p>
   );
 }
 
