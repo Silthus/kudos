@@ -36,7 +36,7 @@ export const messageEventValidator = v.object({
   author: v.string(),
   revision: v.int64(),
   at: v.number(),
-  content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()), text: v.string() }),
+  content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()), mentionsBeforeEmoji: v.optional(v.array(v.number())), text: v.string() }),
   words: wordsValidator,
 });
 
@@ -63,3 +63,7 @@ export type WordSegment = Infer<typeof wordSegmentValidator>;
 export type Words = Infer<typeof wordsValidator>;
 export type Visibility = Infer<typeof visibilityValidator>;
 export type CountableContent = Omit<MessageContent, "text">;
+
+export function countableOf({ mentions, emoji, mentionsBeforeEmoji }: CountableContent): CountableContent {
+  return { mentions, emoji, ...(mentionsBeforeEmoji && { mentionsBeforeEmoji }) };
+}

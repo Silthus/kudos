@@ -129,12 +129,15 @@ function revisionOf(ts: string): bigint {
 }
 
 function countableContent(message: ChatMessage): MessageContent {
-  const content: MessageContent = { mentions: [], emoji: [], text: "" };
+  const content = { mentions: [] as Mention[], emoji: [] as string[], mentionsBeforeEmoji: [] as number[], text: "" };
   const visit = (element: RichElement) => {
     if (uncountedContainers.has(element.type) || isStruckOrCode(element.style)) return;
     const mention = mentionOf(element);
     if (mention) content.mentions.push(mention);
-    else if (element.type === "emoji" && isText(element.name)) content.emoji.push(element.name);
+    else if (element.type === "emoji" && isText(element.name)) {
+      content.emoji.push(element.name);
+      content.mentionsBeforeEmoji.push(content.mentions.length);
+    }
     else if (element.type === "text" && isText(element.text)) content.text += element.text;
     if (element.elements === undefined) return;
     element.elements.forEach(visit);

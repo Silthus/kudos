@@ -267,7 +267,7 @@ export default defineSchema({
     ),
     attempt: v.int64(),
     retry: v.optional(v.boolean()),
-    content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()) }),
+    content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()), mentionsBeforeEmoji: v.optional(v.array(v.number())) }),
     annotations: annotationsValidator,
     spendsAt: v.number(),
     checks: v.number(),

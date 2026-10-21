@@ -14,7 +14,9 @@ export type ParseHook = {
   annotate?(content: MessageContent, context: ParseContext): Annotations;
 };
 
-export type KudosMessage = { mentions: Mention[]; kudosEmoji: string[]; perRecipient: number; ownedEmoji: string[] };
+export type KudosMessage = { mentions: Mention[]; kudosEmoji: PlacedEmoji[]; perRecipient: number; ownedEmoji: string[] };
+
+type PlacedEmoji = { name: string; mentionsBefore: number | undefined };
 
 const workspaceEmoji: ParseHook = {
   name: "workspace emoji",
@@ -26,10 +28,17 @@ export const parseHooks: ParseHook[] = [workspaceEmoji, ownedKudosEmojiHook, ear
 export async function kudosMessageOf(ctx: MutationCtx, content: CountableContent, context: ParseContext): Promise<KudosMessage | null> {
   if (content.mentions.length === 0) return null;
   const claims = await claimsOf(ctx, content, context);
-  const kudosEmoji = claimedIn(content, claims);
+  const kudosEmoji = placedIn(content, claims);
   if (kudosEmoji.length === 0) return null;
   const ownedEmoji = [...new Set(claimedIn(content, claims.filter(({ hook }) => hook === ownedKudosEmojiHook)))];
-  return { mentions: content.mentions, kudosEmoji, perRecipient: mostRepeatsIn(kudosEmoji), ownedEmoji };
+  return { mentions: content.mentions, kudosEmoji, perRecipient: mostRepeatsIn(kudosEmoji.map(({ name }) => name)), ownedEmoji };
+}
+
+export function kudosEmojiClosestAfter({ kudosEmoji }: KudosMessage, mention: number): string {
+  const placed = kudosEmoji.filter((emoji): emoji is { name: string; mentionsBefore: number } => emoji.mentionsBefore !== undefined);
+  const after = placed.find(({ mentionsBefore }) => mentionsBefore > mention);
+  const before = placed.findLast(({ mentionsBefore }) => mentionsBefore <= mention);
+  return (after ?? before ?? kudosEmoji[0]!).name;
 }
 
 function mostRepeatsIn(names: string[]) {
@@ -54,6 +63,12 @@ type Claim = { hook: ParseHook; claimed: Set<string> };
 
 function claimsOf(ctx: MutationCtx, { emoji }: CountableContent, context: ParseContext): Promise<Claim[]> {
   return Promise.all(parseHooks.map(async (hook) => ({ hook, claimed: new Set(await (hook.kudosEmoji?.(ctx, context, emoji) ?? [])) })));
+}
+
+function placedIn({ emoji, mentionsBeforeEmoji }: CountableContent, claims: Claim[]): PlacedEmoji[] {
+  return emoji
+    .map((name, index) => ({ name, mentionsBefore: mentionsBeforeEmoji?.[index] }))
+    .filter(({ name }) => claims.some(({ claimed }) => claimed.has(name)));
 }
 
 function claimedIn({ emoji }: CountableContent, claims: Claim[]) {

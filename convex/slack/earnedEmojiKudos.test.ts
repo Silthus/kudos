@@ -167,6 +167,23 @@ describe("a message gives each recipient as many kudos as its most repeated kudo
   });
 });
 
+describe("the app reacts with the kudos emoji closest after the recipient's mention", () => {
+  test.each([
+    ["one before the mention and one after it", [emoji("taco"), mention("U_BOB"), text(" "), emoji(teamEmoji)], teamEmoji],
+    ["two after the mention", [mention("U_BOB"), text(" thanks "), emoji(teamEmoji), text(" and "), emoji("taco")], teamEmoji],
+    ["one after the giver's own mention and one after the recipient's", [mention("U_ALICE"), emoji("taco"), text(" and "), mention("U_BOB"), emoji(teamEmoji)], teamEmoji],
+    ["none after the mention, the closest before it", [emoji(teamEmoji), text(" "), emoji("taco"), text(" "), mention("U_BOB")], "taco"],
+  ])("a kudos message with %s", async (_, elements, reaction) => {
+    const t = await workspaceWithEmojiNames();
+    await unlockedTeamEmoji(t, "U_ALICE");
+
+    await post(t, [section(text(saysWhy), ...elements)], { user: "U_ALICE", ts: messageTs });
+    await settle(t);
+
+    expect(slack.reactionsOn("C1", messageTs)).toEqual([reaction]);
+  });
+});
+
 async function workspaceWithEmojiNames({ transactionLimits = false } = {}) {
   const t = testBackend({ transactionLimits });
   await t.run(async (ctx) => {
