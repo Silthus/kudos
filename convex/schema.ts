@@ -384,6 +384,8 @@ export default defineSchema({
 
   welcomeNudges: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
 
+  thoughtfulGiverCounts: defineTable({ workspace: v.string(), week: v.string(), givers: v.number() }).index("by_workspace_week", ["workspace", "week"]),
+
   indicators: defineTable({
     workspace: v.string(),
     conversation: v.string(),

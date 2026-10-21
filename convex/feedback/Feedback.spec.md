@@ -434,6 +434,23 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: retry-classification dismissed: the delivery retries at most three times as the welcome DM does
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a nudge has exactly one target, the receiving member's DM
+- the norm line counts this week's thoughtful givers and names nobody: Where `teasers` applies to the member, App Home's front door reads `N teammates gave thoughtful kudos this week` under the level line, where N is the workspace's distinct givers of a thoughtful kudos in the member's giving week, members off the boards included, read from one stored count per workspace and week that a giver's first thoughtful kudos of the week bumps; it is hidden below 3, names nobody, and last week's givers and kudos that don't say why don't count; with `teasers` off or on for someone else's email only, every Slack call equals the same walk's calls with no `teasers` flag (LP40, LP41, LP42).
+  over: three thoughtful givers this week, one off the boards and one giving twice; two thoughtful givers beside a short kudos and last week's two thoughtful givers, then a third; and two off states walked beside the walk with no teasers flag
+  via: LP40 LP41: the norm line counts this week's thoughtful givers on App Home's front door
+  because: LP40 shows a member that thanking with a reason is what teammates do, as a count of people that never singles anyone out
+  kinds: output, state
+  checklist: destination-confinement dismissed: the line is only in the member's own App Home view
+  checklist: message-authenticity dismissed: the count follows only kudos the Slack adapter verified by their signed Slack requests
+  checklist: redaction dismissed: the line is a count with no name, and it stays hidden below 3 so a count can't point at one or two people
+  checklist: input-validation dismissed: the count is bumped from stored tallies, never from outside input
+  checklist: retry-recognition dismissed: the count is bumped in the same transaction that writes a giver's first board tally of the week, which a redelivered award never writes twice
+  checklist: duplicate-suppression dismissed: one board tally per workspace, week and giver; the count moves only when that tally is first written
+  checklist: keyed-ordering dismissed: the count is a sum, so order doesn't matter
+  checklist: acknowledgment-barrier dismissed: App Home publishing retires nothing on Slack's answer
+  checklist: commit-ordered-effects dismissed: App Home reads the count after the tally's mutation commits
+  checklist: retry-classification dismissed: App Home publishing retries as it does for every App Home view
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: the line has one target, the viewing member's App Home
 - a weekly post quotes only public kudos: The Monday post that `album-slack` turns into the week's top thoughtful kudos quotes a kudos message, its words, giver, recipients and link, only while that message's words are stored, are from a public channel, still say why, and its giver and every recipient are members on the leaderboards; a kudos from a private channel, a group DM or a DM, or one deleted since, is never quoted however many hugs it got, and its words appear nowhere in the post (AL61, AL63).
   over: a week of thoughtful kudos in a private channel, a group DM and a DM, each hugged twice, one in a public channel deleted after two hugs, and one public kudos with no hug; and a week where a public kudos is to a member who left the leaderboards, beside one that is not
   via: AL61 AL63: a weekly post quotes only public kudos

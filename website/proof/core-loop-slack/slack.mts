@@ -40,9 +40,9 @@ export function tsAt(at: number) {
   return `${Math.floor(at / 1000)}.${String((at % 1000) * 1000 + (sent % 1000)).padStart(6, "0")}`;
 }
 
-export async function thanks(giver: Person, to: Person[], words: string, where: { channel: string; at?: number }): Promise<Sent> {
+export async function thanks(giver: Person, to: Person[], words: string, where: { channel: string; at?: number; ts?: string }): Promise<Sent> {
   const at = where.at ?? Date.now();
-  const ts = tsAt(at);
+  const ts = where.ts ?? tsAt(at);
   const mentions = to.flatMap((person) => [{ type: "user", user_id: person.id }, { type: "text", text: " " }]);
   const elements = [...mentions, { type: "emoji", name: "hedgehog", unicode: "1f994" }, { type: "text", text: ` ${words}` }];
   const text = `${to.map(({ id }) => `<@${id}>`).join(" ")} :hedgehog: ${words}`;
@@ -77,6 +77,11 @@ export type SlackHistory = { ok: boolean; error?: string; messages?: Array<Recor
 export async function slackRead(method: string, args: Record<string, string>): Promise<SlackHistory> {
   const response = await fetch(`https://slack.com/api/${method}?${new URLSearchParams(args)}`, { headers: { authorization: `Bearer ${botToken}` } });
   return (await response.json()) as SlackHistory;
+}
+
+export async function slackPost(method: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const response = await fetch(`https://slack.com/api/${method}`, { method: "POST", headers: { authorization: `Bearer ${botToken}`, "content-type": "application/json; charset=utf-8" }, body: JSON.stringify(args) });
+  return (await response.json()) as Record<string, unknown>;
 }
 
 export function storedShapeOf(message: Record<string, unknown>) {
