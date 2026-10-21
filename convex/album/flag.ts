@@ -26,6 +26,12 @@ export function emojiMappingInPlaceShownTo(ctx: QueryCtx, member: MemberId): Pro
   return memberDecisionWithoutWriting(ctx, emojiMappingInPlaceFlag, member);
 }
 
+export const shareableUrlsFlag = { key: "shareable-urls", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function shareableUrlsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, shareableUrlsFlag, member);
+}
+
 export const ownHypePickFlag = { key: "own-hype-pick", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
 export function ownHypePickShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
