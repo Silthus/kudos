@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { MappingTarget } from "../../../convex/album/emojiMappings";
+import type { EmojiPlace } from "../../../convex/album/emojiMappings";
 import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
 import type { ShellActions } from "../shell";
 import type { HypePickReply } from "./answer";
@@ -9,12 +9,13 @@ export type HypePicker = { useSlackEmojiMatches: SlackEmojiMatchesRead; pickMyHy
 
 type OwnHypePickProps = HypePicker & { emoji: WizardEmoji & { inSlack: boolean }; emojiPage: string | null };
 
-const holderWordsOf: Record<MappingTarget["kind"], string> = {
+const holderWordsOf: Record<EmojiPlace["kind"], string> = {
   team: "a team's emoji",
   milestone: "a medal's emoji",
   level: "a level's emoji",
   random: "a random drop",
   hype: "someone else's hype emoji",
+  unmapped: "held back by an admin",
 };
 
 export function OwnHypePick({ emoji, emojiPage, useSlackEmojiMatches, pickMyHypeEmoji }: OwnHypePickProps) {

@@ -38,10 +38,14 @@ function pages(own: PersonPage): PersonRead {
   };
 }
 
-function visit(path: string, { own = { ...ownPage, hypePick: true }, pickMyHypeEmoji = async (): Promise<OwnHypePick> => ({ kind: "picked" }) }: { own?: PersonPage; pickMyHypeEmoji?: (emoji: string) => Promise<OwnHypePick> } = {}) {
+const onlyInUse: SlackEmojiMatchesRead = () => ({ kind: "matches", matches: [{ name: "team-lanterns", image: slackPicture("team-lanterns"), free: false }] });
+
+type Visit = { own?: PersonPage; pickMyHypeEmoji?: (emoji: string) => Promise<OwnHypePick>; slackEmojiMatches?: SlackEmojiMatchesRead };
+
+function visit(path: string, { own = { ...ownPage, hypePick: true }, pickMyHypeEmoji = async (): Promise<OwnHypePick> => ({ kind: "picked" }), slackEmojiMatches = slackEmojis }: Visit = {}) {
   window.history.replaceState(null, "", path);
   const pick = vi.fn(pickMyHypeEmoji);
-  renderAlbum(shellFixtures.member, fixedAlbum(midway), { people: pages(own), slackEmojiMatches: slackEmojis, commands: { pickMyHypeEmoji: pick } });
+  renderAlbum(shellFixtures.member, fixedAlbum(midway), { people: pages(own), slackEmojiMatches, commands: { pickMyHypeEmoji: pick } });
   return pick;
 }
 
@@ -84,6 +88,7 @@ describe("a member picks their own hype emoji on their own page", { timeout: 30_
     ["level", "That one is already a level's emoji. Pick another one."],
     ["random", "That one is already a random drop. Pick another one."],
     ["hype", "That one is already someone else's hype emoji. Pick another one."],
+    ["unmapped", "That one is already held back by an admin. Pick another one."],
   ] as const)("an emoji that is a %s's is refused with what holds it", async (by, said) => {
     visit("/book#people/sam-example", { pickMyHypeEmoji: async () => ({ kind: "taken", by }) });
 
@@ -91,6 +96,14 @@ describe("a member picks their own hype emoji on their own page", { timeout: 30_
     await userEvent.click(picker.getByRole("button", { name: "Map to :team-lanterns:, in use" }));
 
     expect(await picker.findByRole("alert")).toHaveTextContent(said);
+  });
+
+  it("when every Slack emoji found is in use, the member is offered to add their own to Slack", async () => {
+    visit("/book#people/sam-example", { slackEmojiMatches: onlyInUse });
+
+    const picker = await openThePicker();
+
+    expect(picker.getByText("Every Slack emoji found is in use. Add this one to Slack under its name.")).toBeInTheDocument();
   });
 
   it("on anyone else's page there is no picker", async () => {

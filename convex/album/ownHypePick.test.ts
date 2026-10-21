@@ -110,6 +110,44 @@ describe("a member picks their own hype emoji", { timeout: 90_000 }, () => {
     expect(await everyTable()).toEqual(before);
   });
 
+  test("before anyone has opened a pack, a Slack emoji with a team's, a milestone's or a level's name is still refused, and that emoji keeps its name", async () => {
+    await slackHas("team-otters", "full-of-friends", "level-10");
+    const asBruno = await signedIn(bruno);
+
+    for (const [name, by] of [
+      ["team-otters", "team"],
+      ["full-of-friends", "milestone"],
+      ["level-10", "level"],
+    ] as const) expect(await asBruno.mutation(api.website.emojiMappings.pickMyHypeEmoji, { emoji: name }), name).toEqual({ kind: "taken", by });
+
+    expect((await mappingsOf(await signedIn(owner))).emoji).toEqual([
+      { name: "full-of-friends", image: slackPicture("full-of-friends"), mapping: { kind: "milestone", milestone: "people:gold" } },
+      { name: "level-10", image: slackPicture("level-10"), mapping: { kind: "level", level: 10 } },
+      { name: "team-otters", image: slackPicture("team-otters"), mapping: { kind: "team", team: "otters" } },
+    ]);
+  });
+
+  test("a Slack emoji the maintainer held back is refused as held back, and changes nothing", async () => {
+    await slackHas("bruno-held");
+    const asOwner = await signedIn(owner);
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "bruno-held", to: { kind: "unmapped" } })).toEqual({ kind: "mapped" });
+    const asBruno = await signedIn(bruno);
+    const before = await everyTable();
+
+    expect(await asBruno.mutation(api.website.emojiMappings.pickMyHypeEmoji, { emoji: "bruno-held" })).toEqual({ kind: "taken", by: "unmapped" });
+    expect(await everyTable()).toEqual(before);
+  });
+
+  test("a Slack alias is refused, so a hype emoji never shows another emoji's picture", async () => {
+    slack.withCustomEmoji("bruno-wave", slackPicture("bruno-wave")).withCustomEmoji("bruno-alias", "alias:bruno-wave");
+    await slackHas();
+    const asBruno = await signedIn(bruno);
+    const before = await everyTable();
+
+    expect(await asBruno.mutation(api.website.emojiMappings.pickMyHypeEmoji, { emoji: "bruno-alias" })).toEqual({ kind: "refused" });
+    expect(await everyTable()).toEqual(before);
+  });
+
   test("a Slack emoji the workspace doesn't have is refused and changes nothing", async () => {
     const asBruno = await signedIn(bruno);
     const before = await everyTable();

@@ -19,7 +19,7 @@ export type MappableMilestone = { milestone: string; name: string };
 
 export type SlackEmojiMappings = { emoji: SlackEmojiMapping[]; more: boolean; randomDrops: boolean; teams: MappableTeam[]; milestones: MappableMilestone[]; levels: number[] };
 
-export type OwnHypePick = { kind: "picked" } | { kind: "taken"; by: MappingTarget["kind"] } | { kind: "refused" };
+export type OwnHypePick = { kind: "picked" } | { kind: "taken"; by: EmojiPlace["kind"] } | { kind: "refused" };
 
 export const mostSlackEmojiListed = 10_000;
 
@@ -55,13 +55,16 @@ export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name:
 }
 
 export async function pickOwnHypeEmoji(ctx: MutationCtx, workspace: string, member: MemberId, name: string): Promise<OwnHypePick> {
-  const held = await mappingOfName(ctx, workspace, name);
+  if ((await slackEmojiNamed(ctx, workspace, name, await slackEmojiReachOf(ctx, member)))?.name !== name) return { kind: "refused" };
+  await openTheRegistryIn(ctx, workspace);
+  const held = await placeOfName(ctx, workspace, name);
   if (held !== null && !(held.kind === "hype" && held.person === member)) return { kind: "taken", by: held.kind };
   return (await placeSlackEmoji(ctx, workspace, name, { kind: "hype", person: member }, false, { member, as: "member" })) ? { kind: "picked" } : { kind: "refused" };
 }
 
-async function mappingOfName(ctx: QueryCtx, workspace: string, name: string): Promise<MappingTarget | null> {
-  if ((await classOf(ctx, workspace, name)) === "random") return { kind: "random" };
+async function placeOfName(ctx: QueryCtx, workspace: string, name: string): Promise<EmojiPlace | null> {
+  const emojiClass = await classOf(ctx, workspace, name);
+  if (emojiClass !== null) return { kind: emojiClass };
   return targetOf((await emojiNamed(ctx, workspace, name)) ?? undefined);
 }
 
