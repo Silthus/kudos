@@ -97,7 +97,7 @@ type SectionLinks = (section: HomeSection) => HomeLine[];
 
 const noSectionLinks: SectionLinks = () => [];
 
-const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null, boughtCrates: null };
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null, boughtCrates: null, thoughtfulGivers: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
@@ -180,14 +180,18 @@ function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest,
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, ...hoggiesLinesOf(hoggies, null), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies, boughtCrates }: ProfileFacts, links: FrontDoorLinks): HomeView {
-  const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies, boughtCrates, thoughtfulGivers }: ProfileFacts, links: FrontDoorLinks): HomeView {
+  const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)]), ...(thoughtfulGivers === null ? [] : [normLineOf(thoughtfulGivers)])];
   const { origin } = links;
   const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, origin), earlierGroupCrates, origin);
   const collectionPage = hoggies === null ? null : origin;
   const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [], collectionPage)];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
+}
+
+function normLineOf(thoughtfulGivers: number): HomeLine {
+  return { kind: "text", text: `${thoughtfulGivers} teammates gave thoughtful kudos this week` };
 }
 
 function levelLineOf({ level, xpToNextLevel, skillPoints, coins }: ToldProgression): HomeLine {
@@ -536,13 +540,20 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements, groupMode, mondayPost, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode, mondayPost, welcomeNudge, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
   const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
   const mondayPostLines = mondayPost === null ? [] : [mondayPostLinesOf(mondayPost)];
+  const welcomeNudgeLines = welcomeNudge === null ? [] : [welcomeNudgeLinesOf(welcomeNudge)];
   const customKudosEmojiLines = customKudosEmoji === null ? [] : [customKudosEmojiLinesOf(customKudosEmoji)];
-  return [channelLines, ...groupModeLines, ...mondayPostLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  return [channelLines, ...groupModeLines, ...mondayPostLines, ...welcomeNudgeLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function welcomeNudgeLinesOf(on: boolean): HomeLine[] {
+  const heading: HomeLine = { kind: "text", text: bold("Welcome nudge") };
+  if (!on) return [heading, { kind: "action", text: `I don't DM teammates who have never opened the ${productName} website.`, action: { label: "Switch on", command: { type: "setWelcomeNudge", on: true } } }];
+  return [heading, { kind: "action", text: `I send a teammate one DM, the first time they are thanked or hugged while they have never opened the ${productName} website, so they can collect their rare hoggie.`, action: { label: "Switch off", command: { type: "setWelcomeNudge", on: false } } }];
 }
 
 const weeklyPostNamed = { groups: "last week's top groups", topKudos: "last week's top thoughtful kudos" } as const;
