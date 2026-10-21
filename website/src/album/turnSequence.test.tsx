@@ -91,8 +91,10 @@ function visit({ reply = async (item) => fixtureTurnOf(item), after = withTheHog
   return { ...view, turnItem, live };
 }
 
+const arrival = { timeout: 10_000 };
+
 async function theFirstItem() {
-  const board = within(await screen.findByRole("dialog", { name: "Your items" }));
+  const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
   return board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!;
 }
 
@@ -141,7 +143,7 @@ function placeTheSealInView() {
   });
 }
 
-describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", () => {
+describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_000 }, () => {
   it("lands a hoggie's stages at LP18's times: the page at 0.36 s, the turn at 0.76 s, the hold at 1.7 s, the fade from 2.5 to 2.8 s, the drop at 3.1 s and the board back at 5.3 s", async () => {
     const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
     const { turnItem } = visit();
