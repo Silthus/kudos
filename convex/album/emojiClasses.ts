@@ -20,6 +20,10 @@ export async function randomEmojiNamesIn(ctx: QueryCtx, workspace: string): Prom
   return rows.map(({ name }) => name);
 }
 
+export async function isRandomEmojiName(ctx: QueryCtx, workspace: string, name: string): Promise<boolean> {
+  return (await classRowOf(ctx, workspace, name))?.class === "random";
+}
+
 export async function isClassed(ctx: QueryCtx, workspace: string, name: string): Promise<boolean> {
   return (await classRowOf(ctx, workspace, name)) !== null;
 }

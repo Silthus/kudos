@@ -1,11 +1,12 @@
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { isEarnedEmojiNamed, mayBeEarnedEmojiNamed } from "../album/earnedEmojis";
 import { publish } from "../bus/publish";
 import { allowanceDay } from "../engine/allowance";
 import { authorOfGiven, receivedOn } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import { recordReward } from "../progression/progression";
 import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
-import { hugBudgetOf } from "../workspace/settings";
+import { hugBudgetOf, settingsOf } from "../workspace/settings";
 import { hugsOnAndExposedFor } from "./flag";
 import type { HugReaction } from "./reaction";
 import { insertHug, hugOf, hugsGivenOn, type NewHug, type HugFor } from "./records";
@@ -17,12 +18,17 @@ export type HugDecision = { kind: "given" } | { kind: "nothing" } | { kind: "unk
 const dayMs = 24 * 60 * 60 * 1000;
 const nothing: HugDecision = { kind: "nothing" };
 
-export async function giveHug(ctx: MutationCtx, reaction: HugReaction): Promise<HugDecision> {
+export async function mayGiveHugWith(ctx: QueryCtx, workspace: string, emoji: string): Promise<boolean> {
+  return (await isKudosEmojiOf(ctx, workspace, emoji)) || (await mayBeEarnedEmojiNamed(ctx, workspace, emoji));
+}
+
+export async function giveHug(ctx: MutationCtx, reaction: HugReaction, emoji: string): Promise<HugDecision> {
   if (!isWithinADayOfTheMessage(reaction)) return nothing;
   const giver = await lookup(ctx, reaction.workspace, reaction.giver);
   const author = await lookup(ctx, reaction.workspace, reaction.author);
   if (giver === undefined || author === undefined) return { kind: "unknown-people", users: unknownOf(reaction, { giver, author }) };
   if (giver.kind !== "member" || author.kind !== "member") return nothing;
+  if (!(await givesHugs(ctx, reaction.workspace, giver.member, emoji))) return nothing;
   const ref = { workspace: reaction.workspace, conversation: reaction.conversation, message: reaction.message };
   const hugFor = await hugForOf(ctx, ref, giver.member, author.member);
   if (hugFor === null || (await hugOf(ctx, ref, giver.member)) !== null) return nothing;
@@ -31,6 +37,14 @@ export async function giveHug(ctx: MutationCtx, reaction: HugReaction): Promise<
   if (!(await hugsOnAndExposedFor(ctx, giver.member))) return nothing;
   await recordHug(ctx, { ...ref, ...hugFor, giver: giver.member, emoji: reaction.emoji, at: reaction.at, day });
   return { kind: "given" };
+}
+
+async function givesHugs(ctx: MutationCtx, workspace: string, giver: MemberId, emoji: string) {
+  return (await isKudosEmojiOf(ctx, workspace, emoji)) || (await isEarnedEmojiNamed(ctx, workspace, giver, emoji));
+}
+
+async function isKudosEmojiOf(ctx: QueryCtx, workspace: string, emoji: string) {
+  return emoji === (await settingsOf(ctx, workspace)).kudosEmoji;
 }
 
 function isWithinADayOfTheMessage({ message, at }: HugReaction) {

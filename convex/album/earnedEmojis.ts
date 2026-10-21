@@ -7,13 +7,15 @@ import { levelFirstReachedAt } from "../unlocks/levelUps";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { slackEmojiImageOf } from "../workspace/slackEmoji";
 import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";
-import { emojiNameOf, type EarnedEmojiId } from "./emojiNames";
+import { isRandomEmojiName } from "./emojiClasses";
+import { emojiNamed, emojiNameOf, type EarnedEmojiId } from "./emojiNames";
 import type { MilestoneAnswer } from "./milestones";
 import { isFirstPackFor, packsEarnedBetween, type Instants } from "./packs";
 import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
 import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
+import type { ParseHook } from "../parser/parser";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
@@ -241,6 +243,29 @@ async function seenBy(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
     .withIndex("by_member_emoji", (q) => q.eq("member", member))
     .collect();
   return new Set(seen.map(({ emoji }) => emoji));
+}
+
+export const earnedEmojiHook: ParseHook = {
+  name: "earned emoji",
+  kudosEmoji: async (ctx, { workspace, giver }, emoji) => {
+    if (giver === undefined) return [];
+    const earned: string[] = [];
+    for (const name of new Set(emoji)) if (await isEarnedEmojiNamed(ctx, workspace, giver, name)) earned.push(name);
+    return earned;
+  },
+};
+
+export async function isEarnedEmojiNamed(ctx: QueryCtx, workspace: string, member: MemberId, name: string): Promise<boolean> {
+  const id = await earnableEmojiNamed(ctx, workspace, name);
+  return id !== null && (await isEarnedBy(ctx, member, id));
+}
+
+export async function mayBeEarnedEmojiNamed(ctx: QueryCtx, workspace: string, name: string): Promise<boolean> {
+  return (await earnableEmojiNamed(ctx, workspace, name)) !== null;
+}
+
+async function earnableEmojiNamed(ctx: QueryCtx, workspace: string, name: string): Promise<EarnedEmojiId | RandomEmojiId | null> {
+  return (await emojiNamed(ctx, workspace, name)) ?? ((await isRandomEmojiName(ctx, workspace, name)) ? `random:${name}` : null);
 }
 
 export async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): Promise<boolean> {

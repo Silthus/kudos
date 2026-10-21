@@ -4,6 +4,7 @@ import { internalMutation, type ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { hugReactionValidator } from "../hugs/reaction";
 import { giveHug } from "../hugs/hugs";
+import { withoutSkinTone } from "./reactions";
 import { lookUpUser } from "./directory";
 import { verificationTries } from "./verifyMember";
 
@@ -38,6 +39,6 @@ async function tryAgainLater(ctx: ActionCtx, { attempt, ...lookUp }: LookUpArgs 
 export const decideLookedUpHug = internalMutation({
   args: { reaction: hugReactionValidator },
   handler: async (ctx, { reaction }): Promise<void> => {
-    await giveHug(ctx, reaction);
+    await giveHug(ctx, reaction, withoutSkinTone(reaction.emoji));
   },
 });
