@@ -16,6 +16,7 @@ export const besideValidator = v.object({ conversation: v.string(), threadRoot: 
 const atMostAttempts = 3;
 const longestRetryDelayMs = 60 * 60 * 1000;
 const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_channel", "is_archived", "not_reactable", "invalid_name"]);
+const rateLimitErrors = new Set(["ratelimited", "rate_limited"]);
 const refusedAsEphemeral = new Set(["user_not_in_channel", "channel_not_found", "not_in_channel"]);
 const reactionShown = new Set(["already_reacted"]);
 const reactionNotShown = new Set(["no_reaction"]);
@@ -59,6 +60,15 @@ export async function sendOnce(ctx: ActionCtx, workspace: string, method: string
   const result = await attemptCall(ctx, workspace, method, args);
   if (result.kind === "delivered" || result.kind === "gone") return null;
   return retryAfter(result, attempt);
+}
+
+export async function sendAtMostOnce(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Retry> {
+  const result = await attemptCall(ctx, workspace, method, args);
+  return isRateLimited(result) ? retryAfter(result, attempt) : null;
+}
+
+export function isRateLimited(result: Attempt): result is Extract<Attempt, { kind: "held" | "failed" }> {
+  return result.kind === "held" || (result.kind === "failed" && (result.retryAt !== undefined || rateLimitErrors.has(result.error ?? "")));
 }
 
 export async function sendBesideOrAsDirectMessage(ctx: ActionCtx, workspace: string, user: string, beside: Beside, content: Record<string, unknown>, attempt: number): Promise<Retry> {
