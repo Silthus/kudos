@@ -180,12 +180,29 @@ describe("channel_created puts the app in the new public channel", () => {
     expect(slack.callsTo("conversations.join")).toEqual([...Array(3).fill({ channel: "C_NEW" }), ...Array(3).fill({ channel: "C_UNLUCKY" })]);
     expect(slack.hasJoined("C_NEW")).toBe(true);
     expect(slack.hasJoined("C_UNLUCKY")).toBe(false);
+    expect(await lastTryOf(t, "C_UNLUCKY")).toEqual({ kind: "failed" });
+  });
+
+  test("a join of a new channel Slack keeps rate limiting is reported after 3 tries", async () => {
+    const t = testBackend();
+    slack.withChannel("C_NEW", { name: "fresh-channel" }).answering("conversations.join", rateLimitedFor(1), rateLimitedFor(1), rateLimitedFor(1));
+
+    await channelCreated(t, "C_NEW");
+    await settleInTimeOrder(t);
+
+    expect(slack.callsTo("conversations.join")).toHaveLength(3);
+    expect(await lastTryOf(t, "C_NEW")).toEqual({ kind: "failed" });
   });
 });
 
 async function joinPublicChannels(t: Backend) {
   await t.action(internal.slack.channelJoins.joinPublicChannels, {});
   await settleInTimeOrder(t);
+}
+
+async function lastTryOf(t: Backend, channel: string) {
+  const tries = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return tries.filter(({ name, args }) => name.includes("joinCreatedChannel") && args[0]?.channel === channel).at(-1)?.state;
 }
 
 async function channelCreated(t: Backend, channel: string, options: { eventId?: string } = {}) {

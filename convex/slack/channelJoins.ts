@@ -50,8 +50,8 @@ export const joinCreatedChannel = observedAction({
   handler: async (ctx, { channel, attempt = 1 }) => {
     const retryInMs = retryDelayOfJoin(await joinOf(channel));
     if (retryInMs === null) return;
-    if (attempt >= createdChannelTries) console.warn(`channel joins: a new channel is still not joined after ${createdChannelTries} tries`);
-    else await ctx.scheduler.runAfter(retryInMs, internal.slack.channelJoins.joinCreatedChannel, { channel, attempt: attempt + 1 });
+    if (attempt >= createdChannelTries) throw new ReportableError(`a new channel is still not joined after ${createdChannelTries} tries`);
+    await ctx.scheduler.runAfter(retryInMs, internal.slack.channelJoins.joinCreatedChannel, { channel, attempt: attempt + 1 });
   },
 });
 
