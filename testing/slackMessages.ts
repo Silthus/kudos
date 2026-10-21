@@ -217,6 +217,13 @@ export function userGroupEvent(type: "subteam_created" | "subteam_updated" | "su
   return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000) });
 }
 
+export function channelCreatedEvent(channel: string, options: { team?: string; eventId?: string } = {}) {
+  eventCounter += 1;
+  const team = options.team ?? "T1";
+  const event = { type: "channel_created", channel: { id: channel, name: "fresh-channel", created: Math.floor(Date.now() / 1000), creator: "U_ALICE" } };
+  return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000) });
+}
+
 export type Conversation = { channel_id: string; channel_name: string };
 
 export type SlashCommandOptions = { command?: "/hedgehug" | "/kudos"; team?: string; user?: string; responseUrl?: string };
