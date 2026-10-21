@@ -89,7 +89,7 @@ describe("LP13 LP19 LP21: a turned sticker lands on its page, plain path under r
     expect(window.location.hash).toBe("#teams/copper-kite");
     const landed = await landedSticker();
     expect(landed).toHaveTextContent("Dov Esker");
-    expect(scrolled.mock.contexts).toContain(landed);
+    await waitFor(() => expect(scrolled.mock.contexts).toContain(landed));
     expect(scrolled).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
     expect(within(landed).getByRole("img", { name: ":dov-esker-hype: hype emoji unlocked" })).toBeVisible();
     expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("Dov Esker: Sticker · New");
