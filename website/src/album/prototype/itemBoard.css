@@ -1,4 +1,4 @@
-/* PROTOTYPE (personal#97, round 2): the item board. Never merge to main. */
+/* PROTOTYPE (personal#97, round 3): the item board. Never merge to main. */
 
 .ib-on .al-packs,
 .ib-on .al-tray {
@@ -62,30 +62,21 @@
   letter-spacing: -0.01em;
 }
 
-.ib-sub {
-  min-height: 1.5em;
-  margin: 0.25rem 0 0;
-  color: var(--muted-foreground);
-}
-
 .ib-items {
   display: flex;
-  max-width: 42rem;
+  max-width: 44rem;
   flex-wrap: wrap;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.5rem 0 1rem;
   margin: 0;
-  border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
-  border-radius: 1.5rem;
-  background: color-mix(in oklab, var(--card) 70%, var(--background));
-  box-shadow: inset 0 2px 6px color-mix(in oklab, var(--foreground) 8%, transparent);
   list-style: none;
 }
 
 .ib-slot {
-  width: 6.5rem;
-  height: 6.5rem;
-  margin: 0.625rem;
+  position: relative;
+  width: calc(6.75rem * var(--size, 1));
+  height: calc(6.75rem * var(--size, 1));
+  margin: 0.75rem 0.875rem;
   rotate: var(--tilt);
   translate: 0 var(--nudge);
   transition:
@@ -95,9 +86,30 @@
     scale 260ms ease;
 }
 
-.ib-items[data-back="inset"] .ib-slot {
-  rotate: 0deg;
-  translate: 0;
+.ib-slot[data-first] {
+  z-index: 1;
+  scale: 1.1;
+}
+
+.ib-slot[data-first] .ib-back {
+  box-shadow:
+    0 16px 26px -12px color-mix(in oklab, var(--foreground) 60%, transparent),
+    0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
+  transform: translateY(-6px);
+}
+
+.ib-pointer {
+  position: absolute;
+  right: -0.75rem;
+  bottom: -0.875rem;
+  width: 2rem;
+  height: 2rem;
+  background: var(--foreground);
+  filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--foreground) 40%, transparent));
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 2.5v17.2l4.6-4.4 3 6.6 3-1.4-3-6.4H19L5 2.5z'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+  animation: ib-pointer 1600ms cubic-bezier(0.3, 0.8, 0.3, 1) 900ms 2 both;
 }
 
 .ib-slot[data-gone] {
@@ -134,140 +146,49 @@
   width: 100%;
   height: 100%;
   container-type: inline-size;
-  overflow: hidden;
+  border: 3px solid var(--card);
   border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, color-mix(in oklab, var(--card) 70%, white) 0, transparent 46%),
+    radial-gradient(circle, var(--al-accent-soft) 0 52%, transparent 53%),
+    var(--card);
+  box-shadow:
+    0 8px 16px -8px color-mix(in oklab, var(--foreground) 55%, transparent),
+    0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
   place-items: center;
   transition:
     transform 260ms cubic-bezier(0.3, 1.5, 0.5, 1),
-    box-shadow 260ms ease,
-    background-position 900ms ease;
+    box-shadow 260ms ease;
+}
+
+.ib-back::before {
+  position: absolute;
+  inset: 9%;
+  border: 2px dashed color-mix(in oklab, var(--al-accent) 45%, transparent);
+  border-radius: 50%;
+  content: "";
 }
 
 .ib-q {
-  position: relative;
+  color: var(--al-accent);
   font-family: RoundHog, var(--font-sans);
-  font-size: 46cqw;
+  font-size: 50cqw;
   font-weight: 800;
   line-height: 1;
   translate: 0 -2%;
 }
 
 .ib-item:is(:hover, :focus-visible) .ib-back {
-  transform: translateY(-8px) scale(1.06);
+  box-shadow:
+    0 18px 26px -12px color-mix(in oklab, var(--foreground) 55%, transparent),
+    0 0 0 4px color-mix(in oklab, var(--al-accent) 30%, transparent);
+  transform: translateY(-9px) scale(1.07);
   animation: ib-wiggle 560ms ease-out;
 }
 
 .ib-item:is(:hover, :focus-visible) .ib-q {
   animation: ib-bob 560ms ease-out;
-}
-
-/* Back 1: reverse shadow. Pressed into the board; hover pops it out. */
-.ib-back[data-back="inset"] {
-  background: color-mix(in oklab, var(--foreground) 5%, var(--card));
-  box-shadow:
-    inset 4px 5px 9px color-mix(in oklab, var(--foreground) 22%, transparent),
-    inset -3px -4px 8px color-mix(in oklab, white 70%, transparent);
-}
-
-.ib-back[data-back="inset"] .ib-q {
-  color: color-mix(in oklab, var(--foreground) 22%, var(--card));
-  text-shadow:
-    -1px -1px 0 color-mix(in oklab, var(--foreground) 25%, transparent),
-    1px 1px 0 color-mix(in oklab, white 80%, transparent);
-}
-
-.ib-item:is(:hover, :focus-visible) .ib-back[data-back="inset"],
-.ib-flyer .ib-back[data-back="inset"] {
-  background: var(--card);
-  box-shadow:
-    0 14px 22px -10px color-mix(in oklab, var(--foreground) 45%, transparent),
-    inset 0 0 0 1px color-mix(in oklab, var(--foreground) 8%, transparent);
-}
-
-.ib-item:is(:hover, :focus-visible) .ib-back[data-back="inset"] .ib-q,
-.ib-flyer .ib-back[data-back="inset"] .ib-q {
-  color: var(--al-accent);
-  text-shadow: none;
-}
-
-/* Back 2: sticker backing paper, with a peeled edge. */
-.ib-back[data-back="liner"] {
-  border: 3px solid var(--card);
-  background:
-    repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in oklab, var(--foreground) 6%, transparent) 7px 8px),
-    color-mix(in oklab, #fff8e6 80%, var(--card));
-  box-shadow: 0 6px 12px -8px color-mix(in oklab, var(--foreground) 55%, transparent);
-}
-
-.ib-back[data-back="liner"]::after {
-  position: absolute;
-  right: -6%;
-  bottom: -6%;
-  width: 40%;
-  height: 40%;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--foreground) 12%, white) 0 48%, transparent 52%);
-  border-top-left-radius: 70%;
-  box-shadow: -3px -3px 6px -2px color-mix(in oklab, var(--foreground) 30%, transparent);
-  content: "";
-  transition: transform 260ms cubic-bezier(0.3, 1.5, 0.5, 1);
-  transform-origin: bottom right;
-}
-
-.ib-item:is(:hover, :focus-visible) .ib-back[data-back="liner"]::after {
-  transform: scale(1.35);
-}
-
-.ib-back[data-back="liner"] .ib-q {
-  color: color-mix(in oklab, var(--foreground) 55%, transparent);
-  font-size: 38cqw;
-}
-
-/* Back 3: the same hedgehog shadow on every item. */
-.ib-back[data-back="shadow-hog"] {
-  border: 3px solid var(--card);
-  background: radial-gradient(circle at 50% 35%, #3b3d45, #1c1d22 75%);
-  box-shadow: 0 8px 14px -8px color-mix(in oklab, var(--foreground) 60%, transparent);
-}
-
-.ib-back-hog {
-  position: absolute;
-  inset: 12% 14% 4%;
-  display: grid;
-  opacity: 0.18;
-  filter: brightness(0) invert(1);
-  place-items: end center;
-}
-
-.ib-back-hog img,
-.ib-back-hog svg {
-  width: 100% !important;
-  height: auto !important;
-}
-
-.ib-back[data-back="shadow-hog"] .ib-q {
-  color: #fff;
-  font-size: 40cqw;
-  text-shadow: 0 2px 10px rgb(0 0 0 / 50%);
-}
-
-/* Back 4: neutral silver foil, the same for every rarity. */
-.ib-back[data-back="foil"] {
-  border: 3px solid var(--card);
-  background:
-    linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 70%) 45%, transparent 60%) 120% 0 / 250% 100% no-repeat,
-    conic-gradient(from 200deg, #c9ccd3, #eef0f4, #b7bac2, #e3e5ea, #c9ccd3);
-  box-shadow: 0 8px 14px -8px color-mix(in oklab, var(--foreground) 55%, transparent);
-}
-
-.ib-item:is(:hover, :focus-visible) .ib-back[data-back="foil"] {
-  background-position: -60% 0, 0 0;
-}
-
-.ib-back[data-back="foil"] .ib-q {
-  color: #8a8f99;
-  text-shadow:
-    1px 1px 0 rgb(255 255 255 / 80%),
-    -1px -1px 0 rgb(0 0 0 / 15%);
 }
 
 .ib-said {
@@ -599,6 +520,28 @@
   }
 }
 
+@keyframes ib-pointer {
+  0% {
+    opacity: 0;
+    transform: translate(18px, 18px);
+  }
+
+  35% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(0, 0) scale(0.82);
+  }
+
+  65%,
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
 @keyframes ib-badge {
   0% {
     opacity: 0;
@@ -613,8 +556,8 @@
 
 @media (max-width: 40rem) {
   .ib-slot {
-    width: 4.5rem;
-    height: 4.5rem;
+    width: calc(4.75rem * var(--size, 1));
+    height: calc(4.75rem * var(--size, 1));
     margin: 0.5rem;
   }
 

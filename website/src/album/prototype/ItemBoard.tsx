@@ -1,14 +1,13 @@
-// PROTOTYPE (personal#97, round 2): the item board. Every unseen reward lies face down. A click sets the board aside, turns the item over first, then scrolls its real album page to the slot and drops it in. A second click skips to the end. Never merge to main.
+// PROTOTYPE (personal#97, round 3): the item board. Every unseen reward lies face down. A click sets the board aside and shows the item's real album page at once, turns the item over, scrolls to its slot and drops it in, then rests before the board returns. A second click skips to the end. Never merge to main.
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { useNavigate } from "../../AppLink";
 import { hoggiePictureOf } from "../../crates/Hoggie";
 import { TeamCrest } from "../../crates/TeamCrest";
-import { HedgehogSitting } from "../../hoggies";
 import { albumFixtures } from "../albumFixtures";
 import { Sparkles } from "../PackCards";
 import { rarityWordOf } from "../opening";
 import { boardItems, land, landedItems, pay, useProgress, type BoardItem } from "./itemBoardItems";
-import { staysStill, useBoardParams, type Back, type BoardParams } from "./itemBoardParams";
+import { staysStill, useBoardParams } from "./itemBoardParams";
 import "../opening.css";
 import "./itemBoard.css";
 
@@ -42,6 +41,8 @@ export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () 
   const chipBox = useRef<HTMLSpanElement>(null);
   const clock = useRef<Clock | null>(null);
   const allDone = waiting.length === 0;
+  const [touched, setTouched] = useState(false);
+  const touch = () => setTouched(true);
   useNewBadges(landed);
   useSkipOnASecondClick(turning !== null, clock);
 
@@ -68,6 +69,7 @@ export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () 
 
   const turnOver = async (item: BoardItem, button: HTMLButtonElement) => {
     if (turning !== null) return;
+    setTouched(true);
     if (staysStill(board)) {
       goTo(item);
       land(item.id);
@@ -95,14 +97,14 @@ export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () 
         <section className="ib-board" role="dialog" aria-modal="true" aria-label="Your items">
           <header className="ib-head">
             <h2 className="ib-title">{allDone ? "Everything is in your album" : waiting.length === 1 ? "1 item waits" : `${waiting.length} items wait`}</h2>
-            <p className="ib-sub">{allDone ? "Thank someone to earn the next one" : "Turn one over"}</p>
           </header>
-          <ul className="ib-items" data-back={board.back}>
+          <ul className="ib-items" data-touched={touched ? "" : undefined}>
             {boardItems.map((item, index) => (
-              <li key={item.id} className="ib-slot" data-gone={landed.has(item.id) ? "" : undefined} style={layOf(index)}>
-                <button type="button" className="ib-item" data-active={turning?.item.id === item.id ? "" : undefined} aria-label="A face-down item. Turn it over" disabled={landed.has(item.id)} onClick={(event) => void turnOver(item, event.currentTarget)}>
-                  <ItemBack back={board.back} />
+              <li key={item.id} className="ib-slot" data-gone={landed.has(item.id) ? "" : undefined} data-first={item.id === waiting[0]?.id ? "" : undefined} style={layOf(index)}>
+                <button type="button" className="ib-item" data-active={turning?.item.id === item.id ? "" : undefined} aria-label="A face-down item. Turn it over" disabled={landed.has(item.id)} onPointerEnter={touch} onFocus={touch} onClick={(event) => void turnOver(item, event.currentTarget)}>
+                  <ItemBack />
                 </button>
+                {item.id === waiting[0]?.id && !touched && <span className="ib-pointer" aria-hidden="true" />}
               </li>
             ))}
           </ul>
@@ -117,7 +119,7 @@ export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () 
         </section>
       </div>
       <div className="ib-air" aria-hidden="true">
-        {turning !== null && <Flyer turning={turning} back={board.back} flyer={flyer} flip={flip} disc={disc} />}
+        {turning !== null && <Flyer turning={turning} flyer={flyer} flip={flip} disc={disc} />}
         {turning?.burst && <Burst turning={turning} />}
         {turning?.caption && <Caption turning={turning} />}
         {turning !== null && turning.stage !== "back" && <p className="ib-skip">Click to skip</p>}
@@ -233,7 +235,15 @@ async function play(clock: Clock, { item, from, goTo }: Play, boxes: Boxes, set:
 
   const middle = { x: window.innerWidth / 2, y: window.innerHeight * 0.42 };
   const big = Math.min(1.8, (Math.min(window.innerWidth, window.innerHeight) * 0.3) / from.width);
-  await moveTo(middle, big, 560, "cubic-bezier(0.3, 0.8, 0.3, 1)", 40);
+  const lifting = moveTo(middle, big, 560, "cubic-bezier(0.3, 0.8, 0.3, 1)", 40);
+  if (currentPage() !== item.page) {
+    stage("aside", { switching: true });
+    await clock.sleep(200);
+    goTo(item);
+    await frames(2);
+    stage("aside", { switching: false });
+  }
+  await lifting;
 
   stage("turn", { spot: here, size: from.width * scale });
   const turning = clock.animate(flip, [{ transform: "rotateY(0deg)" }, { transform: "rotateY(205deg)", offset: 0.72 }, { transform: "rotateY(180deg)" }], { duration: 720, easing: "cubic-bezier(0.45, 0, 0.2, 1)" });
@@ -244,13 +254,6 @@ async function play(clock: Clock, { item, from, goTo }: Play, boxes: Boxes, set:
   stage("hold", { caption: true });
   const paying = item.xp > 0 ? flyXp(clock, item, here, from.width * scale, boxes, set) : Promise.resolve();
   await clock.sleep(450);
-  if (currentPage() !== item.page) {
-    stage("hold", { switching: true });
-    await clock.sleep(220);
-    goTo(item);
-    await frames(2);
-    stage("hold", { switching: false });
-  }
   const slot = await slotOf(item);
   await Promise.all([clock.sleep(300), scrollToSlot(clock, slot)]);
   await paying;
@@ -268,6 +271,7 @@ async function play(clock: Clock, { item, from, goTo }: Play, boxes: Boxes, set:
   set.setTouches((touches) => [...touches, { key: Date.now(), rect: target, colour: colourOf(item) }]);
   slot?.animate([{ transform: "scale(1)" }, { transform: "scale(1.14)" }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
   window.setTimeout(() => set.setTouches((touches) => touches.slice(1)), 900);
+  await clock.sleep(800);
   stage("back");
   await clock.sleep(420);
 }
@@ -343,13 +347,13 @@ function currentPage() {
   return window.location.pathname + window.location.hash;
 }
 
-function Flyer({ turning, back, flyer, flip, disc }: { turning: Turning; back: Back; flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null> }) {
+function Flyer({ turning, flyer, flip, disc }: { turning: Turning; flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null> }) {
   const { from, item } = turning;
   return (
-    <div ref={flyer} className="ib-flyer" data-back={back} style={{ left: from.left, top: from.top, width: from.width, height: from.height, "--burst": colourOf(item) } as CSSProperties}>
+    <div ref={flyer} className="ib-flyer" style={{ left: from.left, top: from.top, width: from.width, height: from.height, "--burst": colourOf(item) } as CSSProperties}>
       <div ref={flip} className="ib-flip">
         <div className="ib-face">
-          <ItemBack back={back} />
+          <ItemBack />
         </div>
         <div className="ib-face ib-front-face">
           <ItemFront item={item} disc={disc} />
@@ -377,7 +381,6 @@ function Caption({ turning }: { turning: Turning }) {
     <span className="ib-caption" style={{ left: spot.x, top: spot.y + size / 2 + 14, "--burst": colourOf(item) } as CSSProperties}>
       <strong className="ib-caption-name">{item.name}</strong>
       <span className="ib-caption-what">{whatWordsOf(item)}</span>
-      <span className="ib-caption-source">{item.source}</span>
     </span>
   );
 }
@@ -393,14 +396,9 @@ function ItemsWaitButton({ count, onShow }: { count: number; onShow: () => void 
   );
 }
 
-function ItemBack({ back }: { back: Back }) {
+function ItemBack() {
   return (
-    <span className="ib-back" data-back={back}>
-      {back === "shadow-hog" && (
-        <span className="ib-back-hog">
-          <HedgehogSitting size={64} />
-        </span>
-      )}
+    <span className="ib-back">
       <span className="ib-q">?</span>
     </span>
   );
@@ -458,8 +456,9 @@ function colourOf(item: BoardItem) {
 
 function layOf(index: number): CSSProperties {
   const tilts = [-7, 4, -2, 6, -5, 3, -4, 7, -3];
-  const nudges = [4, -6, 8, -2, 6, -8, 2, -4, 5];
-  return { "--tilt": `${tilts[index % tilts.length]}deg`, "--nudge": `${nudges[index % nudges.length]}px` } as CSSProperties;
+  const nudges = [10, -18, 22, -6, 16, -20, 6, -14, 12];
+  const sizes = [1, 0.92, 1.04, 0.95, 1, 1.06, 0.9, 1, 0.94];
+  return { "--tilt": `${tilts[index % tilts.length]}deg`, "--nudge": `${nudges[index % nudges.length]}px`, "--size": sizes[index % sizes.length] } as CSSProperties;
 }
 
 function centreOf(rect: DOMRect): Point {
