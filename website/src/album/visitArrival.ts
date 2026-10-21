@@ -5,24 +5,22 @@ import type { AlbumShown, XpMomentShown } from "./answer";
 
 export type XpMomentAhead = XpMoment | "reading" | null;
 
-type Arrival = { arrive: () => Promise<ArrivalReply>; endTheMoment: (skipped: boolean) => void; moment: XpMomentAhead };
+type ArrivedAt = number | null | undefined;
 
-type Settled<T> = { promise: Promise<T>; settle: (value: T) => void };
-
-const refused: ArrivalReply = { kind: "refused" };
+type Arrival = { arrivedAt: ArrivedAt; endTheMoment: (skipped: boolean) => void; moment: XpMomentAhead };
 
 export function useVisitArrival(album: AlbumShown | undefined, read: XpMomentShown | undefined, actions: Pick<ShellActions, "arrive" | "endXpMoment">): Arrival {
   const answered = useFirstAnswerOfTheVisit(read);
-  const [arrival] = useState(settledLater<ArrivalReply>);
+  const [arrivedAt, setArrivedAt] = useState<ArrivedAt>(undefined);
   const sent = useRef(false);
-  const send = useCallback(
-    (reply: () => Promise<ArrivalReply>) => {
-      if (sent.current) return;
-      sent.current = true;
-      reply().then(arrival.settle, () => arrival.settle(refused));
-    },
-    [arrival],
-  );
+  const send = useCallback((reply: () => Promise<ArrivalReply>) => {
+    if (sent.current) return;
+    sent.current = true;
+    reply().then(
+      (answer) => answer.kind === "arrived" && setArrivedAt(answer.lastVisit),
+      () => undefined,
+    );
+  }, []);
   const from = arrivalFromOf(album, answered);
   const { arrive } = actions;
   useEffect(() => {
@@ -36,7 +34,7 @@ export function useVisitArrival(album: AlbumShown | undefined, read: XpMomentSho
     },
     [moment, send, endXpMoment],
   );
-  return { arrive: useCallback(() => arrival.promise, [arrival]), endTheMoment, moment: answered === undefined ? "reading" : moment };
+  return { arrivedAt, endTheMoment, moment: answered === undefined ? "reading" : moment };
 }
 
 function useFirstAnswerOfTheVisit(read: XpMomentShown | undefined): XpMomentShown | undefined {
@@ -52,10 +50,4 @@ function arrivalFromOf(album: AlbumShown | undefined, moment: XpMomentShown | un
   if (moment === undefined || moment.kind === "moment") return undefined;
   if (moment.kind === "none") return moment.lastVisit;
   return album?.kind === "album" ? album.lastVisit : undefined;
-}
-
-function settledLater<T>(): Settled<T> {
-  let settle: (value: T) => void = () => undefined;
-  const promise = new Promise<T>((resolve) => (settle = resolve));
-  return { promise, settle };
 }
