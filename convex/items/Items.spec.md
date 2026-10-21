@@ -178,7 +178,7 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   via: LP13 LP14: every turn answers the milestone tiers it unlocks
   because: milestones stay inline in the turn so their unlock plays in its sequence (LP13, LP19a): a turn that recorded a tier without answering it would leave the beat with nothing to play, and a thoughtful-giving tier reached in Slack plays as a follow-up of the next turn (LP14)
   refuted: the turn answered every tier it recorded but the first -> 1 of 1 tests failed: a turn's answer missed a tier stored at its instant (2026-10-21)
-  refuted: unlockMilestoneTiers answered only the tiers recordMilestonesOf wrote in the turn -> 1 of 9 tests failed: the hoggie's turn answered no tier instead of the thoughtful tier its thanks reached in Slack (2026-10-21)
+  refuted: unlockMilestoneTiers answered only the tiers recordMilestonesOf wrote in the turn -> 1 of 1 tests failed: the hoggie's turn answered no tier instead of the thoughtful tier its thanks reached in Slack (2026-10-21)
   kinds: state, output
   checklist: legal-state-succession dismissed: the turn records each tier once through the album's recordMilestonesOf and answers a tier only while its emoji's seen mark is missing, writing that mark in the same mutation
   checklist: commit-ordered-effects dismissed: recording a tier issues no external effect
