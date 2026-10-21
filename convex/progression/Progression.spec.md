@@ -192,3 +192,23 @@ Progression: subscribes to kudosGiven, 100 of the kudos message's members to a m
   checklist: worker-fencing dismissed: no worker owns the skill tree; Convex serializes the mutations that touch one member's rows
   checklist: commit-ordered-effects dismissed: hiding and showing are reads; nothing is published by a flag change
   checklist: resumption-coverage dismissed: no batch operation resumes
+- the first-thanks top-up takes a first kudos to level 2 once: While `onboarding` and `hidden-items` are on for a giver, their first kudos award ever, thoughtful or not, takes them to exactly level 2 with one level-up DM, however often kudosGiven is delivered or its subscriber runs, and a giver who received kudos first is topped up by only what they still lack; a recipient, a giver already at level 2 after that award's record, a giver whose first award came before `onboarding` was on for them, and an edit of the first kudos message get no top-up; while either flag is off a first kudos pays its 10 XP as before.
+  over: at the Slack boundary, a first kudos that says why and one that doesn't, the same kudosGiven delivered three times, a first kudos to more members than one recipient page, a giver at level 2 by kudos received, a giver with kudos received below level 2, a giver who gave before `onboarding` turned on and then edited and gave again, an edit of the first kudos message, and `onboarding` or `hidden-items` off, read through the giver's and the recipient's standing, the level-up DMs and the giver's first-thanks reward record
+  via: LP70: the first-thanks top-up
+  because: the core-loop spec's onboarding loop takes a newcomer's first thanks to level 2 so they meet the level-up at once (LP70, Silthus/personal#133); a top-up paid twice or to a recipient would mint XP the loop never promised, one paid on a later award would backfill members who gave before the flag, and one past level 2 would cross a level the first kudos never earned, and XP never goes down (ADR-0002)
+  kinds: state, message
+  checklist: revalidated-permission dismissed: the flags and the giver's oldest award are read in the mutation that records the top-up
+  checklist: separation-of-duties dismissed: no approval policy
+  checklist: legal-state-succession declared as reward records are insert-only
+  checklist: supersession-safety dismissed: the top-up is keyed `first-thanks` per member, and Convex serializes the mutations that read and write one member's reward records and progress
+  checklist: worker-fencing dismissed: no worker owns a member's progress; one subscriber mutation writes the giver's record and the top-up together
+  checklist: commit-ordered-effects dismissed: the top-up publishes levelReached in the same transaction, and the level-up DM is scheduled by its subscriber only after it commits
+  checklist: resumption-coverage dismissed: no batch operation resumes; a later recipient page never writes the giver's record
+  checklist: destination-confinement dismissed: the top-up sends nothing; levelReached goes only to the in-process bus
+  checklist: message-authenticity dismissed: kudosGiven comes from the engine's own transaction, never from outside
+  checklist: input-validation dismissed: the subscriber's argument is checked by the kudosGiven event validator, and the reward table's validator checks the record on insert
+  checklist: retry-recognition dismissed: a repeated event finds the giver's side already recorded and writes nothing, and a second top-up finds the key already recorded
+  checklist: duplicate-suppression declared as an award's side is recorded once
+  checklist: keyed-ordering dismissed: only the giver's oldest award pays, whatever order the subscriber's deliveries run in
+  checklist: acknowledgment-barrier dismissed: nothing acknowledges kudosGiven; the subscriber's mutation commits the record, the top-up and their events together
+  checklist: retry-classification dismissed: the subscriber calls no external system

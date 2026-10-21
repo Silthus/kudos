@@ -5,6 +5,7 @@ import { thoughtfulGiversThisWeek } from "../album/thoughtfulGivers";
 import { reportXpMomentEnded } from "../analytics/isolatedUsage";
 import { hiddenItemsShownTo } from "../items/flag";
 import { waitingCountOf, type WaitingCount } from "../items/ledger";
+import { firstThanksTopUpPaidTo, type FirstThanksTopUp } from "../progression/firstThanks";
 import { levelOf, xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -50,10 +51,10 @@ const off = { kind: "off" } as const;
 
 export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> => {
   if (!(await xpMomentsShownTo(ctx, me.member))) return off;
-  const since = await lastVisitOf(ctx, me.member);
-  if (since === null) return { kind: "none", lastVisit: null };
-  const { playable, heldBack } = playableOf(await activitySince(ctx, me.member, { above: since }), Date.now());
-  if (playable.length === 0) return { kind: "none", lastVisit: since };
+  const { lastVisit, since, topUp } = await startOf(ctx, me.member);
+  if (since === null) return { kind: "none", lastVisit };
+  const { playable, heldBack } = playableOf(withTopUp(await activitySince(ctx, me.member, { above: since }), topUp), Date.now());
+  if (playable.length === 0) return { kind: "none", lastVisit };
   return momentOf(ctx, me, since, playable, xpOf(heldBack));
 });
 
@@ -61,7 +62,7 @@ export const endXpMoment = memberMutation({
   args: { from: v.number(), until: v.number(), skipped: v.boolean() },
   handler: async (ctx, me, _person, { from, until, skipped }): Promise<XpMomentEndReply> => {
     if (!(await xpMomentsShownTo(ctx, me.member))) return { kind: "refused" };
-    if ((await lastVisitOf(ctx, me.member)) !== from || !(await wasRead(ctx, me.member, from, until))) return arrivedAt(await lastVisitOf(ctx, me.member));
+    if ((await startOf(ctx, me.member)).since !== from || !(await wasRead(ctx, me.member, from, until))) return arrivedAt(await lastVisitOf(ctx, me.member));
     await end(ctx, me, { from, until, skipped });
     return arrivedPastWhatWasPutIn(ctx, me.member);
   },
@@ -71,6 +72,24 @@ async function end(ctx: MutationCtx, me: VerifiedMember, { from, until, skipped 
   const { shown, folded } = chosenOf(await positionsSince(ctx, me.member, { above: from, upTo: until }), isLevelUpAt);
   await moveLastVisitTo(ctx, me.member, until);
   await reportXpMomentEnded(ctx, { workspace: me.workspace, member: me.member, skipped, excerptsShown: shown.length, folded: folded.length, at: Date.now() });
+}
+
+type Start = { lastVisit: number | null; since: number | null; topUp: FirstThanksTopUp | null };
+
+async function startOf(ctx: QueryCtx, member: MemberId): Promise<Start> {
+  const [lastVisit, topUp] = await Promise.all([lastVisitOf(ctx, member), firstThanksTopUpPaidTo(ctx, member)]);
+  return { lastVisit, topUp, since: lastVisit ?? (topUp === null ? null : instantBefore(topUp.decided)) };
+}
+
+function instantBefore(decided: number): number {
+  const instant = new Float64Array([decided]);
+  new BigInt64Array(instant.buffer)[0]! -= 1n;
+  return instant[0]!;
+}
+
+function withTopUp(newestFirst: ReadSince[], topUp: FirstThanksTopUp | null): ReadSince[] {
+  if (topUp === null) return newestFirst;
+  return newestFirst.map((read) => (read.recorded && read.entry.kind === "kudosGiven" && read.decided === topUp.decided ? { ...read, xp: read.xp + topUp.xp } : read));
 }
 
 async function wasRead(ctx: QueryCtx, member: MemberId, from: number, until: number): Promise<boolean> {

@@ -11,6 +11,7 @@ import { gateDecisionOf } from "./gate";
 import { catalogue } from "./catalogue";
 import type { Award, AwardWithId } from "../engine/awards";
 import { insertEffects, isRecorded, thoughtfulAwardsBefore } from "./effects";
+import { firstThanksTopUpFor } from "./firstThanks";
 import { baseXpOf, bonusPaidIn, coinsIn, effectsFor, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type BonusLine, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
 import { receivingOf, receivingWeekOf, recordReceiving } from "./receiving";
 import { insertReward, rewardOf, type AppliedReward, type RewardRecord, type StandingWithCoins } from "./rewards";
@@ -38,6 +39,12 @@ async function recordEffectsOf(ctx: MutationCtx, event: KudosGivenEvent, member:
   await recordReceiving(ctx, receivingWeek, event.giver, effects);
   await publish(ctx, { type: "xpRecorded", workspace: event.workspace, member, at: event.at });
   for (const levelReached of events) await publish(ctx, levelReached);
+  if (member === event.giver) await topUpTheFirstThanks(ctx, event, awards, state.xp);
+}
+
+async function topUpTheFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, recorded: AwardWithId[], xpAfter: number) {
+  const topUp = await firstThanksTopUpFor(ctx, event, recorded, xpAfter);
+  if (topUp !== null) await recordReward(ctx, event.workspace, topUp);
 }
 
 type GivenBy = { workspace: string; giver: MemberId; day: DayKey; awards: AwardWithId[] };
