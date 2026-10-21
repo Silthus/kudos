@@ -293,7 +293,7 @@ describe("LP25: while hidden-items is on for the giver, the reply says only that
         blocks: [
           { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Bob*" } },
           { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Carol*" } },
-          { type: "context", elements: [{ type: "mrkdwn", text: "3 wait" }] },
+          { type: "context", elements: [{ type: "mrkdwn", text: "5 wait" }] },
           { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your items" }, url: `${site}/book`, action_id: "album-see-items" }] },
           { type: "context", elements: [{ type: "mrkdwn", text: "+20 XP" }] },
         ],
@@ -308,21 +308,21 @@ describe("LP25: while hidden-items is on for the giver, the reply says only that
     const sameWeek = await thanks(alice, "Thanks again for pairing on the rollback", dana);
 
     expect(sectionsOf(threadRepliesTo(sameWeek))).toEqual(["*Kudos counted.*\nYour next item for Dana comes next week."]);
-    expect(contextsOf(threadRepliesTo(sameWeek))[0]).toEqual([{ type: "mrkdwn", text: "1 wait" }]);
+    expect(contextsOf(threadRepliesTo(sameWeek))[0]).toEqual([{ type: "mrkdwn", text: "2 wait" }]);
     expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See your items", url: `${site}/book`, action_id: "album-see-items" }]);
   });
 
   test("past fifty waiting items the count reads 50+ wait, and fifty read 50 wait", async () => {
     await fourMembers([onForEveryone(albumSlack), onForEveryone(hiddenItems)]);
     const first = await thanks(alice, why, bob);
-    await aliceHasWaiting(48);
+    await aliceHasWaiting(46);
     weeksLater += 1;
     const fiftieth = await thanks(alice, why, carol);
     weeksLater += 1;
 
     const fiftyFirst = await thanks(alice, why, dana);
 
-    expect(contextsOf(threadRepliesTo(first))[0]).toEqual([{ type: "mrkdwn", text: "1 wait" }]);
+    expect(contextsOf(threadRepliesTo(first))[0]).toEqual([{ type: "mrkdwn", text: "2 wait" }]);
     expect(contextsOf(threadRepliesTo(fiftieth))[0]).toEqual([{ type: "mrkdwn", text: "50 wait" }]);
     expect(contextsOf(threadRepliesTo(fiftyFirst))[0]).toEqual([{ type: "mrkdwn", text: "50+ wait" }]);
   });
