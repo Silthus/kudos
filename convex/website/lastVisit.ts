@@ -3,7 +3,7 @@ import { newestDecidedSince } from "../activity/activity";
 import { albumShownTo } from "../album/flag";
 import { albumStickersOf } from "../album/stickers";
 import { teamStickersOf } from "../album/teamPages";
-import { newestReceivedBy } from "../engine/awards";
+import { newestDecidedReceivedBy } from "../engine/awards";
 import { talliesOf } from "../hoggies/collection";
 import { hiddenItemsShownTo } from "../items/flag";
 import { newestTurnOf } from "../items/ledger";
@@ -50,7 +50,7 @@ async function newestPutInOrReceivedBy(ctx: QueryCtx, member: MemberId): Promise
     ...(await albumStickersOf(ctx, member, mostStickersRead)).stickers.map(({ at }) => at),
     ...[...(await teamStickersOf(ctx, member)).values()].map(({ at }) => at),
     ...[...(await talliesOf(ctx, member)).values()].map(({ firstAt }) => firstAt),
-    ...(await newestReceivedBy(ctx, member, 1)).map(({ at }) => at),
+    await newestDecidedReceivedBy(ctx, member),
     await newestDecidedForTheMoment(ctx, member),
   ].filter((at) => at !== null);
   return instants.length === 0 ? null : Math.max(...instants);
