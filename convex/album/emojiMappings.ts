@@ -58,7 +58,8 @@ export async function pickOwnHypeEmoji(ctx: MutationCtx, workspace: string, memb
   if ((await slackEmojiNamed(ctx, workspace, name, await slackEmojiReachOf(ctx, member)))?.name !== name) return { kind: "refused" };
   await openTheRegistryIn(ctx, workspace);
   const held = await placeOfName(ctx, workspace, name);
-  if (held !== null && !(held.kind === "hype" && held.person === member)) return { kind: "taken", by: held.kind };
+  if (held?.kind === "hype" && held.person === member) return { kind: "picked" };
+  if (held !== null) return { kind: "taken", by: held.kind };
   return (await placeSlackEmoji(ctx, workspace, name, { kind: "hype", person: member }, false, { member, as: "member" })) ? { kind: "picked" } : { kind: "refused" };
 }
 

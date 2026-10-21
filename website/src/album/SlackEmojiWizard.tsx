@@ -131,7 +131,7 @@ type MatchesProps = { emoji: WizardEmoji; matches: SlackEmojiMatchesShown | unde
 function Matches({ emoji, matches, search, inUse, saving, emojiPage, onPick }: MatchesProps) {
   if (matches === undefined || matches.kind === "connecting") return <p className="al-wizard-quiet">Looking in Slack…</p>;
   if (matches.kind !== "matches") return <p className="al-wizard-quiet">Slack's emojis didn't load. Try again in a moment.</p>;
-  const pickable = (match: SlackEmojiMatch) => (inUse === "skips" ? match.free : match.name !== emoji.name);
+  const pickable = (match: SlackEmojiMatch) => match.free || (inUse !== "skips" && match.name !== emoji.name);
   if (matches.matches.length === 0) return <NoneFound emoji={emoji} said={search === "" ? `No Slack emoji has a name like :${emoji.name}:. Search for one, or add this one to Slack under its name.` : `No Slack emoji found for “${search}”. Add this one to Slack under its name.`} emojiPage={emojiPage} />;
   return (
     <>

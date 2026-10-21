@@ -66,6 +66,15 @@ describe("a member picks their own hype emoji on their own page", { timeout: 30_
     expect(pick).toHaveBeenCalledExactlyOnceWith("sam-wave");
   });
 
+  it("a member whose hype emoji isn't in Slack yet picks the Slack emoji that has its suggested name", async () => {
+    const pick = visit("/book#people/sam-example", { slackEmojiMatches: () => ({ kind: "matches", matches: [{ name: "sam-example-hype", image: slackPicture("sam-example-hype"), free: true }] }) });
+
+    const picker = await openThePicker();
+    await userEvent.click(picker.getByRole("button", { name: "Map to :sam-example-hype:" }));
+
+    expect(pick).toHaveBeenCalledExactlyOnceWith("sam-example-hype");
+  });
+
   it("a hype emoji already in Slack is changed the same way", async () => {
     visit("/book#people/sam-example", { own: { ...ownPage, hypePick: true, hype: { ...ownPage.hype, inSlack: true } } });
 

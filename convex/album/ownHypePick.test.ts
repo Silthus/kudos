@@ -127,6 +127,17 @@ describe("a member picks their own hype emoji", { timeout: 90_000 }, () => {
     ]);
   });
 
+  test("picking the hype emoji the maintainer mapped for them changes nothing, so the maintainer still reads as its mapper", async () => {
+    await slackHas("bruno-by-mona");
+    const asOwner = await signedIn(owner);
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "bruno-by-mona", to: { kind: "hype", person: keyOf(await mappingsOf(asOwner), bruno) } })).toEqual({ kind: "mapped" });
+    const asBruno = await signedIn(bruno);
+    const before = await everyTable();
+
+    expect(await asBruno.mutation(api.website.emojiMappings.pickMyHypeEmoji, { emoji: "bruno-by-mona" })).toEqual({ kind: "picked" });
+    expect(await everyTable()).toEqual(before);
+  });
+
   test("a Slack emoji the maintainer held back is refused as held back, and changes nothing", async () => {
     await slackHas("bruno-held");
     const asOwner = await signedIn(owner);
