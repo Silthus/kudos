@@ -166,6 +166,19 @@
   pointer-events: none;
 }
 
+.xpm-mote {
+  position: fixed;
+  z-index: 94;
+  border-radius: 999px;
+  background: var(--xpm-canvas-ink);
+  box-shadow: 0 0 6px rgb(255 248 236 / 0.8);
+  pointer-events: none;
+}
+
+.xpm-orb[data-filling] {
+  box-shadow: 0 0 60px 16px color-mix(in oklab, var(--xpm-spark) 55%, transparent), inset 0 -8px 20px rgb(0 0 0 / 0.25);
+}
+
 .xpm-shard {
   position: fixed;
   z-index: 94;

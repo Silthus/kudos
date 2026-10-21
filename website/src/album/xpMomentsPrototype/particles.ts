@@ -129,5 +129,45 @@ export function particlesFor(xp: number) {
 }
 
 export function clearParticles() {
-  document.querySelectorAll(".xpm-particle, .xpm-puff, .xpm-shard, .xpm-ghost").forEach((element) => element.remove());
+  document.querySelectorAll(".xpm-particle, .xpm-puff, .xpm-shard, .xpm-mote, .xpm-ghost").forEach((element) => element.remove());
+}
+
+export function dust(card: HTMLElement, spray: Spray) {
+  const box = card.getBoundingClientRect();
+  const delay = spray.delay ?? 0;
+  const sweepMs = 720;
+  const end = spray.target() ?? { x: box.left, y: box.top };
+  card.animate(
+    [
+      { clipPath: "inset(-40px -40px -40px -40px)", filter: "blur(0)", opacity: 1 },
+      { clipPath: "inset(-40px -40px -40px 85%)", filter: "blur(1px)", opacity: 1, offset: 0.85 },
+      { clipPath: "inset(-40px -40px -40px 100%)", filter: "blur(1.5px)", opacity: 0 },
+    ],
+    { duration: sweepMs, delay, easing: "linear", fill: "forwards" },
+  );
+  for (let index = 0; index < 60; index += 1) {
+    const along = Math.random();
+    const at = { x: box.left + box.width * along, y: box.top + Math.random() * box.height };
+    const mote = particle("xpm-mote", at, 2 + Math.random() * 4);
+    const dx = (end.x - at.x) * (0.12 + Math.random() * 0.2) + (Math.random() - 0.5) * 40;
+    const dy = (end.y - at.y) * (0.12 + Math.random() * 0.2) - 12 - Math.random() * 36;
+    mote.animate(
+      [
+        { transform: "translate(-50%, -50%) scale(1)", opacity: 0 },
+        { transform: "translate(-50%, -50%) scale(1.2)", opacity: 1, offset: 0.08 },
+        { transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(0.3)`, opacity: 0 },
+      ],
+      { duration: 650 + Math.random() * 550, delay: delay + along * sweepMs, easing: "ease-out", fill: "both" },
+    ).onfinish = () => mote.remove();
+  }
+  if (spray.count <= 0) return;
+  const share = spray.xp / spray.count;
+  for (let index = 0; index < spray.count; index += 1) {
+    const along = (index + Math.random()) / spray.count;
+    const from = { x: box.left + box.width * along, y: box.top + box.height * (0.15 + Math.random() * 0.7) };
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI;
+    const reach = 14 + Math.random() * 30;
+    const dot = particle(Math.random() < 0.3 ? "xpm-particle xpm-particle-bright" : "xpm-particle", from, 4 + Math.random() * 5);
+    fly(dot, from, { x: Math.cos(angle) * reach, y: Math.sin(angle) * reach }, spray.target, 700 + Math.random() * 400, delay + along * sweepMs, () => spray.onLand(share));
+  }
 }

@@ -8,15 +8,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Album, AlbumLevel } from "../answer";
 import { levelOf, xpToReach, type Pace, type Scenario } from "./moments";
-import { centreOf, clearParticles, crumble, particlesFor, poof, stream, toTheBar } from "./particles";
+import { centreOf, clearParticles, crumble, dust, particlesFor, poof, stream, toTheBar } from "./particles";
 import { popTheLevel } from "./sequence";
 import { ExcerptCard, FoldLine, HandoffBoard, itemsWords, publishLine } from "./XpMomentsPrototype";
 import "./scatter.css";
 
-export type ScatterVariant = "D" | "E" | "F" | "G" | "H";
+export type ScatterVariant = "D" | "E" | "F" | "G" | "H" | "I";
 
 function hasOrb(variant: ScatterVariant) {
-  return variant === "E" || variant === "G" || variant === "H";
+  return variant === "E" || variant === "G" || variant === "H" || variant === "I";
 }
 
 type Phase = "settle" | "arrive" | "hold" | "collect" | "items";
@@ -88,7 +88,59 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
     later(cards.length * pace.collectStagger + 3500, finish);
   };
 
+  const collectIntoTheOrb = () => {
+    const target = () => (orb.current ? centreOf(orb.current) : null);
+    let expected = 0;
+    let landed = 0;
+    let launched = false;
+    const launchOnce = () => {
+      if (launched) return;
+      launched = true;
+      launchTheOrb();
+    };
+    const onLand = (share: number) => {
+      addOrbXp(share);
+      landed += 1;
+      if (landed % 3 === 0) bumpTheOrb();
+      if (landed === expected) later(550, launchOnce);
+    };
+    if (orb.current) orb.current.dataset.filling = "";
+    cards.forEach((card, index) => {
+      const element = cardElements.current.get(card.key);
+      if (!element) return;
+      const count = particlesFor(card.xp);
+      expected += count;
+      dust(element, { count, xp: card.xp, target, onLand, delay: index * pace.collectStagger });
+    });
+    if (expected === 0) later(cards.length * pace.collectStagger + 900, launchOnce);
+    later(cards.length * pace.collectStagger + 3500, launchOnce);
+  };
+
+  const bumpTheOrb = () => orb.current?.animate([{ scale: "1" }, { scale: "1.07" }, { scale: "1" }], { duration: 200, easing: "ease-out" });
+
+  const launchTheOrb = () => {
+    if (!orb.current) return finish();
+    delete orb.current.dataset.filling;
+    orb.current.dataset.launch = "";
+    const count = 44;
+    let landed = 0;
+    setOrbXp(total);
+    stream(centreOf(orb.current), {
+      count,
+      xp: total,
+      target: toTheBar,
+      onLand: (share) => {
+        addXp(share);
+        addOrbXp(-share);
+        landed += 1;
+        if (landed === count) finish();
+      },
+    }, 700);
+    later(3500, finish);
+  };
+
   const collectThroughTheOrb = () => {
+    if (variant === "I") return collectIntoTheOrb();
     const towards = orb.current ? centreOf(orb.current) : undefined;
     cards.forEach((card, index) => {
       const element = cardElements.current.get(card.key);
@@ -135,7 +187,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
     if (phase === "settle") after(pace.settle, () => setPhase(cards.length === 0 ? "items" : "arrive"));
     if (phase === "arrive") {
       after(arriveMs, () => setPhase("hold"));
-      if (hasOrb(variant)) soakIntoTheOrb();
+      if (hasOrb(variant) && variant !== "I") soakIntoTheOrb();
     }
     if (phase === "hold") after(holdMs, collect);
     return () => own.forEach((timer) => window.clearTimeout(timer));
@@ -198,7 +250,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
           );
         })}
       {variant === "D" && canCollect && <DrainCue holdMs={holdMs} running={phase === "hold"} />}
-      {hasOrb(variant) && phase !== "items" && <Orb orb={orb} xp={orbXp} holdMs={holdMs} phase={phase} narrow={narrow} viewport={viewport} />}
+      {hasOrb(variant) && phase !== "items" && <Orb orb={orb} mystery={variant === "I"} xp={orbXp} holdMs={holdMs} phase={phase} narrow={narrow} viewport={viewport} />}
       {variant === "F" && canCollect && <BarGhost from={scenario.startXp} to={final} holdMs={holdMs} running={phase === "hold"} />}
       {phase !== "items" && phase !== "collect" && (
         <button type="button" className="xpm-canvas-skip" onClick={(event) => (event.stopPropagation(), skip())}>
@@ -307,6 +359,7 @@ function layoutOf(variant: ScatterVariant, count: number, { width, height, top: 
 const rings = {
   E: { width: 310, rx: null, ry: null, tilt: 2, wobble: 0 },
   G: { width: 290, rx: 300, ry: 185, tilt: 7, wobble: 0.16 },
+  I: { width: 290, rx: 370, ry: 196, tilt: 7, wobble: 0.12 },
   H: { width: 280, rx: 235, ry: 150, tilt: 11, wobble: 0.28 },
 } as const;
 
@@ -334,14 +387,14 @@ function DrainCue({ holdMs, running }: { holdMs: number; running: boolean }) {
   );
 }
 
-function Orb({ orb, xp, holdMs, phase, narrow, viewport }: { orb: React.RefObject<HTMLDivElement | null>; xp: number; holdMs: number; phase: Phase; narrow: boolean; viewport: Viewport }) {
+function Orb({ orb, mystery, xp, holdMs, phase, narrow, viewport }: { orb: React.RefObject<HTMLDivElement | null>; mystery: boolean; xp: number; holdMs: number; phase: Phase; narrow: boolean; viewport: Viewport }) {
   const style = narrow ? ({ left: viewport.width / 2, top: viewport.height - 150 - 75 } as CSSProperties) : ({ left: viewport.width / 2, top: (80 + viewport.height - 120) / 2 } as CSSProperties);
   return (
     <div ref={orb} className="xpm-orb" data-phase={phase} style={style}>
       <svg className="xpm-orb-ring" viewBox="0 0 120 120" aria-hidden="true">
         <circle cx="60" cy="60" r="56" pathLength={100} style={{ "--hold": `${holdMs}ms` } as CSSProperties} />
       </svg>
-      <span className="xpm-orb-xp">+{Math.max(0, Math.round(xp))}</span>
+      <span className="xpm-orb-xp">{mystery && (phase === "arrive" || phase === "hold") ? "?" : `+${Math.max(0, Math.round(xp))}`}</span>
       <span className="xpm-orb-unit">XP</span>
       {(phase === "arrive" || phase === "hold") && <span className="xpm-orb-hint">Tap to collect</span>}
     </div>

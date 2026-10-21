@@ -12,6 +12,7 @@ import { useRun, type Beat, type Run } from "./sequence";
 import "./xpMoments.css";
 
 const variants = [
+  { key: "I", name: "Mystery orb" },
   { key: "G", name: "Orb & crumble · ring" },
   { key: "H", name: "Orb & crumble · heap" },
   { key: "D", name: "Scatter & poof" },
@@ -32,7 +33,7 @@ export const useXpMomentsPrototype = on ? usePrototype : (album: Album) => ({ al
 
 function settingsFromTheAddress(): Settings {
   const search = new URLSearchParams(window.location.search);
-  const variant = variants.find(({ key }) => key === search.get("variant"))?.key ?? "G";
+  const variant = variants.find(({ key }) => key === search.get("variant"))?.key ?? "I";
   const scenario = scenarioKeys.includes(search.get("scenario") ?? "") ? search.get("scenario")! : "busy";
   const pace = paceKeys.includes(search.get("pace") ?? "") ? search.get("pace")! : "brisk";
   const motion = search.get("motion") === "reduced" ? "reduced" : "full";
@@ -67,7 +68,7 @@ type SequenceProps = { album: Album; settings: Settings; onShown: (shown: { leve
 
 function Sequence({ album, settings, onShown }: SequenceProps) {
   const reduced = settings.motion === "reduced" || prefersReducedMotion();
-  if (settings.variant === "D" || settings.variant === "E" || settings.variant === "F" || settings.variant === "G" || settings.variant === "H") return <ScatterSequence variant={settings.variant} scenario={scenarios[settings.scenario]!} pace={paces[settings.pace]!} reduced={reduced} me={album.me.name} onShown={onShown} />;
+  if (settings.variant === "D" || settings.variant === "E" || settings.variant === "F" || settings.variant === "G" || settings.variant === "H" || settings.variant === "I") return <ScatterSequence variant={settings.variant} scenario={scenarios[settings.scenario]!} pace={paces[settings.pace]!} reduced={reduced} me={album.me.name} onShown={onShown} />;
   return <BeatSequence album={album} settings={settings} onShown={onShown} reduced={reduced} />;
 }
 
