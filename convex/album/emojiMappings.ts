@@ -2,9 +2,10 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { companyTeamsOf } from "../companyProfiles/teams";
 import { personFactsOf, type MemberId } from "../workspace/directory";
 import { slackEmojiListedIn, slackEmojiNamed, slackEmojiReachOf, type SlackEmojiReach } from "../workspace/slackEmoji";
-import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis } from "./emojiCatalogue";
+import { milestoneTierEmojiOf, milestoneTierEmojis } from "./emojiCatalogue";
 import { classEmoji, classOf, emojiClassesIn, unclassEmoji } from "./emojiClasses";
 import { emojiNamed, freeTheName, giveEmojiTheName, namesHeldIn, openTheRegistryIn, type EarnedEmojiId } from "./emojiNames";
+import { isEmojiLevelOf } from "./levelEmojis";
 import type { EmojiMapper } from "./records";
 
 export type MappingTarget = { kind: "team"; team: string } | { kind: "milestone"; milestone: string } | { kind: "level"; level: number } | { kind: "hype"; person: MemberId } | { kind: "random" };
@@ -23,19 +24,23 @@ export type OwnHypePick = { kind: "picked" } | { kind: "taken"; by: EmojiPlace["
 
 export const mostSlackEmojiListed = 10_000;
 
-export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, randomDrops: boolean, reach: SlackEmojiReach): Promise<SlackEmojiMappings> {
+export async function slackEmojiMappingsIn(ctx: QueryCtx, workspace: string, randomDrops: boolean, reach: SlackEmojiReach, levels: readonly number[]): Promise<SlackEmojiMappings> {
   const listed = await slackEmojiListedIn(ctx, workspace, mostSlackEmojiListed + 1, reach);
   const named = await namesHeldIn(ctx, workspace);
   const classes = await emojiClassesIn(ctx, workspace);
-  const mappingOf = (name: string): MappingTarget | null => (classes.get(name) === "random" ? { kind: "random" } : targetOf(named.get(name)));
+  const mappingOf = (name: string): MappingTarget | null => (classes.get(name) === "random" ? { kind: "random" } : withinLevels(targetOf(named.get(name)), levels));
   return {
     emoji: listed.slice(0, mostSlackEmojiListed).map(({ name, image }) => ({ name, image, mapping: mappingOf(name) })),
     more: listed.length > mostSlackEmojiListed,
     randomDrops,
     teams: (await companyTeamsOf(ctx)).map(({ team, name }) => ({ team, name })).toSorted((one, other) => one.name.localeCompare(other.name)),
     milestones: milestoneTierEmojis.map(({ milestone, tier, name }) => ({ milestone: `${milestone}:${tier}`, name })),
-    levels: [...emojiLevels],
+    levels: [...levels],
   };
+}
+
+function withinLevels(target: MappingTarget | null, levels: readonly number[]): MappingTarget | null {
+  return target?.kind === "level" && !levels.includes(target.level) ? null : target;
 }
 
 export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name: string, place: EmojiPlace, randomDrops: boolean, mapper: EmojiMapper): Promise<boolean> {
@@ -46,7 +51,7 @@ export async function placeSlackEmoji(ctx: MutationCtx, workspace: string, name:
     await freeTheName(ctx, workspace, name);
     return true;
   }
-  const emoji = await earnedEmojiAt(ctx, workspace, place);
+  const emoji = await earnedEmojiAt(ctx, workspace, place, mapper.member);
   if (emoji === null) return false;
   await openTheRegistryIn(ctx, workspace);
   await unclassEmoji(ctx, workspace, name);
@@ -79,14 +84,14 @@ export function targetOf(emoji: EarnedEmojiId | undefined): MappingTarget | null
   return { kind: "hype", person: cause as MemberId };
 }
 
-async function earnedEmojiAt(ctx: QueryCtx, workspace: string, place: Exclude<MappingTarget, { kind: "random" }>): Promise<EarnedEmojiId | null> {
+async function earnedEmojiAt(ctx: QueryCtx, workspace: string, place: Exclude<MappingTarget, { kind: "random" }>, mapper: MemberId): Promise<EarnedEmojiId | null> {
   switch (place.kind) {
     case "team":
       return (await companyTeamsOf(ctx)).some(({ team }) => team === place.team) ? `team:${place.team}` : null;
     case "milestone":
       return milestoneTierEmojiOf(place.milestone) === null ? null : (`milestone:${place.milestone}` as EarnedEmojiId);
     case "level":
-      return emojiLevels.some((level) => level === place.level) ? `level:${place.level}` : null;
+      return (await isEmojiLevelOf(ctx, mapper, place.level)) ? `level:${place.level}` : null;
     case "hype":
       return (await personFactsOf(ctx, place.person))?.workspace === workspace ? `hype:${place.person}` : null;
   }

@@ -1,3 +1,4 @@
+import { emojiLevelsOf } from "../album/levelEmojis";
 import { v } from "convex/values";
 import { appEmojisIn, emojiInPlaceFor, mapAppEmojiInPlace, mapHeldEmoji, slackEmojisNear, type AppEmojiKind, type SlackEmojiMatch } from "../album/emojiWizard";
 import { targetOf } from "../album/emojiMappings";
@@ -47,7 +48,7 @@ export const mapMyEmoji = memberMutation({
 
 export const getAppEmojis = memberQuery(async (ctx, me): Promise<AppEmojisRead> => {
   if (!(await emojiWizardShownTo(ctx, me.member)) || !(await workspaceSettingsShownTo(ctx, me.member))) return { kind: "off" };
-  const { rows, more } = await appEmojisIn(ctx, me.workspace);
+  const { rows, more } = await appEmojisIn(ctx, me.workspace, await emojiLevelsOf(ctx, me.member));
   const emojis: AppEmoji[] = [];
   for (const { emoji, kind, name, from, picture, holders, slack } of rows) {
     const place = await shownPlaceOf(me, targetOf(emoji));

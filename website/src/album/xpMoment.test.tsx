@@ -611,6 +611,18 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
   });
 
+  it("LP72: while onboarding is on, shows the level's emoji as :name: unlocked with how to use it, naming the workspace's kudos emoji", async () => {
+    const kudosEmoji = { kudosEmoji: "hedgehog", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hedgehog/1.png" };
+    await crossTheLevel({ moment: toLevelTen, album: { ...atLevelTen, emojiHowTo: kudosEmoji } });
+
+    const unlocked = within(theTakeover()!).getByRole("listitem", { name: ":level-10: unlocked" });
+    expect(unlocked).toHaveTextContent(":level-10: unlocked");
+    const howTo = within(unlocked).getByText(/^React or thank with it\. It counts like/);
+    expect(howTo).toHaveTextContent(/^React or thank with it\. It counts like \.$/);
+    expect(within(howTo).getByRole("img", { name: ":hedgehog:" })).toHaveAttribute("src", kudosEmoji.kudosEmojiImage);
+    expect(unlocked).not.toHaveTextContent("New emoji unlocked");
+  });
+
   it("leaves out an emoji the member has already seen and the items line when none of the level's items wait, and flows into All caught up", async () => {
     const seenAlready = levelTenEarned.map((emoji) => (emoji.id === "level:10" ? { ...emoji, seen: true } : emoji));
     await crossTheLevel({ moment: { ...toLevelTen, waiting: 0 }, album: { ...atLevelTen, emojis: seenAlready, board: { items: [], more: false } } });

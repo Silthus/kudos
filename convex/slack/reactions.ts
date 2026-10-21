@@ -4,6 +4,7 @@ import type { HugReaction } from "../hugs/reaction";
 import { mayGiveHugWith } from "../hugs/hugs";
 import type { EventCallback } from "./normalize";
 import { isText } from "./richText";
+import { withoutSkinTone } from "../workspace/slackEmoji";
 
 type ReactionAdded = {
   type: "reaction_added";
@@ -15,8 +16,6 @@ type ReactionAdded = {
 };
 
 export type ReactionEnvelope = EventCallback & { event: ReactionAdded; authorizations?: Array<{ user_id?: string; is_bot?: boolean }> };
-
-const skinToneSuffix = /::skin-tone-[2-6]$/;
 
 export function isReactionAdded(envelope: EventCallback): envelope is ReactionEnvelope {
   return envelope.event.type === "reaction_added";
@@ -35,10 +34,6 @@ export function hugReactionOf(envelope: ReactionEnvelope): HugReaction | null {
   const appBotUser = appBotUserOf(envelope);
   if (user === appBotUser || author === appBotUser) return null;
   return { workspace: envelope.team_id, giver: user, author, conversation: item.channel, message: item.ts, emoji: reaction, at: Number(eventTs) * 1000 };
-}
-
-export function withoutSkinTone(emoji: string): string {
-  return emoji.replace(skinToneSuffix, "");
 }
 
 function isDirectMessage(conversation: string) {

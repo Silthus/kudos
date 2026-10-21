@@ -5,9 +5,10 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { levelFirstReachedAt } from "../unlocks/levelUps";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
-import { slackEmojiImageOf } from "../workspace/slackEmoji";
-import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";
+import { slackEmojiImageOf, withoutSkinTone } from "../workspace/slackEmoji";
+import { emojiArtPictureOf, hypeEmblemPicture, levelEmojiPictureOf, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";
 import { emojiNamed, emojiNameOf, namesHeldIn, type EarnedEmojiId } from "./emojiNames";
+import { emojiLevelsOf, isEmojiLevelOf } from "./levelEmojis";
 import type { MilestoneAnswer } from "./milestones";
 import { isFirstPackFor, packsEarnedBetween, type Instants } from "./packs";
 import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
@@ -55,7 +56,7 @@ export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: Em
   const seen = await seenBy(ctx, owner.member);
   const hype = await hypeCausesOf(ctx, owner, seen, causes.hypesHeld);
   const emojis: EarnedEmoji[] = [];
-  for (const cause of [...teamCausesOf(causes.pages), ...hype.causes, ...milestoneCausesOf(causes.milestones), ...levelCausesOf(causes.level)]) {
+  for (const cause of [...teamCausesOf(causes.pages), ...hype.causes, ...milestoneCausesOf(causes.milestones), ...levelCausesOf(causes.level, await emojiLevelsOf(ctx, owner.member))]) {
     const name = await emojiNameOf(ctx, owner.workspace, cause.id);
     if (name !== null) emojis.push(await emojiOf(ctx, owner.workspace, cause, name, seen));
   }
@@ -90,7 +91,7 @@ export type LevelsReached = { above: number; upTo: number; at: number };
 
 export async function levelEmojisEarnedIn(ctx: QueryCtx, { workspace, member }: PageOwner, { above, upTo, at }: LevelsReached): Promise<EarnedEmoji[]> {
   const emojis: EarnedEmoji[] = [];
-  for (const reward of emojiLevels.filter((level) => level > above && level <= upTo)) {
+  for (const reward of (await emojiLevelsOf(ctx, member)).filter((level) => level > above && level <= upTo)) {
     const cause = levelReachedCauseOf(reward, at);
     const name = await emojiNameOf(ctx, workspace, cause.id);
     if (name !== null) emojis.push(await emojiOf(ctx, workspace, cause, name, await seenAmong(ctx, member, cause.id)));
@@ -99,7 +100,7 @@ export async function levelEmojisEarnedIn(ctx: QueryCtx, { workspace, member }: 
 }
 
 function levelReachedCauseOf(reward: number, at: number): Cause {
-  return { id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: emojiArtPictureOf("level", reward), earned: true, earnedAt: at, progress: { have: reward, need: reward } };
+  return { id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: levelEmojiPictureOf(reward), earned: true, earnedAt: at, progress: { have: reward, need: reward } };
 }
 
 async function seenAmong(ctx: QueryCtx, member: MemberId, emoji: string): Promise<Set<string>> {
@@ -183,9 +184,9 @@ async function tiersReachedBetween(ctx: QueryCtx, member: MemberId, instants: In
 
 async function levelsReachedBetween(ctx: QueryCtx, member: MemberId, instants: Instants): Promise<EarnedCause[]> {
   const causes: EarnedCause[] = [];
-  for (const level of emojiLevels) {
+  for (const level of await emojiLevelsOf(ctx, member)) {
     const at = await levelFirstReachedAt(ctx, member, level);
-    if (at !== null && isWithin(instants, at)) causes.push({ id: `level:${level}`, picture: emojiArtPictureOf("level", level) });
+    if (at !== null && isWithin(instants, at)) causes.push({ id: `level:${level}`, picture: levelEmojiPictureOf(level) });
   }
   return causes;
 }
@@ -209,8 +210,8 @@ function milestoneCausesOf(milestones: MilestoneAnswer[]): Cause[] {
   );
 }
 
-function levelCausesOf({ level, xp }: EmojiCauses["level"]): Cause[] {
-  return emojiLevels.map((reward) => ({ id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: emojiArtPictureOf("level", reward), earned: level >= reward, earnedAt: null, progress: { have: xp, need: xpToReach(reward) } }));
+function levelCausesOf({ level, xp }: EmojiCauses["level"], levels: readonly number[]): Cause[] {
+  return levels.map((reward) => ({ id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: levelEmojiPictureOf(reward), earned: level >= reward, earnedAt: null, progress: { have: xp, need: xpToReach(reward) } }));
 }
 
 async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>, held: HypesHeld | undefined): Promise<{ causes: Cause[]; more: boolean }> {
@@ -276,7 +277,8 @@ export const earnedEmojiHook: ParseHook = {
   kudosEmoji: (ctx, { workspace, giver }, emoji) => (giver === undefined ? Promise.resolve([]) : earnedEmojiNamesAmong(ctx, workspace, giver, emoji)),
 };
 
-export async function holdsEarnedEmojiNamed(ctx: QueryCtx, workspace: string, member: MemberId, name: string): Promise<boolean> {
+export async function holdsEarnedEmojiNamed(ctx: QueryCtx, workspace: string, member: MemberId, toned: string): Promise<boolean> {
+  const name = withoutSkinTone(toned);
   if (await holdsRandomEmoji(ctx, member, name)) return true;
   const registered = await emojiNamed(ctx, workspace, name);
   return registered !== null && (await isEarnedBy(ctx, member, registered));
@@ -292,7 +294,7 @@ async function earnedEmojiNamesAmong(ctx: QueryCtx, workspace: string, member: M
   const registry = await namesHeldIn(ctx, workspace);
   const dropped = new Set(await randomEmojiNamesHeldBy(ctx, member));
   for (const name of distinct) {
-    const registered = registry.get(name);
+    const registered = registry.get(withoutSkinTone(name));
     if (dropped.has(name) || (registered !== undefined && (await isEarnedBy(ctx, member, registered)))) earned.push(name);
   }
   return earned;
@@ -302,10 +304,15 @@ export async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): P
   const [kind, cause] = splitOnce(id);
   if (kind === "team") return (await teamStickerOf(ctx, member, cause)) !== null;
   if (kind === "milestone") return holdsMilestoneTier(ctx, member, cause);
-  if (kind === "level") return emojiLevels.some((reward) => String(reward) === cause) && (await progressionHomeOf(ctx, member)).level >= Number(cause);
+  if (kind === "level") return holdsLevelEmoji(ctx, member, cause);
   if (kind === "hype") return hypeEarnedBy(ctx, member, ctx.db.normalizeId("members", cause));
   if (kind === "random") return (await randomEmojisShownTo(ctx, member)) && (await holdsRandomEmoji(ctx, member, cause));
   return false;
+}
+
+async function holdsLevelEmoji(ctx: QueryCtx, member: MemberId, cause: string): Promise<boolean> {
+  const level = Number(cause);
+  return String(level) === cause && (await isEmojiLevelOf(ctx, member, level)) && (await progressionHomeOf(ctx, member)).level >= level;
 }
 
 function splitOnce(id: string): [string, string] {

@@ -1,3 +1,4 @@
+import { emojiLevelsOf } from "../album/levelEmojis";
 import { v } from "convex/values";
 import { ownHypePickShownTo, randomEmojisShownTo } from "../album/flag";
 import { pickOwnHypeEmoji, placeSlackEmoji, slackEmojiMappingsIn, type EmojiPlace, type MappingTarget, type OwnHypePick, type SlackEmojiMappings } from "../album/emojiMappings";
@@ -31,7 +32,7 @@ const placeValidator = v.union(
 
 export const getEmojiMappings = memberQuery(async (ctx, me): Promise<EmojiMappingsRead> => {
   if (!(await workspaceSettingsShownTo(ctx, me.member))) return { kind: "off" };
-  const { emoji, ...targets } = await slackEmojiMappingsIn(ctx, me.workspace, await randomEmojisShownTo(ctx, me.member), await slackEmojiReachOf(ctx, me.member));
+  const { emoji, ...targets } = await slackEmojiMappingsIn(ctx, me.workspace, await randomEmojisShownTo(ctx, me.member), await slackEmojiReachOf(ctx, me.member), await emojiLevelsOf(ctx, me.member));
   const members = await mappableMembersOf(ctx, me);
   const keyOf = new Map(members.map(({ member, key }) => [member, key]));
   const people = [...members, ...(await mappableListedMembersOf(ctx, me))].toSorted((one, other) => one.name.localeCompare(other.name));

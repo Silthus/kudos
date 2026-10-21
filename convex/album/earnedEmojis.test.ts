@@ -17,6 +17,8 @@ const minuteMs = 60_000;
 const weekMs = 7 * 24 * 60 * minuteMs;
 const why = "Thanks for untangling the flaky migration";
 const albumOpen = ["album", "collection", "packs"];
+const onboardingOn = [...albumOpen, "hidden-items", "onboarding"];
+const raisedHandsPicture = "https://a.slack-edge.com/production-standard-emoji-assets/17.0/apple-large/1f64c.png";
 
 type Person = { user: string; name: string; picture?: string };
 type Reader = Pick<Backend, "query" | "mutation">;
@@ -172,6 +174,31 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
     );
   });
 
+  test("LP71: while onboarding is on, a member at level 2 holds :raised_hands:, in Slack and pictured as Slack pictures it, and a member at level 1 reads it locked with the XP still to reach", async () => {
+    await thanks(bruno, why, lanterns[0]!);
+    await switchWebsite(t, postHog, true, ...onboardingOn);
+    await reachesXp(alice, xpToReach(2));
+
+    expect(await emojiWithId(await signedIn(alice), "level:2")).toEqual({ ...earned("level:2", "level", "raised_hands", raisedHandsPicture), from: "Level 2", inSlack: true });
+    expect(await emojiWithId(await signedIn(bruno), "level:2")).toEqual({ ...locked("level:2", "level", "raised_hands", raisedHandsPicture, { have: 10, need: xpToReach(2) }), from: "Level 2", inSlack: true });
+  });
+
+  test.each([
+    ["onboarding is off", [...albumOpen, "hidden-items"]],
+    ["hidden-items is off", [...albumOpen, "onboarding"]],
+  ])("LP77: while %s, nobody holds level 2's emoji and marking it seen records nothing, and it comes back with the flag", async (_, flags) => {
+    await thanks(bruno, why, lanterns[0]!);
+    await reachesXp(alice, xpToReach(2));
+    await switchWebsite(t, postHog, true, ...flags);
+    const asAlice = await signedIn(alice);
+
+    expect(await emojiWithId(asAlice, "level:2")).toBeUndefined();
+    expect(await asAlice.mutation(api.website.album.markEmojisSeen, { ids: ["level:2"] })).toEqual({ kind: "seen", ids: [] });
+
+    await switchWebsite(t, postHog, true, ...onboardingOn);
+    expect(await emojiWithId(asAlice, "level:2")).toMatchObject({ name: "raised_hands", earned: true, seen: false });
+  });
+
   test("the first thoughtful pack for a person earns their hype emoji, pictured by their posthog.com face, else their Slack picture, else the hype emblem; a second pack earns no second one", async () => {
     await theCompanyCopyHolds(...threeTeams());
     await thanks(alice, why, otters[0]!, pictured, faceless);
@@ -275,6 +302,57 @@ describe("AL25: a registry opened before every milestone tier had an emoji", { t
 
     expect(await registry()).toEqual(expect.arrayContaining(namesBefore));
     expect((await emojisOf(await signedIn(alice))).filter(({ kind }) => kind === "milestone")).toHaveLength(milestoneTiers.length);
+  });
+});
+
+describe("LP71: level 2's emoji takes Slack's standard name raised_hands", { timeout: 90_000 }, () => {
+  test("reserving the shared names with no workspace names it raised_hands in every workspace whose registry is in use, keeps every name they hold and opens no registry", async () => {
+    await thanks(bruno, why, lanterns[0]!);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("emojiNames").collect()) if (row.emoji === "level:2") await ctx.db.delete(row._id);
+      await ctx.db.insert("emojiNames", { workspace: "T2", emoji: "level:5", name: "level-5" });
+      await ctx.db.insert("workspaces", { workspace: "T3", kudosEmoji: "taco", baseAllowance: 200 });
+    });
+    const namesBefore = await registry();
+
+    await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, {});
+
+    expect(await registry()).toEqual(expect.arrayContaining(namesBefore));
+    expect(await levelTwoNamesByWorkspace()).toEqual([
+      { workspace: "T1", name: "raised_hands" },
+      { workspace: "T2", name: "raised_hands" },
+    ]);
+    expect(await namesIn("T3")).toEqual([]);
+  });
+
+  test.each([
+    ["the registry holds raised_hands", { emojiNames: { workspace: "T1", emoji: "team:otters", name: "raised_hands" } }],
+    ["an emoji class classes raised_hands", { emojiClasses: { workspace: "T1", name: "raised_hands", class: "unmapped" } }],
+  ] as const)("where %s, it is named level-2, not in Slack and pictured as Slack pictures 🙌", async (_, row) => {
+    await t.run(async (ctx) => {
+      if ("emojiNames" in row) await ctx.db.insert("emojiNames", row.emojiNames);
+      else await ctx.db.insert("emojiClasses", row.emojiClasses);
+    });
+    await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
+    await switchWebsite(t, postHog, true, ...onboardingOn);
+    await reachesXp(alice, xpToReach(2));
+
+    expect(await emojiWithId(await signedIn(alice), "level:2")).toEqual({ ...earned("level:2", "level", "level-2", raisedHandsPicture), from: "Level 2" });
+  });
+});
+
+describe("LP72: getAlbum says how to use a level emoji while onboarding is on", { timeout: 90_000 }, () => {
+  test("while onboarding is on, the album answers the workspace's kudos emoji and its picture for the how-to line, and none while it is off", async () => {
+    await slackHasCustomEmoji("hedgehog");
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("workspaces").collect()) await ctx.db.patch(row._id, { kudosEmoji: "hedgehog" });
+    });
+    await switchWebsite(t, postHog, true, ...onboardingOn);
+
+    expect((await albumOf(await signedIn(alice))).emojiHowTo).toEqual({ kudosEmoji: "hedgehog", kudosEmojiImage: customEmojiPicture("hedgehog") });
+
+    await switchWebsite(t, postHog, true, ...albumOpen, "hidden-items");
+    expect(await albumOf(await signedIn(alice))).not.toHaveProperty("emojiHowTo");
   });
 });
 
@@ -457,6 +535,24 @@ describe("website commands pass one guard", { timeout: 90_000 }, () => {
     expect(await everyTable()).toEqual(before);
   });
 });
+
+function levelTwoNamesByWorkspace() {
+  return t.run(async (ctx) => (await ctx.db.query("emojiNames").collect()).filter(({ emoji }) => emoji === "level:2").map(({ workspace, name }) => ({ workspace, name })).toSorted((one, other) => one.workspace.localeCompare(other.workspace)));
+}
+
+function namesIn(workspace: string) {
+  return t.run((ctx) => ctx.db.query("emojiNames").withIndex("by_workspace_name", (q) => q.eq("workspace", workspace)).collect());
+}
+
+async function slackHasCustomEmoji(name: string) {
+  slack.withCustomEmoji(name, customEmojiPicture(name));
+  await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+  await settle(t);
+}
+
+function customEmojiPicture(name: string) {
+  return `https://emoji.slack-edge.com/T1/${name}/a1b2c3.png`;
+}
 
 function registry() {
   return t.run(async (ctx) => (await ctx.db.query("emojiNames").collect()).map(({ emoji, person, name }) => ({ emoji, person, name })));

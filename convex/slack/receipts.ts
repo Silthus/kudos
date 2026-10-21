@@ -15,7 +15,7 @@ import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
 import { hugReactionValidator } from "../hugs/reaction";
 import { giveHug } from "../hugs/hugs";
-import { withoutSkinTone } from "./reactions";
+import { withoutSkinTone } from "../workspace/slackEmoji";
 
 type Receipt = { workspace: string; eventId: string };
 

@@ -4,7 +4,7 @@ import { internalMutation, type ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { hugReactionValidator } from "../hugs/reaction";
 import { giveHug } from "../hugs/hugs";
-import { withoutSkinTone } from "./reactions";
+import { withoutSkinTone } from "../workspace/slackEmoji";
 import { lookUpUser } from "./directory";
 import { verificationTries } from "./verifyMember";
 
