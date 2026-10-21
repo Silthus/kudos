@@ -168,7 +168,7 @@
   translate: 0 -2%;
 }
 
-.ib-level {
+.ib-tag {
   position: absolute;
   bottom: -0.25rem;
   left: 50%;
@@ -182,6 +182,9 @@
   font-size: 0.75rem;
   font-weight: 800;
   line-height: 1.2;
+  max-width: calc(100% + 1.5rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
   translate: -50% 0;
@@ -223,15 +226,41 @@
 .ib-strip {
   position: fixed;
   top: calc(var(--al-top-height) + 0.75rem);
-  left: 50%;
+  inset-inline: 1rem;
   z-index: 30;
   display: flex;
-  max-width: calc(100vw - 2rem);
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
   pointer-events: none;
-  translate: -50% 0;
+}
+
+.al-shell {
+  --ib-after-most: 12rem;
+}
+
+.ib-after {
+  position: fixed;
+  bottom: 0.25rem;
+  inset-inline: 1rem;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 1rem;
+  max-height: var(--ib-after-most);
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.ib-after > * {
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+.al-shell:has(> .ib-after:not(:empty)) .al-main {
+  padding-bottom: calc(var(--ib-after-most) + 2.5rem);
 }
 
 .ib-turned {
@@ -688,8 +717,8 @@
 
 @media (max-width: 40rem) {
   .ib-slot {
-    width: calc(4.5rem * var(--size, 1));
-    height: calc(4.5rem * var(--size, 1));
+    width: 4.5rem;
+    height: 4.5rem;
     margin: 0.5rem;
   }
 

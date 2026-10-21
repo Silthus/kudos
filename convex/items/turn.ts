@@ -16,6 +16,7 @@ import { dropFor, dropOf, foundIn, packOf, type Drop } from "../hoggies/drops";
 import { crestsShownTo } from "../hoggies/flag";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
+import { achievementHoggiesShownTo, isAnAchievement } from "./achievementFlag";
 import { stickerWaitsFor } from "./ledger";
 import { unlockMilestoneTiers } from "./milestoneUnlocks";
 import { recordWinOf } from "./wins";
@@ -42,6 +43,7 @@ export async function turn(ctx: MutationCtx, owner: PageOwner, item: Id<"items">
   const row = await ctx.db.get(item);
   if (row?.member !== owner.member) return null;
   if (row.turnedAt !== undefined) return turnedAgain(ctx, owner, row);
+  if (isAnAchievement(row.reason) && !(await achievementHoggiesShownTo(ctx, owner.member))) return null;
   const landed = await landFirstTime(ctx, owner, row, at);
   if (landed === null) return null;
   const hype = await hypeUnlockedBy(ctx, owner, row, at);
@@ -61,7 +63,7 @@ async function landFirstTime(ctx: MutationCtx, owner: PageOwner, row: Item, at: 
 
 async function drawTheHoggie(ctx: MutationCtx, owner: PageOwner, row: Item, at: number): Promise<Landed | null> {
   const crate = row.key as CrateKey;
-  await dropFor(ctx, owner.member, crate, at, { surface: "website", floor: row.floor });
+  await dropFor(ctx, owner.member, crate, at, { surface: "website", floor: row.floor, unowned: isAnAchievement(row.reason) });
   const drop = await dropOf(ctx, owner.member, crate);
   if (drop === null) return null;
   await tallyHoggieFound(ctx, owner.member, { hoggie: drop.hoggie, rarity: drop.rarity }, at);

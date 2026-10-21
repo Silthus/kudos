@@ -21,11 +21,12 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { albumAtTheLanding } from "./landedAlbum";
 import { TurnFlight } from "./TurnFlight";
-import { shownUnless, useItemBoard, LandingProvider } from "./useItemBoard";
+import { shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
 import { useTeamUnlock } from "./useTeamUnlock";
+import { MomentGlow } from "./MomentGlow";
 import { useXpMomentSequence } from "./useXpMoment";
-import type { XpMomentAhead } from "./visitArrival";
+import type { MissedXpMoment, XpMomentAhead } from "./visitArrival";
 import { XpMomentCanvas, XpMomentSummary } from "./XpMoment";
 import "./album.css";
 
@@ -46,10 +47,11 @@ export type AlbumShellProps = {
   turnItem: (item: string) => Promise<TurnReply>;
   xpMoment: XpMomentAhead;
   endXpMoment: (skipped: boolean) => void;
+  missedXpMoment: MissedXpMoment;
   shareItem: (item: string) => Promise<ShareReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
@@ -88,23 +90,28 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     finish();
   };
   const turns = shownUnless(items, anotherMoment || playing);
-  const landed = useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]);
+  const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
   const covered = boardShown || sinceTheLastVisit.covers;
   const awaitingAMoment = playing || unlocking.sending !== null || covered;
+  const glows = missedXpMoment.glows && !anotherMoment && !awaitingAMoment && (missedXpMoment.moment !== null || turns.offered);
+  const collectWhatWaits = () => {
+    missedXpMoment.start();
+    turns.show();
+  };
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell" data-xp-moment={sinceTheLastVisit.covers ? "" : undefined}>
-      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={landed} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
       {sinceTheLastVisit.play !== null && <XpMomentCanvas play={sinceTheLastVisit.play} me={album.me} levelUnlocks={levelUnlocks} />}
       {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} landed={<AfterTheLanding turns={turns} album={album} shares={shares} />} touched={turns.touched} onTouch={turns.touch} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
-      {album.board !== null && <ItemsWait turns={turns} album={album} shares={shares} />}
+      {album.board !== null && <ItemsWait turns={turns} album={album} shares={shares} pill={!missedXpMoment.glows} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
