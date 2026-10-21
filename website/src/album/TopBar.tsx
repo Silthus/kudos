@@ -9,6 +9,7 @@ import { Feedback } from "../Feedback";
 import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
 import { EmojiPanel } from "./EmojiPanel";
+import { usableCountOf } from "./emojiShelf";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
 import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
@@ -21,9 +22,9 @@ export type TopBarPopups = "tray" | "emojis" | "menu";
 
 type TopBarPopover = Popover<TopBarPopups>;
 
-type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; glow?: ReactNode; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; opensOnJustUnlocked: boolean; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; glow?: ReactNode; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
 
-export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTheLevel = false, moving, inert, glow, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
+export function TopBar({ album, place, wide, popover, justUnlocked, opensOnJustUnlocked, held, popsTheLevel = false, moving, inert, glow, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
   const trayItems = held.tray ?? album.tray.length;
   const trayShown = album.board === null && (trayItems > 0 || moving || tray.busy);
   useTrayOpenOnThePacksPage(place, popover);
@@ -39,7 +40,7 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTh
         {album.board === null && (album.packs.length > 0 || moving) && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} focusAfter={emojiButton} />}
         {trayShown && <TrayButton album={album} items={trayItems} popover={popover} button={trayButton} tray={tray} focusAfter={emojiButton} />}
         {wide && <PageLinks place={place} />}
-        <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} />
+        <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} />
         <FeedbackButton />
         {wide ? <MeAndSettings album={album} place={place} /> : <Menu album={album} place={place} popover={popover} />}
       </div>
@@ -166,17 +167,26 @@ function trayLabelOf(items: number, busy: boolean) {
   return items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`;
 }
 
-function EmojiButton({ album, popover, button, justUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[] }) {
-  const earned = earnedEmojisOf(album);
+function EmojiButton({ album, popover, button, justUnlocked, opensOnJustUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[]; opensOnJustUnlocked: boolean }) {
+  const { count, label } = emojiCountOf(album);
   return (
-    <PopoverButton name="emojis" popover={popover} button={button} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} onFollow={popover.close} />}>
+    <PopoverButton name="emojis" popover={popover} button={button} label={label} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} onFollow={popover.close} />}>
       <IconEmoji />
       <span className="al-emojis-count" aria-hidden="true">
-        {earned}
+        {count}
       </span>
       <OpensOut>Emojis</OpensOut>
     </PopoverButton>
   );
+}
+
+function emojiCountOf(album: Album) {
+  if (album.emojiHowTo === undefined) {
+    const earned = earnedEmojisOf(album);
+    return { count: earned, label: `Your emojis, ${earned} earned` };
+  }
+  const usable = usableCountOf(album.emojis);
+  return { count: usable, label: `Your emojis, ${usable} you can use` };
 }
 
 type PopoverButtonProps = { name: TopBarPopups; popover: TopBarPopover; label: string; panelLabel: string; className: string; panelClassName?: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };

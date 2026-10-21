@@ -70,13 +70,18 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const popover = usePopover<TopBarPopups>();
   const { show } = popover;
   const [justUnlocked, setJustUnlocked] = useState<string[]>([]);
+  const [opensOnJustUnlocked, setOpensOnJustUnlocked] = useState(false);
   const showTheEmojis = useCallback(
     (ids: string[]) => {
       setJustUnlocked(ids);
+      setOpensOnJustUnlocked(true);
       show("emojis");
     },
     [show],
   );
+  useEffect(() => {
+    if (popover.open !== "emojis") setOpensOnJustUnlocked(false);
+  }, [popover.open]);
   const items = useItemBoard(album.board, turnItem, album.level, keyOf(place));
   const shares = useWinShares(shareItem);
   const flying = items.flight !== null;
@@ -104,7 +109,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell" data-xp-moment={sinceTheLastVisit.covers ? "" : undefined}>
-      <TopBar album={landed} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={landed} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
