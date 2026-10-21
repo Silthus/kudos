@@ -7,13 +7,17 @@ import { prefersReducedMotion } from "../../reducedMotion";
 import { HedgehogSitting } from "../../hoggies";
 import type { Album } from "../answer";
 import { paceKeys, paces, partsOf, scenarioKeys, scenarios, type Excerpt } from "./moments";
+import { ScatterSequence } from "./Scatter";
 import { useRun, type Beat, type Run } from "./sequence";
 import "./xpMoments.css";
 
 const variants = [
-  { key: "A", name: "Centre stage" },
-  { key: "B", name: "Away feed" },
-  { key: "C", name: "Under the bar" },
+  { key: "D", name: "Scatter & poof" },
+  { key: "E", name: "XP orb" },
+  { key: "F", name: "Wall & crumble" },
+  { key: "A", name: "r1 · Centre stage" },
+  { key: "B", name: "r1 · Away feed" },
+  { key: "C", name: "r1 · Under the bar" },
 ] as const;
 
 type VariantKey = (typeof variants)[number]["key"];
@@ -26,7 +30,7 @@ export const useXpMomentsPrototype = on ? usePrototype : (album: Album) => ({ al
 
 function settingsFromTheAddress(): Settings {
   const search = new URLSearchParams(window.location.search);
-  const variant = variants.find(({ key }) => key === search.get("variant"))?.key ?? "A";
+  const variant = variants.find(({ key }) => key === search.get("variant"))?.key ?? "D";
   const scenario = scenarioKeys.includes(search.get("scenario") ?? "") ? search.get("scenario")! : "busy";
   const pace = paceKeys.includes(search.get("pace") ?? "") ? search.get("pace")! : "brisk";
   const motion = search.get("motion") === "reduced" ? "reduced" : "full";
@@ -61,6 +65,11 @@ type SequenceProps = { album: Album; settings: Settings; onShown: (shown: { leve
 
 function Sequence({ album, settings, onShown }: SequenceProps) {
   const reduced = settings.motion === "reduced" || prefersReducedMotion();
+  if (settings.variant === "D" || settings.variant === "E" || settings.variant === "F") return <ScatterSequence variant={settings.variant} scenario={scenarios[settings.scenario]!} pace={paces[settings.pace]!} reduced={reduced} me={album.me.name} onShown={onShown} />;
+  return <BeatSequence album={album} settings={settings} onShown={onShown} reduced={reduced} />;
+}
+
+function BeatSequence({ album, settings, onShown, reduced }: SequenceProps & { reduced: boolean }) {
   const scenario = scenarios[settings.scenario]!;
   const run = useRun(scenario, paces[settings.pace]!, reduced);
   const [closed, setClosed] = useState<"open" | "later" | "board">("open");
@@ -88,12 +97,16 @@ function useEscapeSkips(active: boolean, skip: () => void) {
 
 let stateLine = "";
 
+export function publishLine(line: string) {
+  stateLine = line;
+  window.dispatchEvent(new Event("xpm-state"));
+}
+
 function publishState(run: Run, lastVisit: string, closed: string) {
   const beat = run.beats[run.at];
   const what = run.at < 0 ? "page settling" : beat ? beatName(beat) : "none";
   const visit = run.done ? (run.skipped ? "moved on skip" : "moved on end") : `still ${lastVisit}`;
-  stateLine = `beat ${Math.max(0, run.at + 1)}/${run.beats.length} · ${what} · XP ${run.level.xp} · level ${run.level.level} · last visit ${visit}${closed === "open" ? "" : ` · ${closed}`}`;
-  window.dispatchEvent(new Event("xpm-state"));
+  publishLine(`beat ${Math.max(0, run.at + 1)}/${run.beats.length} · ${what} · XP ${run.level.xp} · level ${run.level.level} · last visit ${visit}${closed === "open" ? "" : ` · ${closed}`}`);
 }
 
 function beatName(beat: Beat) {
@@ -260,7 +273,7 @@ function useXpBarLeft() {
 
 // ---------- Shared pieces ----------
 
-function ExcerptCard({ excerpt, me, chip, flat = false, compact = false }: { excerpt: Excerpt; me: string; chip: (element: HTMLElement | null) => void; flat?: boolean; compact?: boolean }) {
+export function ExcerptCard({ excerpt, me, chip, flat = false, compact = false }: { excerpt: Excerpt; me: string; chip: (element: HTMLElement | null) => void; flat?: boolean; compact?: boolean }) {
   return (
     <article className="xpm-excerpt" data-kind={excerpt.kind} data-flat={flat ? "" : undefined} data-compact={compact ? "" : undefined}>
       <p className="xpm-excerpt-label">{excerpt.label}</p>
@@ -329,7 +342,7 @@ function initialsOf(name: string) {
     .toUpperCase();
 }
 
-function FoldLine({ beat, chip }: { beat: Extract<Beat, { kind: "fold" }>; chip: (element: HTMLElement | null) => void }) {
+export function FoldLine({ beat, chip }: { beat: Extract<Beat, { kind: "fold" }>; chip: (element: HTMLElement | null) => void }) {
   return (
     <div className="xpm-fold">
       <span className="xpm-fold-faces">
@@ -347,7 +360,7 @@ function FoldLine({ beat, chip }: { beat: Extract<Beat, { kind: "fold" }>; chip:
   );
 }
 
-function Summary({ run }: { run: Run }) {
+export function Summary({ run }: { run: Run }) {
   const { count, xp } = totalsOf(run);
   if (count === 0) return <p className="xpm-summary">Nothing new in Slack since your last visit.</p>;
   return (
@@ -357,7 +370,7 @@ function Summary({ run }: { run: Run }) {
   );
 }
 
-function itemsWords(count: number) {
+export function itemsWords(count: number) {
   if (count === 0) return "No items wait";
   return count === 1 ? "1 item waits" : `${count} items wait`;
 }
@@ -389,7 +402,7 @@ function SkipButton({ onSkip, className = "" }: { onSkip: () => void; className?
   );
 }
 
-function HandoffBoard({ count, onClose }: { count: number; onClose: () => void }) {
+export function HandoffBoard({ count, onClose }: { count: number; onClose: () => void }) {
   return (
     <div className="xpm-board" role="dialog" aria-label="Your items">
       <div className="xpm-board-card">

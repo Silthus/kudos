@@ -1,0 +1,481 @@
+/* PROTOTYPE (Silthus/personal#98), throwaway: round 2, the whole dim canvas. */
+
+.al-shell {
+  --xpm-canvas-scrim: rgb(18 14 8 / 0.72);
+  --xpm-canvas-ink: #fff8ec;
+  --xpm-canvas-quiet: rgb(255 248 236 / 0.72);
+  --xpm-spark: #ffd27a;
+}
+
+.dark .al-shell {
+  --xpm-canvas-scrim: rgb(0 0 0 / 0.78);
+}
+
+/* The XP bar stays lit above the canvas; the rest of the top bar steps back. */
+
+.xpm-spotlight .al-top > :not(.al-xp) {
+  opacity: 0.25;
+  transition: opacity 300ms ease-out;
+}
+
+.xpm-spotlight .al-xp-fill {
+  transition: width 140ms ease-out;
+}
+
+.xpm-spotlight .al-xp-track {
+  box-shadow: 0 0 0 3px var(--al-accent-soft);
+}
+
+.xpm-canvas {
+  position: fixed;
+  inset: var(--al-top-height) 0 0;
+  z-index: 60;
+  overflow: hidden;
+  background: var(--xpm-canvas-scrim);
+  color: var(--xpm-canvas-ink);
+  animation: xpm-fade 320ms ease-out;
+}
+
+.xpm-canvas[data-phase="arrive"],
+.xpm-canvas[data-phase="hold"] {
+  cursor: pointer;
+}
+
+.xpm-canvas-skip {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  background: transparent;
+  color: var(--xpm-canvas-quiet);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Cards on the canvas. Positions are viewport-based; the canvas starts under the top bar. */
+
+.xpm-scatter-card {
+  position: fixed;
+  z-index: 1;
+  transform: translate(-50%, -50%) rotate(var(--rot));
+  animation: xpm-scatter-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  animation-delay: var(--d);
+}
+
+.xpm-canvas[data-variant="E"] .xpm-scatter-card {
+  animation-name: xpm-scatter-from-orb;
+  animation-duration: 640ms;
+}
+
+.xpm-canvas[data-variant="F"] .xpm-scatter-card {
+  animation-name: xpm-wall-in;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.xpm-scatter-inner {
+  will-change: transform, opacity, filter;
+}
+
+.xpm-scatter-card .xpm-excerpt {
+  box-shadow: 0 18px 40px rgb(0 0 0 / 0.35);
+}
+
+.xpm-scatter-card .xpm-fold {
+  border-style: solid;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 0.35);
+}
+
+.xpm-canvas[data-narrow] .xpm-excerpt {
+  padding: 0.5rem 0.625rem 0.625rem;
+}
+
+.xpm-canvas[data-narrow] .xpm-excerpt-label {
+  margin-bottom: 0.3rem;
+  font-size: 0.5625rem;
+}
+
+.xpm-canvas[data-narrow] .xpm-message {
+  gap: 0.375rem;
+}
+
+.xpm-canvas[data-narrow] .xpm-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.5625rem;
+}
+
+.xpm-canvas[data-narrow] .xpm-message-head {
+  font-size: 0.75rem;
+}
+
+.xpm-canvas[data-narrow] .xpm-message-meta {
+  display: none;
+}
+
+.xpm-canvas[data-narrow] .xpm-message-text {
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.xpm-canvas[data-narrow] .xpm-chip {
+  margin: 0.375rem 0 0;
+  font-size: 0.6875rem;
+}
+
+.xpm-canvas[data-narrow] .xpm-fold {
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.75rem;
+}
+
+/* Particles */
+
+.xpm-particle {
+  position: fixed;
+  z-index: 95;
+  border-radius: 999px;
+  background: var(--al-accent);
+  box-shadow: 0 0 8px 1px color-mix(in oklab, var(--al-accent) 70%, transparent);
+  pointer-events: none;
+}
+
+.xpm-particle-bright {
+  background: var(--xpm-spark);
+  box-shadow: 0 0 10px 2px color-mix(in oklab, var(--xpm-spark) 70%, transparent);
+}
+
+.xpm-puff {
+  position: fixed;
+  z-index: 94;
+  border-radius: 999px;
+  background: radial-gradient(circle at 40% 35%, rgb(255 255 255 / 0.95), rgb(235 228 215 / 0.7) 60%, transparent 72%);
+  pointer-events: none;
+}
+
+.xpm-shard {
+  position: fixed;
+  z-index: 94;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* D: draining line and hint */
+
+.xpm-drain {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  transform-origin: left;
+  background: var(--al-accent);
+  box-shadow: 0 0 12px var(--al-accent);
+}
+
+.xpm-drain[data-running] {
+  animation: xpm-drain var(--hold) linear forwards;
+}
+
+.xpm-collect-hint {
+  position: absolute;
+  bottom: 7.25rem;
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+  color: var(--xpm-canvas-quiet);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  animation: xpm-hint-breathe 1.6s ease-in-out 2;
+}
+
+/* E: the orb */
+
+.xpm-orb {
+  position: fixed;
+  z-index: 2;
+  display: grid;
+  width: 8.5rem;
+  height: 8.5rem;
+  place-content: center;
+  justify-items: center;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle at 38% 32%, color-mix(in oklab, var(--xpm-spark) 85%, #fff), var(--al-accent) 62%, var(--al-accent-ink));
+  box-shadow: 0 0 40px 8px color-mix(in oklab, var(--al-accent) 55%, transparent), inset 0 -8px 20px rgb(0 0 0 / 0.25);
+  color: #fff;
+  cursor: pointer;
+  animation: xpm-orb-in 600ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.xpm-orb-xp {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.xpm-orb-unit {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.xpm-orb-hint {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  color: var(--xpm-canvas-quiet);
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.xpm-orb-ring {
+  position: absolute;
+  inset: -0.625rem;
+  width: calc(100% + 1.25rem);
+  height: calc(100% + 1.25rem);
+  transform: rotate(-90deg);
+}
+
+.xpm-orb-ring circle {
+  fill: none;
+  stroke: var(--xpm-spark);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  opacity: 0;
+}
+
+.xpm-orb[data-phase="hold"] .xpm-orb-ring circle {
+  opacity: 1;
+  animation: xpm-ring var(--hold) linear forwards;
+}
+
+.xpm-orb[data-launch] {
+  animation: xpm-orb-launch 900ms cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+/* F: ghost on the XP bar */
+
+.xpm-bar-ghost {
+  position: fixed;
+  z-index: 70;
+  border-radius: 999px;
+  background: repeating-linear-gradient(-45deg, color-mix(in oklab, var(--xpm-spark) 90%, transparent) 0 4px, color-mix(in oklab, var(--al-accent) 60%, transparent) 4px 8px);
+  box-shadow: 0 0 10px var(--xpm-spark);
+  pointer-events: none;
+  animation: xpm-ghost 1.1s ease-in-out 4 alternate;
+}
+
+.xpm-bar-caption {
+  position: fixed;
+  z-index: 70;
+  max-width: calc(100vw - 2rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--xpm-canvas-ink);
+  font-size: 0.875rem;
+  pointer-events: none;
+  animation: xpm-drop-in 380ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.xpm-bar-caption strong {
+  color: var(--xpm-spark);
+}
+
+.xpm-bar-countdown {
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  background: rgb(255 255 255 / 0.12);
+  font-variant-numeric: tabular-nums;
+}
+
+.xpm-bar-caption-hint {
+  color: var(--xpm-canvas-quiet);
+}
+
+/* Items on the same canvas */
+
+.xpm-items-scene {
+  position: absolute;
+  inset: 0 0 7rem;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.xpm-collected {
+  margin: 0;
+  color: var(--xpm-canvas-quiet);
+  font-size: 0.9375rem;
+  animation: xpm-fade 400ms ease-out both;
+}
+
+.xpm-collected strong {
+  color: var(--xpm-spark);
+}
+
+.xpm-items-big {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  animation: xpm-rise 520ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  animation-delay: 120ms;
+}
+
+.xpm-items-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 2.5rem);
+  margin: 0.75rem 0 0.25rem;
+}
+
+.xpm-item {
+  display: grid;
+  width: clamp(5rem, 16vw, 7.5rem);
+  height: clamp(5rem, 16vw, 7.5rem);
+  place-items: center;
+  transform: translateY(var(--lift)) rotate(var(--tilt));
+  border: 4px solid var(--al-accent);
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--xpm-back) 65%, #fff), var(--xpm-back));
+  box-shadow: 0 14px 30px rgb(0 0 0 / 0.45), 0 0 0 6px rgb(255 255 255 / 0.06);
+  color: var(--xpm-back-ink);
+  font: inherit;
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 800;
+  cursor: pointer;
+  animation: xpm-item-drop 640ms cubic-bezier(0.2, 0.9, 0.3, 1.45) both;
+  animation-delay: calc(260ms + var(--i) * 140ms);
+  transition: transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.4), box-shadow 180ms ease-out;
+}
+
+.xpm-items-scene[data-variant="E"] .xpm-item {
+  animation-name: xpm-item-pop;
+}
+
+.xpm-items-scene[data-variant="F"] .xpm-item {
+  animation-name: xpm-item-rise;
+}
+
+.xpm-item:hover,
+.xpm-item:focus-visible {
+  transform: translateY(calc(var(--lift) - 8px)) rotate(calc(var(--tilt) * -1)) scale(1.08);
+  box-shadow: 0 22px 40px rgb(0 0 0 / 0.5), 0 0 0 8px color-mix(in oklab, var(--al-accent) 45%, transparent);
+}
+
+.xpm-item:hover > span {
+  display: inline-block;
+  animation: xpm-wiggle 420ms ease-in-out;
+}
+
+.xpm-items-sub {
+  margin: 0;
+  color: var(--xpm-canvas-quiet);
+  font-size: 0.9375rem;
+  animation: xpm-fade 400ms ease-out both;
+  animation-delay: 700ms;
+}
+
+.xpm-later {
+  color: var(--xpm-canvas-quiet);
+  font-size: 0.875rem;
+  animation: xpm-fade 400ms ease-out both;
+  animation-delay: 900ms;
+}
+
+@keyframes xpm-scatter-in {
+  from { transform: translate(-50%, -50%) rotate(calc(var(--rot) * -3)) scale(0.5); opacity: 0; }
+}
+
+@keyframes xpm-scatter-from-orb {
+  from { transform: translate(-50%, -50%) translate(var(--from-x), var(--from-y)) scale(0.2); opacity: 0; }
+}
+
+@keyframes xpm-wall-in {
+  from { transform: translate(-50%, -50%) translateY(1.5rem); opacity: 0; }
+}
+
+@keyframes xpm-drain {
+  to { transform: scaleX(0); }
+}
+
+@keyframes xpm-hint-breathe {
+  50% { opacity: 0.5; }
+}
+
+@keyframes xpm-orb-in {
+  from { transform: translate(-50%, -50%) scale(0); }
+}
+
+@keyframes xpm-ring {
+  to { stroke-dashoffset: 100; }
+}
+
+@keyframes xpm-orb-launch {
+  30% { transform: translate(-50%, -50%) scale(1.15); }
+  to { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+@keyframes xpm-ghost {
+  to { opacity: 0.45; }
+}
+
+@keyframes xpm-item-drop {
+  from { transform: translateY(-60vh) rotate(-40deg); }
+}
+
+@keyframes xpm-item-pop {
+  from { transform: scale(0) rotate(-90deg); opacity: 0; }
+}
+
+@keyframes xpm-item-rise {
+  from { transform: translateY(40vh); opacity: 0; }
+}
+
+@keyframes xpm-wiggle {
+  25% { transform: rotate(-14deg); }
+  75% { transform: rotate(14deg); }
+}
+
+@media (max-width: 40rem) {
+  .xpm-bar-caption {
+    left: 1rem !important;
+    font-size: 0.75rem;
+  }
+
+  .xpm-collect-hint {
+    bottom: 9.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .xpm-orb {
+    width: 6.5rem;
+    height: 6.5rem;
+  }
+
+  .xpm-orb-xp {
+    font-size: 1.5rem;
+  }
+
+  .xpm-items-scene {
+    inset: 0 0 9rem;
+  }
+}

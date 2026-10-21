@@ -110,11 +110,11 @@ export function useRun(scenario: Scenario, pace: Pace, reduced: boolean): Run {
   return { beats, at, landed, done, skipped, level, moving: !reduced && !done, chip, advance, skip };
 }
 
-function shell() {
+export function shell() {
   return document.querySelector<HTMLElement>(".al-shell") ?? document.body;
 }
 
-function barEnd() {
+export function barEnd() {
   const fill = document.querySelector<HTMLElement>(".al-xp-fill") ?? document.querySelector<HTMLElement>(".al-xp");
   if (!fill) return null;
   const box = fill.getBoundingClientRect();
@@ -164,7 +164,7 @@ function pulseTheBar(amount: number) {
   gain.animate([{ transform: "translate(-50%, 0) scale(0.6)", opacity: 0 }, { transform: "translate(-50%, -14px) scale(1.1)", opacity: 1, offset: 0.3 }, { transform: "translate(-50%, -26px) scale(1)", opacity: 0 }], { duration: 900, easing: "ease-out" }).onfinish = () => gain.remove();
 }
 
-function popTheLevel() {
+export function popTheLevel() {
   document.querySelector<HTMLElement>(".al-level")?.animate(
     [
       { transform: "scale(1)", background: "transparent", color: "inherit" },

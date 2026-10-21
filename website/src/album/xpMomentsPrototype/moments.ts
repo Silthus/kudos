@@ -34,12 +34,12 @@ export const scenarios: Record<string, Scenario> = {
 
 export const scenarioKeys = Object.keys(scenarios);
 
-export type Pace = { name: string; settle: number; read: number; flight: number; gap: number };
+export type Pace = { name: string; settle: number; read: number; flight: number; gap: number; stagger: number; holdBase: number; holdPer: number; collectStagger: number };
 
 export const paces: Record<string, Pace> = {
-  snappy: { name: "Snappy", settle: 400, read: 650, flight: 480, gap: 120 },
-  brisk: { name: "Brisk", settle: 600, read: 1000, flight: 600, gap: 220 },
-  calm: { name: "Calm", settle: 800, read: 1600, flight: 750, gap: 350 },
+  snappy: { name: "Snappy", settle: 400, read: 650, flight: 480, gap: 120, stagger: 110, holdBase: 1400, holdPer: 450, collectStagger: 90 },
+  brisk: { name: "Brisk", settle: 600, read: 1000, flight: 600, gap: 220, stagger: 170, holdBase: 2000, holdPer: 700, collectStagger: 140 },
+  calm: { name: "Calm", settle: 800, read: 1600, flight: 750, gap: 350, stagger: 260, holdBase: 3000, holdPer: 1000, collectStagger: 220 },
 };
 
 export const paceKeys = Object.keys(paces);
