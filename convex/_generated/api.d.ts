@@ -236,6 +236,7 @@ import type * as slack_appHome from "../slack/appHome.js";
 import type * as slack_appHomeLinks from "../slack/appHomeLinks.js";
 import type * as slack_backfill from "../slack/backfill.js";
 import type * as slack_blocks from "../slack/blocks.js";
+import type * as slack_channelJoins from "../slack/channelJoins.js";
 import type * as slack_commandReplies from "../slack/commandReplies.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_customEmoji from "../slack/customEmoji.js";
@@ -585,6 +586,7 @@ declare const fullApi: ApiFromModules<{
   "slack/appHomeLinks": typeof slack_appHomeLinks;
   "slack/backfill": typeof slack_backfill;
   "slack/blocks": typeof slack_blocks;
+  "slack/channelJoins": typeof slack_channelJoins;
   "slack/commandReplies": typeof slack_commandReplies;
   "slack/commands": typeof slack_commands;
   "slack/customEmoji": typeof slack_customEmoji;

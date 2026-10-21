@@ -6,9 +6,9 @@ const siteUrl = "https://example-deployment.convex.site";
 describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => {
   const manifest = renderManifest(environment, siteUrl);
 
-  test("asks for every spec 1 bot scope up front, users:read.email for the directory's member profiles (F4), usergroups:read for its user groups, emoji:read for its custom emoji and reactions:read for hugs (SR17)", () => {
+  test("asks for every spec 1 bot scope up front, users:read.email for the directory's member profiles (F4), usergroups:read for its user groups, emoji:read for its custom emoji, reactions:read for hugs (SR17) and channels:read to list and hear about every public channel it joins", () => {
     expect(manifest.oauth_config.scopes.bot.toSorted()).toEqual(
-      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "emoji:read", "groups:history", "reactions:read", "reactions:write", "usergroups:read", "users:read", "users:read.email"],
+      ["channels:history", "channels:join", "channels:read", "chat:write", "chat:write.public", "commands", "emoji:read", "groups:history", "reactions:read", "reactions:write", "usergroups:read", "users:read", "users:read.email"],
     );
   });
 
@@ -22,11 +22,12 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     ]);
   });
 
-  test("subscribes to every spec 1 bot event, the user group events, emoji_changed and reaction_added for hugs (SR17) at the deployment's events route", () => {
+  test("subscribes to every spec 1 bot event, the user group events, emoji_changed, reaction_added for hugs (SR17) and channel_created to join each new public channel at the deployment's events route", () => {
     expect(manifest.settings.event_subscriptions).toEqual({
       request_url: "https://example-deployment.convex.site/slack/events",
       bot_events: [
         "app_home_opened",
+        "channel_created",
         "emoji_changed",
         "message.channels",
         "message.groups",
