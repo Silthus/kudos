@@ -65,3 +65,7 @@ export type WordSegment = Infer<typeof wordSegmentValidator>;
 export type Words = Infer<typeof wordsValidator>;
 export type Visibility = Infer<typeof visibilityValidator>;
 export type CountableContent = Infer<typeof countableContentValidator>;
+
+export function countableOf({ mentions, emoji, mentionsBeforeEmoji }: CountableContent): CountableContent {
+  return { mentions, emoji, ...(mentionsBeforeEmoji && { mentionsBeforeEmoji }) };
+}
