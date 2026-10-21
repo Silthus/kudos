@@ -114,7 +114,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: an unlocked page with the item board answered; one whose emoji Slack has, one whose emoji Slack doesn't have, and one whose picture comes from another host
   via: AL45: an unlocked page says plainly what the member got
   refuted: teamEmojiUseWords said Use it in Slack whether or not Slack had the emoji -> the page called an emoji Slack lacks usable, 1 of 3 tests red (2026-10-19)
-  refuted: an unlocked team page kept the line naming its team emoji under the seal while getAlbum answered the item board -> 1 of 4 tests red: the line followed the seal's Unlocked with the item board answered (2026-10-21)
+  refuted: an unlocked team page kept the line naming its team emoji under the seal while getAlbum answered the item board -> 1 of 4 tests red: the line followed the seal's `Unlocked` date with the item board answered (2026-10-21)
   because: a member who unlocks a team sticker should know at once what they got and what to do with it, and HedgeHug never claims an emoji works in Slack before Slack has it (AL30, AL31, #696)
   kinds: output
   checklist: destination-confinement dismissed: the line sends no command; `Add to Slack` only opens the workspace's own Slack page and saves a picture the browser drew or this site serves
