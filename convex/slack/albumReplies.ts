@@ -4,9 +4,8 @@ import { observedAction } from "../analytics/boundary";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
 import type { AlbumReply, AlbumReplyButton, AlbumReplyRecipient } from "../feedback/albumReplies";
 import { escaped, mrkdwn, urlButtonOf } from "./blocks";
-import { attemptArgs, attemptCall, isRefusedForItsBlocks, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
+import { attemptArgs, attemptCall, isRateLimited, isRefusedForItsBlocks, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
 
-const rateLimitErrors = new Set(["ratelimited", "rate_limited"]);
 
 export const deliverAlbumReply = observedAction({
   args: { event: thoughtfulPacksGrantedEventValidator, ...attemptArgs },
@@ -29,10 +28,6 @@ async function sendAlbumReply(ctx: ActionCtx, event: ThoughtfulPacksGrantedEvent
 async function postAlbumReply(ctx: ActionCtx, reply: AlbumReply): Promise<Attempt> {
   const result = await attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(reply));
   return isRefusedForItsBlocks(result) && hasPictures(reply) ? attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(withoutPictures(reply))) : result;
-}
-
-function isRateLimited(result: Attempt): result is Extract<Attempt, { kind: "held" | "failed" }> {
-  return result.kind === "held" || (result.kind === "failed" && (result.retryAt !== undefined || rateLimitErrors.has(result.error ?? "")));
 }
 
 function hasPictures({ recipients }: AlbumReply) {

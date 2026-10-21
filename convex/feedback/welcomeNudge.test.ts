@@ -1,9 +1,9 @@
 import { getFunctionName } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
-import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsOnForEveryone, offForEveryone, onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text, type MessageOptions } from "../../testing/slackMessages";
@@ -36,6 +36,7 @@ let slack: FakeSlack;
 let postHog: FakePostHog;
 let t: Backend;
 let sent = 0;
+const nudgeAnswers: Array<"lands without an answer" | "rate limited"> = [];
 
 beforeEach(() => {
   vi.useFakeTimers({ now });
@@ -51,7 +52,8 @@ beforeEach(() => {
   for (const [user, name, admin] of [["U_ALICE", "Alice Marchetti", true], ["U_BOB", "Bob Okonkwo", true], ["U_CAROL", "Carol Lindqvist", false], ["U_DANA", "Dana Ferreira", false], ["U_ERIN", "Erin Vasquez", false]] as const) {
     slack.withMember(user, { is_admin: admin, profile: { display_name: name, real_name: name, email: `${name.split(" ")[0]!.toLowerCase()}@example.com` } });
   }
-  postHog = flagsOnForEveryone(slack.fetch);
+  nudgeAnswers.length = 0;
+  postHog = flagsOnForEveryone(chatAnswering);
 });
 
 afterEach(() => {
@@ -137,6 +139,44 @@ describe("LP45 LP46 LP47 LP48: the welcome nudge is one DM ever to a member who 
     expect(nudgesTo("U_DANA")).toHaveLength(1);
   });
 
+  test("a nudge Slack took but whose answer was lost is not sent again", async () => {
+    await aWorkspace(nudgeOn.map(onForEveryone));
+    nudgeAnswers.push("lands without an answer");
+
+    await thanks("U_ALICE", "U_BOB");
+
+    expect(nudgesTo("U_BOB")).toHaveLength(1);
+  });
+
+  test("a nudge Slack rate-limited goes once Slack allows it, and not when the maintainer switched the nudge off meanwhile", async () => {
+    await aWorkspace(nudgeOn.map(onForEveryone));
+    await adminTabOpen("U_ALICE");
+    nudgeAnswers.push("rate limited");
+    await thanks("U_ALICE", "U_BOB");
+    expect(nudgesTo("U_BOB"), "sent after the wait").toHaveLength(1);
+
+    nudgeAnswers.push("rate limited");
+    await postKudos("U_CAROL", "U_ERIN");
+    await settleUpTo(t, Date.now() + 60_000);
+    await clickInHome("U_ALICE", "Switch off", Date.now() + 60_000);
+    await settle(t);
+
+    expect(nudgesTo("U_ERIN"), "switched off before the retry").toEqual([]);
+  });
+
+  test("a hug on a kudos nudges the kudos's recipients who were not nudged by it, linking the hugged kudos, and never the hugger", async () => {
+    await aWorkspace(nudgeOn.map(onForEveryone));
+    await adminTabOpen("U_ALICE");
+    await clickInHome("U_ALICE", "Switch off");
+    const kudos = await thanks("U_CAROL", "U_ERIN");
+    await clickInHome("U_ALICE", "Switch on");
+
+    await hugs("U_DANA", "U_CAROL", kudos);
+
+    expect(nudgesTo("U_ERIN").map(({ blocks }) => blocks[0])).toEqual([{ type: "section", text: { type: "mrkdwn", text: `<@U_DANA> <${slackUrl}archives/C1/p${kudos.replace(".", "")}|hugged a kudos you got> :taco:` } }]);
+    expect(nudgesTo("U_DANA")).toEqual([]);
+  });
+
   test.each([
     { condition: "with welcome-item off", flags: [...nudgeOn.filter((key) => key !== "welcome-item").map(onForEveryone), offForEveryone("welcome-item")] },
     { condition: "with welcome-item on but hidden-items off", flags: [...nudgeOn.filter((key) => key !== "hidden-items").map(onForEveryone), offForEveryone("hidden-items")] },
@@ -208,9 +248,18 @@ async function adminTabOpen(user: string) {
   await clickInHome(user, "Admin");
 }
 
-async function clickInHome(user: string, label: string) {
+async function clickInHome(user: string, label: string, settledUpTo?: number) {
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, buttonInHome(slack, user, label)), form));
-  await settle(t);
+  await (settledUpTo === undefined ? settle(t) : settleUpTo(t, settledUpTo));
+}
+
+async function chatAnswering(input: string | URL | Request, init?: RequestInit) {
+  const isANudge = String(input instanceof Request ? input.url : input).endsWith("/chat.postMessage") && String(init?.body ?? "").includes("welcome-nudge-open-album");
+  const answer = isANudge ? nudgeAnswers.shift() : undefined;
+  if (answer === "rate limited") return rateLimitedFor(3600)(() => new Response());
+  const answered = await slack.fetch(input, init);
+  if (answer === "lands without an answer") throw new DOMException("The operation timed out.", "TimeoutError");
+  return answered;
 }
 
 type Posted = { channel: string; text: string; blocks: Array<{ type: string; text?: { text: string } }> };
