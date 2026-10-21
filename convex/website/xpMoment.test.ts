@@ -255,6 +255,25 @@ describe("LP26 LP35: endXpMoment moves the last visit to the newest instant the 
     expect(await everythingWritten()).toEqual(before);
   });
 
+  test("LP61: a moment started from the glow after the visit's own one ended moves the last visit on to the newest instant it read, and never plays or moves for the collected one again", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+    const visitsOwn = await theMomentOf(asAlice);
+    await endOf(asAlice, visitsOwn);
+    const cameInSince = await thanks(carol, alice);
+    later();
+
+    const missed = await theMomentOf(asAlice);
+    expect(missed.since, "the glow's moment starts where the visit's own ended").toBe(visitsOwn.until);
+    expect(missed.excerpts.map(({ entry }) => entry.at)).toEqual([cameInSince.at]);
+    expect(await endOf(asAlice, missed)).toEqual({ kind: "arrived", lastVisit: missed.until });
+    expect(await momentOf(asAlice), "the collected moments").toEqual({ kind: "none", lastVisit: missed.until });
+
+    const before = await everythingWritten();
+    expect(await endOf(asAlice, visitsOwn), "ending the visit's own moment again").toEqual({ kind: "arrived", lastVisit: missed.until });
+    expect(await everythingWritten()).toEqual(before);
+  });
+
   test("an instant no moment read moves nothing", async () => {
     const asAlice = await aReturningMember(alice);
     await thanks(bob, alice);

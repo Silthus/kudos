@@ -118,7 +118,7 @@ async function returnTo({ moment = busyReturn, album = returning, read = fixedAl
   vi.useFakeTimers();
   started = Date.now();
   await act(async () => later.answerWith(moment));
-  return view;
+  return { ...view, answerWith: later.answerWith };
 }
 
 const frameMs = 16;
@@ -602,5 +602,108 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
 
     expect(theEmojiPopUp()).toBeInTheDocument();
     expect(actions.markEmojisSeen).not.toHaveBeenCalled();
+  });
+});
+
+const cameInLater: XpMoment = { ...quietReturn, since: busyReturn.until, until: busyReturn.until + 10 * minute };
+
+function theGlow() {
+  return theTopBar().queryByRole("button", { name: /^(Collect XP|\d+\+? items? waits?)$/ });
+}
+
+async function closeTheBoard() {
+  await act(async () => fireEvent.click(within(theItemBoard()!).getByRole("button", { name: "Later" })));
+}
+
+describe("LP61: a glow beside the level bar starts what did not play", { timeout: 30_000 }, () => {
+  it("after Later the waiting items glow beside the level bar in place of the pill, and a press opens the board again", async () => {
+    await returnTo({ moment: { kind: "none", lastVisit } });
+    await at(1);
+    expect(theGlow(), "while the board is open").toBeNull();
+
+    await closeTheBoard();
+
+    expect(theGlow()).toHaveAccessibleName("3 items wait");
+    expect(theGlow()!.closest(".al-xp"), "beside the level bar").not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "3 items wait" }), "one control, no pill under the top bar").toEqual([theGlow()]);
+    await act(async () => fireEvent.click(theGlow()!));
+    expect(theItemBoard()).toBeInTheDocument();
+    expect(theGlow(), "once the board is open again").toBeNull();
+  });
+
+  it("XP that came in after the visit's read glows beside the level bar, and a press plays that moment once out of the orb and ends it where it read", async () => {
+    const { actions, answerWith } = await returnTo({ album: caughtUp, moment: { kind: "none", lastVisit } });
+    await at(1);
+    expect(theGlow(), "before anything came in").toBeNull();
+
+    await act(async () => answerWith({ ...cameInLater, waiting: 0 }));
+    expect(theGlow()).toHaveAccessibleName("Collect XP");
+    await act(async () => fireEvent.click(theGlow()!));
+    started = Date.now();
+
+    expect(theGlow(), "while it plays").toBeNull();
+    await at(canvasArrival + 0.05);
+    expect(theCards()).toHaveLength(1);
+    expect(theOrb()).toBeInTheDocument();
+    await collectAt(canvasArrival + 0.17 + 0.55);
+    await at(0.72 + 0.55 + 0.7 + 0.4);
+    expect(within(theCanvas()!).getByText(/from 1 moment since/)).toBeInTheDocument();
+    expect(within(theCanvas()!).getByText("All caught up")).toBeInTheDocument();
+    await at(0.72 + 0.55 + 0.7 + 0.4 + 2.6);
+    expect(theCanvas()).toBeNull();
+    expect(actions.arrive).toHaveBeenCalledTimes(1);
+    expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false);
+    expect(theGlow(), "the moment it collected, while the read still answers it").toBeNull();
+  });
+
+  it("after the visit's own moment and Later, a press plays the XP that came in since and then the waiting items, and Skip ends it as skipped", async () => {
+    const { actions, answerWith } = await returnTo();
+    await act(async () => fireEvent.keyDown(window, { key: "Escape" }));
+    await closeTheBoard();
+    expect(theGlow(), "the visit's own moment").toHaveAccessibleName("3 items wait");
+
+    await act(async () => answerWith(cameInLater));
+    expect(theGlow()).toHaveAccessibleName("Collect XP");
+    await act(async () => fireEvent.click(theGlow()!));
+    started = Date.now();
+    await at(canvasArrival + 0.2);
+    await act(async () => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })));
+
+    expect(theCanvas()).toBeNull();
+    expect(within(theItemBoard()!).getByText(/from 1 moment since/)).toHaveTextContent("+10 XP from 1 moment since");
+    expect(actions.endXpMoment).toHaveBeenCalledTimes(2);
+    expect(actions.endXpMoment).toHaveBeenLastCalledWith(cameInLater.since, cameInLater.until, true);
+  });
+
+  it("reduced motion shows the moment's end state at once when pressed", async () => {
+    preferReducedMotion();
+    const { actions, answerWith } = await returnTo({ moment: { kind: "none", lastVisit } });
+    await closeTheBoard();
+    await act(async () => answerWith(cameInLater));
+
+    await act(async () => fireEvent.click(theGlow()!));
+
+    expect(theCanvas()).toBeNull();
+    expect(within(theItemBoard()!).getByText(/from 1 moment since/)).toBeInTheDocument();
+    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false);
+  });
+
+  it("with nothing waiting there is no glow", async () => {
+    await returnTo({ album: caughtUp, moment: { kind: "none", lastVisit } });
+    await at(3);
+
+    expect(theGlow()).toBeNull();
+  });
+
+  it("with xp-moments off the top bar is unchanged and the pill under it opens the board after Later", async () => {
+    await returnTo({ moment: { kind: "off" } });
+    await closeTheBoard();
+
+    expect(theGlow()).toBeNull();
+    const pill = screen.getByRole("button", { name: "3 items wait" });
+    expect(pill.closest("header")).toBeNull();
+    await act(async () => fireEvent.click(pill));
+    expect(theItemBoard()).toBeInTheDocument();
   });
 });
