@@ -314,7 +314,7 @@ async function walkThroughTheItemBoard() {
   for (const { item } of "board" in album && album.board !== undefined ? album.board.items : []) await asSignedIn.mutation(api.website.album.turnItem, { item });
   await settled(t);
 
-  expect(eventsNamed("item turned")).toHaveLength(1);
+  expect(eventsNamed("item turned").map(({ properties }) => properties.source)).toEqual(["hoggie", "sticker"]);
   return { t };
 }
 

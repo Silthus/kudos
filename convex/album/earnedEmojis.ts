@@ -24,7 +24,9 @@ export type EarnedEmoji = { id: EarnedEmojiId | RandomEmojiId; kind: EarnedEmoji
 
 export type SharedEmoji = Pick<EarnedEmoji, "id" | "kind" | "name" | "from" | "picture" | "inSlack">;
 
-export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number } };
+export type HypesHeld = { people: ReadonlySet<MemberId>; every: boolean };
+
+export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number }; hypesHeld?: HypesHeld };
 
 export type EarnedEmojis = { emojis: EarnedEmoji[]; more: boolean };
 
@@ -52,7 +54,7 @@ type EarnedCause = Pick<Cause, "id" | "picture">;
 
 export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: EmojiCauses): Promise<EarnedEmojis> {
   const seen = await seenBy(ctx, owner.member);
-  const hype = await hypeCausesOf(ctx, owner, seen);
+  const hype = await hypeCausesOf(ctx, owner, seen, causes.hypesHeld);
   const emojis: EarnedEmoji[] = [];
   for (const cause of [...teamCausesOf(causes.pages), ...hype.causes, ...milestoneCausesOf(causes.milestones), ...levelCausesOf(causes.level)]) {
     const name = await emojiNameOf(ctx, owner.workspace, cause.id);
@@ -124,6 +126,16 @@ export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: 
     marked.push(id);
   }
   return marked;
+}
+
+export async function unlockHypeEmojiOf(ctx: MutationCtx, { workspace, member }: PageOwner, person: MemberId, at: number): Promise<HypeEmoji | null> {
+  return (await markEmojiSeen(ctx, member, `hype:${person}`, at)) ? hypeEmojiOf(ctx, workspace, person) : null;
+}
+
+export async function markEmojiSeen(ctx: MutationCtx, member: MemberId, emoji: string, at: number): Promise<boolean> {
+  if ((await seenAmong(ctx, member, emoji)).size > 0) return false;
+  await ctx.db.insert("seenEmojis", { member, emoji, at });
+  return true;
 }
 
 async function emojiOf(ctx: QueryCtx, workspace: string, { id, kind, from, picture, earned, earnedAt, progress }: Cause, name: string, seen: Set<string>): Promise<EarnedEmoji> {
@@ -198,14 +210,19 @@ function levelCausesOf({ level, xp }: EmojiCauses["level"]): Cause[] {
   return emojiLevels.map((reward) => ({ id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: emojiArtPictureOf("level", reward), earned: level >= reward, earnedAt: null, progress: { have: xp, need: xpToReach(reward) } }));
 }
 
-async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>): Promise<{ causes: Cause[]; more: boolean }> {
+async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>, held: HypesHeld | undefined): Promise<{ causes: Cause[]; more: boolean }> {
   const people = unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen);
   const causes: Cause[] = [];
   for (const { person, firstPackAt } of people.slice(0, mostHypeEmojisShown)) {
     const { name, picture } = await hypeFaceOf(ctx, workspace, person);
-    causes.push({ id: `hype:${person}`, kind: "hype", from: name, picture, earned: true, earnedAt: firstPackAt, progress: { have: 1, need: 1 } });
+    const earned = !isHeldForItsItem(person, seen, held);
+    causes.push({ id: `hype:${person}`, kind: "hype", from: name, picture, earned, earnedAt: earned ? firstPackAt : null, progress: { have: earned ? 1 : 0, need: 1 } });
   }
   return { causes, more: people.length > mostHypeEmojisShown };
+}
+
+function isHeldForItsItem(person: MemberId, seen: Set<string>, held: HypesHeld | undefined) {
+  return held !== undefined && !seen.has(`hype:${person}`) && (held.every || held.people.has(person));
 }
 
 function unseenFirst(people: PackedPerson[], seen: Set<string>): PackedPerson[] {

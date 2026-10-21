@@ -255,7 +255,7 @@ export function projectPacksEarned({ giver, outcomes, at }: ThoughtfulPacksGrant
 }
 
 export function projectItemTurned({ member, source, rarity, isNew, at }: ItemTurnedEvent): ProductEvent {
-  return { event: "item turned", subject: { member }, at, properties: { source, rarity, is_new: isNew } };
+  return { event: "item turned", subject: { member }, at, properties: { source, ...(rarity !== undefined && { rarity }), is_new: isNew } };
 }
 
 export function projectAlbumStickerCollected({ member, at }: StickerPutInEvent): ProductEvent {

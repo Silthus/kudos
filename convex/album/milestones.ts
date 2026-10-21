@@ -11,6 +11,8 @@ import { teamPagesOf, type PageOwner, type TeamPage } from "./teamPages";
 
 export type MilestoneAnswer = { id: MilestoneId; count: number; tiers: (Step & { earnedAt: number | null })[] };
 
+export type ReachedTier = { milestone: MilestoneId; tier: MilestoneTier };
+
 type Counts = Record<MilestoneId, number>;
 
 export const membersPerMilestonePage = 25;
@@ -79,19 +81,22 @@ export async function milestonesOf(ctx: QueryCtx, owner: PageOwner, pages: TeamP
   return milestoneCatalogue.milestones.map(({ id, steps }) => ({ id, count: counts[id], tiers: steps.map((step) => ({ ...step, earnedAt: earned.get(tierKey(id, step.tier)) ?? null })) }));
 }
 
-export function recordMilestonesOf(ctx: MutationCtx, owner: PageOwner, at: number): Promise<void> {
+export function recordMilestonesOf(ctx: MutationCtx, owner: PageOwner, at: number): Promise<ReachedTier[]> {
   return recordTiersOf(ctx, owner.member, () => teamPagesOf(ctx, owner), at);
 }
 
-async function recordTiersOf(ctx: MutationCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>, at: number): Promise<void> {
+async function recordTiersOf(ctx: MutationCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>, at: number): Promise<ReachedTier[]> {
   const { counts, hoggieFirstFinds } = await factsOf(ctx, member, pagesOf);
   const earned = await earnedTiersOf(ctx, member);
+  const reached: ReachedTier[] = [];
   for (const { id, steps } of milestoneCatalogue.milestones) {
     for (const step of steps.filter(({ at: needed, tier }) => counts[id] >= needed && !earned.has(tierKey(id, tier)))) {
       const reachedAt = id === "hoggies" ? (hoggieFirstFinds[step.at - 1] ?? at) : at;
       await ctx.db.insert("milestoneTiers", { member, milestone: id, tier: step.tier, at: reachedAt, catalogue: milestoneCatalogue.version });
+      reached.push({ milestone: id, tier: step.tier });
     }
   }
+  return reached;
 }
 
 async function countsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>): Promise<Counts> {
