@@ -555,7 +555,7 @@ export default defineSchema({
 
   items: defineTable(itemValidator).index("by_member_turned", ["member", "turnedAt", "earnedAt"]).index("by_member_source_key", ["member", "source", "key"]),
 
-  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]),
+  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]).index("by_pack_kind", ["pack", "kind"]),
 
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 

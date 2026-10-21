@@ -168,7 +168,7 @@ describe("LP13: every turn answers the milestone tiers it reached", { timeout: 6
 });
 
 describe("LP6: the old put-in and put-all-in mark the sticker item turned", { timeout: 60_000 }, () => {
-  test("with hidden-items off a sticker put in, and the stickers put all in, no longer wait once the flag turns on", async () => {
+  test("with hidden-items off a sticker put in, and the stickers put all in, no longer wait once the flag turns on, while the tray's hoggies wait until they are put in", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen);
     await thanks(alice, bob, carol);
     const asAlice = await signedIn(alice);
@@ -178,7 +178,7 @@ describe("LP6: the old put-in and put-all-in mark the sticker item turned", { ti
     await asAlice.mutation(api.website.album.putIn, { item: bobsSticker!.item });
 
     await switchWebsite(t, postHog, true, ...itemsOn);
-    expect((await thanksItemsOf(asAlice)).map(({ reason }) => reason.kind === "thanks" && reason.thanked.name)).toEqual([carol.name]);
+    expect((await thanksItemsOf(asAlice)).map(({ reason }) => reason.kind === "thanks" && reason.thanked.name).sort()).toEqual([bob.name, carol.name, carol.name]);
     await switchWebsite(t, postHog, true, ...albumOpen);
     await asAlice.mutation(api.website.album.putAllIn, {});
     await switchWebsite(t, postHog, true, ...itemsOn);

@@ -150,6 +150,7 @@ import type * as hugs_recap from "../hugs/recap.js";
 import type * as hugs_records from "../hugs/records.js";
 import type * as hugs_weeks from "../hugs/weeks.js";
 import type * as hugs_xp from "../hugs/xp.js";
+import type * as items_fill from "../items/fill.js";
 import type * as items_finds from "../items/finds.js";
 import type * as items_flag from "../items/flag.js";
 import type * as items_ledger from "../items/ledger.js";
@@ -484,6 +485,7 @@ declare const fullApi: ApiFromModules<{
   "hugs/records": typeof hugs_records;
   "hugs/weeks": typeof hugs_weeks;
   "hugs/xp": typeof hugs_xp;
+  "items/fill": typeof items_fill;
   "items/finds": typeof items_finds;
   "items/flag": typeof items_flag;
   "items/ledger": typeof items_ledger;
