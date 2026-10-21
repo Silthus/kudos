@@ -4,7 +4,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf } from "../activity/kudos";
 import { hugGivenEventValidator, kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { wordsOf } from "../engine/kudosText";
-import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
+import { messageRefValidator, type ChatUserId, type MessageRef, type WordSegment } from "../engine/messageEvent";
 import { hugOf, hugPeoplePageOf } from "../hugs/records";
 import { earnWelcomeItem } from "../items/welcome";
 import { welcomeItemShownTo } from "../items/welcomeFlag";
@@ -110,10 +110,10 @@ async function albumLinkFor(ctx: QueryCtx, workspace: string, member: MemberId):
   return origin.endsWith(signInEntry) ? origin : `${origin}/book`;
 }
 
-export async function publicQuoteOf(ctx: QueryCtx, message: MessageRef): Promise<string | null> {
+export async function publicQuoteOf(ctx: QueryCtx, message: MessageRef, quoted: (segments: WordSegment[]) => WordSegment[] = (segments) => segments): Promise<string | null> {
   const words = await wordsOf(ctx, message);
   if (words.kind !== "text" || words.visibility !== "public") return null;
-  return quoteOf(await readableSegmentsOf(mentionsOfOnePage(ctx), message.workspace, words.segments));
+  return quoteOf(await readableSegmentsOf(mentionsOfOnePage(ctx), message.workspace, quoted(words.segments)));
 }
 
 function recipientsOf(event: KudosGivenEvent): MemberId[] {

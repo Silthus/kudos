@@ -1,5 +1,5 @@
 .al-shell {
-  --xpm-canvas-scrim: rgb(18 14 8 / 0.72);
+  --xpm-canvas-scrim: rgb(18 14 8 / 0.88);
   --xpm-canvas-ink: #fff8ec;
   --xpm-canvas-quiet: rgb(255 248 236 / 0.72);
   --xpm-spark: #ffd27a;
@@ -12,7 +12,7 @@
 }
 
 .dark .al-shell {
-  --xpm-canvas-scrim: rgb(0 0 0 / 0.78);
+  --xpm-canvas-scrim: rgb(0 0 0 / 0.88);
   --xpm-mention: #6fc3f2;
   --xpm-mention-soft: color-mix(in oklab, #1d9bd1 26%, transparent);
 }
@@ -36,7 +36,7 @@
 
 .xpm-canvas {
   position: fixed;
-  inset: var(--al-top-height) 0 0;
+  inset: var(--xpm-top) 0 0;
   z-index: 60;
   overflow: hidden;
   background: var(--xpm-canvas-scrim);
