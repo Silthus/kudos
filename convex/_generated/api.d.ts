@@ -337,6 +337,8 @@ import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as welcome_welcomedAs from "../welcome/welcomedAs.js";
 import type * as workspace_customEmoji from "../workspace/customEmoji.js";
 import type * as workspace_directory from "../workspace/directory.js";
+import type * as workspace_directoryEntry from "../workspace/directoryEntry.js";
+import type * as workspace_listedMembers from "../workspace/listedMembers.js";
 import type * as workspace_memberProfile from "../workspace/memberProfile.js";
 import type * as workspace_settings from "../workspace/settings.js";
 import type * as workspace_settingsBounds from "../workspace/settingsBounds.js";
@@ -684,6 +686,8 @@ declare const fullApi: ApiFromModules<{
   "welcome/welcomedAs": typeof welcome_welcomedAs;
   "workspace/customEmoji": typeof workspace_customEmoji;
   "workspace/directory": typeof workspace_directory;
+  "workspace/directoryEntry": typeof workspace_directoryEntry;
+  "workspace/listedMembers": typeof workspace_listedMembers;
   "workspace/memberProfile": typeof workspace_memberProfile;
   "workspace/settings": typeof workspace_settings;
   "workspace/settingsBounds": typeof workspace_settingsBounds;

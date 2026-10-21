@@ -148,6 +148,25 @@ export const fillMemberProfiles = observedAction({
   },
 });
 
+export const listSlackMembers = observedAction({
+  args: {},
+  handler: async (ctx) => {
+    let cursor = "";
+    do {
+      const asOf = Date.now();
+      const page = await readSlack<UsersPage>("users.list", { limit: "200", ...(cursor && { cursor }) });
+      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${slackErrorCodeOf(page.error)}`);
+      await ctx.runMutation(internal.workspace.listedMembers.keepListedMembers, { listings: page.members.flatMap((user) => listingOf(user, asOf)) });
+      cursor = page.response_metadata?.next_cursor ?? "";
+    } while (cursor !== "");
+  },
+});
+
+function listingOf(user: SlackUser, asOf: number): DirectoryRecord[] {
+  const [id, workspace] = [textOf(user.id), textOf(user.team_id)];
+  return id === undefined || workspace === undefined ? [] : [directoryRecordOf(workspace, id, user, asOf)];
+}
+
 function memberProfileOf(user: SlackUser, asOf: number) {
   const listed = listedMemberOf(user);
   return listed === null ? [] : [{ workspace: listed.workspace, user: listed.id, profile: profileOf(user), asOf }];

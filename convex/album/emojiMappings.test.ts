@@ -246,6 +246,56 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
   });
 });
 
+describe("#128: the hype picker offers every Slack member", { timeout: 90_000 }, () => {
+  const nova = person("Nova", "Underhill");
+
+  test("a Slack member HedgeHug has never come across is offered by name once Slack's members are listed, and the hype emoji mapped to them is theirs once a pack earns it", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    await slackHas("nova-cheer");
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: keyOf(await mappingsOf(asOwner), nova) } })).toEqual({ kind: "mapped" });
+
+    const mappings = await mappingsOf(asOwner);
+    expect(mappings.people.filter(({ name }) => name === nova.name), "offered once, now as a member").toHaveLength(1);
+    expect(mappings.emoji).toEqual([{ name: "nova-cheer", image: slackPicture("nova-cheer"), mapping: { kind: "hype", person: keyOf(mappings, nova) } }]);
+    await aliceCollects(nova);
+    expect(await emojiWithId(await signedIn(alice), `hype:${await memberOf(nova)}`)).toMatchObject({ name: "nova-cheer", earned: true, inSlack: true });
+  });
+
+  test("a Slack emoji the maintainer doesn't have, mapped to a member HedgeHug has never come across, is refused and records nobody", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+    const before = withoutFlagRows(await everyTable());
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: keyOf(await mappingsOf(asOwner), nova) } })).toEqual({ kind: "refused" });
+    expect(withoutFlagRows(await everyTable())).toEqual(before);
+  });
+
+  test("bots, deleted users and people of another workspace are never offered, a member Slack later lists as deleted stops being offered, and their old key is refused", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    slack.withMember("U_HELPER_BOT", { ...slackUser(person("Helper", "Bot")), is_bot: true });
+    slack.withMember("U_GONE", { ...slackUser(person("Gone", "Away")), deleted: true });
+    slack.withMember("U_GUESTHOUSE", { ...slackUser(person("Other", "Workspace")), team_id: "T2" });
+    await slackHas("nova-cheer");
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+    const novasKey = keyOf(await mappingsOf(asOwner), nova);
+
+    expect((await mappingsOf(asOwner)).people.map(({ name }) => name)).toEqual([...everyone, nova].map(({ name }) => name).toSorted((one, other) => one.localeCompare(other)));
+
+    slack.withMember(nova.user, { ...slackUser(nova), deleted: true });
+    await slackMembersAreListed();
+    const before = withoutFlagRows(await everyTable());
+
+    expect((await mappingsOf(asOwner)).people.map(({ name }) => name)).not.toContain(nova.name);
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: novasKey } })).toEqual({ kind: "refused" });
+    expect(withoutFlagRows(await everyTable())).toEqual(before);
+  });
+});
+
 describe("the maintainer maps Slack's standard emoji behind standard-emoji", { timeout: 90_000 }, () => {
   test("Settings list Slack's standard emoji after the workspace's custom ones, each once under its own name with Slack's picture, and one maps to a team like a custom emoji", async () => {
     await aliceCollects(...otters);
@@ -498,6 +548,11 @@ function twoTeams(): TeamPage[] {
 async function slackHas(...names: string[]) {
   for (const name of names) slack.withCustomEmoji(name, slackPicture(name));
   await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+  await settle(t);
+}
+
+async function slackMembersAreListed() {
+  await t.action(internal.slack.directory.listSlackMembers, {});
   await settle(t);
 }
 

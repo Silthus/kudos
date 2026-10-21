@@ -59,6 +59,7 @@ import { questDrawValidator, questProgressValidator, questSwapValidator } from "
 import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
 import { welcomedAsValidator } from "./welcome/welcomedAs";
+import { memberEntryValidator } from "./workspace/directoryEntry";
 import { memberProfileFields } from "./workspace/memberProfile";
 import { coinSpendValidator } from "./wallet/wallet";
 
@@ -159,6 +160,8 @@ export default defineSchema({
   })
     .index("by_user", ["workspace", "user"])
     .index("by_admin", ["workspace", "admin"]),
+
+  listedMembers: defineTable({ workspace: v.string(), user: v.string(), entry: memberEntryValidator, asOf: v.number() }).index("by_user", ["workspace", "user"]),
 
   userGroups: defineTable({
     workspace: v.string(),
