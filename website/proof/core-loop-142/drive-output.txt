@@ -1,0 +1,22 @@
+event 1 (team_join) answered 200
+event 2 (team_join) answered 200
+event 3 (team_join) answered 200
+## climb
+event 1 (message) answered 200
+  kudos Juno Twostep -> Rafe Helper at ts 1792625588.971000
+event 2 (message) answered 200
+  kudos Juno Twostep -> Rafe Helper at ts 1792625590.845000
+event 3 (message) answered 200
+  kudos Odile Fivefold -> Rafe Helper at ts 1792625592.627000
+event 4 (message) answered 200
+  kudos Odile Fivefold -> Rafe Helper at ts 1792625594.390000
+
+## seeded by hand (convex import --append, sandbox different-dog-467)
+memberProgress: Odile Fivefold at 590 XP before her kudos (level 5 starts at 600)
+lastVisits: both members, one hour before the kudos, so the XP moment plays
+users, authSessions, authRefreshTokens: one signed-in session per member (no Slack sign-in)
+
+## read back after the climb
+Juno Twostep: 30 XP, level 2; level:2 is :raised_hands:, which Slack has
+Odile Fivefold: 610 XP, level 5; level:5 is :level-5:, which Slack lacks (no custom emoji of that name)
+website served assets/index-BfF7NMAN.js, the bundle built from this branch, at capture
