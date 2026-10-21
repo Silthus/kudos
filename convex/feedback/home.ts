@@ -97,7 +97,7 @@ type SectionLinks = (section: HomeSection) => HomeLine[];
 
 const noSectionLinks: SectionLinks = () => [];
 
-const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null, boughtCrates: null };
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null, boughtCrates: null, thoughtfulGivers: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
@@ -180,14 +180,18 @@ function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest,
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, ...hoggiesLinesOf(hoggies, null), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies, boughtCrates }: ProfileFacts, links: FrontDoorLinks): HomeView {
-  const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies, boughtCrates, thoughtfulGivers }: ProfileFacts, links: FrontDoorLinks): HomeView {
+  const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)]), ...(thoughtfulGivers === null ? [] : [normLineOf(thoughtfulGivers)])];
   const { origin } = links;
   const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, origin), earlierGroupCrates, origin);
   const collectionPage = hoggies === null ? null : origin;
   const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [], collectionPage)];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
+}
+
+function normLineOf(thoughtfulGivers: number): HomeLine {
+  return { kind: "text", text: `${thoughtfulGivers} teammates gave thoughtful kudos this week` };
 }
 
 function levelLineOf({ level, xpToNextLevel, skillPoints, coins }: ToldProgression): HomeLine {
