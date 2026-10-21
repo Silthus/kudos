@@ -6,12 +6,12 @@ import type { Album, AlbumHoggies, AlbumRead, HoggiesRead } from "../answer";
 import { hoggiesFixtures } from "../hoggiesFixtures";
 import { hrefOf } from "../place";
 
-type Common = { id: string; xp: number; page: string; target: string; source: string };
+type Common = { id: string; xp: number; page: string; target: string; badge: string; source: string };
 
 export type BoardItem =
   | (Common & { kind: "sticker"; person: string; name: string; initials: string; team: string })
   | (Common & { kind: "hoggie"; hoggie: string; name: string; rarity: Rarity; isNew: boolean })
-  | (Common & { kind: "emoji"; emoji: string; name: string; picture: string; from: string });
+  | (Common & { kind: "emoji"; emoji: string; name: string; picture: string; from: string; what: string });
 
 const thanks = 15;
 
@@ -23,17 +23,27 @@ function sticker(person: string, team: string, source: string): BoardItem {
   const listed = album.people.find((one) => one.person === person)!;
   const name = listed.name;
   const initials = listed.face.kind === "initials" ? listed.face.initials : name.slice(0, 2);
-  return { id: `sticker:${person}`, kind: "sticker", person, name, initials, team, xp: thanks, page: hrefOf({ kind: "team", team }), target: `.al-photo-link[href$="people/${person}"] .al-photo-sticker`, source };
+  return { id: `sticker:${person}`, kind: "sticker", person, name, initials, team, xp: thanks, page: hrefOf({ kind: "team", team }), target: `.al-photo-link[href$="people/${person}"] .al-photo-sticker`, badge: `.al-photo-link[href$="people/${person}"]`, source };
 }
 
 function hoggieOf(rarity: Rarity, skip: number, source: string): BoardItem {
   const missing = hoggies.hoggies.filter((one) => !one.found && one.rarity === rarity)[skip]!;
-  return { id: `hoggie:${missing.hoggie}`, kind: "hoggie", hoggie: missing.hoggie, name: missing.name, rarity, isNew: true, xp: 0, page: hrefOf({ kind: "hoggies", hoggie: null }), target: `[data-hoggie="${missing.hoggie}"] .al-hoggies-plate-art`, source };
+  return { id: `hoggie:${missing.hoggie}`, kind: "hoggie", hoggie: missing.hoggie, name: missing.name, rarity, isNew: true, xp: 0, page: hrefOf({ kind: "hoggies", hoggie: null }), target: `[data-hoggie="${missing.hoggie}"] .al-hoggies-plate-art`, badge: `[data-hoggie="${missing.hoggie}"]`, source };
 }
 
-function emojiOf(id: string, source: string): BoardItem {
-  const known = album.emojis.find((one) => one.id === id)!;
-  return { id: `emoji:${id}`, kind: "emoji", emoji: id, name: `:${known.name}:`, picture: known.picture, from: known.from, xp: 0, page: "", target: ".al-emojis", source };
+function teamEmojiOf(team: string, source: string): BoardItem {
+  const known = album.emojis.find((one) => one.id === `team:${team}`)!;
+  return { id: `emoji:${known.id}`, kind: "emoji", emoji: known.id, name: `:${known.name}:`, picture: known.picture, from: known.from, what: `Team emoji · ${known.from} is complete`, xp: 0, page: hrefOf({ kind: "team", team }), target: ".al-seal-spot .al-seal", badge: ".al-seal-spot", source };
+}
+
+const milestoneRows: string[] = album.milestones.map(({ id }) => id);
+
+const tierOrder = ["bronze", "silver", "gold", "diamond"];
+
+function milestoneEmojiOf(milestone: string, tier: string, source: string): BoardItem {
+  const known = album.emojis.find((one) => one.id === `milestone:${milestone}:${tier}`)!;
+  const medal = `.al-ms-row:nth-child(${milestoneRows.indexOf(milestone) + 1}) .al-ms-medal:nth-child(${tierOrder.indexOf(tier) + 1})`;
+  return { id: `emoji:${known.id}`, kind: "emoji", emoji: known.id, name: `:${known.name}:`, picture: known.picture, from: known.from, what: `Milestone emoji · ${known.from}`, xp: 0, page: hrefOf({ kind: "milestones" }), target: `${medal} .al-ms-medal-art`, badge: medal, source };
 }
 
 export const boardItems: BoardItem[] = [
@@ -44,8 +54,8 @@ export const boardItems: BoardItem[] = [
   hoggieOf("common", 1, "Level 6"),
   hoggieOf("uncommon", 0, "Level 6"),
   hoggieOf("epic", 0, "Level 6"),
-  emojiOf("team:lanterns", "Lanterns is complete"),
-  emojiOf("team:copper-kite", "A random emoji"),
+  teamEmojiOf("kettle-works", "Kettle Works is complete"),
+  milestoneEmojiOf("reach", "silver", "Thanked people on 10 teams"),
 ];
 
 const listeners = new Set<() => void>();
@@ -65,6 +75,10 @@ export function land(id: string) {
 
 export function pay(id: string) {
   change({ ...progress, paid: new Set(progress.paid).add(id) });
+}
+
+export function landedItems(ids: ReadonlySet<string>) {
+  return itemsIn(ids);
 }
 
 export function startOver() {
@@ -99,7 +113,12 @@ function albumWith(now: Progress): Album {
     tray: [],
     level: { ...album.level, xp: album.level.xp + xp },
     people: album.people.map((person) => (people.has(person.person) ? { ...person, held: true } : person)),
-    teams: album.teams.map((team) => ({ ...team, held: Math.min(team.total, team.held + team.people.filter((person) => people.has(person)).length) })),
+    teams: album.teams.map((team) => ({ ...team, held: Math.min(team.total, team.held + team.people.filter((person) => people.has(person)).length), ...(emojis.has(`team:${team.team}`) ? { state: "unlocked" as const, unlockedAt: Date.now() } : {}) })),
+    milestones: album.milestones.map((milestone) => {
+      const reached = milestone.tiers.filter(({ tier }) => emojis.has(`milestone:${milestone.id}:${tier}`));
+      if (reached.length === 0) return milestone;
+      return { ...milestone, count: Math.max(milestone.count, ...reached.map(({ at }) => at)), tiers: milestone.tiers.map((tier) => (reached.includes(tier) ? { ...tier, earnedAt: Date.now() } : tier)) };
+    }),
     emojis: album.emojis.map((emoji) => (emojis.has(emoji.id) ? { ...emoji, earned: true, earnedAt: Date.now(), seen: true, progress: null } : emoji)),
   };
   albums.set(now, shown);

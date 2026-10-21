@@ -1,4 +1,4 @@
-/* PROTOTYPE (personal#97): the item board. Never merge to main. */
+/* PROTOTYPE (personal#97, round 2): the item board. Never merge to main. */
 
 .ib-on .al-packs,
 .ib-on .al-tray {
@@ -10,11 +10,12 @@
 }
 
 .ib-ground {
+  --ib-time: calc(1ms / var(--ib-speed, 1));
   position: fixed;
   inset: 0;
   z-index: 35;
   display: grid;
-  padding: calc(var(--al-top-height) + 1rem) 1rem 5rem;
+  padding: calc(var(--al-top-height) + 1rem) 1rem 6rem;
   place-items: center;
 }
 
@@ -22,26 +23,16 @@
   position: absolute;
   inset: 0;
   background: color-mix(in oklab, var(--background) 90%, transparent);
-  transition: opacity 520ms ease;
+  transition: opacity calc(480 * var(--ib-time)) ease;
 }
 
-.ib-ground[data-peek] .ib-scrim {
-  opacity: 0.55;
+.ib-ground:is([data-stage="aside"], [data-stage="turn"], [data-stage="hold"], [data-stage="land"]) .ib-scrim {
+  opacity: 0.1;
 }
 
-.ib-ground[data-variant="spotlight"]:is([data-stage="lift"], [data-stage="turn"], [data-stage="hold"]) .ib-scrim {
-  opacity: 0.6;
-}
-
-.ib-ground[data-variant="in-place"]:is([data-stage="turn"], [data-stage="hold"]) .ib-scrim {
-  opacity: 0.7;
-}
-
-.ib-ground[data-stage="aside"] .ib-scrim,
-.ib-ground[data-variant="page-first"]:is([data-stage="turn"], [data-stage="hold"]) .ib-scrim,
-.ib-ground[data-stage="land"] .ib-scrim,
-.ib-ground[data-stage="back"] .ib-scrim {
-  opacity: 0.08;
+.ib-ground[data-switching] .ib-scrim {
+  opacity: 1;
+  transition-duration: calc(200 * var(--ib-time));
 }
 
 .ib-board {
@@ -53,22 +44,14 @@
   gap: 0.75rem;
   text-align: center;
   transition:
-    transform 480ms cubic-bezier(0.3, 0.8, 0.3, 1),
-    opacity 380ms ease;
+    transform calc(520 * var(--ib-time)) cubic-bezier(0.3, 0.8, 0.3, 1),
+    opacity calc(400 * var(--ib-time)) ease;
 }
 
-.ib-ground[data-variant="page-first"]:is([data-stage="aside"], [data-stage="turn"], [data-stage="hold"], [data-stage="land"]) .ib-board {
+.ib-ground:is([data-stage="aside"], [data-stage="turn"], [data-stage="hold"], [data-stage="land"]) .ib-board {
   opacity: 0;
+  pointer-events: none;
   transform: translateY(42vh) scale(0.85);
-}
-
-.ib-ground:is([data-stage="land"], [data-stage="back"]) .ib-head,
-.ib-ground[data-variant="spotlight"]:not([data-stage="idle"]) .ib-head {
-  opacity: 0.25;
-}
-
-.ib-head {
-  transition: opacity 300ms ease;
 }
 
 .ib-title {
@@ -87,11 +70,15 @@
 
 .ib-items {
   display: flex;
-  max-width: 40rem;
+  max-width: 42rem;
   flex-wrap: wrap;
   justify-content: center;
-  padding: 0.5rem 0;
+  padding: 1rem;
   margin: 0;
+  border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+  border-radius: 1.5rem;
+  background: color-mix(in oklab, var(--card) 70%, var(--background));
+  box-shadow: inset 0 2px 6px color-mix(in oklab, var(--foreground) 8%, transparent);
   list-style: none;
 }
 
@@ -108,26 +95,17 @@
     scale 260ms ease;
 }
 
+.ib-items[data-back="inset"] .ib-slot {
+  rotate: 0deg;
+  translate: 0;
+}
+
 .ib-slot[data-gone] {
   width: 0;
   margin-inline: 0;
   opacity: 0;
   pointer-events: none;
   scale: 0.4;
-}
-
-.ib-items[data-dimmed] .ib-slot {
-  opacity: 0.22;
-  filter: blur(1px) saturate(0.4);
-  scale: 0.9;
-  transition:
-    opacity 320ms ease,
-    filter 320ms ease,
-    scale 320ms ease;
-}
-
-.ib-items[data-dimmed] .ib-slot[data-gone] {
-  opacity: 0;
 }
 
 .ib-item {
@@ -156,49 +134,140 @@
   width: 100%;
   height: 100%;
   container-type: inline-size;
-  border: 3px solid var(--card);
+  overflow: hidden;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 34% 28%, color-mix(in oklab, var(--card) 70%, white) 0, transparent 46%),
-    radial-gradient(circle, var(--al-accent-soft) 0 52%, transparent 53%),
-    var(--card);
-  box-shadow:
-    0 8px 16px -8px color-mix(in oklab, var(--foreground) 55%, transparent),
-    0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent),
-    inset 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
   place-items: center;
   transition:
     transform 260ms cubic-bezier(0.3, 1.5, 0.5, 1),
-    box-shadow 260ms ease;
-}
-
-.ib-back::before {
-  position: absolute;
-  inset: 9%;
-  border: 2px dashed color-mix(in oklab, var(--al-accent) 45%, transparent);
-  border-radius: 50%;
-  content: "";
+    box-shadow 260ms ease,
+    background-position 900ms ease;
 }
 
 .ib-q {
-  color: var(--al-accent);
+  position: relative;
   font-family: RoundHog, var(--font-sans);
-  font-size: 50cqw;
+  font-size: 46cqw;
   font-weight: 800;
   line-height: 1;
   translate: 0 -2%;
 }
 
 .ib-item:is(:hover, :focus-visible) .ib-back {
-  box-shadow:
-    0 18px 26px -12px color-mix(in oklab, var(--foreground) 55%, transparent),
-    0 0 0 4px color-mix(in oklab, var(--al-accent) 30%, transparent);
-  transform: translateY(-9px) scale(1.07);
+  transform: translateY(-8px) scale(1.06);
   animation: ib-wiggle 560ms ease-out;
 }
 
 .ib-item:is(:hover, :focus-visible) .ib-q {
   animation: ib-bob 560ms ease-out;
+}
+
+/* Back 1: reverse shadow. Pressed into the board; hover pops it out. */
+.ib-back[data-back="inset"] {
+  background: color-mix(in oklab, var(--foreground) 5%, var(--card));
+  box-shadow:
+    inset 4px 5px 9px color-mix(in oklab, var(--foreground) 22%, transparent),
+    inset -3px -4px 8px color-mix(in oklab, white 70%, transparent);
+}
+
+.ib-back[data-back="inset"] .ib-q {
+  color: color-mix(in oklab, var(--foreground) 22%, var(--card));
+  text-shadow:
+    -1px -1px 0 color-mix(in oklab, var(--foreground) 25%, transparent),
+    1px 1px 0 color-mix(in oklab, white 80%, transparent);
+}
+
+.ib-item:is(:hover, :focus-visible) .ib-back[data-back="inset"],
+.ib-flyer .ib-back[data-back="inset"] {
+  background: var(--card);
+  box-shadow:
+    0 14px 22px -10px color-mix(in oklab, var(--foreground) 45%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+
+.ib-item:is(:hover, :focus-visible) .ib-back[data-back="inset"] .ib-q,
+.ib-flyer .ib-back[data-back="inset"] .ib-q {
+  color: var(--al-accent);
+  text-shadow: none;
+}
+
+/* Back 2: sticker backing paper, with a peeled edge. */
+.ib-back[data-back="liner"] {
+  border: 3px solid var(--card);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in oklab, var(--foreground) 6%, transparent) 7px 8px),
+    color-mix(in oklab, #fff8e6 80%, var(--card));
+  box-shadow: 0 6px 12px -8px color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+.ib-back[data-back="liner"]::after {
+  position: absolute;
+  right: -6%;
+  bottom: -6%;
+  width: 40%;
+  height: 40%;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--foreground) 12%, white) 0 48%, transparent 52%);
+  border-top-left-radius: 70%;
+  box-shadow: -3px -3px 6px -2px color-mix(in oklab, var(--foreground) 30%, transparent);
+  content: "";
+  transition: transform 260ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  transform-origin: bottom right;
+}
+
+.ib-item:is(:hover, :focus-visible) .ib-back[data-back="liner"]::after {
+  transform: scale(1.35);
+}
+
+.ib-back[data-back="liner"] .ib-q {
+  color: color-mix(in oklab, var(--foreground) 55%, transparent);
+  font-size: 38cqw;
+}
+
+/* Back 3: the same hedgehog shadow on every item. */
+.ib-back[data-back="shadow-hog"] {
+  border: 3px solid var(--card);
+  background: radial-gradient(circle at 50% 35%, #3b3d45, #1c1d22 75%);
+  box-shadow: 0 8px 14px -8px color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+.ib-back-hog {
+  position: absolute;
+  inset: 12% 14% 4%;
+  display: grid;
+  opacity: 0.18;
+  filter: brightness(0) invert(1);
+  place-items: end center;
+}
+
+.ib-back-hog img,
+.ib-back-hog svg {
+  width: 100% !important;
+  height: auto !important;
+}
+
+.ib-back[data-back="shadow-hog"] .ib-q {
+  color: #fff;
+  font-size: 40cqw;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 50%);
+}
+
+/* Back 4: neutral silver foil, the same for every rarity. */
+.ib-back[data-back="foil"] {
+  border: 3px solid var(--card);
+  background:
+    linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 70%) 45%, transparent 60%) 120% 0 / 250% 100% no-repeat,
+    conic-gradient(from 200deg, #c9ccd3, #eef0f4, #b7bac2, #e3e5ea, #c9ccd3);
+  box-shadow: 0 8px 14px -8px color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+.ib-item:is(:hover, :focus-visible) .ib-back[data-back="foil"] {
+  background-position: -60% 0, 0 0;
+}
+
+.ib-back[data-back="foil"] .ib-q {
+  color: #8a8f99;
+  text-shadow:
+    1px 1px 0 rgb(255 255 255 / 80%),
+    -1px -1px 0 rgb(0 0 0 / 15%);
 }
 
 .ib-said {
@@ -258,11 +327,25 @@
   width: 100%;
   height: 100%;
   container-type: inline-size;
+  place-items: center;
+}
+
+.ib-disc {
+  position: absolute;
+  inset: 0;
   border: 3px solid var(--burst);
   border-radius: 50%;
   background: radial-gradient(circle at 50% 40%, color-mix(in oklab, var(--burst) 22%, var(--card)), var(--card) 70%);
   box-shadow: 0 10px 22px -10px color-mix(in oklab, var(--burst) 70%, transparent);
-  place-items: center;
+}
+
+.ib-front > :not(.ib-disc) {
+  position: relative;
+}
+
+.ib-front[data-kind="sticker"] .ib-disc {
+  border-color: var(--card);
+  background: color-mix(in oklab, var(--al-accent) 12%, var(--card));
 }
 
 .ib-front img {
@@ -283,7 +366,7 @@
   font-weight: 800;
 }
 
-.ib-crest {
+.ib-front .ib-crest {
   position: absolute;
   right: -2%;
   bottom: -2%;
@@ -384,6 +467,20 @@
   border: 3px solid var(--burst);
   border-radius: 50%;
   animation: ib-touch 700ms ease-out both;
+}
+
+.ib-skip {
+  position: fixed;
+  bottom: 6.5rem;
+  left: 50%;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 70%, transparent);
+  color: var(--background);
+  font-size: 0.75rem;
+  translate: -50% 0;
+  animation: ib-rise 300ms ease 600ms both;
 }
 
 .ib-wait {
@@ -502,6 +599,18 @@
   }
 }
 
+@keyframes ib-badge {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (max-width: 40rem) {
   .ib-slot {
     width: 4.5rem;
@@ -511,6 +620,10 @@
 
   .ib-caption {
     min-width: 12rem;
+  }
+
+  .ib-skip {
+    bottom: 9.5rem;
   }
 }
 

@@ -1,13 +1,13 @@
-// PROTOTYPE (personal#97): the floating switcher for the item board. Never merge to main.
+// PROTOTYPE (personal#97, round 2): the floating switcher for the item board. Never merge to main.
 import { useEffect } from "react";
 import { startOver } from "./itemBoardItems";
-import { boardVariants, setBoardParams, speeds, useBoardParams } from "./itemBoardParams";
+import { backs, setBoardParams, speeds, useBoardParams } from "./itemBoardParams";
 
 export function PrototypeBar({ onStartOver }: { onStartOver: () => void }) {
   const board = useBoardParams();
-  const index = boardVariants.findIndex(({ key }) => key === board.variant);
-  const current = boardVariants[index]!;
-  const step = (by: number) => setBoardParams({ variant: boardVariants[(index + by + boardVariants.length) % boardVariants.length]!.key });
+  const index = backs.findIndex(({ key }) => key === board.back);
+  const current = backs[index]!;
+  const step = (by: number) => setBoardParams({ back: backs[(index + by + backs.length) % backs.length]!.key });
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -21,21 +21,22 @@ export function PrototypeBar({ onStartOver }: { onStartOver: () => void }) {
 
   const again = () => {
     startOver();
+    window.scrollTo({ top: 0, behavior: "instant" });
     onStartOver();
   };
 
   return (
     <div className="ib-bar" role="toolbar" aria-label="Prototype controls">
-      <button type="button" onClick={() => step(-1)} aria-label="Previous variant">
+      <button type="button" onClick={() => step(-1)} aria-label="Previous back">
         ‹
       </button>
       <span className="ib-bar-variant" title={current.says}>
         <strong>
-          {index + 1}. {current.name}
+          Back {index + 1}/{backs.length}: {current.name}
         </strong>
         <span>{current.says}</span>
       </span>
-      <button type="button" onClick={() => step(1)} aria-label="Next variant">
+      <button type="button" onClick={() => step(1)} aria-label="Next back">
         ›
       </button>
       <span className="ib-bar-rule" />
