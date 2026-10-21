@@ -110,6 +110,14 @@ export async function* hugsGivenByDecision(ctx: QueryCtx, giver: MemberId, below
   for await (const hug of rows) yield { ...timelineHugOf(hug), people: await peopleOf(ctx, hug) };
 }
 
+export async function hasGivenAHug(ctx: QueryCtx, giver: MemberId): Promise<boolean> {
+  const any = await ctx.db
+    .query("hugs")
+    .withIndex("by_giver_decided", (q) => q.eq("giver", giver))
+    .first();
+  return any !== null;
+}
+
 export async function hugsReceivedSnapshot(ctx: QueryCtx, member: MemberId): Promise<number> {
   const newest = await ctx.db
     .query("hugsReceived")

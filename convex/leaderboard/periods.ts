@@ -19,6 +19,8 @@ export type Compared = { now: PeriodKey; before: SameDay | null };
 
 export const periods: Period[] = ["week", "month", "all"];
 
+export const allTimeKey: PeriodKey = "all";
+
 const dayMs = 24 * 60 * 60 * 1000;
 
 export function keyOf(period: Period, day: DayKey): PeriodKey {
@@ -28,7 +30,7 @@ export function keyOf(period: Period, day: DayKey): PeriodKey {
     case "month":
       return `month:${day.slice(0, 7)}`;
     case "all":
-      return "all";
+      return allTimeKey;
   }
 }
 

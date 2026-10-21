@@ -326,6 +326,14 @@ export async function messageOfAward(ctx: QueryCtx, award: AwardId): Promise<Mes
   return row === null ? null : { workspace: row.workspace, conversation: row.conversation, message: row.message };
 }
 
+export async function hasGivenAnAward(ctx: QueryCtx, giver: MemberId): Promise<boolean> {
+  const any = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_decided", (q) => q.eq("giver", giver))
+    .first();
+  return any !== null;
+}
+
 export async function firstThanksOf(ctx: QueryCtx, giver: MemberId): Promise<number[]> {
   const awards = await ctx.db
     .query("awards")
