@@ -4,7 +4,7 @@ import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
 import type { ShellActions } from "../shell";
 import type { AlbumEmoji } from "./answer";
 import { AddToSlackButton } from "./AddToSlackButton";
-import { SlackEmojiWizard, type WizardPick } from "./SlackEmojiWizard";
+import { SlackEmojiWizard, type MappingPick } from "./SlackEmojiWizard";
 import { comingSoonToSlackWords, type SlackWay } from "./slackWay";
 import "./emoji.css";
 
@@ -36,7 +36,7 @@ export function EmojiWizardHost({ on, inPlace, emojis, emojiPage, useSlackEmojiM
   return (
     <EmojiWizardContext value={on ? wizard : null}>
       {children}
-      {on && open !== null && !openedUnderOtherRights && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
+      {on && open !== null && !openedUnderOtherRights && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} inUse={byTheAdmin ? "takes" : "skips"} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
     </EmojiWizardContext>
   );
 }
@@ -106,7 +106,7 @@ export function giveFocusBack(opener: HTMLElement, fallback: HTMLElement | null)
   fallback.focus();
 }
 
-export function pickOf(reply: { kind: string }): WizardPick {
+export function pickOf(reply: { kind: string }): MappingPick {
   if (reply.kind === "mapped") return "mapped";
   return reply.kind === "refused" ? "refused" : "unreachable";
 }

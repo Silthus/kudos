@@ -1,4 +1,6 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -13,6 +15,7 @@ import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 const welcomeItem: BoardItem = { item: "item-welcome" as Id<"items">, earnedAt: 0, reason: { kind: "welcome" } };
 const thanksItem = albumFixtures.withItems.board!.items[0]!;
 const tacoLesson: LoopLesson = { kudosEmoji: "taco", kudosEmojiImage: null };
+const itemBoardCss = readFileSync(join(__dirname, "itemBoard.css"), "utf8");
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -90,6 +93,26 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
     await turnTheFirstItem(user);
 
     expect(within(theLesson()!).getByRole("img", { name: ":hoggo:" })).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/hoggo/1.png");
+  });
+
+  it("keeps the line clear of the top of the page: it sits at the foot of the window, apart from what turned over under the top bar", async () => {
+    const { user } = visit([welcomeItem]);
+
+    await turnTheFirstItem(user);
+
+    expect(theLesson()!.closest(".ib-strip"), "the line under the top bar, over the page's own header").toBeNull();
+    expect(theLesson()!.closest(".ib-after")).not.toBeNull();
+    expect(itemBoardCss).toMatch(/\.ib-after \{\s*position: fixed;\s*bottom: /);
+  });
+
+  it("leaves room at the foot of the page while the line shows there, so it never covers the page's last lines", async () => {
+    const { user } = visit([welcomeItem]);
+
+    await turnTheFirstItem(user);
+
+    expect(theLesson()!.closest(".ib-after")!.parentElement).toHaveClass("al-shell");
+    expect(itemBoardCss, "the room is the strip's tallest").toMatch(/\.al-shell:has\(> \.ib-after:not\(:empty\)\) \.al-main \{\s*padding-bottom: calc\(var\(--ib-after-most\) \+ /);
+    expect(itemBoardCss, "however many wins pile up, the strip stops at its tallest and scrolls").toMatch(/\.ib-after \{[^}]*max-height: var\(--ib-after-most\);\s*overflow-y: auto;/);
   });
 
   it("shows only once: the next item's turn takes the line away, and a thanks item's turn never shows it", async () => {

@@ -26,6 +26,12 @@ export function emojiMappingInPlaceShownTo(ctx: QueryCtx, member: MemberId): Pro
   return memberDecisionWithoutWriting(ctx, emojiMappingInPlaceFlag, member);
 }
 
+export const ownHypePickFlag = { key: "own-hype-pick", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function ownHypePickShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, ownHypePickFlag, member);
+}
+
 export type AlbumShown = { album?: true };
 
 export async function albumOnProfileOf(ctx: QueryCtx, member: MemberId): Promise<AlbumShown> {

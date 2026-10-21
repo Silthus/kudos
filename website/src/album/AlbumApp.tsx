@@ -80,7 +80,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
-        person={<PersonAnswerPage shown={person} album={album} {...answers} />}
+        person={<PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} makePet={actions.makePet} {...answers} />}
