@@ -79,7 +79,7 @@ const minuteMs = 60_000;
 const siteUrl = "https://kudos-site.test";
 const album = "album";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "sticker-book", "team-pages", "team-spirit"];
-const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulBoardTallies", "boardCountedAwards", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "trayItems", "milestoneTiers", "items"] as const;
+const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulBoardTallies", "thoughtfulGiverCounts", "boardCountedAwards", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "trayItems", "milestoneTiers", "items"] as const;
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -124,7 +124,7 @@ const albumOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () 
 ];
 
 describe("AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it", { timeout: 180_000 }, () => {
-  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs and their items, grant records, thoughtful tallies, emoji names, the pair and week tallies and the milestone tiers it stores and the packs earned events it sends, and getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson and getAlbumWeek answer off", async ({ flag, turnOff }) => {
+  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs and their items, grant records, thoughtful tallies and their giver count, emoji names, the pair and week tallies and the milestone tiers it stores and the packs earned events it sends, and getAlbum, getAlbumHoggies, getThoughtfulBoards, getAlbumPerson and getAlbumWeek answer off", async ({ flag, turnOff }) => {
     theAlbum.removed = true;
     const withoutTheAlbum = await walkIn(await fourMembers(flag, turnOff), { opening: true });
     freshFakes();
@@ -146,6 +146,7 @@ describe("AL39: the album is dark where album is off, shows only to the members 
       { period: "month", awards: 1 },
       { period: "all", awards: 1 },
     ]);
+    expect(walk.albumRows.thoughtfulGiverCounts, "the week's two thoughtful givers").toEqual([expect.objectContaining({ givers: 2 })]);
     expect(withoutTheAlbum.albumRows.milestoneTiers).toEqual([]);
     expect(walk.albumRows.milestoneTiers, "each thoughtful giver's Kind words bronze").toEqual([expect.objectContaining({ milestone: "thoughtful", tier: "bronze" }), expect.objectContaining({ milestone: "thoughtful", tier: "bronze" })]);
     expect(Object.values(walk.boards).every((answer) => !(answer as object).hasOwnProperty("people"))).toBe(true);
