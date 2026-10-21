@@ -133,12 +133,21 @@ export async function newestReceivedBy(ctx: QueryCtx, recipient: MemberId, atMos
   return received.map(({ giver, workspace, conversation, message, at }) => ({ giver, message: { workspace, conversation, message }, at }));
 }
 
-export async function receivedAfter(ctx: QueryCtx, recipient: MemberId, after: number, atMost: number): Promise<number> {
+export async function kudosDecidedAfter(ctx: QueryCtx, recipient: MemberId, after: number, awardsAtMost: number): Promise<number> {
   const received = await ctx.db
     .query("awards")
-    .withIndex("by_recipient_at", (q) => q.eq("recipient", recipient).gt("at", after))
-    .take(atMost);
-  return received.length;
+    .withIndex("by_recipient_decided", (q) => q.eq("recipient", recipient).gt("_creationTime", after))
+    .take(awardsAtMost);
+  return received.reduce((sum, { kudos }) => sum + kudos, 0);
+}
+
+export async function newestDecidedReceivedBy(ctx: QueryCtx, recipient: MemberId): Promise<number | null> {
+  const newest = await ctx.db
+    .query("awards")
+    .withIndex("by_recipient_decided", (q) => q.eq("recipient", recipient))
+    .order("desc")
+    .first();
+  return newest?._creationTime ?? null;
 }
 
 export type GivenMessageFacts = { giver: MemberId; day: DayKey; at: number };
