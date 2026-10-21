@@ -1,0 +1,2 @@
+after close, howItWorks: None
+gettingStarted {'hugged': True, 'levelTwo': False, 'thoughtful': False, 'turned': True}
