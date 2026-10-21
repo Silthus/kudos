@@ -137,6 +137,10 @@ function thePlate() {
   return document.querySelector<HTMLElement>('[data-hoggie="70s-dance"]');
 }
 
+function tinOrchardInTheSidebar() {
+  return within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: /Tin Orchard/ });
+}
+
 function theSpotOfCassVey() {
   return screen.getByText("Cass Vey", { selector: ".al-photo-name" }).closest("li");
 }
@@ -232,6 +236,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(screen.getByRole("img", { name: "Tin Orchard sticker, 2 of 3" })).toBeInTheDocument();
     await at(1.8);
     expect(caption()).toHaveTextContent("Cass VeySticker · New");
+    expect(within(tinOrchardInTheSidebar()).getByRole("img", { name: "2 of 3" })).toBeInTheDocument();
 
     await at(4.1);
     expect(screen.getByRole("img", { name: "Tin Orchard sticker, 3 of 3" })).toBeInTheDocument();
@@ -246,6 +251,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(tag).toHaveTextContent("Unlocked 20 Oct");
     expect(tag).toHaveTextContent(":team-tin-orchard:");
     expect(tag).toHaveTextContent("New");
+    expect(within(tinOrchardInTheSidebar()).getByRole("img", { name: "Unlocked" })).toBeInTheDocument();
 
     await at(7.2);
     expect(stage()).toBe("unlock");
