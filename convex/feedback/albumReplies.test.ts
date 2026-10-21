@@ -303,10 +303,8 @@ describe("LP25: while hidden-items is on for the giver, the reply says only that
     expect(threadRepliesTo(ts)).toEqual([
       {
         channel,
-        thread_ts: ts,
+        user: alice.user,
         text: "An item for thanking Bob · An item for thanking Carol",
-        unfurl_links: false,
-        unfurl_media: false,
         blocks: [
           { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Bob*" } },
           { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Carol*" } },
