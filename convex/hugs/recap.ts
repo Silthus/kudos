@@ -7,6 +7,7 @@ import { wallClockAt, type DayKey } from "../engine/allowance";
 import { threadRootOf } from "../engine/engine";
 import { emojiLineOf, type RecapEmojiLine } from "../feedback/albumRecap";
 import { settingsFooterFor, type SettingsFooter } from "../feedback/settingsFooter";
+import { teaserOf } from "../feedback/teaser";
 import { placeOf } from "../messageSettings/messageSettings";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { permalinkOf } from "../slack/permalink";
@@ -124,7 +125,8 @@ async function recapLinesOf(ctx: QueryCtx, week: HugWeek): Promise<RecapLine[]> 
   const reacted = `reacted :${kudosEmoji}:`;
   const url = await workspaceUrlOf(ctx, week.workspace);
   const mostHugged = week.mostHugged === undefined || url === null ? [] : [await mostHuggedLineOf(ctx, url, reacted, week.workspace, week.mostHugged)];
-  return [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(week, reacted), ...mostHugged, nudge];
+  const teaser = await teaserOf(ctx, week.member);
+  return [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(week, reacted), ...mostHugged, ...(teaser === null ? [] : [teaser]), nudge];
 }
 
 function countLinesOf({ given, givenXp, received, receivedXp }: HugWeek, reacted: string): string[] {
