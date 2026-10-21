@@ -1,12 +1,13 @@
 import type { Doc, Id } from "../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Rarity } from "../hoggies/catalogue";
 import { dropFor, dropOf, packOf, type Drop } from "../hoggies/drops";
 import { hoggiesShownTo } from "../hoggies/flag";
-import { markTurned } from "../items/ledger";
+import { earnItem, isTurned, markTurned } from "../items/ledger";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
-import { crateKeyOf } from "./packs";
+import { crateKeyOf, thanksEarningOf } from "./packs";
 import { dropRandomEmojiFrom } from "./randomEmojis";
 import { tallyPackOpened } from "./tallies";
 
@@ -22,6 +23,7 @@ export async function openThoughtfulPack(ctx: MutationCtx, member: MemberId, pac
   const waiting = await ctx.db.get(pack);
   if (waiting?.giver !== member || waiting.openedAt !== undefined || !(await hoggiesShownTo(ctx, member))) return null;
   const crate = crateKeyOf(pack);
+  const unseen = await unseenItemsOf(ctx, waiting);
   await dropFor(ctx, member, crate, at, { surface: "website", waits: true });
   const drop = await dropOf(ctx, member, crate);
   if (drop === null) return null;
@@ -29,7 +31,13 @@ export async function openThoughtfulPack(ctx: MutationCtx, member: MemberId, pac
   await markTurned(ctx, member, "hoggie", crate, at);
   await tallyPackOpened(ctx, member, at);
   await dropRandomEmojiFrom(ctx, member, pack, crate, at);
-  return { items: await intoTheTray(ctx, waiting, drop, at), applied: await packOf(ctx, member, crate) };
+  return { items: await intoTheTray(ctx, waiting, drop, unseen, at), applied: unseen.hoggie ? await packOf(ctx, member, crate) : null };
+}
+
+type Unseen = { sticker: boolean; hoggie: boolean };
+
+async function unseenItemsOf(ctx: QueryCtx, { _id, giver, holdsSticker }: Doc<"thoughtfulPacks">): Promise<Unseen> {
+  return { sticker: holdsSticker && !(await isTurned(ctx, giver, "sticker", _id)), hoggie: !(await isTurned(ctx, giver, "hoggie", crateKeyOf(_id))) };
 }
 
 export async function trayOf(ctx: QueryCtx, member: MemberId): Promise<{ tray: TrayItem[]; more: boolean }> {
@@ -40,12 +48,39 @@ export async function trayOf(ctx: QueryCtx, member: MemberId): Promise<{ tray: T
   return { tray: inOpeningOrder.slice(0, mostTrayItemsShown).map(shownTrayItem), more: inOpeningOrder.length > mostTrayItemsShown };
 }
 
-async function intoTheTray(ctx: MutationCtx, { _id: pack, giver: member, recipient, holdsSticker }: Doc<"thoughtfulPacks">, drop: Drop, at: number): Promise<TrayItem[]> {
+async function intoTheTray(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">, drop: Drop, unseen: Unseen, at: number): Promise<TrayItem[]> {
   const items: TrayItem[] = [];
-  if (holdsSticker) items.push({ item: await ctx.db.insert("trayItems", { member, pack, at, kind: "sticker", person: recipient }), kind: "sticker", person: recipient });
-  const hoggie = { hoggie: drop.hoggie, rarity: drop.rarity, isNew: drop.isNew };
-  items.push({ item: await ctx.db.insert("trayItems", { member, pack, at, kind: "hoggie", ...hoggie }), kind: "hoggie", ...hoggie });
+  const placed = { member: pack.giver, pack: pack._id, at };
+  if (unseen.sticker) items.push(await waitInTheTray(ctx, pack, { ...placed, kind: "sticker", person: pack.recipient }));
+  if (unseen.hoggie) items.push(await waitInTheTray(ctx, pack, { ...placed, kind: "hoggie", hoggie: drop.hoggie, rarity: drop.rarity, isNew: drop.isNew }));
   return items;
+}
+
+async function waitInTheTray(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">, placed: WithoutSystemFields<Doc<"trayItems">>): Promise<TrayItem> {
+  const item = await ctx.db.insert("trayItems", placed);
+  const stored = (await ctx.db.get(item))!;
+  await earnTrayItem(ctx, stored, pack);
+  return shownTrayItem(stored);
+}
+
+export async function earnTrayItem(ctx: MutationCtx, item: Doc<"trayItems">, pack: Doc<"thoughtfulPacks">): Promise<void> {
+  const earning = thanksEarningOf(pack);
+  await earnItem(ctx, item.kind === "sticker" ? { ...earning, source: "sticker", key: pack._id } : { ...earning, source: "hoggie", key: trayKeyOf(item._id) });
+}
+
+const trayKeyPrefix = "tray:";
+
+export function trayKeyOf(item: Id<"trayItems">): string {
+  return `${trayKeyPrefix}${item}`;
+}
+
+export function isTrayKey(key: string): boolean {
+  return key.startsWith(trayKeyPrefix);
+}
+
+export async function trayItemKeyed(ctx: QueryCtx, key: string): Promise<Doc<"trayItems"> | null> {
+  const item = isTrayKey(key) ? ctx.db.normalizeId("trayItems", key.slice(trayKeyPrefix.length)) : null;
+  return item === null ? null : ctx.db.get(item);
 }
 
 export function shownTrayItem(stored: Doc<"trayItems">): TrayItem {
