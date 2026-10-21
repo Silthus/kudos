@@ -115,7 +115,8 @@ describe("HF2, HF3, HF4, HF6: a forge spends three spares of a hoggie and finds 
 });
 
 describe("HF5, HF12: a forged hoggie is a find with no pack, captured as hoggie dropped from a forge crate", { timeout: 60_000 }, () => {
-  test("PostHog gets one hoggie dropped with crate_kind forge and no XP or coins", async () => {
+  test("PostHog gets one hoggie dropped with crate_kind forge and no XP or coins, though packs pay", async () => {
+    await serving(...[...albumFlags, "hoggie-forge", "packs"].map(onForEveryone));
     const member = await aTeammate(ann);
     await holds(t, member, "banana", "banana", "banana", "banana", ...everyUncommonBut("cake"));
 
