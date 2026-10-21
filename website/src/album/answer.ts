@@ -64,6 +64,7 @@ export type Album = {
   lastVisit?: number | null;
   emojiHowTo?: LoopLesson;
   shareableUrls?: true;
+  linkPreviews?: true;
 } & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;

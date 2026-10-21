@@ -17,6 +17,7 @@ import { rarityWordOf } from "./opening";
 import { findYourselfHref, hrefOf } from "./place";
 import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, type BestMedal, type NextMedal, type Standing } from "./profile";
 import { dateOf } from "./teamPage";
+import { ShareLink } from "./ShareLink";
 import "./team.css";
 import "./profile.css";
 
@@ -102,6 +103,7 @@ function Entry({ album, team, note }: { album: Album; team: AlbumTeam | undefine
           </AppLink>
         )}
         <Level level={album.level} />
+        <ShareLink album={album} page={{ kind: "person", person: album.me.person }} cardOf="your" />
         {note !== null && <Note note={note} />}
       </div>
     </div>

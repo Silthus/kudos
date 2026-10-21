@@ -83,7 +83,7 @@ export async function websiteOrigin(ctx: QueryCtx, workspace: string): Promise<s
   return (await websiteOpen(ctx)) ? origin : null;
 }
 
-function siteOriginFor(workspace: string) {
+export function siteOriginFor(workspace: string) {
   const site = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
   return site === "" || workspace !== signInWorkspace() ? null : site;
 }

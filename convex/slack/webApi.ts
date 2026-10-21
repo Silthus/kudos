@@ -8,6 +8,9 @@ const tooManyRequests = 429;
 const knownSlackErrors: ReadonlySet<string> = new Set([
   "account_inactive",
   "accesslimited",
+  "cannot_find_message",
+  "cannot_unfurl_message",
+  "cannot_unfurl_url",
   "channel_not_found",
   "ekm_access_denied",
   "enterprise_is_restricted",
