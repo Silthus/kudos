@@ -117,8 +117,10 @@ export function thanksEarningOf({ workspace, giver, recipient, message, at }: Th
   return { workspace, member: giver, reason: { kind: "thanks" as const, person: recipient, message }, earnedAt: at };
 }
 
+export const thoughtfulCratePrefix = "thoughtful:";
+
 export function crateKeyOf(pack: PackId): CrateKey {
-  return `thoughtful:${pack}`;
+  return `${thoughtfulCratePrefix}${pack}`;
 }
 
 async function stickerOutcomeOf(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Exclude<GrantOutcome, "nextWeek">> {

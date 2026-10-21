@@ -7,7 +7,7 @@ import { hoggiesShownTo } from "../hoggies/flag";
 import { earnItem, isTurned, markTurned } from "../items/ledger";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
-import { crateKeyOf, thanksEarningOf } from "./packs";
+import { crateKeyOf, thanksEarningOf, thoughtfulCratePrefix } from "./packs";
 import { dropRandomEmojiFrom } from "./randomEmojis";
 import { tallyPackOpened } from "./tallies";
 
@@ -32,6 +32,19 @@ export async function openThoughtfulPack(ctx: MutationCtx, member: MemberId, pac
   await tallyPackOpened(ctx, member, at);
   await dropRandomEmojiFrom(ctx, member, pack, crate, at);
   return { items: await intoTheTray(ctx, waiting, drop, unseen, at), applied: unseen.hoggie ? await packOf(ctx, member, crate) : null };
+}
+
+export async function openThePackOnceAllTurned(ctx: MutationCtx, item: Doc<"items">, at: number): Promise<void> {
+  const pack = packHolding(ctx, item);
+  const waiting = pack === null ? null : await ctx.db.get(pack);
+  if (waiting === null || waiting.openedAt !== undefined) return;
+  const unseen = await unseenItemsOf(ctx, waiting);
+  if (!unseen.sticker && !unseen.hoggie) await ctx.db.patch(waiting._id, { openedAt: at });
+}
+
+function packHolding(ctx: QueryCtx, { source, key }: Doc<"items">): PackId | null {
+  if (source === "sticker") return ctx.db.normalizeId("thoughtfulPacks", key);
+  return key.startsWith(thoughtfulCratePrefix) ? ctx.db.normalizeId("thoughtfulPacks", key.slice(thoughtfulCratePrefix.length)) : null;
 }
 
 type Unseen = { sticker: boolean; hoggie: boolean };

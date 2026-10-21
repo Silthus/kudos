@@ -112,7 +112,7 @@ describe("LP23: a tray item not yet put in waits face down, and its turn finishe
 });
 
 describe("LP23: a flag reversal never counts anything twice", { timeout: 60_000 }, () => {
-  test("items turned with hidden-items on, then their pack opened and put all in with it off, find the hoggie once and pay once", async () => {
+  test("items turned with hidden-items on leave no pack to open once it is off, so the hoggie is found once and paid once", async () => {
     await switchWebsite(t, postHog, true, ...itemsOn);
     await thanks(alice, bob);
     const asAlice = await signedIn(alice);
@@ -121,12 +121,27 @@ describe("LP23: a flag reversal never counts anything twice", { timeout: 60_000 
     const found = await hoggiesTalliedFor(alice);
 
     await switchWebsite(t, postHog, true, ...albumOpen);
+    await asAlice.mutation(api.website.album.putAllIn, {});
+
+    expect((await albumOf(asAlice)).packs).toEqual([]);
+    expect(await hoggiesTalliedFor(alice)).toEqual(found);
+    expect((await albumOf(asAlice)).level.xp).toBe(xp);
+  });
+
+  test("a pack whose hoggie turned with hidden-items on opens into only its sticker once it is off, and the hoggie is found once", async () => {
+    await switchWebsite(t, postHog, true, ...itemsOn);
+    await thanks(alice, bob);
+    const asAlice = await signedIn(alice);
+    const [hoggie] = await thanksItemsOf(asAlice);
+    await turnOf(asAlice, hoggie!.item);
+    const found = await hoggiesTalliedFor(alice);
+
+    await switchWebsite(t, postHog, true, ...albumOpen);
     const opened = await asAlice.mutation(api.website.album.openThoughtfulPack, { pack: (await albumOf(asAlice)).packs[0]!.pack });
     await asAlice.mutation(api.website.album.putAllIn, {});
 
+    expect(opened).toMatchObject({ kind: "opened", items: [{ kind: "sticker" }], applied: null });
     expect(await hoggiesTalliedFor(alice)).toEqual(found);
-    expect((await albumOf(asAlice)).level.xp).toBe(xp);
-    expect(opened).toEqual({ kind: "opened", items: [], applied: null });
   });
 
   test("a tray hoggie turned with hidden-items on leaves only its sticker in the tray once the flag is off, and the hoggie is found once", async () => {

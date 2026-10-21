@@ -329,16 +329,17 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: worker-fencing dismissed: no worker owns an item; a turn and a put-in of one tray item conflict on the row they both read, so one retries and finds it put in
   checklist: commit-ordered-effects dismissed: the put-in and the turn issue no external effect beyond the bus events they publish in their mutation
   checklist: resumption-coverage dismissed: no batch operation resumes; each turn is one mutation
-- a flag reversal never counts anything twice: Items turned while `hidden-items` is on, then their pack opened and put all in with it off, open into an empty tray with nothing applied, and the hoggie is found once and paid once; a tray hoggie turned with the flag on leaves only its sticker in the tray once it is off.
-  over: one thoughtful kudos whose two items turn with hidden-items on, then its pack opened and put all in with it off, read through the week tallies' hoggies found, the hoggie tallies and getAlbum's level; one pack opened with the flag off, its tray hoggie turned with it on, then the tray read and put all in with it off
+- a flag reversal never counts anything twice: A pack whose items all turned while `hidden-items` is on is opened by its last turn, so with the flag off it no longer waits, and its hoggie is found once and paid once; a pack whose hoggie turned with the flag on opens into only its sticker once it is off, and the hoggie is found once; a tray hoggie turned with the flag on leaves only its sticker in the tray once it is off.
+  over: one thoughtful kudos whose two items turn with hidden-items on, then read and put all in with it off, through getAlbum's packs, the week tallies' hoggies found, the hoggie tallies and getAlbum's level; one thoughtful kudos whose hoggie alone turns with the flag on, then its pack opened and put all in with it off; one pack opened with the flag off, its tray hoggie turned with it on, then the tray read and put all in with it off
   via: LP23: a flag reversal never counts anything twice
-  refuted: the old open put a pack's hoggie in the tray even when its item had turned -> 1 of 2 tests failed: the week tallies counted the hoggie found a second time at the put-in (2026-10-21)
+  refuted: the old open put a pack's hoggie in the tray even when its item had turned -> 2 of 3 tests failed: a pack whose items all turned still waited, and a pack whose hoggie turned opened into its hoggie again (2026-10-21)
+  refuted: the turn no longer opened a pack once its last item turned -> 1 of 3 tests failed: the pack still waited to open into nothing once the flag was off (2026-10-21)
   because: the flag can go either way while it is sandbox-only (LP6, LP23): an open that put a turned hoggie in the tray would count its find a second time at the put-in, and its sticker would wait to be put in twice
   kinds: state
   checklist: revalidated-permission dismissed: the open reads the items' turnedAt in its own mutation
   checklist: separation-of-duties dismissed: no approval policy
   checklist: legal-state-succession declared as a flag reversal never counts anything twice
-  checklist: supersession-safety dismissed: turnedAt is set once and never moved, so a later open reads what the turn left
+  checklist: supersession-safety dismissed: turnedAt and the pack's openedAt are each set once and never moved, so a later open reads what the turn left
   checklist: worker-fencing dismissed: no worker owns an item; an open and a turn of one pack's items conflict on the rows they both read
   checklist: commit-ordered-effects dismissed: no external effect is issued twice; each find publishes once, in the mutation that counts it
   checklist: resumption-coverage dismissed: no batch operation resumes; each open and turn is one mutation
