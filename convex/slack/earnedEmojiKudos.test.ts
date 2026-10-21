@@ -123,6 +123,32 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
     expect(response.status).toBe(200);
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
   });
+
+  test("a held random emoji past the album's 200 shown still gives kudos in a message with 60 other emoji", { timeout: 60_000 }, async () => {
+    const t = await workspaceWithEmojiNames();
+    await droppedRandomEmoji(t, "U_ALICE", Array.from({ length: 200 }, (_, index) => `a-held-${String(index).padStart(3, "0")}`));
+    const others = Array.from({ length: 60 }, (_, index) => emoji(`other-${index}`));
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), ...others, emoji(randomEmoji))], { user: "U_ALICE", ts: messageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  });
+
+  test("an edit to a plain kudos in a workspace whose registry holds 11,000 names keeps its kudos", { timeout: 120_000 }, async () => {
+    const t = await workspaceWithEmojiNames({ transactionLimits: true });
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 11_000; index += 1) await ctx.db.insert("emojiNames", { workspace: "T1", emoji: `team:filler-${index}`, name: `team-filler-${index}` });
+    });
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), emoji("taco"))], { user: "U_ALICE", ts: messageTs });
+    await settle(t);
+
+    const response = await edit(t, [section(text(`${saysWhy} again`), mention("U_BOB"), text(" "), emoji("taco"))], { user: "U_ALICE", ts: messageTs, editedTs: `${Number(messageTs.split(".")[0]) + 60}.000100` });
+    await settle(t);
+
+    expect(response.status).toBe(200);
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  });
 });
 
 async function workspaceWithEmojiNames({ transactionLimits = false } = {}) {
@@ -139,13 +165,13 @@ async function unlockedTeamEmoji(t: Backend, user: string) {
   await t.run((ctx) => ctx.db.insert("teamStickers", { member, workspace: "T1", team: "workflows", at: now.getTime(), name: "Workflows", art: null, emoji: teamEmoji }));
 }
 
-async function droppedRandomEmoji(t: Backend, user: string) {
+async function droppedRandomEmoji(t: Backend, user: string, heldBefore: string[] = []) {
   const member = await memberOf(t, user);
   const recipient = await memberOf(t, "U_BOB");
   await t.run(async (ctx) => {
     const pack = await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: member, recipient, week: "2026-10-12", message: { workspace: "T1", conversation: "C1", message: "1760000000.000100" }, holdsSticker: false, at: now.getTime() });
     await ctx.db.insert("emojiClasses", { workspace: "T1", name: randomEmoji, class: "random" });
-    await ctx.db.insert("randomEmojiDrops", { member, name: randomEmoji, pack, at: now.getTime() });
+    for (const name of [...heldBefore, randomEmoji]) await ctx.db.insert("randomEmojiDrops", { member, name, pack, at: now.getTime() });
   });
 }
 

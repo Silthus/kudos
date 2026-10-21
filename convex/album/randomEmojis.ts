@@ -49,7 +49,11 @@ export async function holdsRandomEmoji(ctx: QueryCtx, member: MemberId, name: st
 }
 
 export async function randomEmojiNamesHeldBy(ctx: QueryCtx, member: MemberId): Promise<string[]> {
-  return (await dropsOf(ctx, member)).map(({ name }) => name);
+  const drops = await ctx.db
+    .query("randomEmojiDrops")
+    .withIndex("by_member_name", (q) => q.eq("member", member))
+    .collect();
+  return drops.map(({ name }) => name);
 }
 
 function dropsOf(ctx: QueryCtx, member: MemberId) {

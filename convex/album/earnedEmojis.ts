@@ -40,6 +40,8 @@ export const mostEmojisSeenAtOnce = 500;
 
 export const mostEmojiCausesRead = 500;
 
+const mostEmojiNamesLookedUpOneByOne = 50;
+
 const unnamedPerson = "A teammate";
 
 type Cause = { id: EarnedEmojiId; kind: EarnedEmojiKind; from: string; picture: string; earned: boolean; earnedAt: number | null; progress: EmojiProgress };
@@ -256,10 +258,15 @@ export async function holdsEarnedEmojiNamed(ctx: QueryCtx, workspace: string, me
 }
 
 async function earnedEmojiNamesAmong(ctx: QueryCtx, workspace: string, member: MemberId, names: string[]): Promise<string[]> {
+  const distinct = [...new Set(names)];
+  const earned: string[] = [];
+  if (distinct.length <= mostEmojiNamesLookedUpOneByOne) {
+    for (const name of distinct) if (await holdsEarnedEmojiNamed(ctx, workspace, member, name)) earned.push(name);
+    return earned;
+  }
   const registry = await namesHeldIn(ctx, workspace);
   const dropped = new Set(await randomEmojiNamesHeldBy(ctx, member));
-  const earned: string[] = [];
-  for (const name of new Set(names)) {
+  for (const name of distinct) {
     const registered = registry.get(name);
     if (dropped.has(name) || (registered !== undefined && (await isEarnedBy(ctx, member, registered)))) earned.push(name);
   }
