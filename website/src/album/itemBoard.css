@@ -61,6 +61,7 @@
 }
 
 .ib-item {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
@@ -117,6 +118,25 @@
   font-weight: 800;
   line-height: 1;
   translate: 0 -2%;
+}
+
+.ib-level {
+  position: absolute;
+  bottom: -0.25rem;
+  left: 50%;
+  padding: 0.125rem 0.5rem;
+  border: 2px solid var(--card);
+  border-radius: 999px;
+  background: var(--al-gold, #e4b520);
+  box-shadow: 0 4px 10px -6px color-mix(in oklab, var(--foreground) 60%, transparent);
+  color: var(--al-gold-ink, #1f1a05);
+  font-family: RoundHog, var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: -50% 0;
 }
 
 .ib-item:is(:hover, :focus-visible) .ib-back {

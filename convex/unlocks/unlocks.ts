@@ -31,7 +31,7 @@ export const makeReady = internalMutation({
     await unlocksLiveFor(ctx, member);
     const madeReady = await storeReadiness(ctx, { workspace, member, at }, reachedAt(await shippedTo(ctx, member), level));
     await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
-    await dropLevelUpHoggies(ctx, member, level, at);
+    await dropLevelUpHoggies(ctx, { workspace, member, level, at });
     await notifyLevelReached(ctx, event, madeReady);
     if (madeReady.length > 0 && (await xpLevelsOnFor(ctx, member))) await republish(ctx, member);
   },
