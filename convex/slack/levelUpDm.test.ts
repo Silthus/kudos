@@ -165,6 +165,28 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
   });
 
+  test("LP25: while hidden-items is on, the level-up DM links to the album, whose item board holds the level's three items", async () => {
+    const t = await websiteWorkspaceWith(...revealOn, "hidden-items");
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
+  });
+
+  test("LP25: a DM Slack held back while hidden-items went on links to the album when it is sent again, though its hoggies dropped", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await switchFlags(t, ...revealOn, "hidden-items");
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(levelUpDms()).toHaveLength(2);
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` });
+  });
+
   test("a DM Slack held back while level-up-reveal went off links to the member's level when it is sent again", async () => {
     const t = await websiteWorkspaceWith(...revealOn);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);

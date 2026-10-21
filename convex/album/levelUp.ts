@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import type { Drop } from "../hoggies/drops";
+import { hiddenItemsShownTo } from "../items/flag";
 import { levelUpHoggiesOf, levelUpRevealOnFor } from "../unlocks/levelUpHoggies";
 import { levelUpAt, levelUpBefore } from "../unlocks/levelUps";
 import type { MemberId } from "../workspace/directory";
@@ -10,7 +11,7 @@ import type { PageOwner } from "./teamPages";
 export type LevelUpAnswer = { kind: "levelUp"; level: number; at: number; hoggies: Drop[]; emojis: EarnedEmoji[] };
 
 export async function levelUpRevealShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return (await albumShownTo(ctx, member)) && (await levelUpRevealOnFor(ctx, member));
+  return (await albumShownTo(ctx, member)) && (await levelUpRevealOnFor(ctx, member)) && !(await hiddenItemsShownTo(ctx, member));
 }
 
 export async function levelUpRevealOf(ctx: QueryCtx, owner: PageOwner, level: number): Promise<LevelUpAnswer | null> {

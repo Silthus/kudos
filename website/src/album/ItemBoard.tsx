@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
-import type { ItemBoard as Board } from "../../../convex/website/album";
+import type { ItemBoard as Board, BoardReason } from "../../../convex/website/album";
 import { keepFocusIn } from "./focusTrap";
 import { rarityWordOf } from "./opening";
 import type { ItemTurns, Landing } from "./useItemBoard";
@@ -21,10 +21,11 @@ export function ItemBoard({ board, turning, trouble, onTurn, onLater }: ItemBoar
       <section ref={dialog} className="ib-board" role="dialog" aria-modal="true" aria-label="Your items" aria-busy={turning || undefined} onKeyDown={onKeyDown}>
         <h2 className="ib-title">{itemsWaitWordsOf(board)}</h2>
         <ul className="ib-items">
-          {board.items.map(({ item }, index) => (
+          {board.items.map(({ item, reason }, index) => (
             <li key={item} className="ib-slot" data-first={index === 0 ? "" : undefined} style={layOf(index)}>
-              <button type="button" className="ib-item" aria-label="A face-down item. Turn it over" aria-disabled={turning || undefined} onClick={() => onTurn(item)}>
+              <button type="button" className="ib-item" aria-label={itemLabelOf(reason)} aria-disabled={turning || undefined} onClick={() => onTurn(item)}>
                 <ItemBack />
+                <LevelTag reason={reason} />
               </button>
             </li>
           ))}
@@ -76,6 +77,15 @@ function ItemBack() {
       <span className="ib-q">?</span>
     </span>
   );
+}
+
+function LevelTag({ reason }: { reason: BoardReason }) {
+  if (reason.kind !== "levelUp") return null;
+  return <span className="ib-level">Level {reason.level}</span>;
+}
+
+function itemLabelOf(reason: BoardReason) {
+  return reason.kind === "levelUp" ? `A face-down item from level ${reason.level}. Turn it over` : "A face-down item. Turn it over";
 }
 
 function itemsWaitWordsOf({ items, more }: Board) {
