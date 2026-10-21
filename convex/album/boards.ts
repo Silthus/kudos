@@ -6,7 +6,7 @@ import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyP
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
 import type { AwardId } from "../engine/awards";
 import { ranking } from "../leaderboard/board";
-import { keyOf, periods, wholeWeekBefore, type Period, type PeriodKey } from "../leaderboard/periods";
+import { allTimeKey, keyOf, periods, wholeWeekBefore, type Period, type PeriodKey } from "../leaderboard/periods";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { countThoughtfulGiver } from "./thoughtfulGivers";
 import { currentNameAndPictureOf, timeZoneOf, type MemberId } from "../workspace/directory";
@@ -54,6 +54,10 @@ export async function countOnTheBoardsOnce(ctx: MutationCtx, { award, workspace,
 async function firstTallyOf(ctx: MutationCtx, { workspace, period, key, giver }: { workspace: string; period: Period; key: PeriodKey; giver: MemberId }) {
   await ctx.db.insert("thoughtfulBoardTallies", { workspace, period: key, giver, awards: 1 });
   if (period === "week") await countThoughtfulGiver(ctx, workspace, key);
+}
+
+export async function hasGivenAThoughtfulAward(ctx: QueryCtx, workspace: string, giver: MemberId): Promise<boolean> {
+  return (await tallyOf(ctx, workspace, allTimeKey, giver)) !== null;
 }
 
 export async function thoughtfulBoardsOf(ctx: QueryCtx, viewer: BoardViewer, { whoGave, period }: BoardsAsked): Promise<ThoughtfulBoards> {

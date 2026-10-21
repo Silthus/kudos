@@ -92,6 +92,8 @@ export default defineSchema({
 
   lastVisits: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
 
+  howItWorksCloses: defineTable({ member: v.id("members"), triedSlack: v.boolean(), at: v.number() }).index("by_member", ["member"]),
+
   companyProfiles: defineTable({
     firstName: v.string(),
     lastName: v.string(),

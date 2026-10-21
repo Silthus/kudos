@@ -37,7 +37,7 @@ const noLevelUp: LevelUpRead = (level) => (level === null ? undefined : { kind: 
 
 const noXpMoment: XpMomentRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "arrive" | "endXpMoment">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "arrive" | "endXpMoment" | "closeHowItWorks">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment };
 
@@ -78,6 +78,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     makePet: vi.fn(commands.makePet ?? (async () => ({ kind: "refused" }) as const)),
     arrive: vi.fn(commands.arrive ?? (async (from: number | null) => ({ kind: "arrived", lastVisit: from }) as const)),
     endXpMoment: vi.fn(commands.endXpMoment ?? (async (_from: number, until: number) => ({ kind: "arrived", lastVisit: until }) as const)),
+    closeHowItWorks: vi.fn(commands.closeHowItWorks ?? (async () => ({ kind: "closed" }) as const)),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (

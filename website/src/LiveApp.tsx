@@ -193,6 +193,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const arrive = useSentOnce(api.website.lastVisit.arrive);
   const makePet = useSentOnce(api.website.album.makePet);
   const endXpMoment = useSentOnce(api.website.xpMoment.endXpMoment);
+  const closeHowItWorks = useSentOnce(api.website.onboarding.closeHowItWorks);
   return useMemo(
     () => ({
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
@@ -216,6 +217,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       arrive: (from) => answerWithin(commandAnswerBudgetMs, arrive({ from })),
       makePet: (hoggie) => answerWithin(commandAnswerBudgetMs, makePet({ hoggie })),
       endXpMoment: (from, until, skipped) => answerWithin(commandAnswerBudgetMs, endXpMoment({ from, until, skipped })),
+      closeHowItWorks: (triedSlack) => answerWithin(commandAnswerBudgetMs, closeHowItWorks({ triedSlack })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -223,7 +225,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, arrive, endXpMoment, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, arrive, endXpMoment, closeHowItWorks, onSignInFailure],
   );
 }
 

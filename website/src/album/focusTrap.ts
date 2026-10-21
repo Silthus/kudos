@@ -1,7 +1,9 @@
 import type { KeyboardEvent } from "react";
 
-export function keepFocusIn(dialog: HTMLElement | null, event: KeyboardEvent<HTMLElement>) {
-  const controls = [...(dialog?.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled)") ?? [])];
+const buttonsAndFields = "button:not(:disabled), input:not(:disabled)";
+
+export function keepFocusIn(dialog: HTMLElement | null, event: KeyboardEvent<HTMLElement>, focusable = buttonsAndFields) {
+  const controls = [...(dialog?.querySelectorAll<HTMLElement>(focusable) ?? [])];
   const focused = document.activeElement as HTMLElement | null;
   const atTheEdge = event.shiftKey ? focused === controls[0] : focused === controls.at(-1);
   if (controls.length > 0 && focused !== null && controls.includes(focused) && !atTheEdge) return;
