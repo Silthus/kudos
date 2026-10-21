@@ -70,6 +70,13 @@ export async function isFirstPackGrantedFor(ctx: QueryCtx, giver: MemberId, reci
   return first !== null && isTheSameMessage(first.message, message);
 }
 
+export function earliestWeekPackFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
+  return ctx.db
+    .query("thoughtfulPacks")
+    .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
+    .first();
+}
+
 export async function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
   const packs = await ctx.db
     .query("thoughtfulPacks")

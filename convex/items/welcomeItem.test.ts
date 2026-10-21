@@ -79,18 +79,16 @@ describe("LP44 LP50: a member's first sign-in earns one welcome item", () => {
     expect((await albumOf(first.reader)).board?.items.map(({ reason }) => reason), "the verified newcomer's welcome item").toEqual([{ kind: "welcome" }]);
   });
 
-  test("a person verified at a later sign-in, whose first sign-in came before welcome-item shipped, earns none", async () => {
+  test("a newcomer whose first sign-in's checks all failed earns the welcome item once a later sign-in verifies them", async () => {
     const newcomer = { user: "U_NEW", name: "Nell Arden" };
     slack.withMember(newcomer.user, { real_name: newcomer.name }).answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
-    await switchWebsite(t, postHog, true, ...itemsOn);
-    const before = await signsIn(newcomer);
+    const first = await signsIn(newcomer);
     await settleInTimeOrder(t);
-    await switchWebsite(t, postHog, true, ...welcomeOn);
 
-    await signsIn(newcomer, before.user);
+    await signsIn(newcomer, first.user);
     await settle(t);
 
-    expect(await itemsOf(newcomer), "a pre-flag account verified later earns no welcome item").toEqual([]);
+    expect((await albumOf(first.reader)).board?.items.map(({ reason }) => reason), "the newcomer verified at a later sign-in").toEqual([{ kind: "welcome" }]);
   });
 
   test.each([

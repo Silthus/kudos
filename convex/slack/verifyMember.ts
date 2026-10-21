@@ -71,7 +71,7 @@ async function verified(ctx: MutationCtx, verification: Doc<"memberVerifications
 }
 
 function failed(ctx: MutationCtx, verification: Doc<"memberVerifications">, attempts: number) {
-  return ctx.db.patch(verification._id, { attempts, state: "failed", firstSignIn: undefined });
+  return ctx.db.patch(verification._id, { attempts, state: "failed" });
 }
 
 export const retryStranded = internalMutation({
