@@ -58,7 +58,7 @@ export function HowItWorks({ card: { slack, toLevelTwo, kudos }, onClose }: HowI
           </p>
         )}
         <div className="hw-actions">
-          <a className="hw-try" href={slack} target="_blank" rel="noreferrer" onClick={() => onClose(true)}>
+          <a className="hw-try ph-no-capture" href={slack} target="_blank" rel="noreferrer" onClick={() => onClose(true)}>
             Try it in Slack
           </a>
           <button type="button" className="hw-got-it" onClick={() => onClose(false)}>

@@ -479,7 +479,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   because: the close is the only way past the card and the one fact the product learns from it (LP69); a close that sent the wrong triedSlack would misreport which newcomers went to Slack, and a link that left the album in the same tab would end the visit
   kinds: output
   checklist: destination-confinement dismissed: a close sends only closeHowItWorks with triedSlack, and the link opens only the member's own workspace
-  checklist: redaction dismissed: the close carries one boolean and nothing the member typed or read
+  checklist: redaction dismissed: the close carries one boolean and nothing the member typed or read, and the workspace's Slack address sits in a ph-no-capture block under nothing private reaches PostHog from the browser
   checklist: commit-ordered-effects dismissed: the shell stores nothing; it hides the card at the click and leaves storing the close to closeHowItWorks
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one close sends one command and a lost one leaves the card for the next visit
   checklist: declared-target-coverage dismissed: there is no fan-out; one close names the member's own card

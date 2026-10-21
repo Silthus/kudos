@@ -275,3 +275,13 @@ describe("LP69: closing the card", () => {
     expect(await screen.findByRole("dialog", { name: "Your items" })).toBeInTheDocument();
   });
 });
+
+describe("nothing private reaches PostHog from the browser", () => {
+  it("the how-it-works card keeps the workspace's Slack address in a ph-no-capture block", async () => {
+    preferReducedMotion();
+    visit([]);
+    const tryIt = within(await screen.findByRole("dialog", { name: "How HedgeHug works" })).getByRole("link", { name: "Try it in Slack" });
+
+    expect(tryIt.closest(".ph-no-capture")).not.toBeNull();
+  });
+});
