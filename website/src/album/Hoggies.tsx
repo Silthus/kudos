@@ -11,6 +11,7 @@ import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, num
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
+import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
 import { usePetPick } from "./usePetPick";
 import { useRarityStrip } from "./useRarityStrip";
 import "./hoggies.css";
@@ -256,9 +257,11 @@ function Group({ group, answer, onOpen }: { group: Shelf; answer: AlbumHoggies; 
 function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string; onOpen: Open }) {
   const plate = useRef<HTMLButtonElement>(null);
   const landing = useLandingOf(hoggie);
+  const foundSinceTheLastVisit = useNewSinceTheLastVisit(hoggie.firstAt);
   useBroughtIntoViewOnLanding(plate, landing);
   return (
-    <button type="button" ref={plate} className="al-hoggies-plate" data-hoggie={hoggie.hoggie} {...landedMarksOf(landing)} data-found={hoggie.found ? "" : undefined} aria-label={hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
+    <button type="button" ref={plate} className="al-hoggies-plate" data-hoggie={hoggie.hoggie} {...landedMarksOf(landing)} data-found={hoggie.found ? "" : undefined} aria-label={foundSinceTheLastVisit ? `${hoggieLabelOf(hoggie)}, new` : hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
+      <NewSinceTheLastVisit at={hoggie.firstAt} />
       <span className="al-hoggies-plate-number">{number}</span>
       {hoggie.count > 1 && <span className="al-hoggies-copies">{`×${hoggie.count}`}</span>}
       <span className="al-hoggies-plate-art">

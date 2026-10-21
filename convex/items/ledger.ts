@@ -42,6 +42,15 @@ function faceDown({ _id, earnedAt, reason }: Doc<"items">): FaceDown {
   return { item: _id, earnedAt, reason };
 }
 
+export async function newestTurnOf(ctx: QueryCtx, member: MemberId): Promise<number | null> {
+  const newest = await ctx.db
+    .query("items")
+    .withIndex("by_member_turned", (q) => q.eq("member", member))
+    .order("desc")
+    .first();
+  return newest?.turnedAt ?? null;
+}
+
 export async function isTurned(ctx: QueryCtx, member: MemberId, source: ItemSource, key: string): Promise<boolean> {
   return (await itemOf(ctx, member, source, key))?.turnedAt !== undefined;
 }

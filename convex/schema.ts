@@ -86,6 +86,8 @@ export default defineSchema({
     tick: v.number(),
   }),
 
+  lastVisits: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
+
   companyProfiles: defineTable({
     firstName: v.string(),
     lastName: v.string(),

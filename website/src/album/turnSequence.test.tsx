@@ -76,11 +76,11 @@ function theDanceFound(): AlbumHoggies {
   return { ...midway, hoggies: midway.hoggies.map((hoggie) => (hoggie.hoggie === "70s-dance" ? dance : { ...hoggie, firstAt: hoggie.firstAt === null ? null : Math.min(hoggie.firstAt, Date.parse("2026-10-01T09:00:00Z")) })), found: before.found ? midway.found : midway.found + 1, rarest: [dance, ...midway.rarest.filter(({ hoggie }) => hoggie !== "70s-dance")].slice(0, 5) };
 }
 
-type Visit = { reply?: (item: string) => Promise<TurnReply>; after?: (album: Album, item: string) => Album; hoggies?: AlbumHoggies };
+type Visit = { album?: Album; reply?: (item: string) => Promise<TurnReply>; after?: (album: Album, item: string) => Album; hoggies?: AlbumHoggies };
 
-function visit({ reply = async (item) => fixtureTurnOf(item), after = withTheHoggieTurned, hoggies = theDanceFound() }: Visit = {}) {
+function visit({ album = withItems, reply = async (item) => fixtureTurnOf(item), after = withTheHoggieTurned, hoggies = theDanceFound() }: Visit = {}) {
   window.history.replaceState(null, "", "/book#me");
-  const live = anAlbumThatAnswers(withItems);
+  const live = anAlbumThatAnswers(album);
   const turnItem = vi.fn(async (item: string) => {
     const answer = await reply(item);
     if (answer.kind === "turned") live.answerNext(after(live.now(), item));
@@ -135,6 +135,10 @@ function xpWords() {
 
 function thePlate() {
   return document.querySelector<HTMLElement>('[data-hoggie="70s-dance"]');
+}
+
+function theSpotOfCassVey() {
+  return screen.getByText("Cass Vey", { selector: ".al-photo-name" }).closest("li");
 }
 
 function placeTheSealInView() {
@@ -262,6 +266,23 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(screen.queryByRole("img", { name: ":cass-vey-hype: hype emoji unlocked" })).toBeNull();
     await at(4.1);
     expect(screen.getByRole("img", { name: ":cass-vey-hype: hype emoji unlocked" })).toBeInTheDocument();
+  });
+
+  it("keeps New off a sticker's spot on its page until the sticker lands", async () => {
+    const lastVisit = Date.parse("2026-10-19T10:00:00Z");
+    const putIn = (album: Album, item: string) => {
+      const filled = withTinOrchardFilled(album, item);
+      return { ...filled, teams: album.teams, people: filled.people.map((someone) => (someone.person === "cass-vey" ? { ...someone, at: unlockedAt } : someone)) };
+    };
+    visit({ album: { ...withItems, lastVisit }, reply: async () => aStickerTurnOfCassVey({ teamStickers: [], hype: null, milestones: [] }), after: putIn });
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(1.8);
+    expect(theSpotOfCassVey()).toHaveTextContent("Not in your album yet");
+    expect(theSpotOfCassVey()).not.toHaveTextContent("New");
+    await at(4.1);
+    expect(theSpotOfCassVey()).toHaveTextContent("In your album");
+    expect(theSpotOfCassVey()).toHaveTextContent("New");
   });
 
   it.each([

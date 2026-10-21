@@ -1,4 +1,4 @@
-import type { Album } from "./answer";
+import type { Album, AlbumPerson } from "./answer";
 import type { Landing } from "./useItemBoard";
 import { withTheUnlocked } from "./useTeamUnlock";
 
@@ -21,7 +21,11 @@ function withTheStickerStillOut(album: Album, face: Landing["face"]): Album {
   if (person === undefined || !person.held) return album;
   return {
     ...album,
-    people: album.people.map((someone) => (someone === person ? { ...someone, held: false } : someone)),
+    people: album.people.map((someone) => (someone === person ? notYetPutIn(someone) : someone)),
     teams: album.teams.map((team) => (team.people.includes(face.person) && team.state !== "unlocked" ? { ...team, held: Math.max(0, team.held - 1), state: "progress" } : team)),
   };
+}
+
+function notYetPutIn({ at: _putInAt, ...person }: AlbumPerson): AlbumPerson {
+  return { ...person, held: false };
 }
