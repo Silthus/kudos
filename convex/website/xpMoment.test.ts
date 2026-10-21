@@ -413,6 +413,35 @@ describe("LP72: the XP moment carries the first-thanks top-up", { timeout: 60_00
     expect(await momentOf(asAlice), "the next read").toEqual({ kind: "none", lastVisit: moment.until });
   });
 
+  test.each([
+    ["before", false],
+    ["after", true],
+  ])("a newcomer's first arrival read while their first kudos' XP waits holds %s the top-up lands, so the moment still plays", async (_, landsBeforeArrival) => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await signedIn(alice);
+    const held = await thanksWhileItsXpWaits(alice, carol);
+    expect(await momentOf(asAlice), "the first read").toEqual({ kind: "none", lastVisit: null });
+
+    if (landsBeforeArrival) await held.record();
+    await arrive(asAlice, null);
+    if (!landsBeforeArrival) await held.record();
+
+    expect((await theMomentOf(asAlice)).excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the excerpts with their XP").toEqual([
+      ["kudosGiven", 20],
+      ["levelUp", 0],
+    ]);
+  });
+
+  test("a newcomer who has only received kudos arrives past them at their first visit, as before", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await signedIn(alice);
+    await thanks(bob, alice);
+
+    await arrive(asAlice, null);
+
+    expect(await momentOf(asAlice), "the next read").toMatchObject({ kind: "none", lastVisit: await newestKudosDecidedFor(alice) });
+  });
+
   test("a later kudos plays at its own XP, without the top-up", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
     const asAlice = await signedIn(alice);
