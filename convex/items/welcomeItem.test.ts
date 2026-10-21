@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
-import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
+import { memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, allowedWorkspace, switchWebsite } from "../../testing/website";
 import { api } from "../_generated/api";
@@ -65,6 +65,32 @@ describe("LP44 LP50: a member's first sign-in earns one welcome item", () => {
     await signsIn(juno, before.user);
 
     expect((await albumOf(before.reader)).board?.items).toEqual([]);
+  });
+
+  test("a person the directory learns of only by verifying their first sign-in earns the welcome item once verified", async () => {
+    const newcomer = { user: "U_NEW", name: "Nell Arden" };
+    slack.withMember(newcomer.user, { real_name: newcomer.name });
+    const first = await signsIn(newcomer);
+    await settle(t);
+
+    await signsIn(newcomer, first.user);
+    await settle(t);
+
+    expect((await albumOf(first.reader)).board?.items.map(({ reason }) => reason), "the verified newcomer's welcome item").toEqual([{ kind: "welcome" }]);
+  });
+
+  test("a person verified at a later sign-in, whose first sign-in came before welcome-item shipped, earns none", async () => {
+    const newcomer = { user: "U_NEW", name: "Nell Arden" };
+    slack.withMember(newcomer.user, { real_name: newcomer.name }).answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
+    await switchWebsite(t, postHog, true, ...itemsOn);
+    const before = await signsIn(newcomer);
+    await settleInTimeOrder(t);
+    await switchWebsite(t, postHog, true, ...welcomeOn);
+
+    await signsIn(newcomer, before.user);
+    await settle(t);
+
+    expect(await itemsOf(newcomer), "a pre-flag account verified later earns no welcome item").toEqual([]);
   });
 
   test.each([

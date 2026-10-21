@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
+import { earnWelcomeItem } from "../items/welcome";
 import { readyFromTheStartOnceVerified } from "../website/flag";
 import { lookup } from "../workspace/directory";
 import { lookUpUser, type LookUp } from "./directory";
@@ -13,11 +14,11 @@ const firstRetryMs = 1000;
 
 const personArgs = { workspace: v.string(), user: v.string() };
 
-export async function verifyLater(ctx: MutationCtx, workspace: string, user: string) {
+export async function verifyLater(ctx: MutationCtx, workspace: string, user: string, { firstSignIn }: { firstSignIn: boolean }) {
   const earlier = await verificationOf(ctx, workspace, user);
   if (earlier?.state === "pending") return;
   const fresh = { attempts: 0, state: "pending" as const, nextTryAt: Date.now() };
-  if (earlier === null) await ctx.db.insert("memberVerifications", { workspace, user, ...fresh });
+  if (earlier === null) await ctx.db.insert("memberVerifications", { workspace, user, ...fresh, ...(firstSignIn && { firstSignIn }) });
   else await ctx.db.patch(earlier._id, fresh);
   await ctx.scheduler.runAfter(0, internal.slack.verifyMember.verifyMember, { workspace, user });
 }
@@ -54,7 +55,7 @@ export const recordAttempt = internalMutation({
     if (verification === null) return;
     if (found) return verified(ctx, verification);
     const attempts = verification.attempts + 1;
-    if (attempts >= verificationTries) return ctx.db.patch(verification._id, { attempts, state: "failed" });
+    if (attempts >= verificationTries) return failed(ctx, verification, attempts);
     const waitMs = Math.max(retryAfterMs ?? 0, firstRetryMs * 2 ** (attempts - 1));
     await ctx.db.patch(verification._id, { attempts, nextTryAt: Date.now() + waitMs });
     await ctx.scheduler.runAfter(waitMs, internal.slack.verifyMember.verifyMember, { workspace, user });
@@ -64,7 +65,13 @@ export const recordAttempt = internalMutation({
 async function verified(ctx: MutationCtx, verification: Doc<"memberVerifications">) {
   await ctx.db.delete(verification._id);
   const person = await lookup(ctx, verification.workspace, verification.user);
-  if (person?.kind === "member") await readyFromTheStartOnceVerified(ctx, person.member);
+  if (person?.kind !== "member") return;
+  await readyFromTheStartOnceVerified(ctx, person.member);
+  if (verification.firstSignIn === true) await earnWelcomeItem(ctx, verification.workspace, person.member, Date.now());
+}
+
+function failed(ctx: MutationCtx, verification: Doc<"memberVerifications">, attempts: number) {
+  return ctx.db.patch(verification._id, { attempts, state: "failed", firstSignIn: undefined });
 }
 
 export const retryStranded = internalMutation({
@@ -83,7 +90,7 @@ async function tryAgainCountingTheStrandedTry(ctx: MutationCtx, verification: Do
   const { _id, workspace, user, attempts } = verification;
   if ((await lookup(ctx, workspace, user))?.kind === "member") return verified(ctx, verification);
   const attemptsWithStrandedTry = attempts + 1;
-  if (attemptsWithStrandedTry >= verificationTries) return ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, state: "failed" });
+  if (attemptsWithStrandedTry >= verificationTries) return failed(ctx, verification, attemptsWithStrandedTry);
   await ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, nextTryAt: Date.now() });
   await ctx.scheduler.runAfter(0, internal.slack.verifyMember.verifyMember, { workspace, user });
 }

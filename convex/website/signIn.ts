@@ -16,7 +16,7 @@ export async function rememberSignedInMember(ctx: GenericMutationCtx<DataModel>,
   const chatIdentity = { workspace: signedIn.chatWorkspace, user: signedIn.chatUser };
   const person = await lookup(ctx, chatIdentity.workspace, chatIdentity.user);
   if (!(await admitted(ctx, person))) throw new Error("the website is closed, so nobody signs in");
-  if (person === undefined) await verifyLater(ctx, chatIdentity.workspace, chatIdentity.user);
+  if (person === undefined) await verifyLater(ctx, chatIdentity.workspace, chatIdentity.user, { firstSignIn: existingUserId === null });
   const display = { name: signedIn.name, givenName: signedIn.givenName, familyName: signedIn.familyName, image: signedIn.image };
   if (existingUserId === null) return firstSignIn(ctx, { ...display, chatIdentity }, person);
   await ctx.db.replace(existingUserId, { ...display, chatIdentity });

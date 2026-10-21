@@ -79,6 +79,7 @@ export default defineSchema({
     attempts: v.number(),
     state: v.union(v.literal("pending"), v.literal("failed")),
     nextTryAt: v.optional(v.number()),
+    firstSignIn: v.optional(v.boolean()),
   })
     .index("by_user", ["workspace", "user"])
     .index("by_state_and_next_try", ["state", "nextTryAt"]),
