@@ -155,6 +155,7 @@ import type * as hugs_xp from "../hugs/xp.js";
 import type * as items_fill from "../items/fill.js";
 import type * as items_finds from "../items/finds.js";
 import type * as items_flag from "../items/flag.js";
+import type * as items_hypes from "../items/hypes.js";
 import type * as items_ledger from "../items/ledger.js";
 import type * as items_milestoneUnlocks from "../items/milestoneUnlocks.js";
 import type * as items_records from "../items/records.js";
@@ -501,6 +502,7 @@ declare const fullApi: ApiFromModules<{
   "items/fill": typeof items_fill;
   "items/finds": typeof items_finds;
   "items/flag": typeof items_flag;
+  "items/hypes": typeof items_hypes;
   "items/ledger": typeof items_ledger;
   "items/milestoneUnlocks": typeof items_milestoneUnlocks;
   "items/records": typeof items_records;
