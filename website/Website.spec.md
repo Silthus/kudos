@@ -203,7 +203,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
 - a visit sends one arrival, the XP moment's end when one plays: The shell sends one of arrive and endXpMoment once a visit: while getXpMoment has not answered, the item board and the arrival wait; with a moment it ends it once however it lands, with skipped when `Skip` or `Esc` landed all the XP at once, and under reduced motion it shows the end state at once; with nothing since the last visit it arrives from the last visit the moment read, also when getAlbum keeps none, and while xp-moments is off from the one getAlbum answered, as before, and nothing plays.
   over: a skip, an `Esc`, reduced motion, a moment not answered yet, nothing since with items and without, nothing since while getAlbum keeps no last visit, xp-moments off, and an `Esc` after the moment collected
   via: LP33 LP26: skip, reduced motion, quiet visits and one arrival per visit
-  refuted: Skip and Esc ended the moment as not skipped -> 2 of 9 tests failed: endXpMoment was sent with skipped false after a Skip and after an Esc (2026-10-21)
+  refuted: `Skip` and `Esc` ended the moment as not skipped -> 2 of 9 tests failed: endXpMoment was sent with skipped false after a click on `Skip` and after an `Esc` (2026-10-21)
   because: LP26 moves the last visit once per visit, at the moment's end or skip when one plays and at arrival when none does; an arrival sent while a moment plays would move the last visit past it, so the next visit could not replay an unfinished one (LP35), and two ends would record the moment twice (LP36)
   kinds: output
   checklist: destination-confinement dismissed: the shell sends only arrive or endXpMoment, once a visit, with the last visit or the instants the reads answered
