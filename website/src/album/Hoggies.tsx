@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { AnswerPage } from "../pages/AnswerPage";
 import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
@@ -10,6 +10,7 @@ import { HoggieEntry } from "./HoggieEntry";
 import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, numberOf, rarityTintOf, shelvesOf, type Filter, type Shelf } from "./hoggieGuide";
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
+import { useLanding } from "./useItemBoard";
 import { useRarityStrip } from "./useRarityStrip";
 import "./hoggies.css";
 
@@ -237,8 +238,11 @@ function Group({ group, answer, onOpen }: { group: Shelf; answer: AlbumHoggies; 
 }
 
 function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string; onOpen: Open }) {
+  const plate = useRef<HTMLButtonElement>(null);
+  const landedTurn = useLandedTurnOf(hoggie);
+  useBroughtIntoViewOnLanding(plate, landedTurn);
   return (
-    <button type="button" className="al-hoggies-plate" data-hoggie={hoggie.hoggie} data-found={hoggie.found ? "" : undefined} aria-label={hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
+    <button type="button" ref={plate} className="al-hoggies-plate" data-hoggie={hoggie.hoggie} data-landed={landedTurn === null ? undefined : ""} data-found={hoggie.found ? "" : undefined} aria-label={hoggieLabelOf(hoggie)} onClick={() => onOpen(hoggie)}>
       <span className="al-hoggies-plate-number">{number}</span>
       {hoggie.count > 1 && <span className="al-hoggies-copies">{`×${hoggie.count}`}</span>}
       <span className="al-hoggies-plate-art">
@@ -248,4 +252,17 @@ function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string
       <span className="al-hoggies-rarity">{rarityWordOf(hoggie.rarity)}</span>
     </button>
   );
+}
+
+function useLandedTurnOf(hoggie: AlbumHoggie) {
+  const landing = useLanding();
+  return landing?.drop.hoggie === hoggie.hoggie ? landing.turn : null;
+}
+
+function useBroughtIntoViewOnLanding(plate: RefObject<HTMLElement | null>, landedTurn: number | null) {
+  useEffect(() => {
+    if (landedTurn === null) return;
+    const frame = requestAnimationFrame(() => plate.current?.scrollIntoView({ block: "center", behavior: "instant" }));
+    return () => cancelAnimationFrame(frame);
+  }, [plate, landedTurn]);
 }

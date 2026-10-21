@@ -3,9 +3,11 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
+import type { TurnReply } from "../shell";
 import type { Album, PackOpenReply, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
+import { ItemBoard, ItemsWait } from "./ItemBoard";
 import { PackOpening, useHeld } from "./PackOpening";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
@@ -15,6 +17,7 @@ import { teamEmojiOf } from "./teamPage";
 import { TopBar, type TopBarPopups } from "./TopBar";
 import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
+import { useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
 import { useTeamUnlock } from "./useTeamUnlock";
 import "./album.css";
@@ -33,9 +36,10 @@ export type AlbumShellProps = {
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
   markEmojisSeen: (ids: string[]) => Promise<SeenReply>;
+  turnItem: (item: string) => Promise<TurnReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
@@ -68,7 +72,8 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     emojiMoments.shownElsewhere([`team:${team}`]);
     finish();
   };
-  const awaitingAMoment = playing || unlocking.sending !== null;
+  const turns = useItemBoard(album.board, turnItem, anotherMoment || playing);
+  const awaitingAMoment = playing || unlocking.sending !== null || turns.open;
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
@@ -78,16 +83,20 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
+      {turns.open && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} onTurn={turns.turn} onLater={turns.later} />}
+      {album.board !== null && <ItemsWait turns={turns} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
       </p>
-      <div className="al-body" inert={playing}>
+      <div className="al-body" inert={playing || turns.open}>
         <Sidebar album={album} place={place} wide={wide} />
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+            <LandingProvider value={turns.landing}>
+              <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+            </LandingProvider>
           </ErrorBoundary>
         </main>
       </div>

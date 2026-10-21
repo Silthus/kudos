@@ -213,7 +213,7 @@ export const turnItem = memberMutation({
 });
 
 async function turnsItems(ctx: QueryCtx, me: VerifiedMember) {
-  return (await albumShownTo(ctx, me.member)) && (await hiddenItemsShownTo(ctx, me.member)) && (await hoggiesShownTo(ctx, me.member));
+  return (await albumShownTo(ctx, me.member)) && (await hiddenItemsShownTo(ctx, me.member)) && (await hoggiesShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }
 
 export const putIn = memberMutation({

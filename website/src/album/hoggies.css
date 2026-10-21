@@ -694,3 +694,8 @@ button.al-hoggies-note .al-hoggie-art {
     transform: translateY(0.5rem) scale(0.98);
   }
 }
+
+.al-hoggies-plate[data-landed] {
+  outline: 3px solid var(--al-accent);
+  outline-offset: 3px;
+}

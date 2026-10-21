@@ -83,6 +83,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         putIn={actions.putIn}
         putAllIn={actions.putAllIn}
         markEmojisSeen={actions.markEmojisSeen}
+        turnItem={actions.turnItem}
       />
       </EmojiWizardHost>
     </NavigateProvider>

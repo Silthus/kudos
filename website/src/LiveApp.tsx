@@ -178,6 +178,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const putIn = useSentOnce(api.website.album.putIn);
   const putAllIn = useSentOnce(api.website.album.putAllIn);
   const markEmojisSeen = useSentOnce(api.website.album.markEmojisSeen);
+  const turnItem = useSentOnce(api.website.album.turnItem);
   return useMemo(
     () => ({
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
@@ -195,6 +196,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })).then(putInShown),
       putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})).then(putAllInShown),
       markEmojisSeen: (ids) => answerWithin(commandAnswerBudgetMs, markEmojisSeen({ ids })),
+      turnItem: (item) => answerWithin(commandAnswerBudgetMs, turnItem({ item: item as Id<"items"> })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -202,7 +204,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, onSignInFailure],
   );
 }
 

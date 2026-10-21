@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api } from "../_generated/api";
@@ -185,6 +186,77 @@ describe("LP10: turnItem refuses and writes nothing", () => {
   });
 });
 
+describe("website commands pass one guard", () => {
+  test("WS61: with the website flag off, turning an item answers closed and writes nothing at all", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [item] = (await boardOf(asAlice)).items;
+    await switchWebsite(t, postHog, false, ...itemsOn);
+    const before = await everythingWritten();
+
+    expect(await turn(asAlice, item!.item)).toEqual({ kind: "closed" });
+    expect(await everythingWritten()).toEqual(before);
+  });
+
+  test("WS61: without a session it answers signed-out, and for a member who left not-a-member, writing nothing at all", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [item] = (await boardOf(asAlice)).items;
+    const before = await everythingWritten();
+
+    expect(await turn(t, item!.item)).toEqual({ kind: "signed-out" });
+    expect(await everythingWritten()).toEqual(before);
+    await memberChanged(t, "user_change", { id: alice.user, team_id: "T1", deleted: true });
+    await settle(t);
+    const left = await everythingWritten();
+    expect(await turn(asAlice, item!.item)).toEqual({ kind: "not-a-member" });
+    expect(await everythingWritten()).toEqual(left);
+  });
+
+  test("WS61: the item is the only argument, so no call names a member", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [item] = (await boardOf(asAlice)).items;
+    const before = await everythingWritten();
+
+    await expect(asAlice.mutation(api.website.album.turnItem, { item: item!.item, member: await memberOf(alice) } as never)).rejects.toThrow(/member/);
+    expect(await everythingWritten()).toEqual(before);
+  });
+});
+
+describe("a website command never launches unlocks", () => {
+  test("WS62 P77: with xp-levels and unlocks on and no unlocks launch recorded, turning an item answers refused and launches nothing", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const item = await itemOf(alice);
+    await switchWebsite(t, postHog, true, ...itemsOn, "xp-levels", "unlocks");
+    await settle(t);
+    const before = await everythingWritten();
+
+    expect(await turn(asAlice, item)).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.unlockLaunches).toEqual([]);
+  });
+
+  test("WS62 P91: with quests on and no Journey launch, turning an item answers refused and doesn't launch the Journey", async () => {
+    await unlocksShippedBeforeAnyoneJoined(t);
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const item = await itemOf(alice);
+    await switchWebsite(t, postHog, true, ...itemsOn, "xp-levels", "unlocks", "quests");
+    await settle(t);
+    const before = await everythingWritten();
+
+    expect(await turn(asAlice, item)).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.journeyLaunches).toEqual([]);
+  });
+});
+
 describe("LP6: with hidden-items off, packs, the tray and the open stay as today, and the open marks the item turned", () => {
   test("getAlbum answers no board, the pack waits and opens into the tray, and once hidden-items turns on the opened pack's item no longer waits", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen);
@@ -249,6 +321,17 @@ async function memberOf(person: Person): Promise<MemberId> {
       .unique(),
   );
   return row!._id;
+}
+
+async function itemOf(person: Person): Promise<ItemId> {
+  const member = await memberOf(person);
+  const item = await t.run((ctx) =>
+    ctx.db
+      .query("items")
+      .withIndex("by_member_turned", (q) => q.eq("member", member))
+      .first(),
+  );
+  return item!._id;
 }
 
 async function packOf(giver: Person) {

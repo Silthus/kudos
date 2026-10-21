@@ -2,9 +2,10 @@ import type { AdminProfileLinkAnswer, CompanyProfileLinkAnswer, GroupPickAnswer,
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
 import type { EmojiMappingAnswer, EmojiMappings, EmojiMappingsRead as EmojiMappingsReadAnswer, ShownTarget } from "../../convex/website/emojiMappings";
 import type { AppEmojisRead as AppEmojisReadAnswer, MyEmojiMappingAnswer, SlackEmojiMatchesRead as SlackEmojiMatchesReadAnswer } from "../../convex/website/emojiWizard";
+import type { TurnAnswer } from "../../convex/website/album";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { MemberProfile, MyProfile } from "../../convex/website/profile";
-import { albumFixtures, fixturePackOpeningOf, fixturePutAllIn, fixturePutInOf, fixtureUnlockOf } from "./album/albumFixtures";
+import { albumFixtures, fixturePackOpeningOf, fixturePutAllIn, fixturePutInOf, fixtureTurnOf, fixtureUnlockOf } from "./album/albumFixtures";
 import type { PackOpenReply, PutAllInReply, PutInReply, SeenReply, UnlockReply } from "./album/answer";
 
 export type { Rarity } from "./crates/drops";
@@ -35,6 +36,8 @@ export type WorkspaceSettingsChange = { baseAllowance: number; kudosEmoji: strin
 
 export type AdminLinkTarget = number | "none" | null;
 
+export type TurnReply = TurnAnswer | Denial;
+
 export type MySettingsAnswer = SettingsAnswer | Denial;
 
 export type { EmojiMappings };
@@ -59,7 +62,7 @@ export type Visitor = Exclude<MyProfile, MemberProfile> | Member | { kind: "load
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setWeeklyPost(on: boolean): Promise<WeeklyPostReply>; pickWeeklyPostChannel(link: string): Promise<WeeklyPostChannelReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; mapMyEmoji(emoji: string, to: string): Promise<MyEmojiMappingReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply>; markEmojisSeen(ids: string[]): Promise<SeenReply> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setWeeklyPost(on: boolean): Promise<WeeklyPostReply>; pickWeeklyPostChannel(link: string): Promise<WeeklyPostChannelReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; mapMyEmoji(emoji: string, to: string): Promise<MyEmojiMappingReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply>; markEmojisSeen(ids: string[]): Promise<SeenReply>; turnItem(item: string): Promise<TurnReply> };
 
 const member: Member = { kind: "member" };
 
@@ -91,6 +94,7 @@ const fixturesByName: Record<string, ShellState> = {
   "album-with-new-emojis": shellFixtures.member,
   "album-as-an-admin": shellFixtures.member,
   "album-emoji-wizard": shellFixtures.member,
+  "album-with-items": shellFixtures.member,
   error: shellFixtures.error,
 };
 
@@ -98,4 +102,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), setWeeklyPost: async () => ({ kind: "set" }), pickWeeklyPostChannel: async () => ({ kind: "checking", pick: 1 }), mapSlackEmoji: async () => ({ kind: "mapped" }), mapMyEmoji: async () => ({ kind: "mapped" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team), markEmojisSeen: async (ids) => ({ kind: "seen", ids }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), setWeeklyPost: async () => ({ kind: "set" }), pickWeeklyPostChannel: async () => ({ kind: "checking", pick: 1 }), mapSlackEmoji: async () => ({ kind: "mapped" }), mapMyEmoji: async () => ({ kind: "mapped" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team), markEmojisSeen: async (ids) => ({ kind: "seen", ids }), turnItem: async (item) => fixtureTurnOf(item) };

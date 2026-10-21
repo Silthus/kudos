@@ -33,8 +33,8 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, moving
       </AppLink>
       <XpBar level={held.level ?? album.level} moving={moving} />
       <div className="al-top-end">
-        <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />
-        <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />
+        {album.board === null && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />}
+        {album.board === null && <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />}
         {wide && <PageLinks place={place} />}
         <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} />
         <FeedbackButton />

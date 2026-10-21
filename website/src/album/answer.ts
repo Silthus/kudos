@@ -2,6 +2,7 @@ import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
+import type { ItemBoard } from "../../../convex/website/album";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
@@ -52,6 +53,7 @@ export type Album = {
   emojiInPlace: EmojiInPlace;
   milestones: AlbumMilestone[];
   gettingStarted: GettingStarted | null;
+  board: ItemBoard | null;
 };
 
 export type AlbumAnswer = { kind: "off" } | Album;
