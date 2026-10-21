@@ -28,7 +28,7 @@ async function isTheWelcomeItem(ctx: QueryCtx, item: Id<"items">): Promise<boole
   return (await ctx.db.get(item))?.reason.kind === "welcome";
 }
 
-async function loopLessonIn(ctx: QueryCtx, workspace: string): Promise<LoopLesson> {
+export async function loopLessonIn(ctx: QueryCtx, workspace: string): Promise<LoopLesson> {
   const { kudosEmoji } = await settingsOf(ctx, workspace);
   return { kudosEmoji, kudosEmojiImage: (await customEmojiImageOf(ctx, workspace, kudosEmoji)) ?? null };
 }

@@ -5,7 +5,7 @@ import { companyTeamsOf } from "../companyProfiles/teams";
 import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { slackEmojiImageOf } from "../workspace/slackEmoji";
 import { isStandardEmojiName } from "../workspace/standardEmoji";
-import { emojiLevels, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
+import { emojiLevels, levelTwoEmoji, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
 import { isClassed } from "./emojiClasses";
 import type { EmojiMapper, MilestoneId, MilestoneTier } from "./records";
 
@@ -93,7 +93,7 @@ async function slackHas(ctx: QueryCtx, workspace: string, name: string) {
 
 async function naturalShapeOf(ctx: QueryCtx, emoji: EarnedEmojiId): Promise<NameShape> {
   const [kind, cause] = splitOnce(emoji);
-  if (kind === "level") return { slug: `level-${cause}`, empty: "level", suffix: "" };
+  if (kind === "level") return levelNameShapeOf(cause);
   if (kind === "milestone") return { slug: slugOf(milestoneTierEmojiOf(cause)?.name ?? cause), empty: "milestone", suffix: "" };
   if (kind === "team") return teamNameShapeOf((await companyTeamsOf(ctx)).find(({ team }) => team === cause)?.name ?? cause);
   return { slug: slugOf(await fullNameOf(ctx, cause as MemberId)), empty: "person", suffix: hypeSuffix };
@@ -118,11 +118,13 @@ export const reserveTeamNamesAfterTheSync = internalMutation({
 });
 
 export const reserveSharedEmojiNames = internalMutation({
-  args: { workspace: v.string() },
+  args: { workspace: v.optional(v.string()) },
   returns: v.null(),
   handler: async (ctx, { workspace }) => {
-    await reserveSharedNamesIn(ctx, workspace);
-    await reserveCatalogueNamesIn(ctx, workspace);
+    for (const each of workspace === undefined ? await workspacesWithARegistry(ctx) : [workspace]) {
+      await reserveSharedNamesIn(ctx, each);
+      await reserveCatalogueNamesIn(ctx, each);
+    }
     return null;
   },
 });
@@ -162,7 +164,8 @@ function teamEmojiRowsIn(ctx: QueryCtx, workspace: string) {
 }
 
 async function reserveCatalogueNamesIn(ctx: MutationCtx, workspace: string) {
-  for (const level of emojiLevels) await allocate(ctx, workspace, `level:${level}`, { slug: `level-${level}`, empty: "level", suffix: "" });
+  for (const level of emojiLevels) await allocate(ctx, workspace, levelEmojiIdOf(level), levelNameShapeOf(level));
+  await reserveLevelTwoNameIn(ctx, workspace);
   for (const { milestone, tier, name } of milestoneTierEmojis) await allocate(ctx, workspace, `milestone:${milestone}:${tier}`, { slug: slugOf(name), empty: "milestone", suffix: "" });
 }
 
@@ -172,6 +175,21 @@ async function reserveCompanyTeamNamesIn(ctx: MutationCtx, workspace: string, on
     const shape = teamNameShapeOf(name);
     if (only(shape.slug)) await allocate(ctx, workspace, `team:${team}`, shape);
   }
+}
+
+async function reserveLevelTwoNameIn(ctx: MutationCtx, workspace: string) {
+  const emoji = levelEmojiIdOf(levelTwoEmoji.level);
+  if ((await registeredAs(ctx, workspace, emoji)) !== null) return;
+  const name = (await isTakenOrClassed(ctx, workspace, levelTwoEmoji.name)) ? await firstFreeName(ctx, workspace, levelNameShapeOf(levelTwoEmoji.level)) : levelTwoEmoji.name;
+  await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name });
+}
+
+function levelEmojiIdOf(level: number): EarnedEmojiId {
+  return `level:${level}`;
+}
+
+function levelNameShapeOf(level: number | string): NameShape {
+  return { slug: `level-${level}`, empty: "level", suffix: "" };
 }
 
 function reserveTeamNamesShapedLikeHypes(ctx: MutationCtx, workspace: string) {
@@ -212,7 +230,11 @@ async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty,
 }
 
 async function isFree(ctx: QueryCtx, workspace: string, name: string) {
-  return !isStandardEmojiName(name) && !(await nameTaken(ctx, workspace, name)) && !(await isClassed(ctx, workspace, name));
+  return !isStandardEmojiName(name) && !(await isTakenOrClassed(ctx, workspace, name));
+}
+
+async function isTakenOrClassed(ctx: QueryCtx, workspace: string, name: string) {
+  return (await nameTaken(ctx, workspace, name)) || (await isClassed(ctx, workspace, name));
 }
 
 function numberingOf(ctx: QueryCtx, workspace: string, stem: string) {

@@ -14,7 +14,7 @@ const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
 const why = "Thanks for untangling the flaky migration";
 const albumOpen = ["album", "collection", "packs"];
-const levelNames = ["level-5", "level-10", "level-15", "level-20", "level-25"];
+const levelNames = ["level-5", "level-10", "level-15", "level-20", "level-25", "raised_hands"];
 const milestoneTierNames = [
   ...["first-face", "familiar-faces", "full-of-friends", "everyone-s-album"],
   ...["first-full-page", "five-teams-strong", "most-of-the-company", "every-page"],
