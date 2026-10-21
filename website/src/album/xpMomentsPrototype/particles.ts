@@ -5,7 +5,7 @@ export type Point = { x: number; y: number };
 
 type Target = () => Point | null;
 
-type Spray = { count: number; xp: number; target: Target; onLand: (xp: number) => void; delay?: number };
+type Spray = { count: number; xp: number; target: Target; onLand: (xp: number) => void; delay?: number; towards?: Point };
 
 export const toTheBar: Target = barEnd;
 
@@ -80,8 +80,8 @@ export function crumble(card: HTMLElement, spray: Spray) {
   const delay = spray.delay ?? 0;
   const sweepMs = 650;
   card.animate([{ clipPath: "inset(0 0 0 0)", opacity: 1 }, { clipPath: "inset(0 0 0 100%)", opacity: 0.6 }], { duration: sweepMs, delay, easing: "ease-in", fill: "forwards" });
-  const columns = 10;
-  const rows = 4;
+  const columns = 16;
+  const rows = 6;
   const width = box.width / columns;
   const height = box.height / rows;
   for (let column = 0; column < columns; column += 1) {
@@ -91,12 +91,14 @@ export function crumble(card: HTMLElement, spray: Spray) {
       shard.style.width = `${width}px`;
       shard.style.height = `${height}px`;
       const lag = delay + (column / columns) * sweepMs;
+      const drift = spray.towards ? { x: (spray.towards.x - at.x) * (0.55 + Math.random() * 0.4), y: (spray.towards.y - at.y) * (0.55 + Math.random() * 0.4) } : { x: 16 + Math.random() * 46, y: -10 - Math.random() * 44 };
       shard.animate(
         [
           { transform: "translate(-50%, -50%) rotate(0) scale(1)", opacity: 1, background: "var(--card)" },
-          { transform: `translate(-50%, -50%) translate(${16 + Math.random() * 46}px, ${-10 - Math.random() * 44}px) rotate(${Math.random() * 90 - 45}deg) scale(0.4)`, opacity: 0, background: "var(--al-accent)" },
+          { transform: `translate(-50%, -50%) translate(${drift.x * 0.25}px, ${drift.y * 0.25}px) rotate(${Math.random() * 60 - 30}deg) scale(0.8)`, opacity: 1, background: "var(--xpm-spark)", offset: 0.35 },
+          { transform: `translate(-50%, -50%) translate(${drift.x}px, ${drift.y}px) rotate(${Math.random() * 180 - 90}deg) scale(0.25)`, opacity: 0, background: "var(--al-accent)" },
         ],
-        { duration: 520, delay: lag, easing: "ease-out", fill: "both" },
+        { duration: spray.towards ? 760 : 520, delay: lag, easing: spray.towards ? "cubic-bezier(0.45, 0, 0.8, 0.5)" : "ease-out", fill: "forwards" },
       ).onfinish = () => shard.remove();
     }
   }

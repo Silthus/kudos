@@ -66,7 +66,7 @@
   animation-delay: var(--d);
 }
 
-.xpm-canvas[data-variant="E"] .xpm-scatter-card {
+.xpm-canvas[data-orb] .xpm-scatter-card {
   animation-name: xpm-scatter-from-orb;
   animation-duration: 640ms;
 }
@@ -82,6 +82,15 @@
 
 .xpm-scatter-card .xpm-excerpt {
   box-shadow: 0 18px 40px rgb(0 0 0 / 0.35);
+}
+
+.xpm-canvas[data-orb] .xpm-scatter-card .xpm-excerpt,
+.xpm-canvas[data-orb] .xpm-scatter-card .xpm-fold {
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.xpm-canvas[data-orb] .xpm-orb {
+  z-index: 3;
 }
 
 .xpm-scatter-card .xpm-fold {
@@ -229,11 +238,12 @@
 }
 
 .xpm-orb-hint {
-  position: absolute;
-  top: calc(100% + 0.75rem);
-  color: var(--xpm-canvas-quiet);
-  font-size: 0.875rem;
-  font-weight: 700;
+  margin-top: 0.25rem;
+  color: rgb(255 255 255 / 0.85);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -367,7 +377,7 @@
   transition: transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.4), box-shadow 180ms ease-out;
 }
 
-.xpm-items-scene[data-variant="E"] .xpm-item {
+.xpm-items-scene:is([data-variant="E"], [data-variant="G"], [data-variant="H"]) .xpm-item {
   animation-name: xpm-item-pop;
 }
 

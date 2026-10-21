@@ -13,7 +13,11 @@ import { popTheLevel } from "./sequence";
 import { ExcerptCard, FoldLine, HandoffBoard, itemsWords, publishLine } from "./XpMomentsPrototype";
 import "./scatter.css";
 
-export type ScatterVariant = "D" | "E" | "F";
+export type ScatterVariant = "D" | "E" | "F" | "G" | "H";
+
+function hasOrb(variant: ScatterVariant) {
+  return variant === "E" || variant === "G" || variant === "H";
+}
 
 type Phase = "settle" | "arrive" | "hold" | "collect" | "items";
 
@@ -63,7 +67,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
     if (phase !== "arrive" && phase !== "hold") return;
     clearTimers();
     setPhase("collect");
-    if (variant === "E") return collectThroughTheOrb();
+    if (hasOrb(variant)) return collectThroughTheOrb();
     let expected = 0;
     let landed = 0;
     const onLand = (share: number) => {
@@ -85,11 +89,15 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
   };
 
   const collectThroughTheOrb = () => {
+    const towards = orb.current ? centreOf(orb.current) : undefined;
     cards.forEach((card, index) => {
       const element = cardElements.current.get(card.key);
-      if (element) poof(element, { count: 0, xp: 0, target: toTheBar, onLand: () => {}, delay: index * pace.collectStagger });
+      const spray = { count: 0, xp: 0, target: toTheBar, onLand: () => {}, delay: index * pace.collectStagger };
+      if (!element) return;
+      if (variant === "E") poof(element, spray);
+      else crumble(element, { ...spray, towards });
     });
-    const launchAt = cards.length * pace.collectStagger + 350;
+    const launchAt = cards.length * pace.collectStagger + (variant === "E" ? 350 : 900);
     later(launchAt, () => {
       if (!orb.current) return finish();
       orb.current.dataset.launch = "";
@@ -127,7 +135,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
     if (phase === "settle") after(pace.settle, () => setPhase(cards.length === 0 ? "items" : "arrive"));
     if (phase === "arrive") {
       after(arriveMs, () => setPhase("hold"));
-      if (variant === "E") soakIntoTheOrb();
+      if (hasOrb(variant)) soakIntoTheOrb();
     }
     if (phase === "hold") after(holdMs, collect);
     return () => own.forEach((timer) => window.clearTimeout(timer));
@@ -170,7 +178,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
   const narrow = viewport.width < 640;
   const canCollect = phase === "arrive" || phase === "hold";
   return (
-    <div className="xpm-canvas" style={{ top: viewport.top }} data-variant={variant} data-phase={phase} data-narrow={narrow ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={canCollect ? collect : undefined} role="dialog" aria-label="Since your last visit">
+    <div className="xpm-canvas" style={{ top: viewport.top }} data-variant={variant} data-orb={hasOrb(variant) ? "" : undefined} data-phase={phase} data-narrow={narrow ? "" : undefined} data-reduced={reduced ? "" : undefined} onClick={canCollect ? collect : undefined} role="dialog" aria-label="Since your last visit">
       {phase !== "items" &&
         cards.map((card, index) => {
           const spot = placed[index]!;
@@ -190,7 +198,7 @@ export function ScatterSequence({ variant, scenario, pace, reduced, me, onShown 
           );
         })}
       {variant === "D" && canCollect && <DrainCue holdMs={holdMs} running={phase === "hold"} />}
-      {variant === "E" && phase !== "items" && <Orb orb={orb} xp={orbXp} holdMs={holdMs} phase={phase} narrow={narrow} viewport={viewport} />}
+      {hasOrb(variant) && phase !== "items" && <Orb orb={orb} xp={orbXp} holdMs={holdMs} phase={phase} narrow={narrow} viewport={viewport} />}
       {variant === "F" && canCollect && <BarGhost from={scenario.startXp} to={final} holdMs={holdMs} running={phase === "hold"} />}
       {phase !== "items" && phase !== "collect" && (
         <button type="button" className="xpm-canvas-skip" onClick={(event) => (event.stopPropagation(), skip())}>
@@ -276,8 +284,8 @@ function layoutOf(variant: ScatterVariant, count: number, { width, height, top: 
   const bottom = height - (narrow ? 150 : 120);
   const left = 16;
   const right = width - 16;
-  if (variant === "E" && !narrow) return ringOf(count, { top, bottom, left, right });
-  const area = variant === "E" ? { top, bottom: bottom - 150, left, right } : { top, bottom, left, right };
+  if (hasOrb(variant) && !narrow) return ringOf(count, { top, bottom, left, right }, variant);
+  const area = hasOrb(variant) ? { top, bottom: bottom - 150, left, right } : { top, bottom, left, right };
   const columns = narrow ? Math.min(2, count) : count <= 2 ? count : count <= 4 ? 2 : 3;
   const rows = Math.ceil(count / columns);
   const cellWidth = (area.right - area.left) / Math.max(1, columns);
@@ -296,15 +304,24 @@ function layoutOf(variant: ScatterVariant, count: number, { width, height, top: 
   });
 }
 
-function ringOf(count: number, area: { top: number; bottom: number; left: number; right: number }): Placed[] {
+const rings = {
+  E: { width: 310, rx: null, ry: null, tilt: 2, wobble: 0 },
+  G: { width: 290, rx: 300, ry: 185, tilt: 7, wobble: 0.16 },
+  H: { width: 280, rx: 235, ry: 150, tilt: 11, wobble: 0.28 },
+} as const;
+
+function ringOf(count: number, area: { top: number; bottom: number; left: number; right: number }, variant: ScatterVariant): Placed[] {
+  const ring = rings[variant as keyof typeof rings] ?? rings.E;
   const cx = (area.left + area.right) / 2;
   const cy = (area.top + area.bottom) / 2;
-  const cardWidth = 310;
-  const rx = (area.right - area.left) / 2 - cardWidth / 2 - 8;
-  const ry = (area.bottom - area.top) / 2 - 70;
+  const widest = (area.right - area.left) / 2 - ring.width / 2 - 8;
+  const tallest = (area.bottom - area.top) / 2 - 70;
+  const rx = Math.min(ring.rx ?? widest, widest);
+  const ry = Math.min(ring.ry ?? tallest, tallest);
   return Array.from({ length: count }, (_, index) => {
-    const angle = -Math.PI / 2 + (index / count) * Math.PI * 2 + (count % 2 === 0 ? Math.PI / count : 0);
-    return { x: cx + Math.cos(angle) * rx, y: cy + Math.sin(angle) * ry, rot: jitter(index, 3) * 2, width: cardWidth };
+    const angle = -Math.PI / 2 + (index / count) * Math.PI * 2 + (count % 2 === 0 ? Math.PI / count : 0) + jitter(index, 5) * ring.wobble;
+    const reach = 1 + jitter(index, 6) * ring.wobble * 0.5;
+    return { x: cx + Math.cos(angle) * rx * reach, y: cy + Math.sin(angle) * ry * reach, rot: jitter(index, 3) * ring.tilt, width: ring.width };
   });
 }
 
