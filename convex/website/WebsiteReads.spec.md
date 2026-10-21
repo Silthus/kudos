@@ -442,6 +442,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - getAlbum says shareable URLs only where shareable-urls is on: getAlbum answers `shareableUrls` true while the signed-in member's own decision of the `shareable-urls` flag is on, read without an exposure, and leaves the field out otherwise, so a member the flag is off for reads today's album answer and the website keeps today's addresses (Silthus/personal#134).
   over: getAlbum with shareable-urls on for everyone, off for everyone, and on for one email, read by that member and by another
   via: getAlbum says shareable URLs are on only for a member shareable-urls is on for
+  refuted: shareableUrlsShownTo in convex/album/flag.ts answered true without reading shareable-urls -> with the flag off for everyone and for a member outside its one email, getAlbum answered shareableUrls, 2 of 3 tests red (2026-10-21)
   because: every new website piece ships dark behind its own sandbox-only flag, read without an exposure as album is, so a member the flag is off for keeps today's answer and a read counts no member who decided nothing
   crossing: browser -> domain
   entrances: query getAlbum
