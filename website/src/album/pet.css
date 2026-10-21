@@ -25,14 +25,23 @@
 
 .al-photo-pet {
   position: absolute;
-  top: 4.5rem;
+  top: 3.75rem;
   right: 0;
 }
 
 .al-photo[data-size="many"] .al-photo-pet {
-  top: 3.75rem;
+  top: 3.25rem;
   width: 2.5rem;
   height: 2.5rem;
+}
+
+@media (max-width: 63.99rem) {
+  .al-photo-pet,
+  .al-photo[data-size="many"] .al-photo-pet {
+    top: 2.75rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
 }
 
 .al-mount-single .al-photo {

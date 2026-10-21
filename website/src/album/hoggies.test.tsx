@@ -551,7 +551,7 @@ describe("LP57: Make my pet on a hoggie the member found makes it their one pet"
     return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { hoggies: fixedHoggies(answer), commands: { makePet } });
   }
 
-  it("a found hoggie's entry offers Make my pet, and one click sends makePet once and calls it the member's pet", async () => {
+  it("a found hoggie's entry offers Make my pet, and one click sends makePet once and calls it the member's pet, keeping focus there", async () => {
     const { user, actions } = visitWithPets("/book#hoggies/asleep", null);
 
     const shown = await entry();
@@ -559,7 +559,7 @@ describe("LP57: Make my pet on a hoggie the member found makes it their one pet"
     await user.click(shown.getByRole("button", { name: "Make my pet" }));
 
     expect(actions.makePet).toHaveBeenCalledExactlyOnceWith("asleep");
-    expect(await shown.findByText("Your pet")).toBeInTheDocument();
+    expect(await shown.findByText("Your pet")).toHaveFocus();
     expect(shown.queryByRole("button", { name: "Make my pet" })).not.toBeInTheDocument();
   });
 

@@ -78,7 +78,7 @@ function FoundFacts({ hoggie, answer }: { hoggie: AlbumHoggie; answer: AlbumHogg
 }
 
 function PetPick({ hoggie, picking }: { hoggie: AlbumHoggie; picking: PetPicking }) {
-  if (picking.pet === hoggie.hoggie) return <p className="al-entry-pet">Your pet</p>;
+  if (picking.pet === hoggie.hoggie) return <YourPet />;
   const busy = picking.sending !== null;
   return (
     <div className="al-entry-pet-pick">
@@ -90,6 +90,22 @@ function PetPick({ hoggie, picking }: { hoggie: AlbumHoggie; picking: PetPicking
       </p>
     </div>
   );
+}
+
+function YourPet() {
+  const said = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (focusWasDropped()) said.current?.focus({ preventScroll: true });
+  }, []);
+  return (
+    <p ref={said} tabIndex={-1} className="al-entry-pet">
+      Your pet
+    </p>
+  );
+}
+
+function focusWasDropped() {
+  return document.activeElement === null || document.activeElement === document.body;
 }
 
 function petProblemWordsOf({ reason }: PetProblem, hoggie: AlbumHoggie) {
