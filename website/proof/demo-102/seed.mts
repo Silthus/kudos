@@ -6,11 +6,12 @@ import { promisify } from "node:util";
 import { signedRequest } from "../../../testing/signedSlack";
 import { drawOf } from "../../../convex/hoggies/draw";
 import { catalogue } from "../../../convex/hoggies/catalogue";
+import { xpToReach } from "../../../convex/progression/levels";
 
-const production = "affable-bat-254";
-const deployment = sandboxDeployment();
-const site = `https://${deployment}.convex.site`;
+const sandbox = "different-dog-467";
+const site = `https://${sandbox}.convex.site`;
 const runCommand = promisify(execFile);
+const convexEnv = sandboxOnly(process.env);
 const workspace = await envOf("SLACK_WORKSPACE_ID");
 const signingSecret = await envOf("SLACK_SIGNING_SECRET");
 const drawSecret = await envOf("HOGGIE_DRAW_SECRET");
@@ -39,16 +40,14 @@ const friends: Person[] = [
   { key: "LEN", first: "Lena", last: "Ortiz" },
 ];
 
-function sandboxDeployment() {
-  const name = (process.env.CONVEX_DEPLOYMENT ?? "").replace(/^[a-z]+:/, "");
-  if (name === "") throw new Error("set CONVEX_DEPLOYMENT to the sandbox, e.g. prod:different-dog-467");
-  if (name === production) throw new Error("the demo seed never runs against production");
-  return name;
+function sandboxOnly(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const withoutDeploymentChoice = Object.fromEntries(Object.entries(env).filter(([name]) => !name.startsWith("CONVEX_")));
+  return { ...withoutDeploymentChoice, CONVEX_DEPLOYMENT: `prod:${sandbox}` };
 }
 
 async function envOf(name: string) {
   const value = (await convex("env", "get", name)).trim();
-  if (value === "") throw new Error(`${name} is not set on ${deployment}`);
+  if (value === "") throw new Error(`${name} is not set on ${sandbox}`);
   return value;
 }
 
@@ -57,7 +56,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const log = (line: string) => console.log(`[demo-102] ${line}`);
 
 async function convex(...args: string[]) {
-  const { stdout } = await runCommand("node_modules/.bin/convex", args, { maxBuffer: 256 * 1024 * 1024 });
+  const { stdout } = await runCommand("node_modules/.bin/convex", args, { env: convexEnv, maxBuffer: 256 * 1024 * 1024 });
   return stdout;
 }
 
@@ -70,6 +69,13 @@ function rowsOf(jsonLines: string): Row[] {
 
 async function newestRows(table: string, limit: number, component?: string) {
   return rowsOf(await convex("data", table, "--limit", String(limit), "--format", "jsonLines", ...(component ? ["--component", component] : [])));
+}
+
+async function everyRow(table: string) {
+  const most = 10_000;
+  const rows = await newestRows(table, most);
+  if (rows.length === most) throw new Error(`${table} holds ${most} rows or more, more than the seed reads whole`);
+  return rows;
 }
 
 async function append(table: string, rows: Record<string, unknown>[]) {
@@ -144,7 +150,7 @@ async function joined(people: Array<{ person: Person; user: string }>): Promise<
 }
 
 async function retirePreviousCast() {
-  const earlier = (await newestRows("members", 1000)).filter((row) => row.kind === "member" && (row.user as string).startsWith(castPrefix));
+  const earlier = (await everyRow("members")).filter((row) => row.kind === "member" && (row.user as string).startsWith(castPrefix));
   for (const row of earlier) await retire(row.user as string, (row.realName ?? row.name ?? "") as string);
   log(`retired ${earlier.length} members of earlier runs`);
 }
@@ -169,8 +175,8 @@ async function robinWithALegendary(): Promise<Member> {
 
 async function replaceTheCompanyCopy(team_: Member[]) {
   const withoutStored = ({ _id, _creationTime, asOf, ...row }: Row) => row;
-  const profiles = (await newestRows("companyProfiles", 5000)).map(withoutStored).filter((row) => !(row.teams as string[] | undefined)?.includes(team.team));
-  const teams = (await newestRows("companyTeams", 1000)).map(withoutStored).filter((row) => row.team !== team.team);
+  const profiles = (await everyRow("companyProfiles")).map(withoutStored).filter((row) => !(row.teams as string[] | undefined)?.includes(team.team));
+  const teams = (await everyRow("companyTeams")).map(withoutStored).filter((row) => row.team !== team.team);
   const seeded = team_.map((person) => ({ profile: person.profile!, firstName: person.first, lastName: person.last, normalisedName: nameOf(person).toLowerCase(), colour: "teal", teams: [team.team] }));
   const args = { asOf: Date.now(), profiles: [...profiles, ...seeded], teams: [...teams, { ...team, leads: [], people: seeded.map(({ profile }) => profile) }] };
   await convex("run", "companyProfiles/sync:replaceCompanyProfiles", JSON.stringify(args));
@@ -259,15 +265,18 @@ async function seed() {
   await hug(demo, demoPost);
   await say(demo, "because your onboarding demo made the whole flow click for me, best demo this week", juno);
 
-  const xp = await until(`level ${demoLevel}`, async () => {
-    const now = await xpOf(demo);
-    return now >= 300 ? now : null;
-  }, 240);
-  const items = await until("the waiting items", async () => {
-    const waiting = (await itemsOf(demo)).filter((row) => row.turnedAt === undefined);
-    return waiting.length >= 8 ? waiting : null;
-  }, 240);
+  const { xp, items } = await settledAtLevel(demo);
   await report(demo, xp, items, newSession.bind(null, signedIn.user));
+}
+
+async function settledAtLevel(demo: Member) {
+  let previous = -1;
+  return until(`level ${demoLevel} with every award paid`, async () => {
+    const standing = { xp: await xpOf(demo), items: (await itemsOf(demo)).filter((row) => row.turnedAt === undefined) };
+    const settled = standing.xp === previous && standing.xp >= xpToReach(demoLevel) && standing.items.length >= 8;
+    previous = standing.xp;
+    return settled ? standing : null;
+  }, 240);
 }
 
 async function report(demo: Member, xp: number, items: Row[], session: (expirationTime: number) => Promise<{ session: string; refreshToken: string }>) {
@@ -282,7 +291,7 @@ async function report(demo: Member, xp: number, items: Row[], session: (expirati
 }
 
 async function signInAgain() {
-  const demo = (await newestRows("members", 1000)).find((row) => row.kind === "member" && (row.user as string).startsWith(`${castPrefix}${robin.key}`));
+  const demo = (await everyRow("members")).find((row) => row.kind === "member" && (row.user as string).startsWith(`${castPrefix}${robin.key}`));
   if (!demo) throw new Error("no demo member yet: run the seed first");
   const user = (await newestRows("users", 200)).find((row) => (row.chatIdentity as { user: string }).user === demo.user)!;
   console.log(signInSnippet(await newSession(user._id, Date.now() + 7 * 24 * 3600_000)));
