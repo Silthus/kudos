@@ -194,6 +194,23 @@ describe("LP51 LP53 LP54: Share posts a turned win into the weekly-post channel,
 
     expect(leadsPosted()).toEqual(["*Alice Marchetti* reached level 2 and found a legendary Rocket", "*Bob Okonkwo* found an epic Angel"]);
   });
+
+  test("a filled team's hoggie leads with the page it filled, and a milestone tier's with its medal", async () => {
+    await fourMembers([...shareOn, onForEveryone("achievement-hoggies")]);
+    await thanks(alice, "Thanks for the careful design review today", bob, carol);
+    const asAlice = await signedIn(alice);
+    await turns(asAlice, await stickerItemOf(alice, bob));
+    await turns(asAlice, await stickerItemOf(alice, carol));
+    const team = await itemKeyed(alice, "team:product-analytics");
+    const tier = await itemKeyed(alice, "milestone:thoughtful:bronze");
+    await turns(asAlice, team, "rocket");
+    await turns(asAlice, tier, "angel");
+
+    await sharesThe(asAlice, team);
+    await sharesThe(asAlice, tier);
+
+    expect(leadsPosted()).toEqual(["*Alice Marchetti* filled the Product Analytics page and found a legendary Rocket", "*Alice Marchetti* earned the First thank-you medal and found an epic Angel"]);
+  });
 });
 
 describe("LP51 LP52: Share is offered only for a win, only to its owner and only with a weekly-post channel", { timeout: 120_000 }, () => {
