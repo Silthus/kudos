@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { newestDecidedSince } from "../activity/activity";
 import { albumShownTo } from "../album/flag";
 import { albumStickersOf } from "../album/stickers";
 import { teamStickersOf } from "../album/teamPages";
@@ -9,6 +10,7 @@ import { newestTurnOf } from "../items/ledger";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { memberMutation } from "./memberMutation";
+import { xpMomentsShownTo } from "./xpMomentsFlag";
 
 export type ArrivalAnswer = { kind: "arrived"; lastVisit: number | null } | { kind: "refused" };
 
@@ -25,7 +27,7 @@ export async function moveLastVisitTo(ctx: MutationCtx, member: MemberId, at: nu
 }
 
 export async function lastVisitKeptFor(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return (await albumShownTo(ctx, member)) && (await hiddenItemsShownTo(ctx, member));
+  return (await albumShownTo(ctx, member)) && ((await hiddenItemsShownTo(ctx, member)) || (await xpMomentsShownTo(ctx, member)));
 }
 
 export const arrive = memberMutation({
@@ -49,8 +51,13 @@ async function newestPutInOrReceivedBy(ctx: QueryCtx, member: MemberId): Promise
     ...[...(await teamStickersOf(ctx, member)).values()].map(({ at }) => at),
     ...[...(await talliesOf(ctx, member)).values()].map(({ firstAt }) => firstAt),
     ...(await newestReceivedBy(ctx, member, 1)).map(({ at }) => at),
+    await newestDecidedForTheMoment(ctx, member),
   ].filter((at) => at !== null);
   return instants.length === 0 ? null : Math.max(...instants);
+}
+
+async function newestDecidedForTheMoment(ctx: QueryCtx, member: MemberId): Promise<number | null> {
+  return (await xpMomentsShownTo(ctx, member)) ? newestDecidedSince(ctx, member, {}) : null;
 }
 
 function storedLastVisitOf(ctx: QueryCtx, member: MemberId) {

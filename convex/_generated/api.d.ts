@@ -321,6 +321,8 @@ import type * as website_signIn from "../website/signIn.js";
 import type * as website_skillTree from "../website/skillTree.js";
 import type * as website_teammateKeys from "../website/teammateKeys.js";
 import type * as website_unlockPath from "../website/unlockPath.js";
+import type * as website_xpMoment from "../website/xpMoment.js";
+import type * as website_xpMomentsFlag from "../website/xpMomentsFlag.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as welcome_welcomedAs from "../welcome/welcomedAs.js";
 import type * as workspace_customEmoji from "../workspace/customEmoji.js";
@@ -656,6 +658,8 @@ declare const fullApi: ApiFromModules<{
   "website/skillTree": typeof website_skillTree;
   "website/teammateKeys": typeof website_teammateKeys;
   "website/unlockPath": typeof website_unlockPath;
+  "website/xpMoment": typeof website_xpMoment;
+  "website/xpMomentsFlag": typeof website_xpMomentsFlag;
   "welcome/welcome": typeof welcome_welcome;
   "welcome/welcomedAs": typeof welcome_welcomedAs;
   "workspace/customEmoji": typeof workspace_customEmoji;

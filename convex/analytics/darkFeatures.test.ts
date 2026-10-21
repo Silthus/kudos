@@ -181,7 +181,7 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of six whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes, one through the album's tray and one through the item board, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of six whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes, one through the album's tray and one through the item board ending an XP moment, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
     for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest, walkThroughTheAlbumsTray, walkThroughTheItemBoard]) {
@@ -302,7 +302,7 @@ async function walkThroughTheAlbumsTray() {
 async function walkThroughTheItemBoard() {
   start("on", "flags key set");
   aDeploymentForWorkspace();
-  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "website", "album", "hidden-items"].map(onForEveryone));
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "website", "album", "hidden-items", "xp-moments"].map(onForEveryone));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   await journeyShippedBeforeAnyoneJoined(t);
@@ -318,7 +318,18 @@ async function walkThroughTheItemBoard() {
   expect(waiting.length, "items waiting on the board").toBeGreaterThan(0);
   expect(eventsNamed("item turned")).toHaveLength(waiting.length);
   expect(new Set(eventsNamed("item turned").map(({ properties }) => properties.source))).toEqual(new Set(["hoggie", "sticker"]));
+  await endAnXpMoment(t, asSignedIn);
   return { t };
+}
+
+async function endAnXpMoment(t: Backend, asSignedIn: Pick<Backend, "query" | "mutation">) {
+  await asSignedIn.mutation(api.website.lastVisit.arrive, { from: null });
+  await giveKudos(t, "U_ALICE", 1);
+  const moment = await asSignedIn.query(api.website.xpMoment.getXpMoment, {});
+  if (moment.kind !== "moment") throw new Error(`expected an XP moment, got ${moment.kind}`);
+  await asSignedIn.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false });
+  await settled(t);
+  expect(eventsNamed("xp moment ended")).toHaveLength(1);
 }
 
 async function everyoneOnOneTeam(t: Backend) {
@@ -356,7 +367,7 @@ function everyRecorder() {
     .flat()
     .map((subscription) => getFunctionName("subscriber" in subscription ? subscription.subscriber : subscription))
     .filter((name) => name.startsWith("analytics/"));
-  return [...new Set(subscribed), "analytics/isolatedUsage:recordLeaderboardViewed", "analytics/isolatedUsage:recordLeaderboardVisibilityChanged", "slack/commands:recordLeaderboardViewed"];
+  return [...new Set(subscribed), "analytics/isolatedUsage:recordLeaderboardViewed", "analytics/isolatedUsage:recordLeaderboardVisibilityChanged", "analytics/isolatedUsage:recordXpMomentEnded", "slack/commands:recordLeaderboardViewed"];
 }
 
 async function walk(setup: Setup, capture: Capture) {

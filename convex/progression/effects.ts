@@ -18,6 +18,12 @@ export async function isRecorded(ctx: QueryCtx, award: AwardId, side: Side) {
   return recorded !== null;
 }
 
+export async function xpRecordedFor(ctx: QueryCtx, award: AwardId, side: Side): Promise<number> {
+  const recorded = await recordOf(ctx, award, side);
+  if (recorded === null) return 0;
+  return recorded.baseXp + bonusPaidIn([recorded]).reduce((sum, { xp }) => sum + xp, 0);
+}
+
 export async function gateRecordedWith(ctx: QueryCtx, award: AwardId): Promise<GateDecision | null> {
   return (await giverRecordOf(ctx, award))?.gate ?? null;
 }
@@ -28,9 +34,13 @@ export async function bonusRecordedWith(ctx: QueryCtx, awards: AwardId[]): Promi
 }
 
 function giverRecordOf(ctx: QueryCtx, award: AwardId) {
+  return recordOf(ctx, award, "giver");
+}
+
+function recordOf(ctx: QueryCtx, award: AwardId, side: Side) {
   return ctx.db
     .query("effectsRecords")
-    .withIndex("by_award", (q) => q.eq("award", award).eq("side", "giver"))
+    .withIndex("by_award", (q) => q.eq("award", award).eq("side", side))
     .first();
 }
 
