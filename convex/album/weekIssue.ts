@@ -15,7 +15,7 @@ export type WeekTab = { week: DayKey; days: number[] };
 
 export type Issue = Required<WeekTally> & WeekKudosLists;
 
-export type WeekEdition = { week: DayKey; weeks: WeekTab[]; issue: Issue | null };
+export type WeekEdition = { week: DayKey; thisWeek: DayKey; weeks: WeekTab[]; issue: Issue | null };
 
 type WeekRow = Doc<"weekTallies">;
 
@@ -23,13 +23,13 @@ export async function weekEditionOf(ctx: QueryCtx, member: MemberId, asked: DayK
   const thisWeek = await weekAt(ctx, member, now);
   const week = asked ?? thisWeek;
   const [first, newest] = [await weekRows(ctx, member).first(), await weekRows(ctx, member).order("desc").first()];
-  if (first === null || newest === null) return { week, weeks: [], issue: null };
+  if (first === null || newest === null) return { week, thisWeek, weeks: [], issue: null };
   const newestShown = laterOf(thisWeek, newest.week);
   const oldestShown = laterOf(first.week, weeksBefore(newestShown, weeksShown - 1));
   const shown = new Map((await weekRowsBetween(ctx, member, oldestShown, newestShown)).map((row) => [row.week, row]));
   const weeks = weeksBetween(oldestShown, newestShown).map((each) => ({ week: each, days: shown.get(each)?.days ?? anEmptyWeek().days }));
   const hasAnIssue = isAWeek(week) && week >= first.week && week <= newestShown;
-  return { week, weeks, issue: hasAnIssue ? await issueOf(ctx, member, week, shown.get(week) ?? (await weekRowOf(ctx, member, week))) : null };
+  return { week, thisWeek, weeks, issue: hasAnIssue ? await issueOf(ctx, member, week, shown.get(week) ?? (await weekRowOf(ctx, member, week))) : null };
 }
 
 async function issueOf(ctx: QueryCtx, member: MemberId, week: DayKey, row: WeekRow | null): Promise<Issue> {

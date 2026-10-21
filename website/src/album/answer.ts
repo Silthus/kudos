@@ -62,6 +62,7 @@ export type Album = {
   board: ItemBoard | null;
   pets?: AlbumPet[];
   lastVisit?: number | null;
+  shareableUrls?: true;
 } & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;
@@ -136,7 +137,7 @@ export type WeekIssue = {
 
 export type WeekTab = { week: string; days: number[] };
 
-export type AlbumWeek = { kind: "week"; week: string; weeks: WeekTab[]; issue: WeekIssue | null };
+export type AlbumWeek = { kind: "week"; week: string; thisWeek: string; weeks: WeekTab[]; issue: WeekIssue | null };
 
 export type WeekShown = AlbumWeek | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 

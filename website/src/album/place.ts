@@ -1,6 +1,7 @@
 import { rarestFirst } from "../book/spread/spreads";
 import type { Rarity } from "../crates/drops";
 import type { BookPageId, Route, SettingsSection } from "../route";
+import type { Album, BoardPeriod } from "./answer";
 
 export type Place =
   | { kind: "team"; team: string }
@@ -10,8 +11,8 @@ export type Place =
   | { kind: "milestones" }
   | { kind: "packs" }
   | { kind: "levelUp"; level: number }
-  | { kind: "activity" }
-  | { kind: "leaderboard" }
+  | { kind: "activity"; week?: string }
+  | { kind: "leaderboard"; period?: BoardPeriod }
   | { kind: "settings"; section?: SettingsSection }
   | { kind: "elsewhere" };
 
@@ -24,8 +25,9 @@ export function placeOf(route: Route, hash: string, landingState: unknown): Plac
     case "book":
       return albumPlaceIn(hash, landingState) ?? spreadPlaceIn(hash) ?? bookPagePlaceOf(route.bookPage);
     case "activity":
+      return route.week === undefined ? { kind: "activity" } : { kind: "activity", week: route.week };
     case "leaderboard":
-      return { kind: route.page };
+      return route.period === "week" ? { kind: "leaderboard" } : { kind: "leaderboard", period: route.period };
     case "settings":
       return route.section === undefined ? { kind: "settings" } : { kind: "settings", section: route.section };
     case "quests":
@@ -34,6 +36,26 @@ export function placeOf(route: Route, hash: string, landingState: unknown): Plac
     case "not-found":
       return { kind: "elsewhere" };
   }
+}
+
+export type MyPage = string | null;
+
+export function myPageOf(album: Album | undefined): MyPage {
+  return album?.shareableUrls === true ? album.me.person : null;
+}
+
+export function placeShownAt(place: Place, myPage: MyPage): Place {
+  if (myPage === null) return withoutItsView(place);
+  return place.kind === "person" && place.person === myPage ? home : place;
+}
+
+export function addressOf(place: Place, myPage: MyPage): string {
+  return myPage !== null && place.kind === "profile" ? hrefOf({ kind: "person", person: myPage }) : hrefOf(place);
+}
+
+function withoutItsView(place: Place): Place {
+  if (place.kind === "activity" || place.kind === "leaderboard") return { kind: place.kind };
+  return place;
 }
 
 const pageSections = new Set(["teams", "people", "me", "hoggies", "milestones", "packs", "level-up"]);
@@ -120,10 +142,12 @@ export function hrefOf(place: Place): string {
       return `/book#level-up/${place.level}`;
     case "settings":
       return place.section === undefined ? "/settings" : `/settings?section=${place.section}`;
+    case "activity":
+      return place.week === undefined ? "/activity" : `/activity?week=${place.week}`;
+    case "leaderboard":
+      return place.period === undefined ? "/leaderboard" : `/leaderboard?period=${place.period}`;
     case "elsewhere":
       return "/";
-    default:
-      return `/${place.kind}`;
   }
 }
 
@@ -131,5 +155,5 @@ export const findYourselfHref = hrefOf({ kind: "settings", section: "company-pro
 
 export function keyOf(place: Place): string {
   if (place.kind === "hoggies") return hrefOf({ kind: "hoggies", hoggie: null });
-  return hrefOf(place) + (place.kind === "elsewhere" ? "#elsewhere" : "");
+  return hrefOf(withoutItsView(place)) + (place.kind === "elsewhere" ? "#elsewhere" : "");
 }
