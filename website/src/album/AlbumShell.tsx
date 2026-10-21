@@ -7,7 +7,7 @@ import type { ShareReply, TurnReply } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
-import { ItemBoard, ItemsWait } from "./ItemBoard";
+import { AfterTheLanding, ItemBoard, ItemsWait } from "./ItemBoard";
 import { useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
 import { AlbumPage } from "./pages";
@@ -100,7 +100,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
       {sinceTheLastVisit.play !== null && <XpMomentCanvas play={sinceTheLastVisit.play} me={album.me} levelUnlocks={levelUnlocks} />}
-      {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} onTurn={turns.turn} onLater={turns.later} />}
+      {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} landed={<AfterTheLanding turns={turns} album={album} shareItem={shareItem} />} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
       {album.board !== null && <ItemsWait turns={turns} album={album} shareItem={shareItem} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />

@@ -308,13 +308,21 @@
   outline-offset: 2px;
 }
 
-.ib-shared {
+.ib-win {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
   margin: 0;
-  padding: 0.375rem 0.875rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.875rem;
   border-radius: 999px;
   background: var(--card);
   box-shadow: 0 8px 20px -10px color-mix(in oklab, var(--foreground) 45%, transparent);
   font-weight: 600;
+}
+
+.ib-shared {
+  padding-inline-end: 0.625rem;
+  color: var(--muted-foreground);
 }
 
 .ib-wait:focus-visible {

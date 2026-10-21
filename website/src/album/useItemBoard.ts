@@ -16,8 +16,11 @@ export type Landing = { item: string; face: TurnedFaceShown; applied: AppliedRew
 
 type Shown = "board" | "later" | "landed";
 
+export type TurnedItem = { item: string; face: TurnedFaceShown };
+
 export type ItemTurns = {
   board: ItemBoard | null;
+  turnedThisVisit: TurnedItem[];
   shown: Shown;
   turning: boolean;
   trouble: string | null;
@@ -49,7 +52,7 @@ export function shownUnless(turns: ItemTurns, waits: boolean): ShownTurns {
 export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel): ItemTurns {
   const navigate = useNavigate();
   const [shown, setShown] = useState<Shown>("board");
-  const [turnedOver, setTurnedOver] = useState<ReadonlySet<string>>(() => new Set());
+  const [turnedOver, setTurnedOver] = useState<ReadonlyMap<string, TurnedFaceShown>>(() => new Map());
   const [turning, setTurning] = useState(false);
   const sending = useRef(false);
   const [trouble, setTrouble] = useState<string | null>(null);
@@ -57,11 +60,12 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const [heldLevel, setHeldLevel] = useState<AlbumLevel | null>(null);
   const { flight, boxes, fly } = useTurnFlight();
   const board = useMemo(() => (answered === null ? null : withoutTurned(answered, turnedOver)), [answered, turnedOver]);
+  const turnedThisVisit = useMemo(() => [...turnedOver].map(([item, face]) => ({ item, face })), [turnedOver]);
   const remaining = useRef(0);
   remaining.current = board?.items.length ?? 0;
   const land = useCallback(
     (item: string, { face, applied, unlocked, page, teaches }: Turned, flown: boolean) => {
-      setTurnedOver((turned) => new Set(turned).add(item));
+      setTurnedOver((turned) => new Map(turned).set(item, face));
       setLanding((last) => ({ item, face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length }));
       navigate(hrefOf(placeOf(page)));
     },
@@ -115,7 +119,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
     setShown("board");
   }, []);
   const later = useCallback(() => setShown("later"), []);
-  return { board, shown, turning, trouble, landing, closedByLater: shown === "later", flight, boxes, heldLevel, show, later, turn: (item, from) => void turn(item, from) };
+  return { board, turnedThisVisit, shown, turning, trouble, landing, closedByLater: shown === "later", flight, boxes, heldLevel, show, later, turn: (item, from) => void turn(item, from) };
 }
 
 async function turnedOf(sent: Promise<TurnReply>, say: (trouble: string) => void): Promise<Turned | null> {
@@ -148,7 +152,7 @@ export function useBroughtIntoViewOnLanding(landed: RefObject<HTMLElement | null
   }, [landed, plainTurn]);
 }
 
-function withoutTurned(board: ItemBoard, turnedOver: ReadonlySet<string>): ItemBoard {
+function withoutTurned(board: ItemBoard, turnedOver: ReadonlyMap<string, TurnedFaceShown>): ItemBoard {
   return turnedOver.size === 0 ? board : { ...board, items: board.items.filter(({ item }) => !turnedOver.has(item)) };
 }
 

@@ -1,6 +1,6 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { BoardItem, LoopLesson } from "../../../convex/website/album";
 import { shellFixtures, type TurnReply } from "../shell";
@@ -17,7 +17,10 @@ const tacoLesson: LoopLesson = { kudosEmoji: "taco", kudosEmojiImage: null };
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
-  preferReducedMotion();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function anAlbumThatAnswers(first: Album) {
@@ -68,6 +71,10 @@ function theLesson() {
 }
 
 describe("LP49: after the welcome item turns, one line teaches the loop", () => {
+  beforeEach(() => {
+    preferReducedMotion();
+  });
+
   it("shows the line with the workspace's kudos emoji once the welcome item has turned", async () => {
     const { user } = visit([welcomeItem]);
     expect(theLesson()).toBeNull();
@@ -93,6 +100,30 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
     await user.click(screen.getByRole("button", { name: "1 item waits" }));
     await turnTheFirstItem(user);
 
+    expect(theLesson()).toBeNull();
+  });
+});
+
+function theFaceDownItemsNow() {
+  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "A face-down item. Turn it over" });
+}
+
+async function turnOnFakeTime(item: HTMLElement) {
+  vi.useFakeTimers();
+  const due = Date.now() + 6_000;
+  await act(async () => fireEvent.click(item));
+  while (Date.now() < due) await act(() => vi.advanceTimersByTimeAsync(16));
+}
+
+describe("LP49: with full motion and another item still waiting, the board that comes back teaches the loop", { timeout: 30_000 }, () => {
+  it("shows the line on the board once the welcome item has landed, and the next item's turn takes it away", async () => {
+    visit([welcomeItem, thanksItem]);
+    await screen.findByRole("dialog", { name: "Your items" });
+
+    await turnOnFakeTime(theFaceDownItemsNow()[0]!);
+    expect(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("note", { name: "How the next item comes" })).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 and say why.");
+
+    await turnOnFakeTime(theFaceDownItemsNow()[0]!);
     expect(theLesson()).toBeNull();
   });
 });

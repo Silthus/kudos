@@ -405,14 +405,14 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: the shell keeps only the arrival's answer; the server keeps the last visit
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one visit sends one command
   checklist: declared-target-coverage dismissed: there is no fan-out; each page labels what it shows
-- Share shows beside a turned win until it is pressed: After a turn, the item board shows Share beside what turned over only while getAlbum offers that item among its shares; the press sends shareItem once for that item, takes the button away and says `Shared with your workspace`, or says the win couldn't be shared when it is refused, and the button is gone as soon as getAlbum stops offering the win, as after a press in another tab.
-  over: a turn whose item getAlbum offers, pressed; turns while getAlbum offers nothing, no win, or another item; a turn whose offer getAlbum withdraws while the button shows; and a refused press
+- Share shows beside a turned win until it is pressed: After a turn, the item board that comes back once the turn has played, or the strip under the top bar once the board has closed, shows Share beside the name of each item turned this visit only while getAlbum offers that item among its shares; the press sends shareItem once for that item, takes the button away and says `Shared with your workspace`, or says the win couldn't be shared when it is refused, and the button is gone as soon as getAlbum stops offering the win, as after a press in another tab.
+  over: a turn whose item getAlbum offers, pressed; turns while getAlbum offers nothing, no win, or another item; a turn whose offer getAlbum withdraws while the button shows; a refused press; with full motion, the board that comes back while another item waits, and the next item's turn after a win
   via: LP51 LP52: Share shows after a turn the album offers it for, and is gone after the press
   refuted: ShareWin showed Share whenever getAlbum answered shares, whatever item they named -> 3 of 6 tests failed: Share showed when the album offered no win or another item, and stayed once the offer was withdrawn (2026-10-21)
   because: the core-loop spec shows Share only after a turn that brings a win and never again once pressed, on any device (LP51, LP52); a button shown without the offer would refuse every press, and one kept after the press would invite a second post
   kinds: output
   checklist: destination-confinement dismissed: the press sends only shareItem with the turned item's ID
-  checklist: redaction dismissed: the button and its answer say only Share and whether it was shared
+  checklist: redaction dismissed: the button and its answer say only Share and whether it was shared, beside the win's name kept out of capture
   checklist: commit-ordered-effects dismissed: the shell stores nothing; it shows what getAlbum offers and what shareItem answered
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one press sends one command
   checklist: declared-target-coverage dismissed: there is no fan-out; one press names one item

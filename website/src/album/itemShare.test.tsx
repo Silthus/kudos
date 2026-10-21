@@ -1,6 +1,6 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { shellFixtures, type ShareReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
@@ -16,7 +16,10 @@ const arrival = 10_000;
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
-  preferReducedMotion();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function anAlbumThatAnswers(first: Album) {
@@ -60,6 +63,10 @@ function theShareButton() {
 }
 
 describe("LP51 LP52: Share shows after a turn the album offers it for, and is gone after the press", { timeout: 60_000 }, () => {
+  beforeEach(() => {
+    preferReducedMotion();
+  });
+
   it("shows Share beside what turned over when the album offers the turned item, and the press shares that item, takes the button away and says it was shared", async () => {
     const { user, actions } = visit({ offeredAfterTheTurn: [win!.item] });
     expect(theShareButton()).toBeNull();
@@ -101,6 +108,74 @@ describe("LP51 LP52: Share shows after a turn the album offers it for, and is go
     await user.click(theShareButton()!);
 
     expect(screen.getByRole("alert")).toHaveTextContent("That win couldn't be shared.");
+    expect(theShareButton()).toBeNull();
+  });
+});
+
+async function theFaceDownItems() {
+  await screen.findByRole("dialog", { name: "Your items" }, { timeout: arrival });
+  return theFaceDownItemsNow();
+}
+
+function theFaceDownItemsNow() {
+  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "A face-down item. Turn it over" });
+}
+
+let clicked = 0;
+
+async function clickOnFakeTime(item: HTMLElement) {
+  if (!vi.isFakeTimers()) vi.useFakeTimers();
+  clicked = Date.now();
+  await act(async () => fireEvent.click(item));
+}
+
+const frameMs = 16;
+
+async function after(seconds: number) {
+  const due = clicked + Math.round(seconds * 1000);
+  while (Date.now() < due) await act(() => vi.advanceTimersByTimeAsync(Math.min(frameMs, due - Date.now())));
+}
+
+const theSequenceIsOver = 6;
+
+async function turnOnFakeTime(item: HTMLElement) {
+  await clickOnFakeTime(item);
+  await after(theSequenceIsOver);
+}
+
+describe("LP51 LP52: with full motion, Share shows for every win of the visit while another item still waits", { timeout: 60_000 }, () => {
+  it("shows Share on the board that comes back after the win lands, and the press shares the win", async () => {
+    const { actions } = visit({ offeredAfterTheTurn: [win!.item] });
+    const [first] = await theFaceDownItems();
+
+    await turnOnFakeTime(first!);
+    const board = within(screen.getByRole("dialog", { name: "Your items" }));
+    await act(async () => fireEvent.click(board.getByRole("button", { name: "Share" })));
+
+    expect(actions.shareItem).toHaveBeenCalledWith(win!.item);
+    expect(board.getByRole("status", { name: "Shared" })).toHaveTextContent("Shared with your workspace");
+  });
+
+  it("keeps the win's Share once the next item has turned, so the press still shares the win", async () => {
+    const { actions } = visit({ offeredAfterTheTurn: [win!.item] });
+    const [first] = await theFaceDownItems();
+    await turnOnFakeTime(first!);
+    const [next] = theFaceDownItemsNow();
+
+    await turnOnFakeTime(next!);
+    expect(screen.queryByRole("dialog", { name: "Your items" })).toBeNull();
+    await act(async () => fireEvent.click(theShareButton()!));
+
+    expect(actions.shareItem).toHaveBeenCalledWith(win!.item);
+  });
+
+  it("shows no Share on the board that comes back when the album offers no win", async () => {
+    visit({ offeredAfterTheTurn: [] });
+    const [first] = await theFaceDownItems();
+
+    await turnOnFakeTime(first!);
+
+    expect(screen.getByRole("dialog", { name: "Your items" })).toBeInTheDocument();
     expect(theShareButton()).toBeNull();
   });
 });

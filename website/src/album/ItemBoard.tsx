@@ -14,9 +14,9 @@ import type { Landing, ShownTurns } from "./useItemBoard";
 import type { Flight } from "./useTurnFlight";
 import "./itemBoard.css";
 
-type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; flight: Flight | null; lead?: ReactNode; onTurn: (item: string, from: HTMLElement) => void; onLater: () => void };
+type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; flight: Flight | null; lead?: ReactNode; landed?: ReactNode; onTurn: (item: string, from: HTMLElement) => void; onLater: () => void };
 
-export function ItemBoard({ board, turning, trouble, flight, lead, onTurn, onLater }: ItemBoardProps) {
+export function ItemBoard({ board, turning, trouble, flight, lead, landed, onTurn, onLater }: ItemBoardProps) {
   const dialog = useRef<HTMLElement>(null);
   const [touched, setTouched] = useState(false);
   const touch = () => setTouched(true);
@@ -60,6 +60,7 @@ export function ItemBoard({ board, turning, trouble, flight, lead, onTurn, onLat
             {trouble}
           </p>
         )}
+        {flight === null && landed}
         <button type="button" className="ib-later" onClick={onLater}>
           Later
         </button>
@@ -68,19 +69,19 @@ export function ItemBoard({ board, turning, trouble, flight, lead, onTurn, onLat
   );
 }
 
-type ItemsWaitProps = { turns: ShownTurns; album: Album; shareItem: (item: string) => Promise<ShareReply> };
+type TurnedOverProps = { turns: ShownTurns; album: Album; shareItem: (item: string) => Promise<ShareReply> };
 
-export function ItemsWait({ turns, album, shareItem }: ItemsWaitProps) {
+export function ItemsWait({ turns, album, shareItem }: TurnedOverProps) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
-  const said = landing !== null && !open && flight === null;
+  const settled = !open && flight === null;
+  const said = landing !== null && settled;
   return (
     <div className="ib-strip">
       <p role="status" aria-label="Turned over" className="ib-turned">
         {said && <LandedWords landing={landing} />}
       </p>
       {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
-      {said && landing.teaches && <LoopLine lesson={landing.teaches} />}
-      {said && <ShareWin key={landing.item} item={landing.item} offered={album.shares} shareItem={shareItem} />}
+      {settled && <AfterTheLanding turns={turns} album={album} shareItem={shareItem} />}
       {offered && board !== null && (
         <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
           <span className="ib-wait-disc" aria-hidden="true">
@@ -90,6 +91,17 @@ export function ItemsWait({ turns, album, shareItem }: ItemsWaitProps) {
         </button>
       )}
     </div>
+  );
+}
+
+export function AfterTheLanding({ turns: { landing, turnedThisVisit }, album, shareItem }: TurnedOverProps) {
+  return (
+    <>
+      {landing?.teaches && <LoopLine lesson={landing.teaches} />}
+      {turnedThisVisit.map(({ item, face }) => (
+        <ShareWin key={item} item={item} name={nameOf(face)} offered={album.shares} shareItem={shareItem} />
+      ))}
+    </>
   );
 }
 
