@@ -10,7 +10,7 @@ export type Speed = (typeof speeds)[number];
 
 export type BoardParams = { speed: Speed; still: boolean };
 
-const storageKey = "prototype-item-board-3";
+const storageKey = "prototype-item-board-4";
 
 const listeners = new Set<() => void>();
 
@@ -19,7 +19,7 @@ let params: BoardParams = firstParams();
 function firstParams(): BoardParams {
   const asked = new URLSearchParams(window.location.search);
   const stored = readStored();
-  const speed = speeds.find((one) => String(one) === asked.get("speed")) ?? stored?.speed ?? 0.6;
+  const speed = speeds.find((one) => String(one) === asked.get("speed")) ?? stored?.speed ?? 0.8;
   const still = asked.has("still") ? asked.get("still") === "1" : (stored?.still ?? false);
   return { speed, still };
 }

@@ -1,4 +1,4 @@
-// PROTOTYPE (personal#97, round 3): the item board. Every unseen reward lies face down. A click sets the board aside and shows the item's real album page at once, turns the item over, scrolls to its slot and drops it in, then rests before the board returns. A second click skips to the end. Never merge to main.
+// PROTOTYPE (personal#97, accepted): the item board. Every unseen reward lies face down. A click sets the board aside and shows the item's real album page at once, turns the item over, fades to its slot and drops it in hard. A sticker that fills its team unlocks the team sticker right there. The album rests before the board returns. A second click skips to the end. Never merge to main.
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { useNavigate } from "../../AppLink";
 import { hoggiePictureOf } from "../../crates/Hoggie";
@@ -6,7 +6,7 @@ import { TeamCrest } from "../../crates/TeamCrest";
 import { albumFixtures } from "../albumFixtures";
 import { Sparkles } from "../PackCards";
 import { rarityWordOf } from "../opening";
-import { boardItems, land, landedItems, pay, useProgress, type BoardItem } from "./itemBoardItems";
+import { boardItems, land, landedItems, pay, teamFilledBy, unlockedBadges, unlockTeam, useProgress, type BoardItem } from "./itemBoardItems";
 import { staysStill, useBoardParams } from "./itemBoardParams";
 import "../opening.css";
 import "./itemBoard.css";
@@ -21,19 +21,23 @@ type Chip = { key: number; from: Point; xp: number };
 
 type Touch = { key: number; rect: DOMRect; colour: string };
 
+type Flourish = { key: number; rect: DOMRect };
+
 export function useItemBoard() {
   const [open, setOpen] = useState(true);
   return { open, show: useCallback(() => setOpen(true), []), hide: useCallback(() => setOpen(false), []) };
 }
 
 export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () => void; onHide: () => void }) {
-  const { landed } = useProgress();
+  const progress = useProgress();
+  const { landed } = progress;
   const waiting = boardItems.filter(({ id }) => !landed.has(id));
   const board = useBoardParams();
   const navigate = useNavigate();
   const [turning, setTurning] = useState<Turning | null>(null);
   const [chip, setChip] = useState<Chip | null>(null);
   const [touches, setTouches] = useState<Touch[]>([]);
+  const [flourish, setFlourish] = useState<Flourish | null>(null);
   const [said, setSaid] = useState("");
   const flyer = useRef<HTMLDivElement>(null);
   const flip = useRef<HTMLDivElement>(null);
@@ -43,7 +47,7 @@ export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () 
   const allDone = waiting.length === 0;
   const [touched, setTouched] = useState(false);
   const touch = () => setTouched(true);
-  useNewBadges(landed);
+  useNewBadges(progress);
   useSkipOnASecondClick(turning !== null, clock);
 
   useEffect(() => {
@@ -84,7 +88,7 @@ export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () 
     setTurning({ item, stage: "aside", from, spot: centreOf(from), size: from.width, burst: false, caption: false, switching: false });
     await frames(2);
     clock.current = makeClock(board.speed);
-    await play(clock.current, { item, from, goTo }, { flyer, flip, disc, chipBox }, { setTurning, setChip, setTouches });
+    await play(clock.current, { item, from, goTo }, { flyer, flip, disc, chipBox }, { setTurning, setChip, setTouches, setFlourish });
     clock.current = null;
     setTurning(null);
   };
@@ -129,8 +133,18 @@ export function ItemBoard({ open, onShow, onHide }: { open: boolean; onShow: () 
           </span>
         )}
         {touches.map((touch) => (
-          <span key={touch.key} className="ib-touch" style={{ left: touch.rect.left, top: touch.rect.top, width: touch.rect.width, height: touch.rect.height, "--burst": touch.colour } as CSSProperties} />
+          <span key={touch.key} className="ib-touches" style={{ left: touch.rect.left, top: touch.rect.top, width: touch.rect.width, height: touch.rect.height, "--burst": touch.colour } as CSSProperties}>
+            <span className="ib-touch" />
+            <span className="ib-touch" data-late="" />
+          </span>
         ))}
+        {flourish !== null && (
+          <span key={flourish.key} className="ib-burst" data-rare="" style={{ left: flourish.rect.left + flourish.rect.width / 2, top: flourish.rect.top + flourish.rect.height / 2, width: flourish.rect.width, height: flourish.rect.height, "--burst": "var(--al-gold)", "--rarity-color": "var(--al-gold)" } as CSSProperties}>
+            <span className="ib-rays" />
+            <span className="ib-flash" />
+            <Sparkles count={20} seed={flourish.key % 997} />
+          </span>
+        )}
       </div>
     </>
   );
@@ -213,7 +227,7 @@ function useSkipOnASecondClick(playing: boolean, clock: RefObject<Clock | null>)
 
 type Boxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null>; chipBox: RefObject<HTMLSpanElement | null> };
 
-type Setters = { setTurning: (change: (turning: Turning | null) => Turning | null) => void; setChip: (chip: Chip | null) => void; setTouches: (change: (touches: Touch[]) => Touch[]) => void };
+type Setters = { setTurning: (change: (turning: Turning | null) => Turning | null) => void; setChip: (chip: Chip | null) => void; setTouches: (change: (touches: Touch[]) => Touch[]) => void; setFlourish: (flourish: Flourish | null) => void };
 
 type Play = { item: BoardItem; from: DOMRect; goTo: (item: BoardItem) => void };
 
@@ -225,6 +239,16 @@ async function play(clock: Clock, { item, from, goTo }: Play, boxes: Boxes, set:
   const at = (point: Point, scale: number) => `translate(${point.x - origin.x}px, ${point.y - origin.y}px) scale(${scale})`;
   let here = origin;
   let scale = 1;
+  const fadeTo = async (element: HTMLElement | null, dark: () => void, light: () => void, at = 0.6) => {
+    const wanted = scrollTopFor(element, at);
+    if (wanted === null) return;
+    dark();
+    await clock.sleep(220);
+    window.scrollTo({ top: wanted, behavior: "instant" });
+    await frames(1);
+    light();
+    await clock.sleep(260);
+  };
   const moveTo = async (point: Point, nextScale: number, time: number, easing: string, lift = 0) => {
     const middle = { x: (here.x + point.x) / 2, y: Math.min(here.y, point.y) - lift };
     const keyframes = lift === 0 ? [{ transform: at(here, scale) }, { transform: at(point, nextScale) }] : [{ transform: at(here, scale) }, { transform: at(middle, (scale + nextScale) / 2 + 0.1), offset: 0.45 }, { transform: at(point, nextScale) }];
@@ -253,24 +277,42 @@ async function play(clock: Clock, { item, from, goTo }: Play, boxes: Boxes, set:
 
   stage("hold", { caption: true });
   const paying = item.xp > 0 ? flyXp(clock, item, here, from.width * scale, boxes, set) : Promise.resolve();
-  await clock.sleep(450);
+  await clock.sleep(650);
   const slot = await slotOf(item);
-  await Promise.all([clock.sleep(300), scrollToSlot(clock, slot)]);
+  await fadeTo(slot, () => stage("hold", { switching: true }), () => stage("hold", { switching: false }));
   await paying;
 
   const target = slot?.getBoundingClientRect() ?? new DOMRect(middle.x - 40, middle.y - 40, 80, 80);
   const goal = centreOf(target);
   const above = { x: goal.x, y: Math.max(140, goal.y - target.height * 0.5 - 60) };
   stage("land", { burst: false, caption: false });
-  await moveTo(above, 1.25, 420, "cubic-bezier(0.3, 0.8, 0.3, 1)", 30);
+  await moveTo(above, 1.35, 420, "cubic-bezier(0.3, 0.8, 0.3, 1)", 40);
+  const endScale = Math.max(0.2, Math.min(target.width, target.height) / from.width);
   const fitting = fitToSlot(clock, boxes.disc.current, item, slot);
-  await moveTo(goal, Math.max(0.2, Math.min(target.width, target.height) / from.width), 260, "cubic-bezier(0.6, 0, 0.9, 0.6)");
+  await moveTo(goal, endScale, 190, "cubic-bezier(0.7, 0, 1, 0.6)");
   await fitting;
 
   land(item.id);
   set.setTouches((touches) => [...touches, { key: Date.now(), rect: target, colour: colourOf(item) }]);
-  slot?.animate([{ transform: "scale(1)" }, { transform: "scale(1.14)" }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
-  window.setTimeout(() => set.setTouches((touches) => touches.slice(1)), 900);
+  slot?.animate([{ transform: "scale(1)" }, { transform: "scale(1.26)", offset: 0.3 }, { transform: "scale(0.93)", offset: 0.6 }, { transform: "scale(1.04)", offset: 0.82 }, { transform: "scale(1)" }], { duration: 520, easing: "ease-out" });
+  await clock.animate(flyer, [{ transform: at(goal, endScale) }, { transform: `${at(goal, endScale)} scale(1.16, 0.84)`, offset: 0.35 }, { transform: at(goal, endScale), opacity: 0 }], { duration: 200, easing: "ease-out" });
+  window.setTimeout(() => set.setTouches((touches) => touches.slice(1)), 1000);
+
+  const team = teamFilledBy(item);
+  if (team !== null) {
+    await clock.sleep(380);
+    await fadeTo(document.querySelector<HTMLElement>(".al-seal-spot"), () => stage("land", { switching: true }), () => stage("land", { switching: false }), 0.4);
+    unlockTeam(team);
+    await frames(2);
+    const seal = document.querySelector<HTMLElement>(`[data-al-seal="${team}"]`);
+    if (seal !== null) {
+      set.setFlourish({ key: Date.now(), rect: seal.getBoundingClientRect() });
+      await clock.animate(seal, [{ transform: "scale(0.6) rotate(-14deg)", filter: "saturate(0)" }, { transform: "scale(1.28) rotate(6deg)", filter: "saturate(1.3)", offset: 0.45 }, { transform: "scale(0.96) rotate(-2deg)", offset: 0.75 }, { transform: "none", filter: "none" }], { duration: 760, easing: "cubic-bezier(0.3, 0.8, 0.3, 1)" });
+      seal.getAnimations().forEach((animation) => animation.cancel());
+    }
+    await clock.sleep(1300);
+    set.setFlourish(null);
+  }
   await clock.sleep(800);
   stage("back");
   await clock.sleep(420);
@@ -285,13 +327,11 @@ async function slotOf(item: BoardItem): Promise<HTMLElement | null> {
   return null;
 }
 
-function scrollToSlot(clock: Clock, slot: HTMLElement | null) {
-  if (slot === null) return Promise.resolve();
-  const from = window.scrollY;
-  const rect = slot.getBoundingClientRect();
-  const wanted = Math.max(0, Math.min(document.documentElement.scrollHeight - window.innerHeight, from + rect.top + rect.height / 2 - window.innerHeight * 0.6));
-  if (Math.abs(wanted - from) < 4) return Promise.resolve();
-  return clock.tween(Math.min(1300, 500 + Math.abs(wanted - from) * 0.35), (progress) => window.scrollTo({ top: from + (wanted - from) * progress, behavior: "instant" }));
+function scrollTopFor(element: HTMLElement | null, at: number) {
+  if (element === null) return null;
+  const rect = element.getBoundingClientRect();
+  if (rect.top > window.innerHeight * 0.15 && rect.bottom < window.innerHeight * 0.8) return null;
+  return Math.max(0, Math.min(document.documentElement.scrollHeight - window.innerHeight, window.scrollY + rect.top + rect.height / 2 - window.innerHeight * at));
 }
 
 function fitToSlot(clock: Clock, disc: HTMLSpanElement | null, item: BoardItem, slot: HTMLElement | null) {
@@ -330,15 +370,16 @@ async function flyXp(clock: Clock, item: BoardItem, here: Point, size: number, b
   document.querySelector<HTMLElement>(".al-xp")?.animate([{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }], { duration: 420, easing: "ease-out" });
 }
 
-function useNewBadges(landed: ReadonlySet<string>) {
+function useNewBadges(progress: ReturnType<typeof useProgress>) {
   useEffect(() => {
-    const rules = landedItems(landed).map(({ badge }) => `${badge} { position: relative; } ${badge}::after { ${newBadgeStyle} }`);
+    const badges = [...landedItems(progress.landed).map(({ badge }) => badge), ...unlockedBadges(progress)];
+    const rules = badges.map((badge) => `${badge} { position: relative; } ${badge}::after { ${newBadgeStyle} }`);
     const style = document.createElement("style");
     style.dataset.ibBadges = "";
     style.textContent = rules.join("\n");
     document.head.append(style);
     return () => style.remove();
-  }, [landed]);
+  }, [progress]);
 }
 
 const newBadgeStyle = `content: "New"; position: absolute; top: -0.5rem; right: -0.5rem; z-index: 2; padding: 0.125rem 0.5rem; border: 2px solid var(--card); border-radius: 999px; background: var(--al-accent); color: white; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.02em; line-height: 1.2; pointer-events: none; animation: ib-badge 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;`;

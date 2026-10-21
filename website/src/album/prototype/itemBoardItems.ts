@@ -31,11 +31,6 @@ function hoggieOf(rarity: Rarity, skip: number, source: string): BoardItem {
   return { id: `hoggie:${missing.hoggie}`, kind: "hoggie", hoggie: missing.hoggie, name: missing.name, rarity, isNew: true, xp: 0, page: hrefOf({ kind: "hoggies", hoggie: null }), target: `[data-hoggie="${missing.hoggie}"] .al-hoggies-plate-art`, badge: `[data-hoggie="${missing.hoggie}"]`, source };
 }
 
-function teamEmojiOf(team: string, source: string): BoardItem {
-  const known = album.emojis.find((one) => one.id === `team:${team}`)!;
-  return { id: `emoji:${known.id}`, kind: "emoji", emoji: known.id, name: `:${known.name}:`, picture: known.picture, from: known.from, what: `Team emoji · ${known.from} is complete`, xp: 0, page: hrefOf({ kind: "team", team }), target: ".al-seal-spot .al-seal", badge: ".al-seal-spot", source };
-}
-
 const milestoneRows: string[] = album.milestones.map(({ id }) => id);
 
 const tierOrder = ["bronze", "silver", "gold", "diamond"];
@@ -54,15 +49,14 @@ export const boardItems: BoardItem[] = [
   hoggieOf("common", 1, "Level 6"),
   hoggieOf("uncommon", 0, "Level 6"),
   hoggieOf("epic", 0, "Level 6"),
-  teamEmojiOf("kettle-works", "Kettle Works is complete"),
   milestoneEmojiOf("reach", "silver", "Thanked people on 10 teams"),
 ];
 
 const listeners = new Set<() => void>();
 
-type Progress = { landed: ReadonlySet<string>; paid: ReadonlySet<string> };
+type Progress = { landed: ReadonlySet<string>; paid: ReadonlySet<string>; unlocked: ReadonlySet<string> };
 
-let progress: Progress = { landed: new Set(), paid: new Set() };
+let progress: Progress = { landed: new Set(), paid: new Set(), unlocked: new Set() };
 
 function change(next: Progress) {
   progress = next;
@@ -81,8 +75,24 @@ export function landedItems(ids: ReadonlySet<string>) {
   return itemsIn(ids);
 }
 
+export function unlockTeam(team: string) {
+  change({ ...progress, unlocked: new Set(progress.unlocked).add(team) });
+}
+
+export function teamFilledBy(item: BoardItem): string | null {
+  if (item.kind !== "sticker") return null;
+  const team = album.teams.find(({ team: one }) => one === item.team);
+  if (team === undefined || team.state !== "progress") return null;
+  const added = team.people.filter((person) => progress.landed.has(`sticker:${person}`)).length;
+  return team.held + added >= team.total ? team.team : null;
+}
+
+export function unlockedBadges(now: Progress) {
+  return [...now.unlocked].map((team) => `.al-seal-spot:has([data-al-seal="${team}"])`);
+}
+
 export function startOver() {
-  change({ landed: new Set(), paid: new Set() });
+  change({ landed: new Set(), paid: new Set(), unlocked: new Set() });
 }
 
 function subscribe(listener: () => void) {
@@ -105,7 +115,7 @@ function albumWith(now: Progress): Album {
   if (known !== undefined) return known;
   const items = itemsIn(now.landed);
   const people = new Set(items.flatMap((item) => (item.kind === "sticker" ? [item.person] : [])));
-  const emojis = new Set(items.flatMap((item) => (item.kind === "emoji" ? [item.emoji] : [])));
+  const emojis = new Set([...items.flatMap((item) => (item.kind === "emoji" ? [item.emoji] : [])), ...[...now.unlocked].map((team) => `team:${team}`)]);
   const xp = itemsIn(now.paid).reduce((sum, item) => sum + item.xp, 0);
   const shown: Album = {
     ...album,
@@ -113,7 +123,7 @@ function albumWith(now: Progress): Album {
     tray: [],
     level: { ...album.level, xp: album.level.xp + xp },
     people: album.people.map((person) => (people.has(person.person) ? { ...person, held: true } : person)),
-    teams: album.teams.map((team) => ({ ...team, held: Math.min(team.total, team.held + team.people.filter((person) => people.has(person)).length), ...(emojis.has(`team:${team.team}`) ? { state: "unlocked" as const, unlockedAt: Date.now() } : {}) })),
+    teams: album.teams.map((team) => ({ ...team, held: Math.min(team.total, team.held + team.people.filter((person) => people.has(person)).length), ...(now.unlocked.has(team.team) ? { state: "unlocked" as const, unlockedAt: Date.now() } : {}) })),
     milestones: album.milestones.map((milestone) => {
       const reached = milestone.tiers.filter(({ tier }) => emojis.has(`milestone:${milestone.id}:${tier}`));
       if (reached.length === 0) return milestone;
