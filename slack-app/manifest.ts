@@ -24,11 +24,12 @@ export function renderManifest(environment: Environment, siteUrl: string) {
           should_escape: true,
         },
       ],
+      unfurl_domains: [new URL(siteUrl).host],
     },
     oauth_config: {
       redirect_urls: [route("/api/auth/callback/slack")],
       scopes: {
-        bot: ["channels:history", "groups:history", "reactions:read", "reactions:write", "chat:write", "users:read", "users:read.email", "usergroups:read", "channels:join", "channels:read", "commands", "chat:write.public", "emoji:read"],
+        bot: ["channels:history", "groups:history", "reactions:read", "reactions:write", "chat:write", "users:read", "users:read.email", "usergroups:read", "channels:join", "channels:read", "commands", "chat:write.public", "emoji:read", "links:read", "links:write"],
         user: ["openid", "profile"],
       },
     },
@@ -39,6 +40,7 @@ export function renderManifest(environment: Environment, siteUrl: string) {
           "app_home_opened",
           "channel_created",
           "emoji_changed",
+          "link_shared",
           "message.channels",
           "message.groups",
           "reaction_added",

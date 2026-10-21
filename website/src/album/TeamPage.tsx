@@ -10,6 +10,7 @@ import { PersonPicture } from "./PersonPicture";
 import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { hrefOf } from "./place";
 import { SealArt } from "./Seal";
+import { ShareLink } from "./ShareLink";
 import { Silhouette } from "./Silhouette";
 import { dateOf, nameOnThePhoto, onThePhotoOf, teamEmojiOf, teamEmojiUseWords, type OnThePhoto } from "./teamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
@@ -35,6 +36,7 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
           {team.name}
         </PageTitle>
         <p className="al-lede">{plural(onThePhoto.length, "person", "people")}</p>
+        <ShareLink album={album} page={{ kind: "team", team: team.team }} cardOf={`the ${team.name}`} />
       </header>
       <figure className="al-mount" aria-labelledby={caption}>
         <ul className="al-photo" data-size={onThePhoto.length > 5 ? "many" : "few"}>
