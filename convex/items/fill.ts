@@ -4,11 +4,13 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { earnTrayItem } from "../album/opening";
 import { earnPackItemsOf } from "../album/packs";
+import { oldRevealDropsFor, revealLevelUpHoggies, type LevelReached } from "../unlocks/levelUpHoggies";
 import type { MemberId } from "../workspace/directory";
+import { waitingPageOf } from "./ledger";
 
 export const mostFilledOfAKind = 100;
 
-const fillStepValidator = v.object({ member: v.id("members"), kind: v.union(v.literal("packs"), v.literal("tray")), cursor: v.optional(v.string()) });
+const fillStepValidator = v.object({ member: v.id("members"), kind: v.union(v.literal("packs"), v.literal("tray"), v.literal("levels")), cursor: v.optional(v.string()) });
 
 type FillStep = Infer<typeof fillStepValidator>;
 
@@ -25,10 +27,14 @@ export const fillItems = internalMutation({
   },
 });
 
+const fillers = { packs: fillPacks, tray: fillTray, levels: revealLevels } as const;
+
 async function fill(ctx: MutationCtx, step: FillStep): Promise<FillStep | null> {
-  const { isDone, continueCursor } = step.kind === "packs" ? await fillPacks(ctx, step) : await fillTray(ctx, step);
+  const { isDone, continueCursor } = await fillers[step.kind](ctx, step);
   if (!isDone) return { ...step, cursor: continueCursor };
-  return step.kind === "packs" ? { member: step.member, kind: "tray" } : stepAfterTheMember(ctx, step.member);
+  if (step.kind === "packs") return { member: step.member, kind: "tray" };
+  if (step.kind === "tray") return { member: step.member, kind: "levels" };
+  return stepAfterTheMember(ctx, step.member);
 }
 
 async function stepAfterTheMember(ctx: QueryCtx, member: MemberId): Promise<FillStep | null> {
@@ -52,6 +58,19 @@ async function fillTray(ctx: MutationCtx, { member, cursor }: FillStep): Promise
     .paginate({ cursor: cursor ?? null, numItems: mostFilledOfAKind });
   for (const item of page) await earnTrayItemOf(ctx, item);
   return { isDone, continueCursor };
+}
+
+async function revealLevels(ctx: MutationCtx, { member, cursor }: FillStep): Promise<Filled> {
+  const { page, isDone, continueCursor } = await waitingPageOf(ctx, member, cursor ?? null, mostFilledOfAKind);
+  const levelUps = levelUpsAmong(member, page);
+  if (levelUps.length > 0 && (await oldRevealDropsFor(ctx, member))) for (const levelUp of levelUps) await revealLevelUpHoggies(ctx, levelUp);
+  return { isDone, continueCursor };
+}
+
+function levelUpsAmong(member: MemberId, items: Doc<"items">[]): LevelReached[] {
+  const reached = new Map<number, LevelReached>();
+  for (const { reason, earnedAt } of items) if (reason.kind === "levelUp") reached.set(reason.level, { member, level: reason.level, at: earnedAt });
+  return [...reached.values()];
 }
 
 async function earnTrayItemOf(ctx: MutationCtx, item: Doc<"trayItems">) {

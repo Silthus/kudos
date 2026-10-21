@@ -5,7 +5,7 @@ import { post, settle, testBackend, type Backend } from "../../testing/slackBack
 import { emoji, mention, section } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { catalogue, type Rarity } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
@@ -122,6 +122,62 @@ describe("LP11 LP20: a level item is drawn at its turn, pays no XP, and the thir
   });
 });
 
+describe("LP6 LP24: with hidden-items back off, fillItems reveals every waiting level item through the old level-up drop, once", { timeout: 60_000 }, () => {
+  test("a level reached with hidden-items on reaches the old reveal once it is off, pays nothing, a rerun drops nothing more, and with hidden-items on again nothing waits or draws twice", async () => {
+    const member = await memberOf(await joined(alice));
+    await reachesLevel(t, member, 2);
+    const asAlice = await signedIn(alice);
+    const before = (await albumOf(asAlice)).level;
+
+    await switchWebsite(t, postHog, true, ...oldReveal);
+    await fillItems();
+    await fillItems();
+
+    expect(await revealedHoggiesOf(asAlice, 2), "the old reveal of level 2").toEqual(await levelDrawnFor(member, 2));
+    expect(await cratesDroppedFor(alice), "the drops").toEqual(["level:2:1", "level:2:2", "level:2:3"]);
+    await switchWebsite(t, postHog, true, ...itemsOn);
+    expect((await boardOf(asAlice)).items, "the board once hidden-items is on again").toEqual([]);
+    expect((await albumOf(asAlice)).level, "the member's level and XP").toEqual(before);
+    expect(await cratesDroppedFor(alice), "the drops once hidden-items is on again").toHaveLength(3);
+  });
+
+  test("a level item turned while hidden-items was on keeps its face, and only the two still waiting drop once it is off", async () => {
+    const member = await memberOf(await joined(alice));
+    await reachesLevel(t, member, 2);
+    const asAlice = await signedIn(alice);
+    const [first] = (await boardOf(asAlice)).items;
+    await turn(asAlice, first!.item);
+
+    await switchWebsite(t, postHog, true, ...oldReveal);
+    await fillItems();
+
+    expect(await revealedHoggiesOf(asAlice, 2), "the old reveal of level 2").toEqual(await levelDrawnFor(member, 2));
+    expect(await cratesDroppedFor(alice), "the drops").toHaveLength(3);
+  });
+
+  test("more than 100 waiting level items continue from the fill's cursor, each level revealed once", async () => {
+    const member = await memberOf(await joined(alice));
+    for (let level = 2; level <= 36; level++) await reachesLevel(t, member, level);
+
+    await switchWebsite(t, postHog, true, ...oldReveal);
+    await fillItems();
+
+    expect(await cratesDroppedFor(alice), "the drops").toHaveLength(105);
+    expect((await itemsKeyed(alice, () => true)).filter(({ turnedAt }) => turnedAt === undefined), "the items still waiting").toEqual([]);
+  });
+
+  test("with hidden-items and level-up-reveal off, fillItems drops nothing and the level's items keep waiting, as today", async () => {
+    const member = await memberOf(await joined(alice));
+    await reachesLevel(t, member, 2);
+
+    await switchWebsite(t, postHog, true, ...oldReveal.filter((flag) => flag !== "level-up-reveal"));
+    await fillItems();
+
+    expect(await cratesDroppedFor(alice), "the drops").toEqual([]);
+    expect((await itemsKeyed(alice, () => true)).filter(({ turnedAt }) => turnedAt === undefined), "the items still waiting").toHaveLength(3);
+  });
+});
+
 function hoggieDrawnBy(answer: Awaited<ReturnType<typeof turn>>) {
   return answer.kind === "turned" && answer.face.kind === "hoggie" ? answer.face.drop : null;
 }
@@ -193,6 +249,20 @@ async function itemsOf(person: Person) {
 async function cratesDroppedFor(person: Person) {
   const member = await memberOf(person);
   return t.run(async (ctx) => (await ctx.db.query("drops").withIndex("by_member", (q) => q.eq("member", member)).collect()).map(({ crate }) => crate));
+}
+
+async function fillItems() {
+  await t.mutation(internal.items.fill.fillItems, {});
+  await settle(t);
+}
+
+async function revealedHoggiesOf(reader: Reader, level: number) {
+  const answer = await reader.query(api.website.album.getLevelUp, { level });
+  return answer.kind === "levelUp" ? answer.hoggies.map(({ hoggie }) => hoggie) : answer.kind;
+}
+
+async function levelDrawnFor(member: MemberId, level: number) {
+  return Promise.all(slots.map(async ({ slot, floor }) => (await drawnFor(member, `level:${level}:${slot}`, floor)).hoggie));
 }
 
 async function drawnFor(member: MemberId, crate: string, floor?: Rarity) {
