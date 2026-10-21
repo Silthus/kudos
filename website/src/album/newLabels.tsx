@@ -4,38 +4,45 @@ import type { AlbumShown } from "./answer";
 import { NewLabel } from "./ItemBoard";
 import "./newLabels.css";
 
-type LabelledSince = number | undefined;
+type LastVisit = number | null;
 
-type ReadLastVisit = number | null | undefined;
+type LabelledSince = LastVisit | undefined;
 
-type Arrive = (from: number | null) => Promise<ArrivalReply>;
+type Arrive = (from: LastVisit) => Promise<ArrivalReply>;
 
 const NewLabelsSince = createContext<LabelledSince>(undefined);
 
 export const NewLabelsProvider = NewLabelsSince.Provider;
 
 export function useNewLabelsSince(album: AlbumShown | undefined, arrive: Arrive): LabelledSince {
-  const read = album?.kind === "album" ? album.lastVisit : undefined;
-  return useLastVisitBeforeArrival(read, arrive) ?? undefined;
+  const stored = album?.kind === "album" ? album.lastVisit : undefined;
+  const arrivedAt = useArrivalOnce(stored, arrive);
+  return arrivedAt === undefined || stored === undefined ? undefined : laterOf(arrivedAt, stored);
 }
 
-function useLastVisitBeforeArrival(read: ReadLastVisit, arrive: Arrive): ReadLastVisit {
-  const [arrivedFrom, setArrivedFrom] = useState<ReadLastVisit>(undefined);
+function useArrivalOnce(stored: LabelledSince, arrive: Arrive): LabelledSince {
+  const [arrivedAt, setArrivedAt] = useState<LabelledSince>(undefined);
   const sent = useRef(false);
   useEffect(() => {
-    if (read === undefined || sent.current) return;
+    if (stored === undefined || sent.current) return;
     sent.current = true;
-    arrive(read).then(
-      (reply) => reply.kind === "arrived" && setArrivedFrom(read),
+    arrive(stored).then(
+      (reply) => reply.kind === "arrived" && setArrivedAt(reply.lastVisit),
       () => undefined,
     );
-  }, [read, arrive]);
-  return arrivedFrom;
+  }, [stored, arrive]);
+  return arrivedAt;
+}
+
+function laterOf(one: LastVisit, other: LastVisit): LastVisit {
+  if (one === null) return other;
+  return other === null ? one : Math.max(one, other);
 }
 
 export function useNewSinceTheLastVisit(at: number | null | undefined): boolean {
   const since = useContext(NewLabelsSince);
-  return since !== undefined && at !== null && at !== undefined && at > since;
+  if (since === undefined || at === null || at === undefined) return false;
+  return since === null || at > since;
 }
 
 export function NewSinceTheLastVisit({ at }: { at: number | null | undefined }) {
