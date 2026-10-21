@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { activitySince, newestDecidedSince, positionsSince, type EntrySince, type ReadSince } from "../activity/activity";
 import { ranks, type Position } from "../activity/position";
-import { thoughtfulGiversShownTo } from "../album/thoughtfulGivers";
+import { thoughtfulGiversThisWeek } from "../album/thoughtfulGivers";
 import { reportXpMomentEnded } from "../analytics/isolatedUsage";
 import { hiddenItemsShownTo } from "../items/flag";
 import { waitingCountOf, type WaitingCount } from "../items/ledger";
@@ -89,7 +89,7 @@ async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, read: 
     xp,
     climb: await climbOf(ctx, me.member, xp),
     waiting: (await hiddenItemsShownTo(ctx, me.member)) ? await waitingCountOf(ctx, me.member) : 0,
-    thoughtfulGivers: await thoughtfulGiversShownTo(ctx, { workspace: me.workspace, member: me.member, timeZone: timeZone ?? undefined }),
+    thoughtfulGivers: await thoughtfulGiversThisWeek(ctx, { workspace: me.workspace, timeZone: timeZone ?? undefined }),
     timeZone,
   };
 }
