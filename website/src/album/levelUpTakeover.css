@@ -1,5 +1,5 @@
 .xpm-lvl {
-  --xpm-lvl-centre: calc(36vh - var(--al-top-height));
+  --xpm-lvl-centre: calc(36vh - var(--xpm-top));
   position: absolute;
   inset: 0;
   z-index: 5;
