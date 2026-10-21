@@ -31,7 +31,7 @@ export function isWaitingForTheHoggies(shown: HoggiesShown | undefined) {
 type Open = (hoggie: AlbumHoggie) => void;
 
 function HoggiesPage({ answer, place, address }: { answer: AlbumHoggies; place: HoggiesPlace; address: HoggieAddress }) {
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useFilterShowingEachLanding();
   const shown = keptBy(filter, answer.hoggies, place.rarity);
   const chosen = answer.hoggies.find(({ hoggie }) => hoggie === place.hoggie) ?? null;
   const open: Open = (hoggie) => address.open(hoggie.hoggie);
@@ -43,6 +43,17 @@ function HoggiesPage({ answer, place, address }: { answer: AlbumHoggies; place: 
       {chosen !== null && <HoggieEntry hoggie={chosen} answer={answer} steps={answer.hoggies.filter((hoggie) => hoggie === chosen || shown.includes(hoggie))} onStep={(hoggie) => address.step(hoggie.hoggie)} onClose={address.close} />}
     </article>
   );
+}
+
+function useFilterShowingEachLanding() {
+  const landedTurn = useLanding()?.turn ?? null;
+  const [filter, setFilter] = useState<Filter>("all");
+  const [filteredSince, setFilteredSince] = useState(landedTurn);
+  if (filteredSince !== landedTurn) {
+    setFilteredSince(landedTurn);
+    setFilter("all");
+  }
+  return [filter, setFilter] as const;
 }
 
 function Header({ answer }: { answer: AlbumHoggies }) {

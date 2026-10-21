@@ -174,7 +174,8 @@ describe("LP10: turnItem refuses and writes nothing", () => {
   test.each([
     ["hidden-items off", albumOpen],
     ["album off", ["collection", "packs", "hidden-items"]],
-  ])("with %s the turn is refused", async (_, flags) => {
+    ["collection off", ["album", "packs", "hidden-items"]],
+  ])("with %s the turn is refused, and the item turns once the flag is back", async (_, flags) => {
     await thanks(alice, why, bob);
     const asAlice = await signedIn(alice);
     const [item] = (await boardOf(asAlice)).items;
@@ -183,6 +184,8 @@ describe("LP10: turnItem refuses and writes nothing", () => {
 
     expect(await turn(asAlice, item!.item)).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);
+    await switchWebsite(t, postHog, true, ...itemsOn);
+    expect(await turn(asAlice, item!.item)).toMatchObject({ kind: "turned", again: false });
   });
 });
 

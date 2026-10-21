@@ -135,6 +135,20 @@ describe("The item board", () => {
     expect(screen.getByRole("button", { name: "2 items wait" })).toBeVisible();
   });
 
+  it("lands the hoggie in view even when the Hoggies page was filtered to hoggies that leave it out", async () => {
+    const dance = hoggiesFixtures.midway.hoggies.find(({ hoggie }) => hoggie === "70s-dance")!;
+    const { user } = visit(withItems, { path: "/book#hoggies" });
+    await user.click((await theBoard()).getByRole("button", { name: "Later" }));
+    await user.click(screen.getByRole("button", { name: dance.found ? /^Still hidden/ : /^Found/ }));
+    expect(document.querySelector('[data-hoggie="70s-dance"]')).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "3 items wait" }));
+    await user.click((await theBoard()).getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+
+    await waitFor(() => expect(document.querySelector('[data-hoggie="70s-dance"]')).toHaveAttribute("data-landed"));
+    expect(screen.getByRole("button", { name: /^All/ })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("keeps the board and says so when the turn is refused", async () => {
     const { user, turnItem } = visit(withItems, { turnItem: async () => ({ kind: "refused" }) });
     const board = await theBoard();

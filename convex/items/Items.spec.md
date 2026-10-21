@@ -70,12 +70,13 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: commit-ordered-effects dismissed: itemTurned is published in the turn's mutation, and the bus schedules its subscribers only when that mutation commits
   checklist: resumption-coverage dismissed: no batch operation resumes; each turn is one mutation
   checklist: retry-classification dismissed: nothing is sent here; the drain classifies PostHog's answers
-- the turn refuses and writes nothing: turnItem refuses another member's item, a missing item, and any item while `hidden-items` or `album` is off for the member, and writes nothing then.
-  over: another member's item, an item deleted before its turn, and an item turned with hidden-items off and with album off, each read through every table and every scheduled function before and after
+- the turn refuses and writes nothing: turnItem refuses another member's item, a missing item, and any item while `hidden-items`, `album` or `collection` is off for the member, and writes nothing then; the same item turns once the flag is back.
+  over: another member's item, an item deleted before its turn, and an item turned with hidden-items off, with album off and with collection off, each read through every table and every scheduled function before and after, then turned with every flag back on
   via: LP10: turnItem refuses and writes nothing
   because: an item ID reaches the browser, so a turn that accepted another member's ID would reveal and take their reward, and a turn while the flags are off would show a dark feature (LP10)
   refuted: the turn checked only that the item exists, never that it is the signed-in member's own -> 1 of 4 tests failed: another member's item answered turned instead of refused (2026-10-21)
   refuted: turnItem no longer read hidden-items before turning -> 1 of 4 tests failed: with hidden-items off the turn answered turned instead of refused (2026-10-21)
+  refuted: turnItem no longer read collection before turning -> 1 of 18 tests failed: with collection off the turn answered turned instead of refused (2026-10-21)
   crossing: browser -> domain
   entrances: mutation turnItem
   kinds: identity, state
