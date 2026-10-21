@@ -291,3 +291,25 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: encrypted-storage dismissed: nothing is stored; the code is dropped before the event leaves
   checklist: key-rotation-compatibility dismissed: no key is involved; the parameter name `code` is Convex Auth's fixed one
   checklist: separation-of-duties dismissed: one module scrubs and posthog-js sends; no duty is shared
+- Make my pet is offered only on a found hoggie's entry: While getAlbumHoggies answers a pet field, a found hoggie's field guide entry offers `Make my pet`, which sends makePet once for that hoggie however often it is pressed before the answer, and once makePet answers picked calls it `Your pet` while getAlbumHoggies still names the pet it had; the pet's own entry says `Your pet` with no button; an entry of a hoggie not found yet offers nothing; a refusal says so in the entry and keeps the button, and an unreachable server says to try again; while getAlbumHoggies answers no pet field the entry is as before, with no button and no pet.
+  over: a found hoggie's entry with no pet, pressed and answered picked, and pressed twice before its answer; the pet's own entry, stepped by the arrow keys past a hoggie not found yet to another found one and pressed; a hoggie not found yet; a refusal; an unreachable server; and an entry with no pet field
+  via: LP57: Make my pet on a hoggie the member found makes it their one pet
+  refuted: HoggieEntry offered Make my pet on every entry, found or not -> an entry of a hoggie not found yet offered it, 2 of 7 tests red (2026-10-21)
+  because: the core-loop spec puts `Make my pet` on a hoggie the member owns, on the `Hoggies` page, with no default pet (LP57, LP59, LP60)
+  kinds: output
+  checklist: destination-confinement dismissed: the entry sends only makePet, once per press, for the hoggie it shows, and nothing on arrival
+  checklist: redaction dismissed: the entry shows a hoggie's name and the words `Your pet`, nothing about a person
+  checklist: commit-ordered-effects dismissed: the shell stores nothing; it shows the pet makePet answered only until getAlbumHoggies names another
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; one press sends one command
+  checklist: declared-target-coverage dismissed: there is no fan-out; one press names one hoggie
+- a member's pet shows in colour beside their sticker: While getAlbum lists pets, a team page's class photo draws each member's pet in colour beside their sticker, named "{first name}'s pet, {hoggie}", even while their sticker is still grey, and their person page draws it in colour beside the sticker in its mount, with a `Pet: {hoggie}` line; a member without a pet gets none; while getAlbum lists no pets, no page draws one; the Leaderboard and Slack never draw a pet.
+  over: a team page with two members' pets, one of them not in the viewer's album yet; that member's person page; a person page of a member without a pet; and a team page while getAlbum lists no pets
+  via: LP58: a member's pet shows in colour beside their sticker on team pages and on their person page
+  refuted: PetHoggie drew the pet as a silhouette -> the pets on the team page and the person page were drawn greyed out, 2 of 4 tests red (2026-10-21)
+  because: the core-loop spec shows the pet in colour on the member's person page and beside their sticker on team pages, to every viewer, even one who does not own that hoggie or hold that member's sticker, and nowhere else (LP58)
+  kinds: output
+  checklist: destination-confinement dismissed: drawing a pet sends nothing
+  checklist: redaction dismissed: a pet's label names its owner, so it sits in a ph-no-capture element under nothing private reaches PostHog from the browser
+  checklist: commit-ordered-effects dismissed: the pages store nothing; they draw what getAlbum answers
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; each page draws the pets getAlbum lists for the people it shows

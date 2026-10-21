@@ -24,7 +24,7 @@ import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
-import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, trayDropValidator } from "./hoggies/records";
+import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, petHoggieValidator, trayDropValidator } from "./hoggies/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import {
@@ -532,6 +532,8 @@ export default defineSchema({
   trayDrops: defineTable(trayDropValidator).index("by_member_crate", ["member", "crate"]).index("by_member_put_in", ["member", "putInAt"]),
 
   hoggieAvatars: defineTable(hoggieAvatarValidator).index("by_member", ["member"]),
+
+  petHoggies: defineTable(petHoggieValidator).index("by_workspace_member", ["workspace", "member"]),
 
   stickers: defineTable(stickerValidator).index("by_member_person", ["member", "person"]).index("by_member_firstAt", ["member", "firstAt"]),
 

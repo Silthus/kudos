@@ -89,6 +89,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: unlockTeamSticker in convex/website/album.ts
   trust: browser
 
+- mutation makePet: a browser asks to make one hoggie the signed-in member holds their pet, with the hoggie's slug as its only argument
+  handler: makePet in convex/website/album.ts
+  trust: browser
+
 - mutation markEmojisSeen: a browser says which of the signed-in member's own earned emojis they have seen, with the emoji IDs as its only argument, at most 500 a call
   handler: markEmojisSeen in convex/website/album.ts
   trust: browser
@@ -261,7 +265,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   via: website commands pass one guard
   because: a mutation is the first public function that can write, so a denial that wrote a workspace key, an exposure or a scheduled job would let anyone on the internet change state through a closed or signed-out call; the guard is memberQuery's in the same order and reads the website flag through the seam's read-only path (WS61, WS11)
   crossing: browser -> domain
-  entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation setAvatar, mutation openThoughtfulPack, mutation putIn, mutation putAllIn, mutation unlockTeamSticker, mutation markEmojisSeen, mutation mapSlackEmoji, mutation setWeeklyPost, mutation pickWeeklyPostChannel
+  entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation setAvatar, mutation openThoughtfulPack, mutation putIn, mutation putAllIn, mutation unlockTeamSticker, mutation makePet, mutation markEmojisSeen, mutation mapSlackEmoji, mutation setWeeklyPost, mutation pickWeeklyPostChannel
   refuted: memberQuery's guard read the website flag through the seam's writing path instead of its read-only one -> the call with a flags key but no workspace key made a key and answered refused instead of closed (2026-10-14)
   kinds: state, identity
   checklist: scoped-reads declared as website reads pass one guard

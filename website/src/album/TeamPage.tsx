@@ -4,9 +4,10 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { PageTitle } from "../PageTitle";
 import { MapInPlace, NotInSlack, useMapsInPlace, useSlackWay } from "./findInSlack";
-import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
+import type { Album, AlbumEmoji, AlbumPet, AlbumTeam } from "./answer";
 import { plural } from "./facts";
 import { PersonPicture } from "./PersonPicture";
+import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { hrefOf } from "./place";
 import { SealArt } from "./Seal";
 import { Silhouette } from "./Silhouette";
@@ -35,7 +36,7 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
       <figure className="al-mount" aria-labelledby={caption}>
         <ul className="al-photo" data-size={onThePhoto.length > 5 ? "many" : "few"}>
           {onThePhoto.map((shown) => (
-            <PhotoPerson key={shown.kind === "person" ? shown.person.person : `unmatched:${shown.name}`} shown={shown} />
+            <PhotoPerson key={shown.kind === "person" ? shown.person.person : `unmatched:${shown.name}`} shown={shown} pet={petShownWith(album, shown)} />
           ))}
         </ul>
         <figcaption id={caption} className="al-photo-caption">
@@ -51,7 +52,15 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
   );
 }
 
-function PhotoPerson({ shown }: { shown: OnThePhoto }) {
+type ShownPet = { pet: AlbumPet; owner: string };
+
+function petShownWith(album: Album, shown: OnThePhoto): ShownPet | null {
+  if (shown.kind !== "person") return null;
+  const pet = petOf(album, shown.person.person);
+  return pet === null ? null : { pet, owner: petOwnerWordsOf(album, shown.person.person, shown.person.name) };
+}
+
+function PhotoPerson({ shown, pet }: { shown: OnThePhoto; pet: ShownPet | null }) {
   if (shown.kind === "unmatched")
     return (
       <li className="al-photo-person" data-out="">
@@ -70,6 +79,7 @@ function PhotoPerson({ shown }: { shown: OnThePhoto }) {
         <span className="al-photo-name ph-no-capture">{name}</span>{" "}
         <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>
+      {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
     </li>
   );
 }

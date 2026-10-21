@@ -12,6 +12,8 @@ export const packsFlag = { key: "packs", safeDefault: false, values: [false, tru
 
 export const hoggieAvatarFlag = { key: "hoggie-avatar", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
+export const petHoggieFlag = { key: "pet-hoggie", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
 export function hoggiesShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecision(ctx, collectionFlag, member);
 }
@@ -61,4 +63,8 @@ export async function avatarOpenFor(ctx: MutationCtx, member: MemberId): Promise
   const open = await memberDecision(ctx, hoggieAvatarFlag, member);
   await exposed(ctx, hoggieAvatarFlag, member, open);
   return open;
+}
+
+export function petHoggieShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, petHoggieFlag, member);
 }

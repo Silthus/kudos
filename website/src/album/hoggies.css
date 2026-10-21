@@ -694,3 +694,50 @@ button.al-hoggies-note .al-hoggie-art {
     transform: translateY(0.5rem) scale(0.98);
   }
 }
+
+.al-entry-pet {
+  justify-self: start;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--al-rarity) 14%, var(--card));
+  padding: 0.25rem 0.75rem;
+  color: var(--al-rarity-ink);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.al-entry-pet-pick {
+  display: grid;
+  justify-items: start;
+  gap: 0.375rem;
+}
+
+.al-entry-pet-button {
+  border: 1px solid var(--al-rarity);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 0.375rem 0.875rem;
+  color: var(--al-rarity-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.al-entry-pet-button:hover {
+  background: color-mix(in oklab, var(--al-rarity) 14%, var(--card));
+}
+
+.al-entry-pet-button[aria-disabled] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.al-entry-pet-problem {
+  margin: 0;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+.al-entry-pet-problem:empty {
+  display: none;
+}

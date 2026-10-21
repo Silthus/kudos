@@ -7,7 +7,7 @@ import { drawnPicturesIn } from "../test/pictures";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf, fixtureUnlockOf, stickerFor } from "./albumFixtures";
-import type { Album, AlbumEmoji, PersonPage, PersonRead, PutAllInReply, UnlockReply } from "./answer";
+import type { Album, AlbumEmoji, AlbumPet, PersonPage, PersonRead, PutAllInReply, UnlockReply } from "./answer";
 
 const memberWithTheAlbum = shellFixtures.member;
 
@@ -527,5 +527,52 @@ describe("AL46: the person page", () => {
     await screen.findByRole("heading", { level: 1, name: "Lanterns" });
     await waitFor(() => expect(asked.length).toBeGreaterThan(0));
     expect(asked.every((asking) => !asking)).toBe(true);
+  });
+});
+
+describe("LP58: a member's pet shows in colour beside their sticker on team pages and on their person page", () => {
+  const rocket: AlbumPet = { person: "juno-park", hoggie: "rocket", name: "Rocket", rarity: "legendary" };
+  const banana: AlbumPet = { person: "ines-okafor", hoggie: "banana", name: "Banana", rarity: "common" };
+  const withPets = (...pets: AlbumPet[]): Album => ({ ...midway, pets });
+
+  function petOf(name: string) {
+    return screen.getByRole("img", { name });
+  }
+
+  it("on a team page each member with a pet has it beside their sticker, in colour even while their sticker is still grey, and the others have none", async () => {
+    visit("/book#teams/lanterns", { album: withPets(rocket, banana) });
+
+    const shown = await photo();
+    const juno = shown.getAllByRole("listitem").find((person) => person.textContent?.includes("Juno Park"))!;
+    expect(within(juno).getByRole("img", { name: "Juno's pet, Rocket" })).toBeInTheDocument();
+    expect(drawnPicturesIn(petOf("Juno's pet, Rocket"))).toEqual([expect.stringContaining("rocket")]);
+    expect(petOf("Juno's pet, Rocket").querySelector("[data-silhouette]")).toBeNull();
+    expect(within(juno).getByRole("link", { name: "Juno Park Not in your album yet" })).toBeInTheDocument();
+    expect(shown.getAllByRole("img", { name: /'s pet, / }).map((pet) => pet.getAttribute("aria-label"))).toEqual(["Ines's pet, Banana", "Juno's pet, Rocket"]);
+  });
+
+  it("on a person page their pet stands beside their sticker in colour, named, even before they are in the viewer's album", async () => {
+    visit("/book#people/juno-park", { album: withPets(rocket) });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Juno Park" })).toBeInTheDocument();
+    const mount = screen.getByRole("figure", { name: "Not in your album yet" });
+    expect(within(mount).getByRole("img", { name: "Juno's pet, Rocket" })).toBeInTheDocument();
+    expect(petOf("Juno's pet, Rocket").querySelector("[data-silhouette]")).toBeNull();
+    expect(screen.getByText("Pet:").closest("p")).toHaveTextContent("Pet: Rocket");
+  });
+
+  it("someone without a pet shows none on their person page", async () => {
+    visit("/book#people/ines-okafor", { album: withPets(rocket) });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ines Okafor" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /'s pet, / })).not.toBeInTheDocument();
+    expect(screen.queryByText("Pet:")).not.toBeInTheDocument();
+  });
+
+  it("with pet-hoggie off, getAlbum names no pets and no page shows one", async () => {
+    visit("/book#teams/lanterns");
+
+    expect((await photo()).getAllByRole("listitem")).toHaveLength(6);
+    expect(screen.queryByRole("img", { name: /'s pet, / })).not.toBeInTheDocument();
   });
 });

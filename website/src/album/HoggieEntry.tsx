@@ -6,10 +6,11 @@ import { HoggieArt } from "./HoggieArt";
 import { copiesWords, hoggieNameShownOf, numberOf, oddsWords, rarityTintOf } from "./hoggieGuide";
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
+import type { PetPicking, PetProblem } from "./usePetPick";
 
-type EntryProps = { hoggie: AlbumHoggie; answer: AlbumHoggies; steps: AlbumHoggie[]; onStep: (hoggie: AlbumHoggie) => void; onClose: () => void };
+type EntryProps = { hoggie: AlbumHoggie; answer: AlbumHoggies; picking: PetPicking | null; steps: AlbumHoggie[]; onStep: (hoggie: AlbumHoggie) => void; onClose: () => void };
 
-export function HoggieEntry({ hoggie, answer, steps, onStep, onClose }: EntryProps) {
+export function HoggieEntry({ hoggie, answer, picking, steps, onStep, onClose }: EntryProps) {
   const title = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useFocusWhileOpen(hoggie);
@@ -42,6 +43,7 @@ export function HoggieEntry({ hoggie, answer, steps, onStep, onClose }: EntryPro
             </h2>
             <span className="al-entry-pill">{rarityWordOf(hoggie.rarity)}</span>
             {hoggie.found ? <FoundFacts hoggie={hoggie} answer={answer} /> : <StillHidden hoggie={hoggie} answer={answer} />}
+            {hoggie.found && picking !== null && <PetPick hoggie={hoggie} picking={picking} />}
           </div>
         </div>
         <div className="al-entry-steps">
@@ -73,6 +75,25 @@ function FoundFacts({ hoggie, answer }: { hoggie: AlbumHoggie; answer: AlbumHogg
       <dd>{oddsWords(hoggie, answer)}</dd>
     </dl>
   );
+}
+
+function PetPick({ hoggie, picking }: { hoggie: AlbumHoggie; picking: PetPicking }) {
+  if (picking.pet === hoggie.hoggie) return <p className="al-entry-pet">Your pet</p>;
+  const busy = picking.sending !== null;
+  return (
+    <div className="al-entry-pet-pick">
+      <button type="button" className="al-entry-pet-button" aria-disabled={busy || undefined} onClick={busy ? undefined : () => picking.pick(hoggie.hoggie)}>
+        {picking.sending === hoggie.hoggie ? "Making it your pet…" : "Make my pet"}
+      </button>
+      <p role="status" className="al-entry-pet-problem">
+        {picking.problem?.hoggie === hoggie.hoggie ? petProblemWordsOf(picking.problem, hoggie) : ""}
+      </p>
+    </div>
+  );
+}
+
+function petProblemWordsOf({ reason }: PetProblem, hoggie: AlbumHoggie) {
+  return reason === "refused" ? `${hoggie.name} couldn't be made your pet. Reload the page to see where it stands.` : "Couldn't reach HedgeHug. Try again.";
 }
 
 function StillHidden({ hoggie, answer }: { hoggie: AlbumHoggie; answer: AlbumHoggies }) {
