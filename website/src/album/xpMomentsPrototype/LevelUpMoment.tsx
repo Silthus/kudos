@@ -1,7 +1,7 @@
 // PROTOTYPE (Silthus/personal#98), throwaway: the level-up beat after the XP bar fills.
 // Two styles, switchable from the prototype bar (?levelup=takeover|burst|off):
-// "takeover": the level badge drops from the top bar to the centre of the dim canvas with gold rays, a shockwave
-// and gold confetti, then what the level unlocked pops in one by one.
+// "takeover" (accepted): the level badge drops from the top bar to the centre of the dim canvas with gold rays, a shockwave
+// and gold confetti, then what the level unlocked pops in one by one. It stays until the member clicks.
 // "burst": the celebration stays at the XP bar: sparks fly off the level pill and a card drops under it.
 // No spoilers: the level's hoggies are announced as face-down items, never shown.
 import { useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
@@ -24,7 +24,8 @@ type Props = { style: Exclude<LevelUpStyle, "off">; level: number; nextIn: numbe
 
 export function LevelUpMoment({ style, level, nextIn, onDone }: Props) {
   useEffect(() => {
-    const done = window.setTimeout(onDone, style === "takeover" ? 5200 : 4000);
+    if (style === "takeover") return;
+    const done = window.setTimeout(onDone, 4000);
     return () => window.clearTimeout(done);
   }, [style, onDone]);
   const pill = usePill();
