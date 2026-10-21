@@ -12,7 +12,7 @@ import { useTurnFlight, type Flight, type FlightBoxes } from "./useTurnFlight";
 
 export type LandingPhase = "arriving" | "landed" | "done";
 
-export type Landing = { item: string; face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number; phase: LandingPhase; flown: boolean; medalsShown: number };
+export type Landing = { item: string; face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number; phase: LandingPhase; flown: boolean; teamsShown: number; medalsShown: number };
 
 type Shown = "board" | "later" | "landed";
 
@@ -62,20 +62,22 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const land = useCallback(
     (item: string, { face, applied, unlocked, page, teaches }: Turned, flown: boolean) => {
       setTurnedOver((turned) => new Set(turned).add(item));
-      setLanding((last) => ({ item, face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1, phase: flown ? "arriving" : "done", flown, medalsShown: flown ? 0 : unlocked.milestones.length }));
+      setLanding((last) => ({ item, face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length }));
       navigate(hrefOf(placeOf(page)));
     },
     [navigate],
   );
   const phase = useCallback((next: LandingPhase) => setLanding((last) => (last === null ? null : { ...last, phase: next })), []);
   const medalShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, medalsShown: shown(last) })), []);
+  const teamShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, phase: "done", teamsShown: shown(last) })), []);
   const flyIn = useCallback(
     async (item: string, from: HTMLElement, answer: Promise<Turned | null>) => {
       setHeldLevel(level);
       const arrival = {
         land: (turned: Turned) => land(item, turned, true),
         landed: () => phase("landed"),
-        unlocked: () => phase("done"),
+        teamUnlocked: () => teamShown(({ teamsShown }) => teamsShown + 1),
+        toTheTeam: (team: string) => navigate(hrefOf({ kind: "team", team })),
         toTheMilestones: () => navigate(hrefOf({ kind: "milestones" })),
         medalShown: () => medalShown(({ medalsShown }) => medalsShown + 1),
         paid: () => setHeldLevel(null),
@@ -83,11 +85,11 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       };
       const turned = await fly(item, from.getBoundingClientRect(), answer, arrival);
       setHeldLevel(null);
-      if (turned !== null) phase("done");
+      if (turned !== null) teamShown(({ unlocked }) => unlocked.teamStickers.length);
       if (turned !== null) medalShown(({ unlocked }) => unlocked.milestones.length);
       if (turned !== null && remaining.current === 0) setShown("landed");
     },
-    [fly, land, phase, medalShown, navigate, level],
+    [fly, land, phase, teamShown, medalShown, navigate, level],
   );
   const turn = useCallback(
     async (item: string, from: HTMLElement | null) => {

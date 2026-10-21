@@ -105,6 +105,7 @@ export type TurnSteps = {
   landed: () => void;
   squash: () => Promise<void>;
   sealInView: (team: string) => boolean;
+  goToTheTeam: (team: string) => void;
   jumpToTheSeal: (team: string) => void;
   unlockTheTeam: (team: string) => Promise<void>;
   endTheUnlock: () => void;
@@ -188,7 +189,7 @@ function followUpsOf(turned: Turned): FollowUp[] {
 function teamUnlockOf(team: string): FollowUp {
   return async (clock, steps) => {
     await clock.sleep(turnTiming.unlockAfterMs);
-    if (!steps.sealInView(team)) await fadeTo(clock, steps, () => steps.jumpToTheSeal(team));
+    if (!steps.sealInView(team)) await fadeToAnotherPage(clock, steps, () => steps.goToTheTeam(team), () => steps.jumpToTheSeal(team));
     steps.stage("unlock");
     await steps.unlockTheTeam(team);
     await clock.sleep(turnTiming.unlockHoldMs);
@@ -203,7 +204,7 @@ function milestoneBeatsOf(tiers: ReachedTier[]): FollowUp[] {
 function medalBeatOf(tier: ReachedTier): FollowUp {
   return async (clock, steps) => {
     await clock.sleep(turnTiming.medalAfterMs);
-    if (!steps.medalInView(tier)) await fadeToTheMedal(clock, steps, tier);
+    if (!steps.medalInView(tier)) await fadeToAnotherPage(clock, steps, steps.goToTheMilestones, () => steps.jumpToTheMedal(tier));
     steps.stage("medal");
     await steps.popTheMedal(tier);
     await clock.sleep(turnTiming.medalHoldMs);
@@ -211,12 +212,12 @@ function medalBeatOf(tier: ReachedTier): FollowUp {
   };
 }
 
-async function fadeToTheMedal(clock: TurnClock, steps: TurnSteps, tier: ReachedTier) {
+async function fadeToAnotherPage(clock: TurnClock, steps: TurnSteps, goToThePage: () => void, jump: () => void) {
   steps.darken(true);
   await clock.sleep(turnTiming.darkMs);
-  steps.goToTheMilestones();
+  goToThePage();
   await clock.sleep(turnTiming.pageDrawnMs);
-  steps.jumpToTheMedal(tier);
+  jump();
   await clock.sleep(turnTiming.jumpMs);
   steps.darken(false);
   await clock.sleep(turnTiming.lightMs);

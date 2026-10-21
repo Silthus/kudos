@@ -14,7 +14,7 @@ export type Chip = { xp: number; from: Point; to: Point };
 
 export type FlightBoxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null> };
 
-export type Arrival = { land: (turned: Turned) => void; landed: () => void; unlocked: () => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean };
+export type Arrival = { land: (turned: Turned) => void; landed: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean };
 
 type FaceKind = TurnedFaceShown["kind"];
 
@@ -99,10 +99,13 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
       target?.animate?.(slotPopFrames, { duration: turnTiming.popMs, easing: "ease-out" });
     },
     squash: () => motion.squash(),
-    sealInView: (team) => inView(theSealSpot(team)),
+    sealInView: (team) => isInView(theSealSpot(team)),
+    goToTheTeam(team) {
+      if (theSealSpot(team) === null) arrival.toTheTeam(team);
+    },
     jumpToTheSeal: (team) => jumpTo(theSealSpot(team)),
     async unlockTheTeam(team) {
-      arrival.unlocked();
+      arrival.teamUnlocked();
       const seal = document.querySelector<HTMLElement>(`main [data-al-seal="${team}"]`);
       change({ flourish: seal?.getBoundingClientRect() ?? null });
       await clock.animate(seal, sealPopFrames, { duration: turnTiming.sealPopMs, easing: "cubic-bezier(0.3, 0.8, 0.3, 1)" });
