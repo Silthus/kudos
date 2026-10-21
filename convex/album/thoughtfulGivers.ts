@@ -15,8 +15,11 @@ export async function countThoughtfulGiver(ctx: MutationCtx, workspace: string, 
 }
 
 export async function thoughtfulGiversShownTo(ctx: QueryCtx, viewer: NormViewer): Promise<number | null> {
-  if (!(await teasersShownTo(ctx, viewer.member))) return null;
-  const givers = (await countOf(ctx, viewer.workspace, keyOf("week", allowanceDay(Date.now(), viewer.timeZone))))?.givers ?? 0;
+  return (await teasersShownTo(ctx, viewer.member)) ? thoughtfulGiversThisWeek(ctx, viewer) : null;
+}
+
+export async function thoughtfulGiversThisWeek(ctx: QueryCtx, { workspace, timeZone }: Omit<NormViewer, "member">): Promise<number | null> {
+  const givers = (await countOf(ctx, workspace, keyOf("week", allowanceDay(Date.now(), timeZone))))?.givers ?? 0;
   return givers < fewestThoughtfulGiversShown ? null : givers;
 }
 
