@@ -451,6 +451,23 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: retry-classification dismissed: App Home publishing retries as it does for every App Home view
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: the line has one target, the viewing member's App Home
+- the teaser counts what waits and never says what it holds: Where `teasers` and `hidden-items` both apply to the member, App Home's front door reads `N items wait` under the level line (`1 item waits`, `50+ items wait` past fifty) and the Monday hugs recap carries the same line after its count lines and before its closing nudge; it counts the member's face-down items and never names a face, rarity or hoggie; it is hidden while nothing waits; the recap still goes only to members with hugs that week, and no new message is sent for the teaser; with `teasers` off, `hidden-items` off, or `teasers` on for someone else's email only, every Slack call equals the same walk's calls with no `teasers` flag (LP38, LP39, LP41, LP42, LP43).
+  over: members with three, one, fifty-one and no items waiting opening App Home; a week of hugs with waiting items beside a member with nothing waiting and one with items but no hugs; and three off states walked beside the walk with no teasers flag
+  via: LP38 LP39 LP41: the teaser counts what waits on App Home's front door and in the hugs recap
+  because: LP38 pulls a member back to the album from the Slack surfaces they already open, without spoiling what an item holds or sending anything new
+  kinds: output
+  checklist: destination-confinement dismissed: the line is only in the member's own App Home and their own recap DM
+  checklist: message-authenticity dismissed: the count reads the member's stored items, earned from kudos the Slack adapter verified
+  checklist: redaction dismissed: the line is a count of the member's own face-down items, never a face, rarity or name
+  checklist: input-validation dismissed: the line is rendered from stored rows, never from outside input
+  checklist: retry-recognition dismissed: the recap's one-per-week claim and App Home's publishing are unchanged; the teaser adds a line, not a send
+  checklist: duplicate-suppression dismissed: the teaser sends nothing of its own
+  checklist: keyed-ordering dismissed: one line per surface, with no order promised between members
+  checklist: acknowledgment-barrier dismissed: nothing waits on Slack's answer for the line
+  checklist: commit-ordered-effects dismissed: the line is read inside the mutation that starts the recap or publishes App Home
+  checklist: retry-classification dismissed: the recap and App Home retry as they already do
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: the line has the member's two surfaces as targets, App Home's front door and the recap DM
 - a weekly post quotes only public kudos: The Monday post that `album-slack` turns into the week's top thoughtful kudos quotes a kudos message, its words, giver, recipients and link, only while that message's words are stored, are from a public channel, still say why, and its giver and every recipient are members on the leaderboards; a kudos from a private channel, a group DM or a DM, or one deleted since, is never quoted however many hugs it got, and its words appear nowhere in the post (AL61, AL63).
   over: a week of thoughtful kudos in a private channel, a group DM and a DM, each hugged twice, one in a public channel deleted after two hugs, and one public kudos with no hug; and a week where a public kudos is to a member who left the leaderboards, beside one that is not
   via: AL61 AL63: a weekly post quotes only public kudos
