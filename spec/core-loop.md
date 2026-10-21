@@ -1,6 +1,6 @@
 # Spec: the new core loop: items, XP moments and social pull
 
-> **Draft on Silthus/personal#101, not yet accepted.** This file lives on the integration branch `spec/core-loop` and is never merged on its own: each implementation ticket lands its slice on this branch, and the ship ticket takes it to `main`. It is the spec of the core-loop map (Silthus/personal#95).
+> **Accepted on Silthus/personal#101 (2026-10-21): the product owner locked the spec and its two test seams and asked for it to be built and deployed autonomously. Its 17 implementation tickets are Silthus/personal#103 to Silthus/personal#119.** This file lives on the integration branch `spec/core-loop` and is never merged on its own: each implementation ticket lands its slice on this branch, and the ship ticket takes it to `main`. It is the spec of the core-loop map (Silthus/personal#95).
 >
 > **Rule numbers.** Rules are cited as `LP1`–`LP60`. Album rules keep their own numbers (`AL8`, `AL10`), as `convex/album/Album.spec.md` cites them.
 >
