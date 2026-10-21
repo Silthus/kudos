@@ -255,7 +255,7 @@ const everyKindsFirstBand: PackBand = { xp: { least: 5, most: 25, step: 5 }, coi
 
 const thoughtfulBand: PackBand = { xp: { least: 15, most: 15, step: 5 }, coins: { least: 0, most: 0 }, version: 2 };
 
-export const packBands: Record<CrateKind, PackBand | null> = { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand, thoughtful: thoughtfulBand, level: null, welcome: null };
+export const packBands: Record<CrateKind, PackBand | null> = { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand, thoughtful: thoughtfulBand, level: null, welcome: null, team: null, milestone: null };
 
 export function rarityLabel(rarity: Rarity): string {
   return labels[rarity];

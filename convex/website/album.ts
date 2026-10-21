@@ -77,7 +77,7 @@ export type AlbumTrayItem = Exclude<TrayItem, { kind: "sticker" }> | (Extract<Tr
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
-export type BoardReason = { kind: "thanks"; thanked: Thanked } | { kind: "levelUp"; level: number } | { kind: "welcome" };
+export type BoardReason = { kind: "thanks"; thanked: Thanked } | Exclude<ItemReason, { kind: "thanks" }>;
 
 export type BoardItem = Omit<FaceDown, "reason"> & { reason: BoardReason };
 

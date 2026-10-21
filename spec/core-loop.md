@@ -2,9 +2,9 @@
 
 > **Accepted on Silthus/personal#101 (2026-10-21): the product owner locked the spec and its two test seams and asked for it to be built and deployed autonomously. Its 17 implementation tickets are Silthus/personal#103 to Silthus/personal#119.** This file lives on the integration branch `spec/core-loop` and is never merged on its own: each implementation ticket lands its slice on this branch, and the ship ticket takes it to `main`. It is the spec of the core-loop map (Silthus/personal#95).
 >
-> **Rule numbers.** Rules are cited as `LP1`–`LP60`. Album rules keep their own numbers (`AL8`, `AL10`), as `convex/album/Album.spec.md` cites them.
+> **Rule numbers.** Rules are cited as `LP1`–`LP65`. Album rules keep their own numbers (`AL8`, `AL10`), as `convex/album/Album.spec.md` cites them.
 >
-> **Six stopping points**, one flag each. 1 (LP1–LP25) is the item board behind `hidden-items`: the ledger, the board, the turn, the old flow going dark and the spoiler-free Slack reply. 2 (LP26–LP37) is the XP moment behind `xp-moments`, with its level-up takeover. 3 (LP38–LP43) is the Slack teaser and the norm line behind `teasers`. 4 (LP44–LP50) is the welcome item and the welcome nudge behind `welcome-item`. 5 (LP51–LP56) is the share and the Monday post's find behind `item-share`. 6 (LP57–LP60) is the pet hoggie behind `pet-hoggie`. 1 comes first; 2, 3, 4 and 5 build on it; 6 stands alone.
+> **Seven stopping points**, one flag each. 1 (LP1–LP25) is the item board behind `hidden-items`: the ledger, the board, the turn, the old flow going dark and the spoiler-free Slack reply. 2 (LP26–LP37, LP61) is the XP moment behind `xp-moments`, with its level-up takeover and the glow that starts it again. 3 (LP38–LP43) is the Slack teaser and the norm line behind `teasers`. 4 (LP44–LP50) is the welcome item and the welcome nudge behind `welcome-item`. 5 (LP51–LP56) is the share and the Monday post's find behind `item-share`. 6 (LP57–LP60) is the pet hoggie behind `pet-hoggie`. 7 (LP62–LP65), a follow-up from Silthus/personal#130, is the achievement hoggies behind `achievement-hoggies`. 1 comes first; 2, 3, 4, 5 and 7 build on it; 6 stands alone.
 >
 > Sources: the map's decisions (Silthus/personal#95); the resolutions of the game-design research (Silthus/personal#96), the item board prototype (Silthus/personal#97, branch `prototype/item-board`, `ItemBoard.tsx` `play()`), the XP moments prototype (Silthus/personal#98, branch `prototype/xp-moments`, `ACCEPTED.md`), the items architecture (Silthus/personal#99, branch `prototype/items-architecture`, `docs/architecture/items.md` and ADR-0010) and the social-pull grilling (Silthus/personal#100); the code on `main` at `e1d2859a`. Where an input conflicts with the product owner's own call, his call wins: earned emojis are never hidden and unlock with the turn that brings them, and there are no random emojis.
 
@@ -102,6 +102,10 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 57. As a member, I want to change my pet at any time, so that it follows my favourite.
 58. As a colleague, I want to see a member's pet in colour on their person page and beside their sticker on team pages, so that the album feels personal.
 
+**Achievement hoggies (stopping point 7)**
+
+59. As a member who fills a team page or reaches a milestone tier, I want a hoggie I do not own yet, rarer the harder the achievement, so that a hard achievement pays better than an easy one and never pays a duplicate.
+
 ## Implementation Decisions
 
 ### Vocabulary
@@ -123,9 +127,9 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 
   ```ts
   source: "sticker" | "hoggie"
-  key: string // sticker: the pack ID; hoggie: the crate key (thoughtful:<pack>, level:<n>:<slot>, welcome:first)
-  floor?: Rarity // a level-up's third hoggie (rare), the welcome item (rare)
-  reason: { kind: "thanks"; person; message } | { kind: "levelUp"; level } | { kind: "welcome" }
+  key: string // sticker: the pack ID; hoggie: the crate key (thoughtful:<pack>, level:<n>:<slot>, welcome:first, team:<team>, milestone:<milestone>:<tier>)
+  floor?: Rarity // a level-up's third hoggie (rare), the welcome item (rare), a team or tier item (LP62)
+  reason: { kind: "thanks"; person; message } | { kind: "levelUp"; level } | { kind: "welcome" } | { kind: "team"; team; name } | { kind: "milestone"; milestone; tier }
   earnedAt: number
   turnedAt?: number
   // indexes: by_member_turned [member, turnedAt, earnedAt]; by_member_source_key [member, source, key]
@@ -133,7 +137,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 
 - **LP5 Earned once, turned once.** An item is unique per member, source and key: a second earn returns the first row and changes nothing, so redelivered events, retried pages and the backfill can overlap. `turnedAt` is set once and never moves.
 - **LP6 Earned whatever the flag says.** Writers earn items whether or not `hidden-items` is on for the member, as packs are recorded whatever `album` says (ADR-0006, ADR-0009). The old reveals (open and put-in, the level-up drop) mark their items turned, so a member whose flag turns on finds exactly what they have not seen, and a flag turned back off loses nothing.
-- **LP7 Who earns.** The thoughtful pack grant earns the hoggie (`thoughtful:<pack>`) and, where the grant decided the pack holds one, the person's sticker, both with reason `thanks`. A thanks therefore earns one or two items. The level-up hoggie drop earns `level:<n>:<slot>` for its three slots, the third with a rare floor, and drops nothing while `hidden-items` is on. The welcome item is LP44.
+- **LP7 Who earns.** The thoughtful pack grant earns the hoggie (`thoughtful:<pack>`) and, where the grant decided the pack holds one, the person's sticker, both with reason `thanks`. A thanks therefore earns one or two items. The level-up hoggie drop earns `level:<n>:<slot>` for its three slots, the third with a rare floor, and drops nothing while `hidden-items` is on. The welcome item is LP44. The team and tier items are LP62.
 - **LP8 Reads are one range each.** The board reads one index range, oldest first, at most 100 items with a `more` flag. The waiting count reads one range of at most 51 rows and answers "50+" past 50.
 - **LP9 The board names nothing.** A board item carries its ID, when it was earned and its reason (the thanked person's name and face, or the level). Never a face, a person's sticker, a hoggie, a rarity or a source.
 
@@ -149,7 +153,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 
 ### The board on the website
 
-- **LP17 Where it shows.** While `hidden-items` is on, `getAlbum` answers the board and empty packs and tray. The board opens over the live album shell when items wait and the XP moment (if any) has handed over. "Later" closes it, and an "N items wait" pill under the top bar opens it again. The packs button and the tray are hidden.
+- **LP17 Where it shows.** While `hidden-items` is on, `getAlbum` answers the board and empty packs and tray. The board opens over the live album shell when items wait and the XP moment (if any) has handed over. "Later" closes it, and an "N items wait" pill under the top bar opens it again; while `xp-moments` is on, the glow beside the level bar takes the pill's place (LP61). The packs button and the tray are hidden.
 - **LP18 The Page-first sequence at 0.8×.** The prototype's accepted timings, one hoggie, measured: the click at 0 s, the page cross-fades from 0.03 s and shows at 0.36 s, the turn starts at 0.76 s with the rarity bursting partway through, the hold with the caption from 1.7 s, the fade-and-jump to the slot from 2.5 to 2.8 s, the drop from 3.1 s, then a rest, and the board is back at 5.3 s. A plain item takes about 5.8 s from click to board; one that also unlocks a team sticker about 8.8 s. The decision-rich part of `play()` (prototype durations at 1×; the real build divides each by 0.8):
 
   ```ts
@@ -178,7 +182,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 
 ### Last visit and the XP moment
 
-- **LP26 The last visit.** One forward-only instant per member, kept in Website reads. It moves once per visit: at the XP moment's end or skip when one plays, and at arrival when none plays (flag off, or nothing since). It moves to the newest instant the moment read, never to the clock, so entries decided while the moment played wait for the next one, and a stale tab moves nothing. The visit's answer labels from the later of the last visit and the newest item put in, so what a visit turned after its moment ended never says New at the next visit; a stale tab's answer is the last visit as it stands. It exists under `hidden-items` (for the "New" labels) and under `xp-moments`, whichever is on.
+- **LP26 The last visit.** One forward-only instant per member, kept in Website reads. It moves once per visit: at the XP moment's end or skip when one plays, and at arrival when none plays (flag off, or nothing since). A moment the member starts from the glow (LP61) moves it again at its own end or skip. It moves to the newest instant the moment read, never to the clock, so entries decided while the moment played wait for the next one, and a stale tab moves nothing. The visit's answer labels from the later of the last visit and the newest item put in, so what a visit turned after its moment ended never says New at the next visit; a stale tab's answer is the last visit as it stands. It exists under `hidden-items` (for the "New" labels) and under `xp-moments`, whichever is on.
 - **LP27 What it reads.** `getXpMoment` reads Activity through a new lower bound, `activitySince`: one index range per source with the instant above the last visit, at most 50 entries, plus the waiting count. It answers `off`, `none` (no last visit yet, or nothing since) or a moment: the excerpts, the fold, the climb from the standing before the moment's XP to now, and the waiting items. The pack's 15 XP is not in it: that pays at the turn.
 - **LP28 Which excerpts.** Kudos received, hugs on the member's message, kudos the member gave, hugs the member gave and level-ups. Up to five: every level-up crossed, then the newest of the rest, shown oldest first. Everything else folds into one line, "+12 more kudos and hugs · +140 XP", whose XP flies as one chip.
 - **LP29 The canvas.** After a 600 ms settle the page dims under the top bar; the XP bar stays lit while the rest of the top bar fades back. Senders show initials on a colour; only HedgeHug's own messages carry the sitting hedgehog.
@@ -189,6 +193,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 - **LP34 The level-up takeover.** When the climb crosses a level, after the bar fills, gold sparks fly off the level pill and a gold `Level N` disc drops to the centre with a shockwave, one pass of gold rays and gold confetti. "You reached level N!", then the unlocks pop in one by one: "3 new items unlocked" with three face-down backs, and the level's emoji where the level earns one. Then "Level N+1 is X XP away". It stays until the member clicks, and the click flows into the item board, where those three backs land among the waiting items (LP32). The skill point and the level emblem the prototype listed are left out: skill points are retired, and a level emblem is not a thing the album has or needs.
 - **LP35 One moment per visit.** A second tab or device reads the same moment until one of them ends it; ending an older moment moves nothing.
 - **LP36 Analytics.** `endXpMoment` records `xp moment ended` as a usage fact with `skipped`, `excerpts_shown` and `folded`.
+- **LP61 The glow beside the level bar.** While `xp-moments` is on, what the moment would have played and did not (after Later, a dismissal, or a tab left open while kudos came in) glows beside the level bar, and nothing else does: `Collect XP` while `getXpMoment` answers a moment this tab has not played, else LP17's "N items wait", in the pill's place, so one control starts both. A press plays that read's moment as the same flowing sequence (LP28–LP34), then the waiting items; its end moves the last visit as LP26 says, so a stale tab moves nothing and a collected moment never glows again. With nothing waiting there is no glow, and with `xp-moments` off the top bar is as before. On a phone it sits at the end of the level row. Its pulse runs twice and rests on a still glow (VA25); under reduced motion it is still, and a press shows the end state at once (LP33).
 - **LP37 Types from the server.** The website imports every new answer type (board, turn, XP moment) from `convex/website`; it adds no hand copies.
 
 ### Teaser and norm line
@@ -226,9 +231,16 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 - **LP59 Storage.** One row per member naming a hoggie slug they own; a pick of a hoggie the member does not own is refused.
 - **LP60 Flag.** Behind `pet-hoggie`, read for the viewer for the pet's display and for the owner for "Make my pet".
 
+### Achievement hoggies
+
+- **LP62 Who earns.** A filled team page earns its member one hoggie item keyed `team:<team>`, with reason `team` naming the team and its name and a `rare` floor. Each milestone tier reached earns one keyed `milestone:<milestone>:<tier>`, with reason `milestone` and a floor that rises with the tier: bronze `uncommon`, silver `rare`, gold `epic`, diamond `legendary`. The team sticker's unlock and the tier's record earn them in their own mutation, whatever `hidden-items` or `achievement-hoggies` says (LP6), and the key makes a rerun earn nothing twice (LP5). The `team` and `milestone` crate kinds have no pack band, so their turn pays no XP. Team pages and tiers recorded before this ships earn nothing, and `fillItems` earns none for them (LP24). A workspace that installs later records its history's tiers at install, and those tiers earn their items.
+- **LP63 Never a duplicate.** The turn draws a team or tier item from the hoggies at or above its floor that the member does not own at that moment, so a hoggie turned earlier, in the same visit too, counts as owned. The rarity is drawn with the usual weights among the rarities at or above the floor that still hold a hoggie the member does not own. Every other draw keeps its duplicates.
+- **LP64 Owning everything at or above the floor.** When the member owns every hoggie at or above the item's floor, the turn draws as any floored item does: a duplicate at or above the floor. A harder achievement therefore never pays a lower rarity than an easier one, which a new hoggie below the floor would.
+- **LP65 Flag.** Behind `achievement-hoggies`, read for the member, which also needs `hidden-items` on. While either is off, team and tier items wait unseen: the item board, the waiting count and every reply or teaser built on it leave them out, and the turn refuses them, so today's behaviour is unchanged. Nothing about them is drawn while they wait, so nothing is lost when either flag turns back off: they wait until both are on again. The old flow never paid them, so unlike level items they need no old-flow reveal. On the board a team item carries its team's name and a tier item its medal (`Hoarder · Gold`), as a level item carries its level (LP20). A long tag ends in an ellipsis, and the item's label says it in full.
+
 ### Flags
 
-Six sandbox-only flags in project 662840, each created with one condition, `environment = sandbox` at 100%, read without an exposure as `album` is, and widened by the conductor once its proof is green: `hidden-items`, `xp-moments`, `teasers`, `welcome-item`, `item-share` and `pet-hoggie`. A missing flag answers off. A recorder never reads a flag.
+Seven sandbox-only flags in project 662840, each created with one condition, `environment = sandbox` at 100%, read without an exposure as `album` is, and widened by the conductor once its proof is green: `hidden-items`, `xp-moments`, `teasers`, `welcome-item`, `item-share`, `pet-hoggie` and `achievement-hoggies`. A missing flag answers off. A recorder never reads a flag.
 
 ## Testing Decisions
 

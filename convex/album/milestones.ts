@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyMatchesKeptEventValidator, hoggieDroppedEventValidator } from "../bus/events";
 import { collectionOf } from "../hoggies/collection";
+import { earnTierItem } from "../items/achievements";
 import { chatUserOf, membersPageIn, type MemberId } from "../workspace/directory";
 import { milestoneCatalogue, type MilestoneId, type Step } from "./milestoneCatalogue";
 import type { MilestoneTier } from "./records";
@@ -24,7 +25,7 @@ export const recordMilestonesInWorkspace = internalMutation({
   returns: v.null(),
   handler: async (ctx, { workspace, cursor }) => {
     const { members, continueCursor } = await membersPageIn(ctx, workspace, cursor, membersPerMilestonePage);
-    for (const member of members) if (!(await holdsAnySticker(ctx, member))) await recordTiersOf(ctx, member, async () => [], Date.now());
+    for (const member of members) if (!(await holdsAnySticker(ctx, member))) await recordTiersOf(ctx, { workspace, member }, async () => [], Date.now());
     if (continueCursor !== null) await ctx.scheduler.runAfter(0, internal.album.milestones.recordMilestonesInWorkspace, { workspace, cursor: continueCursor });
     else await recordStickerHoldersLater(ctx, workspace);
     return null;
@@ -82,10 +83,11 @@ export async function milestonesOf(ctx: QueryCtx, owner: PageOwner, pages: TeamP
 }
 
 export function recordMilestonesOf(ctx: MutationCtx, owner: PageOwner, at: number): Promise<ReachedTier[]> {
-  return recordTiersOf(ctx, owner.member, () => teamPagesOf(ctx, owner), at);
+  return recordTiersOf(ctx, owner, () => teamPagesOf(ctx, owner), at);
 }
 
-async function recordTiersOf(ctx: MutationCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>, at: number): Promise<ReachedTier[]> {
+async function recordTiersOf(ctx: MutationCtx, owner: PageOwner, pagesOf: () => Promise<TeamPage[]>, at: number): Promise<ReachedTier[]> {
+  const { member } = owner;
   const { counts, hoggieFirstFinds } = await factsOf(ctx, member, pagesOf);
   const earned = await earnedTiersOf(ctx, member);
   const reached: ReachedTier[] = [];
@@ -93,6 +95,7 @@ async function recordTiersOf(ctx: MutationCtx, member: MemberId, pagesOf: () => 
     for (const step of steps.filter(({ at: needed, tier }) => counts[id] >= needed && !earned.has(tierKey(id, tier)))) {
       const reachedAt = id === "hoggies" ? (hoggieFirstFinds[step.at - 1] ?? at) : at;
       await ctx.db.insert("milestoneTiers", { member, milestone: id, tier: step.tier, at: reachedAt, catalogue: milestoneCatalogue.version });
+      await earnTierItem(ctx, owner, { milestone: id, tier: step.tier }, at);
       reached.push({ milestone: id, tier: step.tier });
     }
   }

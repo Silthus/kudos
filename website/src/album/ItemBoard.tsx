@@ -7,7 +7,7 @@ import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
 import { ShareWin, type WinShares } from "./ShareWin";
-import { emblemOf, medalEmojiOf, medalKeyOf, medalWordsOf } from "./milestones";
+import { emblemOf, medalEmojiOf, medalKeyOf, medalSpokenOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
 import type { Flight } from "./useTurnFlight";
@@ -46,7 +46,7 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, touch
                 }}
               >
                 <ItemBack />
-                <LevelTag reason={reason} />
+                <ReasonTag reason={reason} />
               </button>
               {index === 0 && !touched && <span className="ib-pointer" aria-hidden="true" />}
             </li>
@@ -68,7 +68,7 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, touch
 
 type TurnedOverProps = { turns: ShownTurns; album: Album; shares: WinShares };
 
-export function ItemsWait({ turns, album, shares }: TurnedOverProps) {
+export function ItemsWait({ turns, album, shares, pill }: TurnedOverProps & { pill: boolean }) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
   const settled = !open && flight === null;
   const said = landing !== null && settled;
@@ -79,7 +79,7 @@ export function ItemsWait({ turns, album, shares }: TurnedOverProps) {
           {said && <LandedWords landing={landing} />}
         </p>
         {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
-        {offered && board !== null && (
+        {pill && offered && board !== null && (
           <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
             <span className="ib-wait-disc" aria-hidden="true">
               ?
@@ -172,16 +172,26 @@ export function ItemBack() {
   );
 }
 
-function LevelTag({ reason }: { reason: BoardReason }) {
-  if (reason.kind !== "levelUp") return null;
-  return <span className="ib-level">Level {reason.level}</span>;
+function ReasonTag({ reason }: { reason: BoardReason }) {
+  const tag = tagOf(reason);
+  return tag === null ? null : <span className="ib-tag">{tag}</span>;
+}
+
+function tagOf(reason: BoardReason) {
+  if (reason.kind === "levelUp") return `Level ${reason.level}`;
+  if (reason.kind === "team") return reason.name;
+  if (reason.kind === "milestone") return medalWordsOf(reason);
+  return null;
 }
 
 function itemLabelOf(reason: BoardReason) {
-  return reason.kind === "levelUp" ? `A face-down item from level ${reason.level}. Turn it over` : "A face-down item. Turn it over";
+  if (reason.kind === "levelUp") return `A face-down item from level ${reason.level}. Turn it over`;
+  if (reason.kind === "team") return `A face-down item for filling the ${reason.name} page. Turn it over`;
+  if (reason.kind === "milestone") return `A face-down item for ${medalSpokenOf(reason)}. Turn it over`;
+  return "A face-down item. Turn it over";
 }
 
-function itemsWaitWordsOf({ items, more }: Board) {
+export function itemsWaitWordsOf({ items, more }: Board) {
   if (more) return `${items.length}+ items wait`;
   return items.length === 1 ? "1 item waits" : `${items.length} items wait`;
 }

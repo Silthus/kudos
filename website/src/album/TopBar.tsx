@@ -21,9 +21,9 @@ export type TopBarPopups = "tray" | "emojis" | "menu";
 
 type TopBarPopover = Popover<TopBarPopups>;
 
-type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; glow?: ReactNode; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
 
-export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTheLevel = false, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
+export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTheLevel = false, moving, inert, glow, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
   useTrayOpenOnThePacksPage(place, popover);
   return (
     <header className="al-top" inert={inert}>
@@ -31,7 +31,7 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTh
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
       </AppLink>
-      <XpBar level={held.level ?? album.level} moving={moving} pops={popsTheLevel} />
+      <XpBar level={held.level ?? album.level} moving={moving} pops={popsTheLevel} glow={glow} />
       <div className="al-top-end">
         {album.board === null && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />}
         {album.board === null && <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />}
@@ -44,7 +44,7 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTh
   );
 }
 
-function XpBar({ level: settled, moving, pops }: { level: AlbumLevel; moving: boolean; pops: boolean }) {
+function XpBar({ level: settled, moving, pops, glow }: { level: AlbumLevel; moving: boolean; pops: boolean; glow: ReactNode }) {
   const counted = useCountUp(settled.xp);
   const level = moving && !prefersReducedMotion() ? { ...settled, xp: counted } : settled;
   const popped = usePoppedWhenItRises(level.level, pops);
@@ -59,6 +59,7 @@ function XpBar({ level: settled, moving, pops }: { level: AlbumLevel; moving: bo
       <span className="al-xp-words">
         {xpToNextOf(level)} XP to level {level.level + 1}
       </span>
+      {glow}
     </div>
   );
 }
