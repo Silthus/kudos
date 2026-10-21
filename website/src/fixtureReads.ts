@@ -25,6 +25,7 @@ const asAnAdmin = "album-as-an-admin";
 const withTheEmojiWizard = "album-emoji-wizard";
 
 const withItems = "album-with-items";
+const asANewcomer = "album-newcomer";
 
 const fixturePeople = fixedPeople(albumFixtures.midway);
 const fixtureWeek = fixtureWeeks();
@@ -41,7 +42,7 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
     useSlackEmojiMatches: fixtureSlackEmojiMatches,
     useAppEmojis: fixture === withTheEmojiWizard ? fixtureAppEmojis : (asking) => (asking ? { kind: "off" } : undefined),
-    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixtureAlbum,
+    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === asANewcomer ? fixedAlbum(albumFixtures.newcomer) : fixtureAlbum,
     useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
