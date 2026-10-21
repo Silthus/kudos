@@ -18,6 +18,7 @@ import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { mondayPostSwitchShownTo, type MondayPostSwitch } from "../leaderboard/mondayPost";
+import { welcomeNudgeSwitchOf } from "./welcomeNudge";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -67,7 +68,7 @@ export type ShownTab =
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
   | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string; refused: ItemRefusal | null }
   | { tab: "settings"; onTheBoards: boolean | null; progress: NotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean; groups: GroupChoice | null }
-  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null; customKudosEmoji: CustomKudosEmojiPicker | null };
+  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null; welcomeNudge: boolean | null; customKudosEmoji: CustomKudosEmojiPicker | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
@@ -241,6 +242,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
         groupMode: await groupModeShownTo(ctx, viewer.workspace, viewer),
         mondayPost: await mondayPostSwitchShownTo(ctx, viewer.workspace, viewer),
+        welcomeNudge: await welcomeNudgeSwitchOf(ctx, viewer),
         customKudosEmoji: await customKudosEmojiPickerFor(ctx, viewer.workspace, viewer),
       };
   }

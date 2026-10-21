@@ -70,7 +70,7 @@ export default defineSchema({
     familyName: v.optional(v.string()),
     image: v.optional(v.string()),
     chatIdentity: v.optional(v.object({ workspace: v.string(), user: v.string() })),
-  }),
+  }).index("by_chat_identity", ["chatIdentity.workspace", "chatIdentity.user"]),
 
   memberVerifications: defineTable({
     workspace: v.string(),
@@ -141,6 +141,7 @@ export default defineSchema({
     hugBudget: v.optional(v.number()),
     url: v.optional(v.string()),
     urlRequestedAt: v.optional(v.number()),
+    welcomeNudge: v.optional(v.boolean()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({
@@ -380,6 +381,8 @@ export default defineSchema({
     member: v.id("members"),
     welcomed: v.optional(welcomedAsValidator),
   }).index("by_member", ["member"]),
+
+  welcomeNudges: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
 
   indicators: defineTable({
     workspace: v.string(),
