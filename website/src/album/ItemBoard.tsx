@@ -78,7 +78,7 @@ export function ItemsWait({ turns, album, shareItem }: ItemsWaitProps) {
       <p role="status" aria-label="Turned over" className="ib-turned">
         {said && <LandedWords landing={landing} />}
       </p>
-      {said && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
+      {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
       {said && landing.teaches && <LoopLine lesson={landing.teaches} />}
       {said && <ShareWin key={landing.item} item={landing.item} offered={album.shares} shareItem={shareItem} />}
       {offered && board !== null && (

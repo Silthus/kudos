@@ -182,6 +182,18 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(screen.getByRole("dialog", { name: "Your items" })).toBeInTheDocument();
   });
 
+  it("keeps the reduced-motion line off the strip once the beat has played", async () => {
+    visit(familiarFaces);
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(9.85);
+    expect(stage()).toBe("idle");
+    await act(async () => fireEvent.click(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("button", { name: "Later" })));
+
+    expect(screen.getByRole("status", { name: "Turned over" }), "the strip after Later").not.toBeEmptyDOMElement();
+    expect(screen.queryByRole("note", { name: "Medals unlocked" }), "the line for a beat that played").toBeNull();
+  });
+
   it("plays each tier the turn reached as its own beat, one after the other", async () => {
     const fiveTeams: ReachedTier = { milestone: "teams", tier: "silver" };
     visit(familiarFaces, fiveTeams);
