@@ -21,6 +21,8 @@ const tinOrchard = { team: "tin-orchard", name: "Tin Orchard", art: { kind: "cre
 
 const itemBoardCss = readFileSync(join(__dirname, "itemBoard.css"), "utf8");
 
+const hoggiesCss = readFileSync(join(__dirname, "hoggies.css"), "utf8");
+
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
@@ -76,9 +78,29 @@ function theDanceFound(): AlbumHoggies {
   return { ...midway, hoggies: midway.hoggies.map((hoggie) => (hoggie.hoggie === "70s-dance" ? dance : { ...hoggie, firstAt: hoggie.firstAt === null ? null : Math.min(hoggie.firstAt, Date.parse("2026-10-01T09:00:00Z")) })), found: before.found ? midway.found : midway.found + 1, rarest: [dance, ...midway.rarest.filter(({ hoggie }) => hoggie !== "70s-dance")].slice(0, 5) };
 }
 
-type Visit = { album?: Album; reply?: (item: string) => Promise<TurnReply>; after?: (album: Album, item: string) => Album; hoggies?: AlbumHoggies };
+function hoggiesThatAnswerLater(answer: AlbumHoggies) {
+  let answered = false;
+  const listeners = new Set<() => void>();
+  const read: HoggiesRead = (asking) => {
+    const shown = useSyncExternalStore(
+      (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      () => answered,
+    );
+    return asking && shown ? answer : undefined;
+  };
+  const answers = () => {
+    answered = true;
+    listeners.forEach((listener) => listener());
+  };
+  return { read, answers };
+}
 
-function visit({ album = withItems, reply = async (item) => fixtureTurnOf(item), after = withTheHoggieTurned, hoggies = theDanceFound() }: Visit = {}) {
+type Visit = { album?: Album; reply?: (item: string) => Promise<TurnReply>; after?: (album: Album, item: string) => Album; hoggies?: AlbumHoggies; hoggiesRead?: HoggiesRead };
+
+function visit({ album = withItems, reply = async (item) => fixtureTurnOf(item), after = withTheHoggieTurned, hoggies = theDanceFound(), hoggiesRead = (asking) => (asking ? hoggies : undefined) }: Visit = {}) {
   window.history.replaceState(null, "", "/book#me");
   const live = anAlbumThatAnswers(album);
   const turnItem = vi.fn(async (item: string) => {
@@ -86,7 +108,6 @@ function visit({ album = withItems, reply = async (item) => fixtureTurnOf(item),
     if (answer.kind === "turned") live.answerNext(after(live.now(), item));
     return answer;
   });
-  const hoggiesRead: HoggiesRead = (asking) => (asking ? hoggies : undefined);
   const view = renderAlbum(shellFixtures.member, live.read, { hoggies: hoggiesRead, people: fixedPeople(withItems), commands: { turnItem } });
   return { ...view, turnItem, live };
 }
@@ -204,7 +225,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(turnItem).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the hoggie off the page until it lands: the top of Hoggies names no new find and its plate waits empty", async () => {
+  it("keeps the hoggie off the page until it lands: the top of Hoggies names no new find and its plate waits empty and unmarked", async () => {
     visit();
     await clickOnFakeTime(await theFirstItem());
 
@@ -212,10 +233,13 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     const main = within(screen.getByRole("main"));
     expect(main.queryByText("70's Dance")).toBeNull();
     expect(thePlate()).toHaveTextContent("Not found yet");
+    expect(thePlate()).toHaveAttribute("data-arriving");
+    expect(hoggiesCss).toMatch(/\.al-hoggies-plate\[data-landed\]:not\(\[data-arriving\]\) \{\s*outline:/);
 
     await at(4.1);
     expect(thePlate()).toHaveTextContent("70's Dance");
     expect(thePlate()).toHaveAttribute("data-landed");
+    expect(thePlate()).not.toHaveAttribute("data-arriving");
   });
 
   it("flies the +15 XP chip to the bar during the hold, and the bar moves only once it lands", async () => {
@@ -362,6 +386,46 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(window.location.hash).toBe("#hoggies");
     expect(thePlate()).toHaveAttribute("data-landed");
     expect(turnItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds the turned item while its page still loads, then fades to the slot and drops into it once the page shows", async () => {
+    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
+    const page = hoggiesThatAnswerLater(theDanceFound());
+    visit({ hoggiesRead: page.read });
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(3.4);
+    expect(window.location.hash).toBe("#hoggies");
+    expect(stage()).toBe("hold");
+    expect(dark()).toBe(false);
+    expect(thePlate()).toBeNull();
+
+    await act(async () => page.answers());
+    await at(4.0);
+    expect(scrolled.mock.contexts).toContain(thePlate());
+    await at(4.4);
+    expect(stage()).toBe("land");
+    await at(7.0);
+    expect(stage()).toBe("idle");
+    expect(thePlate()).toHaveAttribute("data-landed");
+  });
+
+  it("lands the item without the flight when its page has not shown within two seconds of the hold, and brings the slot into view once it does", async () => {
+    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
+    const page = hoggiesThatAnswerLater(theDanceFound());
+    visit({ hoggiesRead: page.read });
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(4.8);
+    expect(ground()).toBeNull();
+    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("70's Dance: Rare hoggie · New");
+    expect(screen.getByRole("button", { name: "2 items wait" })).toBeVisible();
+
+    await act(async () => page.answers());
+    await at(5.0);
+    expect(thePlate()).toHaveAttribute("data-landed");
+    expect(thePlate()).not.toHaveAttribute("data-arriving");
+    expect(scrolled.mock.contexts).toContain(thePlate());
   });
 
   it("leaves no timer behind when the album goes mid-flight", async () => {

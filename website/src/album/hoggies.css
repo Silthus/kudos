@@ -695,7 +695,7 @@ button.al-hoggies-note .al-hoggie-art {
   }
 }
 
-.al-hoggies-plate[data-landed] {
+.al-hoggies-plate[data-landed]:not([data-arriving]) {
   outline: 3px solid var(--al-accent);
   outline-offset: 3px;
 }

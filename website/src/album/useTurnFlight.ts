@@ -14,7 +14,7 @@ export type Chip = { xp: number; from: Point; to: Point };
 
 export type FlightBoxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null> };
 
-export type Arrival = { land: (turned: Turned) => void; landed: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean };
+export type Arrival = { land: (turned: Turned) => void; landed: () => void; landedWithoutTheFlight: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean };
 
 type FaceKind = TurnedFaceShown["kind"];
 
@@ -88,6 +88,7 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
     burst: () => change({ burst: true }),
     caption: () => change({ caption: true }),
     payTheXp: (xp) => payTheXp(clock, change, arrival, start, xp),
+    slotDrawn: () => theSlot() !== null,
     slotInView: () => inView(theSlot()),
     jumpToTheSlot: () => jumpTo(theSlot()),
     aboveTheSlot: () => motion.aboveTheSlot(),
@@ -98,6 +99,7 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
       change({ burst: false, caption: false, rings: target?.getBoundingClientRect() ?? null });
       target?.animate?.(slotPopFrames, { duration: turnTiming.popMs, easing: "ease-out" });
     },
+    landWithoutTheFlight: arrival.landedWithoutTheFlight,
     squash: () => motion.squash(),
     sealInView: (team) => isInView(theSealSpot(team)),
     goToTheTeam(team) {

@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MemberId } from "../../../convex/workspace/directory";
 import { shellFixtures, type Face } from "../shell";
 import { drawnPicturesIn } from "../test/pictures";
 import { renderAlbum } from "../test/renderApp";
@@ -539,8 +540,8 @@ describe("AL46: the person page", () => {
 });
 
 describe("LP58: a member's pet shows in colour beside their sticker on team pages and on their person page", () => {
-  const rocket: AlbumPet = { person: "juno-park", hoggie: "rocket", name: "Rocket", rarity: "legendary" };
-  const banana: AlbumPet = { person: "ines-okafor", hoggie: "banana", name: "Banana", rarity: "common" };
+  const rocket: AlbumPet = { person: "juno-park" as MemberId, hoggie: "rocket", name: "Rocket", rarity: "legendary" };
+  const banana: AlbumPet = { person: "ines-okafor" as MemberId, hoggie: "banana", name: "Banana", rarity: "common" };
   const withPets = (...pets: AlbumPet[]): Album => ({ ...midway, pets });
 
   function petOf(name: string) {

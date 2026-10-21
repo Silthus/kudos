@@ -1,8 +1,9 @@
 import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { Drop } from "../../../convex/hoggies/drops";
+import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
-import type { ItemBoard } from "../../../convex/website/album";
+import type { ItemBoard, PetAnswer } from "../../../convex/website/album";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
 import type { AppliedReward } from "../../../convex/progression/rewards";
@@ -36,7 +37,7 @@ export type MilestoneTierId = "bronze" | "silver" | "gold" | "diamond";
 
 export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: MilestoneTierId; at: number; name: string; earnedAt: number | null; unlockedAt?: number }[] };
 
-export type AlbumPet = { person: string; hoggie: string; name: string; rarity: Rarity };
+export type { AlbumPet };
 
 export type GettingStarted = { hugged: boolean; thoughtful: boolean; opened: boolean; completed: boolean };
 
@@ -175,7 +176,7 @@ export type { AlbumHoggie, AlbumRarity };
 
 export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null };
 
-export type PetAnswer = { kind: "picked"; pet: string } | { kind: "refused" };
+export type { PetAnswer };
 
 export type PetReply = PetAnswer | Denial;
 
