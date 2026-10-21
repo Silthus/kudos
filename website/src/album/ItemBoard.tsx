@@ -73,21 +73,27 @@ export function ItemsWait({ turns, album, shares }: TurnedOverProps) {
   const settled = !open && flight === null;
   const said = landing !== null && settled;
   return (
-    <div className="ib-strip">
-      <p role="status" aria-label="Turned over" className="ib-turned">
-        {said && <LandedWords landing={landing} />}
-      </p>
-      {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
-      {settled && <AfterTheLanding turns={turns} album={album} shares={shares} />}
-      {offered && board !== null && (
-        <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
-          <span className="ib-wait-disc" aria-hidden="true">
-            ?
-          </span>
-          {itemsWaitWordsOf(board)}
-        </button>
+    <>
+      <div className="ib-strip">
+        <p role="status" aria-label="Turned over" className="ib-turned">
+          {said && <LandedWords landing={landing} />}
+        </p>
+        {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
+        {offered && board !== null && (
+          <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
+            <span className="ib-wait-disc" aria-hidden="true">
+              ?
+            </span>
+            {itemsWaitWordsOf(board)}
+          </button>
+        )}
+      </div>
+      {settled && (
+        <div className="ib-after">
+          <AfterTheLanding turns={turns} album={album} shares={shares} />
+        </div>
       )}
-    </div>
+    </>
   );
 }
 
