@@ -9,7 +9,7 @@ import { republishOnRoleChange } from "../feedback/homes";
 import { directoryRecordArgs, lookup, record, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import type { MemberProfile } from "../workspace/memberProfile";
 import { convexActionTimeLimitMs, strandedPerSweep } from "./strandedJobs";
-import { readSlack, slackErrorCodeOf } from "./webApi";
+import { nextRateLimitedAttempt, readSlack, retryDelayOf as rateLimitDelayOf, slackErrorCodeOf } from "./webApi";
 
 type SlackUser = {
   id: string;
@@ -147,6 +147,37 @@ export const fillMemberProfiles = observedAction({
     await ctx.runMutation(internal.analytics.person.catchUp, {});
   },
 });
+
+export const listSlackMembers = observedAction({
+  args: { cursor: v.optional(v.string()), attempt: v.optional(v.number()) },
+  handler: async (ctx, { cursor = "", attempt = 1 }) => {
+    const workspace = await workspaceOfToken();
+    do {
+      const asOf = Date.now();
+      const page = await readSlack<UsersPage>("users.list", { limit: "200", ...(cursor && { cursor }) });
+      if (!page.ok && page.error === "ratelimited") {
+        await ctx.scheduler.runAfter(rateLimitDelayOf(page), internal.slack.directory.listSlackMembers, { cursor, attempt: nextRateLimitedAttempt(attempt, "users.list") });
+        return;
+      }
+      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${slackErrorCodeOf(page.error)}`);
+      await ctx.runMutation(internal.workspace.listedMembers.keepListedMembers, { listings: page.members.flatMap((user) => listingOf(user, workspace, asOf)) });
+      cursor = page.response_metadata?.next_cursor ?? "";
+    } while (cursor !== "");
+  },
+});
+
+export async function workspaceOfToken() {
+  const identity = await readSlack<{ team_id?: unknown }>("auth.test", {});
+  if (!identity.ok) throw new ReportableError(`Slack auth.test failed: ${slackErrorCodeOf(identity.error)}`);
+  const workspace = textOf(identity.team_id);
+  if (workspace === undefined) throw new ReportableError("Slack auth.test answered without a team");
+  return workspace;
+}
+
+function listingOf(user: SlackUser, workspace: string, asOf: number): DirectoryRecord[] {
+  const id = textOf(user.id);
+  return id === undefined ? [] : [directoryRecordOf(workspace, id, user, asOf)];
+}
 
 function memberProfileOf(user: SlackUser, asOf: number) {
   const listed = listedMemberOf(user);
