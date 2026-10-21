@@ -12,6 +12,7 @@ import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } 
 import { ComingSoonToSlack, FindInSlackWhileOn, MapInPlace, useMapsInPlace, useSlackWay } from "./findInSlack";
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
+import { ShareLink } from "./ShareLink";
 import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { dateOf, firstNameOf, howToCollectWords, personIn } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
@@ -94,6 +95,7 @@ function PersonPage({ album, person, picker }: { album: Album; person: Person; p
               </SlackLink>
             </div>
           )}
+          <ShareLink album={album} page={{ kind: "person", person: person.person }} cardOf={`${first}'s`} />
           <HypeEmoji person={person} first={first} picker={picker} emojiPage={album.emojiPage} />
           {!person.held && (
             <div className="al-howto">

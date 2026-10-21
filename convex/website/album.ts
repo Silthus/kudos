@@ -34,6 +34,7 @@ import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, typ
 import { followTheClock } from "./clock";
 import { lastVisitOf } from "./lastVisit";
 import { appliedShownTo } from "./commands";
+import { linkPreviewsShownTo } from "./linkPreviews";
 import { companyTeammateOf, nameless, storedFaceOf, type Face } from "./faces";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
@@ -60,6 +61,7 @@ export type AlbumAnswer = {
   board?: ItemBoard;
   pets?: Pet[];
   lastVisit?: number | null;
+  linkPreviews?: true;
 } & ShareOffers;
 
 export const mostPeopleShown = 500;
@@ -142,8 +144,12 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)), ...(await linkPreviewsOn(ctx, me)) };
 });
+
+async function linkPreviewsOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "linkPreviews">> {
+  return (await linkPreviewsShownTo(ctx, me.member)) ? { linkPreviews: true } : {};
+}
 
 async function milestonesShownTo(ctx: QueryCtx, me: VerifiedMember, pages: TeamPage[], { itemsShown }: { itemsShown: boolean }): Promise<MilestoneAnswer[]> {
   const milestones = await milestonesOf(ctx, me, pages);

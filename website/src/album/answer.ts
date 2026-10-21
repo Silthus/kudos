@@ -62,6 +62,7 @@ export type Album = {
   board: ItemBoard | null;
   pets?: AlbumPet[];
   lastVisit?: number | null;
+  linkPreviews?: true;
 } & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;

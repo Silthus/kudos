@@ -230,6 +230,7 @@ export class FakeSlack {
     if (method === "conversations.replies") return this.replies(args);
     if (method === "conversations.join") return this.join(field("channel"));
     if (method === "conversations.list") return this.listChannels(args);
+    if (method === "chat.unfurl") return unfurlAnswerTo(args);
     if (method === "auth.test") return { ok: true, url: this.workspaceUrl, team: "Kudos Test", team_id: "T1", user: "kudos", user_id: "U_KUDOS_BOT", bot_id: "B_KUDOS" };
     return { ok: false, error: "unknown_method" };
   }
@@ -318,6 +319,13 @@ function isWithin(ts: string, { oldest, latest, inclusive }: SlackArgs) {
 function order(ts: string) {
   const [seconds = "0", fraction = ""] = ts.split(".");
   return Number(seconds) * 1_000_000 + Number(fraction.padEnd(6, "0").slice(0, 6));
+}
+
+function unfurlAnswerTo({ channel, ts, unfurl_id, source, unfurls }: SlackArgs) {
+  const addressed = (channel !== undefined && ts !== undefined) !== (unfurl_id !== undefined && source !== undefined);
+  const cards = typeof unfurls === "object" && unfurls !== null ? Object.values(unfurls) : [];
+  const shaped = cards.length > 0 && cards.every((card) => Array.isArray((card as { blocks?: unknown }).blocks));
+  return addressed && shaped ? { ok: true } : { ok: false, error: "invalid_arguments" };
 }
 
 export function isWelcome(args: SlackArgs) {
