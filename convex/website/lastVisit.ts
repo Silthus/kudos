@@ -34,10 +34,19 @@ export const arrive = memberMutation({
   args: { from: v.union(v.number(), v.null()) },
   handler: async (ctx, me, _person, { from }): Promise<ArrivalAnswer> => {
     if (!(await lastVisitKeptFor(ctx, me.member))) return { kind: "refused" };
-    if ((await lastVisitOf(ctx, me.member)) === from && !(await activityAwaitsTheMoment(ctx, me.member, from))) await moveToTheNewestOf(ctx, me.member);
-    return { kind: "arrived", lastVisit: await lastVisitOf(ctx, me.member) };
+    if ((await lastVisitOf(ctx, me.member)) !== from) return arrivedAt(await lastVisitOf(ctx, me.member));
+    if (!(await activityAwaitsTheMoment(ctx, me.member, from))) await moveToTheNewestOf(ctx, me.member);
+    return arrivedPastWhatWasPutIn(ctx, me.member);
   },
 });
+
+export function arrivedAt(lastVisit: number | null): ArrivalAnswer {
+  return { kind: "arrived", lastVisit };
+}
+
+export async function arrivedPastWhatWasPutIn(ctx: QueryCtx, member: MemberId): Promise<ArrivalAnswer> {
+  return arrivedAt(newestOf([await lastVisitOf(ctx, member), await newestPutInBy(ctx, member)]));
+}
 
 async function activityAwaitsTheMoment(ctx: QueryCtx, member: MemberId, lastVisit: number | null): Promise<boolean> {
   return lastVisit !== null && (await xpMomentsShownTo(ctx, member)) && (await newestDecidedSince(ctx, member, { above: lastVisit })) !== null;
@@ -49,15 +58,21 @@ async function moveToTheNewestOf(ctx: MutationCtx, member: MemberId) {
 }
 
 async function newestPutInOrReceivedBy(ctx: QueryCtx, member: MemberId): Promise<number | null> {
-  const instants = [
+  return newestOf([await newestPutInBy(ctx, member), await newestDecidedReceivedBy(ctx, member), await newestDecidedForTheMoment(ctx, member)]);
+}
+
+async function newestPutInBy(ctx: QueryCtx, member: MemberId): Promise<number | null> {
+  return newestOf([
     await newestTurnOf(ctx, member),
     ...(await albumStickersOf(ctx, member, mostStickersRead)).stickers.map(({ at }) => at),
     ...[...(await teamStickersOf(ctx, member)).values()].map(({ at }) => at),
     ...[...(await talliesOf(ctx, member)).values()].map(({ firstAt }) => firstAt),
-    await newestDecidedReceivedBy(ctx, member),
-    await newestDecidedForTheMoment(ctx, member),
-  ].filter((at) => at !== null);
-  return instants.length === 0 ? null : Math.max(...instants);
+  ]);
+}
+
+function newestOf(instants: (number | null)[]): number | null {
+  const known = instants.filter((at) => at !== null);
+  return known.length === 0 ? null : Math.max(...known);
 }
 
 async function newestDecidedForTheMoment(ctx: QueryCtx, member: MemberId): Promise<number | null> {

@@ -6,8 +6,10 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import type { Infer } from "convex/values";
 import { api, internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { kudosGivenEventValidator } from "../bus/events";
 import schema from "../schema";
+import type { MemberId } from "../workspace/directory";
 import type { AlbumAnswer, AlbumRead } from "./album";
 import type { ArrivalAnswer } from "./lastVisit";
 import type { Denial } from "./memberQuery";
@@ -286,6 +288,42 @@ describe("LP26 LP35: endXpMoment moves the last visit to the newest instant the 
   });
 });
 
+describe("LP22 LP26: an item the member turned is never New at a later visit", { timeout: 60_000 }, () => {
+  test("ending a moment that read only what was decided while the visit before played answers a last visit at the sticker that visit turned, while the stored last visit stays where the moment read", async () => {
+    await thanks(alice, carol);
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+    const before = await theMomentOf(asAlice);
+    const whilePlaying = await thanks(bob, alice);
+    await endOf(asAlice, before);
+    await laterTurnTheSticker(asAlice, carol);
+    later();
+
+    const moment = await theMomentOf(asAlice);
+    const ended = await endOf(asAlice, moment);
+
+    expect(moment.excerpts.map(({ entry }) => entry.at), "what was decided while the visit before played").toEqual([whilePlaying.at]);
+    expect(ended).toEqual({ kind: "arrived", lastVisit: await stickerPutInAt(asAlice, carol) });
+    expect((await albumOf(asAlice)).lastVisit).toBe(moment.until);
+  });
+
+  test("an arrival held short by a kudos whose XP waits answers a last visit at the sticker the visit before turned, and the kudos still plays once its XP records", async () => {
+    await thanks(alice, carol);
+    await thanks(bob, alice);
+    const asAlice = await aReturningMember(alice);
+    await laterTurnTheSticker(asAlice, carol);
+    const waiting = await thanksWhileItsXpWaits(bob, alice);
+    const read = await momentOf(asAlice);
+    expect(read).toMatchObject({ kind: "none" });
+
+    const arrived = await arrive(asAlice, (read as { lastVisit: number }).lastVisit);
+
+    expect(arrived).toEqual({ kind: "arrived", lastVisit: await stickerPutInAt(asAlice, carol) });
+    await waiting.record();
+    expect((await theMomentOf(asAlice)).excerpts.map(({ entry }) => entry.at), "the next read").toEqual([waiting.at]);
+  });
+});
+
 describe("website reads pass one guard", { timeout: 60_000 }, () => {
   test("WS61: getXpMoment answers closed with the website off, and signed-out without a session", async () => {
     const asAlice = await signedIn(alice);
@@ -420,6 +458,40 @@ async function albumOf(reader: Reader): Promise<AlbumAnswer> {
   const album: AlbumRead | { kind: string } = await reader.query(api.website.album.getAlbum, {});
   if (album.kind !== "album") throw new Error(`expected an album, got ${JSON.stringify(album)}`);
   return album as AlbumAnswer;
+}
+
+async function laterTurnTheSticker(reader: Reader, of: Person) {
+  later();
+  const turned = await reader.mutation(api.website.album.turnItem, { item: await stickerItemOf(alice, of) });
+  if (turned.kind !== "turned") throw new Error(`expected the sticker turned, got ${JSON.stringify(turned)}`);
+}
+
+async function stickerPutInAt(reader: Reader, of: Person) {
+  const { people } = await albumOf(reader);
+  return people.find(({ name }) => name === of.name)!.at;
+}
+
+async function stickerItemOf(giver: Person, thanked: Person): Promise<Id<"items">> {
+  const [member, person] = [await memberOf(giver), await memberOf(thanked)];
+  const items: Doc<"items">[] = await t.run((ctx) =>
+    ctx.db
+      .query("items")
+      .withIndex("by_member_turned", (q) => q.eq("member", member))
+      .collect(),
+  );
+  const item = items.find((row) => row.source === "sticker" && row.reason.kind === "thanks" && row.reason.person === person);
+  if (item === undefined) throw new Error(`no sticker item for thanking ${thanked.name}`);
+  return item._id;
+}
+
+async function memberOf(someone: Person): Promise<MemberId> {
+  const row = await t.run((ctx) =>
+    ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", someone.user))
+      .unique(),
+  );
+  return row!._id;
 }
 
 async function signedIn(someone: Person) {
