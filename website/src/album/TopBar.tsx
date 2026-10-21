@@ -1,5 +1,5 @@
 import { IconCrown, IconEmoji, IconGear, IconPulse, IconStack } from "@posthog/icons";
-import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode, type RefObject } from "react";
 import { AppLink } from "../AppLink";
 import { useCapturing } from "../browserAnalytics/capturing";
 import { useCountUp } from "../countUp";
@@ -25,6 +25,7 @@ type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarP
 
 export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTheLevel = false, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
   useTrayOpenOnThePacksPage(place, popover);
+  const trayItems = held.tray ?? album.tray.length;
   return (
     <header className="al-top" inert={inert}>
       <AppLink href={hrefOf(home)} className="al-brand" data-slot="home">
@@ -33,8 +34,8 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTh
       </AppLink>
       <XpBar level={held.level ?? album.level} moving={moving} pops={popsTheLevel} />
       <div className="al-top-end">
-        {album.board === null && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />}
-        {album.board === null && <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />}
+        {album.board === null && (album.packs.length > 0 || moving) && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} focusAfter={emojiButton} />}
+        {album.board === null && (trayItems > 0 || moving || tray.busy) && <TrayButton album={album} items={trayItems} popover={popover} button={trayButton} tray={tray} focusAfter={emojiButton} />}
         {wide && <PageLinks place={place} />}
         <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} />
         <FeedbackButton />
@@ -88,9 +89,23 @@ function useTrayOpenOnThePacksPage(place: Place, popover: TopBarPopover) {
   }, [onThePacksPage, show]);
 }
 
-type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; waitsForPuttingIn: boolean; onOpen: () => void };
+function useFocusPassedOnWhenItLeaves(button: RefObject<HTMLElement | null>, next: RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const leaving = button.current;
+    return () => {
+      if (leaving !== null && leaving === document.activeElement) queueMicrotask(() => focusUnlessTaken(next.current));
+    };
+  }, [button, next]);
+}
 
-function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen }: PacksButtonProps) {
+function focusUnlessTaken(next: HTMLElement | null) {
+  if (document.activeElement === null || document.activeElement === document.body) next?.focus();
+}
+
+type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; waitsForPuttingIn: boolean; onOpen: () => void; focusAfter: RefObject<HTMLElement | null> };
+
+function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen, focusAfter }: PacksButtonProps) {
+  useFocusPassedOnWhenItLeaves(button, focusAfter);
   const count = more ? `${waiting}+` : `${waiting}`;
   return (
     <button type="button" ref={button} onClick={waitsForPuttingIn ? undefined : onOpen} aria-disabled={waitsForPuttingIn || undefined} aria-haspopup="dialog" className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} data-labelled={current ? "" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
@@ -109,9 +124,10 @@ function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen
   );
 }
 
-type TrayButtonProps = { album: Album; items: number; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+type TrayButtonProps = { album: Album; items: number; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; tray: TrayActions; focusAfter: RefObject<HTMLElement | null> };
 
-function TrayButton({ album, items, popover, button, tray }: TrayButtonProps) {
+function TrayButton({ album, items, popover, button, tray, focusAfter }: TrayButtonProps) {
+  useFocusPassedOnWhenItLeaves(button, focusAfter);
   const putting = (send: () => void) => {
     popover.close();
     button.current?.focus();

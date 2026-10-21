@@ -91,10 +91,10 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
     it(`the open tray, emoji panel, phone menu and drawer pass axe in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       aWideScreenThatNarrows().narrow();
-      const { user, container } = visit("/");
+      const { user, container } = visit("/", albumFixtures.trayed);
       const [bar] = await screen.findAllByRole("banner");
 
-      for (const name of ["Tray, nothing to put in", "Your emojis, 9 earned", "Menu"]) {
+      for (const name of ["Tray, 4 to put in", "Your emojis, 9 earned", "Menu"]) {
         await user.click(within(bar!).getByRole("button", { name }));
         expect(await violationsIn(container)).toEqual([]);
       }
@@ -142,14 +142,6 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
       }, 60_000);
     }
 
-    it(`with no pack waiting, the opening passes axe in ${dark ? "dark" : "light"}`, async () => {
-      fakeSystemTheme(dark);
-      preferWideScreen();
-      const { user, container } = visit("/", albumFixtures.newcomer);
-      await user.click(await screen.findByRole("button", { name: "No packs waiting" }));
-
-      expect(await violationsIn(container)).toEqual([]);
-    }, 30_000);
     for (const reduced of [false, true]) {
       it(`the unlock moment passes axe in ${dark ? "dark" : "light"}${reduced ? " with reduced motion" : ""}, and a ready page's unlock is reached by keyboard`, async () => {
         fakeSystemTheme(dark);
@@ -182,7 +174,7 @@ describe("AL55: the album is usable by keyboard alone", { timeout: 30_000 }, () 
   it("Tab walks the top bar in reading order, then the sidebar, then the page", async () => {
     fakeSystemTheme(false);
     preferWideScreen();
-    const { user } = visit("/");
+    const { user } = visit("/", albumFixtures.trayed);
     await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
 
     const reached: string[] = [];
@@ -192,14 +184,14 @@ describe("AL55: the album is usable by keyboard alone", { timeout: 30_000 }, () 
       reached.push(focused.getAttribute("aria-label") ?? focused.textContent ?? "");
     }
 
-    expect(reached).toEqual(["HedgeHug", "Open your packs, 2 waiting", "Tray, nothing to put in", "Activity", "Leaderboard", "Your emojis, 9 earned", "Your profile, Sam Example", "Settings", "Search teams and people", "Lanterns4 of 5 · 1 to go", "Kettle Works Ready to unlock"]);
+    expect(reached).toEqual(["HedgeHug", "Open your packs, 2 waiting", "Tray, 4 to put in", "Activity", "Leaderboard", "Your emojis, 9 earned", "Your profile, Sam Example", "Settings", "Search teams and people", "Lanterns4 of 5 · 1 to go", "Kettle Works Ready to unlock"]);
   });
 
   it("a panel opens with Enter, closes with Escape and hands focus back to its button", async () => {
     fakeSystemTheme(false);
     preferWideScreen();
-    const { user } = visit("/");
-    const tray = await screen.findByRole("button", { name: "Tray, nothing to put in" });
+    const { user } = visit("/", albumFixtures.trayed);
+    const tray = await screen.findByRole("button", { name: "Tray, 4 to put in" });
 
     tray.focus();
     await user.keyboard("{Enter}");
@@ -213,9 +205,9 @@ describe("AL55: the album is usable by keyboard alone", { timeout: 30_000 }, () 
   it("opening one panel closes the other", async () => {
     fakeSystemTheme(false);
     preferWideScreen();
-    const { user } = visit("/");
+    const { user } = visit("/", albumFixtures.trayed);
 
-    await user.click(await screen.findByRole("button", { name: "Tray, nothing to put in" }));
+    await user.click(await screen.findByRole("button", { name: "Tray, 4 to put in" }));
     await user.click(screen.getByRole("button", { name: "Your emojis, 9 earned" }));
 
     expect(screen.queryByRole("region", { name: "Tray" })).not.toBeInTheDocument();

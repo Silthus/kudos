@@ -238,12 +238,12 @@ describe("The item board", () => {
 });
 
 describe("With the item board off", () => {
-  it("keeps the packs button and the tray as they were", async () => {
+  it("keeps the packs button and the tray while they hold something", async () => {
     window.history.replaceState(null, "", "/book#me");
-    renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway));
+    renderAlbum(memberWithTheAlbum, fixedAlbum({ ...albumFixtures.midway, tray: albumFixtures.trayed.tray }));
     const bar = await topBar();
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toBeVisible();
-    expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeVisible();
+    expect(bar.getByRole("button", { name: /^Tray, \d+ to put in$/ })).toBeVisible();
     expect(screen.queryByRole("dialog", { name: "Your items" })).toBeNull();
   });
 });

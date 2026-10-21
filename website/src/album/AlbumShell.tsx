@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
@@ -51,9 +51,9 @@ export type AlbumShellProps = {
 
 export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment }: AlbumShellProps) {
   const wide = useWideScreen();
-  const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
+  const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered, trayButton, emojiButton);
   const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
   const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker, { waits: puttingIn.busy });
   const { held, hold, release } = useHeld();
@@ -124,6 +124,10 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   );
 }
 
+function firstShown(buttons: RefObject<HTMLElement | null>[]) {
+  return buttons.find(({ current }) => current !== null)?.current;
+}
+
 function heldLevelOf(held: Held, level: AlbumLevel | null): Held {
   return level === null ? held : { ...held, level };
 }
@@ -136,7 +140,7 @@ function useUnlockedFocusAfterTheMoment(playing: boolean) {
   }, [playing]);
 }
 
-function usePackOpening(answered: Album) {
+function usePackOpening(answered: Album, trayButton: RefObject<HTMLElement | null>, emojiButton: RefObject<HTMLElement | null>) {
   const [opening, setOpening] = useState(false);
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
   const album = useMemo(() => (opened.size === 0 ? answered : { ...answered, packs: answered.packs.filter(({ pack }) => !opened.has(pack)) }), [answered, opened]);
@@ -144,9 +148,9 @@ function usePackOpening(answered: Album) {
   const packsButton = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (wasOpen.current && !opening) packsButton.current?.focus();
+    if (wasOpen.current && !opening) firstShown([packsButton, trayButton, emojiButton])?.focus();
     wasOpen.current = opening;
-  }, [opening]);
+  }, [opening, trayButton, emojiButton]);
   const open = useCallback(() => setOpening(true), []);
   const close = useCallback(() => setOpening(false), []);
   return { opening, open, close, packsButton, album, rememberOpened };
