@@ -28,6 +28,7 @@ export function usePetPick(read: string | null | undefined, makePet: (hoggie: st
     },
     [makePet, read],
   );
+  if (picked !== null && picked.over !== (read ?? null)) setPicked(null);
   if (read === undefined) return null;
   return { pet: picked !== null && picked.over === read ? picked.pet : read, sending, problem, pick };
 }

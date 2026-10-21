@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { useSyncExternalStore } from "react";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contrast } from "../test/themeContrast";
@@ -580,6 +581,29 @@ describe("LP57: Make my pet on a hoggie the member found makes it their one pet"
 
     expect(actions.makePet).toHaveBeenCalledExactlyOnceWith("beaker");
     expect(await shown.findByText("Your pet")).toBeInTheDocument();
+  });
+
+  it("once the read confirms a pick, a later pick from elsewhere shows as the pet here too", async () => {
+    const live = { answer: { ...hoggiesFixtures.midway, pet: "beaker" }, listeners: new Set<() => void>() };
+    const read: HoggiesRead = (asking) => {
+      const shown = useSyncExternalStore((listener) => (live.listeners.add(listener), () => live.listeners.delete(listener)), () => live.answer);
+      return asking ? shown : undefined;
+    };
+    const readSays = (pet: string) => {
+      live.answer = { ...live.answer, pet };
+      act(() => live.listeners.forEach((listener) => listener()));
+    };
+    window.history.replaceState(null, "", "/book#hoggies/asleep");
+    const { user } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { hoggies: read, commands: { makePet: async (hoggie) => ({ kind: "picked", pet: hoggie }) } });
+
+    const shown = await entry();
+    await user.click(shown.getByRole("button", { name: "Make my pet" }));
+    expect(await shown.findByText("Your pet")).toBeInTheDocument();
+    readSays("asleep");
+    readSays("beaker");
+
+    expect(shown.queryByText("Your pet")).not.toBeInTheDocument();
+    expect(shown.getByRole("button", { name: "Make my pet" })).toBeInTheDocument();
   });
 
   it("a hoggie not found yet offers no Make my pet", async () => {
