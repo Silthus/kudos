@@ -29,7 +29,7 @@ export function XpMomentCanvas({ play, me, levelUnlocks }: { play: XpMomentPlay;
   const cards = useRef(new Map<string, HTMLElement>());
   useParticles(play, cards, orb);
   return (
-    <div className="xpm-canvas" role="dialog" aria-modal="true" aria-label="Since your last visit" data-phase={phase} data-narrow={isPhone(viewport) ? "" : undefined} onClick={collecting.has(phase) ? collect : undefined}>
+    <div className="xpm-canvas" role="dialog" aria-modal="true" aria-label="Since your last visit" style={{ "--xpm-top": `${viewport.top}px` } as CSSProperties} data-phase={phase} data-narrow={isPhone(viewport) ? "" : undefined} onClick={collecting.has(phase) ? collect : undefined}>
       {orbShown.has(phase) && <Cards play={play} me={me} viewport={viewport} cards={cards} />}
       {orbShown.has(phase) && <Orb play={play} viewport={viewport} orb={orb} />}
       {orbShown.has(phase) && (
@@ -243,9 +243,15 @@ function useViewport(): Viewport {
   const [viewport, setViewport] = useState(viewportNow);
   useLayoutEffect(() => setViewport(viewportNow()), []);
   useEffect(() => {
-    const onResize = () => setViewport(viewportNow());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const remeasure = () => setViewport(viewportNow());
+    window.addEventListener("resize", remeasure);
+    const bar = document.querySelector(".al-top");
+    const barWatch = bar === null || typeof ResizeObserver === "undefined" ? null : new ResizeObserver(remeasure);
+    if (bar !== null) barWatch?.observe(bar);
+    return () => {
+      window.removeEventListener("resize", remeasure);
+      barWatch?.disconnect();
+    };
   }, []);
   return viewport;
 }
