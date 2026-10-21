@@ -12,16 +12,19 @@ const sandbox = "different-dog-467";
 const site = `https://${sandbox}.convex.site`;
 const runCommand = promisify(execFile);
 const convexEnv = sandboxOnly(process.env);
+const convexBinary = joinPath(process.cwd(), "node_modules/.bin/convex");
+const scratch = scratchPackage();
 const workspace = await envOf("SLACK_WORKSPACE_ID");
 const signingSecret = await envOf("SLACK_SIGNING_SECRET");
 const drawSecret = await envOf("HOGGIE_DRAW_SECRET");
-const run = Date.now().toString(36).toUpperCase();
+const kudosEmoji = await kudosEmojiOfTheSandbox();
+const startedAt = Date.now();
+const run = startedAt.toString(36).toUpperCase();
 const channel = "C0DEMO102";
 const castPrefix = "U0DEMO102";
 const demoLevel = 4;
 const candidatesTried = 24;
 const team = { team: "demo-102-burrow-builders", name: "Burrow Builders" };
-const scratch = mkdtempSync(joinPath(tmpdir(), "demo-102-"));
 let sent = 0;
 
 type Person = { key: string; first: string; last: string; profile?: number };
@@ -45,10 +48,21 @@ function sandboxOnly(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return { ...withoutDeploymentChoice, CONVEX_DEPLOYMENT: `prod:${sandbox}` };
 }
 
+function scratchPackage() {
+  const directory = mkdtempSync(joinPath(tmpdir(), "demo-102-"));
+  writeFileSync(joinPath(directory, "package.json"), JSON.stringify({ name: "demo-102-scratch", private: true, dependencies: { convex: "*" } }));
+  return directory;
+}
+
 async function envOf(name: string) {
   const value = (await convex("env", "get", name)).trim();
   if (value === "") throw new Error(`${name} is not set on ${sandbox}`);
   return value;
+}
+
+async function kudosEmojiOfTheSandbox() {
+  const setting = (await everyRow("workspaces")).find((row) => row.workspace === workspace)?.kudosEmoji as string | undefined;
+  return setting ?? (await envOf("KUDOS_EMOJI"));
 }
 
 const nameOf = ({ first, last }: Person) => `${first} ${last}`;
@@ -56,7 +70,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const log = (line: string) => console.log(`[demo-102] ${line}`);
 
 async function convex(...args: string[]) {
-  const { stdout } = await runCommand("node_modules/.bin/convex", args, { env: convexEnv, maxBuffer: 256 * 1024 * 1024 });
+  const { stdout } = await runCommand(convexBinary, [...args, "--deployment", sandbox], { cwd: scratch, env: convexEnv, maxBuffer: 256 * 1024 * 1024 });
   return stdout;
 }
 
@@ -114,15 +128,15 @@ function tsAt(at: number) {
 
 async function say(author: Member, words: string, to: Member | null, at = Date.now()) {
   const ts = tsAt(at);
-  const mention = to === null ? [] : [{ type: "user", user_id: to.user }, { type: "text", text: " " }, { type: "emoji", name: "hedgehog", unicode: "1f994" }];
+  const mention = to === null ? [] : [{ type: "user", user_id: to.user }, { type: "text", text: " " }, { type: "emoji", name: kudosEmoji }];
   const elements = [...mention, { type: "text", text: ` ${words}` }];
-  const text = `${to === null ? "" : `<@${to.user}> :hedgehog:`} ${words}`;
+  const text = `${to === null ? "" : `<@${to.user}> :${kudosEmoji}:`} ${words}`;
   await event({ type: "message", channel, channel_type: "channel", user: author.user, ts, text, team: workspace, blocks: [{ type: "rich_text", block_id: "b1", elements: [{ type: "rich_text_section", elements }] }] }, at);
   return { ts, author };
 }
 
 async function hug(hugger: Member, { ts, author }: { ts: string; author: Member }) {
-  await event({ type: "reaction_added", user: hugger.user, reaction: "hedgehog", item_user: author.user, item: { type: "message", channel, ts }, event_ts: tsAt(Date.now()) });
+  await event({ type: "reaction_added", user: hugger.user, reaction: kudosEmoji, item_user: author.user, item: { type: "message", channel, ts }, event_ts: tsAt(Date.now()) });
 }
 
 async function until<T>(what: string, read: () => Promise<T | null>, seconds = 120): Promise<T> {
@@ -273,10 +287,16 @@ async function settledAtLevel(demo: Member) {
   let previous = -1;
   return until(`level ${demoLevel} with every award paid`, async () => {
     const standing = { xp: await xpOf(demo), items: (await itemsOf(demo)).filter((row) => row.turnedAt === undefined) };
-    const settled = standing.xp === previous && standing.xp >= xpToReach(demoLevel) && standing.items.length >= 8;
+    const settled = standing.xp === previous && standing.xp >= xpToReach(demoLevel) && standing.items.length >= 8 && (await dueJobsOfThisRun()) === 0;
     previous = standing.xp;
     return settled ? standing : null;
   }, 240);
+}
+
+async function dueJobsOfThisRun() {
+  const unfinished = new Set(["pending", "inProgress"]);
+  const jobs = await newestRows("_scheduled_functions", 2000);
+  return jobs.filter((job) => (job._creationTime as number) >= startedAt && unfinished.has((job.state as { kind: string }).kind) && (job.scheduledTime as number) <= Date.now()).length;
 }
 
 async function report(demo: Member, xp: number, items: Row[], session: (expirationTime: number) => Promise<{ session: string; refreshToken: string }>) {

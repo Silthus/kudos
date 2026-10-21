@@ -6,7 +6,7 @@ Silthus/personal#102. One command seeds the sandbox `different-dog-467` so a mad
 bun website/proof/demo-102/seed.mts
 ```
 
-Run it from the repository root after `pnpm install`. The sandbox is fixed in the script: it sets the Convex CLI's deployment itself and ignores any `CONVEX_*` variable in the shell, so it can't reach another deployment. It reads the sandbox's own secrets through the Convex CLI. It takes about a minute.
+Run it from the repository root after `pnpm install`. The sandbox is fixed in the script: every Convex CLI call names it with `--deployment`, runs from a scratch directory with no `.env` files, and gets no `CONVEX_*` variable from the shell, so it can't reach another deployment. It reads the sandbox's own secrets through the Convex CLI. It takes about a minute.
 
 It prints the waiting items with the rarity each one will turn to, and a snippet that signs a browser in as Robin: open `https://different-dog-467.convex.site/book#me` in a private window, paste the snippet into the console, and the page reloads signed in. A sign-in works for one page load, so `bun website/proof/demo-102/seed.mts sign-in` prints a fresh snippet for the same demo member without seeding again.
 
@@ -20,8 +20,8 @@ It prints the waiting items with the rarity each one will turn to, and a snippet
 6. **Appends the last visit** at that moment.
 7. **Since the last visit:** six thoughtful kudos to Robin (these cross level 4), five hugs on Robin's message, Robin's hug on Juno's demo post, and Robin's thanks to Juno.
 
-The seed waits until Robin is past level 4's 300 XP, has eight items waiting (four thanked hoggies, Juno's sticker and the three `Level 4` hoggies), and the XP has stopped moving between two reads, so every award has been paid.
+The seed waits until Robin is past level 4's 300 XP, has eight items waiting (four thanked hoggies, Juno's sticker and the three `Level 4` hoggies), no job this run scheduled is still due, and the XP reads the same twice in a row.
 
 Every run joins a new cast, because the cast's givers have a daily allowance of three kudos. So each run's hype emojis carry a number (`juno-vale-4-hype`), and the week's norm line counts every run's givers. Keep the emoji names off camera.
 
-Kudos and hugs are signed Slack-shaped events sent to the sandbox's `/slack/events` with its own signing secret, in a made-up channel `C0DEMO102`. Replies to the made-up members fail at Slack, which is harmless. The Share posts to the sandbox workspace's weekly-post channel.
+Kudos and hugs use the sandbox's own kudos emoji (its workspace setting, else `KUDOS_EMOJI`) and are signed Slack-shaped events sent to the sandbox's `/slack/events` with its own signing secret, in a made-up channel `C0DEMO102`. Replies to the made-up members fail at Slack, which is harmless. The Share posts to the sandbox workspace's weekly-post channel.
