@@ -13,7 +13,7 @@ import { dateOf } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
 import { LandedHype } from "./ItemBoard";
 import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
-import { useForge, type ForgeHoggie } from "./useForge";
+import type { Forging } from "./useForge";
 import { usePetPick } from "./usePetPick";
 import { useRarityStrip } from "./useRarityStrip";
 import "./hoggies.css";
@@ -22,12 +22,12 @@ type HoggiesPlace = { hoggie: string | null; rarity?: Rarity };
 
 type MakePet = (hoggie: string) => Promise<PetReply>;
 
-type HoggiesAnswerProps = { shown: HoggiesShown | undefined; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet; forgeHoggie: ForgeHoggie; onSignIn: () => void; onSignOut: () => void };
+type HoggiesAnswerProps = { shown: HoggiesShown | undefined; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet; forging: Forging; onSignIn: () => void; onSignOut: () => void };
 
-export function HoggiesAnswerPage({ shown, place, address, makePet, forgeHoggie, ...answers }: HoggiesAnswerProps) {
+export function HoggiesAnswerPage({ shown, place, address, makePet, forging, ...answers }: HoggiesAnswerProps) {
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "hoggies") return <AnswerPage answer={shown} {...answers} />;
-  return <HoggiesPage answer={shown} place={place} address={address} makePet={makePet} forgeHoggie={forgeHoggie} />;
+  return <HoggiesPage answer={shown} place={place} address={address} makePet={makePet} forging={forging} />;
 }
 
 export function isWaitingForTheHoggies(shown: HoggiesShown | undefined) {
@@ -36,14 +36,14 @@ export function isWaitingForTheHoggies(shown: HoggiesShown | undefined) {
 
 type Open = (hoggie: AlbumHoggie) => void;
 
-function HoggiesPage({ answer: answered, place, address, makePet, forgeHoggie }: { answer: AlbumHoggies; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet; forgeHoggie: ForgeHoggie }) {
+function HoggiesPage({ answer: answered, place, address, makePet, forging: forgingAnywhere }: { answer: AlbumHoggies; place: HoggiesPlace; address: HoggieAddress; makePet: MakePet; forging: Forging }) {
   const answer = useWithoutTheArrivingFind(answered);
   const [filter, setFilter] = useFilterShowingEachLanding();
   const shown = keptBy(filter, answer.hoggies, place.rarity);
   const chosen = answer.hoggies.find(({ hoggie }) => hoggie === place.hoggie) ?? null;
   const open: Open = (hoggie) => address.open(hoggie.hoggie);
   const picking = usePetPick(answer.pet, makePet);
-  const forging = useForge(answer.forge === true, forgeHoggie);
+  const forging = answer.forge === true ? forgingAnywhere : null;
   return (
     <article className="al-page-body al-hoggies">
       <Header answer={answer} />

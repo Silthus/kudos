@@ -257,6 +257,23 @@ describe("HF9, HF10: Forge sends forgeHoggie once and plays the forged hoggie's 
     expect(again).toEqual(first);
   });
 
+  it("a forge still unanswered after a visit to another page shows Forging… on return, then its reveal", async () => {
+    let answer: (reply: ForgeReply) => void = () => {};
+    const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 4 }), () => new Promise((resolve) => (answer = resolve)));
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    goTo("/book#leaderboard");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    goTo("/book#hoggies/asleep");
+    const back = await entry();
+    expect(back.getByRole("button", { name: "Forging…" })).toBeInTheDocument();
+    expect(back.queryByText("Couldn't reach HedgeHug. Try again.")).not.toBeInTheDocument();
+    act(() => answer(forgedCake));
+
+    expect(await screen.findByRole("status", { name: "Forged" })).toHaveTextContent("Forged: Cake · Uncommon · New");
+    expect(actions.forgeHoggie).toHaveBeenCalledOnce();
+  });
+
   it("each answered forge sends a new request", async () => {
     const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }), async () => ({ kind: "refused" }));
 

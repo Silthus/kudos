@@ -26,7 +26,7 @@ import { AppEmojiSection } from "../settings/AppEmojiList";
 import { EmojiWizardHost } from "./findInSlack";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { home, hrefOf, landingStateOf, placeOf, type Place } from "./place";
-import { useRequestKeptUntilAnswered } from "./useForge";
+import { useForge } from "./useForge";
 import { useVisitArrival } from "./visitArrival";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
@@ -45,7 +45,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const profile = useAlbumProfile(onProfile);
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
-  const forgeHoggie = useRequestKeptUntilAnswered(actions.forgeHoggie);
+  const forging = useForge(actions.forgeHoggie);
   const onLevelUp = place.kind === "levelUp";
   const levelUp = useLevelUp(place.kind === "levelUp" ? place.level : null);
   useTheAlbumInsteadOfAClosedReveal(onLevelUp && levelUp?.kind === "off" && album?.kind === "album" && album.board !== null, replaceAddress);
@@ -85,7 +85,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
-        hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} makePet={actions.makePet} forgeHoggie={forgeHoggie} {...answers} />}
+        hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} makePet={actions.makePet} forging={forging} {...answers} />}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}
         putIn={actions.putIn}
