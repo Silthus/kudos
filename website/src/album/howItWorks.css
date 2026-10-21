@@ -75,7 +75,8 @@
 }
 
 .hw-avatar[data-you] {
-  background: var(--al-accent);
+  background: var(--al-accent-ink);
+  color: var(--al-count-ink);
 }
 
 .hw-body {
@@ -111,8 +112,8 @@
 .hw-chip {
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  background: var(--al-accent-soft);
-  color: var(--al-accent-ink);
+  background: rgb(255 122 69 / 0.16);
+  color: #a33a0c;
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
@@ -150,8 +151,8 @@
 .hw-try {
   padding: 0.65rem 1.1rem;
   border-radius: 0.6rem;
-  background: var(--al-accent);
-  color: #fff;
+  background: var(--al-accent-ink);
+  color: var(--al-count-ink);
   font-weight: 700;
   text-decoration: none;
 }
