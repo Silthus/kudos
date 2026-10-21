@@ -7,7 +7,7 @@ import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
 import { ShareWin, type WinShares } from "./ShareWin";
-import { emblemOf, medalEmojiOf, medalKeyOf, medalWordsOf } from "./milestones";
+import { emblemOf, medalEmojiOf, medalKeyOf, medalSpokenOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
 import type { Flight } from "./useTurnFlight";
@@ -46,7 +46,7 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, touch
                 }}
               >
                 <ItemBack />
-                <LevelTag reason={reason} />
+                <ReasonTag reason={reason} />
               </button>
               {index === 0 && !touched && <span className="ib-pointer" aria-hidden="true" />}
             </li>
@@ -172,13 +172,23 @@ export function ItemBack() {
   );
 }
 
-function LevelTag({ reason }: { reason: BoardReason }) {
-  if (reason.kind !== "levelUp") return null;
-  return <span className="ib-level">Level {reason.level}</span>;
+function ReasonTag({ reason }: { reason: BoardReason }) {
+  const tag = tagOf(reason);
+  return tag === null ? null : <span className="ib-tag">{tag}</span>;
+}
+
+function tagOf(reason: BoardReason) {
+  if (reason.kind === "levelUp") return `Level ${reason.level}`;
+  if (reason.kind === "team") return reason.name;
+  if (reason.kind === "milestone") return medalWordsOf(reason);
+  return null;
 }
 
 function itemLabelOf(reason: BoardReason) {
-  return reason.kind === "levelUp" ? `A face-down item from level ${reason.level}. Turn it over` : "A face-down item. Turn it over";
+  if (reason.kind === "levelUp") return `A face-down item from level ${reason.level}. Turn it over`;
+  if (reason.kind === "team") return `A face-down item for filling the ${reason.name} page. Turn it over`;
+  if (reason.kind === "milestone") return `A face-down item for ${medalSpokenOf(reason)}. Turn it over`;
+  return "A face-down item. Turn it over";
 }
 
 export function itemsWaitWordsOf({ items, more }: Board) {

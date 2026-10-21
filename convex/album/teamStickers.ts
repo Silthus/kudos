@@ -1,4 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { earnTeamItem } from "../items/achievements";
 import { teamEmojiNameOf } from "./emojiNames";
 import { recordMilestonesOf } from "./milestones";
 import type { Instants } from "./packs";
@@ -26,6 +27,7 @@ export async function unlockReadyTeamsAmong(ctx: MutationCtx, owner: PageOwner, 
 async function insertTeamSticker(ctx: MutationCtx, owner: PageOwner, { team, name, art }: TeamPage, at: number): Promise<TeamSticker> {
   const sticker = { team, name, art, emoji: await teamEmojiNameOf(ctx, owner.workspace, team), at };
   await ctx.db.insert("teamStickers", { member: owner.member, workspace: owner.workspace, ...sticker });
+  await earnTeamItem(ctx, owner, { team, name }, at);
   return sticker;
 }
 

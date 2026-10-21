@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
+import { achievementHoggiesShownTo, isAnAchievement } from "./achievementFlag";
 import type { Earning, ItemReason, ItemSource } from "./records";
 
 export const mostItemsShown = 100;
@@ -36,11 +37,15 @@ export async function stickerWaitsFor(ctx: QueryCtx, member: MemberId, person: M
   return waiting.some(({ source, reason }) => source === "sticker" && reason.kind === "thanks" && reason.person === person);
 }
 
-function waitingOf(ctx: QueryCtx, member: MemberId, most: number): Promise<Doc<"items">[]> {
-  return ctx.db
-    .query("items")
-    .withIndex("by_member_turned", (q) => q.eq("member", member).eq("turnedAt", undefined))
-    .take(most);
+async function waitingOf(ctx: QueryCtx, member: MemberId, most: number): Promise<Doc<"items">[]> {
+  const achievementsShown = await achievementHoggiesShownTo(ctx, member);
+  const waiting: Doc<"items">[] = [];
+  const oldestFirst = ctx.db.query("items").withIndex("by_member_turned", (q) => q.eq("member", member).eq("turnedAt", undefined));
+  for await (const item of oldestFirst) {
+    if (achievementsShown || !isAnAchievement(item.reason)) waiting.push(item);
+    if (waiting.length === most) break;
+  }
+  return waiting;
 }
 
 export function waitingPageOf(ctx: QueryCtx, member: MemberId, cursor: string | null, numItems: number) {
