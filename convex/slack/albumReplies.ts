@@ -2,9 +2,9 @@ import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { thoughtfulPacksGrantedEventValidator, type ThoughtfulPacksGrantedEvent } from "../bus/events";
-import type { AlbumReply, AlbumReplyButton, AlbumReplyRecipient } from "../feedback/albumReplies";
+import type { AlbumReply, AlbumReplyButton, AlbumReplyDestination, AlbumReplyRecipient } from "../feedback/albumReplies";
 import { escaped, mrkdwn, urlButtonOf } from "./blocks";
-import { attemptArgs, attemptCall, isRefusedForItsBlocks, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
+import { attemptArgs, attemptCall, isRefusedAsEphemeral, isRefusedForItsBlocks, retryAfter, slackTextOf, tryAtMostThreeTimes, type Attempt, type Retry } from "./delivery";
 
 const rateLimitErrors = new Set(["ratelimited", "rate_limited"]);
 
@@ -27,8 +27,20 @@ async function sendAlbumReply(ctx: ActionCtx, event: ThoughtfulPacksGrantedEvent
 }
 
 async function postAlbumReply(ctx: ActionCtx, reply: AlbumReply): Promise<Attempt> {
-  const result = await attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(reply));
-  return isRefusedForItsBlocks(result) && hasPictures(reply) ? attemptCall(ctx, reply.workspace, "chat.postMessage", messageOf(withoutPictures(reply))) : result;
+  const result = await postBesideOrAsDirectMessage(ctx, reply);
+  return isRefusedForItsBlocks(result) && hasPictures(reply) ? postBesideOrAsDirectMessage(ctx, withoutPictures(reply)) : result;
+}
+
+async function postBesideOrAsDirectMessage(ctx: ActionCtx, reply: AlbumReply): Promise<Attempt> {
+  const { destination } = reply;
+  if (destination.kind === "dm") return postAsDirectMessage(ctx, reply, destination);
+  const ephemeral = { channel: destination.conversation, user: destination.user, ...(destination.threadRoot !== undefined && { thread_ts: destination.threadRoot }), ...contentOf(reply) };
+  const result = await attemptCall(ctx, reply.workspace, "chat.postEphemeral", ephemeral);
+  return isRefusedAsEphemeral(result) ? postAsDirectMessage(ctx, reply, destination) : result;
+}
+
+function postAsDirectMessage(ctx: ActionCtx, reply: AlbumReply, { user }: AlbumReplyDestination): Promise<Attempt> {
+  return attemptCall(ctx, reply.workspace, "chat.postMessage", { channel: user, ...contentOf(reply), unfurl_links: false, unfurl_media: false });
 }
 
 function isRateLimited(result: Attempt): result is Extract<Attempt, { kind: "held" | "failed" }> {
@@ -43,10 +55,8 @@ function withoutPictures(reply: AlbumReply): AlbumReply {
   return { ...reply, recipients: reply.recipients.map((recipient) => (recipient.hype === null ? recipient : { ...recipient, hype: { ...recipient.hype, picture: null } })) };
 }
 
-function messageOf(reply: AlbumReply) {
-  const { destination } = reply;
-  const where = destination.kind === "thread" ? { channel: destination.conversation, thread_ts: destination.threadTs } : { channel: destination.user };
-  return { ...where, text: fallbackTextOf(reply), blocks: blocksOf(reply), unfurl_links: false, unfurl_media: false };
+function contentOf(reply: AlbumReply) {
+  return { text: fallbackTextOf(reply), blocks: blocksOf(reply) };
 }
 
 function fallbackTextOf({ recipients }: AlbumReply) {

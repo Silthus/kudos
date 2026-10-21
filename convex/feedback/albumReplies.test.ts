@@ -62,8 +62,9 @@ let postHogCom: FakePostHogCom;
 let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
+const kudosSent = new Map<string, { from: number; giver: string; threadRoot?: string }>();
 let weeksLater = 0;
-const albumPostAnswers: Array<"lands without an answer" | "rate limited" | "refused as rate_limited" | "lands with an internal error" | "refuses its pictures"> = [];
+const albumPostAnswers: Array<"lands without an answer" | "rate limited" | "refused as rate_limited" | "lands with an internal error" | "refuses its pictures" | "refused as not in the channel"> = [];
 const albumPostsWithPictures: boolean[] = [];
 
 beforeEach(() => {
@@ -83,7 +84,7 @@ afterEach(() => {
 });
 
 describe("AL59: a thoughtful kudos gets one thread reply that names what each recipient's pack holds", { timeout: 60_000 }, () => {
-  test("a thoughtful kudos to someone new and to someone already in the album posts one public reply in its thread, a section for each, the new person's team progress, their hype emoji as a picture, Open your pack and the gains line", async () => {
+  test("a thoughtful kudos to someone new and to someone already in the album shows its giver alone one reply in its thread, a section for each, the new person's team progress, their hype emoji as a picture, Open your pack and the gains line", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     await aliceCollects(carol);
     weeksLater += 1;
@@ -93,10 +94,8 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     expect(threadRepliesTo(ts)).toEqual([
       {
         channel,
-        thread_ts: ts,
+        user: alice.user,
         text: "Bob is new in your album · A pack for thanking Carol",
-        unfurl_links: false,
-        unfurl_media: false,
         blocks: [
           { type: "section", text: { type: "mrkdwn", text: "*Bob is new in your album*\nLanterns 2/2: page complete!\nOtters 1/2" } },
           { type: "context", elements: [{ type: "image", image_url: bobsStoredFace, alt_text: "Bob's hype emoji" }, { type: "mrkdwn", text: "Bob's hype emoji is unlocked" }] },
@@ -140,6 +139,18 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     ]);
   });
 
+  test("the reply is never posted in public, and one Slack refuses beside the kudos arrives as a DM to the giver", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    const shown = await thanks(alice, why, bob);
+    albumPostAnswers.push("refused as not in the channel");
+    const refused = await thanks(carol, why, dana);
+
+    expect(threadRepliesTo(shown)).toHaveLength(1);
+    expect(albumPostsInPublic()).toEqual([]);
+    expect(threadRepliesTo(refused)).toEqual([]);
+    expect(albumRepliesIn(carol.user).map((reply) => sectionsOf([reply]))).toEqual([["*Dana is new in your album*\nOtters 1/2"]]);
+  });
+
   test("a kudos posted in a thread is answered in that thread, a giver who chose DMs gets it as a DM, and one who turned kudos replies off gets none", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     const root = "1760349000.000001";
@@ -149,11 +160,13 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     await choosesKudosRepliesIn(dana, "none");
     await thanks(dana, why, bob);
 
-    expect(threadRepliesTo(root).map(({ thread_ts }) => thread_ts)).toEqual([root]);
-    expect(threadRepliesTo(inAThread)).toEqual([]);
+    expect(threadRepliesTo(inAThread).map(({ thread_ts }) => thread_ts)).toEqual([root]);
     expect(threadRepliesTo(carolsKudos)).toEqual([]);
     expect(albumRepliesIn(carol.user).map((reply) => sectionsOf([reply]))).toEqual([["*Bob is new in your album*\nLanterns 1/2\nOtters 1/2"]]);
-    expect(everyAlbumReply().map(({ channel: to }) => to)).toEqual([channel, carol.user]);
+    expect(everyAlbumReply().map(({ channel: to, user }) => ({ to, user }))).toEqual([
+      { to: channel, user: alice.user },
+      { to: carol.user, user: undefined },
+    ]);
   });
 
   test("a short kudos keeps today's private reply and posts nothing in its thread", async () => {
@@ -250,15 +263,18 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
   test("a hype emoji is told unlocked once, by the grant that ran first, even when an earlier week's kudos is granted after it", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     theBus.holdingGrants = true;
-    const late = await thanks(alice, why, dana);
+    await thanks(alice, why, dana);
     theBus.holdingGrants = false;
     weeksLater += 1;
-    const first = await thanks(alice, "Thanks for reviewing the quarterly runbook", dana);
+    await thanks(alice, "Thanks for reviewing the quarterly runbook", dana);
+    const firstReplies = albumRepliesIn(channel);
     await t.mutation(internal.album.packs.grantThoughtfulPacks, { event: (theBus.heldGrants as KudosGivenEvent[])[0]! });
     await settle(t);
+    const lateReplies = albumRepliesIn(channel).slice(firstReplies.length);
 
-    expect(hypeLinesOf(threadRepliesTo(first))).toEqual(["Dana's hype emoji is unlocked"]);
-    expect(hypeLinesOf(threadRepliesTo(late))).toEqual([]);
+    expect(hypeLinesOf(firstReplies)).toEqual(["Dana's hype emoji is unlocked"]);
+    expect(lateReplies, "the earlier week's kudos, granted last, got its own reply").toHaveLength(1);
+    expect(hypeLinesOf(lateReplies)).toEqual([]);
   });
 
   test("a message to more people than one reply can name names the first ten and counts the rest", async () => {
@@ -317,7 +333,7 @@ describe("AL58: album moments are dark where album-slack is off", { timeout: 60_
     const walk = await walkWith(albumOn, [onForEmails(albumSlack, alice.email)]);
 
     const added = walk.calls.filter((call) => !withoutTheReply.calls.includes(call)).map((call) => JSON.parse(call) as SlackCall);
-    expect(added.map(({ method, args }) => ({ method, channel: args.channel, thread_ts: args.thread_ts }))).toEqual([{ method: "chat.postMessage", channel, thread_ts: walk.alicesThoughtfulKudos }]);
+    expect(added.map(({ method, args }) => ({ method, channel: args.channel, thread_ts: args.thread_ts, user: args.user }))).toEqual([{ method: "chat.postEphemeral", channel, thread_ts: undefined, user: alice.user }]);
     expect(withoutTheReply.calls.every((call) => walk.calls.includes(call))).toBe(true);
   });
 });
@@ -338,6 +354,7 @@ async function fourMembers(flags: FlagDefinition[], more: Person[] = [], albumFl
   vi.stubEnv("SITE_URL", site);
   messages = 0;
   weeksLater = 0;
+  kudosSent.clear();
   postHog = new FakePostHog();
   postHogCom = new FakePostHogCom().withTeams(lanterns, otters, ...(more.length > 0 ? [{ slug: "guests", name: "Guests", profiles: more.map((guest) => profileOf(guest)) }] : []));
   slack = new FakeSlack();
@@ -357,12 +374,13 @@ async function fourMembers(flags: FlagDefinition[], more: Person[] = [], albumFl
 }
 
 async function chatAnswering(input: string | URL | Request, init?: RequestInit) {
-  const isAnAlbumPost = String(input instanceof Request ? input.url : input).endsWith("/chat.postMessage") && String(init?.body ?? "").includes("album-");
+  const isAnAlbumPost = /\/chat\.post(Message|Ephemeral)$/.test(String(input instanceof Request ? input.url : input)) && String(init?.body ?? "").includes("album-");
   if (isAnAlbumPost) albumPostsWithPictures.push(String(init?.body).includes('"type":"image"'));
   const answer = isAnAlbumPost ? albumPostAnswers.shift() : undefined;
   if (answer === "rate limited") return rateLimitedFor(60)(() => new Response());
   if (answer === "refused as rate_limited") return slackError("rate_limited")(() => new Response());
   if (answer === "refuses its pictures") return slackError("invalid_blocks")(() => new Response());
+  if (answer === "refused as not in the channel") return slackError("user_not_in_channel")(() => new Response());
   const answered = await slack.fetch(input, init);
   if (answer === "lands with an internal error") return slackError("internal_error")(() => answered);
   return answer === "lands without an answer" ? timesOut(() => answered) : answered;
@@ -376,6 +394,7 @@ async function thanks(giver: Person, words: string, ...recipientsAndOptions: Arr
   messages += 1;
   vi.setSystemTime(tuesday.getTime() + weeksLater * weekMs + messages * minuteMs);
   const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
+  kudosSent.set(ts, { from: slack.calls.length, giver: giver.user, ...(threadTs && { threadRoot: threadTs }) });
   await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts, channel, ...(threadTs && { threadTs }) });
   if (settling === "until the first answer") await settleUntil(t, new Date(Date.now() + 5_000));
   else await settle(t);
@@ -396,14 +415,25 @@ async function choosesKudosRepliesIn(someone: Person, place: MessagePlace) {
   await t.run((ctx) => setMessageSetting(ctx, member, "kudos-reply", place));
 }
 
-type Posted = { channel: string; thread_ts?: string; text: string; blocks: Array<{ type: string; text?: { text: string }; elements?: unknown[] }> };
+type Posted = { channel: string; thread_ts?: string; user?: string; text: string; blocks: Array<{ type: string; text?: { text: string }; elements?: unknown[] }> };
 
 function everyAlbumReply(): Posted[] {
-  return (slack.callsTo("chat.postMessage") as unknown as Posted[]).filter(({ blocks }) => JSON.stringify(blocks ?? []).includes("album"));
+  return (slack.calls as unknown as Array<{ method: string; args: Posted }>)
+    .filter(({ method, args }) => (method === "chat.postMessage" || method === "chat.postEphemeral") && JSON.stringify(args.blocks ?? []).includes("album"))
+    .map(({ args }) => args);
+}
+
+function albumPostsInPublic(): Posted[] {
+  return (slack.callsTo("chat.postMessage") as unknown as Posted[]).filter(({ channel: to, blocks }) => to === channel && JSON.stringify(blocks ?? []).includes("album"));
 }
 
 function threadRepliesTo(ts: string): Posted[] {
-  return everyAlbumReply().filter(({ channel: to, thread_ts }) => to === channel && thread_ts === ts);
+  const kudos = kudosSent.get(ts);
+  if (kudos === undefined) return [];
+  const nextKudos = Math.min(slack.calls.length, ...[...kudosSent.values()].map(({ from }) => from).filter((from) => from > kudos.from));
+  return (slack.calls.slice(kudos.from, nextKudos) as unknown as Array<{ method: string; args: Posted }>)
+    .filter(({ method, args }) => method === "chat.postEphemeral" && args.channel === channel && args.user === kudos.giver && args.thread_ts === kudos.threadRoot && JSON.stringify(args.blocks ?? []).includes("album"))
+    .map(({ args }) => args);
 }
 
 function albumRepliesIn(conversation: string): Posted[] {
