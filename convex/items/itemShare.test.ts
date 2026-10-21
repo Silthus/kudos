@@ -207,7 +207,7 @@ describe("LP56: the share is behind item-share, and needs hidden-items on for th
     { condition: "with item-share off", flags: [offForEveryone(itemShare)] },
     { condition: "while PostHog has no item-share flag", flags: [] },
     { condition: "with item-share on for someone else's email only", flags: [onForEmails(itemShare, dana.email)] },
-  ])("$condition, a legendary find writes no win, the album offers no Share, the press refuses and nothing is posted", async ({ flags }) => {
+  ])("$condition, a legendary find offers no Share, the press refuses and nothing is posted, and once item-share is on the same win is offered", async ({ flags }) => {
     await fourMembers([...albumOn.map(onForEveryone), ...flags]);
     await thanks(alice, "Thanks for staying late on the release checklist", bob);
     const asAlice = await signedIn(alice);
@@ -217,8 +217,11 @@ describe("LP56: the share is behind item-share, and needs hidden-items on for th
     expect(await albumOf(asAlice)).not.toHaveProperty("shares");
     expect(await asAlice.mutation(api.website.itemShare.shareItem, { item: find })).toEqual({ kind: "refused" });
     await settle(t);
-    expect(await t.run((ctx) => ctx.db.query("itemShares").collect())).toEqual([]);
     expect(sharesPosted()).toEqual([]);
+
+    await flagsAre(...shareOn);
+
+    expect((await albumOf(asAlice)).shares, "the win recorded while item-share was off").toEqual([find]);
   });
 
   test("a win turned while hidden-items was on is neither offered nor shared once hidden-items is off for the member", async () => {

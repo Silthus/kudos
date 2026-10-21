@@ -405,11 +405,11 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   checklist: worker-fencing dismissed: no worker owns a win; the owner is checked in the press's mutation
   checklist: commit-ordered-effects dismissed: a refused press schedules nothing; an accepted one schedules its card in its own mutation
   checklist: resumption-coverage dismissed: a press is a single mutation; nothing resumes
-- the share is dark unless item-share and hidden-items are on for the member: With `item-share` off, absent from PostHog or on only for another member's email, a legendary find records no win, getAlbum offers no Share, the press refuses and nothing is posted; a win turned while `hidden-items` was on is neither offered nor shared once it is off for the member.
-  over: a legendary find turned and pressed in three item-share off states; a legendary find turned with every flag on, then pressed and read with hidden-items off for the member
+- the share is dark unless item-share and hidden-items are on for the member: With `item-share` off, absent from PostHog or on only for another member's email, getAlbum offers no Share for a legendary find, the press refuses and nothing is posted, and once `item-share` is on the same win is offered, because the win is recorded whatever the flag answers (a recorder never reads a flag); a win turned while `hidden-items` was on is neither offered nor shared once it is off for the member.
+  over: a legendary find turned and pressed in three item-share off states, then read with item-share on; a legendary find turned with every flag on, then pressed and read with hidden-items off for the member
   via: LP56: the share is behind item-share, and needs hidden-items on for the member
   refuted: the sharing channel no longer read hidden-items for the member -> 1 of 4 tests failed: getAlbum still offered shares once hidden-items was off for the member (2026-10-21)
-  refuted: recordWinOf recorded a win without reading item-share -> 3 of 4 tests failed: each item-share off state stored a win for the legendary find (2026-10-21)
+  refuted: the sharing channel no longer read item-share for the member -> 3 of 4 tests failed: each item-share off state offered Share for the legendary find (2026-10-21)
   because: LP56 ships the share dark behind its flag, and the share has no sense without the hidden items it follows: a win recorded or offered with either off would show a dark feature or post into a workspace that never opted in
   kinds: state, output
   checklist: destination-confinement dismissed: with either flag off nothing is posted
