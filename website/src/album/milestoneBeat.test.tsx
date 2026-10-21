@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReachedTier } from "../../../convex/album/milestones";
@@ -242,7 +242,7 @@ describe("LP22: a medal and its emoji unlocked since the last visit carry New", 
     const fromSlack = withTheTier(thoughtful, lastVisit - hourMs, lastVisit + hourMs);
     await onMilestones(fromSlack(reachedAt(familiarFaces, lastVisit + hourMs)({ ...withItems, board: { items: [], more: false }, lastVisit })));
 
-    expect(newLabelsOn(theMedal(familiarFaces))).toHaveLength(2);
+    await waitFor(() => expect(newLabelsOn(theMedal(familiarFaces))).toHaveLength(2));
     expect(newLabelsOn(theMedal(thoughtful))).toHaveLength(2);
     expect(newLabelsOn(theMedal({ milestone: "people", tier: "bronze" }))).toHaveLength(0);
   });
