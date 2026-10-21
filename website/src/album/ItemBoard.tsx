@@ -1,13 +1,12 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
-import type { ShareReply } from "../shell";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { NamedEmoji } from "../Emoji";
 import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
-import { ShareWin } from "./ShareWin";
+import { ShareWin, type WinShares } from "./ShareWin";
 import { emblemOf, medalEmojiOf, medalKeyOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
@@ -67,9 +66,9 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, touch
   );
 }
 
-type TurnedOverProps = { turns: ShownTurns; album: Album; shareItem: (item: string) => Promise<ShareReply> };
+type TurnedOverProps = { turns: ShownTurns; album: Album; shares: WinShares };
 
-export function ItemsWait({ turns, album, shareItem }: TurnedOverProps) {
+export function ItemsWait({ turns, album, shares }: TurnedOverProps) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
   const settled = !open && flight === null;
   const said = landing !== null && settled;
@@ -79,7 +78,7 @@ export function ItemsWait({ turns, album, shareItem }: TurnedOverProps) {
         {said && <LandedWords landing={landing} />}
       </p>
       {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
-      {settled && <AfterTheLanding turns={turns} album={album} shareItem={shareItem} />}
+      {settled && <AfterTheLanding turns={turns} album={album} shares={shares} />}
       {offered && board !== null && (
         <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
           <span className="ib-wait-disc" aria-hidden="true">
@@ -92,12 +91,12 @@ export function ItemsWait({ turns, album, shareItem }: TurnedOverProps) {
   );
 }
 
-export function AfterTheLanding({ turns: { landing, turnedThisVisit }, album, shareItem }: TurnedOverProps) {
+export function AfterTheLanding({ turns: { landing, turnedThisVisit }, album, shares }: TurnedOverProps) {
   return (
     <>
       {landing?.teaches && <LoopLine lesson={landing.teaches} />}
       {turnedThisVisit.map(({ item, face }) => (
-        <ShareWin key={item} item={item} name={nameOf(face)} offered={album.shares} shareItem={shareItem} />
+        <ShareWin key={item} item={item} name={nameOf(face)} offered={album.shares} shares={shares} />
       ))}
     </>
   );

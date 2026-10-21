@@ -1,17 +1,32 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ShareOffers } from "../../../convex/website/itemShare";
 import type { ShareReply } from "../shell";
 
-type ShareWinProps = { item: string; name: string; offered: ShareOffers["shares"]; shareItem: (item: string) => Promise<ShareReply> };
-
 type Pressed = "no" | "sharing" | "shared" | "refused" | "unreachable";
 
-export function ShareWin({ item, name, offered, shareItem }: ShareWinProps) {
-  const [pressed, setPressed] = useState<Pressed>("no");
-  const share = async () => {
-    setPressed("sharing");
-    setPressed(pressedAfter(await answerOf(shareItem(item))));
-  };
+export type WinShares = { pressedOf: (item: string) => Pressed; share: (item: string) => void };
+
+export function useWinShares(shareItem: (item: string) => Promise<ShareReply>): WinShares {
+  const [pressed, setPressed] = useState<ReadonlyMap<string, Pressed>>(() => new Map());
+  const sending = useRef(new Set<string>());
+  const press = useCallback((item: string, next: Pressed) => setPressed((last) => new Map(last).set(item, next)), []);
+  const share = useCallback(
+    async (item: string) => {
+      if (sending.current.has(item)) return;
+      sending.current.add(item);
+      press(item, "sharing");
+      press(item, pressedAfter(await answerOf(shareItem(item))));
+      sending.current.delete(item);
+    },
+    [shareItem, press],
+  );
+  return { pressedOf: (item) => pressed.get(item) ?? "no", share: (item) => void share(item) };
+}
+
+type ShareWinProps = { item: string; name: string; offered: ShareOffers["shares"]; shares: WinShares };
+
+export function ShareWin({ item, name, offered, shares }: ShareWinProps) {
+  const pressed = shares.pressedOf(item);
   if (!isAnswered(pressed) && !isOffered(offered, item)) return null;
   return (
     <p className="ib-win">
@@ -20,7 +35,7 @@ export function ShareWin({ item, name, offered, shareItem }: ShareWinProps) {
       {pressed === "refused" && <SaidAfterThePress role="alert" words="That win couldn't be shared." />}
       {pressed === "unreachable" && <SaidAfterThePress role="alert" words="Can't reach HedgeHug. Try again." />}
       {!isAnswered(pressed) && (
-        <button type="button" className="ib-share" aria-disabled={pressed === "sharing" || undefined} onClick={pressed === "sharing" ? undefined : () => void share()}>
+        <button type="button" className="ib-share" aria-disabled={pressed === "sharing" || undefined} onClick={pressed === "sharing" ? undefined : () => shares.share(item)}>
           Share
         </button>
       )}
