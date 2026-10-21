@@ -799,7 +799,7 @@
     },
     {
       "name": "first-thanks top-up",
-      "definition": "The one-off XP that takes a member's first kudos given to level 2 (LP66, LP70): a reward record keyed once per member, paying whatever the first kudos' own XP left short of level 2. Not a bonus and not a perk."
+      "definition": "The one-off XP that takes a member's first kudos given to level 2 (LP66, LP70): a reward record keyed once per member, paying what the giver's XP after their first kudos lacks of level 2. Not a bonus and not a perk."
     },
     {
       "name": "first-hug reply",
