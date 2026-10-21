@@ -163,6 +163,8 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   via: LP14: the first item turned from thanking a person unlocks their hype emoji once
   because: an emoji shown before its item turned would give the item away and play its unlock twice (LP14), and the flag can go either way, so the old flow keeps its hype emoji (LP6)
   refuted: isHeldForItsItem held no hype emoji, so getAlbum answered it earned while its item waited -> 1 of 2 tests failed: the hype emoji read earned before any item thanking its person turned (2026-10-21)
+  refuted: a hoggie's turn unlocked the thanked person's hype emoji while that person's sticker item still waited face down -> 1 of 4 tests failed: the hoggie's turn answered the hype the sticker's turn should bring (2026-10-21)
+  refuted: the person page and Slack's earned-emoji check counted a packed person's hype emoji earned while its thanks item still waited face down -> 1 of 4 tests failed: the person page read the hype emoji earned and Slack counted it before its item turned (2026-10-21)
   kinds: read, state
   checklist: legal-state-succession dismissed: a seen emoji stays seen; the hold reads the board and the seen rows fresh
   checklist: supersession-safety dismissed: the turn writes the emoji's seen row once, in the mutation that turns the item
@@ -259,6 +261,7 @@ Items: every reward a member has not seen (LP2, `spec/core-loop.md` on `spec/cor
   via: LP44 LP50: a member's first sign-in earns one welcome item
   because: the welcome item is the newcomer's first reward (LP44): a second earn would hand a returning member another rare hoggie, an earn for a member who signed in before the flag would surprise everyone who already uses the website, and an earn while either flag is off would leave a dark feature's item waiting (LP50)
   refuted: earnWelcomeItem no longer read welcome-item and hidden-items before earning -> 3 of 4 tests failed: the member who signed in before the flag, and the first sign-ins with welcome-item off and with hidden-items off, each earned a welcome item (2026-10-21)
+  refuted: a verification that found the member never earned the welcome item, whether or not it came from their first sign-in -> 1 of 6 tests failed: a person the directory learnt of only by verifying their first sign-in earned no welcome item (2026-10-21)
   kinds: storage, state, identity
   checklist: scoped-reads dismissed: the earn reads only the signing-in member's own item of that key
   checklist: revalidated-permission dismissed: both flags are read in the sign-in's own mutation

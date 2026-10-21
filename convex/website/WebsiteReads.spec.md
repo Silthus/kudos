@@ -683,6 +683,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   over: a member with no last visit and with nothing since it, a busy return with each kind, a return past five entries, a level-up among newer kudos, hugs on a message before and after the last visit, a kudos whose XP progression waits with one after it, one whose progression never records past ten minutes, xp-moments off, and xp-moments on with hidden-items off
   via: LP27 LP28: getXpMoment plays what happened since the last visit
   refuted: getXpMoment read Activity without the last visit as its lower bound -> 6 of 7 tests failed: a member with nothing since the last visit read a moment instead of none, and a busy return replayed the kudos from before it (2026-10-21)
+  refuted: getXpMoment played every entry since the last visit, whether its XP progression had recorded or not -> 2 of 9 tests failed: a kudos whose XP had not recorded showed in the moment, and so did one still waiting under ten minutes (2026-10-21)
   because: the core-loop spec plays what happened since the last visit as one XP moment (LP27, LP28); a read without the lower bound would replay old kudos, one that counted a message's earlier hugs would pay them twice, and a level-up left out would hide the climb the takeover celebrates (LP34)
   crossing: browser -> domain
   entrances: query getXpMoment
@@ -693,6 +694,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   over: an end while a kudos is decided during the moment, an arrival after a read that answered none with a kudos decided since, a second tab's end and an older moment's end, an end at an instant past what was read, an end that skips with a level crossed, and an end with xp-moments off
   via: LP26 LP35: endXpMoment moves the last visit to the newest instant the moment read
   refuted: endXpMoment moved the last visit to the clock instead of the newest instant the moment read -> 2 of 5 tests failed: the kudos decided while the moment played was skipped by the next moment, and the second tab read a later last visit than the moment it ended (2026-10-21)
+  refuted: arrive moved the last visit to the newest instant whether or not Activity held entries above it the moment had yet to play -> 1 of 6 tests failed: an arrival after a read that answered none moved past the kudos decided since, so the next read skipped it (2026-10-21)
   because: LP26 moves the last visit once per visit at the moment's end, to the newest instant it read; a move to the clock would drop entries decided while it played, a stale tab's end would replay or skip another tab's moment (LP35), and a count the browser sent could claim excerpts it never showed (LP36)
   crossing: browser -> domain
   entrances: mutation endXpMoment
