@@ -6,9 +6,10 @@ import { flagsFromPostHog, flagsOnForEveryone, offForEveryone, onForEmails, onFo
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { react, setWorkspaceSettings, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHome } from "../../testing/slackInteractions";
-import { appHomeOpened } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { aSignedInSession } from "../../testing/website";
 import type { Id } from "../_generated/dataModel";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import crons from "../crons";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
@@ -18,7 +19,8 @@ const hourMs = 60 * minuteMs;
 const siteUrl = "https://kudos-site.test";
 const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
 const teaserOn = ["website", "xp-levels", "hugs", "message-settings", "hidden-items", "teasers"];
-const everyone = ["U_ALICE", "U_BOB", "U_CAROL", "U_DANA", "U_ERIN"];
+const kudosOn = [...teaserOn, "album"];
+const everyone = ["U_ALICE", "U_BOB", "U_CAROL", "U_DANA", "U_ERIN", "U_FRAN"];
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -74,12 +76,34 @@ describe("LP38 LP39 LP41: the teaser counts what waits on App Home's front door 
     expect(recapsTo("U_DANA")).toHaveLength(1);
   });
 
+  test("App Home and the hugs recap add the kudos that came in since the last visit, left out before a first visit, alone when nothing waits, and 50+ past fifty", async () => {
+    await aWorkspace(kudosOn.map(onForEveryone));
+    await hugs("U_ALICE", ["U_BOB"]);
+    for (const user of ["U_BOB", "U_DANA", "U_ERIN"]) await thanks("U_ALICE", user);
+    await itemsWaitFor("U_BOB", 2);
+    await opensHome("U_BOB");
+    expect(lineAfterTheLevelLine("U_BOB")).toBe("section: 2 items wait");
+
+    for (const user of ["U_BOB", "U_DANA", "U_ERIN"]) await visitsTheWebsite(user);
+    await thanks("U_CAROL", "U_BOB");
+    await thanks("U_FRAN", "U_BOB");
+    await thanks("U_CAROL", "U_ERIN");
+    await kudosCameInFor("U_DANA", 51);
+    for (const user of ["U_BOB", "U_DANA", "U_ERIN"]) await opensHome(user);
+    await recapsSentOnMonday();
+
+    expect(lineAfterTheLevelLine("U_BOB")).toBe("section: 2 items wait · 2 kudos came in since your last visit");
+    expect(lineAfterTheLevelLine("U_ERIN")).toBe("section: 1 kudos came in since your last visit");
+    expect(lineAfterTheLevelLine("U_DANA")).toBe("section: 50+ kudos came in since your last visit");
+    expect(recapTo("U_BOB")).toContain("2 items wait · 2 kudos came in since your last visit");
+  });
+
   test.each([
-    { condition: "with teasers off", flags: [...teaserOn.filter((key) => key !== "teasers").map(onForEveryone), offForEveryone("teasers")] },
-    { condition: "with teasers on but hidden-items off", flags: [...teaserOn.filter((key) => key !== "hidden-items").map(onForEveryone), offForEveryone("hidden-items")] },
-    { condition: "with teasers on for someone else's email only", flags: [...teaserOn.filter((key) => key !== "teasers").map(onForEveryone), onForEmails("teasers", "alice@example.com")] },
-  ])("$condition, a walk of hugs, waiting items, App Home and the Monday recaps makes every Slack call the same walk makes with no teasers flag", async ({ flags }) => {
-    const withoutTheFlag = await walkWith(teaserOn.filter((key) => key !== "teasers").map(onForEveryone));
+    { condition: "with teasers off", flags: [...kudosOn.filter((key) => key !== "teasers").map(onForEveryone), offForEveryone("teasers")] },
+    { condition: "with teasers on but hidden-items off", flags: [...kudosOn.filter((key) => key !== "hidden-items").map(onForEveryone), offForEveryone("hidden-items")] },
+    { condition: "with teasers on for someone else's email only", flags: [...kudosOn.filter((key) => key !== "teasers").map(onForEveryone), onForEmails("teasers", "erin@example.com")] },
+  ])("$condition, a walk of hugs, kudos around a visit, waiting items, App Home and the Monday recaps makes every Slack call the same walk makes with no teasers flag", async ({ flags }) => {
+    const withoutTheFlag = await walkWith(kudosOn.filter((key) => key !== "teasers").map(onForEveryone));
 
     const walk = await walkWith(flags);
 
@@ -90,6 +114,9 @@ describe("LP38 LP39 LP41: the teaser counts what waits on App Home's front door 
 async function walkWith(flags: FlagDefinition[]) {
   await aWorkspace(flags);
   await hugs("U_ALICE", ["U_BOB", "U_CAROL"]);
+  await thanks("U_ALICE", "U_BOB");
+  await visitsTheWebsite("U_BOB");
+  await thanks("U_CAROL", "U_BOB");
   await itemsWaitFor("U_BOB", 2);
   await opensHome("U_BOB");
   await recapsSentOnMonday();
@@ -117,6 +144,26 @@ async function hugs(hugger: string, authors: string[]) {
     messages.push(message);
   }
   return messages;
+}
+
+async function thanks(giver: string, recipient: string) {
+  seeded += 1;
+  const ts = `${Math.floor(Date.now() / 1000)}.${String(seeded).padStart(6, "0")}`;
+  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), text(" thanks for untangling the release notes today "), emoji("taco"))], { user: giver, ts })));
+  await settleUpTo(t, Date.now() + minuteMs);
+}
+
+async function visitsTheWebsite(user: string) {
+  const { asSignedIn } = await aSignedInSession(t, { user });
+  await asSignedIn.mutation(api.website.lastVisit.arrive, { from: null });
+}
+
+async function kudosCameInFor(user: string, count: number) {
+  await t.run(async (ctx) => {
+    const member = (await ctx.db.query("members").take(20)).find((row) => row.user === user)!._id;
+    const { _id, _creationTime, ...received } = (await ctx.db.query("awards").withIndex("by_recipient_at", (q) => q.eq("recipient", member)).order("desc").first())!;
+    for (let index = 1; index <= count; index += 1) await ctx.db.insert("awards", { ...received, message: `${received.message}${index}`, at: received.at + index });
+  });
 }
 
 async function itemsWaitFor(user: string, count: number) {

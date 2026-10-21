@@ -3,7 +3,7 @@ import type { TurnAnswer } from "../../../convex/website/album";
 
 export type Turned = Extract<TurnAnswer, { kind: "turned" }>;
 
-export type FlightStage = "lift" | "turn" | "hold" | "land" | "unlock" | "rest" | "back";
+export type FlightStage = "lift" | "turn" | "hold" | "land" | "unlock" | "medal" | "rest" | "back";
 
 export const buildSpeed = 0.8;
 
@@ -32,6 +32,9 @@ export const turnTiming = {
   unlockAfterMs: atBuildSpeed(380),
   sealPopMs: atBuildSpeed(760),
   unlockHoldMs: atBuildSpeed(1300),
+  medalAfterMs: atBuildSpeed(380),
+  medalPopMs: atBuildSpeed(760),
+  medalHoldMs: atBuildSpeed(1500),
   restMs: atBuildSpeed(800),
   backMs: atBuildSpeed(420),
 };
@@ -98,6 +101,11 @@ export type TurnSteps = {
   jumpToTheSeal: (team: string) => void;
   unlockTheTeam: (team: string) => Promise<void>;
   endTheUnlock: () => void;
+  medalInView: (tier: ReachedTier) => boolean;
+  goToTheMilestones: () => void;
+  jumpToTheMedal: (tier: ReachedTier) => void;
+  popTheMedal: (tier: ReachedTier) => Promise<void>;
+  endTheMedal: () => void;
   nothingWaits: () => boolean;
 };
 
@@ -181,8 +189,30 @@ function teamUnlockOf(team: string): FollowUp {
   };
 }
 
-function milestoneBeatsOf(_tiers: ReachedTier[]): FollowUp[] {
-  return [];
+function milestoneBeatsOf(tiers: ReachedTier[]): FollowUp[] {
+  return tiers.map(medalBeatOf);
+}
+
+function medalBeatOf(tier: ReachedTier): FollowUp {
+  return async (clock, steps) => {
+    await clock.sleep(turnTiming.medalAfterMs);
+    if (!steps.medalInView(tier)) await fadeToTheMedal(clock, steps, tier);
+    steps.stage("medal");
+    await steps.popTheMedal(tier);
+    await clock.sleep(turnTiming.medalHoldMs);
+    steps.endTheMedal();
+  };
+}
+
+async function fadeToTheMedal(clock: TurnClock, steps: TurnSteps, tier: ReachedTier) {
+  steps.darken(true);
+  await clock.sleep(turnTiming.darkMs);
+  steps.goToTheMilestones();
+  await clock.sleep(turnTiming.pageDrawnMs);
+  steps.jumpToTheMedal(tier);
+  await clock.sleep(turnTiming.jumpMs);
+  steps.darken(false);
+  await clock.sleep(turnTiming.lightMs);
 }
 
 async function rest(clock: TurnClock, steps: TurnSteps) {
