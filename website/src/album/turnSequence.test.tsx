@@ -428,6 +428,28 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(scrolled.mock.contexts).toContain(thePlate());
   });
 
+  it.each([
+    ["the turn", 1.0, "turn"],
+    ["the hold", 2.6, "hold"],
+  ])("lands the item without the flight when skipped during %s while its page still loads, and brings the slot into view once the page shows", async (_, skippedAt, skippedStage) => {
+    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
+    const page = hoggiesThatAnswerLater(theDanceFound());
+    visit({ hoggiesRead: page.read });
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(skippedAt);
+    expect(stage()).toBe(skippedStage);
+    await act(async () => fireEvent.pointerDown(document.body));
+    expect(ground()).toBeNull();
+    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("70's Dance: Rare hoggie · New");
+
+    await act(async () => page.answers());
+    await at(skippedAt + 0.2);
+    expect(thePlate()).toHaveAttribute("data-landed");
+    expect(thePlate()).not.toHaveAttribute("data-arriving");
+    expect(scrolled.mock.contexts).toContain(thePlate());
+  });
+
   it("leaves no timer behind when the album goes mid-flight", async () => {
     const { unmount } = visit();
     await clickOnFakeTime(await theFirstItem());

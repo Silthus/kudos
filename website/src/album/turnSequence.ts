@@ -79,7 +79,7 @@ export function turnClock(): TurnClock {
         if (waited >= ms) return false;
         await sleep(turnTiming.pageLookMs);
       }
-      return true;
+      return ready();
     },
     async animate(element, keyframes, { duration, easing }) {
       const animation = typeof element?.animate === "function" ? element.animate(keyframes, { duration, easing, fill: "forwards" }) : null;

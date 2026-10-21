@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { flushSync } from "react-dom";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { TurnedFaceShown } from "../../../convex/website/album";
 import { medalKeyOf } from "./milestones";
@@ -80,8 +81,10 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
     lift: () => motion.moveTo(start.spot, start.size / Math.max(1, start.from.width), turnTiming.liftMs, liftEasing, 40),
     goToThePage(turned) {
       kind = turned.face.kind;
-      change({ face: turned.face });
-      arrival.land(turned);
+      flushSync(() => {
+        change({ face: turned.face });
+        arrival.land(turned);
+      });
       scrollToTheTop();
     },
     flip: () => clock.animate(boxes.flip.current, flipFrames, { duration: turnTiming.flipMs, easing: "cubic-bezier(0.45, 0, 0.2, 1)" }),
