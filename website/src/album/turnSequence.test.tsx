@@ -335,6 +335,18 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(turnItem).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves no timer behind when the album goes mid-flight", async () => {
+    const { unmount } = visit();
+    await clickOnFakeTime(await theFirstItem());
+    await at(1.8);
+    expect(stage()).toBe("hold");
+
+    unmount();
+    await act(() => Promise.resolve());
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("brings the board back with the trouble said when the turn is refused mid-flight", async () => {
     visit({ reply: async () => ({ kind: "refused" }) });
     await clickOnFakeTime(await theFirstItem());

@@ -44,10 +44,12 @@ export type TurnClock = {
   animate: (element: Element | null | undefined, keyframes: Keyframe[], options: { duration: number; easing?: string }) => Promise<void>;
   skip: () => void;
   timeAgain: () => void;
+  stop: () => void;
 };
 
 export function turnClock(): TurnClock {
   let skipping = false;
+  let stopped = false;
   const waiting = new Set<() => void>();
   const running = new Set<Animation>();
   const sleep = (ms: number) => {
@@ -62,6 +64,11 @@ export function turnClock(): TurnClock {
       waiting.add(done);
     });
   };
+  const skip = () => {
+    skipping = true;
+    running.forEach((animation) => animation.finish());
+    [...waiting].forEach((done) => done());
+  };
   return {
     sleep,
     async animate(element, keyframes, { duration, easing }) {
@@ -71,13 +78,13 @@ export function turnClock(): TurnClock {
       await sleep(duration);
       if (animation !== null) running.delete(animation);
     },
-    skip() {
-      skipping = true;
-      running.forEach((animation) => animation.finish());
-      [...waiting].forEach((done) => done());
-    },
+    skip,
     timeAgain() {
-      skipping = false;
+      skipping = stopped;
+    },
+    stop() {
+      stopped = true;
+      skip();
     },
   };
 }

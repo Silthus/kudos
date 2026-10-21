@@ -25,6 +25,7 @@ export function useTurnFlight() {
   const boxes: FlightBoxes = { flyer: useRef<HTMLDivElement>(null), flip: useRef<HTMLDivElement>(null), disc: useRef<HTMLSpanElement>(null) };
   const clock = useRef<TurnClock | null>(null);
   useSkipWhileFlying(flight !== null, clock);
+  useSkipOnceGone(clock);
   const { flyer, flip, disc } = boxes;
   const fly = useCallback(
     async (item: string, from: DOMRect, answer: Promise<Turned | null>, arrival: Arrival) => {
@@ -60,6 +61,10 @@ function useSkipWhileFlying(flying: boolean, clock: RefObject<TurnClock | null>)
       window.removeEventListener("keydown", onKey, true);
     };
   }, [flying, clock]);
+}
+
+function useSkipOnceGone(clock: RefObject<TurnClock | null>) {
+  useEffect(() => () => clock.current?.stop(), [clock]);
 }
 
 const skipKeys = new Set(["Enter", " ", "Escape"]);
