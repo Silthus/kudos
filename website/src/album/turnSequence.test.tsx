@@ -21,6 +21,8 @@ const tinOrchard = { team: "tin-orchard", name: "Tin Orchard", art: { kind: "cre
 
 const itemBoardCss = readFileSync(join(__dirname, "itemBoard.css"), "utf8");
 
+const hoggiesCss = readFileSync(join(__dirname, "hoggies.css"), "utf8");
+
 beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
@@ -204,7 +206,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(turnItem).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the hoggie off the page until it lands: the top of Hoggies names no new find and its plate waits empty", async () => {
+  it("keeps the hoggie off the page until it lands: the top of Hoggies names no new find and its plate waits empty and unmarked", async () => {
     visit();
     await clickOnFakeTime(await theFirstItem());
 
@@ -212,10 +214,13 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     const main = within(screen.getByRole("main"));
     expect(main.queryByText("70's Dance")).toBeNull();
     expect(thePlate()).toHaveTextContent("Not found yet");
+    expect(thePlate()).toHaveAttribute("data-arriving");
+    expect(hoggiesCss).toMatch(/\.al-hoggies-plate\[data-landed\]:not\(\[data-arriving\]\) \{\s*outline:/);
 
     await at(4.1);
     expect(thePlate()).toHaveTextContent("70's Dance");
     expect(thePlate()).toHaveAttribute("data-landed");
+    expect(thePlate()).not.toHaveAttribute("data-arriving");
   });
 
   it("flies the +15 XP chip to the bar during the hold, and the bar moves only once it lands", async () => {
