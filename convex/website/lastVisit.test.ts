@@ -75,7 +75,7 @@ describe("LP26: the last visit moves forward once per visit", { timeout: 60_000 
   });
 
   test("a kudos received since the last visit moves it at the next arrival, so the teaser's kudos since the last visit start after what the member came back to", async () => {
-    const receivedAt = (await thanks(alice, bob)).at;
+    const receivedAt = (await thanks(alice, bob)).decidedAt;
     vi.setSystemTime(Date.now() + 10 * minuteMs);
 
     expect(await arrive(await signedIn(bob), null)).toEqual({ kind: "arrived", lastVisit: receivedAt });
@@ -184,19 +184,19 @@ async function thanks(giver: Person, ...recipients: Person[]) {
   const ts = `${at / 1000}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${why} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
   await settle(t);
-  return { at: await newestAwardAt(recipients[0]!) };
+  return { decidedAt: await newestAwardDecidedAt(recipients[0]!) };
 }
 
-async function newestAwardAt(recipient: Person) {
+async function newestAwardDecidedAt(recipient: Person) {
   const member = await memberOf(recipient);
   const award = await t.run((ctx) =>
     ctx.db
       .query("awards")
-      .withIndex("by_recipient_at", (q) => q.eq("recipient", member))
+      .withIndex("by_recipient_decided", (q) => q.eq("recipient", member))
       .order("desc")
       .first(),
   );
-  return award!.at;
+  return award!._creationTime;
 }
 
 function arrive(reader: Reader, from: number | null): Promise<ArrivalAnswer | Denial> {

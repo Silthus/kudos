@@ -2,6 +2,9 @@ import { act, fireEvent, screen, within } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message } from "../../../convex/activity/entries";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { levelOf, xpToReach } from "../../../convex/progression/levels";
+import type { BoardItem } from "../../../convex/website/album";
 import type { XpMoment } from "../../../convex/website/xpMoment";
 import { shellFixtures, type ArrivalReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
@@ -277,6 +280,7 @@ describe("LP31 LP32: collecting streams the XP into the bar and the canvas becom
     await collectAt(arrivedAndRead);
 
     await at(1.42 + 0.55 + 0.7 + 0.4);
+    await act(async () => fireEvent.click(theTakeover()!));
     expect(theCanvas()).toBeNull();
     const board = within(theItemBoard()!);
     expect(board.getByText(/from 16 moments since/)).toHaveTextContent("+178 XP from 16 moments since Mon 09:12");
@@ -401,5 +405,148 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     await at(5);
 
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
+  });
+});
+
+const levelItemsOf = (level: number): BoardItem[] => Array.from({ length: 3 }, (_, index) => ({ item: `level-${level}-${index + 1}` as Id<"items">, earnedAt: lastVisit + 50 * minute, reason: { kind: "levelUp", level } }));
+
+const withLevelSevenItems: Album = { ...returning, board: { items: [...returning.board!.items, ...levelItemsOf(7)], more: false } };
+
+function standingAt(xp: number) {
+  const level = levelOf(xp);
+  return { level, xp, startsAt: xpToReach(level), nextAt: xpToReach(level + 1) };
+}
+
+const toLevelTen: XpMoment = {
+  ...busyReturn,
+  excerpts: busyReturn.excerpts.map((excerpt) => (excerpt.entry.kind === "levelUp" ? { ...excerpt, entry: { ...excerpt.entry, level: 10 } } : excerpt)),
+  climb: { from: standingAt(xpToReach(10) - 50), to: standingAt(xpToReach(10) + 128) },
+};
+
+const levelTenEarned = returning.emojis.map((emoji) => (emoji.id === "level:10" ? { ...emoji, earned: true, earnedAt: lastVisit + 50 * minute, seen: false, progress: null } : emoji));
+
+const atLevelTen: Album = { ...returning, level: toLevelTen.climb.to, emojis: levelTenEarned, board: { items: [...returning.board!.items, ...levelItemsOf(10)], more: false } };
+
+const collectedAndStreamed = 1.42 + 0.55 + 0.7 + 0.38;
+
+function theTakeover() {
+  return screen.queryByRole("group", { name: /^You reached level \d+$/ });
+}
+
+function theEmojiPopUp() {
+  return screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ });
+}
+
+async function crossTheLevel(visit: Visit = {}) {
+  const view = await returnTo(visit);
+  await collectAt(arrivedAndRead);
+  await at(collectedAndStreamed + 0.02);
+  return view;
+}
+
+describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, () => {
+  it("after the bar fills across a level a gold Level N disc drops, reads You reached level N!, the level's items face down and how far the next level is, with no skill point or emblem, and stays until a click flows into the board where they wait with their tag", async () => {
+    const { actions } = await returnTo({ album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(collectedAndStreamed - 0.1);
+    expect(theTakeover()).toBeNull();
+    await at(collectedAndStreamed + 0.02);
+    const takeover = within(theTakeover()!);
+    expect(theTakeover()!.querySelector(".xpm-lvl-disc")).toHaveTextContent(/^Level\s*7$/);
+    expect(theTakeover()!.querySelector(".xpm-lvl-rays")).not.toBeNull();
+    expect(takeover.getByTestId("confetti")).toHaveAttribute("data-size", "gold");
+    expect(takeover.getByRole("heading", { name: "You reached level 7!" })).toBeInTheDocument();
+    const items = takeover.getByRole("listitem", { name: "3 new items unlocked" });
+    expect(items.querySelectorAll(".ib-back")).toHaveLength(3);
+    expect(takeover.getByText("Level 8 is 460 XP away")).toBeInTheDocument();
+    expect(takeover.getAllByRole("listitem")).toHaveLength(1);
+    expect(theTakeover()).not.toHaveTextContent(/skill point|emblem/i);
+    expect(xpWords()).toBe("460 XP to level 8");
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+
+    await at(collectedAndStreamed + 30);
+    expect(theTakeover()).toBeInTheDocument();
+    expect(theItemBoard()).toBeNull();
+
+    await act(async () => fireEvent.click(theTakeover()!));
+    expect(theTakeover()).toBeNull();
+    expect(theCanvas()).toBeNull();
+    const board = within(theItemBoard()!);
+    expect(board.getByText(/from 16 moments since/)).toBeInTheDocument();
+    const levelItems = board.getAllByRole("button", { name: "A face-down item from level 7. Turn it over" });
+    expect(levelItems).toHaveLength(3);
+    expect(levelItems.map((item) => within(item).getByText("Level 7"))).toHaveLength(3);
+    expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
+  });
+
+  it("pops the level's emoji in after the items where the level earns one and counts it as seen once, so the arrival emoji pop-up never shows it", async () => {
+    const { actions } = await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+
+    const unlocks = within(theTakeover()!).getAllByRole("listitem");
+    expect(unlocks.map((unlock) => unlock.getAttribute("aria-label"))).toEqual(["3 new items unlocked", "New emoji :level-10:"]);
+    expect(unlocks[1]!.querySelector("img")).toHaveAttribute("src", "/emoji/level-10.png");
+    expect(within(theTakeover()!).getByText("Level 11 is 772 XP away")).toBeInTheDocument();
+    expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
+    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+
+    await act(async () => fireEvent.click(theTakeover()!));
+    await at(collectedAndStreamed + 3);
+    expect(theItemBoard()).toBeInTheDocument();
+    expect(theEmojiPopUp()).toBeNull();
+    expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves out an emoji the member has already seen and the items line when none of the level's items wait, and flows into All caught up", async () => {
+    const seenAlready = levelTenEarned.map((emoji) => (emoji.id === "level:10" ? { ...emoji, seen: true } : emoji));
+    await crossTheLevel({ moment: { ...toLevelTen, waiting: 0 }, album: { ...atLevelTen, emojis: seenAlready, board: { items: [], more: false } } });
+
+    expect(theTakeover()).toHaveTextContent("You reached level 10!");
+    expect(within(theTakeover()!).queryAllByRole("listitem")).toHaveLength(0);
+    await act(async () => fireEvent.click(theTakeover()!));
+    expect(within(theCanvas()!).getByText("All caught up")).toBeInTheDocument();
+  });
+
+  it("Continue has the focus, and Esc flows into the board as a click does", async () => {
+    await crossTheLevel({ album: withLevelSevenItems });
+
+    expect(within(theTakeover()!).getByRole("button", { name: "Continue" })).toHaveFocus();
+    await act(async () => fireEvent.keyDown(window, { key: "Escape" }));
+    expect(theTakeover()).toBeNull();
+    expect(theItemBoard()).toBeInTheDocument();
+  });
+
+  it("Skip lands on the board with the XP in the bar and no takeover, and the crossed level's emoji counts as seen without the pop-up", async () => {
+    const { actions } = await returnTo({ moment: toLevelTen, album: atLevelTen });
+    await at(canvasArrival + 0.2);
+
+    await act(async () => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })));
+    await at(canvasArrival + 4);
+
+    expect(theTakeover()).toBeNull();
+    expect(xpWords()).toBe("772 XP to level 11");
+    expect(theItemBoard()).toBeInTheDocument();
+    expect(theEmojiPopUp()).toBeNull();
+    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+  });
+
+  it("reduced motion lands on the board at once with the XP in the bar, and the crossed level's emoji counts as seen without the pop-up", async () => {
+    preferReducedMotion();
+    const { actions } = await returnTo({ moment: toLevelTen, album: atLevelTen });
+    await at(3);
+
+    expect(theTakeover()).toBeNull();
+    expect(xpWords()).toBe("772 XP to level 11");
+    expect(theItemBoard()).toBeInTheDocument();
+    expect(theEmojiPopUp()).toBeNull();
+    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+  });
+
+  it("with xp-moments off the level's emoji pops up on arrival as before", async () => {
+    const { actions } = await returnTo({ moment: { kind: "off" }, album: atLevelTen });
+    await at(1);
+
+    expect(theEmojiPopUp()).toBeInTheDocument();
+    expect(actions.markEmojisSeen).not.toHaveBeenCalled();
   });
 });

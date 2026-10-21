@@ -157,9 +157,20 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect((await theMomentOf(asAlice)).excerpts.map(({ entry }) => entry.at), "ten minutes on").toEqual([held.at]);
   });
 
+  test("LP40 LP41: the moment carries this week's thoughtful givers where xp-moments is on, with teasers off, and none below three", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, bob);
+    expect((await theMomentOf(asAlice)).thoughtfulGivers).toBeNull();
+
+    await thanks(carol, bob);
+
+    expect((await theMomentOf(asAlice)).thoughtfulGivers).toBe(3);
+  });
+
   test("with xp-moments off, getXpMoment answers off and the arrival moves the last visit as it did before", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen, "hidden-items");
-    const receivedAt = (await thanks(bob, alice)).at;
+    await thanks(bob, alice);
+    const receivedAt = await newestKudosDecidedFor(alice);
     const asAlice = await signedIn(alice);
     await thanks(alice, carol);
 
@@ -347,6 +358,18 @@ async function hug(giver: Person, author: Person, ts: string) {
   later();
   await react(t, { user: giver.user, itemUser: author.user, ts, eventTs: `${Math.floor(Date.now() / 1000)}.000200`, reaction: "taco" });
   await settle(t);
+}
+
+async function newestKudosDecidedFor(recipient: Person) {
+  return t.run(async (ctx) => {
+    const member = (await ctx.db.query("members").take(20)).find(({ user }) => user === recipient.user)!._id;
+    const award = await ctx.db
+      .query("awards")
+      .withIndex("by_recipient_decided", (q) => q.eq("recipient", member))
+      .order("desc")
+      .first();
+    return award!._creationTime;
+  });
 }
 
 async function aReturningMember(someone: Person): Promise<Reader> {

@@ -1,5 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
-import { receivedAfter } from "../engine/awards";
+import { kudosDecidedAfter } from "../engine/awards";
 import { hiddenItemsShownTo, teasersShownTo } from "../items/flag";
 import { waitingCountOf, type WaitingCount } from "../items/ledger";
 import { lastVisitOf } from "../website/lastVisit";
@@ -18,7 +18,7 @@ export async function teaserOf(ctx: QueryCtx, member: MemberId): Promise<string 
 async function kudosSinceLastVisitOf(ctx: QueryCtx, member: MemberId): Promise<KudosCount | null> {
   const lastVisit = await lastVisitOf(ctx, member);
   if (lastVisit === null) return null;
-  const received = await receivedAfter(ctx, member, lastVisit, mostKudosCounted + 1);
+  const received = await kudosDecidedAfter(ctx, member, lastVisit, mostKudosCounted + 1);
   return received > mostKudosCounted ? `${mostKudosCounted}+` : received;
 }
 

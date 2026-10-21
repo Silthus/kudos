@@ -98,6 +98,29 @@ describe("LP38 LP39 LP41: the teaser counts what waits on App Home's front door 
     expect(recapTo("U_BOB")).toContain("2 items wait · 2 kudos came in since your last visit");
   });
 
+  test("three kudos emojis in one message count three kudos since the last visit", async () => {
+    await aWorkspace(kudosOn.map(onForEveryone));
+    await thanks("U_ALICE", "U_BOB");
+    await visitsTheWebsite("U_BOB");
+
+    await thanks("U_CAROL", "U_BOB", { emojis: 3 });
+    await opensHome("U_BOB");
+
+    expect(lineAfterTheLevelLine("U_BOB")).toMatch(/(: |· )3 kudos came in since your last visit$/);
+  });
+
+  test("a kudos Slack delivered after the last visit counts, even when it was sent before it", async () => {
+    await aWorkspace(kudosOn.map(onForEveryone));
+    const sentBeforeTheVisit = Date.now();
+    await thanks("U_ALICE", "U_BOB");
+    await visitsTheWebsite("U_BOB");
+
+    await thanks("U_CAROL", "U_BOB", { sentAt: sentBeforeTheVisit });
+    await opensHome("U_BOB");
+
+    expect(lineAfterTheLevelLine("U_BOB")).toBe("section: 1 kudos came in since your last visit");
+  });
+
   test.each([
     { condition: "with teasers off", flags: [...kudosOn.filter((key) => key !== "teasers").map(onForEveryone), offForEveryone("teasers")] },
     { condition: "with teasers on but hidden-items off", flags: [...kudosOn.filter((key) => key !== "hidden-items").map(onForEveryone), offForEveryone("hidden-items")] },
@@ -146,10 +169,11 @@ async function hugs(hugger: string, authors: string[]) {
   return messages;
 }
 
-async function thanks(giver: string, recipient: string) {
+async function thanks(giver: string, recipient: string, { emojis = 1, sentAt = Date.now() } = {}) {
   seeded += 1;
-  const ts = `${Math.floor(Date.now() / 1000)}.${String(seeded).padStart(6, "0")}`;
-  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), text(" thanks for untangling the release notes today "), emoji("taco"))], { user: giver, ts })));
+  const ts = `${Math.floor(sentAt / 1000)}.${String(seeded).padStart(6, "0")}`;
+  const tacos = Array.from({ length: emojis }, () => emoji("taco"));
+  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), text(" thanks for untangling the release notes today "), ...tacos)], { user: giver, ts })));
   await settleUpTo(t, Date.now() + minuteMs);
 }
 

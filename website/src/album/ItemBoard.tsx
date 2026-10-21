@@ -149,7 +149,7 @@ function LoopLine({ lesson: { kudosEmoji, kudosEmojiImage } }: { lesson: LoopLes
   );
 }
 
-function ItemBack() {
+export function ItemBack() {
   return (
     <span className="ib-back">
       <span className="ib-q">?</span>
