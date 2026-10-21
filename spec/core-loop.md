@@ -123,7 +123,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 
   ```ts
   source: "sticker" | "hoggie"
-  key: string // sticker: the pack ID; hoggie: the crate key (thoughtful:<pack>, level:<n>:<slot>, welcome)
+  key: string // sticker: the pack ID; hoggie: the crate key (thoughtful:<pack>, level:<n>:<slot>, welcome:first)
   floor?: Rarity // a level-up's third hoggie (rare), the welcome item (rare)
   reason: { kind: "thanks"; person; message } | { kind: "levelUp"; level } | { kind: "welcome" }
   earnedAt: number
@@ -202,7 +202,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 
 ### Welcome
 
-- **LP44 The welcome item.** A member who has never opened the website (no signed-in user for their Slack identity) has exactly one welcome item: a hoggie item with key `welcome`, reason `welcome`, a rare floor and no XP. It is earned when the welcome nudge is sent, and at the member's first sign-in if it is still missing. A member who signed in before `welcome-item` ships earns none. It never expires.
+- **LP44 The welcome item.** A member who has never opened the website (no signed-in user for their Slack identity) has exactly one welcome item: a hoggie item with key `welcome:first` (the `welcome` crate kind, which has no pack band), reason `welcome`, a rare floor and no XP. It is earned when the welcome nudge is sent, and at the member's first sign-in if it is still missing. A member who signed in before `welcome-item` ships earns none. It never expires.
 - **LP45 The welcome nudge.** Right after a kudos or hug the member receives, while they have never opened the website, HedgeHug sends one DM. It is sent at most once per member, ever, recorded before the send so a retry never sends twice. Members thanked before launch are reached on their next kudos or hug.
 - **LP46 Its copy.** The giver and the quoted thanks, then "Your rare hoggie is waiting for you to collect it.", then a button, "Open your HedgeHug album". For a hug the first line reads `Alex hugged your message :hedgehog:`, linking the hugged message. It never says "face down" or "item waits" and shows no XP. "Rare" is the welcome item's one exception to no spoilers, and the rare floor makes it always true; the nudge never names or shows the hoggie. A kudos from a private channel is named without a quote.
 - **LP47 Only newcomers.** A member who has opened the website gets no nudge, only the teaser.
