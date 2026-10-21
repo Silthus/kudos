@@ -106,7 +106,13 @@ function periodIn(search: string): BoardPeriod {
 
 function weekIn(search: string): { week?: string } {
   const asked = new URLSearchParams(search).get("week");
-  return asked !== null && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? { week: asked } : {};
+  return asked !== null && startsAWeek(asked) ? { week: asked } : {};
+}
+
+function startsAWeek(day: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  const date = new Date(`${day}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(day) && date.getUTCDay() === 1;
 }
 
 function questIn(search: string): QuestTarget | undefined {

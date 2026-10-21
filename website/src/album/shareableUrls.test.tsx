@@ -172,8 +172,17 @@ describe("every album place has one shareable address", () => {
       expect(window.history.length).toBe(entries);
     });
 
-    it("a week that isn't a date lands on this week", async () => {
-      visit("/activity?week=soon");
+    it("a week opened from its URL still knows this week, so This week takes the week out of the URL", async () => {
+      const { user } = visit("/activity?week=2026-09-28");
+      await expectToLand({ address: "/activity?week=2026-09-28", title: "Weekly edition" });
+
+      await user.click(within(screen.getByRole("tablist", { name: "Weeks" })).getByRole("tab", { name: /^This week/ }));
+
+      await waitFor(() => expect(addressNow()).toBe("/activity"));
+    });
+
+    it.each(["soon", "2026-99-99", "2026-02-30", "2026-09-30"])("a week of %s, which starts no week, lands on this week", async (week) => {
+      visit(`/activity?week=${week}`);
       await expectToLand({ address: "/activity", title: "Weekly edition" });
     });
 
