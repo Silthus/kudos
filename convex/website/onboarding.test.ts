@@ -123,7 +123,7 @@ describe("LP69: closeHowItWorks stores the member's close once and records onboa
   });
 });
 
-describe("LP76: getAlbum answers Getting started, each step done from one read", { timeout: 60_000 }, () => {
+describe("LP76: getAlbum answers the onboarding steps, each done from one read", { timeout: 60_000 }, () => {
   test("a newcomer has done none of the four steps", async () => {
     expect((await albumOf(await signedIn(juno))).gettingStarted).toEqual({ steps: { hugged: false, thoughtful: false, turned: false, levelTwo: false }, kudos: taco });
   });

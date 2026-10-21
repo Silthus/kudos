@@ -728,6 +728,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - getAlbum answers the how-it-works card only to a member who never gave a kudos and never closed it: While `onboarding` is on for the signed-in member, which reads `hidden-items` too, getAlbum answers the how-it-works card, with the address of the member's Slack workspace, the workspace's kudos emoji and its picture, and toLevelTwo while the member is below level 2, exactly while the member has given no kudos award and has stored no close of the card; a kudos the member received leaves it; while `onboarding` or `hidden-items` is off it answers no card (LP67, LP68).
   over: a newcomer, a giver beside the teammate they thanked, a never-giver at level 2, and onboarding off and hidden-items off
   via: LP67 LP68: getAlbum answers the how-it-works card to a member who never gave a kudos and never closed it
+  refuted: getAlbum answered the how-it-works card whether or not the member had given a kudos -> 1 of 5 tests failed: a member who had given a kudos still read the card (2026-10-21)
   because: the card teaches a newcomer the two ways to thank someone (LP67); a card answered to a member who has given a kudos would teach what they already did, and one answered after a close would bring back what they dismissed
   crossing: browser -> domain
   entrances: query getAlbum
@@ -737,6 +738,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - a member's how-it-works close is stored and recorded once: closeHowItWorks, while `album` and `onboarding` are on for the signed-in member, stores the member's close with triedSlack once and records onboarding card closed with tried_slack once, from that first close; a second close stores and records nothing; a stored close keeps the card away even after `onboarding` turns off and back on; while `album` or `onboarding` is off it answers refused and writes nothing (LP69).
   over: a close with triedSlack true and a second close, a close with triedSlack false, a close with onboarding turned off and back on, and a close with onboarding off
   via: LP69: closeHowItWorks stores the member's close once and records onboarding card closed
+  refuted: closeHowItWorks stored and recorded every close, not only the member's first -> 1 of 4 tests failed: a second close stored a second row and recorded onboarding card closed again (2026-10-21)
   because: the close is the card's one usage fact (LP69); a second record would count a newcomer twice in the funnel, and a second stored close would let a later close rewrite whether they tried Slack
   crossing: browser -> domain
   entrances: mutation closeHowItWorks
@@ -748,9 +750,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: worker-fencing dismissed: no worker owns a close; each is one mutation
   checklist: commit-ordered-effects dismissed: the usage fact is scheduled in the mutation that stores the close, so only a committed close records it
   checklist: resumption-coverage dismissed: no batch operation resumes; each close is one mutation
-- Getting started counts each step from its own read: While `onboarding` is on for the signed-in member, getAlbum answers Getting started with the workspace's kudos emoji and four steps: `hugged` from a hug the member gave, never one they received; `thoughtful` from a thoughtful kudos the member gave, never one that says no why; `turned` from an item the member turned; and `levelTwo` from the member's level; while it is off getAlbum answers none (LP76).
+- each onboarding step counts from its own read: While `onboarding` is on for the signed-in member, getAlbum answers `Getting started` with the workspace's kudos emoji and four steps: `hugged` from a hug the member gave, never one they received; `thoughtful` from a thoughtful kudos the member gave, never one that says no why; `turned` from an item the member turned; and `levelTwo` from the member's level; while it is off getAlbum answers none (LP76).
   over: a newcomer, a hug given and one received, a thoughtful kudos and its item turned, a kudos that says no why, a member reaching level 2, and onboarding off
-  via: LP76: getAlbum answers Getting started, each step done from one read
+  via: LP76: getAlbum answers the onboarding steps, each done from one read
+  refuted: Getting started marked Give a thoughtful kudos done from any kudos the member gave -> 1 of 7 tests failed: a kudos that says no why did Give a thoughtful kudos (2026-10-21)
   because: the core-loop spec counts each step from what the member did (LP76); a step read from what others did to the member, such as a hug received, would mark the loop done before the member tried it
   crossing: browser -> domain
   entrances: query getAlbum
