@@ -729,3 +729,36 @@
   font-weight: 700;
   white-space: nowrap;
 }
+
+.al-emoji-art[data-kind="kudos"] {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.al-emoji-back,
+.al-emoji-all {
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.al-emoji-back {
+  align-self: flex-start;
+  padding: 0.75rem 1rem 0;
+  color: var(--al-quiet);
+}
+
+.al-emoji-all {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.al-emoji-back:hover,
+.al-emoji-all:hover {
+  text-decoration: underline;
+}
