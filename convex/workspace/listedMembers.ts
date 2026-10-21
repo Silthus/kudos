@@ -1,8 +1,7 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
-import { currentMemberOfUser, directoryRecordArgs, memberRowsIn, recordIfUnknown, type DirectoryRecord, type MemberId } from "./directory";
+import { currentMemberOfUser, directoryRecordArgs, isOlder, memberRowsIn, recordIfUnknown, type DirectoryRecord, type MemberId } from "./directory";
 
 export type ListedMember = { user: ChatUserId; name: string | undefined };
 
@@ -31,17 +30,14 @@ export async function recordListedMember(ctx: MutationCtx, workspace: string, us
 
 async function keepListing(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
   const existing = await listedRow(ctx, workspace, user);
+  if (existing !== null && isOlder(asOf, existing.asOf)) return;
   if (entry.kind !== "member") {
     if (existing !== null) await ctx.db.delete(existing._id);
   } else if (existing === null) {
     await ctx.db.insert("listedMembers", { workspace, user, entry, asOf });
-  } else if (asOf >= existing.asOf && !sameEntry(existing, entry)) {
+  } else {
     await ctx.db.patch(existing._id, { entry, asOf });
   }
-}
-
-function sameEntry(existing: Doc<"listedMembers">, entry: Doc<"listedMembers">["entry"]) {
-  return JSON.stringify(existing.entry) === JSON.stringify(entry);
 }
 
 function listedRow(ctx: QueryCtx, workspace: string, user: ChatUserId) {
