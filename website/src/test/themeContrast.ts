@@ -13,6 +13,7 @@ const stylesheets = [
   readFileSync(join(websiteDirectory, "src", "album", "opening.css"), "utf8"),
   readFileSync(join(websiteDirectory, "src", "album", "team.css"), "utf8"),
   readFileSync(join(websiteDirectory, "src", "album", "hoggies.css"), "utf8"),
+  readFileSync(join(websiteDirectory, "src", "album", "xpMoment.css"), "utf8"),
 ];
 
 function declarationsIn(mode: Mode) {
@@ -92,6 +93,20 @@ export function contrastAtOpacity(mode: Mode, paint: string, surface: string, { 
   const tokens = declarationsIn(mode);
   const [ink, ground, behind] = [paint, surface, backdrop].map((name) => linearRgbOf(resolve(tokens, name))) as [Rgb, Rgb, Rgb];
   return ratio(luminanceOf(over(ink, opacity, behind)), luminanceOf(over(ground, opacity, behind)));
+}
+
+export function contrastUnderScrim(mode: Mode, paint: string, surface: string, { scrim }: { scrim: string }) {
+  const tokens = declarationsIn(mode);
+  const { colour, opacity } = translucentOf(resolve(tokens, scrim));
+  const [ink, ground] = [paint, surface].map((name) => over(colour, opacity, linearRgbOf(resolve(tokens, name)))) as [Rgb, Rgb];
+  return ratio(luminanceOf(ink), luminanceOf(ground));
+}
+
+function translucentOf(value: string) {
+  const match = /^rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)$/.exec(value);
+  if (match === null) throw new Error(`${value} is not a translucent rgb colour`);
+  const [red, green, blue, opacity] = match.slice(1).map(Number) as [number, number, number, number];
+  return { colour: [red, green, blue].map((channel) => decoded(channel / 255)) as Rgb, opacity };
 }
 
 export function contrastOnTint(mode: Mode, paint: string, tint: string, { backdrop }: { backdrop: string }) {

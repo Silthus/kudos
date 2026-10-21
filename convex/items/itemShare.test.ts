@@ -4,12 +4,13 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { offForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
-import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { edit, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { emoji, mention, section, text, type RichElement } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
+import { quotedCharactersAtMost } from "../feedback/mondayPost";
 import type { AlbumAnswer } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 
@@ -21,6 +22,7 @@ const weeklyPostChannel = "C_KUDOS";
 const albumOn = ["website", "album", "collection", "packs", "xp-levels", "hugs", "groups", "hidden-items"];
 const itemShare = "item-share";
 const shareOn = [...albumOn, itemShare].map(onForEveryone);
+const fullLengthThanks = "Thanks for staying late again ".repeat(7).slice(0, quotedCharactersAtMost);
 
 type Person = { user: string; name: string; email: string; profile: number };
 type Reader = Awaited<ReturnType<typeof aSignedInSession>>["asSignedIn"];
@@ -79,11 +81,11 @@ describe("LP51 LP53 LP54: Share posts a turned win into the weekly-post channel,
     expect(sharesPosted()).toEqual([
       {
         channel: weeklyPostChannel,
-        text: "Alice Marchetti thanked Bob Okonkwo: 'Thanks for staying late on the release checklist @Bob Okonkwo :taco:' and found a legendary Rocket",
+        text: "Alice Marchetti thanked Bob Okonkwo: 'Thanks for staying late on the release checklist' and found a legendary Rocket",
         blocks: [
           {
             type: "section",
-            text: { type: "mrkdwn", text: "*Alice Marchetti* thanked *Bob Okonkwo*: 'Thanks for staying late on the release checklist @Bob Okonkwo :taco:' and found a legendary Rocket" },
+            text: { type: "mrkdwn", text: "*Alice Marchetti* thanked *Bob Okonkwo*: 'Thanks for staying late on the release checklist' and found a legendary Rocket" },
             accessory: { type: "image", image_url: `${site}/share/rocket.png`, alt_text: "Rocket" },
           },
           { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Open HedgeHug" }, url: `${site}/book`, action_id: "item-share-open" }] },
@@ -124,6 +126,37 @@ describe("LP51 LP53 LP54: Share posts a turned win into the weekly-post channel,
     expect(leadsPosted()).toEqual(["*Alice Marchetti* thanked *Bob Okonkwo* and found an epic Angel"]);
   });
 
+  test.each([
+    { shape: "opens with the mention and the kudos emoji", says: () => [mention(bob.user), text(" "), emoji("taco"), text(" Thanks for staying late on the release checklist")], quoted: ": 'Thanks for staying late on the release checklist'" },
+    { shape: "opens with the kudos emoji, then the mention and a comma", says: () => [emoji("taco"), text(" "), mention(bob.user), text(", thanks for staying late on the release checklist!")], quoted: ": 'thanks for staying late on the release checklist!'" },
+    { shape: "opens with a comma before a thanks of the full quoted length", says: () => [mention(bob.user), text(" "), emoji("taco"), text(`, ${fullLengthThanks}`)], quoted: `: '${fullLengthThanks}'` },
+    { shape: "names a teammate inside the thanks",says: () => [mention(bob.user), text(" "), emoji("taco"), text(" thanks for pairing with "), mention(carol.user), text(" on the release checklist")], quoted: ": 'thanks for pairing with @Carol Lindqvist on the release checklist'" },
+  ])("a public thanks that $shape quotes only its words, without the mentions and kudos emoji that open or close it", async ({ says, quoted }) => {
+    await fourMembers(shareOn);
+    await posts(alice, says());
+    const asAlice = await signedIn(alice);
+    const find = await hoggieItemOf(alice, bob);
+    await turns(asAlice, find, "rocket");
+
+    await sharesThe(asAlice, find);
+
+    expect(leadsPosted()).toEqual([`*Alice Marchetti* thanked *Bob Okonkwo*${quoted} and found a legendary Rocket`]);
+  });
+
+  test("a thanks edited down to its mention and the kudos emoji names the giver and the recipient without a quote", async () => {
+    await fourMembers(shareOn);
+    const ts = await posts(alice, [mention(bob.user), text(" "), emoji("taco"), text(" Thanks for staying late on the release checklist")]);
+    const asAlice = await signedIn(alice);
+    const find = await hoggieItemOf(alice, bob);
+    await turns(asAlice, find, "rocket");
+    await edit(t, [section(mention(bob.user), text(" "), emoji("taco"))], { user: alice.user, ts, channel, editedTs: `${Math.floor(Date.now() / 1000)}.000999` });
+    await settle(t);
+
+    await sharesThe(asAlice, find);
+
+    expect(leadsPosted()).toEqual(["*Alice Marchetti* thanked *Bob Okonkwo* and found a legendary Rocket"]);
+  });
+
   test("the sticker that completes a team page offers Share, and its card reads that the giver completed the page, with the team's crest; the page's earlier sticker offers nothing", async () => {
     await fourMembers(shareOn);
     await thanks(alice, "Thanks for the careful design review today", bob, carol);
@@ -139,7 +172,7 @@ describe("LP51 LP53 LP54: Share posts a turned win into the weekly-post channel,
     expect(sharesPosted().map(({ blocks }) => blocks[0])).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: "*Alice Marchetti* thanked *Carol Lindqvist*: 'Thanks for the careful design review today @Bob Okonkwo @Carol Lindqvist :taco:' and completed the Product Analytics page" },
+        text: { type: "mrkdwn", text: "*Alice Marchetti* thanked *Carol Lindqvist*: 'Thanks for the careful design review today' and completed the Product Analytics page" },
         accessory: { type: "image", image_url: `${site}/emoji/team-product-analytics.png`, alt_text: "Product Analytics crest" },
       },
     ]);
@@ -276,12 +309,17 @@ async function flagsAre(...flags: FlagDefinition[]) {
 async function thanks(giver: Person, words: string, ...recipientsAndWhere: Array<Person | Where>) {
   const recipients = recipientsAndWhere.filter((item): item is Person => "user" in item);
   const where = recipientsAndWhere.find((item): item is Where => !("user" in item)) ?? {};
+  const thanked = recipients.flatMap(({ user }) => [mention(user), text(" ")]);
+  await posts(giver, [text(`${words} `), ...thanked, emoji("taco")], where);
+}
+
+async function posts(giver: Person, elements: RichElement[], where: Where = {}): Promise<string> {
   messages += 1;
   vi.setSystemTime(Date.now() + minuteMs);
   const ts = `${Math.floor(Date.now() / 1000)}.${String(messages).padStart(6, "0")}`;
-  const thanked = recipients.flatMap(({ user }) => [mention(user), text(" ")]);
-  await post(t, [section(text(`${words} `), ...thanked, emoji("taco"))], { user: giver.user, ts, channel: where.channel ?? channel, ...(where.channelType && { channelType: where.channelType }) });
+  await post(t, [section(...elements)], { user: giver.user, ts, channel: where.channel ?? channel, ...(where.channelType && { channelType: where.channelType }) });
   await settle(t);
+  return ts;
 }
 
 async function signedIn(someone: Person): Promise<Reader> {
