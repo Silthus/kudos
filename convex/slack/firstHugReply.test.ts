@@ -4,6 +4,7 @@ import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
 import { post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, type ReactionOptions } from "../../testing/slackMessages";
+import { standingOf } from "../progression/progression";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const hourMs = 60 * 60 * 1000;
@@ -42,7 +43,7 @@ describe("LP73: a member's first hug ever gets one first-hug reply", () => {
   test.each<[string, Partial<SlackUser>, string]>([
     ["their display name", { profile: { display_name: "Ally", real_name: "Alice Lee" } }, "Ally"],
     ["their real name without a display name", { profile: { display_name: "", real_name: "Alice Lee" } }, "Alice Lee"],
-    ["the author without either", {}, "the author"],
+    ["the author with only a Slack handle", { name: "alice" }, "the author"],
   ])("names the author by %s", async (_, alice, named) => {
     slack.withMember("U_ALICE", alice);
     const t = await workspace(onboardingOn);
@@ -120,11 +121,13 @@ describe("LP73: a member's first hug ever gets one first-hug reply", () => {
   test.each([
     ["onboarding is off", ["hugs", "hidden-items"]],
     ["hidden-items is off", ["hugs", "onboarding"]],
-  ])("while %s, a first hug sends nothing, as before", async (_, flags) => {
+  ])("while %s, a first hug is given and sends nothing, as before", async (_, flags) => {
     const t = await workspace(flags);
 
     await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
+    expect(await xpOf(t, "U_BOB")).toBe(1);
+    expect(await xpOf(t, "U_ALICE")).toBe(1);
     expect(slack.callsTo("chat.postEphemeral")).toEqual([]);
     expect(slack.callsTo("chat.postMessage")).toEqual([]);
   });
@@ -149,6 +152,16 @@ async function hug(t: Backend, options: ReactionOptions) {
 async function kudos(t: Backend, giver: string, recipients: string[]) {
   await post(t, [section(...recipients.map((user) => mention(user)), emoji("taco"))], { user: giver, ts: alicesMessage });
   await settle(t);
+}
+
+async function xpOf(t: Backend, user: string) {
+  return t.run(async (ctx) => {
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique();
+    return member === null ? 0 : (await standingOf(ctx, member._id)).xp;
+  });
 }
 
 function slackTs(at: number) {
