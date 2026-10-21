@@ -37,7 +37,7 @@ const noLevelUp: LevelUpRead = (level) => (level === null ? undefined : { kind: 
 
 const noXpMoment: XpMomentRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "makePet" | "arrive" | "endXpMoment">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "arrive" | "endXpMoment">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment };
 
@@ -73,6 +73,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     putAllIn: vi.fn(commands.putAllIn ?? (async () => ({ kind: "refused" }) as const)),
     markEmojisSeen: vi.fn(commands.markEmojisSeen ?? (async (ids: string[]) => ({ kind: "seen", ids }) as const)),
     turnItem: vi.fn(commands.turnItem ?? (async () => ({ kind: "refused" }) as const)),
+    shareItem: vi.fn(commands.shareItem ?? (async () => ({ kind: "refused" }) as const)),
     makePet: vi.fn(commands.makePet ?? (async () => ({ kind: "refused" }) as const)),
     arrive: vi.fn(commands.arrive ?? (async (from: number | null) => ({ kind: "arrived", lastVisit: from }) as const)),
     endXpMoment: vi.fn(commands.endXpMoment ?? (async (_from: number, until: number) => ({ kind: "arrived", lastVisit: until }) as const)),

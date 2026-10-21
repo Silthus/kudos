@@ -134,11 +134,11 @@ function sectionOf(text: string) {
   return { type: "section", text: mrkdwn(text) };
 }
 
-function mrkdwnOf(words: Words[]) {
+export function mrkdwnOf(words: Words[]) {
   return words.map(({ text, strong }) => (strong ? `*${escaped(text)}*` : escaped(text))).join("");
 }
 
-function plainOf(words: Words[]) {
+export function plainOf(words: Words[]) {
   return words.map(({ text }) => text).join("");
 }
 

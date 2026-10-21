@@ -91,6 +91,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         turnItem={actions.turnItem}
         xpMoment={visit.moment}
         endXpMoment={visit.endTheMoment}
+        shareItem={actions.shareItem}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>

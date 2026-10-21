@@ -110,7 +110,7 @@ async function albumLinkFor(ctx: QueryCtx, workspace: string, member: MemberId):
   return origin.endsWith(signInEntry) ? origin : `${origin}/book`;
 }
 
-async function publicQuoteOf(ctx: QueryCtx, message: MessageRef): Promise<string | null> {
+export async function publicQuoteOf(ctx: QueryCtx, message: MessageRef): Promise<string | null> {
   const words = await wordsOf(ctx, message);
   if (words.kind !== "text" || words.visibility !== "public") return null;
   return quoteOf(await readableSegmentsOf(mentionsOfOnePage(ctx), message.workspace, words.segments));

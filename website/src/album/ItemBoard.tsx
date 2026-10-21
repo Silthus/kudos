@@ -2,11 +2,13 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 import type { HypeEmoji } from "../../../convex/album/earnedEmojis";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
+import type { ShareReply } from "../shell";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { NamedEmoji } from "../Emoji";
 import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
+import { ShareWin } from "./ShareWin";
 import { emblemOf, medalEmojiOf, medalKeyOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
@@ -67,7 +69,9 @@ export function ItemBoard({ board, turning, trouble, flight, lead, onTurn, onLat
   );
 }
 
-export function ItemsWait({ turns, album }: { turns: ShownTurns; album: Album }) {
+type ItemsWaitProps = { turns: ShownTurns; album: Album; shareItem: (item: string) => Promise<ShareReply> };
+
+export function ItemsWait({ turns, album, shareItem }: ItemsWaitProps) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
   const said = landing !== null && !open && flight === null;
   return (
@@ -77,6 +81,7 @@ export function ItemsWait({ turns, album }: { turns: ShownTurns; album: Album })
       </p>
       {said && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
       {said && landing.teaches && <LoopLine lesson={landing.teaches} />}
+      {said && <ShareWin key={landing.item} item={landing.item} offered={album.shares} shareItem={shareItem} />}
       {offered && board !== null && (
         <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
           <span className="ib-wait-disc" aria-hidden="true">

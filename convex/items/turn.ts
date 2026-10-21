@@ -17,6 +17,7 @@ import { crestsShownTo } from "../hoggies/flag";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { unlockMilestoneTiers } from "./milestoneUnlocks";
+import { recordWinOf } from "./wins";
 
 export type TurnedFace = { kind: "hoggie"; drop: Drop } | { kind: "sticker"; person: MemberId; isNew: boolean };
 
@@ -44,6 +45,7 @@ export async function turn(ctx: MutationCtx, owner: PageOwner, item: Id<"items">
   const milestones = await unlockMilestoneTiers(ctx, owner, at);
   await ctx.db.patch(row._id, { turnedAt: at });
   await publish(ctx, { type: "itemTurned", workspace: owner.workspace, member: owner.member, ...analyticsFaceOf(landed.face), at });
+  await recordWinOf(ctx, owner, row._id, landed, at);
   return { face: landed.face, applied: landed.applied, page: landed.page, unlocked: { teamStickers: landed.teamStickers, hype, milestones }, again: false };
 }
 
