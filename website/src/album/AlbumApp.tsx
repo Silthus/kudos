@@ -17,7 +17,7 @@ import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, useBoardsOfPeriod } from "./boardPeriods";
 import { useHoggieAddress } from "./hoggieAddress";
 import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
-import { NewLabelsProvider, useNewLabelsSince } from "./newLabels";
+import { NewLabelsProvider, newLabelsSinceOf } from "./newLabels";
 import { isWaitingForTheLevelUp, LevelUpAnswerPage } from "./LevelUp";
 import { LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
@@ -34,7 +34,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
   const visit = useVisitArrival(album, useXpMoment(album?.kind === "album"), actions);
-  const newLabelsSince = useNewLabelsSince(album, visit.arrive);
+  const newLabelsSince = newLabelsSinceOf(album, visit.arrivedAt);
   useCanonicalAddressOnceShown(place, album?.kind === "album", replaceAddress);
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);

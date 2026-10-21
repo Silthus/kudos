@@ -6,11 +6,11 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { levelOf, xpToReach } from "../../../convex/progression/levels";
 import type { BoardItem } from "../../../convex/website/album";
 import type { XpMoment } from "../../../convex/website/xpMoment";
-import { shellFixtures, type ArrivalReply } from "../shell";
+import { shellFixtures, type TurnReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
-import type { Album, XpMomentRead, XpMomentShown } from "./answer";
+import { albumFixtures, fixedAlbum, fixedPeople, fixtureTurnOf } from "./albumFixtures";
+import type { Album, AlbumRead, XpMomentRead, XpMomentShown } from "./answer";
 
 const minute = 60_000;
 
@@ -80,6 +80,26 @@ function aMomentAnsweredLater() {
   return { read, answerWith };
 }
 
+function anAlbumThatAnswers(first: Album) {
+  let answer = first;
+  const listeners = new Set<() => void>();
+  const read: AlbumRead = (asking) => {
+    const shown = useSyncExternalStore(
+      (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      () => answer,
+    );
+    return asking ? shown : undefined;
+  };
+  const answers = (change: (album: Album) => Album) => {
+    answer = change(answer);
+    listeners.forEach((listener) => listener());
+  };
+  return { read, answers };
+}
+
 function sizeTheWindow({ width, height }: { width: number; height: number }) {
   Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
   Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
@@ -87,13 +107,13 @@ function sizeTheWindow({ width, height }: { width: number; height: number }) {
 
 let started = 0;
 
-type Visit = { moment?: XpMomentShown; album?: Album; screenSize?: { width: number; height: number }; endXpMoment?: (from: number, until: number, skipped: boolean) => Promise<ArrivalReply> };
+type Visit = { moment?: XpMomentShown; album?: Album; read?: AlbumRead; screenSize?: { width: number; height: number }; turnItem?: (item: string) => Promise<TurnReply> };
 
-async function returnTo({ moment = busyReturn, album = returning, screenSize = desktop, endXpMoment }: Visit = {}) {
+async function returnTo({ moment = busyReturn, album = returning, read = fixedAlbum(album), screenSize = desktop, turnItem }: Visit = {}) {
   window.history.replaceState(null, "", "/book#me");
   sizeTheWindow(screenSize);
   const later = aMomentAnsweredLater();
-  const view = renderAlbum(shellFixtures.member, fixedAlbum(album), { xpMoment: later.read, people: fixedPeople(album), commands: endXpMoment === undefined ? {} : { endXpMoment } });
+  const view = renderAlbum(shellFixtures.member, read, { xpMoment: later.read, people: fixedPeople(album), commands: turnItem === undefined ? {} : { turnItem } });
   await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
   vi.useFakeTimers();
   started = Date.now();
@@ -106,6 +126,10 @@ const frameMs = 16;
 async function at(seconds: number) {
   const due = started + Math.round(seconds * 1000);
   while (Date.now() < due) await act(() => vi.advanceTimersByTimeAsync(Math.min(frameMs, due - Date.now())));
+}
+
+async function inAnother(seconds: number) {
+  await at((Date.now() - started) / 1000 + seconds);
 }
 
 async function collectAt(seconds: number) {
@@ -348,6 +372,25 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
   });
 
+  it("reduced motion keeps that end state when the member turns the last item: All caught up never pops over what landed", async () => {
+    preferReducedMotion();
+    const lastOne = { ...returning, board: { items: [returning.board!.items[0]!], more: false } };
+    const live = anAlbumThatAnswers(lastOne);
+    const turnItem = async (item: string) => {
+      live.answers((album) => ({ ...album, board: { items: [], more: false } }));
+      return fixtureTurnOf(item);
+    };
+    await returnTo({ album: lastOne, read: live.read, turnItem });
+
+    await act(async () => fireEvent.click(within(theItemBoard()!).getByRole("button", { name: "A face-down item. Turn it over" })));
+
+    for (const seconds of [0.5, 1, 2, 3]) {
+      await at(seconds);
+      expect(theCanvas(), `${seconds} s after the turn`).toBeNull();
+      expect(document.querySelector(".al-body"), `${seconds} s after the turn`).not.toHaveAttribute("inert");
+    }
+  });
+
   it("holds the item board and the arrival while the moment is read", async () => {
     window.history.replaceState(null, "", "/book#me");
     sizeTheWindow(desktop);
@@ -437,6 +480,21 @@ function theEmojiPopUp() {
   return screen.queryByRole("dialog", { name: /^New emojis? unlocked$/ });
 }
 
+async function theLevelEmojiPlaysInThePopUpAndIsThenSeen(markEmojisSeen: (ids: string[]) => unknown) {
+  expect(markEmojisSeen).not.toHaveBeenCalled();
+  await inAnother(3);
+  const popUp = within(theEmojiPopUp()!);
+  expect(popUp.getByRole("heading", { name: ":level-10:" })).toBeInTheDocument();
+  expect(markEmojisSeen).not.toHaveBeenCalled();
+
+  await act(async () => fireEvent.click(popUp.getByRole("button", { name: "Add to my emojis" })));
+  await inAnother(3);
+
+  expect(theEmojiPopUp()).toBeNull();
+  expect(markEmojisSeen).toHaveBeenCalledTimes(1);
+  expect(markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+}
+
 async function crossTheLevel(visit: Visit = {}) {
   const view = await returnTo(visit);
   await collectAt(arrivedAndRead);
@@ -516,30 +574,26 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theItemBoard()).toBeInTheDocument();
   });
 
-  it("Skip lands on the board with the XP in the bar and no takeover, and the crossed level's emoji counts as seen without the pop-up", async () => {
+  it("Skip lands on the board with the XP in the bar and no takeover, and LP14: the crossed level's emoji, never played, plays in the arrival emoji pop-up and only then counts as seen", async () => {
     const { actions } = await returnTo({ moment: toLevelTen, album: atLevelTen });
     await at(canvasArrival + 0.2);
 
     await act(async () => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })));
-    await at(canvasArrival + 4);
 
     expect(theTakeover()).toBeNull();
     expect(xpWords()).toBe("772 XP to level 11");
     expect(theItemBoard()).toBeInTheDocument();
-    expect(theEmojiPopUp()).toBeNull();
-    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+    await theLevelEmojiPlaysInThePopUpAndIsThenSeen(actions.markEmojisSeen);
   });
 
-  it("reduced motion lands on the board at once with the XP in the bar, and the crossed level's emoji counts as seen without the pop-up", async () => {
+  it("reduced motion lands on the board at once with the XP in the bar, and LP14: the crossed level's emoji, never played, plays in the arrival emoji pop-up and only then counts as seen", async () => {
     preferReducedMotion();
     const { actions } = await returnTo({ moment: toLevelTen, album: atLevelTen });
-    await at(3);
 
     expect(theTakeover()).toBeNull();
     expect(xpWords()).toBe("772 XP to level 11");
     expect(theItemBoard()).toBeInTheDocument();
-    expect(theEmojiPopUp()).toBeNull();
-    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["level:10"]);
+    await theLevelEmojiPlaysInThePopUpAndIsThenSeen(actions.markEmojisSeen);
   });
 
   it("with xp-moments off the level's emoji pops up on arrival as before", async () => {
