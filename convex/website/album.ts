@@ -19,6 +19,7 @@ import { hoggiesShownTo, petHoggieShownTo } from "../hoggies/flag";
 import { makePetOf, petOf, petsIn, type Pet } from "../hoggies/pet";
 import { hiddenItemsShownTo } from "../items/flag";
 import { boardOf, type FaceDown } from "../items/ledger";
+import type { ItemReason } from "../items/records";
 import { turn, type Turned } from "../items/turn";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
@@ -69,7 +70,9 @@ export type AlbumTrayItem = Exclude<TrayItem, { kind: "sticker" }> | (Extract<Tr
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
-export type BoardItem = Omit<FaceDown, "reason"> & { reason: { kind: "thanks"; thanked: Thanked } };
+export type BoardReason = { kind: "thanks"; thanked: Thanked } | { kind: "levelUp"; level: number } | { kind: "welcome" };
+
+export type BoardItem = Omit<FaceDown, "reason"> & { reason: BoardReason };
 
 export type ItemBoard = { items: BoardItem[]; more: boolean };
 
@@ -139,8 +142,12 @@ async function boardShownTo(ctx: QueryCtx, me: VerifiedMember, thanked: ThankedP
   if (!(await noLaunchWaitsFor(ctx, me))) return { items: [], more: false };
   const { items, more } = await boardOf(ctx, me.member);
   const shown: BoardItem[] = [];
-  for (const { reason, ...item } of items) shown.push({ ...item, reason: { kind: reason.kind, thanked: await thanked(reason.person) } });
+  for (const { reason, ...item } of items) shown.push({ ...item, reason: await boardReasonOf(reason, thanked) });
   return { items: shown, more };
+}
+
+async function boardReasonOf(reason: ItemReason, thanked: ThankedPeople): Promise<BoardReason> {
+  return reason.kind === "thanks" ? { kind: "thanks", thanked: await thanked(reason.person) } : reason;
 }
 
 async function petsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "pets">> {
