@@ -6,26 +6,29 @@ import { productName } from "../feedback/naming";
 import type { LinkPreview, PersonPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn } from "./blocks";
 import { textOf } from "./directory";
-import { callSlack, nextRateLimitedAttempt, retryDelayOf, slackErrorCodeOf } from "./webApi";
+import { callSlack, nextRateLimitedAttempt, readSlack, retryDelayOf, slackErrorCodeOf } from "./webApi";
 
 type LinkShared = { type: "link_shared"; channel?: unknown; user?: unknown; message_ts?: unknown; source?: unknown; links?: unknown };
 
 type LinkSharedCallback = { team_id?: unknown; event_id?: unknown; is_ext_shared_channel?: unknown; event: LinkShared };
 
-export const linkSharingValidator = { workspace: v.string(), sharer: v.string(), links: v.array(v.string()), channel: v.string(), ts: v.string() };
+type ChannelInfo = { channel: { is_ext_shared?: boolean; is_pending_ext_shared?: boolean } };
+
+export const linkSharingValidator = { workspace: v.string(), sharer: v.string(), links: v.array(v.string()), channel: v.string(), ts: v.string(), sharedOutside: v.union(v.literal("no"), v.literal("unsaid")) };
 
 const unfoldArgs = { ...linkSharingValidator, attempt: v.optional(v.number()) };
 
 export const unfoldLinks = observedAction({
   args: unfoldArgs,
-  handler: async (ctx, { workspace, sharer, links, channel, ts, attempt = 1 }) => {
+  handler: async (ctx, { workspace, sharer, links, channel, ts, sharedOutside, attempt = 1 }) => {
+    if (sharedOutside === "unsaid" && !(await isUnshared(channel))) return;
     const previews = await ctx.runQuery(internal.website.linkPreviews.linkPreviewsOf, { workspace, sharer, links });
     if (previews.length === 0) return;
     const answer = await callSlack("chat.unfurl", { channel, ts, unfurls: Object.fromEntries(previews.map((preview) => [preview.url, { blocks: cardBlocksOf(preview) }])) });
     if (answer.ok) return;
     if (answer.error === "ratelimited") {
       const next = nextRateLimitedAttempt(attempt, "chat.unfurl");
-      await ctx.scheduler.runAfter(retryDelayOf(answer), internal.slack.linkPreviews.unfoldLinks, { workspace, sharer, links, channel, ts, attempt: next });
+      await ctx.scheduler.runAfter(retryDelayOf(answer), internal.slack.linkPreviews.unfoldLinks, { workspace, sharer, links, channel, ts, sharedOutside, attempt: next });
       return;
     }
     console.warn(`link previews: chat.unfurl failed: ${slackErrorCodeOf(answer.error)}`);
@@ -38,10 +41,17 @@ export function isLinkShared(event: { type: string }): event is LinkShared {
 
 export function linkSharingOf({ team_id, event_id, is_ext_shared_channel, event }: LinkSharedCallback) {
   if (event.source === "composer" || is_ext_shared_channel === true) return null;
+  const sharedOutside = is_ext_shared_channel === false ? "no" : "unsaid";
   const [workspace, eventId, sharer, channel, ts] = [textOf(team_id), textOf(event_id), textOf(event.user), textOf(event.channel), textOf(event.message_ts)];
   const links = linksOf(event.links);
   if (workspace === undefined || eventId === undefined || sharer === undefined || channel === undefined || ts === undefined || links.length === 0) return null;
-  return { workspace, eventId, sharer, links, channel, ts };
+  return { workspace, eventId, sharer, links, channel, ts, sharedOutside } as const;
+}
+
+async function isUnshared(channel: string) {
+  const answer = await readSlack<ChannelInfo>("conversations.info", { channel });
+  if (!answer.ok) console.warn(`link previews: conversations.info failed: ${slackErrorCodeOf(answer.error)}`);
+  return answer.ok && answer.channel.is_ext_shared === false && answer.channel.is_pending_ext_shared !== true;
 }
 
 function linksOf(links: unknown): string[] {

@@ -231,6 +231,7 @@ export class FakeSlack {
     if (method === "conversations.join") return this.join(field("channel"));
     if (method === "conversations.list") return this.listChannels(args);
     if (method === "chat.unfurl") return unfurlAnswerTo(args);
+    if (method === "conversations.info") return this.channelInfo(field("channel"));
     if (method === "auth.test") return { ok: true, url: this.workspaceUrl, team: "Kudos Test", team_id: "T1", user: "kudos", user_id: "U_KUDOS_BOT", bot_id: "B_KUDOS" };
     return { ok: false, error: "unknown_method" };
   }
@@ -244,6 +245,12 @@ export class FakeSlack {
     channel.joined = true;
     const joined = { id, name: channel.name, is_channel: true, is_private: false, is_archived: false, is_ext_shared: channel.kind === "shared" };
     return { ok: true, ...(alreadyIn && { warning: "already_in_channel" }), channel: joined };
+  }
+
+  private channelInfo(id: string) {
+    const channel = this.channels.get(id);
+    if (channel === undefined || channel.kind === "private") return { ok: false, error: "channel_not_found" };
+    return { ok: true, channel: { id, name: channel.name, is_channel: true, is_archived: channel.kind === "archived", is_ext_shared: channel.kind === "shared", is_pending_ext_shared: channel.kind === "pending-shared" } };
   }
 
   private listChannels(args: SlackArgs) {

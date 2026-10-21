@@ -212,6 +212,28 @@ describe("LP80: only a HedgeHug person or team page unfolds", { timeout: 30_000 
     expect(slack.callsTo("chat.unfurl")).toEqual([]);
   });
 
+  test.each([
+    ["an unshared channel", { name: "general" }, 1],
+    ["a channel shared with another organization", { name: "general", kind: "shared" as const }, 0],
+    ["a channel whose sharing is pending", { name: "general", kind: "pending-shared" as const }, 0],
+  ])("where Slack doesn't say whether the channel is shared, the app asks, and a link in %s unfolds only if it isn't", async (_, channel, unfolds) => {
+    const t = await workspace();
+    slack.withChannel("C_GENERAL", channel);
+
+    await shared(t, [`${site}/book#teams/lanterns`], { externallyShared: "unsaid" });
+
+    expect(slack.callsTo("chat.unfurl")).toHaveLength(unfolds);
+  });
+
+  test("where Slack doesn't say whether the channel is shared and won't answer, the link gets no card", async () => {
+    const t = await workspace();
+
+    await shared(t, [`${site}/book#teams/lanterns`], { externallyShared: "unsaid" });
+
+    expect(slack.callsTo("conversations.info")).toEqual([{ channel: "C_GENERAL" }]);
+    expect(slack.callsTo("chat.unfurl")).toEqual([]);
+  });
+
   test("a link shared in another workspace gets no card", async () => {
     const t = await workspace();
 
