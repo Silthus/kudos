@@ -3,6 +3,7 @@ import { fixedAlbum, fixedPeople, albumFixtures } from "./album/albumFixtures";
 import { boardsFixtures, fixedBoards } from "./album/boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./album/hoggiesFixtures";
 import { fixedLevelUp, levelUpFixtures } from "./album/levelUpFixtures";
+import { useItemBoardAlbum, useItemBoardHoggies } from "./album/prototype/itemBoardItems";
 import { fixedProfile, profileFixtures } from "./album/profileFixtures";
 import { fixtureWeeks } from "./album/weekFixtures";
 import { emojiMappingsFixtures, fixtureAppEmojis, fixtureSlackEmojiMatches } from "./emojiMappingFixtures";
@@ -33,7 +34,10 @@ const fixtureHoggies = fixedHoggies(hoggiesFixtures.midway);
 
 const fixtureLevelUp = fixedLevelUp(levelUpFixtures.levelFive);
 
+const itemBoard = "item-board";
+
 export function fixtureReadsFor(fixture?: string): AppReads {
+  if (fixture === itemBoard) return { ...fixtureReadsFor("album"), useAlbum: useItemBoardAlbum, useAlbumHoggies: useItemBoardHoggies };
   return {
     useSettings: fixture === "album-maintainer" || fixture === withTheEmojiWizard ? fixtureMaintainerSettings : fixtureSettings,
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),

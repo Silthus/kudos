@@ -91,6 +91,7 @@ const fixturesByName: Record<string, ShellState> = {
   "album-with-new-emojis": shellFixtures.member,
   "album-as-an-admin": shellFixtures.member,
   "album-emoji-wizard": shellFixtures.member,
+  "item-board": shellFixtures.member,
   error: shellFixtures.error,
 };
 
