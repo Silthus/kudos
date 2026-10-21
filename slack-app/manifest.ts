@@ -28,7 +28,7 @@ export function renderManifest(environment: Environment, siteUrl: string) {
     oauth_config: {
       redirect_urls: [route("/api/auth/callback/slack")],
       scopes: {
-        bot: ["channels:history", "groups:history", "reactions:read", "reactions:write", "chat:write", "users:read", "users:read.email", "usergroups:read", "channels:join", "commands", "chat:write.public", "emoji:read"],
+        bot: ["channels:history", "groups:history", "reactions:read", "reactions:write", "chat:write", "users:read", "users:read.email", "usergroups:read", "channels:join", "channels:read", "commands", "chat:write.public", "emoji:read"],
         user: ["openid", "profile"],
       },
     },
@@ -37,6 +37,7 @@ export function renderManifest(environment: Environment, siteUrl: string) {
         request_url: route("/slack/events"),
         bot_events: [
           "app_home_opened",
+          "channel_created",
           "emoji_changed",
           "message.channels",
           "message.groups",

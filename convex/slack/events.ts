@@ -2,6 +2,7 @@ import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import { observedHttpAction } from "../analytics/boundary";
 import { isHomeTabOpened } from "./appHome";
+import { channelCreationOf, isChannelCreated } from "./channelJoins";
 import { emojiChangeOf, isEmojiChanged } from "./customEmoji";
 import { directoryRecordOfEvent, isMemberChanged } from "./directory";
 import { isUserGroupChanged, userGroupChangeOf } from "./userGroups";
@@ -35,6 +36,9 @@ async function receiveSlackEvent(ctx: ActionCtx, request: Request) {
   } else if (envelope.type === "event_callback" && isEmojiChanged(envelope.event)) {
     const emojiChanged = emojiChangeOf(envelope.team_id, envelope.event_id);
     if (emojiChanged !== null) await ctx.runMutation(internal.slack.receipts.receiveEmojiChanged, emojiChanged);
+  } else if (envelope.type === "event_callback" && isChannelCreated(envelope.event)) {
+    const channelCreated = channelCreationOf(envelope.team_id, envelope.event_id, envelope.event);
+    if (channelCreated !== null) await ctx.runMutation(internal.slack.receipts.receiveChannelCreated, channelCreated);
   } else if (envelope.type === "event_callback" && isReactionAdded(envelope)) {
     const reaction = hugReactionOf(envelope);
     if (reaction !== null && (await ctx.runQuery(internal.slack.reactions.mayHugWith, { workspace: reaction.workspace, giver: reaction.giver, emoji: reaction.emoji }))) await ctx.runMutation(internal.slack.receipts.receiveReaction, { eventId: envelope.event_id, reaction });

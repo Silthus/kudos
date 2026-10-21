@@ -524,7 +524,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     await user.click(screen.getByRole("button", { name: "Put your teammate's card in" }));
 
     await waitFor(() => expect(sentOverHttp).toHaveBeenCalledOnce());
-    expect(await bar.findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await waitFor(() => expect(bar.queryByRole("button", { name: /^Tray/ })).not.toBeInTheDocument());
     await user.click(bar.getByRole("button", { name: "Open your packs, 1 waiting" }));
     expect(screen.getByText("For thanking a teammate")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Rip open the pack for thanking a teammate" }));
