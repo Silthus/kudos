@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { welcomeNudgeCauseValidator, type WelcomeNudgeMessage } from "../feedback/welcomeNudge";
 import { escaped, mrkdwn, urlButtonOf } from "./blocks";
-import { attemptArgs, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
+import { attemptArgs, sendAtMostOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
 
 const waitingLine = "Your rare hoggie is waiting for you to collect it.";
 
@@ -14,7 +14,7 @@ export const deliverWelcomeNudge = observedAction({
       attempt,
       async (attempt) => {
         const message = await ctx.runQuery(internal.feedback.welcomeNudge.welcomeNudgeMessage, { workspace: nudge.workspace, member: nudge.member, cause: nudge.cause });
-        return message === null ? null : sendOnce(ctx, nudge.workspace, "chat.postMessage", { channel: nudge.user, ...messageOf(message) }, attempt);
+        return message === null ? null : sendAtMostOnce(ctx, nudge.workspace, "chat.postMessage", { channel: nudge.user, ...messageOf(message) }, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.welcomeNudge.deliverWelcomeNudge, { ...nudge, attempt: retry.attempt }),
     );
@@ -38,6 +38,7 @@ function messageOf(message: WelcomeNudgeMessage) {
 
 function leadOf({ giver, kudosEmoji, cause }: WelcomeNudgeMessage) {
   if (cause.kind === "thanks") return `<@${giver}> thanked you :${kudosEmoji}:`;
-  const hugged = cause.permalink === null ? "hugged your message" : slackLink({ url: cause.permalink, label: "hugged your message" });
+  const label = cause.onKudos ? "hugged a kudos you got" : "hugged your message";
+  const hugged = cause.permalink === null ? label : slackLink({ url: cause.permalink, label });
   return `<@${giver}> ${hugged} :${kudosEmoji}:`;
 }

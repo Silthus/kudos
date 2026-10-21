@@ -5,7 +5,7 @@ import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf } from "../ac
 import { hugGivenEventValidator, kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { wordsOf } from "../engine/kudosText";
 import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
-import { hugOf } from "../hugs/records";
+import { hugOf, hugPeoplePageOf } from "../hugs/records";
 import { earnWelcomeItem } from "../items/welcome";
 import { welcomeItemShownTo } from "../items/welcomeFlag";
 import { websiteOriginFor } from "../website/link";
@@ -17,11 +17,11 @@ import { quoteOf } from "./mondayPost";
 
 const recipientsNudgedPerMutation = 50;
 
-export const welcomeNudgeCauseValidator = v.object({ kind: v.union(v.literal("thanks"), v.literal("hug")), giver: v.id("members"), message: messageRefValidator });
+export const welcomeNudgeCauseValidator = v.object({ kind: v.union(v.literal("thanks"), v.literal("hug"), v.literal("kudosHug")), giver: v.id("members"), message: messageRefValidator });
 
 export type WelcomeNudgeCause = Infer<typeof welcomeNudgeCauseValidator>;
 
-export type WelcomeNudgeMessage = { giver: ChatUserId; kudosEmoji: string; cause: { kind: "thanks"; quote: string | null } | { kind: "hug"; permalink: string | null }; album: string };
+export type WelcomeNudgeMessage = { giver: ChatUserId; kudosEmoji: string; cause: { kind: "thanks"; quote: string | null } | { kind: "hug"; onKudos: boolean; permalink: string | null }; album: string };
 
 export const nudgeTheThanked = internalMutation({
   args: { event: kudosGivenEventValidator, from: v.optional(v.number()) },
@@ -34,21 +34,26 @@ export const nudgeTheThanked = internalMutation({
 });
 
 export const nudgeTheHugged = internalMutation({
-  args: { event: hugGivenEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    const author = (await hugOf(ctx, event.message, event.giver))?.author;
-    if (author !== undefined) await nudge(ctx, author, { kind: "hug", giver: event.giver, message: event.message }, event.at);
+  args: { event: hugGivenEventValidator, cursor: v.optional(v.string()) },
+  handler: async (ctx, { event, cursor }): Promise<void> => {
+    const hug = await hugOf(ctx, event.message, event.giver);
+    if (hug === null) return;
+    const cause: WelcomeNudgeCause = { kind: hug.author === undefined ? "kudosHug" : "hug", giver: event.giver, message: event.message };
+    const { people, next } = await hugPeoplePageOf(ctx, hug, cursor ?? null, recipientsNudgedPerMutation);
+    for (const person of people) if (person !== event.giver) await nudge(ctx, person, cause, event.at);
+    if (next !== null) await ctx.scheduler.runAfter(0, internal.feedback.welcomeNudge.nudgeTheHugged, { event, cursor: next });
   },
 });
 
 export const welcomeNudgeMessage = internalQuery({
   args: { workspace: v.string(), member: v.id("members"), cause: welcomeNudgeCauseValidator },
   handler: async (ctx, { workspace, member, cause }): Promise<WelcomeNudgeMessage | null> => {
+    if (!(await welcomeItemShownTo(ctx, member)) || !(await welcomeNudgeOn(ctx, workspace))) return null;
     const album = await albumLinkFor(ctx, workspace, member);
     if (album === null) return null;
     const { kudosEmoji } = await settingsOf(ctx, workspace);
     const giver = (await chatUserOf(ctx, cause.giver)).user;
-    return { giver, kudosEmoji, cause: cause.kind === "thanks" ? { kind: "thanks", quote: await publicQuoteOf(ctx, cause.message) } : { kind: "hug", permalink: await permalinkOfMessage(ctx, cause.message) }, album };
+    return { giver, kudosEmoji, cause: cause.kind === "thanks" ? { kind: "thanks", quote: await publicQuoteOf(ctx, cause.message) } : { kind: "hug", onKudos: cause.kind === "kudosHug", permalink: await permalinkOfMessage(ctx, cause.message) }, album };
   },
 });
 
