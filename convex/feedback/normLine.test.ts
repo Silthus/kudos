@@ -60,10 +60,10 @@ describe("LP40 LP41: the norm line counts this week's thoughtful givers on App H
 
   test("two thoughtful givers this week beside a short kudos and last week's thoughtful givers leave the line hidden, and a third this week shows it", async () => {
     await aWorkspace(normOn.map(onForEveryone));
-    vi.setSystemTime(lastSaturday);
+    weekStart = lastSaturday;
     await thanks("U_DANA", "U_ALICE");
     await thanks("U_ERIN", "U_ALICE");
-    vi.setSystemTime(tuesday);
+    weekStart = tuesday;
 
     await thanks("U_ALICE", "U_DANA");
     await thanks("U_BOB", "U_DANA");
@@ -99,6 +99,7 @@ async function walkWith(flags: FlagDefinition[]) {
 
 async function aWorkspace(flags: FlagDefinition[]) {
   vi.setSystemTime(tuesday);
+  weekStart = tuesday;
   sent = 0;
   slack.calls.length = 0;
   t = await flagsFromPostHog(testBackend(), postHog, ...flags);
@@ -107,9 +108,11 @@ async function aWorkspace(flags: FlagDefinition[]) {
   await unlocksShippedBeforeAnyoneJoined(t);
 }
 
+let weekStart = tuesday;
+
 async function thanks(giver: string, recipient: string, words = saysWhy) {
   sent += 1;
-  vi.setSystemTime(Date.now() + 60_000);
+  vi.setSystemTime(weekStart + sent * 600_000);
   const ts = `${Math.floor(Date.now() / 1000)}.${String(sent).padStart(6, "0")}`;
   await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), text(` ${words} `), emoji("taco"))], { user: giver, ts })));
   await settle(t);
