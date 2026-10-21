@@ -8,7 +8,7 @@ export type Point = { x: number; y: number };
 
 export type Flight = { item: string; from: DOMRect; stage: FlightStage; dark: boolean; face: TurnedFaceShown | null; spot: Point; size: number; burst: boolean; caption: boolean; chip: Chip | null; rings: DOMRect | null; flourish: DOMRect | null; medal: MedalPop | null };
 
-export type MedalPop = { tier: ReachedTier; rect: DOMRect };
+export type MedalPop = { tier: ReachedTier; art: DOMRect; card: DOMRect };
 
 export type Chip = { xp: number; from: Point; to: Point };
 
@@ -116,9 +116,13 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
 async function popTheMedal(clock: TurnClock, change: Change, arrival: Arrival, tier: ReachedTier) {
   arrival.medalShown();
   const medal = theMedal(tier);
-  change({ medal: { tier, rect: medal?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2, window.innerHeight / 2, 0, 0) } });
-  const emoji = medal?.querySelector(".al-ms-emoji");
-  await Promise.all([clock.animate(medal?.querySelector(".al-ms-medal-art"), medalPopFrames, { duration: turnTiming.medalPopMs, easing: "cubic-bezier(0.3, 0.8, 0.3, 1)" }), clock.animate(emoji, emojiPopFrames, { duration: turnTiming.medalPopMs, easing: "ease-out" })]);
+  const art = medal?.querySelector(".al-ms-medal-art");
+  change({ medal: { tier, art: rectOf(art), card: rectOf(medal) } });
+  await Promise.all([clock.animate(art, medalPopFrames, { duration: turnTiming.medalPopMs, easing: "cubic-bezier(0.3, 0.8, 0.3, 1)" }), clock.animate(medal?.querySelector(".al-ms-emoji"), emojiPopFrames, { duration: turnTiming.medalPopMs, easing: "ease-out" })]);
+}
+
+function rectOf(element: Element | null | undefined) {
+  return element?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2, window.innerHeight / 2, 0, 0);
 }
 
 async function payTheXp(clock: TurnClock, change: Change, arrival: Arrival, { spot, size }: Start, xp: number) {

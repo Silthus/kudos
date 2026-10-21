@@ -102,17 +102,18 @@ function GoldFlourish({ rect }: { rect: DOMRect }) {
   );
 }
 
-function MedalFlourish({ medal: { tier, rect } }: { medal: MedalPop }) {
-  const centre = { left: rect.left + rect.width / 2, top: rect.top + rect.height / 2 };
+function MedalFlourish({ medal: { tier, art, card } }: { medal: MedalPop }) {
+  const colour = metalOf(tier.tier);
+  const centre = { left: art.left + art.width / 2, top: art.top + art.height / 2 };
   return (
     <>
-      <span className="ib-burst ib-medal-burst" data-rare="" style={{ ...centre, width: rect.width, height: rect.width, "--burst": metalOf(tier.tier), "--rarity-color": metalOf(tier.tier) } as CSSProperties}>
+      <span className="ib-burst ib-medal-burst" data-rare="" style={{ ...centre, width: art.width, height: art.width, "--burst": colour, "--rarity-color": colour } as CSSProperties}>
         <span className="ib-rays" />
         <span className="ib-flash" />
-        <Sparkles count={16} seed={rect.width + rect.top} />
-        {tier.tier === "diamond" && <Confetti size="gold" seed={rect.left + rect.top} />}
+        <Sparkles count={16} seed={art.width + art.top} />
+        {tier.tier === "diamond" && <Confetti size="gold" seed={art.left + art.top} />}
       </span>
-      <span className="ib-caption ib-medal-caption" style={{ left: centre.left, top: rect.bottom + 14, "--burst": metalOf(tier.tier) } as CSSProperties}>
+      <span className="ib-caption ib-medal-caption" style={{ left: centre.left, top: card.bottom + 14, "--burst": colour } as CSSProperties}>
         {medalWordsOf(tier)}
       </span>
     </>
