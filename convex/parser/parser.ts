@@ -29,7 +29,11 @@ export async function kudosMessageOf(ctx: MutationCtx, content: CountableContent
   const kudosEmoji = claimedIn(content, claims);
   if (kudosEmoji.length === 0) return null;
   const ownedEmoji = [...new Set(claimedIn(content, claims.filter(({ hook }) => hook === ownedKudosEmojiHook)))];
-  return { mentions: content.mentions, kudosEmoji, perRecipient: kudosEmoji.length, ownedEmoji };
+  return { mentions: content.mentions, kudosEmoji, perRecipient: mostRepeatsIn(kudosEmoji), ownedEmoji };
+}
+
+function mostRepeatsIn(names: string[]) {
+  return Math.max(...[...new Set(names)].map((name) => names.filter((other) => other === name).length));
 }
 
 export function annotationsOf(content: MessageContent, context: ParseContext): Annotations {

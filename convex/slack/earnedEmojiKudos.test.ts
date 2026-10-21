@@ -151,6 +151,22 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
   });
 });
 
+describe("a message gives each recipient as many kudos as its most repeated kudos emoji", () => {
+  test.each([
+    ["the workspace's kudos emoji beside their team emoji", ["taco", teamEmoji], 1],
+    ["the workspace's kudos emoji twice beside their team emoji", ["taco", teamEmoji, "taco"], 2],
+    ["their team emoji three times beside the workspace's kudos emoji", [teamEmoji, "taco", teamEmoji, teamEmoji], 3],
+  ])("a kudos message with %s", async (_, names, kudos) => {
+    const t = await workspaceWithEmojiNames();
+    await unlockedTeamEmoji(t, "U_ALICE");
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), ...names.map((name) => emoji(name)))], { user: "U_ALICE", ts: messageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(kudos);
+  });
+});
+
 async function workspaceWithEmojiNames({ transactionLimits = false } = {}) {
   const t = testBackend({ transactionLimits });
   await t.run(async (ctx) => {
