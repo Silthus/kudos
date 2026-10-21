@@ -274,6 +274,25 @@ describe("HF9, HF10: Forge sends forgeHoggie once and plays the forged hoggie's 
     expect(actions.forgeHoggie).toHaveBeenCalledOnce();
   });
 
+  it("a forge answered while the member was away reveals on its own entry, not on another hoggie's", async () => {
+    let answer: (reply: ForgeReply) => void = () => {};
+    const { user } = visit("/book#hoggies/asleep", forgeOn({ asleep: 4, ball: 1 }), () => new Promise((resolve) => (answer = resolve)));
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    goTo("/book#leaderboard");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await act(async () => answer(forgedCake));
+    goTo("/book#hoggies/ball");
+    await entry();
+
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Ball");
+    expect(screen.queryByRole("status", { name: "Forged" }), "no reveal on Ball's entry").not.toBeInTheDocument();
+    goTo("/book#leaderboard");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    goTo("/book#hoggies/asleep");
+    expect(await screen.findByRole("status", { name: "Forged" })).toHaveTextContent("Forged: Cake · Uncommon · New");
+  });
+
   it("each answered forge sends a new request", async () => {
     const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }), async () => ({ kind: "refused" }));
 

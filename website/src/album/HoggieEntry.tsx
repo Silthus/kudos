@@ -7,7 +7,7 @@ import { ForgeOfferLine, ForgeReveal } from "./HoggieForge";
 import { copiesWords, hoggieNameShownOf, numberOf, oddsWords, rarityTintOf } from "./hoggieGuide";
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
-import type { Forging } from "./useForge";
+import type { Forged, Forging } from "./useForge";
 import type { PetPicking, PetProblem } from "./usePetPick";
 
 type EntryProps = { hoggie: AlbumHoggie; answer: AlbumHoggies; picking: PetPicking | null; forging: Forging | null; steps: AlbumHoggie[]; onStep: (hoggie: AlbumHoggie) => void; onClose: () => void };
@@ -16,7 +16,8 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   const title = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useFocusWhileOpen(hoggie);
-  const revealing = forging?.forged != null;
+  const forged = forging?.forged?.from === hoggie.hoggie ? forging.forged : null;
+  const revealing = forged !== null;
   const stepBy = (by: number) => onStep(neighbourOf(hoggie, steps, by));
   const keys: Record<string, () => void> = { Escape: onClose, ArrowLeft: () => stepBy(-1), ArrowRight: () => stepBy(1) };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -51,7 +52,7 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
             {forging !== null && <ForgeOfferLine hoggie={hoggie} answer={answer} forging={forging} />}
           </div>
         </div>
-        {forging?.forged && <ForgeReveal forged={forging.forged} onEnd={() => endTheForge(forging, answer, onStep)} />}
+        {forging !== null && forged !== null && <ForgeReveal forged={forged} onEnd={() => endTheForge(forging, forged, answer, onStep)} />}
         <div className="al-entry-steps" inert={revealing}>
           <button type="button" className="al-entry-step" onClick={() => stepBy(-1)}>
             <span aria-hidden="true">←</span> Previous
@@ -66,10 +67,10 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   );
 }
 
-function endTheForge(forging: Forging, answer: AlbumHoggies, onStep: (hoggie: AlbumHoggie) => void) {
-  const forged = answer.hoggies.find(({ hoggie }) => hoggie === forging.forged?.drop.hoggie);
+function endTheForge(forging: Forging, { drop }: Forged, answer: AlbumHoggies, onStep: (hoggie: AlbumHoggie) => void) {
+  const forgedEntry = answer.hoggies.find(({ hoggie }) => hoggie === drop.hoggie);
   forging.done();
-  if (forged !== undefined) onStep(forged);
+  if (forgedEntry !== undefined) onStep(forgedEntry);
 }
 
 function FoundFacts({ hoggie, answer }: { hoggie: AlbumHoggie; answer: AlbumHoggies }) {
