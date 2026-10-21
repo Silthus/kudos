@@ -10,6 +10,7 @@ import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
+import { quotedCharactersAtMost } from "../feedback/mondayPost";
 import type { AlbumAnswer } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 
@@ -21,6 +22,7 @@ const weeklyPostChannel = "C_KUDOS";
 const albumOn = ["website", "album", "collection", "packs", "xp-levels", "hugs", "groups", "hidden-items"];
 const itemShare = "item-share";
 const shareOn = [...albumOn, itemShare].map(onForEveryone);
+const fullLengthThanks = "Thanks for staying late again ".repeat(7).slice(0, quotedCharactersAtMost);
 
 type Person = { user: string; name: string; email: string; profile: number };
 type Reader = Awaited<ReturnType<typeof aSignedInSession>>["asSignedIn"];
@@ -127,7 +129,8 @@ describe("LP51 LP53 LP54: Share posts a turned win into the weekly-post channel,
   test.each([
     { shape: "opens with the mention and the kudos emoji", says: () => [mention(bob.user), text(" "), emoji("taco"), text(" Thanks for staying late on the release checklist")], quoted: ": 'Thanks for staying late on the release checklist'" },
     { shape: "opens with the kudos emoji, then the mention and a comma", says: () => [emoji("taco"), text(" "), mention(bob.user), text(", thanks for staying late on the release checklist!")], quoted: ": 'thanks for staying late on the release checklist!'" },
-    { shape: "names a teammate inside the thanks", says: () => [mention(bob.user), text(" "), emoji("taco"), text(" thanks for pairing with "), mention(carol.user), text(" on the release checklist")], quoted: ": 'thanks for pairing with @Carol Lindqvist on the release checklist'" },
+    { shape: "opens with a comma before a thanks of the full quoted length", says: () => [mention(bob.user), text(" "), emoji("taco"), text(`, ${fullLengthThanks}`)], quoted: `: '${fullLengthThanks}'` },
+    { shape: "names a teammate inside the thanks",says: () => [mention(bob.user), text(" "), emoji("taco"), text(" thanks for pairing with "), mention(carol.user), text(" on the release checklist")], quoted: ": 'thanks for pairing with @Carol Lindqvist on the release checklist'" },
   ])("a public thanks that $shape quotes only its words, without the mentions and kudos emoji that open or close it", async ({ says, quoted }) => {
     await fourMembers(shareOn);
     await posts(alice, says());

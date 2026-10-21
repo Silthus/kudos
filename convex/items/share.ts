@@ -19,7 +19,8 @@ import type { Win } from "./shareRecords";
 
 export const mostSharesOffered = 10;
 
-const separatorsAround = /^[\s,;:\-–—]+|[\s,;:\-–—]+$/gu;
+const leadingSeparators = /^[\s,;:\-–—]+/u;
+const trailingSeparators = /[\s,;:\-–—]+$/u;
 
 export type ShareOffers = { shares?: Id<"items">[] };
 
@@ -83,13 +84,21 @@ async function whoWonOf(ctx: QueryCtx, member: MemberId, reason: ItemReason): Pr
 }
 
 async function thanksQuoteOf(ctx: QueryCtx, message: MessageRef): Promise<string | null> {
-  const thanks = (await publicQuoteOf(ctx, message, thanksAmong))?.replace(separatorsAround, "");
-  return thanks === undefined || thanks === "" ? null : thanks;
+  const thanks = await publicQuoteOf(ctx, message, thanksAmong);
+  return thanks === "" ? null : thanks;
 }
 
 function thanksAmong(segments: WordSegment[]): WordSegment[] {
   const first = segments.findIndex(saysSomething);
-  return first === -1 ? [] : segments.slice(first, segments.findLastIndex(saysSomething) + 1);
+  if (first === -1) return [];
+  return segments
+    .slice(first, segments.findLastIndex(saysSomething) + 1)
+    .map((segment, index) => (index === 0 ? withoutSeparators(segment, leadingSeparators) : segment))
+    .map((segment, index, thanks) => (index === thanks.length - 1 ? withoutSeparators(segment, trailingSeparators) : segment));
+}
+
+function withoutSeparators(segment: WordSegment, separators: RegExp): WordSegment {
+  return segment.kind === "text" ? { ...segment, text: segment.text.replace(separators, "") } : segment;
 }
 
 function saysSomething(segment: WordSegment): boolean {
