@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 import { currentMembersOf, type MemberId } from "../workspace/directory";
-import { unknownListedMembersIn } from "../workspace/listedMembers";
+import { listedMembersIn } from "../workspace/listedMembers";
 import type { VerifiedMember } from "./memberQuery";
 import { seenKeyOf } from "./seen";
 
@@ -19,6 +19,6 @@ export function listedMemberKeyOf(me: VerifiedMember, user: ChatUserId): Promise
 }
 
 export async function listedMemberOfKey(ctx: QueryCtx, me: VerifiedMember, key: string): Promise<ChatUserId | null> {
-  for (const { user } of await unknownListedMembersIn(ctx, me.workspace)) if ((await listedMemberKeyOf(me, user)) === key) return user;
+  for (const { user } of await listedMembersIn(ctx, me.workspace)) if ((await listedMemberKeyOf(me, user)) === key) return user;
   return null;
 }

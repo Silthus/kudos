@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
@@ -293,6 +293,56 @@ describe("#128: the hype picker offers every Slack member", { timeout: 90_000 },
     expect((await mappingsOf(asOwner)).people.map(({ name }) => name)).not.toContain(nova.name);
     expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: novasKey } })).toEqual({ kind: "refused" });
     expect(withoutFlagRows(await everyTable())).toEqual(before);
+  });
+
+  test("listing Slack's members records nobody in the directory and keeps nobody of another workspace", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    slack.withMember("U_GUESTHOUSE", { ...slackUser(person("Other", "Workspace")), team_id: "T2" });
+    const { listedMembers: _nobodyListedYet, ...before } = withoutFlagRows(await everyTable());
+
+    await slackMembersAreListed();
+
+    const { listedMembers, ...after } = withoutFlagRows(await everyTable());
+    expect(after).toEqual(before);
+    expect(listedMembers).not.toContainEqual(expect.objectContaining({ workspace: "T2" }));
+    expect(listedMembers).not.toContainEqual(expect.objectContaining({ entry: expect.objectContaining({ name: "Other Workspace" }) }));
+  });
+
+  test("a page of Slack's list older than the one kept changes nothing, even once Slack has listed the person as gone", async () => {
+    const listed = (asOf: number, entry: { kind: "member"; name: string } | { kind: "not-a-member" }) => ({ listings: [{ workspace: "T1", user: nova.user, entry, asOf }] });
+    const asOwner = await signedIn(owner);
+    const offeredNames = async () => (await mappingsOf(asOwner)).people.map(({ name }) => name);
+
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now(), { kind: "member", name: nova.name }));
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now() - minuteMs, { kind: "member", name: "Nova Formerly" }));
+    expect(await offeredNames()).toContain(nova.name);
+    expect(await offeredNames()).not.toContain("Nova Formerly");
+
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now() + minuteMs, { kind: "not-a-member" }));
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now(), { kind: "member", name: nova.name }));
+    expect(await offeredNames()).not.toContain(nova.name);
+  });
+
+  test("a rate-limited list of Slack's members waits for Slack's Retry-After and then lists them", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    slack.answering("users.list", rateLimitedFor(30));
+
+    await slackMembersAreListed();
+
+    expect((await mappingsOf(await signedIn(owner))).people.map(({ name }) => name)).toContain(nova.name);
+  });
+
+  test("a listed member who joins the directory while the picker is open can still be picked by the key it offered", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    await slackHas("nova-cheer");
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+    const offeredKey = keyOf(await mappingsOf(asOwner), nova);
+    await thanks(alice, why, nova);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: offeredKey } })).toEqual({ kind: "mapped" });
+    const mappings = await mappingsOf(asOwner);
+    expect(mappings.emoji).toEqual([{ name: "nova-cheer", image: slackPicture("nova-cheer"), mapping: { kind: "hype", person: keyOf(mappings, nova) } }]);
   });
 });
 

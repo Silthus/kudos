@@ -14,30 +14,28 @@ export const keepListedMembers = internalMutation({
 
 export async function unknownListedMembersIn(ctx: QueryCtx, workspace: string): Promise<ListedMember[]> {
   const known = new Set((await memberRowsIn(ctx, workspace)).map(({ user }) => user));
+  return (await listedMembersIn(ctx, workspace)).filter(({ user }) => !known.has(user));
+}
+
+export async function listedMembersIn(ctx: QueryCtx, workspace: string): Promise<ListedMember[]> {
   const listed = await ctx.db
     .query("listedMembers")
     .withIndex("by_user", (q) => q.eq("workspace", workspace))
     .collect();
-  return listed.filter(({ user }) => !known.has(user)).map(({ user, entry }) => ({ user, name: entry.name }));
+  return listed.flatMap(({ user, entry }) => (entry.kind === "member" ? [{ user, name: entry.name }] : []));
 }
 
 export async function recordListedMember(ctx: MutationCtx, workspace: string, user: ChatUserId): Promise<MemberId | null> {
   const listed = await listedRow(ctx, workspace, user);
-  if (listed === null) return null;
+  if (listed?.entry.kind !== "member") return null;
   await recordIfUnknown(ctx, { workspace, user, entry: listed.entry, asOf: listed.asOf });
   return (await currentMemberOfUser(ctx, workspace, user))?.member ?? null;
 }
 
 async function keepListing(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
   const existing = await listedRow(ctx, workspace, user);
-  if (existing !== null && isOlder(asOf, existing.asOf)) return;
-  if (entry.kind !== "member") {
-    if (existing !== null) await ctx.db.delete(existing._id);
-  } else if (existing === null) {
-    await ctx.db.insert("listedMembers", { workspace, user, entry, asOf });
-  } else {
-    await ctx.db.patch(existing._id, { entry, asOf });
-  }
+  if (existing === null) await ctx.db.insert("listedMembers", { workspace, user, entry, asOf });
+  else if (!isOlder(asOf, existing.asOf)) await ctx.db.patch(existing._id, { entry, asOf });
 }
 
 function listedRow(ctx: QueryCtx, workspace: string, user: ChatUserId) {
