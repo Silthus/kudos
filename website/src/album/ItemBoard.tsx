@@ -68,7 +68,7 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, touch
 
 type TurnedOverProps = { turns: ShownTurns; album: Album; shares: WinShares };
 
-export function ItemsWait({ turns, album, shares }: TurnedOverProps) {
+export function ItemsWait({ turns, album, shares, pill }: TurnedOverProps & { pill: boolean }) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
   const settled = !open && flight === null;
   const said = landing !== null && settled;
@@ -79,7 +79,7 @@ export function ItemsWait({ turns, album, shares }: TurnedOverProps) {
           {said && <LandedWords landing={landing} />}
         </p>
         {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
-        {offered && board !== null && (
+        {pill && offered && board !== null && (
           <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
             <span className="ib-wait-disc" aria-hidden="true">
               ?
@@ -191,7 +191,7 @@ function itemLabelOf(reason: BoardReason) {
   return "A face-down item. Turn it over";
 }
 
-function itemsWaitWordsOf({ items, more }: Board) {
+export function itemsWaitWordsOf({ items, more }: Board) {
   if (more) return `${items.length}+ items wait`;
   return items.length === 1 ? "1 item waits" : `${items.length} items wait`;
 }

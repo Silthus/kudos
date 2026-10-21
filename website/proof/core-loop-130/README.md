@@ -25,7 +25,7 @@ Every member and the team are made up. Nobody has a picture.
    - The drop row reads crate `team:proof-130-lamplighters`, rarity `rare`, copy 1 (`drops-sandbox.jsonl`).
    - Corin's items are in `items-sandbox.jsonl`.
 
-Take A (Rook Tamberlane and Sable Ashgrove on Lanternwrights) ran first. Between the first deploy and the kudos, a sibling lane (`core-loop/132`) redeployed functions only. Rook's First thank-you tier and the Lanternwrights sticker were therefore recorded with no item. No backfill pays them now, as LP61 says. Take B ran after the merged redeploy.
+Take A (Rook Tamberlane and Sable Ashgrove on Lanternwrights) ran first. Between the first deploy and the kudos, a sibling lane (`core-loop/132`) redeployed functions only. Rook's First thank-you tier and the Lanternwrights sticker were therefore recorded with no item. No backfill pays them now, as LP62 says. Take B ran after the merged redeploy.
 
 ## Demo beat 6
 

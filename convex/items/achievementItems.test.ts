@@ -60,7 +60,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("LP61 LP62: a filled team page earns one hoggie the member does not own, rare or rarer", { timeout: 60_000 }, () => {
+describe("LP62 LP63: a filled team page earns one hoggie the member does not own, rare or rarer", { timeout: 60_000 }, () => {
   test("filling the team earns one rare-floored item named for the team, and its turn draws a rare or rarer hoggie the member does not own yet", async () => {
     const asAlice = await signedIn(alice);
     const usual = await drawOf({ secret: "", member: await memberOf(alice), crate: "team:lanterns", version: catalogue.version, floor: "rare" });
@@ -79,7 +79,7 @@ describe("LP61 LP62: a filled team page earns one hoggie the member does not own
   });
 });
 
-describe("LP61 LP62: each milestone tier earns one hoggie the member does not own, at or above its tier's floor", { timeout: 60_000 }, () => {
+describe("LP62 LP63: each milestone tier earns one hoggie the member does not own, at or above its tier's floor", { timeout: 60_000 }, () => {
   test("each tier the turn reaches earns one item with its tier's floor, and each turns into a hoggie the member does not own, at or above that floor", async () => {
     await ownsEvery(alice, (hoggie) => hoggie.rarity === "common" || hoggie.rarity === "uncommon");
     await thanks(alice, bob);
@@ -109,7 +109,7 @@ describe("LP61 LP62: each milestone tier earns one hoggie the member does not ow
   });
 });
 
-describe("LP63: a reward whose floor and above the member owns whole draws a duplicate at or above its floor", { timeout: 60_000 }, () => {
+describe("LP64: a reward whose floor and above the member owns whole draws a duplicate at or above its floor", { timeout: 60_000 }, () => {
   test("with every hoggie owned, the gold tier's item draws an owned epic or legendary, and the diamond tier's an owned legendary", async () => {
     await ownsEvery(alice, () => true);
     await thanks(alice, bob);
@@ -125,7 +125,7 @@ describe("LP63: a reward whose floor and above the member owns whole draws a dup
   });
 });
 
-describe("LP62: every other draw keeps its duplicates", { timeout: 60_000 }, () => {
+describe("LP63: every other draw keeps its duplicates", { timeout: 60_000 }, () => {
   test("a thanks item still draws the hoggie its crate key draws, owned or not", async () => {
     await thanks(alice, bob);
     const crate = (await itemsOf(alice)).find(({ key }) => key.startsWith("thoughtful:"))!.key;
@@ -139,7 +139,7 @@ describe("LP62: every other draw keeps its duplicates", { timeout: 60_000 }, () 
   });
 });
 
-describe("LP64: achievement items wait unseen while achievement-hoggies or hidden-items is off, and nothing is lost", { timeout: 60_000 }, () => {
+describe("LP65: achievement items wait unseen while achievement-hoggies or hidden-items is off, and nothing is lost", { timeout: 60_000 }, () => {
   test("with achievement-hoggies off the filled team's item is earned but neither shown nor turned, and it shows once the flag turns on", async () => {
     await switchWebsite(t, postHog, true, ...itemsOn);
     const asAlice = await signedIn(alice);
