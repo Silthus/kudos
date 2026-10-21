@@ -247,6 +247,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
 - a hoggie forge spends three spares for one a rarity up the member doesn't hold: A member's forgeHoggie of a hoggie they hold four or more copies of lowers its copies by exactly three, never below one, and finds one hoggie of the next rarity that they held no copy of, picked among those left by the draw secret, the member and the forge's crate key; a repeat of a request it forged answers the same hoggie and spends nothing; fewer than three spares, a legendary, a hoggie not held, no catalogue hoggie, a malformed request, or a next rarity wholly held is refused and writes nothing
   over: four Bananas beside every hoggie a rarity up but one; seven Bananas beside one hoggie a rarity up; seven Bananas forged twice with one request; three Bananas, four Rockets, an unheld Cake and an unknown name; an empty, a colon-bearing and a 65-character request; four Bananas beside every hoggie a rarity up; read through forgeHoggie's answers, getAlbumHoggies and every table
   via: HF2, HF3, HF4, HF6: a forge spends three spares of a hoggie and finds one a rarity up the member doesn't hold
+  refuted: forge in convex/hoggies/forge.ts lowered the tally by two instead of three -> 3 of 6 tests failed: four copies left two instead of one, seven left five, and a resent request saw five (2026-10-21)
   because: the product owner's forge turns four of a kind into one you don't have (spec/hoggie-forge.md HF2-HF7): spending more than three or the last copy would cost a member the hoggie, a crest or their pet, a forged hoggie they already held would break the promise, and a lost answer retried must not spend twice
   kinds: state
   checklist: scoped-reads dismissed: forgeHoggie reads and writes only the signed-in member's tallies and drops, named by the verified session, never by its arguments
@@ -267,6 +268,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
 - a forged hoggie is a find from a forge crate that pays nothing: A hoggie forge records its hoggie as a drop of the `forge` crate kind, whose first copy is new, and publishes hoggieDropped, which PostHog receives as one hoggie dropped with crate_kind forge, its rarity and is_new, and no pack XP or coins
   over: one forge of four Bananas into the one hoggie a rarity up left, read through the PostHog captures after the outbox drains
   via: HF5, HF12: a forged hoggie is a find with no pack, captured as hoggie dropped from a forge crate
+  refuted: packBands in convex/hoggies/catalogue.ts gave the forge crate kind the thoughtful band -> 1 of 1 tests failed: with packs on, the forge's hoggie dropped carried pack XP (2026-10-21)
   because: the forge is a find like any other, so Milestones, Activity and crests count it, and the product owner measures it through the existing projection rather than a new event (spec/hoggie-forge.md HF5, HF12); a pack band would pay XP for a spend
   kinds: output
   checklist: destination-confinement dismissed: the event goes through the existing hoggie dropped projection to the deployment's PostHog project
@@ -277,6 +279,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
 - the hoggie forge is dark where hoggie-forge is off: While `hoggie-forge` is off for a member, read without an exposure, their getAlbumHoggies carries no forge field and their forgeHoggie is refused and writes nothing, as before the forge shipped; while it is on, getAlbumHoggies carries forge true and reading it writes nothing; with collection off forgeHoggie is refused
   over: getAlbumHoggies and forgeHoggie with hoggie-forge off for everyone and with it on, read through every table; forgeHoggie with collection off
   via: HF11: hoggie-forge is read for the member without an exposure
+  refuted: hoggieForgeShownTo in convex/hoggies/flag.ts answered on without reading hoggie-forge -> 1 of 3 tests failed: with hoggie-forge off getAlbumHoggies offered the forge and forgeHoggie spent copies (2026-10-21)
   because: every HedgeHug feature ships dark behind its own sandbox-only flag, read without an exposure as album is (spec/hoggie-forge.md HF11): a forge where it is off would spend copies nobody turned on, and an exposure from a read would count members who decided nothing
   kinds: state, output
   checklist: revalidated-permission dismissed: every forge and every getAlbumHoggies read decides `hoggie-forge` for the member when it runs, never from a stored value
