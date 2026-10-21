@@ -384,7 +384,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one press sends one command
   checklist: declared-target-coverage dismissed: there is no fan-out; one press names one hoggie
 - a found hoggie's entry says what its spares forge into: While getAlbumHoggies answers forge true, a found hoggie's field guide entry with three or more spares and a hoggie of the next rarity left to find offers `Forge 3 into a {rarity}` with `Keeps one {name}. Gives a {rarity} you don't have yet.`; with fewer spares it says `4 copies forge into a {rarity} you don't have yet.` with no button; with every hoggie of the next rarity held it says `You hold every {rarity}.`; a legendary's entry says nothing of forging; and without the forge field the entry is as before the forge shipped
-  over: four copies of a common with an Uncommon left; three copies; four copies beside every Uncommon held; five copies of a legendary; and four copies with no forge field
+  over: four copies of a common with a hoggie a rarity up left; three copies; four copies beside every hoggie a rarity up held; five copies of a legendary; and four copies with no forge field
   via: HF8: a found hoggie's entry says what its spares forge into
   because: the forge's promise is one rarity up and one the member doesn't have (spec/hoggie-forge.md HF3, HF8): a button that can't keep it, or one shown where the flag is off, would send a forge the server refuses
   kinds: output

@@ -245,7 +245,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
   checklist: resumption-coverage dismissed: no batch runs for pets
 - a hoggie forge spends three spares for one a rarity up the member doesn't hold: A member's forgeHoggie of a hoggie they hold four or more copies of lowers its copies by exactly three, never below one, and finds one hoggie of the next rarity that they held no copy of, picked among those left by the draw secret, the member and the forge's crate key; a repeat of a request it forged answers the same hoggie and spends nothing; fewer than three spares, a legendary, a hoggie not held, no catalogue hoggie, a malformed request, or a next rarity wholly held is refused and writes nothing
-  over: four Bananas beside every Uncommon but one; seven Bananas beside one Uncommon; seven Bananas forged twice with one request; three Bananas, four Rockets, an unheld Cake and an unknown name; an empty, a colon-bearing and a 65-character request; four Bananas beside every Uncommon; read through forgeHoggie's answers, getAlbumHoggies and every table
+  over: four Bananas beside every hoggie a rarity up but one; seven Bananas beside one hoggie a rarity up; seven Bananas forged twice with one request; three Bananas, four Rockets, an unheld Cake and an unknown name; an empty, a colon-bearing and a 65-character request; four Bananas beside every hoggie a rarity up; read through forgeHoggie's answers, getAlbumHoggies and every table
   via: HF2, HF3, HF4, HF6: a forge spends three spares of a hoggie and finds one a rarity up the member doesn't hold
   because: the product owner's forge turns four of a kind into one you don't have (spec/hoggie-forge.md HF2-HF7): spending more than three or the last copy would cost a member the hoggie, a crest or their pet, a forged hoggie they already held would break the promise, and a lost answer retried must not spend twice
   kinds: state
@@ -265,7 +265,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: declared-target-coverage dismissed: the one surface that forges is the website's forgeHoggie, reached by the oracle
   checklist: completion-evidence dismissed: forgeHoggie answers the drop it recorded
 - a forged hoggie is a find from a forge crate that pays nothing: A hoggie forge records its hoggie as a drop of the `forge` crate kind, whose first copy is new, and publishes hoggieDropped, which PostHog receives as one hoggie dropped with crate_kind forge, its rarity and is_new, and no pack XP or coins
-  over: one forge of four Bananas into the one Uncommon left, read through the PostHog captures after the outbox drains
+  over: one forge of four Bananas into the one hoggie a rarity up left, read through the PostHog captures after the outbox drains
   via: HF5, HF12: a forged hoggie is a find with no pack, captured as hoggie dropped from a forge crate
   because: the forge is a find like any other, so Milestones, Activity and crests count it, and the product owner measures it through the existing projection rather than a new event (spec/hoggie-forge.md HF5, HF12); a pack band would pay XP for a spend
   kinds: output
