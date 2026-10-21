@@ -39,6 +39,17 @@ export function streamInto(from: Element, target: Point | null, spreadMs: number
   }
 }
 
+export function sparksOff(pill: Element | null) {
+  if (pill === null || !animates(pill)) return;
+  const centre = centreOf(pill);
+  for (let index = 0; index < 26; index += 1) {
+    const angle = (index / 26) * Math.PI * 2 + Math.random() * 0.3;
+    const reach = 40 + Math.random() * 90;
+    const out = `translate(-50%, -50%) translate(${Math.cos(angle) * reach}px, ${Math.sin(angle) * reach + 30}px) scale(0.2)`;
+    fly(dotAt("xpm-particle xpm-particle-gold", centre, 4 + Math.random() * 6), [{ transform: "translate(-50%, -50%) scale(1.3)", opacity: 1 }, { transform: out, opacity: 0 }], 700 + Math.random() * 500, 0);
+  }
+}
+
 export function clearParticles() {
   document.querySelectorAll(particleClasses).forEach((particle) => particle.remove());
 }

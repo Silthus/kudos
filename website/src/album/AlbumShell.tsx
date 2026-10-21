@@ -8,6 +8,7 @@ import type { Album, AlbumLevel, PackOpenReply, SeenReply, UnlockReply } from ".
 import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
 import { ItemBoard, ItemsWait } from "./ItemBoard";
+import { useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
@@ -78,6 +79,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const sinceTheLastVisit = useXpMomentSequence(xpMoment, { itemsWait: (album.board?.items.length ?? 0) > 0, onEnd: endXpMoment });
   const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits;
   const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
+  const levelUnlocks = useLevelUnlocks(album, sinceTheLastVisit.ended, emojiMoments.shownElsewhere);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
   const finishUnlocking = (team: string) => {
     emojiMoments.shownElsewhere([`team:${team}`]);
@@ -97,7 +99,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
-      {sinceTheLastVisit.play !== null && <XpMomentCanvas play={sinceTheLastVisit.play} me={album.me} />}
+      {sinceTheLastVisit.play !== null && <XpMomentCanvas play={sinceTheLastVisit.play} me={album.me} levelUnlocks={levelUnlocks} />}
       {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
       {album.board !== null && <ItemsWait turns={turns} album={album} shareItem={shareItem} />}
