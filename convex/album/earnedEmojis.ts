@@ -7,13 +7,14 @@ import { levelFirstReachedAt } from "../unlocks/levelUps";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { slackEmojiImageOf } from "../workspace/slackEmoji";
 import { emojiArtPictureOf, emojiLevels, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";
-import { emojiNameOf, type EarnedEmojiId } from "./emojiNames";
+import { emojiNamed, emojiNameOf, namesHeldIn, type EarnedEmojiId } from "./emojiNames";
 import type { MilestoneAnswer } from "./milestones";
 import { isFirstPackFor, packsEarnedBetween, type Instants } from "./packs";
 import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
 import { randomEmojisShownTo } from "./flag";
-import { holdsRandomEmoji, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
+import { holdsRandomEmoji, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
+import type { ParseHook } from "../parser/parser";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
@@ -38,6 +39,8 @@ export const mostPeoplePackedRead = 500;
 export const mostEmojisSeenAtOnce = 500;
 
 export const mostEmojiCausesRead = 500;
+
+const mostEmojiNamesLookedUpOneByOne = 50;
 
 const unnamedPerson = "A teammate";
 
@@ -241,6 +244,33 @@ async function seenBy(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
     .withIndex("by_member_emoji", (q) => q.eq("member", member))
     .collect();
   return new Set(seen.map(({ emoji }) => emoji));
+}
+
+export const earnedEmojiHook: ParseHook = {
+  name: "earned emoji",
+  kudosEmoji: (ctx, { workspace, giver }, emoji) => (giver === undefined ? Promise.resolve([]) : earnedEmojiNamesAmong(ctx, workspace, giver, emoji)),
+};
+
+export async function holdsEarnedEmojiNamed(ctx: QueryCtx, workspace: string, member: MemberId, name: string): Promise<boolean> {
+  if (await holdsRandomEmoji(ctx, member, name)) return true;
+  const registered = await emojiNamed(ctx, workspace, name);
+  return registered !== null && (await isEarnedBy(ctx, member, registered));
+}
+
+async function earnedEmojiNamesAmong(ctx: QueryCtx, workspace: string, member: MemberId, names: string[]): Promise<string[]> {
+  const distinct = [...new Set(names)];
+  const earned: string[] = [];
+  if (distinct.length <= mostEmojiNamesLookedUpOneByOne) {
+    for (const name of distinct) if (await holdsEarnedEmojiNamed(ctx, workspace, member, name)) earned.push(name);
+    return earned;
+  }
+  const registry = await namesHeldIn(ctx, workspace);
+  const dropped = new Set(await randomEmojiNamesHeldBy(ctx, member));
+  for (const name of distinct) {
+    const registered = registry.get(name);
+    if (dropped.has(name) || (registered !== undefined && (await isEarnedBy(ctx, member, registered)))) earned.push(name);
+  }
+  return earned;
 }
 
 export async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): Promise<boolean> {

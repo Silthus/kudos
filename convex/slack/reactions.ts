@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
 import type { HugReaction } from "../hugs/reaction";
-import { settingsOf } from "../workspace/settings";
+import { mayGiveHugWith } from "../hugs/hugs";
 import type { EventCallback } from "./normalize";
 import { isText } from "./richText";
 
@@ -22,14 +22,14 @@ export function isReactionAdded(envelope: EventCallback): envelope is ReactionEn
   return envelope.event.type === "reaction_added";
 }
 
-export const kudosEmojiOf = internalQuery({
-  args: { workspace: v.string() },
-  handler: async (ctx, { workspace }) => (await settingsOf(ctx, workspace)).kudosEmoji,
+export const mayHugWith = internalQuery({
+  args: { workspace: v.string(), giver: v.string(), emoji: v.string() },
+  handler: (ctx, { workspace, giver, emoji }) => mayGiveHugWith(ctx, workspace, giver, withoutSkinTone(emoji)),
 });
 
-export function hugReactionOf(envelope: ReactionEnvelope, kudosEmoji: string): HugReaction | null {
+export function hugReactionOf(envelope: ReactionEnvelope): HugReaction | null {
   const { user, reaction, item_user: author, item, event_ts: eventTs } = envelope.event;
-  if (!isText(reaction) || withoutSkinTone(reaction) !== kudosEmoji) return null;
+  if (!isText(reaction)) return null;
   if (item?.type !== "message" || !isText(item.channel) || !isText(item.ts) || isDirectMessage(item.channel)) return null;
   if (!isText(user) || !isText(author) || !isText(eventTs) || author === user) return null;
   const appBotUser = appBotUserOf(envelope);
