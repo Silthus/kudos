@@ -230,7 +230,11 @@ export const openThoughtfulPack = memberMutation({
 });
 
 async function opensPacks(ctx: QueryCtx, me: VerifiedMember) {
-  return (await albumShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+  return (await keepsTheTray(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function keepsTheTray(ctx: QueryCtx, member: MemberId) {
+  return (await albumShownTo(ctx, member)) && !(await hiddenItemsShownTo(ctx, member));
 }
 
 export const turnItem = memberMutation({
@@ -254,7 +258,7 @@ async function turnsItems(ctx: QueryCtx, me: VerifiedMember) {
 export const putIn = memberMutation({
   args: { item: v.id("trayItems") },
   handler: async (ctx, me, _person, { item }): Promise<PutInAnswer> => {
-    const placed = (await albumShownTo(ctx, me.member)) ? await putItemIn(ctx, me, item, Date.now()) : null;
+    const placed = (await keepsTheTray(ctx, me.member)) ? await putItemIn(ctx, me, item, Date.now()) : null;
     return placed === null ? { kind: "refused" } : { kind: "placed", item: await shownItemOf(placed, thankedPeopleOf(ctx, me.workspace)) };
   },
 });
@@ -262,7 +266,7 @@ export const putIn = memberMutation({
 export const putAllIn = memberMutation({
   args: {},
   handler: async (ctx, me): Promise<PutAllInAnswer> => {
-    if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
+    if (!(await keepsTheTray(ctx, me.member))) return { kind: "refused" };
     const { items, more } = await putEveryItemIn(ctx, me, Date.now());
     return { kind: "placed", items: await shownItemsOf(items, thankedPeopleOf(ctx, me.workspace)), more };
   },

@@ -149,6 +149,7 @@ import type * as hugs_recap from "../hugs/recap.js";
 import type * as hugs_records from "../hugs/records.js";
 import type * as hugs_weeks from "../hugs/weeks.js";
 import type * as hugs_xp from "../hugs/xp.js";
+import type * as items_fill from "../items/fill.js";
 import type * as leaderboard_backfill from "../leaderboard/backfill.js";
 import type * as leaderboard_board from "../leaderboard/board.js";
 import type * as leaderboard_boards from "../leaderboard/boards.js";
@@ -473,6 +474,7 @@ declare const fullApi: ApiFromModules<{
   "hugs/records": typeof hugs_records;
   "hugs/weeks": typeof hugs_weeks;
   "hugs/xp": typeof hugs_xp;
+  "items/fill": typeof items_fill;
   "leaderboard/backfill": typeof leaderboard_backfill;
   "leaderboard/board": typeof leaderboard_board;
   "leaderboard/boards": typeof leaderboard_boards;
