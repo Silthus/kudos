@@ -42,3 +42,17 @@ Hugs: a light thank-you by reaction (SR1–SR10, SR12–SR16, SR20, SR21, SR24),
   checklist: worker-fencing dismissed: no worker owns a hug's writes
   checklist: commit-ordered-effects dismissed: hugGiven reaches payHugPeople, analytics and the album's tallyHugGiven, which reads a kudos message's awards only to find its people and its week, and counts the hug, never an award
   checklist: resumption-coverage dismissed: payHugPeople pays only reward records keyed per hug and person, whatever page it resumes from
+- a giver's first hug ever gets one first-hug reply at most: While `onboarding` and `hidden-items` are on for a giver, the first hug they ever give sends them one ephemeral first-hug reply in the hugged message's conversation, and no later hug, redelivered reaction or re-added reaction sends another; Slack refusing it or answering unknown ends it with no retry and no DM, and a giver who hugged before `onboarding` was on for them gets none.
+  over: a first hug on an ordinary message and on a Given kudos message, a second hug, a redelivered reaction, a removed and re-added reaction, Slack refusing it, the channel gone, an unknown answer, a rate-limit hold, a giver who hugged while `onboarding` was off, and each of the two flags off
+  via: LP73: a member's first hug ever gets one first-hug reply
+  refuted: giveHug scheduled the first-hug reply for every hug while onboarding was on, without checking the hugs' giver index for an earlier hug -> 5 of 16 tests failed: a second hug and every refused or unknown first reply's next hug sent a second ephemeral, and a giver who hugged while onboarding was off got one (2026-10-21)
+  because: the reply teaches the next step once, from the member's own action (LP73); a second one would repeat a lesson already learned on every hug, and a DM would reach the member away from the message they hugged
+  kinds: message
+  checklist: destination-confinement dismissed: the reply goes only to the giver as an ephemeral in the hugged message's conversation, both taken from the signed reaction
+  checklist: message-authenticity dismissed: the reaction reaches giveHug only through the Slack adapter's signature check, and the reply answers that reaction
+  checklist: input-validation dismissed: the scheduled action's arguments are checked by its validator, the workspace, the giver, the conversation and who was hugged
+  checklist: retry-recognition dismissed: a redelivered or re-added reaction finds the giver's hug on the message and records nothing, so it never reaches the first-hug check
+  checklist: duplicate-suppression declared as a giver's first hug ever gets one first-hug reply at most
+  checklist: keyed-ordering dismissed: one reply is sent per giver, so no two replies need an order
+  checklist: acknowledgment-barrier dismissed: the reply is scheduled from the hug's mutation and runs only after the hug's record commits
+  checklist: retry-classification dismissed: only a rate-limit hold sends it again; sendAtMostOnce ends it on any refusal or unknown answer

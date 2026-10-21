@@ -3,6 +3,7 @@ import type { ChannelMessage } from "./slackMessages";
 export type SlackUser = {
   id: string;
   team_id: string;
+  name?: string;
   deleted?: boolean;
   is_bot?: boolean;
   is_admin?: boolean;

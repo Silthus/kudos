@@ -54,6 +54,14 @@ export async function hugsGivenOn(ctx: QueryCtx, giver: MemberId, day: DayKey, a
   return given.length;
 }
 
+export async function hasHuggedBefore(ctx: QueryCtx, giver: MemberId): Promise<boolean> {
+  const earlier = await ctx.db
+    .query("hugs")
+    .withIndex("by_giver_decided", (q) => q.eq("giver", giver))
+    .first();
+  return earlier !== null;
+}
+
 export type NewHug = MessageRef & HugFor & { giver: MemberId; emoji: string; at: number; day: DayKey };
 
 export async function insertHug(ctx: MutationCtx, hug: NewHug) {
