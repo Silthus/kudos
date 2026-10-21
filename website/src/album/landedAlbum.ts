@@ -11,8 +11,8 @@ export function albumAtTheLanding(album: Album, landing: Landing | null): Album 
 
 function albumAtTheStickers(album: Album, landing: Landing): Album {
   const stickers = landing.unlocked.teamStickers;
-  if (landing.phase === "done") return withTheUnlocked(album, stickers);
-  const locked = withTheTeamsStillLocked(album, new Set(stickers.map(({ team }) => team)));
+  const shown = withTheUnlocked(album, stickers.slice(0, landing.teamsShown));
+  const locked = withTheTeamsStillLocked(shown, new Set(stickers.slice(landing.teamsShown).map(({ team }) => team)));
   return landing.phase === "arriving" ? withTheStickerStillOut(locked, landing.face) : locked;
 }
 

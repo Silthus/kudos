@@ -141,6 +141,10 @@ function tinOrchardInTheSidebar() {
   return within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: /Tin Orchard/ });
 }
 
+function sidebarLinkTo(team: string) {
+  return within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: new RegExp(team) });
+}
+
 function theSpotOfCassVey() {
   return screen.getByText("Cass Vey", { selector: ".al-photo-name" }).closest("li");
 }
@@ -261,6 +265,31 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(stage()).toBe("back");
     await at(8.9);
     expect(stage()).toBe("idle");
+  });
+
+  it("unlocks each team a sticker filled on its own page: the first team's beat leaves the second still locked, then the sequence fades to the second team's page for its own beat", async () => {
+    placeTheSealInView();
+    const sableQuay = { team: "sable-quay", name: "Sable Quay", art: { kind: "crest" as const, slug: "growth" }, mine: false, people: ["sable-ford", "cass-vey"], unmatched: [], held: 1, total: 2, state: "progress" as const, unlockedAt: null };
+    const unlockedSableQuay = { team: "sable-quay", name: "Sable Quay", art: sableQuay.art, emoji: "team-sable-quay", at: unlockedAt };
+    const bothFilled = (album: Album, item: string) => {
+      const filled = withTinOrchardFilled(album, item);
+      return { ...filled, teams: filled.teams.map((team) => (team.team === "sable-quay" ? { ...team, held: 2, state: "unlocked" as const, unlockedAt } : team)) };
+    };
+    visit({ album: { ...withItems, teams: [...withItems.teams, sableQuay] }, reply: async () => aStickerTurnOfCassVey({ teamStickers: [tinOrchard, unlockedSableQuay], hype: null, milestones: [] }), after: bothFilled });
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(4.8);
+    expect(window.location.hash).toBe("#teams/tin-orchard");
+    expect(stage()).toBe("unlock");
+    expect(screen.getByRole("img", { name: "Tin Orchard sticker, unlocked" })).toBeInTheDocument();
+    expect(within(sidebarLinkTo("Sable Quay")).getByRole("img", { name: "2 of 2" }), "the second team, filled but still locked, during the first team's beat").toBeInTheDocument();
+
+    await at(9.0);
+    expect(window.location.hash, "the second team's beat plays on its own page").toBe("#teams/sable-quay");
+    expect(stage()).toBe("unlock");
+    expect(screen.getByRole("img", { name: "Sable Quay sticker, unlocked" })).toBeInTheDocument();
+    expect(document.querySelector(".ib-flourish"), "the second team's gold burst").not.toBeNull();
+    expect(within(sidebarLinkTo("Sable Quay")).getByRole("img", { name: "Unlocked" })).toBeInTheDocument();
   });
 
   it("pops the thanked person's hype emoji in beside their sticker only once it lands", async () => {
