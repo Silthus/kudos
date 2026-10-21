@@ -59,7 +59,7 @@ describe("ST8 AL34: every kudos emoji the giver owns counts, whether the store a
 
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog", "ribbon"]);
 
-    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "ribbon"], awards: [{ kudos: 2 }] });
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "ribbon"], awards: [{ kudos: 1 }] });
   });
 
   test("a custom kudos emoji Alice owns counts while custom-kudos-emoji is on for her, after it left the store, and not while it is off", async () => {
@@ -91,7 +91,7 @@ describe("ST8 AL34: every kudos emoji the giver owns counts, whether the store a
     await flagsFromPostHog(t, postHog, ...definitions, onForEmails("custom-kudos-emoji", alicesEmail));
 
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog", "rocket", "ribbon", "shipit"]);
-    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "rocket", "ribbon", "shipit"], awards: [{ kudos: 4 }] });
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "rocket", "ribbon", "shipit"], awards: [{ kudos: 1 }] });
 
     const before = (await kudosGivenEvents(t)).length;
     await giveKudos(t, "U_BOB", ["U_ALICE"], saysWhy, ["hedgehog", "rocket", "ribbon", "shipit"]);
@@ -105,7 +105,7 @@ describe("ST8 AL34: every kudos emoji the giver owns counts, whether the store a
 
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog", "rocket", "ribbon", "shipit"]);
 
-    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "rocket", "ribbon"], awards: [{ kudos: 3 }] });
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "rocket", "ribbon"], awards: [{ kudos: 1 }] });
   });
 });
 
@@ -223,7 +223,7 @@ describe("ST10: edits and rechecks parse with the kudos emoji owned at the time"
     slack.joiningAt("U_DAVE", new Date(Date.now() + 5 * 60_000));
     const before = (await kudosGivenEvents(t)).length;
 
-    await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention("U_DAVE"), text(` ${saysWhy} `), emoji("taco"), emoji("shipit"))], { user: "U_ALICE", ts: nextTs() })));
+    await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention("U_DAVE"), text(` ${saysWhy} `), emoji("taco"), emoji("shipit"), emoji("shipit"))], { user: "U_ALICE", ts: nextTs() })));
     await t.finishInProgressScheduledFunctions();
     await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")), form));
     await t.finishInProgressScheduledFunctions();

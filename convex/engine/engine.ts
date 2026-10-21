@@ -10,8 +10,8 @@ import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
 import { keepSpotlightUpToDate } from "./spotlight";
 import { deletionRequested, forgetDeleted, forgetWords, forgetWordsOfGiven, hasKudosText, keepFetchedWords, keepWords, removeWords } from "./kudosText";
-import type { Annotations, ChatUserId, FetchedMessage, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
-import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
+import { countableOf, type Annotations, type ChatUserId, type FetchedMessage, type Mention, type MessageDeleted, type MessageEvent, type MessageRef } from "./messageEvent";
+import { annotationsOf, fingerprintOf, kudosEmojiClosestAfter, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
 
 export type Outcome =
   | ({ kind: "given"; awards: Award[]; kudosEmoji: string } & Given)
@@ -49,7 +49,7 @@ async function observeMessage(ctx: MutationCtx, event: MessageEvent | MessageDel
   const context = { workspace: event.ref.workspace, giver: author?.kind === "member" ? author.member : undefined };
   const revision = {
     revision: event.revision,
-    content: { mentions: event.content.mentions, emoji: event.content.emoji },
+    content: countableOf(event.content),
     annotations: annotationsOf(event.content, context),
   };
   if (author !== undefined && author.kind !== "member") return observeFromNonMember(ctx, existing, event, revision, context);
@@ -83,7 +83,7 @@ async function hydrateMessage(ctx: MutationCtx, fetched: FetchedMessage): Promis
 }
 
 async function followFetchedRevision(ctx: MutationCtx, row: KudosMessageRow, { revision, content }: FetchedMessage) {
-  await ctx.db.patch(row._id, { revision, content: { mentions: content.mentions, emoji: content.emoji } });
+  await ctx.db.patch(row._id, { revision, content: countableOf(content) });
 }
 
 async function keepingSpotlightUpToDate<T>(ctx: MutationCtx, ref: MessageRef, change: Promise<T>): Promise<T> {
@@ -310,7 +310,7 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
   }
 
   const awards = recipients.map(({ member }) => ({ giver: giver.member, recipient: member, kudos: perRecipient }));
-  const kudosEmoji = kudos.kudosEmoji[0]!;
+  const kudosEmoji = kudosEmojiClosestAfter(kudos, firstMentionOf(kudos.mentions, recipients[0]!));
   const left = allowance.left - cost;
   await allowance.spend(cost);
   await publish(ctx, {
@@ -366,6 +366,10 @@ async function recipientOrSkipReason(ctx: QueryCtx, workspace: string, mention: 
   if (facts?.kind !== "member") return "not-a-member";
   if (facts.member === giver) return "self";
   return { member: facts.member, user: mention.user };
+}
+
+function firstMentionOf(mentions: Mention[], { user }: Recipient) {
+  return mentions.findIndex((mention) => mention.kind === "person" && mention.user === user);
 }
 
 function uniqueMentions(mentions: Mention[]) {

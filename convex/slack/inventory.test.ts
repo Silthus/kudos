@@ -148,7 +148,7 @@ describe("ST8 ST11: 🦔, the giver's starter, counts as a kudos", { timeout: 30
     expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "hedgehog", ownedEmoji: ["hedgehog"], awards: [{ kudos: 1 }] });
   });
 
-  test("the workspace emoji and 🦔 cost two per recipient, and a message with only the workspace emoji names no owned emoji", async () => {
+  test("the workspace emoji and 🦔 cost one per recipient, and a message with only the workspace emoji names no owned emoji", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
     vi.setSystemTime(tuesday + dayMs);
@@ -157,11 +157,11 @@ describe("ST8 ST11: 🦔, the giver's starter, counts as a kudos", { timeout: 30
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["taco"]);
 
     expect(successRepliesTo("U_ALICE").slice(-2).map(([reply]) => reply)).toEqual([
-      "<@U_BOB> and <@U_CAROL> got 2 kudos from you. You have 6 kudos left today.",
-      "<@U_BOB> got 1 kudos from you. You have 5 kudos left today.",
+      "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 8 kudos left today.",
+      "<@U_BOB> got 1 kudos from you. You have 7 kudos left today.",
     ]);
     const [both, workspaceOnly] = (await kudosGivenEvents(t)).slice(-2);
-    expect(both).toMatchObject({ ownedEmoji: ["hedgehog"], awards: [{ kudos: 2 }, { kudos: 2 }] });
+    expect(both).toMatchObject({ ownedEmoji: ["hedgehog"], awards: [{ kudos: 1 }, { kudos: 1 }] });
     expect(workspaceOnly!.ownedEmoji ?? []).toEqual([]);
   });
 });
@@ -184,7 +184,7 @@ describe("ST8 limits: the owned kudos emoji hook reads a fixed handful per messa
 
     expect(given.ownedEmoji).toEqual(["rocket"]);
     expect(given.awards).toHaveLength(700);
-    expect(new Set(given.awards.map(({ kudos }) => kudos))).toEqual(new Set([2]));
+    expect(new Set(given.awards.map(({ kudos }) => kudos))).toEqual(new Set([1]));
   });
 });
 

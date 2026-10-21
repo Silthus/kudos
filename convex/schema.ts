@@ -9,7 +9,7 @@ import { exceptionValidator } from "./analytics/exceptions";
 import { awardIdValidator } from "./engine/awards";
 import { personPropertiesValidator, propertiesValidator } from "./analytics/projections";
 import { kudosTextValidator } from "./engine/kudosText";
-import { annotationsValidator, mentionValidator, messageRefValidator } from "./engine/messageEvent";
+import { annotationsValidator, countableContentValidator, messageRefValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { attributedAwardValidator, groupOrNoneValidator } from "./groups/attributedAward";
 import { primaryGroupCauseValidator } from "./groups/cause";
@@ -273,7 +273,7 @@ export default defineSchema({
     ),
     attempt: v.int64(),
     retry: v.optional(v.boolean()),
-    content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()) }),
+    content: countableContentValidator,
     annotations: annotationsValidator,
     spendsAt: v.number(),
     checks: v.number(),
