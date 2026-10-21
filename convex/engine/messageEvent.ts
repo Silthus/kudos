@@ -29,6 +29,8 @@ export const visibilityValidator = v.union(v.literal("public"), v.literal("priva
 
 export const wordsValidator = v.object({ segments: v.array(wordSegmentValidator), visibility: visibilityValidator });
 
+export const countableContentValidator = v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()), mentionsBeforeEmoji: v.optional(v.array(v.number())) });
+
 export const messageEventValidator = v.object({
   kind: v.union(v.literal("posted"), v.literal("edited")),
   ref: messageRefValidator,
@@ -36,7 +38,7 @@ export const messageEventValidator = v.object({
   author: v.string(),
   revision: v.int64(),
   at: v.number(),
-  content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()), mentionsBeforeEmoji: v.optional(v.array(v.number())), text: v.string() }),
+  content: countableContentValidator.extend({ text: v.string() }),
   words: wordsValidator,
 });
 
@@ -62,7 +64,7 @@ export type MessageDeleted = Infer<typeof messageDeletedValidator>;
 export type WordSegment = Infer<typeof wordSegmentValidator>;
 export type Words = Infer<typeof wordsValidator>;
 export type Visibility = Infer<typeof visibilityValidator>;
-export type CountableContent = Omit<MessageContent, "text">;
+export type CountableContent = Infer<typeof countableContentValidator>;
 
 export function countableOf({ mentions, emoji, mentionsBeforeEmoji }: CountableContent): CountableContent {
   return { mentions, emoji, ...(mentionsBeforeEmoji && { mentionsBeforeEmoji }) };

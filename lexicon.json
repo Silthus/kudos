@@ -21,7 +21,7 @@
     },
     {
       "name": "recipient",
-      "definition": "A member mentioned in a kudos message who receives its kudos. Every recipient receives one kudos for each kudos emoji in the message."
+      "definition": "A member mentioned in a kudos message who receives its kudos. Every recipient receives as many kudos as the kudos emoji the message holds most often."
     },
     {
       "name": "daily allowance",
@@ -29,11 +29,11 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus, while the store is visible to them, every kudos emoji item they own: the starter, the ones they bought, the ones a tier gave them and the custom ones they may see. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), every kudos emoji item they own (the starter, the ones they bought, the ones a tier gave them and the custom ones they may see), and every emoji they earned in the album. A kudos message gives every recipient as many kudos as the kudos emoji it holds most often, so different kudos emojis add nothing to each other."
     },
     {
       "name": "kudos message",
-      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient per kudos emoji. Its words are kept as the kudos text while its newest revision is a kudos message."
+      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient for each time its most repeated kudos emoji appears. Its words are kept as the kudos text while its newest revision is a kudos message."
     },
     {
       "name": "attempt",
@@ -231,7 +231,7 @@
     },
     {
       "name": "indicator",
-      "definition": "The one reaction the app shows on a kudos message for its outcome: the first kudos emoji the giver used for Given, an hourglass for Over allowance, a red X for Invalid, and none otherwise. It is desired state, so every delivery leaves the message showing the latest one."
+      "definition": "The one reaction the app shows on a kudos message for its outcome: for Given, the kudos emoji closest after the first recipient's mention, or the closest one before it when none follows; an hourglass for Over allowance, a red X for Invalid, and none otherwise. It is desired state, so every delivery leaves the message showing the latest one."
     },
     {
       "name": "domain event",
