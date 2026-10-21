@@ -105,6 +105,15 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
     expect(itemBoardCss).toMatch(/\.ib-after \{\s*position: fixed;\s*bottom: /);
   });
 
+  it("leaves room at the foot of the page while the line shows there, so it never covers the page's last lines", async () => {
+    const { user } = visit([welcomeItem]);
+
+    await turnTheFirstItem(user);
+
+    expect(theLesson()!.closest(".ib-after")!.parentElement).toHaveClass("al-shell");
+    expect(itemBoardCss).toMatch(/\.al-shell:has\(> \.ib-after:not\(:empty\)\) \.al-main \{\s*padding-bottom: /);
+  });
+
   it("shows only once: the next item's turn takes the line away, and a thanks item's turn never shows it", async () => {
     const { user } = visit([welcomeItem, thanksItem]);
     await turnTheFirstItem(user);
