@@ -7,7 +7,7 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { applyGain } from "../progression/progression";
 import type { AppliedReward } from "../progression/rewards";
 import { catalogue, crestNamed, crestWith, firstVersionWithCrests, hoggieNamed, type Rarity } from "./catalogue";
-import { drawOf, packBonusOf } from "./draw";
+import { drawOf, packBonusOf, type Drawn } from "./draw";
 import { crestsShownFor, crestsShownTo, hoggiesDropFor, packsPayFor } from "./flag";
 import { crateKindOf, type CrateKey } from "./crateKey";
 import type { DropRecord } from "./records";
@@ -26,9 +26,14 @@ export type DroppedAt = { at: number; n: number; decided: number; drop: Drop };
 
 export type DropContext = { surface?: Surface; floor?: Rarity; waits?: boolean };
 
-export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { surface, floor, waits = false }: DropContext): Promise<void> {
+export type FindContext = { surface?: Surface; waits?: boolean };
+
+export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { floor, ...context }: DropContext): Promise<void> {
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
-  const { hoggie, rarity } = await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, floor });
+  await recordFind(ctx, member, crate, await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, floor }), at, context);
+}
+
+export async function recordFind(ctx: MutationCtx, member: MemberId, crate: CrateKey, { hoggie, rarity }: Drawn, at: number, { surface, waits = false }: FindContext): Promise<void> {
   const n = await countDrop(ctx, member);
   const copy = waits ? await nextCopyOf(ctx, member, hoggie) : await countFound(ctx, member, hoggie, at, n);
   const crest = waits ? crestDecidedAtThePutIn() : await crestRecordedFor(ctx, member, hoggie, copy);

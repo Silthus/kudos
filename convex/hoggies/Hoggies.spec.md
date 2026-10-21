@@ -213,7 +213,7 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   because: the core-loop spec lets a member pick one hoggie they own as their pet, shown to every viewer (LP57, LP59): a pet never found would let a member show a legendary they never collected, and a second row for one member would make every read answer whichever row it met first
   kinds: state
   checklist: scoped-reads dismissed: makePet reads and writes only the signed-in member's tallies and pet, named by the verified session, never by its argument
-  checklist: revalidated-permission dismissed: holding is read from the member's tallies in the same mutation that stores the pet, and tallies only grow, so a held hoggie stays held
+  checklist: revalidated-permission dismissed: holding is read from the member's tallies in the same mutation that stores the pet, and a tally never falls below one copy, since a hoggie forge keeps one (HF2), so a held hoggie stays held
   checklist: encrypted-storage dismissed: a pet is game data every teammate's album shows, not confidential
   checklist: key-rotation-compatibility dismissed: nothing is encrypted
   checklist: input-validation dismissed: the command's validator takes a string, and a name without the member's tally is refused before any pet is written
@@ -244,3 +244,49 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: declared-target-coverage dismissed: the surfaces are the website's getAlbum, getAlbumHoggies and makePet, each read by the oracle's walk
   checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
   checklist: resumption-coverage dismissed: no batch runs for pets
+- a hoggie forge spends three spares for one a rarity up the member doesn't hold: A member's forgeHoggie of a hoggie they hold four or more copies of lowers its copies by exactly three, never below one, and finds one hoggie of the next rarity that they held no copy of, picked among those left by the draw secret, the member and the forge's crate key; a repeat of a request it forged answers the same hoggie and spends nothing; fewer than three spares, a legendary, a hoggie not held, no catalogue hoggie, a malformed request, or a next rarity wholly held is refused and writes nothing
+  over: four Bananas beside every Uncommon but one; seven Bananas beside one Uncommon; seven Bananas forged twice with one request; three Bananas, four Rockets, an unheld Cake and an unknown name; an empty, a colon-bearing and a 65-character request; four Bananas beside every Uncommon; read through forgeHoggie's answers, getAlbumHoggies and every table
+  via: HF2, HF3, HF4, HF6: a forge spends three spares of a hoggie and finds one a rarity up the member doesn't hold
+  because: the product owner's forge turns four of a kind into one you don't have (spec/hoggie-forge.md HF2-HF7): spending more than three or the last copy would cost a member the hoggie, a crest or their pet, a forged hoggie they already held would break the promise, and a lost answer retried must not spend twice
+  kinds: state
+  checklist: scoped-reads dismissed: forgeHoggie reads and writes only the signed-in member's tallies and drops, named by the verified session, never by its arguments
+  checklist: revalidated-permission dismissed: the copies and the hoggies held are read in the same mutation that spends and records
+  checklist: encrypted-storage dismissed: hoggies are game data every teammate's album shows, not confidential
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted
+  checklist: input-validation dismissed: the validator takes two strings; a request outside 1 to 64 letters, digits, dashes and underscores, and a name with no catalogue hoggie, are refused before anything is written
+  checklist: revision-preservation dismissed: the forge's drop row is insert-only, and the copies it spent are the history a member sees
+  checklist: separation-of-duties dismissed: no approval policy; a member forges only their own hoggies
+  checklist: legal-state-succession dismissed: a tally moves from n to n minus 3 only when n is at least 4, so it never falls below one
+  checklist: supersession-safety dismissed: no late work forges; each forge is one mutation keyed by its request
+  checklist: worker-fencing dismissed: no worker forges; Convex serializes mutations on one member's tallies, so two forges in two tabs spend twice only when the member meant two
+  checklist: commit-ordered-effects dismissed: the hoggieDropped event is published in the forge's transaction, and its analytics leave through the outbox after commit
+  checklist: durable-dispatch-intent dismissed: the event's subscribers are scheduled in the same transaction
+  checklist: resumption-coverage dismissed: no batch forges
+  checklist: declared-target-coverage dismissed: the one surface that forges is the website's forgeHoggie, reached by the oracle
+  checklist: completion-evidence dismissed: forgeHoggie answers the drop it recorded
+- a forged hoggie is a find from a forge crate that pays nothing: A hoggie forge records its hoggie as a drop of the `forge` crate kind, whose first copy is new, and publishes hoggieDropped, which PostHog receives as one hoggie dropped with crate_kind forge, its rarity and is_new, and no pack XP or coins
+  over: one forge of four Bananas into the one Uncommon left, read through the PostHog captures after the outbox drains
+  via: HF5, HF12: a forged hoggie is a find with no pack, captured as hoggie dropped from a forge crate
+  because: the forge is a find like any other, so Milestones, Activity and crests count it, and the product owner measures it through the existing projection rather than a new event (spec/hoggie-forge.md HF5, HF12); a pack band would pay XP for a spend
+  kinds: output
+  checklist: destination-confinement dismissed: the event goes through the existing hoggie dropped projection to the deployment's PostHog project
+  checklist: redaction dismissed: the projection's named properties are the allowlist; the crate key with its request is not among them
+  checklist: commit-ordered-effects dismissed: the capture leaves through the analytics outbox after the forge commits
+  checklist: circuit-breaker-policy dismissed: captures leave through the existing outbox drain and its retries
+  checklist: declared-target-coverage dismissed: the one destination is PostHog's capture, read by the oracle
+- the hoggie forge is dark where hoggie-forge is off: While `hoggie-forge` is off for a member, read without an exposure, their getAlbumHoggies carries no forge field and their forgeHoggie is refused and writes nothing, as before the forge shipped; while it is on, getAlbumHoggies carries forge true and reading it writes nothing; with collection off forgeHoggie is refused
+  over: getAlbumHoggies and forgeHoggie with hoggie-forge off for everyone and with it on, read through every table; forgeHoggie with collection off
+  via: HF11: hoggie-forge is read for the member without an exposure
+  because: every HedgeHug feature ships dark behind its own sandbox-only flag, read without an exposure as album is (spec/hoggie-forge.md HF11): a forge where it is off would spend copies nobody turned on, and an exposure from a read would count members who decided nothing
+  kinds: state, output
+  checklist: revalidated-permission dismissed: every forge and every getAlbumHoggies read decides `hoggie-forge` for the member when it runs, never from a stored value
+  checklist: legal-state-succession dismissed: where hoggie-forge is off nothing is spent or recorded; a forge made while it was on stays
+  checklist: supersession-safety dismissed: the flag is read fresh in the mutation or query that decides, and nothing of it is stored
+  checklist: worker-fencing dismissed: no worker forges; a forge is one mutation
+  checklist: commit-ordered-effects dismissed: no exposure is written by a read, and a refused forge issues no effect
+  checklist: destination-confinement dismissed: the decision withholds a field and a command; where answers go is unchanged
+  checklist: redaction dismissed: the decision removes the whole field rather than scrubbing content inside it
+  checklist: circuit-breaker-policy dismissed: the flag is read from the PostHog component's cached definitions, never by calling PostHog per read
+  checklist: declared-target-coverage dismissed: the surfaces are the website's getAlbumHoggies and forgeHoggie, each read by the oracle
+  checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
+  checklist: resumption-coverage dismissed: no batch runs for forges

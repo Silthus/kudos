@@ -33,8 +33,14 @@ export async function holds(t: Backend, member: MemberId, ...hoggies: string[]) 
       if (tally === null) await ctx.db.insert("dropTallies", { member, drops: n });
       else await ctx.db.patch(tally._id, { drops: n });
       const at = Date.now();
-      await ctx.db.insert("drops", { member, crate: `test:held:${n}`, hoggie, rarity: hoggieNamed(hoggie)!.rarity, n, copy: 1, catalogueVersion: catalogue.version, at, crest: null });
-      await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: at, firstN: n });
+      const held = await ctx.db
+        .query("hoggieTallies")
+        .withIndex("by_member_hoggie", (q) => q.eq("member", member).eq("hoggie", hoggie))
+        .unique();
+      const copy = (held?.count ?? 0) + 1;
+      await ctx.db.insert("drops", { member, crate: `test:held:${n}`, hoggie, rarity: hoggieNamed(hoggie)!.rarity, n, copy, catalogueVersion: catalogue.version, at, crest: null });
+      if (held === null) await ctx.db.insert("hoggieTallies", { member, hoggie, count: copy, firstAt: at, firstN: n });
+      else await ctx.db.patch(held._id, { count: copy });
     }
   });
 }

@@ -383,6 +383,26 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: the shell stores nothing; it shows the pet makePet answered only until getAlbumHoggies names another
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one press sends one command
   checklist: declared-target-coverage dismissed: there is no fan-out; one press names one hoggie
+- a found hoggie's entry says what its spares forge into: While getAlbumHoggies answers forge true, a found hoggie's field guide entry with three or more spares and a hoggie of the next rarity left to find offers `Forge 3 into a {rarity}` with `Keeps one {name}. Gives a {rarity} you don't have yet.`; with fewer spares it says `4 copies forge into a {rarity} you don't have yet.` with no button; with every hoggie of the next rarity held it says `You hold every {rarity}.`; a legendary's entry says nothing of forging; and without the forge field the entry is as before the forge shipped
+  over: four copies of a common with an Uncommon left; three copies; four copies beside every Uncommon held; five copies of a legendary; and four copies with no forge field
+  via: HF8: a found hoggie's entry says what its spares forge into
+  because: the forge's promise is one rarity up and one the member doesn't have (spec/hoggie-forge.md HF3, HF8): a button that can't keep it, or one shown where the flag is off, would send a forge the server refuses
+  kinds: output
+  checklist: destination-confinement dismissed: the entry's words send nothing
+  checklist: redaction dismissed: the entry shows a hoggie's name and rarity words, nothing about a person
+  checklist: commit-ordered-effects dismissed: the entry stores nothing; it derives every line from getAlbumHoggies
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one entry shows one hoggie
+- Forge sends forgeHoggie once and reveals the forged hoggie: A press on `Forge` sends forgeHoggie once with the entry's hoggie and a request ID, however often it is pressed before the answer (`Forging…`); a press after an unreachable server sends the same request again, and a press after any answer a new one; once it answers forged, a reveal named `Forged` reads `Forged: {name} · {rarity} · New`, shown at once with reduced motion, and a click, Enter, Space or Escape on it, or its rest, ends it and steps the entry to the forged hoggie without closing the entry; a refusal says `{name} couldn't be forged. Reload the page to see where it stands.` and an unreachable server `Couldn't reach HedgeHug. Try again.`, each keeping Forge
+  over: a press answered forged, then a click on the reveal; a press answered forged, then Escape; a press with reduced motion; two presses before the answer; an unreachable press then a second press; two presses each answered refused; a refusal; and an unreachable server
+  via: HF9, HF10: Forge sends forgeHoggie once and plays the forged hoggie's reveal
+  because: a forge spends three copies, so a doubled send or a retried lost answer must never forge twice (spec/hoggie-forge.md HF6, HF7), and the forge is a reward the member sees land, not a form (HF9, HF10)
+  kinds: output
+  checklist: destination-confinement dismissed: the entry sends only forgeHoggie, once per press, for the hoggie it shows, and nothing on arrival
+  checklist: redaction dismissed: the reveal shows a hoggie's name and rarity, nothing about a person
+  checklist: commit-ordered-effects dismissed: the shell stores nothing but the request awaiting its answer; copies come from getAlbumHoggies
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; one press sends one command
+  checklist: declared-target-coverage dismissed: there is no fan-out; one press names one hoggie
 - a member's pet shows in colour beside their sticker: While getAlbum lists pets, a team page's class photo draws each member's pet in colour beside their sticker, named "{first name}'s pet, {hoggie}", even while their sticker is still grey, and their person page draws it in colour beside the sticker in its mount, with a `Pet: {hoggie}` line; a member without a pet gets none; while getAlbum lists no pets, no page draws one; the Leaderboard and Slack never draw a pet.
   over: a team page with two members' pets, one of them not in the viewer's album yet; that member's person page; a person page of a member without a pet; and a team page while getAlbum lists no pets
   via: LP58: a member's pet shows in colour beside their sticker on team pages and on their person page

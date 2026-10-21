@@ -589,7 +589,10 @@
     },
     {
       "name": "hoggie",
-      "definition": "An official PostHog hedgehog illustration from @posthog/brand, named by its slug, that a member collects. A hoggie waits as an item, face down on the item board, and is drawn by its rarity at its turn, not at an open (LP1, LP11); duplicates count up. It fills no slot, is never sold and is never a kudos emoji."
+      "definition": "An official PostHog hedgehog illustration from @posthog/brand, named by its slug, that a member collects. A hoggie waits as an item, face down on the item board, and is drawn by its rarity at its turn, not at an open (LP1, LP11); duplicates count up. It fills no slot, is never sold and is never a kudos emoji.",
+      "properties": {
+        "spare": "A copy of a hoggie past the first one a member holds; getAlbumHoggies counts them as spares. A hoggie forge spends three (HF1, HF2)."
+      }
     },
     {
       "name": "crest",
@@ -792,6 +795,10 @@
     {
       "name": "pet hoggie",
       "definition": "The one hoggie a member picks to show on their person page and on team pages (LP1, LP57)."
+    },
+    {
+      "name": "hoggie forge",
+      "definition": "A member's spend of three spare copies of one hoggie, in its field guide entry, for a hoggie one rarity up that they hold no copy of, picked by the draw secret among those left to find; it keeps one copy, so the member never loses the hoggie, and it is recorded as a find from a forge crate (HF1-HF6). Named hoggie forge, not forge, because a forged request is the security sense."
     }
   ],
   "retired": [
