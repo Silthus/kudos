@@ -43,6 +43,13 @@ function waitingOf(ctx: QueryCtx, member: MemberId, most: number): Promise<Doc<"
     .take(most);
 }
 
+export function waitingPageOf(ctx: QueryCtx, member: MemberId, cursor: string | null, numItems: number) {
+  return ctx.db
+    .query("items")
+    .withIndex("by_member_turned", (q) => q.eq("member", member).eq("turnedAt", undefined))
+    .paginate({ cursor, numItems });
+}
+
 function faceDown({ _id, earnedAt, reason }: Doc<"items">): FaceDown {
   return { item: _id, earnedAt, reason };
 }
