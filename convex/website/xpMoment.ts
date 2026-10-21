@@ -38,9 +38,7 @@ export type XpMoment = {
   timeZone: string | null;
 };
 
-export type XpMomentAnswer = { kind: "off" } | { kind: "none" } | XpMoment;
-
-export type XpMomentRead = Denial | XpMomentAnswer;
+export type XpMomentAnswer = { kind: "off" } | { kind: "none"; lastVisit: number | null } | XpMoment;
 
 export type XpMomentEndReply = ArrivalAnswer;
 
@@ -48,14 +46,12 @@ const mostExcerpts = 5;
 
 const off = { kind: "off" } as const;
 
-const none = { kind: "none" } as const;
-
 export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> => {
   if (!(await xpMomentsShownTo(ctx, me.member))) return off;
   const since = await lastVisitOf(ctx, me.member);
-  if (since === null) return none;
+  if (since === null) return { kind: "none", lastVisit: null };
   const read = await activitySince(ctx, me.member, { above: since });
-  if (read.length === 0) return none;
+  if (read.length === 0) return { kind: "none", lastVisit: since };
   return momentOf(ctx, me, since, read);
 });
 

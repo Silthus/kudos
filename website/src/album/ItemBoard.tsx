@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { HypeEmoji } from "../../../convex/album/earnedEmojis";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
 import { NamedEmoji } from "../Emoji";
@@ -9,9 +9,9 @@ import type { Landing, ShownTurns } from "./useItemBoard";
 import type { Flight } from "./useTurnFlight";
 import "./itemBoard.css";
 
-type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; flight: Flight | null; onTurn: (item: string, from: HTMLElement) => void; onLater: () => void };
+type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; flight: Flight | null; lead?: ReactNode; onTurn: (item: string, from: HTMLElement) => void; onLater: () => void };
 
-export function ItemBoard({ board, turning, trouble, flight, onTurn, onLater }: ItemBoardProps) {
+export function ItemBoard({ board, turning, trouble, flight, lead, onTurn, onLater }: ItemBoardProps) {
   const dialog = useRef<HTMLElement>(null);
   const [touched, setTouched] = useState(false);
   const touch = () => setTouched(true);
@@ -26,6 +26,7 @@ export function ItemBoard({ board, turning, trouble, flight, onTurn, onLater }: 
     <div className="ib-ground" data-stage={flight?.stage ?? "idle"} data-dark={flight?.dark ? "" : undefined}>
       <div className="ib-scrim" />
       <section ref={dialog} className="ib-board" role="dialog" aria-modal="true" aria-label="Your items" aria-busy={turning || undefined} onKeyDown={onKeyDown}>
+        {lead}
         <h2 className="ib-title">{itemsWaitWordsOf(board)}</h2>
         <ul className="ib-items">
           {board.items.map(({ item, reason }, index) => (

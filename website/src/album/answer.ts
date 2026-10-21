@@ -4,6 +4,7 @@ import type { Drop } from "../../../convex/hoggies/drops";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { ItemBoard } from "../../../convex/website/album";
 import type { Denial } from "../../../convex/website/memberQuery";
+import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
@@ -200,3 +201,7 @@ export type AlbumLevelUp = { kind: "levelUp"; level: number; at: number; hoggies
 export type LevelUpShown = AlbumLevelUp | { kind: "off" } | { kind: "none" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type LevelUpRead = (level: number | null) => LevelUpShown | undefined;
+
+export type XpMomentShown = XpMomentAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type XpMomentRead = (asking: boolean) => XpMomentShown | undefined;

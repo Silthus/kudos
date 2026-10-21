@@ -50,13 +50,13 @@ afterEach(() => {
 });
 
 describe("LP27 LP28: getXpMoment plays what happened since the last visit", { timeout: 60_000 }, () => {
-  test("answers none before the member's first last visit and when nothing was decided since it", async () => {
+  test("answers none with the last visit to arrive from before the member's first last visit and when nothing was decided since it", async () => {
     const asAlice = await signedIn(alice);
     await thanks(bob, alice);
 
-    expect(await momentOf(asAlice)).toEqual({ kind: "none" });
-    await arrive(asAlice, null);
-    expect(await momentOf(asAlice)).toEqual({ kind: "none" });
+    expect(await momentOf(asAlice)).toEqual({ kind: "none", lastVisit: null });
+    const arrived = await arrive(asAlice, null);
+    expect(await momentOf(asAlice)).toEqual({ kind: "none", lastVisit: (arrived as { lastVisit: number }).lastVisit });
   });
 
   test("a busy return answers each kind since the last visit oldest first with its XP, the climb from the standing before the moment's XP to now, and the waiting items", async () => {
