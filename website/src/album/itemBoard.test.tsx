@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type TurnReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
-import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixtureTurnOf } from "./albumFixtures";
 import type { BoardItem } from "../../../convex/website/album";
 import type { Album, AlbumRead, LevelUpRead } from "./answer";
@@ -117,7 +117,8 @@ describe("The item board", () => {
     expect((await theBoard()).getAllByRole("button", { name: "A face-down item. Turn it over" })).toHaveLength(3);
   });
 
-  it("turns the clicked item once and lands its hoggie on the Hoggies page, saying what it was and the XP", async () => {
+  it("turns the clicked item once and, under reduced motion, lands its hoggie on the Hoggies page at once, saying what it was and the XP", async () => {
+    preferReducedMotion();
     const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
     const answer = deferred<TurnReply>();
     const { user, turnItem } = visit(withItems, { turnItem: () => answer.promise });

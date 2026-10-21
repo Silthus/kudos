@@ -17,9 +17,11 @@ import { teamEmojiOf } from "./teamPage";
 import { TopBar, type TopBarPopups } from "./TopBar";
 import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
-import { useItemBoard, LandingProvider } from "./useItemBoard";
+import { albumAtTheLanding } from "./landedAlbum";
+import { TurnFlight } from "./TurnFlight";
+import { shownUnless, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
-import { useTeamUnlock, withTheUnlocked } from "./useTeamUnlock";
+import { useTeamUnlock } from "./useTeamUnlock";
 import "./album.css";
 
 export type AlbumShellProps = {
@@ -65,32 +67,36 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     },
     [show],
   );
-  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp";
+  const items = useItemBoard(album.board, turnItem, album.level);
+  const flying = items.flight !== null;
+  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying;
   const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
   const finishUnlocking = (team: string) => {
     emojiMoments.shownElsewhere([`team:${team}`]);
     finish();
   };
-  const turns = useItemBoard(album.board, turnItem, anotherMoment || playing);
-  const landed = useMemo(() => withTheUnlocked(album, turns.landing?.unlocked.teamStickers ?? []), [album, turns.landing]);
-  const awaitingAMoment = playing || unlocking.sending !== null || turns.open;
+  const turns = shownUnless(items, anotherMoment || playing);
+  const landed = useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]);
+  const covered = turns.open || flying;
+  const awaitingAMoment = playing || unlocking.sending !== null || covered;
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={turns.heldLevel === null ? held : { ...held, level: turns.heldLevel }} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
-      {turns.open && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} onTurn={turns.turn} onLater={turns.later} />}
+      {covered && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} onTurn={turns.turn} onLater={turns.later} />}
+      {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
       {album.board !== null && <ItemsWait turns={turns} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
       </p>
-      <div className="al-body" inert={playing || turns.open}>
+      <div className="al-body" inert={playing || covered}>
         <Sidebar album={album} place={place} wide={wide} />
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}

@@ -1,18 +1,35 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Unlocked } from "../../../convex/items/turn";
 import type { AppliedReward } from "../../../convex/progression/rewards";
-import type { ItemBoard, LoopLesson, TurnAnswer, TurnedFaceShown } from "../../../convex/website/album";
+import type { ItemBoard, LoopLesson, TurnedFaceShown } from "../../../convex/website/album";
 import { useNavigate } from "../AppLink";
+import { prefersReducedMotion } from "../reducedMotion";
 import type { TurnReply } from "../shell";
+import type { AlbumLevel } from "./answer";
 import { hrefOf, type Place } from "./place";
+import type { Turned } from "./turnSequence";
+import { useTurnFlight, type Flight, type FlightBoxes } from "./useTurnFlight";
 
-type Turned = Extract<TurnAnswer, { kind: "turned" }>;
+export type LandingPhase = "arriving" | "landed" | "done";
 
-export type Landing = { face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number };
+export type Landing = { face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number; phase: LandingPhase; flown: boolean };
 
 type Shown = "board" | "later" | "landed";
 
-export type ItemTurns = { board: ItemBoard | null; open: boolean; offered: boolean; turning: boolean; trouble: string | null; landing: Landing | null; closedByLater: boolean; show: () => void; later: () => void; turn: (item: string) => void };
+export type ItemTurns = {
+  board: ItemBoard | null;
+  shown: Shown;
+  turning: boolean;
+  trouble: string | null;
+  landing: Landing | null;
+  closedByLater: boolean;
+  flight: Flight | null;
+  boxes: FlightBoxes;
+  heldLevel: AlbumLevel | null;
+  show: () => void;
+  later: () => void;
+  turn: (item: string, from: HTMLElement | null) => void;
+};
 
 const LandingContext = createContext<Landing | null>(null);
 
@@ -22,7 +39,14 @@ export function useLanding() {
   return useContext(LandingContext);
 }
 
-export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, waits: boolean): ItemTurns {
+export type ShownTurns = ItemTurns & { open: boolean; offered: boolean };
+
+export function shownUnless(turns: ItemTurns, waits: boolean): ShownTurns {
+  const waiting = (turns.board?.items.length ?? 0) > 0 && !waits;
+  return { ...turns, open: waiting && turns.shown === "board", offered: waiting && turns.shown !== "board" };
+}
+
+export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel): ItemTurns {
   const navigate = useNavigate();
   const [shown, setShown] = useState<Shown>("board");
   const [turnedOver, setTurnedOver] = useState<ReadonlySet<string>>(() => new Set());
@@ -30,37 +54,63 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const sending = useRef(false);
   const [trouble, setTrouble] = useState<string | null>(null);
   const [landing, setLanding] = useState<Landing | null>(null);
+  const [heldLevel, setHeldLevel] = useState<AlbumLevel | null>(null);
+  const { flight, boxes, fly } = useTurnFlight();
   const board = useMemo(() => (answered === null ? null : withoutTurned(answered, turnedOver)), [answered, turnedOver]);
-  const waiting = (board?.items.length ?? 0) > 0 && !waits;
+  const remaining = useRef(0);
+  remaining.current = board?.items.length ?? 0;
   const land = useCallback(
-    (item: string, { face, applied, unlocked, page, teaches }: Turned) => {
+    (item: string, { face, applied, unlocked, page, teaches }: Turned, flown: boolean) => {
       setTurnedOver((turned) => new Set(turned).add(item));
-      setShown("landed");
-      setLanding((last) => ({ face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1 }));
+      setLanding((last) => ({ face, applied, unlocked, teaches: teaches ?? null, turn: (last?.turn ?? 0) + 1, phase: flown ? "arriving" : "done", flown }));
       navigate(hrefOf(placeOf(page)));
     },
     [navigate],
   );
+  const phase = useCallback((next: LandingPhase) => setLanding((last) => (last === null ? null : { ...last, phase: next })), []);
+  const flyIn = useCallback(
+    async (item: string, from: HTMLElement, answer: Promise<Turned | null>) => {
+      setHeldLevel(level);
+      const arrival = { land: (turned: Turned) => land(item, turned, true), landed: () => phase("landed"), unlocked: () => phase("done"), paid: () => setHeldLevel(null), nothingWaits: () => remaining.current === 0 };
+      const turned = await fly(item, from.getBoundingClientRect(), answer, arrival);
+      setHeldLevel(null);
+      if (turned !== null) phase("done");
+      if (turned !== null && remaining.current === 0) setShown("landed");
+    },
+    [fly, land, phase, level],
+  );
   const turn = useCallback(
-    async (item: string) => {
+    async (item: string, from: HTMLElement | null) => {
       if (sending.current) return;
       sending.current = true;
       setTurning(true);
       setTrouble(null);
-      const reply = await replyOf(turnItem(item));
+      const answer = turnedOf(turnItem(item), setTrouble);
+      if (from === null || prefersReducedMotion()) {
+        const turned = await answer;
+        if (turned !== null) {
+          land(item, turned, false);
+          setShown("landed");
+        }
+      } else await flyIn(item, from, answer);
       sending.current = false;
       setTurning(false);
-      if (reply.kind === "turned") land(item, reply);
-      else setTrouble(troubleOf(reply.kind));
     },
-    [turnItem, land],
+    [turnItem, land, flyIn],
   );
   const show = useCallback(() => {
     setTrouble(null);
     setShown("board");
   }, []);
   const later = useCallback(() => setShown("later"), []);
-  return { board, open: waiting && shown === "board", offered: waiting && shown !== "board", turning, trouble, landing, closedByLater: shown === "later", show, later, turn: (item) => void turn(item) };
+  return { board, shown, turning, trouble, landing, closedByLater: shown === "later", flight, boxes, heldLevel, show, later, turn: (item, from) => void turn(item, from) };
+}
+
+async function turnedOf(sent: Promise<TurnReply>, say: (trouble: string) => void): Promise<Turned | null> {
+  const reply = await replyOf(sent);
+  if (reply.kind === "turned") return reply;
+  say(troubleOf(reply.kind));
+  return null;
 }
 
 function placeOf(page: Turned["page"]): Place {
@@ -72,12 +122,18 @@ export function useLandedSticker(person: string): Landing | null {
   return landing?.face.kind === "sticker" && landing.face.person === person ? landing : null;
 }
 
-export function useBroughtIntoViewOnLanding(landed: RefObject<HTMLElement | null>, landedTurn: number | null) {
+export function landedMarksOf(landing: Landing | null) {
+  if (landing === null) return {};
+  return { "data-landed": "", "data-arriving": landing.phase === "arriving" ? "" : undefined };
+}
+
+export function useBroughtIntoViewOnLanding(landed: RefObject<HTMLElement | null>, landing: Landing | null) {
+  const plainTurn = landing === null || landing.flown ? null : landing.turn;
   useEffect(() => {
-    if (landedTurn === null) return;
+    if (plainTurn === null) return;
     const frame = requestAnimationFrame(() => landed.current?.scrollIntoView({ block: "center", behavior: "instant" }));
     return () => cancelAnimationFrame(frame);
-  }, [landed, landedTurn]);
+  }, [landed, plainTurn]);
 }
 
 function withoutTurned(board: ItemBoard, turnedOver: ReadonlySet<string>): ItemBoard {

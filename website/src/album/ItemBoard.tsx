@@ -1,18 +1,21 @@
-import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
 import type { HypeEmoji } from "../../../convex/album/earnedEmojis";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
 import { NamedEmoji } from "../Emoji";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
-import { rarityWordOf } from "./opening";
-import type { ItemTurns, Landing } from "./useItemBoard";
+import { nameOf, whatOf } from "./TurnFlight";
+import type { Landing, ShownTurns } from "./useItemBoard";
+import type { Flight } from "./useTurnFlight";
 import "./itemBoard.css";
 
-type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; onTurn: (item: string) => void; onLater: () => void };
+type ItemBoardProps = { board: Board; turning: boolean; trouble: string | null; flight: Flight | null; onTurn: (item: string, from: HTMLElement) => void; onLater: () => void };
 
-export function ItemBoard({ board, turning, trouble, onTurn, onLater }: ItemBoardProps) {
+export function ItemBoard({ board, turning, trouble, flight, onTurn, onLater }: ItemBoardProps) {
   const dialog = useRef<HTMLElement>(null);
-  useFirstItemFocused(dialog);
+  const [touched, setTouched] = useState(false);
+  const touch = () => setTouched(true);
+  useFirstItemFocused(dialog, flight !== null);
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Tab") return keepFocusIn(dialog.current, event);
     if (event.key !== "Escape") return;
@@ -20,16 +23,29 @@ export function ItemBoard({ board, turning, trouble, onTurn, onLater }: ItemBoar
     onLater();
   };
   return (
-    <div className="ib-ground">
+    <div className="ib-ground" data-stage={flight?.stage ?? "idle"} data-dark={flight?.dark ? "" : undefined}>
+      <div className="ib-scrim" />
       <section ref={dialog} className="ib-board" role="dialog" aria-modal="true" aria-label="Your items" aria-busy={turning || undefined} onKeyDown={onKeyDown}>
         <h2 className="ib-title">{itemsWaitWordsOf(board)}</h2>
         <ul className="ib-items">
           {board.items.map(({ item, reason }, index) => (
             <li key={item} className="ib-slot" data-first={index === 0 ? "" : undefined} style={layOf(index)}>
-              <button type="button" className="ib-item" aria-label={itemLabelOf(reason)} aria-disabled={turning || undefined} onClick={() => onTurn(item)}>
+              <button
+                type="button"
+                className="ib-item"
+                data-active={flight?.item === item ? "" : undefined}
+                aria-label={itemLabelOf(reason)}
+                aria-disabled={turning || undefined}
+                onPointerEnter={touch}
+                onClick={(event) => {
+                  touch();
+                  onTurn(item, event.currentTarget);
+                }}
+              >
                 <ItemBack />
                 <LevelTag reason={reason} />
               </button>
+              {index === 0 && !touched && <span className="ib-pointer" aria-hidden="true" />}
             </li>
           ))}
         </ul>
@@ -46,14 +62,15 @@ export function ItemBoard({ board, turning, trouble, onTurn, onLater }: ItemBoar
   );
 }
 
-export function ItemsWait({ turns }: { turns: ItemTurns }) {
-  const { board, landing, offered, open, closedByLater, show } = turns;
+export function ItemsWait({ turns }: { turns: ShownTurns }) {
+  const { board, landing, offered, open, flight, closedByLater, show } = turns;
+  const said = landing !== null && !open && flight === null;
   return (
     <div className="ib-strip">
       <p role="status" aria-label="Turned over" className="ib-turned">
-        {landing !== null && !open && <LandedWords landing={landing} />}
+        {said && <LandedWords landing={landing} />}
       </p>
-      {landing?.teaches && !open && <LoopLine lesson={landing.teaches} />}
+      {said && landing.teaches && <LoopLine lesson={landing.teaches} />}
       {offered && board !== null && (
         <button type="button" className="ib-wait" autoFocus={closedByLater} onClick={show}>
           <span className="ib-wait-disc" aria-hidden="true">
@@ -69,19 +86,13 @@ export function ItemsWait({ turns }: { turns: ItemTurns }) {
 function LandedWords({ landing: { face, applied, unlocked } }: { landing: Landing }) {
   return (
     <>
-      <span className="ph-no-capture">{faceWordsOf(face)}</span>
+      <span className="ph-no-capture">{`${nameOf(face)}: ${whatOf(face)}`}</span>
       {unlocked.teamStickers.map(({ team, name }) => (
         <span key={team}>{` · ${name} team sticker unlocked`}</span>
       ))}
       {applied !== null && <span className="ib-turned-xp">{`+${applied.xp} XP`}</span>}
     </>
   );
-}
-
-function faceWordsOf(face: Landing["face"]) {
-  const fresh = face.kind === "hoggie" ? face.drop.isNew : face.isNew;
-  const said = face.kind === "hoggie" ? `${face.drop.name}: ${rarityWordOf(face.drop.rarity)} hoggie` : `${face.thanked.name ?? "Your teammate"}: Sticker`;
-  return fresh ? `${said} · New` : said;
 }
 
 export function LandedHype({ hype, from }: { hype: HypeEmoji; from: string }) {
@@ -126,10 +137,10 @@ function itemsWaitWordsOf({ items, more }: Board) {
   return items.length === 1 ? "1 item waits" : `${items.length} items wait`;
 }
 
-function useFirstItemFocused(dialog: RefObject<HTMLElement | null>) {
+function useFirstItemFocused(dialog: RefObject<HTMLElement | null>, flying: boolean) {
   useEffect(() => {
-    dialog.current?.querySelector<HTMLElement>(".ib-item")?.focus({ preventScroll: true });
-  }, [dialog]);
+    if (!flying) dialog.current?.querySelector<HTMLElement>(".ib-item")?.focus({ preventScroll: true });
+  }, [dialog, flying]);
 }
 
 const tilts = [-7, 4, -2, 6, -5, 3, -4, 7, -3];

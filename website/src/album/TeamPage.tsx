@@ -14,7 +14,7 @@ import { Silhouette } from "./Silhouette";
 import { dateOf, nameOnThePhoto, onThePhotoOf, teamEmojiOf, teamEmojiUseWords, type OnThePhoto } from "./teamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
 import { LandedHype, NewLabel } from "./ItemBoard";
-import { useBroughtIntoViewOnLanding, useLandedSticker, useLanding } from "./useItemBoard";
+import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker, useLanding } from "./useItemBoard";
 import "./team.css";
 
 const sealSize = 128;
@@ -78,15 +78,15 @@ function PhotoPerson({ shown, pet }: { shown: OnThePhoto; pet: ShownPet | null }
 function PersonOnThePhoto({ person: { person, name, face, held }, pet }: { person: Extract<OnThePhoto, { kind: "person" }>["person"]; pet: ShownPet | null }) {
   const spot = useRef<HTMLLIElement>(null);
   const landing = useLandedSticker(person);
-  useBroughtIntoViewOnLanding(spot, landing?.turn ?? null);
+  useBroughtIntoViewOnLanding(spot, landing);
   return (
-    <li ref={spot} className="al-photo-person" data-out={held ? undefined : ""} data-landed={landing === null ? undefined : ""}>
+    <li ref={spot} className="al-photo-person" data-out={held ? undefined : ""} {...landedMarksOf(landing)}>
       <AppLink href={hrefOf({ kind: "person", person })} className="al-photo-link">
         <PersonPicture face={face} name={name} collected={held} frame="al-photo-sticker" className="al-photo-face" />
         <span className="al-photo-name ph-no-capture">{name}</span>{" "}
         <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>
-      {landing?.unlocked.hype != null && <LandedHype hype={landing.unlocked.hype} from={name} />}
+      {landing !== null && landing.phase !== "arriving" && landing.unlocked.hype !== null && <LandedHype hype={landing.unlocked.hype} from={name} />}
       {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
     </li>
   );
