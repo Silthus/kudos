@@ -59,6 +59,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 function aMomentAnsweredLater() {
@@ -256,6 +257,21 @@ function theTopBarEndsAt(bottom: number) {
   });
 }
 
+function aWatchedTopBar() {
+  const watchers = new Map<Element, () => void>();
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(private readonly changed: () => void) {}
+      observe(element: Element) {
+        watchers.set(element, this.changed);
+      }
+      disconnect() {}
+    },
+  );
+  return { changesSize: () => act(async () => watchers.get(document.querySelector(".al-top")!)?.()) };
+}
+
 describe("LP29 LP33: the canvas covers the page in both themes and on a phone", { timeout: 30_000 }, () => {
   for (const mode of ["light", "dark"] as const) {
     it(`in ${mode} the page's words show through the canvas at under ${barelyThere}:1, on the page and on its cards`, () => {
@@ -273,16 +289,16 @@ describe("LP29 LP33: the canvas covers the page in both themes and on a phone", 
     expect(theCanvas()!.style.getPropertyValue("--xpm-top")).toBe("80px");
   });
 
-  it("follows the top bar when the window changes size", async () => {
-    theTopBarEndsAt(80);
-    await returnTo({ screenSize: phone });
+  it("follows the top bar when it wraps after the window narrows", async () => {
+    const theBar = aWatchedTopBar();
+    theTopBarEndsAt(56);
+    await returnTo();
     await at(canvasArrival);
 
-    theTopBarEndsAt(56);
-    sizeTheWindow(desktop);
-    await act(async () => window.dispatchEvent(new Event("resize")));
+    theTopBarEndsAt(80);
+    await theBar.changesSize();
 
-    expect(theCanvas()!.style.getPropertyValue("--xpm-top")).toBe("56px");
+    expect(theCanvas()!.style.getPropertyValue("--xpm-top")).toBe("80px");
   });
 });
 

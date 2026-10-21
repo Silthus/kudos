@@ -243,9 +243,15 @@ function useViewport(): Viewport {
   const [viewport, setViewport] = useState(viewportNow);
   useLayoutEffect(() => setViewport(viewportNow()), []);
   useEffect(() => {
-    const onResize = () => setViewport(viewportNow());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const remeasure = () => setViewport(viewportNow());
+    window.addEventListener("resize", remeasure);
+    const bar = document.querySelector(".al-top");
+    const barWatch = bar === null || typeof ResizeObserver === "undefined" ? null : new ResizeObserver(remeasure);
+    if (bar !== null) barWatch?.observe(bar);
+    return () => {
+      window.removeEventListener("resize", remeasure);
+      barWatch?.disconnect();
+    };
   }, []);
   return viewport;
 }
