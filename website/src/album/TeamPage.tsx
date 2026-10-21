@@ -1,4 +1,4 @@
-import { Fragment, useId } from "react";
+import { Fragment, useId, useRef } from "react";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
@@ -13,6 +13,8 @@ import { SealArt } from "./Seal";
 import { Silhouette } from "./Silhouette";
 import { dateOf, nameOnThePhoto, onThePhotoOf, teamEmojiOf, teamEmojiUseWords, type OnThePhoto } from "./teamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
+import { LandedHype, NewLabel } from "./ItemBoard";
+import { useBroughtIntoViewOnLanding, useLandedSticker, useLanding } from "./useItemBoard";
 import "./team.css";
 
 const sealSize = 128;
@@ -61,8 +63,8 @@ function petShownWith(album: Album, shown: OnThePhoto): ShownPet | null {
 }
 
 function PhotoPerson({ shown, pet }: { shown: OnThePhoto; pet: ShownPet | null }) {
-  if (shown.kind === "unmatched")
-    return (
+  if (shown.kind === "person") return <PersonOnThePhoto person={shown.person} pet={pet} />;
+  return (
       <li className="al-photo-person" data-out="">
         <span className="al-photo-sticker" data-picture="grey" aria-hidden="true">
           <Silhouette name={shown.name} />
@@ -70,15 +72,21 @@ function PhotoPerson({ shown, pet }: { shown: OnThePhoto; pet: ShownPet | null }
         <span className="al-photo-name ph-no-capture">{shown.name}</span>{" "}
         <span className="al-photo-role">Not in Slack yet</span>
       </li>
-    );
-  const { person, name, face, held } = shown.person;
+  );
+}
+
+function PersonOnThePhoto({ person: { person, name, face, held }, pet }: { person: Extract<OnThePhoto, { kind: "person" }>["person"]; pet: ShownPet | null }) {
+  const spot = useRef<HTMLLIElement>(null);
+  const landing = useLandedSticker(person);
+  useBroughtIntoViewOnLanding(spot, landing?.turn ?? null);
   return (
-    <li className="al-photo-person" data-out={held ? undefined : ""}>
+    <li ref={spot} className="al-photo-person" data-out={held ? undefined : ""} data-landed={landing === null ? undefined : ""}>
       <AppLink href={hrefOf({ kind: "person", person })} className="al-photo-link">
         <PersonPicture face={face} name={name} collected={held} frame="al-photo-sticker" className="al-photo-face" />
         <span className="al-photo-name ph-no-capture">{name}</span>{" "}
         <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>
+      {landing?.unlocked.hype != null && <LandedHype hype={landing.unlocked.hype} from={name} />}
       {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
     </li>
   );
@@ -98,6 +106,8 @@ function Caption({ onThePhoto }: { onThePhoto: OnThePhoto[] }) {
 }
 
 function Seal({ team, emoji, unlocking }: { team: AlbumTeam; emoji: AlbumEmoji | undefined; unlocking: TeamUnlocking }) {
+  const unlockedByTheTurn = useLanding()?.unlocked.teamStickers.find((sticker) => sticker.team === team.team);
+  const emojiName = emoji?.name ?? unlockedByTheTurn?.emoji;
   return (
     <div className="al-seal-spot">
       {team.state === "ready" ? (
@@ -112,7 +122,8 @@ function Seal({ team, emoji, unlocking }: { team: AlbumTeam; emoji: AlbumEmoji |
           <span tabIndex={-1} data-al-unlocked="">
             Unlocked {dateOf(team.unlockedAt ?? 0)}
           </span>
-          {emoji !== undefined && <code className="ph-no-capture">:{emoji.name}:</code>}
+          {emojiName !== undefined && <code className="ph-no-capture">:{emojiName}:</code>}
+          {unlockedByTheTurn !== undefined && <NewLabel />}
         </p>
       )}
     </div>

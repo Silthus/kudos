@@ -1,12 +1,14 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import type { Drop } from "../../../convex/hoggies/drops";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import type { Unlocked } from "../../../convex/items/turn";
 import type { AppliedReward } from "../../../convex/progression/rewards";
-import type { ItemBoard, TurnAnswer } from "../../../convex/website/album";
+import type { ItemBoard, TurnAnswer, TurnedFaceShown } from "../../../convex/website/album";
 import { useNavigate } from "../AppLink";
 import type { TurnReply } from "../shell";
-import { hrefOf } from "./place";
+import { hrefOf, type Place } from "./place";
 
-export type Landing = { drop: Drop; applied: AppliedReward | null; turn: number };
+type Turned = Extract<TurnAnswer, { kind: "turned" }>;
+
+export type Landing = { face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; turn: number };
 
 type Shown = "board" | "later" | "landed";
 
@@ -31,11 +33,11 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const board = useMemo(() => (answered === null ? null : withoutTurned(answered, turnedOver)), [answered, turnedOver]);
   const waiting = (board?.items.length ?? 0) > 0 && !waits;
   const land = useCallback(
-    (item: string, { face, applied, page }: Extract<TurnAnswer, { kind: "turned" }>) => {
+    (item: string, { face, applied, unlocked, page }: Turned) => {
       setTurnedOver((turned) => new Set(turned).add(item));
       setShown("landed");
-      setLanding((last) => ({ drop: face.drop, applied, turn: (last?.turn ?? 0) + 1 }));
-      navigate(hrefOf({ kind: page.kind, hoggie: null }));
+      setLanding((last) => ({ face, applied, unlocked, turn: (last?.turn ?? 0) + 1 }));
+      navigate(hrefOf(placeOf(page)));
     },
     [navigate],
   );
@@ -59,6 +61,23 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   }, []);
   const later = useCallback(() => setShown("later"), []);
   return { board, open: waiting && shown === "board", offered: waiting && shown !== "board", turning, trouble, landing, closedByLater: shown === "later", show, later, turn: (item) => void turn(item) };
+}
+
+function placeOf(page: Turned["page"]): Place {
+  return page.kind === "hoggies" ? { kind: "hoggies", hoggie: null } : page;
+}
+
+export function useLandedSticker(person: string): Landing | null {
+  const landing = useLanding();
+  return landing?.face.kind === "sticker" && landing.face.person === person ? landing : null;
+}
+
+export function useBroughtIntoViewOnLanding(landed: RefObject<HTMLElement | null>, landedTurn: number | null) {
+  useEffect(() => {
+    if (landedTurn === null) return;
+    const frame = requestAnimationFrame(() => landed.current?.scrollIntoView({ block: "center", behavior: "instant" }));
+    return () => cancelAnimationFrame(frame);
+  }, [landed, landedTurn]);
 }
 
 function withoutTurned(board: ItemBoard, turnedOver: ReadonlySet<string>): ItemBoard {

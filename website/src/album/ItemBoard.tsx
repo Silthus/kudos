@@ -1,5 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
+import type { HypeEmoji } from "../../../convex/album/earnedEmojis";
 import type { ItemBoard as Board } from "../../../convex/website/album";
+import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
 import { rarityWordOf } from "./opening";
 import type { ItemTurns, Landing } from "./useItemBoard";
@@ -61,13 +63,34 @@ export function ItemsWait({ turns }: { turns: ItemTurns }) {
   );
 }
 
-function LandedWords({ landing: { drop, applied } }: { landing: Landing }) {
+function LandedWords({ landing: { face, applied, unlocked } }: { landing: Landing }) {
   return (
     <>
-      <span>{`${drop.name}: ${rarityWordOf(drop.rarity)} hoggie${drop.isNew ? " · New" : ""}`}</span>
+      <span className="ph-no-capture">{faceWordsOf(face)}</span>
+      {unlocked.teamStickers.map(({ team, name }) => (
+        <span key={team}>{` · ${name} team sticker unlocked`}</span>
+      ))}
       {applied !== null && <span className="ib-turned-xp">{`+${applied.xp} XP`}</span>}
     </>
   );
+}
+
+function faceWordsOf(face: Landing["face"]) {
+  const fresh = face.kind === "hoggie" ? face.drop.isNew : face.isNew;
+  const said = face.kind === "hoggie" ? `${face.drop.name}: ${rarityWordOf(face.drop.rarity)} hoggie` : `${face.thanked.name ?? "Your teammate"}: Sticker`;
+  return fresh ? `${said} · New` : said;
+}
+
+export function LandedHype({ hype, from }: { hype: HypeEmoji; from: string }) {
+  return (
+    <span role="img" aria-label={`:${hype.name}: hype emoji unlocked`} className="ib-landed-hype">
+      <EmojiPicture emoji={{ kind: "hype", picture: hype.picture, from }} size={40} />
+    </span>
+  );
+}
+
+export function NewLabel() {
+  return <span className="ib-new">New</span>;
 }
 
 function ItemBack() {

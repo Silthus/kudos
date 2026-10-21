@@ -34,17 +34,17 @@ export function useTeamUnlock(answered: Album, unlockTeamSticker: (team: string)
   );
 
   const finish = useCallback(() => setMoment(null), []);
-  const album = useMemo(() => withTheUnlocked(answered, unlocked), [answered, unlocked]);
+  const album = useMemo(() => withTheUnlocked(answered, [...unlocked.values()]), [answered, unlocked]);
   const unlocking: TeamUnlocking = useMemo(() => ({ sending, waits, problem, start }), [sending, waits, problem, start]);
   return { album, unlocking, moment, finish };
 }
 
-function withTheUnlocked(album: Album, unlocked: ReadonlyMap<string, TeamSticker>): Album {
-  if (unlocked.size === 0) return album;
+export function withTheUnlocked(album: Album, stickers: readonly Pick<TeamSticker, "team" | "at">[]): Album {
+  if (stickers.length === 0) return album;
   return {
     ...album,
     teams: album.teams.map((team) => {
-      const sticker = unlocked.get(team.team);
+      const sticker = stickers.find((unlocked) => unlocked.team === team.team);
       return sticker === undefined || team.state === "unlocked" ? team : { ...team, state: "unlocked", unlockedAt: sticker.at };
     }),
   };
