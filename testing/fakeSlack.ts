@@ -24,7 +24,7 @@ export type SlackUserGroup = {
 
 export type UserGroupOptions = { handle?: string; name?: string; users?: string[]; disabled?: boolean; autoType?: "admin" | "owner" };
 
-export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared"; joined?: boolean };
+export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared" | "pending-shared"; joined?: boolean };
 
 export type SlackArgs = Record<string, unknown>;
 
@@ -257,6 +257,7 @@ export class FakeSlack {
       is_private: false,
       is_archived: channel.kind === "archived",
       is_ext_shared: channel.kind === "shared",
+      is_pending_ext_shared: channel.kind === "pending-shared",
       is_member: channel.joined === true,
     }));
     return { ok: true, channels, response_metadata: { next_cursor: to < listed.length ? String(to) : "" } };

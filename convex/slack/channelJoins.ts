@@ -3,12 +3,12 @@ import { internal } from "../_generated/api";
 import { ReportableError, typeOf } from "../analytics/exceptions";
 import { observedAction } from "../analytics/boundary";
 import { textOf } from "./directory";
-import { callSlack, nextRateLimitedAttempt, readSlack, retryDelayOf, slackErrorCodeOf, type SlackAnswer } from "./webApi";
+import { callSlack, readSlack, retryDelayOf, slackErrorCodeOf, type SlackAnswer } from "./webApi";
 
 type ListedChannel = { id: string; is_member?: boolean; is_archived?: boolean; is_ext_shared?: boolean; is_pending_ext_shared?: boolean };
 type ChannelsPage = { channels: ListedChannel[]; response_metadata?: { next_cursor?: string } };
 type ChannelCreated = { type: "channel_created"; channel?: { id?: unknown } };
-type Join = { kind: "joined" } | { kind: "missed" } | { kind: "held"; forMs: number };
+type Join = { kind: "joined" } | { kind: "already-in" } | { kind: "refused" } | { kind: "unanswered" } | { kind: "held"; forMs: number };
 
 const channelsPerPage = "200";
 const tier3JoinsPerMinute = 50;
@@ -16,6 +16,8 @@ const joinSpacingMs = Math.ceil(60_000 / tier3JoinsPerMinute) + 300;
 const tier2ListsPerMinute = 20;
 const listSpacingMs = Math.ceil(60_000 / tier2ListsPerMinute) + 300;
 const lastPage = "";
+const createdChannelTries = 3;
+const unansweredRetryMs = 1_000;
 
 export const joinPublicChannels = observedAction({
   args: { cursor: v.optional(v.string()), queue: v.optional(v.array(v.string())), joined: v.optional(v.number()), missed: v.optional(v.number()) },
@@ -46,8 +48,10 @@ export const joinPublicChannels = observedAction({
 export const joinCreatedChannel = observedAction({
   args: { channel: v.string(), attempt: v.optional(v.number()) },
   handler: async (ctx, { channel, attempt = 1 }) => {
-    const join = await joinOf(channel);
-    if (join.kind === "held") await ctx.scheduler.runAfter(join.forMs, internal.slack.channelJoins.joinCreatedChannel, { channel, attempt: nextRateLimitedAttempt(attempt, "conversations.join") });
+    const retryInMs = retryDelayOfJoin(await joinOf(channel));
+    if (retryInMs === null) return;
+    if (attempt >= createdChannelTries) console.warn(`channel joins: a new channel is still not joined after ${createdChannelTries} tries`);
+    else await ctx.scheduler.runAfter(retryInMs, internal.slack.channelJoins.joinCreatedChannel, { channel, attempt: attempt + 1 });
   },
 });
 
@@ -66,11 +70,16 @@ function isJoinable(channel: ListedChannel) {
 
 async function joinOf(channel: string): Promise<Join> {
   const answer = await answerOrNothing(channel);
-  if (answer === null) return { kind: "missed" };
-  if (answer.ok) return { kind: "joined" };
+  if (answer === null) return { kind: "unanswered" };
+  if (answer.ok) return answer.warning === "already_in_channel" ? { kind: "already-in" } : { kind: "joined" };
   if (answer.error === "ratelimited") return { kind: "held", forMs: retryDelayOf(answer) };
   console.warn(`channel joins: conversations.join failed: ${slackErrorCodeOf(answer.error)}`);
-  return { kind: "missed" };
+  return { kind: "refused" };
+}
+
+function retryDelayOfJoin(join: Join) {
+  if (join.kind === "held") return join.forMs;
+  return join.kind === "unanswered" ? unansweredRetryMs : null;
 }
 
 async function answerOrNothing(channel: string): Promise<SlackAnswer | null> {
@@ -83,5 +92,6 @@ async function answerOrNothing(channel: string): Promise<SlackAnswer | null> {
 }
 
 function tallied({ joined, missed }: { joined: number; missed: number }, join: Join) {
-  return join.kind === "joined" ? { joined: joined + 1, missed } : { joined, missed: missed + 1 };
+  if (join.kind === "joined") return { joined: joined + 1, missed };
+  return join.kind === "already-in" ? { joined, missed } : { joined, missed: missed + 1 };
 }

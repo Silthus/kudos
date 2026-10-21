@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi, type MockInstance } from "vitest";
-import { FakeSlack, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
+import { FakeSlack, httpStatus, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { channelCreatedEvent, kudosAppBotUser, section, text } from "../../testing/slackMessages";
@@ -39,6 +39,7 @@ describe("the channel join puts the app in every public channel it isn't in yet"
       .withChannel("C_ARCHIVED", { name: "archived", kind: "archived" })
       .withChannel("C_PRIVATE", { name: "private", kind: "private" })
       .withChannel("C_SHARED", { name: "shared", kind: "shared" })
+      .withChannel("C_INVITED", { name: "invited", kind: "pending-shared" })
       .withChannel("C_LAST", { name: "last" });
 
     await joinPublicChannels(t);
@@ -47,6 +48,7 @@ describe("the channel join puts the app in every public channel it isn't in yet"
     expect(slack.callsTo("conversations.list")).toEqual([
       { types: "public_channel", exclude_archived: "true", limit: "200" },
       { types: "public_channel", exclude_archived: "true", limit: "200", cursor: "2" },
+      { types: "public_channel", exclude_archived: "true", limit: "200", cursor: "4" },
     ]);
     expect(logged).toHaveBeenLastCalledWith("channel joins finished: joined 2, missed 0");
   });
@@ -103,15 +105,31 @@ describe("the channel join puts the app in every public channel it isn't in yet"
     expect(slack.hasJoined("C_SECOND")).toBe(true);
   });
 
-  test("a channel it can't join is missed and the run goes on to the rest", async () => {
+  test("a channel someone added it to since the listing counts as neither joined nor missed", async () => {
     const t = testBackend();
-    slack.withChannel("C_GONE", { name: "gone" }).withChannel("C_UNREACHED", { name: "unreached" }).withChannel("C_LAST", { name: "last" });
-    slack.answering("conversations.join", slackError("channel_not_found"), networkFailure);
+    slack.withChannel("C_FIRST", { name: "first" }).withChannel("C_ADDED", { name: "added meanwhile" });
+    slack.answering("conversations.list", (answerAsSlackWould) => {
+      const listed = answerAsSlackWould();
+      slack.withChannel("C_ADDED", { name: "added meanwhile", joined: true });
+      return listed;
+    });
+
+    await joinPublicChannels(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C_FIRST" }, { channel: "C_ADDED" }]);
+    expect(logged).toHaveBeenLastCalledWith("channel joins finished: joined 1, missed 0");
+  });
+
+  test("a channel it can't join is missed with Slack's reason and the run goes on to the rest", async () => {
+    const t = testBackend();
+    slack.withChannel("C_ARCHIVED_MEANWHILE", { name: "archived meanwhile" }).withChannel("C_UNREACHED", { name: "unreached" }).withChannel("C_LAST", { name: "last" });
+    slack.answering("conversations.join", slackError("is_archived"), networkFailure);
 
     await joinPublicChannels(t);
 
     expect(slack.hasJoined("C_LAST")).toBe(true);
     expect(logged).toHaveBeenLastCalledWith("channel joins finished: joined 1, missed 2");
+    expect(console.warn).toHaveBeenCalledWith("channel joins: conversations.join failed: is_archived");
   });
 
   test("a listing Slack refuses, as before the app has channels:read, ends the run with Slack's error code", async () => {
@@ -146,6 +164,22 @@ describe("channel_created puts the app in the new public channel", () => {
     const [limited, retried] = slack.timesOf("conversations.join");
     expect(retried! - limited!).toBeGreaterThanOrEqual(15_000);
     expect(slack.hasJoined("C_NEW")).toBe(true);
+  });
+
+  test("a join of a new channel that gets no answer is tried again, 3 tries at most", async () => {
+    const t = testBackend();
+    slack.withChannel("C_NEW", { name: "fresh-channel" }).withChannel("C_UNLUCKY", { name: "unlucky" });
+    slack.answering("conversations.join", networkFailure, httpStatus(503));
+
+    await channelCreated(t, "C_NEW");
+    await settleInTimeOrder(t);
+    slack.answering("conversations.join", networkFailure, httpStatus(503), networkFailure);
+    await channelCreated(t, "C_UNLUCKY");
+    await settleInTimeOrder(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([...Array(3).fill({ channel: "C_NEW" }), ...Array(3).fill({ channel: "C_UNLUCKY" })]);
+    expect(slack.hasJoined("C_NEW")).toBe(true);
+    expect(slack.hasJoined("C_UNLUCKY")).toBe(false);
   });
 });
 
