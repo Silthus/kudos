@@ -139,6 +139,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   refuted: useWithoutTheArrivingFind showed getAlbumHoggies' answer as it came, never holding the arriving find back -> 1 of 16 tests red: Hoggies named the new find and filled its plate while the hoggie was still in the air (2026-10-21)
   refuted: AlbumShell gave the sidebar getAlbum's answer as it came instead of the album held back at the landing -> 1 of 17 tests red: the sidebar read the filled team before its sticker landed (2026-10-21)
   refuted: the turn sequence never left the page it was on for a filled team's beat -> 1 of 19 tests red: a sticker that filled two teams unlocked the second off its page (2026-10-21)
+  refuted: AlbumShell gave the top bar getAlbum's answer as it came instead of the album held back at the landing -> 1 of 24 tests red: the top bar counted the hype and team emoji while the sticker still held (2026-10-21)
   because: the turn is the core loop's payoff (LP18, LP19): the product owner accepted the prototype's Page-first timings at 0.8×, and a page that showed the find, the sticker, the unlocked seal or the XP before the item lands would give the surprise away; a skip is how a member who has seen it moves on, so it must never send a second turn (LP12, LP21)
   kinds: output
   checklist: destination-confinement dismissed: the board sends only turnItem for the item clicked, once per turn, and nothing on hover, skip or landing
