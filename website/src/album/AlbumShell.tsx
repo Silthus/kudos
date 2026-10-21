@@ -21,7 +21,7 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { albumAtTheLanding } from "./landedAlbum";
 import { TurnFlight } from "./TurnFlight";
-import { shownUnless, useItemBoard, LandingProvider } from "./useItemBoard";
+import { shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
 import { useTeamUnlock } from "./useTeamUnlock";
 import { useXpMomentSequence } from "./useXpMoment";
@@ -88,7 +88,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     finish();
   };
   const turns = shownUnless(items, anotherMoment || playing);
-  const landed = useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]);
+  const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
   const covered = boardShown || sinceTheLastVisit.covers;
   const awaitingAMoment = playing || unlocking.sending !== null || covered;
@@ -97,7 +97,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell" data-xp-moment={sinceTheLastVisit.covers ? "" : undefined}>
-      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={landed} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}

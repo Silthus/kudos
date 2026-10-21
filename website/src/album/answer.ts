@@ -1,5 +1,6 @@
 import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
+import type { OwnHypePick } from "../../../convex/album/emojiMappings";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
@@ -166,6 +167,7 @@ export type PersonPage = {
   teams: PersonTeam[];
   hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean };
   slackProfile: string | null;
+  hypePick?: true;
 };
 
 export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
@@ -179,6 +181,8 @@ export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: strin
 export type { PetAnswer };
 
 export type PetReply = PetAnswer | Denial;
+
+export type HypePickReply = OwnHypePick | Denial;
 
 export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };
 

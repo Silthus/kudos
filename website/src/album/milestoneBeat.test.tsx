@@ -129,6 +129,12 @@ function theBurst() {
   return document.querySelector<HTMLElement>(".ib-medal-burst");
 }
 
+function earnedInTheTopBar() {
+  const [bar] = screen.getAllByRole("banner", { hidden: true });
+  const label = within(bar!).getByRole("button", { name: /^Your emojis, \d+ earned/, hidden: true }).getAttribute("aria-label")!;
+  return Number(/(\d+) earned/.exec(label)![1]);
+}
+
 function newLabelsOn(element: HTMLElement | null) {
   return element === null ? [] : within(element).queryAllByText("New", { selector: ".ib-new" });
 }
@@ -180,6 +186,18 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     await at(9.85);
     expect(stage()).toBe("idle");
     expect(screen.getByRole("dialog", { name: "Your items" })).toBeInTheDocument();
+  });
+
+  it("counts the medal's emoji in the top bar only once its beat pops it", async () => {
+    visit(familiarFaces);
+    const item = await theFirstItem();
+    const before = earnedInTheTopBar();
+    await clickOnFakeTime(item);
+
+    await at(4.8);
+    expect(earnedInTheTopBar(), "before the medal's beat").toBe(before);
+    await at(5.5);
+    expect(earnedInTheTopBar(), "once the medal pops").toBe(before + 1);
   });
 
   it("keeps the reduced-motion line off the strip once the beat has played", async () => {

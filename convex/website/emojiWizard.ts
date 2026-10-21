@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { appEmojisIn, emojiInPlaceFor, mapAppEmojiInPlace, mapHeldEmoji, slackEmojisNear, type AppEmojiKind, type SlackEmojiMatch } from "../album/emojiWizard";
 import { targetOf } from "../album/emojiMappings";
-import { emojiWizardShownTo } from "../album/flag";
+import { emojiWizardShownTo, ownHypePickShownTo } from "../album/flag";
 import type { EmojiMapper } from "../album/records";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { nameAndPictureOf } from "../workspace/directory";
@@ -32,7 +32,7 @@ const unnamedMapper = "A former member";
 export const findSlackEmojis = memberQuery({
   args: { near: v.string(), search: v.string() },
   handler: async (ctx, me, { near, search }): Promise<SlackEmojiMatchesRead> => {
-    if (!(await emojiWizardShownTo(ctx, me.member))) return { kind: "off" };
+    if (!(await emojiWizardShownTo(ctx, me.member)) && !(await ownHypePickShownTo(ctx, me.member))) return { kind: "off" };
     return { kind: "matches", matches: await slackEmojisNear(ctx, me.workspace, near, search, await slackEmojiReachOf(ctx, me.member)) };
   },
 });
