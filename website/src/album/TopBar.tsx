@@ -200,15 +200,12 @@ const pageLinks: PageLink[] = [
 function PageLinks({ place }: { place: Place }) {
   return (
     <>
-      {pageLinks.map(({ kind, label, Icon }) => {
-        const current = place.kind === kind;
-        return (
-          <AppLink key={kind} href={hrefOf({ kind })} className="al-icon-link" aria-current={current ? "page" : undefined} data-labelled={current ? "" : undefined}>
-            <Icon />
-            <OpensOut>{label}</OpensOut>
-          </AppLink>
-        );
-      })}
+      {pageLinks.map(({ kind, label, Icon }) => (
+        <AppLink key={kind} href={hrefOf({ kind })} className="al-icon-link" aria-current={place.kind === kind ? "page" : undefined} data-labelled="">
+          <Icon />
+          <OpensOut>{label}</OpensOut>
+        </AppLink>
+      ))}
     </>
   );
 }

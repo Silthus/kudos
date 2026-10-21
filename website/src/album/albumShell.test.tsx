@@ -122,14 +122,14 @@ describe("AL42: the top bar", () => {
     expect(screen.getByRole("region", { name: "Tray" })).toHaveTextContent("Open a pack and what it holds waits here to be put in.");
   });
 
-  it("Activity and Leaderboard keep their names while only icons show, and the page's own entry is current and labelled", async () => {
+  it("#127: on desktop Activity and Leaderboard write out their names on every page, and the page's own entry is current", async () => {
     visit("/activity");
     const bar = await topBar();
 
     expect(bar.getByRole("link", { name: "Activity" })).toHaveAttribute("aria-current", "page");
     expect(bar.getByRole("link", { name: "Activity" })).toHaveAttribute("data-labelled", "");
     expect(bar.getByRole("link", { name: "Leaderboard" })).not.toHaveAttribute("aria-current");
-    expect(bar.getByRole("link", { name: "Leaderboard" })).not.toHaveAttribute("data-labelled");
+    expect(bar.getByRole("link", { name: "Leaderboard" })).toHaveAttribute("data-labelled", "");
   });
 
   it("#695: holds Feedback while the visit is captured, and the sidebar holds only teams and pages", async () => {
@@ -155,12 +155,12 @@ describe("AL42: the top bar", () => {
     expect(opensOutTo(bar.getByRole("button", { name: "Feedback" }))).toBe("Feedback");
   });
 
-  it("#695: the packs button stays open on the packs page, as Activity and Leaderboard do on theirs", async () => {
+  it("#695: the packs button stays open on the packs page, and the emojis stay an icon", async () => {
     visit("/book#packs");
     const bar = await topBar();
 
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveAttribute("data-labelled", "");
-    expect(bar.getByRole("link", { name: "Activity" })).not.toHaveAttribute("data-labelled");
+    expect(bar.getByRole("button", { name: "Your emojis, 9 earned" })).not.toHaveAttribute("data-labelled");
   });
 
   it("the member's face and name lead to the profile, current there", async () => {
