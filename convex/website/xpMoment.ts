@@ -9,7 +9,7 @@ import { levelOf, xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
-import { lastVisitOf, moveLastVisitTo, type ArrivalAnswer } from "./lastVisit";
+import { arrivedAt, arrivedPastWhatWasPutIn, lastVisitOf, moveLastVisitTo, type ArrivalAnswer } from "./lastVisit";
 import { memberMutation } from "./memberMutation";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { xpMomentsShownTo } from "./xpMomentsFlag";
@@ -61,8 +61,9 @@ export const endXpMoment = memberMutation({
   args: { from: v.number(), until: v.number(), skipped: v.boolean() },
   handler: async (ctx, me, _person, { from, until, skipped }): Promise<XpMomentEndReply> => {
     if (!(await xpMomentsShownTo(ctx, me.member))) return { kind: "refused" };
-    if ((await lastVisitOf(ctx, me.member)) === from && (await wasRead(ctx, me.member, from, until))) await end(ctx, me, { from, until, skipped });
-    return { kind: "arrived", lastVisit: await lastVisitOf(ctx, me.member) };
+    if ((await lastVisitOf(ctx, me.member)) !== from || !(await wasRead(ctx, me.member, from, until))) return arrivedAt(await lastVisitOf(ctx, me.member));
+    await end(ctx, me, { from, until, skipped });
+    return arrivedPastWhatWasPutIn(ctx, me.member);
   },
 });
 
