@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant App as Website app
+  participant Web as Website reads
+  participant Items
+  participant Src as Source
+  App->>Web: turnItem(item), replayed after a reconnect
+  Web->>Items: turn(owner, item, now)
+  Items->>Items: row.turnedAt is set
+  Items->>Src: faceOf(row), reads only
+  Src-->>Items: the same face
+  Items-->>Web: { kind: "turned", again: true, face }
+  Note over Items: no second drop, no second 15 XP, no second event
+  App->>Web: turnItem(another member's item, or flag off)
+  Web-->>App: { kind: "refused" }, nothing written
+  Note over Web,Items: two tabs turning two hoggies at once: both write the member's tallies, Convex retries one on conflict

@@ -1,0 +1,7 @@
+# Hidden items are a ledger, drawn at the turn
+
+Every reward a member has not seen (a thanked person's sticker, a pack's hoggie, a level-up's three hoggies, an earned or random emoji) is one row in an `items` ledger, written in the same mutation that earns it and marked turned once. The board and the Slack reply's count each read one index range of it. A hidden hoggie gets no drop record until its turn, so "face down" is the absence of a record rather than a filter every collection, activity and milestone reader has to apply, and a pack's 15 XP pays at that turn, as it pays at the open today.
+
+We chose a stored ledger over a board derived on each read from the packs, the tray, the level-ups, the random drops and the earned emojis. Deriving it would rebuild the earned-emoji set on every read, the Slack reply's included, and still need a record for level-up hoggies that have not been drawn. We chose drawing at the turn over drawing at the earn and hiding the result: hiding would put a "not turned yet" check in front of every reader of drops. Items are earned whatever the `hidden-items` flag says, as packs are ([ADR-0006](0006-unlocks-gate-what-members-see-not-what-they-earn.md), [ADR-0009](0009-the-album-is-collection-first.md)), and the old reveals (put-in, the level-up drop, emojis seen) mark theirs turned, so the flag can go on or off at any time. A backfill earns what waited before the ledger existed, tray contents included, and nothing stored is deleted.
+
+Shaped in `docs/architecture/items.md`. Coherence journal decision: `d-b644d867`.

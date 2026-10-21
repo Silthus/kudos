@@ -1,0 +1,32 @@
+sequenceDiagram
+  participant App as Website app
+  participant Web as Website reads
+  participant Items
+  participant Src as Source (sticker, hoggie, emoji)
+  participant Hog as Hoggies
+  participant Prog as Progression
+  participant Bus
+  App->>Web: turnItem(item)
+  Web->>Items: turn(owner, item, now)
+  Items->>Items: owner's row, flag on, not turned yet
+  Items->>Src: reveal(row, at)
+  alt hoggie, no drop yet
+    Src->>Hog: dropFor(crate, { waits: false, floor })
+    Hog->>Hog: drawOf (pure), drop row, tallies, crest
+    Hog->>Prog: applyGain (15 XP, thoughtful only)
+    Hog->>Bus: hoggieDropped
+    Src->>Src: pack openedAt, random emoji roll, may earnItem(emoji)
+  else hoggie in the tray already
+    Src->>Hog: putDropIn (no XP, paid at the open)
+  else sticker
+    Src->>Src: recordPackSticker, tallyNewFace, tray row put in
+    Src->>Bus: stickerPutIn
+  else emoji
+    Src->>Src: markEmojisSeenBy([id])
+  end
+  Src-->>Items: Face
+  Items->>Items: patch turnedAt
+  Items->>Bus: itemTurned
+  Items-->>Web: { face, applied, page, landed: newly earned items }
+  Web-->>App: TurnAnswer
+  Bus-->>Bus: later: analytics "item turned", milestones recompute and may earn an emoji item

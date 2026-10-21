@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant App as Website app
+  participant Web as Website reads
+  participant Items
+  participant DB as items ledger
+  App->>Web: getAlbum()
+  Web->>Web: album and hidden-items on, no launch waits
+  Web->>Items: boardOf(owner)
+  Items->>DB: by_member_turned (member, undefined), oldest first, take 101
+  DB-->>Items: at most 101 rows
+  Items->>Items: face down: id, earnedAt, reason only
+  Items-->>Web: { items: 100 at most, more }
+  Web->>Web: name and face once per thanked person
+  Web-->>App: AlbumAnswer.board, packs [] and tray []
+  Note over App,Web: hidden-items off: board absent, packs and tray as today
