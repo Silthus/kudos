@@ -16,7 +16,7 @@ export type TeamState = "progress" | "ready" | "unlocked";
 
 export type AlbumTeam = { team: string; name: string; art: TeamArt; mine: boolean; people: string[]; unmatched: string[]; held: number; total: number; state: TeamState; unlockedAt: number | null };
 
-export type AlbumPerson = { person: string; name: string; face: Face; teams: string[]; held: boolean; packedThisWeek: boolean };
+export type AlbumPerson = { person: string; name: string; face: Face; teams: string[]; held: boolean; packedThisWeek: boolean; at?: number };
 
 export type Thanked = { name: string | null; face: Face | null };
 
@@ -57,6 +57,7 @@ export type Album = {
   gettingStarted: GettingStarted | null;
   board: ItemBoard | null;
   pets?: AlbumPet[];
+  lastVisit?: number | null;
 };
 
 export type AlbumAnswer = { kind: "off" } | Album;

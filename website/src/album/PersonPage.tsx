@@ -13,8 +13,9 @@ import { ComingSoonToSlack, FindInSlackWhileOn, MapInPlace, useMapsInPlace, useS
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
 import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
-import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
+import { dateOf, firstNameOf, howToCollectWords, personIn } from "./teamPage";
 import { useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
+import { NewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
 type HypeShown = Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">;
@@ -53,7 +54,10 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
             <PersonPicture face={person.face} name={person.name} collected={person.held} frame="al-photo-sticker al-photo-sticker-large" className="al-photo-face" />
             {pet !== null && <PetHoggie pet={pet} owner={petOwnerWordsOf(album, person.person, person.name)} className="al-person-pet-art" />}
           </div>
-          <figcaption id={caption} className="al-photo-caption">{person.held ? "In your album" : "Not in your album yet"}</figcaption>
+          <figcaption id={caption} className="al-photo-caption">
+            {person.held ? "In your album" : "Not in your album yet"}
+            <NewSinceTheLastVisit at={personIn(album, person.person).at} />
+          </figcaption>
         </figure>
         <div className="al-person-words">
           <p className="al-eyebrow">{person.person === album.me.person ? "You" : "Teammate"}</p>

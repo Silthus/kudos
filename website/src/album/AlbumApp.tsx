@@ -17,6 +17,7 @@ import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, useBoardsOfPeriod } from "./boardPeriods";
 import { useHoggieAddress } from "./hoggieAddress";
 import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
+import { NewLabelsProvider, useNewLabelsSince } from "./newLabels";
 import { isWaitingForTheLevelUp, LevelUpAnswerPage } from "./LevelUp";
 import { LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
@@ -31,6 +32,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
+  const newLabelsSince = useNewLabelsSince(album, actions.arrive);
   useCanonicalAddressOnceShown(place, album?.kind === "album", replaceAddress);
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);
@@ -67,6 +69,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   return (
     <NavigateProvider value={arriveAt}>
       <EmojiWizardHost on={album.emojiWizard} inPlace={album.emojiInPlace} emojis={album.emojis} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>
+      <NewLabelsProvider value={newLabelsSince}>
       <AlbumShell
         album={album}
         place={place}
@@ -85,6 +88,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         markEmojisSeen={actions.markEmojisSeen}
         turnItem={actions.turnItem}
       />
+      </NewLabelsProvider>
       </EmojiWizardHost>
     </NavigateProvider>
   );

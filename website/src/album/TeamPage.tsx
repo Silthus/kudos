@@ -15,6 +15,7 @@ import { dateOf, nameOnThePhoto, onThePhotoOf, teamEmojiOf, teamEmojiUseWords, t
 import type { TeamUnlocking } from "./useTeamUnlock";
 import { LandedHype, NewLabel } from "./ItemBoard";
 import { useBroughtIntoViewOnLanding, useLandedSticker, useLanding } from "./useItemBoard";
+import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
 const sealSize = 128;
@@ -75,7 +76,7 @@ function PhotoPerson({ shown, pet }: { shown: OnThePhoto; pet: ShownPet | null }
   );
 }
 
-function PersonOnThePhoto({ person: { person, name, face, held }, pet }: { person: Extract<OnThePhoto, { kind: "person" }>["person"]; pet: ShownPet | null }) {
+function PersonOnThePhoto({ person: { person, name, face, held, at }, pet }: { person: Extract<OnThePhoto, { kind: "person" }>["person"]; pet: ShownPet | null }) {
   const spot = useRef<HTMLLIElement>(null);
   const landing = useLandedSticker(person);
   useBroughtIntoViewOnLanding(spot, landing?.turn ?? null);
@@ -86,6 +87,7 @@ function PersonOnThePhoto({ person: { person, name, face, held }, pet }: { perso
         <span className="al-photo-name ph-no-capture">{name}</span>{" "}
         <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>
+      <NewSinceTheLastVisit at={at} />
       {landing?.unlocked.hype != null && <LandedHype hype={landing.unlocked.hype} from={name} />}
       {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
     </li>
@@ -107,6 +109,7 @@ function Caption({ onThePhoto }: { onThePhoto: OnThePhoto[] }) {
 
 function Seal({ team, emoji, unlocking }: { team: AlbumTeam; emoji: AlbumEmoji | undefined; unlocking: TeamUnlocking }) {
   const unlockedByTheTurn = useLanding()?.unlocked.teamStickers.find((sticker) => sticker.team === team.team);
+  const unlockedSinceTheLastVisit = useNewSinceTheLastVisit(team.unlockedAt);
   const emojiName = emoji?.name ?? unlockedByTheTurn?.emoji;
   return (
     <div className="al-seal-spot">
@@ -123,7 +126,7 @@ function Seal({ team, emoji, unlocking }: { team: AlbumTeam; emoji: AlbumEmoji |
             Unlocked {dateOf(team.unlockedAt ?? 0)}
           </span>
           {emojiName !== undefined && <code className="ph-no-capture">:{emojiName}:</code>}
-          {unlockedByTheTurn !== undefined && <NewLabel />}
+          {(unlockedByTheTurn !== undefined || unlockedSinceTheLastVisit) && <NewLabel />}
         </p>
       )}
     </div>
