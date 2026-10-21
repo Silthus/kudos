@@ -34,6 +34,7 @@ import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, typ
 import { followTheClock } from "./clock";
 import { lastVisitOf } from "./lastVisit";
 import { appliedShownTo } from "./commands";
+import { linkPreviewsShownTo } from "./linkPreviews";
 import { companyTeammateOf, nameless, storedFaceOf, type Face } from "./faces";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
@@ -62,6 +63,7 @@ export type AlbumAnswer = {
   pets?: Pet[];
   lastVisit?: number | null;
   shareableUrls?: true;
+  linkPreviews?: true;
 } & ShareOffers &
   Onboarding;
 
@@ -145,11 +147,15 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)) };
 });
 
 async function shareableUrlsTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "shareableUrls">> {
   return (await shareableUrlsShownTo(ctx, me.member)) ? { shareableUrls: true } : {};
+}
+
+async function linkPreviewsOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "linkPreviews">> {
+  return (await linkPreviewsShownTo(ctx, me.member)) ? { linkPreviews: true } : {};
 }
 
 async function milestonesShownTo(ctx: QueryCtx, me: VerifiedMember, pages: TeamPage[], { itemsShown }: { itemsShown: boolean }): Promise<MilestoneAnswer[]> {

@@ -3,7 +3,7 @@ import { albumShownTo } from "../album/flag";
 import { hasGivenAThoughtfulAward } from "../album/boards";
 import { reportHowItWorksClosed } from "../analytics/isolatedUsage";
 import { hasGivenAnAward } from "../engine/awards";
-import { hasGivenAHug } from "../hugs/records";
+import { hasHuggedBefore } from "../hugs/records";
 import { newestTurnOf } from "../items/ledger";
 import { onboardingShownTo } from "../items/onboardingFlag";
 import { loopLessonIn, type LoopLesson } from "../items/welcome";
@@ -33,7 +33,7 @@ export async function onboardingOf(ctx: QueryCtx, me: VerifiedMember, { level }:
 
 async function stepsDoneBy(ctx: QueryCtx, me: VerifiedMember, level: number): Promise<GettingStartedSteps> {
   return {
-    hugged: await hasGivenAHug(ctx, me.member),
+    hugged: await hasHuggedBefore(ctx, me.member),
     thoughtful: await hasGivenAThoughtfulAward(ctx, me.workspace, me.member),
     turned: (await newestTurnOf(ctx, me.member)) !== null,
     levelTwo: level >= levelTwo,
