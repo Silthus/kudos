@@ -133,6 +133,14 @@ export async function newestReceivedBy(ctx: QueryCtx, recipient: MemberId, atMos
   return received.map(({ giver, workspace, conversation, message, at }) => ({ giver, message: { workspace, conversation, message }, at }));
 }
 
+export async function receivedAfter(ctx: QueryCtx, recipient: MemberId, after: number, atMost: number): Promise<number> {
+  const received = await ctx.db
+    .query("awards")
+    .withIndex("by_recipient_at", (q) => q.eq("recipient", recipient).gt("at", after))
+    .take(atMost);
+  return received.length;
+}
+
 export type GivenMessageFacts = { giver: MemberId; day: DayKey; at: number };
 
 export async function givenFactsOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<GivenMessageFacts | null> {
