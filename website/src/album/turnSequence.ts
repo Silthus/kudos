@@ -37,10 +37,13 @@ export const turnTiming = {
   medalHoldMs: atBuildSpeed(1500),
   restMs: atBuildSpeed(800),
   backMs: atBuildSpeed(420),
+  pageWaitMs: 2000,
+  pageLookMs: 50,
 };
 
 export type TurnClock = {
   sleep: (ms: number) => Promise<void>;
+  until: (ready: () => boolean, ms: number) => Promise<boolean>;
   animate: (element: Element | null | undefined, keyframes: Keyframe[], options: { duration: number; easing?: string }) => Promise<void>;
   skip: () => void;
   timeAgain: () => void;
@@ -71,6 +74,13 @@ export function turnClock(): TurnClock {
   };
   return {
     sleep,
+    async until(ready, ms) {
+      for (let waited = 0; !ready() && !skipping; waited += turnTiming.pageLookMs) {
+        if (waited >= ms) return false;
+        await sleep(turnTiming.pageLookMs);
+      }
+      return true;
+    },
     async animate(element, keyframes, { duration, easing }) {
       const animation = typeof element?.animate === "function" ? element.animate(keyframes, { duration, easing, fill: "forwards" }) : null;
       if (animation !== null) running.add(animation);
@@ -98,11 +108,13 @@ export type TurnSteps = {
   burst: () => void;
   caption: () => void;
   payTheXp: (xp: number) => Promise<void>;
+  slotDrawn: () => boolean;
   slotInView: () => boolean;
   jumpToTheSlot: () => void;
   aboveTheSlot: () => Promise<void>;
   dropIntoTheSlot: () => Promise<void>;
   landed: () => void;
+  landWithoutTheFlight: () => void;
   squash: () => Promise<void>;
   sealInView: (team: string) => boolean;
   goToTheTeam: (team: string) => void;
@@ -128,7 +140,10 @@ export async function playTurn(clock: TurnClock, steps: TurnSteps, answer: Promi
   await lifting;
   await clock.sleep(turnTiming.settleMs);
   await turnOver(clock, steps);
-  await holdThenFadeToTheSlot(clock, steps, turned.applied?.xp ?? 0);
+  if (!(await holdThenFadeToTheSlot(clock, steps, turned.applied?.xp ?? 0))) {
+    steps.landWithoutTheFlight();
+    return turned;
+  }
   await dropIn(clock, steps);
   for (const followUp of followUpsOf(turned)) await followUp(clock, steps);
   clock.timeAgain();
@@ -161,8 +176,10 @@ async function holdThenFadeToTheSlot(clock: TurnClock, steps: TurnSteps, xp: num
   steps.caption();
   const paying = steps.payTheXp(xp);
   await clock.sleep(turnTiming.holdMs);
-  if (!steps.slotInView()) await fadeTo(clock, steps, steps.jumpToTheSlot);
+  const drawn = await clock.until(steps.slotDrawn, turnTiming.pageWaitMs);
+  if (drawn && !steps.slotInView()) await fadeTo(clock, steps, steps.jumpToTheSlot);
   await paying;
+  return drawn;
 }
 
 async function fadeTo(clock: TurnClock, steps: TurnSteps, jump: () => void) {

@@ -80,6 +80,10 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   );
   const phase = useCallback((next: LandingPhase) => setLanding((last) => (last === null ? null : { ...last, phase: next })), []);
   const medalShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, medalsShown: shown(last) })), []);
+  const landedWithoutTheFlight = useCallback(() => {
+    setLanding((last) => (last === null ? null : { ...last, phase: "done", flown: false, teamsShown: last.unlocked.teamStickers.length, medalsShown: last.unlocked.milestones.length }));
+    setShown("landed");
+  }, []);
   const teamShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, phase: "done", teamsShown: shown(last) })), []);
   const flyIn = useCallback(
     async (item: string, from: HTMLElement, answer: Promise<Turned | null>) => {
@@ -87,6 +91,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       const arrival = {
         land: (turned: Turned) => land(item, turned, true),
         landed: () => phase("landed"),
+        landedWithoutTheFlight,
         teamUnlocked: () => teamShown(({ teamsShown }) => teamsShown + 1),
         toTheTeam: (team: string) => navigate(hrefOf({ kind: "team", team })),
         toTheMilestones: () => navigate(hrefOf({ kind: "milestones" })),
@@ -100,7 +105,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       if (turned !== null) medalShown(({ unlocked }) => unlocked.milestones.length);
       if (turned !== null && remaining.current === 0) setShown("landed");
     },
-    [fly, land, phase, teamShown, medalShown, navigate, level],
+    [fly, land, phase, landedWithoutTheFlight, teamShown, medalShown, navigate, level],
   );
   const turn = useCallback(
     async (item: string, from: HTMLElement | null) => {
