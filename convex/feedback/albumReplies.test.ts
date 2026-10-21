@@ -263,15 +263,18 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
   test("a hype emoji is told unlocked once, by the grant that ran first, even when an earlier week's kudos is granted after it", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     theBus.holdingGrants = true;
-    const late = await thanks(alice, why, dana);
+    await thanks(alice, why, dana);
     theBus.holdingGrants = false;
     weeksLater += 1;
-    const first = await thanks(alice, "Thanks for reviewing the quarterly runbook", dana);
+    await thanks(alice, "Thanks for reviewing the quarterly runbook", dana);
+    const firstReplies = albumRepliesIn(channel);
     await t.mutation(internal.album.packs.grantThoughtfulPacks, { event: (theBus.heldGrants as KudosGivenEvent[])[0]! });
     await settle(t);
+    const lateReplies = albumRepliesIn(channel).slice(firstReplies.length);
 
-    expect(hypeLinesOf(threadRepliesTo(first))).toEqual(["Dana's hype emoji is unlocked"]);
-    expect(hypeLinesOf(threadRepliesTo(late))).toEqual([]);
+    expect(hypeLinesOf(firstReplies)).toEqual(["Dana's hype emoji is unlocked"]);
+    expect(lateReplies, "the earlier week's kudos, granted last, got its own reply").toHaveLength(1);
+    expect(hypeLinesOf(lateReplies)).toEqual([]);
   });
 
   test("a message to more people than one reply can name names the first ten and counts the rest", async () => {
