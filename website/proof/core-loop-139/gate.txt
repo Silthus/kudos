@@ -1,4 +1,4 @@
-local gate on 6cda286b (pre-proof commit), run directly in a T3 worktree (fleet heavy cannot see it), load ~5-14:
+local gate on f76ec014, run directly in a T3 worktree (fleet heavy cannot see it), load 5 to 14; after merging origin/main (6cda286b): typecheck, the first-hug, hugs and link-preview suites (80 tests) and coherence green, and CI gates the head:
 pnpm typecheck: exit 0
 vitest --maxWorkers 4 --shard 1/4:  Tests 1521 passed (1521)
 vitest --maxWorkers 4 --shard 2/4:  Tests 1495 passed (1495)
