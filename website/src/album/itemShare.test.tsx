@@ -200,6 +200,25 @@ describe("LP51 LP52: with full motion, Share shows for every win of the visit wh
     expect(actions.shareItem).toHaveBeenCalledWith(win!.item);
   });
 
+  it("keeps the press when Later closes the board before it answers, so the win is shared once and the strip says so", async () => {
+    let answer: (reply: ShareReply) => void = () => undefined;
+    const { actions } = visit({ offeredAfterTheTurn: [win!.item], shareItem: () => new Promise((resolve) => (answer = resolve)) });
+    const [first] = await theFaceDownItems();
+    await turnOnFakeTime(first!);
+    const board = within(screen.getByRole("dialog", { name: "Your items" }));
+
+    await act(async () => fireEvent.click(board.getByRole("button", { name: "Share" })));
+    await act(async () => fireEvent.click(board.getByRole("button", { name: "Later" })));
+    expect(screen.queryByRole("dialog", { name: "Your items" })).toBeNull();
+    expect(theShareButton()).toHaveAttribute("aria-disabled", "true");
+    await act(async () => fireEvent.click(theShareButton()!));
+    await act(async () => answer({ kind: "shared" }));
+
+    expect(actions.shareItem).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status", { name: "Shared" })).toHaveTextContent("Shared with your workspace");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("shows no Share on the board that comes back when the album offers no win", async () => {
     visit({ offeredAfterTheTurn: [] });
     const [first] = await theFaceDownItems();
