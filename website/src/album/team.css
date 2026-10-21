@@ -433,6 +433,7 @@ button.al-seal[aria-disabled] {
 }
 
 .al-mount-single .al-photo {
+  position: relative;
   padding: 1.5rem;
 }
 

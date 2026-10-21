@@ -1,6 +1,6 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { unlockHypeEmojiOf, type HypeEmoji } from "../album/earnedEmojis";
+import { hypeFaceOf, unlockHypeEmojiOf, type HypeEmoji } from "../album/earnedEmojis";
 import type { ReachedTier } from "../album/milestones";
 import { isTrayKey, trayItemKeyed } from "../album/opening";
 import { crateKeyOf } from "../album/packs";
@@ -16,6 +16,7 @@ import { dropFor, dropOf, foundIn, packOf, type Drop } from "../hoggies/drops";
 import { crestsShownTo } from "../hoggies/flag";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
+import { stickerWaitsFor } from "./ledger";
 import { unlockMilestoneTiers } from "./milestoneUnlocks";
 import { recordWinOf } from "./wins";
 
@@ -23,7 +24,9 @@ export type TurnedFace = { kind: "hoggie"; drop: Drop } | { kind: "sticker"; per
 
 export type LandingPage = { kind: "hoggies" } | { kind: "team"; team: string } | { kind: "person"; person: MemberId };
 
-export type Unlocked = { teamStickers: TeamSticker[]; hype: HypeEmoji | null; milestones: ReachedTier[] };
+export type UnlockedHype = HypeEmoji & { from: string };
+
+export type Unlocked = { teamStickers: TeamSticker[]; hype: UnlockedHype | null; milestones: ReachedTier[] };
 
 export type Turned = { face: TurnedFace; applied: AppliedReward | null; page: LandingPage; unlocked: Unlocked; again: boolean };
 
@@ -83,8 +86,12 @@ async function putTheStickerIn(ctx: MutationCtx, owner: PageOwner, row: StickerI
   return { face: { kind: "sticker", person, isNew }, applied: null, page: landingPageOf(landing, person), teamStickers };
 }
 
-async function hypeUnlockedBy(ctx: MutationCtx, owner: PageOwner, row: Item, at: number): Promise<HypeEmoji | null> {
-  return row.reason.kind === "thanks" ? unlockHypeEmojiOf(ctx, owner, row.reason.person, at) : null;
+async function hypeUnlockedBy(ctx: MutationCtx, owner: PageOwner, row: Item, at: number): Promise<UnlockedHype | null> {
+  if (row.reason.kind !== "thanks") return null;
+  const person = row.reason.person;
+  if (row.source === "hoggie" && (await stickerWaitsFor(ctx, owner.member, person))) return null;
+  const hype = await unlockHypeEmojiOf(ctx, owner, person, at);
+  return hype === null ? null : { ...hype, from: (await hypeFaceOf(ctx, owner.workspace, person)).name };
 }
 
 async function turnedAgain(ctx: MutationCtx, owner: PageOwner, row: Item): Promise<Turned | null> {

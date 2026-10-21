@@ -88,7 +88,7 @@ function PersonOnThePhoto({ person: { person, name, face, held, at }, pet }: { p
         <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>
       <NewSinceTheLastVisit at={at} />
-      {landing !== null && landing.phase !== "arriving" && landing.unlocked.hype !== null && <LandedHype hype={landing.unlocked.hype} from={name} />}
+      <LandedHype landing={landing} />
       {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
     </li>
   );

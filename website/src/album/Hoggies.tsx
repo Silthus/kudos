@@ -11,6 +11,7 @@ import { copiesWords, filterKeys, filters, groupIdOf, hoggieLabelOf, keptBy, num
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLanding } from "./useItemBoard";
+import { LandedHype } from "./ItemBoard";
 import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
 import { usePetPick } from "./usePetPick";
 import { useRarityStrip } from "./useRarityStrip";
@@ -269,6 +270,7 @@ function Plate({ hoggie, number, onOpen }: { hoggie: AlbumHoggie; number: string
       </span>
       <span className="al-hoggies-plate-name">{hoggie.found ? hoggie.name : "Not found yet"}</span>
       <span className="al-hoggies-rarity">{rarityWordOf(hoggie.rarity)}</span>
+      <LandedHype landing={landing} />
     </button>
   );
 }

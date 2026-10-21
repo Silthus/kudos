@@ -143,6 +143,23 @@ describe("The item board", () => {
     expect(screen.getByRole("button", { name: "2 items wait" })).toBeVisible();
   });
 
+  it("LP14: under reduced motion, a hoggie whose turn unlocked the thanked person's hype emoji shows it beside the landed hoggie", async () => {
+    preferReducedMotion();
+    const [first] = withItems.board!.items;
+    const turned = fixtureTurnOf(first!.item);
+    const hype = { name: "bram-teller-hype", picture: "/emoji/hype-bram.png", inSlack: false, from: "Bram Teller" };
+    const { user } = visit(withItems, { turnItem: async () => (turned.kind === "turned" ? { ...turned, unlocked: { ...turned.unlocked, hype } } : turned) });
+
+    await user.click((await theBoard()).getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+
+    const plate = await waitFor(() => {
+      const landed = document.querySelector<HTMLElement>('[data-hoggie="70s-dance"]');
+      expect(landed).toHaveAttribute("data-landed");
+      return landed!;
+    });
+    expect(within(plate).getByRole("img", { name: ":bram-teller-hype: hype emoji unlocked" }), "the hype emoji beside the landed hoggie").toBeInTheDocument();
+  });
+
   it("lands the hoggie in view even when the Hoggies page was filtered to hoggies that leave it out", async () => {
     const dance = hoggiesFixtures.midway.hoggies.find(({ hoggie }) => hoggie === "70s-dance")!;
     const { user } = visit(withItems, { path: "/book#hoggies" });

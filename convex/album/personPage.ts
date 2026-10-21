@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { storedCompanyMatchOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
 import { isAPersonOf, type MemberId } from "../workspace/directory";
-import { hypeEmojiOf as shownHypeEmojiOf } from "./earnedEmojis";
+import { hypeEarnedBy, hypeEmojiOf as shownHypeEmojiOf } from "./earnedEmojis";
 import type { PageOwner } from "./teamPages";
 import { inTheAlbumOf } from "./stickers";
 import { anEmptyPair, pairTallyFor, type PairTally } from "./tallies";
@@ -33,10 +33,6 @@ async function teamsOf(ctx: QueryCtx, workspace: string, person: MemberId): Prom
 }
 
 async function hypeEmojiOf(ctx: QueryCtx, { workspace, member }: PageOwner, person: MemberId): Promise<HypeEmoji> {
-  const firstPack = await ctx.db
-    .query("thoughtfulPacks")
-    .withIndex("by_giver_recipient_week", (q) => q.eq("giver", member).eq("recipient", person))
-    .first();
   const shown = await shownHypeEmojiOf(ctx, workspace, person);
-  return { earned: firstPack !== null, name: shown?.name ?? null, picture: shown?.picture ?? null, inSlack: shown?.inSlack ?? false };
+  return { earned: await hypeEarnedBy(ctx, member, person), name: shown?.name ?? null, picture: shown?.picture ?? null, inSlack: shown?.inSlack ?? false };
 }

@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { kudosReceived, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead, TurnAnswer } from "../website/album";
+import type { AlbumPersonAnswer } from "../website/albumPages";
 import type { Denial } from "../website/memberQuery";
 import type { MemberId } from "../workspace/directory";
 
@@ -126,26 +127,57 @@ describe("LP14 LP19: a sticker that fills a team unlocks its team sticker and te
 });
 
 describe("LP14: the first item turned from thanking a person unlocks their hype emoji once", { timeout: 60_000 }, () => {
-  test("with hidden-items on the hype emoji waits unearned until the first item for the person turns, which answers it and marks it seen, and the person's second item answers none", async () => {
+  test("with hidden-items on a hoggie turned while the person's sticker waits leaves the hype emoji waiting, and the sticker's turn answers it with its person's name and marks it seen", async () => {
     await thanks(alice, bob);
     const asAlice = await signedIn(alice);
     const hype = `hype:${await memberOf(bob)}`;
     expect((await albumOf(asAlice)).emojis.find(({ id }) => id === hype)).toMatchObject({ earned: false, seen: false });
 
-    const first = await turn(asAlice, await itemOf(alice, "hoggie", bob));
-    const second = await turnTheSticker(asAlice, bob);
+    const hoggie = await turn(asAlice, await itemOf(alice, "hoggie", bob));
+    expect(hoggie, "the hoggie turned while the sticker waits").toMatchObject({ kind: "turned", unlocked: { hype: null } });
+    expect((await albumOf(asAlice)).emojis.find(({ id }) => id === hype), "the hype emoji after the hoggie's turn").toMatchObject({ earned: false, seen: false });
+    const sticker = await turnTheSticker(asAlice, bob);
 
-    expect(first).toMatchObject({ kind: "turned", unlocked: { hype: { name: "bob-okonkwo-hype" } } });
-    expect(second.unlocked.hype).toBeNull();
+    expect(sticker.unlocked.hype, "the sticker's turn").toMatchObject({ name: "bob-okonkwo-hype", from: bob.name });
     expect((await albumOf(asAlice)).emojis.find(({ id }) => id === hype)).toMatchObject({ earned: true, seen: true });
   });
 
-  test("with hidden-items off the hype emoji is earned and unseen at the thanks, as today", async () => {
+  test("a thanks whose pack holds no sticker, because the person's sticker is already in the album, unlocks the hype emoji with its hoggie's turn", async () => {
+    await saysLittle(alice, bob);
+    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
+    await settle(t);
+    await thanks(alice, bob);
+    const asAlice = await signedIn(alice);
+
+    const hoggie = await turn(asAlice, await itemOf(alice, "hoggie", bob));
+
+    expect(hoggie, "the only item of the thanks").toMatchObject({ kind: "turned", unlocked: { hype: { name: "bob-okonkwo-hype", from: bob.name } } });
+  });
+
+  test("with hidden-items on the hype emoji reads unearned on the person's page and gives no kudos in Slack until its item turns", async () => {
+    await thanks(alice, bob);
+    const asAlice = await signedIn(alice);
+    expect((await personPageOf(asAlice, bob)).hype, "the person page before the turn").toMatchObject({ earned: false });
+    await thanksWith(alice, "bob-okonkwo-hype", carol);
+    expect(await kudosReceived(t, carol.user), "a kudos with the waiting hype emoji").toBe(0);
+
+    await turnTheSticker(asAlice, bob);
+    await thanksWith(alice, "bob-okonkwo-hype", carol);
+
+    expect((await personPageOf(asAlice, bob)).hype, "the person page after the turn").toMatchObject({ earned: true });
+    expect(await kudosReceived(t, carol.user), "a kudos with the unlocked hype emoji").toBe(1);
+  });
+
+  test("with hidden-items off the hype emoji is earned and unseen at the thanks, on the person's page and in Slack, as today", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen);
     await thanks(alice, bob);
+    const asAlice = await signedIn(alice);
 
     const hype = `hype:${await memberOf(bob)}`;
-    expect((await albumOf(await signedIn(alice))).emojis.find(({ id }) => id === hype)).toMatchObject({ earned: true, seen: false });
+    expect((await albumOf(asAlice)).emojis.find(({ id }) => id === hype)).toMatchObject({ earned: true, seen: false });
+    expect((await personPageOf(asAlice, bob)).hype).toMatchObject({ earned: true });
+    await thanksWith(alice, "bob-okonkwo-hype", carol);
+    expect(await kudosReceived(t, carol.user)).toBe(1);
   });
 });
 
@@ -213,6 +245,26 @@ async function thanks(giver: Person, ...recipients: Person[]) {
   const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
   await redeliver(giver, ts, ...recipients);
   return ts;
+}
+
+async function saysLittle(giver: Person, recipient: Person) {
+  messages += 1;
+  vi.setSystemTime(Date.now() + minuteMs);
+  await post(t, [section(text("ty "), mention(recipient.user), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}` });
+  await settle(t);
+}
+
+async function thanksWith(giver: Person, emojiName: string, recipient: Person) {
+  messages += 1;
+  vi.setSystemTime(Date.now() + minuteMs);
+  await post(t, [section(text(`${why} `), mention(recipient.user), text(" "), emoji(emojiName))], { user: giver.user, ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}` });
+  await settle(t);
+}
+
+async function personPageOf(reader: Reader, of: Person): Promise<AlbumPersonAnswer> {
+  const page = await reader.query(api.website.album.getAlbumPerson, { person: await memberOf(of) });
+  if (page.kind !== "person") throw new Error(`expected a person page, got ${JSON.stringify(page)}`);
+  return page;
 }
 
 async function redeliver(giver: Person, ts: string, ...recipients: Person[]) {

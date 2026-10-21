@@ -15,6 +15,7 @@ import { PersonPicture } from "./PersonPicture";
 import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { dateOf, firstNameOf, howToCollectWords, personIn } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
+import { LandedHype } from "./ItemBoard";
 import { NewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
@@ -53,6 +54,7 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
           <div ref={sticker} className="al-photo" {...landedMarksOf(landing)}>
             <PersonPicture face={person.face} name={person.name} collected={person.held} frame="al-photo-sticker al-photo-sticker-large" className="al-photo-face" />
             {pet !== null && <PetHoggie pet={pet} owner={petOwnerWordsOf(album, person.person, person.name)} className="al-person-pet-art" />}
+            <LandedHype landing={landing} />
           </div>
           <figcaption id={caption} className="al-photo-caption">
             {person.held ? "In your album" : "Not in your album yet"}

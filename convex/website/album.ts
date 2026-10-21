@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type HypesHeld, type SharedEmoji } from "../album/earnedEmojis";
+import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
+import { hypesHeldFor } from "../items/hypes";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
 import { albumShownTo, emojiWizardShownTo } from "../album/flag";
@@ -157,10 +158,6 @@ type Waiting = { items: FaceDown[]; more: boolean };
 
 async function waitingItemsOf(ctx: QueryCtx, me: VerifiedMember): Promise<Waiting> {
   return (await noLaunchWaitsFor(ctx, me)) ? boardOf(ctx, me.member) : { items: [], more: false };
-}
-
-function hypesHeldFor({ items, more }: Waiting): HypesHeld {
-  return { people: new Set(items.flatMap(({ reason }) => (reason.kind === "thanks" ? [reason.person] : []))), every: more };
 }
 
 async function boardShownOf({ items, more }: Waiting, thanked: ThankedPeople): Promise<ItemBoard> {

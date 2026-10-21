@@ -80,7 +80,7 @@ function landedSticker() {
 describe("LP13 LP19 LP21: a turned sticker lands on its page, plain path under reduced motion", () => {
   it("goes to the person's team page, scrolls the landed sticker into view at once and marks it, names the person and shows their hype emoji beside the sticker", async () => {
     const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
-    const hype = { name: "dov-esker-hype", picture: "/emoji/hype-dov.png", inSlack: false };
+    const hype = { name: "dov-esker-hype", picture: "/emoji/hype-dov.png", inSlack: false, from: "Dov Esker" };
     const { user } = visit(aStickerTurnOf("dov-esker", { kind: "team", team: "copper-kite" }, { ...nothingUnlocked, hype }), "dov-esker");
 
     await turnTheFirstItem(user);
@@ -110,6 +110,15 @@ describe("LP13 LP19 LP21: a turned sticker lands on its page, plain path under r
     expect(tag).toHaveTextContent("New");
     expect(screen.queryByRole("button", { name: /Ready to unlock/ })).toBeNull();
     expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("Cass Vey: Sticker · New · Tin Orchard team sticker unlocked");
+  });
+
+  it("LP14: on the person's own page, shows their hype emoji beside the landed sticker", async () => {
+    const hype = { name: "dov-esker-hype", picture: "/emoji/hype-dov.png", inSlack: false, from: "Dov Esker" };
+    const { user } = visit(aStickerTurnOf("dov-esker", { kind: "person", person: "dov-esker" as MemberId }, { ...nothingUnlocked, hype }), "dov-esker");
+
+    await turnTheFirstItem(user);
+
+    expect(within(await landedSticker()).getByRole("img", { name: ":dov-esker-hype: hype emoji unlocked" }), "the hype emoji beside the sticker on the person page").toBeVisible();
   });
 
   it("goes to the person's own page when they are on no team page, and marks the sticker there", async () => {

@@ -15,6 +15,7 @@ import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
 import type { ParseHook } from "../parser/parser";
+import { holdsTheHypeOf, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
@@ -23,8 +24,6 @@ export type EmojiProgress = { have: number; need: number };
 export type EarnedEmoji = { id: EarnedEmojiId | RandomEmojiId; kind: EarnedEmojiKind; name: string; from: string; picture: string; earned: boolean; earnedAt: number | null; seen: boolean; inSlack: boolean; progress: EmojiProgress | null };
 
 export type SharedEmoji = Pick<EarnedEmoji, "id" | "kind" | "name" | "from" | "picture" | "inSlack">;
-
-export type HypesHeld = { people: ReadonlySet<MemberId>; every: boolean };
 
 export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number }; hypesHeld?: HypesHeld };
 
@@ -226,7 +225,12 @@ async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, see
 }
 
 function isHeldForItsItem(person: MemberId, seen: Set<string>, held: HypesHeld | undefined) {
-  return held !== undefined && !seen.has(`hype:${person}`) && (held.every || held.people.has(person));
+  return held !== undefined && !seen.has(`hype:${person}`) && holdsTheHypeOf(held, person);
+}
+
+export async function hypeEarnedBy(ctx: QueryCtx, member: MemberId, person: MemberId | null): Promise<boolean> {
+  if (person === null || !(await hasPackedFor(ctx, member, person))) return false;
+  return (await seenAtOf(ctx, member, `hype:${person}`)) !== null || !(await hypeWaitsForItsItem(ctx, member, person));
 }
 
 function unseenFirst(people: PackedPerson[], seen: Set<string>): PackedPerson[] {
@@ -299,7 +303,7 @@ export async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): P
   if (kind === "team") return (await teamStickerOf(ctx, member, cause)) !== null;
   if (kind === "milestone") return holdsMilestoneTier(ctx, member, cause);
   if (kind === "level") return emojiLevels.some((reward) => String(reward) === cause) && (await progressionHomeOf(ctx, member)).level >= Number(cause);
-  if (kind === "hype") return hasPackedFor(ctx, member, ctx.db.normalizeId("members", cause));
+  if (kind === "hype") return hypeEarnedBy(ctx, member, ctx.db.normalizeId("members", cause));
   if (kind === "random") return (await randomEmojisShownTo(ctx, member)) && (await holdsRandomEmoji(ctx, member, cause));
   return false;
 }
@@ -328,8 +332,7 @@ function tierOf(ctx: QueryCtx, member: MemberId, milestone: MilestoneId, tier: M
     .first();
 }
 
-async function hasPackedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId | null): Promise<boolean> {
-  if (recipient === null) return false;
+async function hasPackedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<boolean> {
   const pack = await ctx.db
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))

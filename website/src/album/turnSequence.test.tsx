@@ -264,7 +264,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
   });
 
   it("pops the thanked person's hype emoji in beside their sticker only once it lands", async () => {
-    const hype = { name: "cass-vey-hype", picture: "/emoji/hype-cass.png", inSlack: false };
+    const hype = { name: "cass-vey-hype", picture: "/emoji/hype-cass.png", inSlack: false, from: "Cass Vey" };
     visit({ reply: async () => aStickerTurnOfCassVey({ teamStickers: [], hype, milestones: [] }), after: (album, item) => ({ ...withTinOrchardFilled(album, item), teams: album.teams }) });
     await clickOnFakeTime(await theFirstItem());
 

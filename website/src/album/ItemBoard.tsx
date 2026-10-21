@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
-import type { HypeEmoji } from "../../../convex/album/earnedEmojis";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
 import type { ShareReply } from "../shell";
@@ -128,10 +127,12 @@ function MedalUnlocked({ album, tier }: { album: Album; tier: ReachedTier }) {
   );
 }
 
-export function LandedHype({ hype, from }: { hype: HypeEmoji; from: string }) {
+export function LandedHype({ landing }: { landing: Landing | null }) {
+  const hype = landing === null || landing.phase === "arriving" ? null : landing.unlocked.hype;
+  if (hype === null) return null;
   return (
     <span role="img" aria-label={`:${hype.name}: hype emoji unlocked`} className="ib-landed-hype">
-      <EmojiPicture emoji={{ kind: "hype", picture: hype.picture, from }} size={40} />
+      <EmojiPicture emoji={{ kind: "hype", picture: hype.picture, from: hype.from }} size={40} />
     </span>
   );
 }
