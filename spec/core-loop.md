@@ -6,7 +6,7 @@
 >
 > **Six stopping points**, one flag each. 1 (LP1–LP25) is the item board behind `hidden-items`: the ledger, the board, the turn, the old flow going dark and the spoiler-free Slack reply. 2 (LP26–LP37) is the XP moment behind `xp-moments`, with its level-up takeover. 3 (LP38–LP43) is the Slack teaser and the norm line behind `teasers`. 4 (LP44–LP50) is the welcome item and the welcome nudge behind `welcome-item`. 5 (LP51–LP56) is the share and the Monday post's find behind `item-share`. 6 (LP57–LP60) is the pet hoggie behind `pet-hoggie`. 1 comes first; 2, 3, 4 and 5 build on it; 6 stands alone.
 >
-> Sources: the map's decisions (Silthus/personal#95); the resolutions of the game-design research (Silthus/personal#96), the item board prototype (Silthus/personal#97, branch `prototype/item-board`, `ItemBoard.tsx` `play()`), the XP moments prototype (Silthus/personal#98, branch `prototype/xp-moments`, `ACCEPTED.md`), the items architecture (Silthus/personal#99, branch `prototype/items-architecture`, `docs/architecture/items.md` and ADR-0010) and the social-pull grilling (Silthus/personal#100); the code on `main` at `e1d2859a`. Where an input conflicts with the product owner's own call, his call wins: no random emojis on the board, and team and milestone emojis unlock on their own page.
+> Sources: the map's decisions (Silthus/personal#95); the resolutions of the game-design research (Silthus/personal#96), the item board prototype (Silthus/personal#97, branch `prototype/item-board`, `ItemBoard.tsx` `play()`), the XP moments prototype (Silthus/personal#98, branch `prototype/xp-moments`, `ACCEPTED.md`), the items architecture (Silthus/personal#99, branch `prototype/items-architecture`, `docs/architecture/items.md` and ADR-0010) and the social-pull grilling (Silthus/personal#100); the code on `main` at `e1d2859a`. Where an input conflicts with the product owner's own call, his call wins: earned emojis are never hidden and unlock with the turn that brings them, and there are no random emojis.
 
 ## Problem Statement
 
@@ -38,67 +38,69 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 8. As a member, I want a second click, `Enter`, `Space` or `Esc` to jump the item straight into its slot, so that I can go fast once I know the sequence.
 9. As a member, I want the +15 XP of a thanked pack to fly from the turned hoggie into my XP bar, so that I see what the thanks paid.
 10. As a member who just filled a team, I want the team sticker to unlock on that page right after the sticker lands, so that completing a page is celebrated where it happened.
-11. As a member, I want everything I just put in to carry a "New" label until my next visit, so that I find it again when I come back to the page.
-12. As a member, I want a quiet "Later" that closes the board and an "N items wait" pill that reopens it, so that I can stop at any time.
-13. As a new member, I want a pointer to show me the first item once, so that I know what to do without a tutorial.
-14. As a member who prefers reduced motion, I want a click to put the item in place, show its slot, say what it was and add its XP at once, so that I get the reveal without the movement.
-15. As a member on a phone, I want the same flow with smaller items, so that I can collect from anywhere.
-16. As a member who levelled up, I want the level's three hoggies to wait on the board tagged with their level, so that I know where they came from without seeing them.
-17. As a member who had packs or tray items waiting when the board arrived, I want them on the board face down, so that nothing I earned is lost.
-18. As a giver, I want the Slack reply to say only that an item waits for thanking the person and how many wait, so that the reveal stays on the website.
-19. As a giver, I want the reply's button to take me to my items, so that the pull from Slack is one click.
-20. As a member, I want a turn I make twice (after a reconnect, or in two tabs) to reveal one thing and pay once, so that I never get a different hoggie or double XP.
-21. As the product owner, I want every turn recorded in PostHog with its source and rarity, so that I can see whether the board is used.
-22. As the product owner, I want the flag to go back off at any time without losing anything, so that a bad rollout is a two-way door.
+11. As a member, I want an emoji to unlock right after the turn of the item that brought it, so that every emoji arrives as part of a reveal instead of sitting hidden.
+12. As a member who reached a milestone tier, I want it to get its own beat on Milestones, so that a milestone feels bigger than a single slot.
+13. As a member, I want everything I just put in to carry a "New" label until my next visit, so that I find it again when I come back to the page.
+14. As a member, I want a quiet "Later" that closes the board and an "N items wait" pill that reopens it, so that I can stop at any time.
+15. As a new member, I want a pointer to show me the first item once, so that I know what to do without a tutorial.
+16. As a member who prefers reduced motion, I want a click to put the item in place, show its slot, say what it was and add its XP at once, so that I get the reveal without the movement.
+17. As a member on a phone, I want the same flow with smaller items, so that I can collect from anywhere.
+18. As a member who levelled up, I want the level's three hoggies to wait on the board tagged with their level, so that I know where they came from without seeing them.
+19. As a member who had packs or tray items waiting when the board arrived, I want them on the board face down, so that nothing I earned is lost.
+20. As a giver, I want the Slack reply to say only that an item waits for thanking the person and how many wait, so that the reveal stays on the website.
+21. As a giver, I want the reply's button to take me to my items, so that the pull from Slack is one click.
+22. As a member, I want a turn I make twice (after a reconnect, or in two tabs) to reveal one thing and pay once, so that I never get a different hoggie or double XP.
+23. As the product owner, I want every turn recorded in PostHog with its source and rarity, so that I can see whether the board is used.
+24. As the product owner, I want the flag to go back off at any time without losing anything, so that a bad rollout is a two-way door.
 
 **The XP moment (stopping point 2)**
 
-23. As a returning member, I want what happened in Slack since my last visit to play as Slack-style excerpts, so that I feel the thanks I got and gave.
-24. As a returning member, I want the excerpts to ring a mystery orb that reads "? XP", so that the total is a small surprise.
-25. As a returning member, I want a click anywhere, or a short timeout, to collect, so that I never have to find a button.
-26. As a returning member, I want the excerpts to dissolve into XP particles that count up in the orb and stream into my XP bar, so that the XP feels earned and lands where it lives.
-27. As a busy member, I want everything past five excerpts folded into one line with its XP, so that a big week still plays in seconds.
-28. As a member who crossed a level, I want the level-up always among the five, so that it never hides in the fold.
-29. As a member who crossed a level, I want a gold takeover that names the level and lists what it unlocked, staying until I click, so that the level-up is its own moment.
-30. As a member, I want the waiting items to land face down on the same canvas after the moment, so that the moment hands me straight to the board.
-31. As a member, I want `Skip` or `Esc` to land all the XP at once and show the items, so that I can get on with it.
-32. As a member who prefers reduced motion, I want the moment to show its end state at once, so that I get the summary without movement.
-33. As a member with two tabs or two devices, I want one moment per visit, so that the same excerpts do not play twice.
-34. As a member whose Slack was quiet, I want only the waiting items, so that I am not shown an empty moment.
-35. As the product owner, I want to know how often the moment is skipped and how many excerpts it showed, so that I can tune it.
+25. As a returning member, I want what happened in Slack since my last visit to play as Slack-style excerpts, so that I feel the thanks I got and gave.
+26. As a returning member, I want the excerpts to ring a mystery orb that reads "? XP", so that the total is a small surprise.
+27. As a returning member, I want a click anywhere, or a short timeout, to collect, so that I never have to find a button.
+28. As a returning member, I want the excerpts to dissolve into XP particles that count up in the orb and stream into my XP bar, so that the XP feels earned and lands where it lives.
+29. As a busy member, I want everything past five excerpts folded into one line with its XP, so that a big week still plays in seconds.
+30. As a member who crossed a level, I want the level-up always among the five, so that it never hides in the fold.
+31. As a member who crossed a level, I want a gold takeover that names the level and lists what it unlocked, staying until I click, so that the level-up is its own moment.
+32. As a member, I want the waiting items to land face down on the same canvas after the moment, so that the moment hands me straight to the board.
+33. As a member, I want `Skip` or `Esc` to land all the XP at once and show the items, so that I can get on with it.
+34. As a member who prefers reduced motion, I want the moment to show its end state at once, so that I get the summary without movement.
+35. As a member with two tabs or two devices, I want one moment per visit, so that the same excerpts do not play twice.
+36. As a member whose Slack was quiet, I want only the waiting items, so that I am not shown an empty moment.
+37. As the product owner, I want to know how often the moment is skipped and how many excerpts it showed, so that I can tune it.
 
 **Teaser and norm line (stopping point 3)**
 
-36. As a member opening App Home, I want one line that says how many items wait and how many kudos came in since my last visit, so that I know there is something for me on the website.
-37. As a member who gets the Monday hugs recap, I want the same counts as its last line, so that the recap pulls me over too.
-38. As a member, I want the teaser hidden when nothing waits and nothing came in, so that Slack stays quiet when there is nothing to say.
-39. As a member, I want to see how many teammates gave thoughtful kudos this week, so that I feel part of a habit without anyone being ranked.
-40. As a member who opted out of the boards, I want to be counted in the norm line but never named, so that my privacy holds.
+38. As a member opening App Home, I want one line that says how many items wait and how many kudos came in since my last visit, so that I know there is something for me on the website.
+39. As a member who gets the Monday hugs recap, I want the same counts as its last line, so that the recap pulls me over too.
+40. As a member, I want the teaser hidden when nothing waits and nothing came in, so that Slack stays quiet when there is nothing to say.
+41. As a member, I want to see how many teammates gave thoughtful kudos this week, so that I feel part of a habit without anyone being ranked.
+42. As a member who opted out of the boards, I want to be counted in the norm line but never named, so that my privacy holds.
 
 **Welcome (stopping point 4)**
 
-41. As a member who has never opened the website, I want one hoggie that is at least rare waiting for me, so that my first visit pays off.
-42. As a member who was just thanked and has never opened the website, I want one DM that quotes the thanks and invites me to collect my rare hoggie, so that I learn HedgeHug exists for me.
-43. As a member, I want that DM exactly once, ever, so that HedgeHug never nags me.
-44. As a member who was hugged rather than thanked, I want the DM to link the hugged message, so that it still makes sense.
-45. As a member who has opened the website before, I want no welcome DM, so that only newcomers are nudged.
-46. As a workspace maintainer, I want to turn the welcome nudge off in App Home settings, so that the workspace decides whether HedgeHug may DM first.
-47. As a new member who just turned my welcome item, I want one line that tells me how the next item comes, so that I learn the loop in one sentence.
+43. As a member who has never opened the website, I want one hoggie that is at least rare waiting for me, so that my first visit pays off.
+44. As a member who was just thanked and has never opened the website, I want one DM that quotes the thanks and invites me to collect my rare hoggie, so that I learn HedgeHug exists for me.
+45. As a member, I want that DM exactly once, ever, so that HedgeHug never nags me.
+46. As a member who was hugged rather than thanked, I want the DM to link the hugged message, so that it still makes sense.
+47. As a member who has opened the website before, I want no welcome DM, so that only newcomers are nudged.
+48. As a workspace maintainer, I want to turn the welcome nudge off in App Home settings, so that the workspace decides whether HedgeHug may DM first.
+49. As a new member who just turned my welcome item, I want one line that tells me how the next item comes, so that I learn the loop in one sentence.
 
 **Share and the Monday post (stopping point 5)**
 
-48. As a member who just found an epic or legendary hoggie or completed a team page, I want a `Share` button, so that I can show the win to my workspace.
-49. As a member, I want sharing to happen only when I press it, once per win, so that nothing is posted in my name by surprise.
-50. As a colleague, I want a shared win to lead with the thanks behind it, so that the post celebrates the thanks, not the loot.
-51. As a member thanked in a private channel, I want a shared win never to quote the message, so that private thanks stay private.
-52. As a member of a workspace without a weekly-post channel, I want no `Share` button, so that I never press something that cannot post.
-53. As a reader of the Monday post, I want a quoted kudos to say which epic or legendary hoggie it brought once its owner has turned it, so that the post shows the fun without spoiling anyone.
+50. As a member who just found an epic or legendary hoggie or completed a team page, I want a `Share` button, so that I can show the win to my workspace.
+51. As a member, I want sharing to happen only when I press it, once per win, so that nothing is posted in my name by surprise.
+52. As a colleague, I want a shared win to lead with the thanks behind it, so that the post celebrates the thanks, not the loot.
+53. As a member thanked in a private channel, I want a shared win never to quote the message, so that private thanks stay private.
+54. As a member of a workspace without a weekly-post channel, I want no `Share` button, so that I never press something that cannot post.
+55. As a reader of the Monday post, I want a quoted kudos to say which epic or legendary hoggie it brought once its owner has turned it, so that the post shows the fun without spoiling anyone.
 
 **Pet hoggie (stopping point 6)**
 
-54. As a member, I want to pick one hoggie I own as my pet, so that my page shows something I chose.
-55. As a member, I want to change my pet at any time, so that it follows my favourite.
-56. As a colleague, I want to see a member's pet in colour on their person page and beside their sticker on team pages, so that the album feels personal.
+56. As a member, I want to pick one hoggie I own as my pet, so that my page shows something I chose.
+57. As a member, I want to change my pet at any time, so that it follows my favourite.
+58. As a colleague, I want to see a member's pet in colour on their person page and beside their sticker on team pages, so that the album feels personal.
 
 ## Implementation Decisions
 
@@ -116,7 +118,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 ### The items ledger
 
 - **LP2 A new Items module.** `convex/items` owns every reward a member has not seen, with its own component spec. It keeps a ledger with one row per waiting item, written in the same mutation that earns it (ADR-0010, carried from the architecture branch into `docs/adr/` by the first ticket, with `docs/architecture/items.md`).
-- **LP3 Two sources.** An item is a sticker or a hoggie. Earned emojis are not items: each unlocks on its own page (LP14). There are no random emojis under `hidden-items` (LP15). This overrides the architecture's emoji source.
+- **LP3 Two sources.** An item is a sticker or a hoggie. Earned emojis are never items and never hidden: each unlocks with the turn that brings it (LP14). There are no random emojis (LP15). This overrides the architecture's emoji source.
 - **LP4 The ledger's shape** (from the architecture prototype, trimmed to the two sources):
 
   ```ts
@@ -140,9 +142,9 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 - **LP10 One turn mutation.** `turnItem` is the only thing that reveals an item and puts it in the album. It answers the face, the page it lands on, the XP it applied and anything it unlocked, or `refused` for another member's item, a missing item, or `album` or `hidden-items` off, writing nothing then.
 - **LP11 Drawn at the turn.** A hoggie item has no drop record until its turn. The turn draws it (the draw stays a pure function of the secret, the member, the crate key and the catalogue version), counts the find, records the crest and pays the crate's band through the existing gain path: 15 XP for a thoughtful pack, nothing for a level-up or the welcome item. Hoggies' drop takes `waits` from its caller instead of checking the crate kind; the old open passes `waits: true`.
 - **LP12 Idempotent.** A replayed turn answers the same face with `again: true`, applies nothing and publishes nothing, because the Convex client resends a mutation after a reconnect. Two tabs turning two items at once both succeed; Convex retries one on conflict.
-- **LP13 A sticker's turn is today's put-in.** It records the pack sticker, counts the new face, publishes `stickerPutIn` (so `album sticker collected` keeps its series) and lands on the member's first team page holding the person, else the people page. Milestones follow the bus: they subscribe to `stickerPutIn` and every `hoggieDropped`, and the inline calls in the put-in go.
-- **LP14 Emojis unlock on their own page.** When a sticker's turn fills the last place on a team, the turn's answer names the team, and the team sticker unlocks on that page as a follow-up (LP19). Its team emoji is earned as today and shows on the team page. A milestone tier, reached on the bus a moment after a turn, unlocks its medal and emoji on Milestones with a "New" label. A level's emoji is listed in the level-up takeover (LP34). None of them is an item, and nothing lands in the top bar.
-- **LP15 No random emojis.** While `hidden-items` is on for the member, the turn rolls no random emoji. Random emojis already held stay in the member's emojis. With the flag off, the old open rolls them as today.
+- **LP13 A sticker's turn is today's put-in.** It records the pack sticker, counts the new face, publishes `stickerPutIn` (so `album sticker collected` keeps its series) and lands on the member's first team page holding the person, else the people page. Milestones stay inline: every turn, a sticker's or a hoggie's, records the milestone tiers it reaches in the same mutation and answers them, so their unlock plays in the turn's sequence. This drops the architecture's move of milestones to the bus.
+- **LP14 Emojis unlock with the turn that brings them.** Every emoji is unlocked by an item or a milestone, so its unlock plays as a follow-up of the turn whose item brings it, after the item lands: a sticker that fills the last place on a team unlocks the team sticker and its team emoji on that team page (LP19); a turn that reaches a collection milestone tier (people, teams, reach, hoggies) unlocks the tier and its emoji on Milestones (LP19a); the first item turned from thanking a person unlocks that person's hype emoji beside their sticker. Emojis earned away from the board unlock where the member next sees their cause: a level's emoji in the level-up takeover (LP34), and a thoughtful-giving tier, reached in Slack, as a follow-up of the member's next turn. Each unlock plays once, wherever it plays first, and marks its emoji seen. None of them is an item, and nothing lands in the top bar.
+- **LP15 No random emojis.** Random emoji drops never left the sandbox (`random-emojis` is sandbox-only), and the core loop has none: the turn never rolls one. The sandbox's old open keeps its roll until the tray retires.
 - **LP16 Analytics.** The first turn of an item publishes `itemTurned` on the bus, projected as `item turned` with `source`, `rarity` and `is_new` on the allowlist. The dark-features walk reaches it.
 
 ### The board on the website
@@ -158,10 +160,12 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
   above the slot (420 ms), drop (190 ms, fast-in), disc fits the slot
   land: slot pops 1 → 1.26 → 0.93 → 1.04 → 1 (520 ms), two rings, squash 1.16 × 0.84 (200 ms)
   if the sticker filled a team: 380 ms, fade to the seal, gold burst, seal pops and colours (760 ms), 1300 ms
+  then each milestone tier the turn reached (LP19a)
   rest 800 ms, the board comes back (420 ms)
   ```
 
 - **LP19 What the sequence holds.** Hover never changes the page and never says where an item belongs: the item lifts 9 px, wiggles once and its question mark bobs, and nothing loops. A hoggie's page opens at the top of the `Hoggies` page, so its rarity waits for the turn. The burst carries the rarity: the hoggie's rarity colour, the accent colour for a sticker. On the drop a sticker's disc squares off to the slot's corners, and a hoggie loses its disc so only the art lands. A filled team's sticker unlocks with a gold burst, the seal pops and colours in, it reads `Unlocked <date> :team-…:` and gets a "New" label, with no second line under it. The turned item's caption is its name and one line.
+- **LP19a A milestone gets its own beat.** After the item lands (and after a team sticker's unlock), each tier the turn reached plays on Milestones: the screen fades to the medal (never a scroll), the medal pops from grey into its tier's colour with a burst of rays in that colour, its name and tier read out (`Familiar faces · Silver`), and its emoji pops in beside it with a "New" label. It holds about 1.5 s at 0.8×, longer than a team sticker's unlock, and a click skips it like the rest. A diamond tier adds the gold confetti. Reduced motion shows the medal and emoji in place with one line.
 - **LP20 The board's look.** Every back is the same cream disc with a dashed orange ring and an orange question mark. The items drift in a loose cluster with mixed sizes and tilts and no panel behind them. The only text is "N items wait" and a quiet "Later". The first item sits a little forward, and a pointer slides in and taps it twice, then stops, and disappears once the member hovers or clicks. Items with reason `levelUp` carry a gold "Level N" tag.
 - **LP21 Skip, reduced motion and phone.** A click anywhere, or `Enter`, `Space` or `Esc`, jumps the running item into its slot. With reduced motion, a click puts the item in place, shows its slot, says what it was ("70's Dance: Rare hoggie · New") and adds the XP, with no movement. A phone runs the same flow with 72 px items.
 - **LP22 "New" labels.** Every sticker, hoggie plate, team sticker and medal turned or unlocked after the member's last visit carries a small "New" label on its page. The labels clear when the last visit moves at the member's next visit (LP26).
@@ -169,8 +173,8 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 ### The old flow goes dark
 
 - **LP23 The tray and the put-in.** While `hidden-items` is on, the website's open, put-in and put-all-in refuse, and their code stays until the flag is everyone's. A tray item not yet put in is a face-down item; its turn finishes today's put-in without a second XP. A hoggie in the tray turns from its existing drop and pays nothing.
-- **LP24 The backfill.** `fillItems`, internal and run by hand once per deployment and again after the flag widens, walks every member one mutation at a time and earns, idempotently, every pack not yet opened (its sticker where it holds one, and its hoggie) and every tray item not yet put in. Level-up hoggies already dropped earn nothing. Unseen random emojis are not items and earn nothing. Nothing stored is deleted, and a rerun earns nothing twice.
-- **LP25 The Slack reply and the level-up reveal.** While `hidden-items` is on for the giver, each recipient's headline is "An item for thanking X" (for `nextWeek`: "Kudos counted." and "Your next item for X comes next week."), with one line "N wait" (or "50+ wait") and one button, "See your items", to the item board. The headline stays "An item" when the thanks earned a sticker too, so the count per thanks never tells a new face. No outcome lines and no hype picture: the new person, page progress and emoji unlock move to the turn. Feedback reads only Items' waiting count. The level-up reveal page from Silthus/kudos#744 is not shown while `hidden-items` is on: the level's hoggies wait on the board (LP20) and the XP moment announces them (LP34).
+- **LP24 The backfill.** `fillItems`, internal and run by hand once per deployment and again after the flag widens, walks every member one mutation at a time and earns, idempotently, every pack not yet opened (its sticker where it holds one, and its hoggie) and every tray item not yet put in. Level-up hoggies already dropped earn nothing. Nothing stored is deleted, and a rerun earns nothing twice.
+- **LP25 The Slack reply and the level-up reveal.** While `hidden-items` is on for the giver, each recipient's headline is "An item for thanking X" (for `nextWeek`: "Kudos counted." and "Your next item for X comes next week."), with one line "N wait" (or "50+ wait") and one button, "See your items", to the item board. The headline stays "An item" when the thanks earned a sticker too, so the count per thanks never tells a new face. No outcome lines and no hype picture: the new person, page progress and emoji unlock move to the turn. Feedback reads only Items' waiting count. The level-up page from Silthus/kudos#744 stays, as the level-up DM's destination, but under `hidden-items` it no longer turns three cards face up: it plays the same gold takeover as the XP moment (LP34) and hands over to the item board with the level's three items in front, so one celebration has two doors and nothing is drawn before its turn.
 
 ### Last visit and the XP moment
 
@@ -182,7 +186,7 @@ A member who is thanked, or who thanks a teammate thoughtfully, has to do three 
 - **LP31 Collect.** A click anywhere collects, or the timeout: 2 s plus 0.7 s per excerpt (6.2 s for six). Each excerpt dissolves left to right into fine dust and XP particles, 140 ms apart over a 720 ms sweep; the particles fly into the orb, which counts up from +0 to the total with a small bump as they land. After a 550 ms beat the orb streams into the XP bar, which fills particle by particle; crossing a level pops the level pill.
 - **LP32 The items on the same canvas.** The canvas ends with "+178 XP from 16 moments since Mon 09:12", then "N items wait" with the round face-down items, which react on hover. A pick opens the item board on that item; "Later" is a quiet link. The norm line closes the canvas (LP40).
 - **LP33 Skip, reduced motion, quiet weeks, phone.** `Skip` and `Esc` land all the XP at once and show the end state. Reduced motion shows the end state at once. With no excerpts, only the items show; with no excerpts and no items, nothing plays. Rays and confetti run once. On a phone the orb sits under the excerpts; the accepted sequence was checked at desktop size only, so the slice's proof checks the phone layout.
-- **LP34 The level-up takeover.** When the climb crosses a level, after the bar fills, gold sparks fly off the level pill and a gold `Level N` disc drops to the centre with a shockwave, one pass of gold rays and gold confetti. "You reached level N!", then the unlocks pop in one by one: "N new items" with face-down backs, and the level's emoji where the level earns one. Then "Level N+1 is X XP away". It stays until the member clicks. The skill point and the level emblem the prototype listed are left out: the album shell shows neither.
+- **LP34 The level-up takeover.** When the climb crosses a level, after the bar fills, gold sparks fly off the level pill and a gold `Level N` disc drops to the centre with a shockwave, one pass of gold rays and gold confetti. "You reached level N!", then the unlocks pop in one by one: "N new items" with face-down backs, and the level's emoji where the level earns one. Then "Level N+1 is X XP away". It stays until the member clicks. The skill point and the level emblem the prototype listed are left out: skill points are retired, and a level emblem is not a thing the album has or needs.
 - **LP35 One moment per visit.** A second tab or device reads the same moment until one of them ends it; ending an older moment moves nothing.
 - **LP36 Analytics.** `endXpMoment` records `xp moment ended` as a usage fact with `skipped`, `excerpts_shown` and `folded`.
 - **LP37 Types from the server.** The website imports every new answer type (board, turn, XP moment) from `convex/website`; it adds no hand copies.
@@ -248,6 +252,6 @@ Six sandbox-only flags in project 662840, each created with one condition, `envi
 
 ## Further Notes
 
-- **Where the product owner's calls override the architecture.** The architecture made earned emojis board items and rolled a random emoji at each pack hoggie's turn. The product owner ruled out random emojis on the board and has team and milestone emojis unlock on their own page, so items are stickers and hoggies only (LP3, LP14, LP15).
-- **Choices this spec made** where the inputs left it open: the "New" labels clear at the next visit (LP22); the last visit also moves at arrival when no moment plays (LP26); one headline per thanks, however many items it earned (LP25); level-ups always among the five excerpts (LP28); the takeover lists only what the album shows (LP34); "never opened the website" means no signed-in user (LP44); "item board" rather than "board" in the lexicon (LP1).
+- **Where the product owner's calls override the architecture.** The architecture made earned emojis board items, rolled a random emoji at each pack hoggie's turn and moved milestones to the bus. The product owner ruled that emojis are never hidden but unlock with the turn that brings them, that milestone unlocks get their own beat, and that there are no random emojis, so items are stickers and hoggies only and milestones stay inline in the turn (LP3, LP13, LP14, LP15, LP19a).
+- **Choices this spec made** where the inputs left it open: the "New" labels clear at the next visit (LP22); the last visit also moves at arrival when no moment plays (LP26); one headline per thanks, however many items it earned (LP25); level-ups always among the five excerpts (LP28); the level-up page plays the takeover and hands over to the board (LP25); a thoughtful-giving tier unlocks after the next turn (LP14); "never opened the website" means no signed-in user (LP44); "item board" rather than "board" in the lexicon (LP1).
 - **The architecture capture moves into the repo.** `docs/architecture/items.md` and ADR-0010 come from `prototype/items-architecture` with the first ticket, amended for LP3, LP14 and LP15.
