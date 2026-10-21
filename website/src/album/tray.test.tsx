@@ -162,6 +162,19 @@ describe("AL47: the tray panel lists each item with where it goes", () => {
     expect((await openTheTray(user)).getByRole("button", { name: "Put it in" })).toBeInTheDocument();
   });
 
+  it("#127: an open tray emptied from elsewhere leaves the bar closed, handing focus to the emojis, and comes back closed when an item arrives", async () => {
+    const { user, live } = visit(withTray(albumFixtures.midway, [banana]), {});
+    await openTheTray(user);
+
+    live.answerNext({ ...live.now(), tray: [] });
+    await theTrayLeaves();
+    expect((await topBar()).getByRole("button", { name: /^Your emojis/ })).toHaveFocus();
+    live.answerNext({ ...live.now(), tray: [banana] });
+
+    expect(await (await topBar()).findByRole("button", { name: "Tray, 1 to put in" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("region", { name: "Tray" })).not.toBeInTheDocument();
+  });
+
   it("keeps each face and name in a ph-no-capture block", async () => {
     const { user } = visit(withTray(albumFixtures.midway, [juno, banana]), {});
 

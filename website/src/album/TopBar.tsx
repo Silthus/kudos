@@ -24,8 +24,10 @@ type TopBarPopover = Popover<TopBarPopups>;
 type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
 
 export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTheLevel = false, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
-  useTrayOpenOnThePacksPage(place, popover);
   const trayItems = held.tray ?? album.tray.length;
+  const trayShown = album.board === null && (trayItems > 0 || moving || tray.busy);
+  useTrayOpenOnThePacksPage(place, popover);
+  useTrayPanelClosedWithoutTheTray(trayShown, popover);
   return (
     <header className="al-top" inert={inert}>
       <AppLink href={hrefOf(home)} className="al-brand" data-slot="home">
@@ -35,7 +37,7 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTh
       <XpBar level={held.level ?? album.level} moving={moving} pops={popsTheLevel} />
       <div className="al-top-end">
         {album.board === null && (album.packs.length > 0 || moving) && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} focusAfter={emojiButton} />}
-        {album.board === null && (trayItems > 0 || moving || tray.busy) && <TrayButton album={album} items={trayItems} popover={popover} button={trayButton} tray={tray} focusAfter={emojiButton} />}
+        {trayShown && <TrayButton album={album} items={trayItems} popover={popover} button={trayButton} tray={tray} focusAfter={emojiButton} />}
         {wide && <PageLinks place={place} />}
         <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} />
         <FeedbackButton />
@@ -89,17 +91,20 @@ function useTrayOpenOnThePacksPage(place: Place, popover: TopBarPopover) {
   }, [onThePacksPage, show]);
 }
 
+function useTrayPanelClosedWithoutTheTray(trayShown: boolean, popover: TopBarPopover) {
+  const { open, close } = popover;
+  useEffect(() => {
+    if (!trayShown && open === "tray") close();
+  }, [trayShown, open, close]);
+}
+
 function useFocusPassedOnWhenItLeaves(button: RefObject<HTMLElement | null>, next: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const leaving = button.current;
     return () => {
-      if (leaving !== null && leaving === document.activeElement) queueMicrotask(() => focusUnlessTaken(next.current));
+      if (leaving !== null && leaving === document.activeElement) next.current?.focus();
     };
   }, [button, next]);
-}
-
-function focusUnlessTaken(next: HTMLElement | null) {
-  if (document.activeElement === null || document.activeElement === document.body) next?.focus();
 }
 
 type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; waitsForPuttingIn: boolean; onOpen: () => void; focusAfter: RefObject<HTMLElement | null> };
