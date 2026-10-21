@@ -4,7 +4,7 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { earnTrayItem } from "../album/opening";
 import { earnPackItemsOf } from "../album/packs";
-import { oldRevealDropsFor, revealLevelUpHoggies, type LevelReached } from "../unlocks/levelUpHoggies";
+import { dropLevelUpHoggies, type LevelUp } from "../unlocks/levelUpHoggies";
 import type { MemberId } from "../workspace/directory";
 import { waitingPageOf } from "./ledger";
 
@@ -62,14 +62,13 @@ async function fillTray(ctx: MutationCtx, { member, cursor }: FillStep): Promise
 
 async function revealLevels(ctx: MutationCtx, { member, cursor }: FillStep): Promise<Filled> {
   const { page, isDone, continueCursor } = await waitingPageOf(ctx, member, cursor ?? null, mostFilledOfAKind);
-  const levelUps = levelUpsAmong(member, page);
-  if (levelUps.length > 0 && (await oldRevealDropsFor(ctx, member))) for (const levelUp of levelUps) await revealLevelUpHoggies(ctx, levelUp);
+  for (const levelUp of levelUpsAmong(page)) await dropLevelUpHoggies(ctx, levelUp);
   return { isDone, continueCursor };
 }
 
-function levelUpsAmong(member: MemberId, items: Doc<"items">[]): LevelReached[] {
-  const reached = new Map<number, LevelReached>();
-  for (const { reason, earnedAt } of items) if (reason.kind === "levelUp") reached.set(reason.level, { member, level: reason.level, at: earnedAt });
+function levelUpsAmong(items: Doc<"items">[]): LevelUp[] {
+  const reached = new Map<number, LevelUp>();
+  for (const { workspace, member, reason, earnedAt } of items) if (reason.kind === "levelUp") reached.set(reason.level, { workspace, member, level: reason.level, at: earnedAt });
   return [...reached.values()];
 }
 

@@ -128,6 +128,8 @@ describe("LP6 LP24: with hidden-items back off, fillItems reveals every waiting 
     await reachesLevel(t, member, 2);
     const asAlice = await signedIn(alice);
     const before = (await albumOf(asAlice)).level;
+    await fillItems();
+    expect((await boardOf(asAlice)).items, "the board after a fill with hidden-items still on").toHaveLength(3);
 
     await switchWebsite(t, postHog, true, ...oldReveal);
     await fillItems();
@@ -161,9 +163,12 @@ describe("LP6 LP24: with hidden-items back off, fillItems reveals every waiting 
 
     await switchWebsite(t, postHog, true, ...oldReveal);
     await fillItems();
+    const asAlice = await signedIn(alice);
 
     expect(await cratesDroppedFor(alice), "the drops").toHaveLength(105);
-    expect((await itemsKeyed(alice, () => true)).filter(({ turnedAt }) => turnedAt === undefined), "the items still waiting").toEqual([]);
+    expect(await revealedHoggiesOf(asAlice, 36), "the old reveal of the last level").toEqual(await levelDrawnFor(member, 36));
+    await switchWebsite(t, postHog, true, ...itemsOn);
+    expect((await boardOf(asAlice)).items, "the board once hidden-items is on again").toEqual([]);
   });
 
   test("with hidden-items and level-up-reveal off, fillItems drops nothing and the level's items keep waiting, as today", async () => {
@@ -174,7 +179,8 @@ describe("LP6 LP24: with hidden-items back off, fillItems reveals every waiting 
     await fillItems();
 
     expect(await cratesDroppedFor(alice), "the drops").toEqual([]);
-    expect((await itemsKeyed(alice, () => true)).filter(({ turnedAt }) => turnedAt === undefined), "the items still waiting").toHaveLength(3);
+    await switchWebsite(t, postHog, true, ...itemsOn);
+    expect((await boardOf(await signedIn(alice))).items.map(({ reason }) => reason), "the board once hidden-items turns on").toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
   });
 });
 

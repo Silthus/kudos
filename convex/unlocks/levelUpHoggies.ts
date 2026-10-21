@@ -18,22 +18,17 @@ export function levelUpCrateKeyOf(level: number, slot: number): CrateKey {
 
 export type LevelUp = { workspace: string; member: MemberId; level: number; at: number };
 
-export type LevelReached = Omit<LevelUp, "workspace">;
-
 export async function dropLevelUpHoggies(ctx: MutationCtx, levelUp: LevelUp): Promise<void> {
   await earnLevelUpItems(ctx, levelUp);
-  if (await oldRevealDropsFor(ctx, levelUp.member)) await revealLevelUpHoggies(ctx, levelUp);
-}
-
-export async function oldRevealDropsFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
-  return !(await hiddenItemsShownTo(ctx, member)) && (await levelUpRevealDropsFor(ctx, member));
+  if (await hiddenItemsShownTo(ctx, levelUp.member)) return;
+  if (await levelUpRevealDropsFor(ctx, levelUp.member)) await revealLevelUpHoggies(ctx, levelUp);
 }
 
 async function earnLevelUpItems(ctx: MutationCtx, { workspace, member, level, at }: LevelUp): Promise<void> {
   for (const { slot, floor } of slots) await earnItem(ctx, { workspace, member, source: "hoggie", key: levelUpCrateKeyOf(level, slot), ...(floor && { floor }), reason: { kind: "levelUp", level }, earnedAt: at });
 }
 
-export async function revealLevelUpHoggies(ctx: MutationCtx, { member, level, at }: LevelReached): Promise<void> {
+async function revealLevelUpHoggies(ctx: MutationCtx, { member, level, at }: LevelUp): Promise<void> {
   for (const { slot, floor } of slots) {
     const crate = levelUpCrateKeyOf(level, slot);
     await dropFor(ctx, member, crate, at, { floor });
