@@ -5,6 +5,7 @@ import type { QuotedKudos, TopKudosPost } from "../leaderboard/topKudos";
 import { publicPictureOf } from "./albumSlack";
 import { asWritten } from "./groupCopy";
 import { medalOf } from "./leaderboard";
+import type { Find } from "../items/finds";
 import type { Line } from "./segments";
 
 export function renderMondayPost({ groups, mostImproved, givers }: MondayPost): Line[] {
@@ -40,8 +41,12 @@ export function renderTopKudosPost({ kudos, teams, origin }: TopKudosPost): TopK
   };
 }
 
-function leadOf({ giver, recipients, moreRecipients }: QuotedKudos, place: number): Words[] {
-  return [{ text: `${place}. ${giver}`, strong: true }, { text: " thanked " }, ...listedNames(recipients, moreRecipients)];
+function leadOf({ giver, recipients, moreRecipients, find }: QuotedKudos, place: number): Words[] {
+  return [{ text: `${place}. ${giver}`, strong: true }, { text: " thanked " }, ...listedNames(recipients, moreRecipients), ...(find === null ? [] : [{ text: ` and found ${findWordsOf(find)}` }])];
+}
+
+function findWordsOf({ name, rarity }: Find) {
+  return `${rarity === "epic" ? "an" : "a"} ${rarity} ${name}`;
 }
 
 function listedNames(names: string[], more: number): Words[] {
