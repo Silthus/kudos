@@ -25,7 +25,7 @@ import { SharedEmojis } from "./SharedEmojis";
 import { AppEmojiSection } from "../settings/AppEmojiList";
 import { EmojiWizardHost } from "./findInSlack";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
-import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
+import { home, hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { useVisitArrival } from "./visitArrival";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
@@ -46,6 +46,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
   const onLevelUp = place.kind === "levelUp";
   const levelUp = useLevelUp(place.kind === "levelUp" ? place.level : null);
+  useTheAlbumInsteadOfAClosedReveal(onLevelUp && levelUp?.kind === "off" && album?.kind === "album" && album.board !== null, replaceAddress);
   const onPerson = place.kind === "person";
   const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
@@ -108,6 +109,12 @@ function AlbumSettingsSections({ album, useAppEmojis, useSlackEmojiMatches, mapS
       {album.sharedEmojis !== null && <SharedEmojis emojis={album.sharedEmojis} emojiPage={album.emojiPage} />}
     </>
   );
+}
+
+function useTheAlbumInsteadOfAClosedReveal(closed: boolean, replaceAddress: (href: string, state: unknown) => void) {
+  useEffect(() => {
+    if (closed) replaceAddress(keepingSignInCode(hrefOf(home)), null);
+  }, [closed, replaceAddress]);
 }
 
 function useCanonicalAddressOnceShown(place: Place, shown: boolean, replaceAddress: (href: string, state: unknown) => void) {

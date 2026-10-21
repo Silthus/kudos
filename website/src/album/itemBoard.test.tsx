@@ -227,6 +227,14 @@ describe("The item board", () => {
     expect(screen.queryByRole("dialog", { name: "Your items" })).toBeNull();
     expect(screen.queryByRole("button", { name: "3 items wait" })).toBeNull();
   });
+
+  it("LP25: opens the album with the board from an old level-up link, whose reveal the item board turned off", async () => {
+    visit(withItems, { path: "/book#level-up/7", levelUp: fixedLevelUp({ kind: "off" }) });
+
+    expect((await theBoard()).getAllByRole("button", { name: "A face-down item. Turn it over" })).toHaveLength(3);
+    expect(window.location.hash).toBe("#me");
+    expect(screen.queryByText("Nothing to reveal")).toBeNull();
+  });
 });
 
 describe("With the item board off", () => {
