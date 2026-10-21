@@ -30,7 +30,8 @@ export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: 
   const [started, setPhase] = useState<XpMomentPhase | null>(null);
   const [progress, setProgress] = useState<Progress>(unstarted);
   const landed = itemsWait ? "done" : "caughtUp";
-  const phase = moment === null ? null : (started ?? (prefersReducedMotion() ? landed : "settle"));
+  if (moment !== null && started === null && prefersReducedMotion()) setPhase(landed);
+  const phase = moment === null ? null : (started ?? "settle");
   const cards = moment === null ? [] : cardsOf(moment);
   const advance = useCallback((patch: Partial<Progress>) => setProgress((now) => ({ ...now, ...patch })), []);
   const collect = useCallback(() => {

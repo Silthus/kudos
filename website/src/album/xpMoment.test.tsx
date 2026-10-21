@@ -6,11 +6,11 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { levelOf, xpToReach } from "../../../convex/progression/levels";
 import type { BoardItem } from "../../../convex/website/album";
 import type { XpMoment } from "../../../convex/website/xpMoment";
-import { shellFixtures, type ArrivalReply } from "../shell";
+import { shellFixtures, type TurnReply } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
-import type { Album, XpMomentRead, XpMomentShown } from "./answer";
+import { albumFixtures, fixedAlbum, fixedPeople, fixtureTurnOf } from "./albumFixtures";
+import type { Album, AlbumRead, XpMomentRead, XpMomentShown } from "./answer";
 
 const minute = 60_000;
 
@@ -80,6 +80,26 @@ function aMomentAnsweredLater() {
   return { read, answerWith };
 }
 
+function anAlbumThatAnswers(first: Album) {
+  let answer = first;
+  const listeners = new Set<() => void>();
+  const read: AlbumRead = (asking) => {
+    const shown = useSyncExternalStore(
+      (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      () => answer,
+    );
+    return asking ? shown : undefined;
+  };
+  const answers = (change: (album: Album) => Album) => {
+    answer = change(answer);
+    listeners.forEach((listener) => listener());
+  };
+  return { read, answers };
+}
+
 function sizeTheWindow({ width, height }: { width: number; height: number }) {
   Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
   Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
@@ -87,13 +107,13 @@ function sizeTheWindow({ width, height }: { width: number; height: number }) {
 
 let started = 0;
 
-type Visit = { moment?: XpMomentShown; album?: Album; screenSize?: { width: number; height: number }; endXpMoment?: (from: number, until: number, skipped: boolean) => Promise<ArrivalReply> };
+type Visit = { moment?: XpMomentShown; album?: Album; read?: AlbumRead; screenSize?: { width: number; height: number }; turnItem?: (item: string) => Promise<TurnReply> };
 
-async function returnTo({ moment = busyReturn, album = returning, screenSize = desktop, endXpMoment }: Visit = {}) {
+async function returnTo({ moment = busyReturn, album = returning, read = fixedAlbum(album), screenSize = desktop, turnItem }: Visit = {}) {
   window.history.replaceState(null, "", "/book#me");
   sizeTheWindow(screenSize);
   const later = aMomentAnsweredLater();
-  const view = renderAlbum(shellFixtures.member, fixedAlbum(album), { xpMoment: later.read, people: fixedPeople(album), commands: endXpMoment === undefined ? {} : { endXpMoment } });
+  const view = renderAlbum(shellFixtures.member, read, { xpMoment: later.read, people: fixedPeople(album), commands: turnItem === undefined ? {} : { turnItem } });
   await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
   vi.useFakeTimers();
   started = Date.now();
@@ -346,6 +366,25 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     expect(xpWords()).toBe("460 XP to level 8");
     expect(within(theItemBoard()!).getByText(/from 16 moments since/)).toBeInTheDocument();
     expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+  });
+
+  it("reduced motion keeps that end state when the member turns the last item: All caught up never pops over what landed", async () => {
+    preferReducedMotion();
+    const lastOne = { ...returning, board: { items: [returning.board!.items[0]!], more: false } };
+    const live = anAlbumThatAnswers(lastOne);
+    const turnItem = async (item: string) => {
+      live.answers((album) => ({ ...album, board: { items: [], more: false } }));
+      return fixtureTurnOf(item);
+    };
+    await returnTo({ album: lastOne, read: live.read, turnItem });
+
+    await act(async () => fireEvent.click(within(theItemBoard()!).getByRole("button", { name: "A face-down item. Turn it over" })));
+
+    for (const seconds of [0.5, 1, 2, 3]) {
+      await at(seconds);
+      expect(theCanvas(), `${seconds} s after the turn`).toBeNull();
+      expect(document.querySelector(".al-body"), `${seconds} s after the turn`).not.toHaveAttribute("inert");
+    }
   });
 
   it("holds the item board and the arrival while the moment is read", async () => {
