@@ -7,6 +7,8 @@ import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf, type Mention
 import type { MessageRef, WordSegment } from "../engine/messageEvent";
 import { publicThoughtfulKudosOf, type DrawableKudos } from "../engine/spotlight";
 import { hugsOnTheMessage } from "../hugs/weeks";
+import { turnedFindOf, type Find } from "../items/finds";
+import { itemShareAppliesToWorkspace } from "../items/flag";
 import { nameless } from "../website/faces";
 import { websiteOrigin } from "../website/link";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
@@ -20,7 +22,7 @@ export const recipientsNamed = 3;
 
 const mentionLookupsAtMost = 3 * wordedSegmentsQuotedAtMost;
 
-export type QuotedKudos = { giver: string; recipients: string[]; moreRecipients: number; words: Segment[]; permalink: string | null };
+export type QuotedKudos = { giver: string; recipients: string[]; moreRecipients: number; words: Segment[]; permalink: string | null; find: Find | null };
 
 export type UnlockedTeam = { name: string; count: number; emoji: ShownEmoji | null };
 
@@ -34,10 +36,11 @@ export async function topKudosPostOf(ctx: QueryCtx, workspace: string, week: Ins
 
 async function topKudosOf(ctx: QueryCtx, workspace: string, week: Instants): Promise<QuotedKudos[]> {
   const mentions = mentionsOfOnePage(ctx, mentionLookupsAtMost);
+  const marksFinds = await itemShareAppliesToWorkspace(ctx, workspace);
   const quoted: QuotedKudos[] = [];
-  for (const { message } of (await rankedKudosOf(ctx, workspace, week)).slice(0, mostKudosChecked)) {
+  for (const { message, at } of (await rankedKudosOf(ctx, workspace, week)).slice(0, mostKudosChecked)) {
     const kudos = await publicThoughtfulKudosOf(ctx, message);
-    if (kudos !== null) quoted.push(await quotedKudosOf(ctx, mentions, message, kudos));
+    if (kudos !== null) quoted.push({ ...(await quotedKudosOf(ctx, mentions, message, kudos)), find: marksFinds ? await turnedFindOf(ctx, { giver: kudos.giver, message, at }) : null });
     if (quoted.length === kudosQuoted) break;
   }
   return quoted;
@@ -49,7 +52,7 @@ async function rankedKudosOf(ctx: QueryCtx, workspace: string, week: Instants): 
   return ranked.sort((one, other) => other.hugs - one.hugs || other.recipients - one.recipients || other.at - one.at);
 }
 
-async function quotedKudosOf(ctx: QueryCtx, mentions: Mentions, message: MessageRef, { giver, recipients, segments }: DrawableKudos): Promise<QuotedKudos> {
+async function quotedKudosOf(ctx: QueryCtx, mentions: Mentions, message: MessageRef, { giver, recipients, segments }: DrawableKudos): Promise<Omit<QuotedKudos, "find">> {
   const named: string[] = [];
   for (const recipient of recipients.slice(0, recipientsNamed)) named.push(await nameOf(ctx, recipient));
   return {

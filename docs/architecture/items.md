@@ -196,7 +196,7 @@ export const itemValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
   source: itemSourceValidator,
-  key: v.string(), // sticker: the pack ID; hoggie: the crate key (thoughtful:<pack>, level:<n>:<slot>, welcome)
+  key: v.string(), // sticker: the pack ID; hoggie: the crate key (thoughtful:<pack>, level:<n>:<slot>, welcome:first)
   floor: v.optional(rarityValidator), // a level-up's third hoggie (rare), the welcome item (rare)
   reason: itemReasonValidator,
   earnedAt: v.number(),
@@ -222,7 +222,7 @@ export function waitingCountOf(ctx: QueryCtx, member: MemberId): Promise<{ count
 ```
 
 - **Invariants.** An item is earned once per member, source and key: a second `earnItem` returns the first row and moves nothing, so a redelivered event, a retried page and the backfill can overlap. An item turns once, and `turnedAt` never moves. Nothing the item board answers names a face, a person's sticker, a hoggie, a rarity or a source: only the ID, the instant and the reason.
-- **Writers.** `grantTo` (`convex/album/packs.ts:85`) earns the sticker (where `holdsSticker`) and the hoggie (`thoughtful:<pack>`), each with reason `thanks`. `dropLevelUpHoggies` (`convex/unlocks/levelUpHoggies.ts:17`) earns `level:<n>:<slot>` with the third slot's `rare` floor, inside the `level-up-reveal` decision it already takes, and drops nothing while `hidden-items` is on. The welcome item (`welcome`, reason `welcome`, a `rare` floor, no XP) is earned when the welcome nudge is sent, and at the member's first sign-in if it is still missing (LP44). No emoji is ever earned as an item.
+- **Writers.** `grantTo` (`convex/album/packs.ts:85`) earns the sticker (where `holdsSticker`) and the hoggie (`thoughtful:<pack>`), each with reason `thanks`. `dropLevelUpHoggies` (`convex/unlocks/levelUpHoggies.ts:17`) earns `level:<n>:<slot>` with the third slot's `rare` floor, inside the `level-up-reveal` decision it already takes, and drops nothing while `hidden-items` is on. The welcome item (`welcome:first`, reason `welcome`, a `rare` floor, no XP) is earned when the welcome nudge is sent, and at the member's first sign-in if it is still missing (LP44). No emoji is ever earned as an item.
 - **Old reveals.** `putItemIn` and `putEveryItemIn` mark their tray items' sticker and hoggie turned; the level-up drop marks its three hoggies turned. `markTurned` on a missing row does nothing.
 - **Errors.** None thrown. `earnItem` on another workspace's member is a programming error the tests catch.
 - **Performance.** `boardOf`: one index range, 101 documents at most. `waitingCountOf`: one range, 51 at most, answered as "50+". `earnItem`: one unique lookup and one insert. The grant adds two of each per recipient to its 50-recipient pages.

@@ -42,6 +42,10 @@ function faceDown({ _id, earnedAt, reason }: Doc<"items">): FaceDown {
   return { item: _id, earnedAt, reason };
 }
 
+export async function isTurned(ctx: QueryCtx, member: MemberId, source: ItemSource, key: string): Promise<boolean> {
+  return (await itemOf(ctx, member, source, key))?.turnedAt !== undefined;
+}
+
 function itemOf(ctx: QueryCtx, member: MemberId, source: ItemSource, key: string): Promise<Doc<"items"> | null> {
   return ctx.db
     .query("items")

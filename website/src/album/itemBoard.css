@@ -206,6 +206,17 @@
   box-shadow: none;
 }
 
+.ib-loop {
+  margin: 0;
+  max-width: 28rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 8px 20px -10px color-mix(in oklab, var(--foreground) 45%, transparent);
+  text-align: center;
+  text-wrap: balance;
+}
+
 .ib-turned-xp {
   color: var(--al-accent-ink);
 }

@@ -400,6 +400,23 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: retry-classification dismissed: a rate limit is tried at most 3 times, a refusal of the blocks is sent once more without pictures, and every other answer, or none, stops for good
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a reply has exactly one target, the thread or the DM its giver's `kudos-reply` place names
+- the Monday post marks only a turned epic or legendary find: Where `item-share` applies to the workspace, a kudos the Monday post quotes as one of the week's top thoughtful kudos reads ` and found a legendary {name}` or ` and found an epic {name}` after its lead, in the blocks and the fallback text, only while its giver has turned a hoggie item one of that kudos's packs earned and the hoggie drawn was epic or legendary, the rarest of them for a kudos to several people; a kudos whose items still lie face down, or whose turned finds are all below epic, reads as today; with `item-share` off, not created, or on for someone else's email only, the week's post equals the same week's post where the find still lies face down; the team stickers unlocked last week stay, and no list of finds is added (LP55, LP56).
+  over: a week of three quoted kudos whose givers turned a legendary, a rare and an epic from a kudos to two people, and a rare; a week with a kudos still face down beside one turned legendary; and, in three off states, a week with a turned legendary beside the same week with it still face down
+  via: LP55: the Monday post marks a turned epic or legendary find
+  because: LP55 lets the Monday post show the fun of a rare find without spoiling anyone: only what its owner already turned can be named, and only the finds worth sharing
+  kinds: message, output
+  checklist: destination-confinement declared as a weekly post quotes only public kudos
+  checklist: message-authenticity dismissed: the post is outbound; the kudos it quotes were verified by the Slack adapter's signed Slack requests when they arrived
+  checklist: redaction dismissed: the mark adds only a rarity and a hoggie's catalogue name the giver already turned, never a face, a sticker or an item still face down
+  checklist: input-validation dismissed: the mark is rendered from stored rows and the catalogue, never from outside input
+  checklist: retry-recognition dismissed: a week's post is claimed once per workspace and week before it is sent, by the Monday post's claim
+  checklist: duplicate-suppression dismissed: the Monday post's claim, unique per workspace and week, suppresses a second post
+  checklist: keyed-ordering dismissed: one post per workspace and week, with no ordering promised between workspaces
+  checklist: acknowledgment-barrier dismissed: the claim records Slack's answer; nothing else is retired on it
+  checklist: commit-ordered-effects dismissed: the post is read by an action after the claim's mutation commits
+  checklist: retry-classification dismissed: the Monday post's delivery classifies failures as it does for the groups post
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: a post has exactly one target, the public channel the maintainer picked or else the workspace's announcement channel
 - a weekly post quotes only public kudos: The Monday post that `album-slack` turns into the week's top thoughtful kudos quotes a kudos message, its words, giver, recipients and link, only while that message's words are stored, are from a public channel, still say why, and its giver and every recipient are members on the leaderboards; a kudos from a private channel, a group DM or a DM, or one deleted since, is never quoted however many hugs it got, and its words appear nowhere in the post (AL61, AL63).
   over: a week of thoughtful kudos in a private channel, a group DM and a DM, each hugged twice, one in a public channel deleted after two hugs, and one public kudos with no hug; and a week where a public kudos is to a member who left the leaderboards, beside one that is not
   via: AL61 AL63: a weekly post quotes only public kudos

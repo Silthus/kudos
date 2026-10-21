@@ -1,4 +1,4 @@
-import { memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import { memberDecisionWithoutWriting, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
@@ -6,4 +6,10 @@ export const hiddenItemsFlag = { key: "hidden-items", safeDefault: false, values
 
 export function hiddenItemsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecisionWithoutWriting(ctx, hiddenItemsFlag, member);
+}
+
+export const itemShareFlag = { key: "item-share", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function itemShareAppliesToWorkspace(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return workspaceDecisionWithoutWriting(ctx, itemShareFlag, workspace);
 }
