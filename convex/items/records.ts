@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import { milestoneIdValidator, milestoneTierValidator } from "../album/records";
 import { messageRefValidator } from "../engine/messageEvent";
 import { rarityValidator } from "../hoggies/catalogue";
 
@@ -8,6 +9,8 @@ export const itemReasonValidator = v.union(
   v.object({ kind: v.literal("thanks"), person: v.id("members"), message: messageRefValidator }),
   v.object({ kind: v.literal("levelUp"), level: v.number() }),
   v.object({ kind: v.literal("welcome") }),
+  v.object({ kind: v.literal("team"), team: v.string(), name: v.string() }),
+  v.object({ kind: v.literal("milestone"), milestone: milestoneIdValidator, tier: milestoneTierValidator }),
 );
 
 export const itemValidator = v.object({
