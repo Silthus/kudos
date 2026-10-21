@@ -47,6 +47,7 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
 
   test("a kudos message with an emoji only someone else unlocked gives nothing", async () => {
     const t = await workspaceWithEmojiNames();
+    await memberOf(t, "U_ALICE");
     await unlockedTeamEmoji(t, "U_CAROL");
 
     await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), emoji(teamEmoji))], { user: "U_ALICE", ts: messageTs });
@@ -68,6 +69,7 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
 
   test("a reaction with an emoji only someone else unlocked is no hug", async () => {
     const t = await workspaceWithEmojiNames();
+    await memberOf(t, "U_BOB");
     await unlockedTeamEmoji(t, "U_CAROL");
 
     await react(t, { user: "U_BOB", itemUser: "U_ALICE", reaction: teamEmoji, ts: messageTs });
