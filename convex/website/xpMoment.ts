@@ -6,6 +6,7 @@ import { reportXpMomentEnded } from "../analytics/isolatedUsage";
 import { hiddenItemsShownTo } from "../items/flag";
 import { waitingCountOf, type WaitingCount } from "../items/ledger";
 import { firstThanksTopUpPaidTo, type FirstThanksTopUp } from "../progression/firstThanks";
+import { progressionWaitedFor } from "../progression/effects";
 import { levelOf, xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -44,8 +45,6 @@ export type XpMomentAnswer = { kind: "off" } | { kind: "none"; lastVisit: number
 export type XpMomentEndReply = ArrivalAnswer;
 
 const mostExcerpts = 5;
-
-const progressionWaitedFor = 10 * 60_000;
 
 const off = { kind: "off" } as const;
 

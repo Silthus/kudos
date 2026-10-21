@@ -51,7 +51,7 @@ export async function arrivedPastWhatWasPutIn(ctx: QueryCtx, member: MemberId): 
 
 async function activityAwaitsTheMoment(ctx: QueryCtx, member: MemberId, lastVisit: number | null): Promise<boolean> {
   if (!(await xpMomentsShownTo(ctx, member))) return false;
-  if (lastVisit === null) return firstThanksAwaitsItsMoment(ctx, member);
+  if (lastVisit === null) return firstThanksAwaitsItsMoment(ctx, member, Date.now());
   return (await newestDecidedSince(ctx, member, { above: lastVisit })) !== null;
 }
 

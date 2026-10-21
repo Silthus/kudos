@@ -6,6 +6,8 @@ import { gateDecisionOf } from "./gate";
 import type { GateDecision } from "./gate";
 import { bonusPaidIn, type BonusLine, type EffectsRecord, type Side, type ThoughtfulAward } from "./progress";
 
+export const progressionWaitedFor = 10 * 60_000;
+
 export async function insertEffects(ctx: MutationCtx, effects: EffectsRecord[]) {
   for (const record of effects) await ctx.db.insert("effectsRecords", record);
 }

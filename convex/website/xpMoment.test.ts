@@ -432,6 +432,17 @@ describe("LP72: the XP moment carries the first-thanks top-up", { timeout: 60_00
     ]);
   });
 
+  test("a newcomer whose first kudos' XP never records stops holding their first arrival once the moment stops waiting for it", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await signedIn(alice);
+    await thanksWhileItsXpWaits(alice, carol);
+    vi.setSystemTime(Date.now() + 11 * minuteMs);
+
+    await arrive(asAlice, null);
+
+    expect(await momentOf(asAlice), "the next read").toMatchObject({ kind: "none", lastVisit: await newestKudosDecidedFor(carol) });
+  });
+
   test("a newcomer who has only received kudos arrives past them at their first visit, as before", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
     const asAlice = await signedIn(alice);

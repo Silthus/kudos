@@ -3,7 +3,7 @@ import type { KudosGivenEvent } from "../bus/events";
 import { firstDecidedOf, oldestAwardGivenBy, type AwardWithId } from "../engine/awards";
 import { onboardingShownTo } from "../items/onboardingFlag";
 import type { MemberId } from "../workspace/directory";
-import { isRecorded } from "./effects";
+import { isRecorded, progressionWaitedFor } from "./effects";
 import { xpToReach } from "./levels";
 import { rewardOf, type RewardRecord } from "./rewards";
 
@@ -27,13 +27,13 @@ export async function firstThanksTopUpPaidTo(ctx: QueryCtx, member: MemberId): P
   return decided === null ? null : { xp: reward.xp, decided };
 }
 
-export async function firstThanksAwaitsItsMoment(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+export async function firstThanksAwaitsItsMoment(ctx: QueryCtx, member: MemberId, now: number): Promise<boolean> {
   if ((await firstThanksTopUpPaidTo(ctx, member)) !== null) return true;
   const oldest = await oldestAwardGivenBy(ctx, member);
-  return oldest !== null && !(await isRecorded(ctx, oldest, "giver")) && (await onboardingShownTo(ctx, member));
+  return oldest !== null && oldest.decided > now - progressionWaitedFor && !(await isRecorded(ctx, oldest.award, "giver")) && (await onboardingShownTo(ctx, member));
 }
 
 async function recordsTheFirstAwardOf(ctx: QueryCtx, giver: MemberId, recorded: AwardWithId[]): Promise<boolean> {
   const oldest = await oldestAwardGivenBy(ctx, giver);
-  return recorded.some(({ award, giver: givenBy }) => givenBy === giver && award === oldest);
+  return recorded.some(({ award, giver: givenBy }) => givenBy === giver && award === oldest?.award);
 }
