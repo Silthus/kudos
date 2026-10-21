@@ -2,7 +2,9 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { unlockHypeEmojiOf, type HypeEmoji } from "../album/earnedEmojis";
 import { recordMilestonesOf, type ReachedTier } from "../album/milestones";
-import { putStickerIn } from "../album/putIn";
+import { isTrayKey, trayItemKeyed } from "../album/opening";
+import { crateKeyOf } from "../album/packs";
+import { markTrayStickerPutIn, placeFromTheTray, putStickerIn } from "../album/putIn";
 import type { TeamSticker } from "../album/records";
 import { isPutInFrom } from "../album/stickers";
 import { tallyHoggieFound } from "../album/tallies";
@@ -45,6 +47,7 @@ export async function turn(ctx: MutationCtx, owner: PageOwner, item: Id<"items">
 }
 
 async function landFirstTime(ctx: MutationCtx, owner: PageOwner, row: Item, at: number): Promise<Landed | null> {
+  if (isTrayHoggie(row)) return putTheTrayHoggieIn(ctx, owner, row, at);
   if (row.source === "hoggie") return drawTheHoggie(ctx, owner, row, at);
   return isStickerItem(row) ? putTheStickerIn(ctx, owner, row, at) : null;
 }
@@ -58,9 +61,19 @@ async function drawTheHoggie(ctx: MutationCtx, owner: PageOwner, row: Item, at: 
   return { face: { kind: "hoggie", drop }, applied: await packOf(ctx, owner.member, crate), page: { kind: "hoggies" }, teamStickers: [] };
 }
 
+async function putTheTrayHoggieIn(ctx: MutationCtx, owner: PageOwner, row: Item, at: number): Promise<Landed | null> {
+  const waiting = await trayItemKeyed(ctx, row.key);
+  if (waiting?.member !== owner.member || waiting.putInAt !== undefined) return null;
+  await placeFromTheTray(ctx, owner.workspace, waiting, at);
+  const drop = await dropOf(ctx, owner.member, crateKeyOf(waiting.pack));
+  return drop === null ? null : { face: { kind: "hoggie", drop }, applied: null, page: { kind: "hoggies" }, teamStickers: [] };
+}
+
 async function putTheStickerIn(ctx: MutationCtx, owner: PageOwner, row: StickerItem, at: number): Promise<Landed> {
   const person = row.reason.person;
-  const isNew = await putStickerIn(ctx, owner, person, row.key as Id<"thoughtfulPacks">, at);
+  const pack = row.key as Id<"thoughtfulPacks">;
+  const isNew = await putStickerIn(ctx, owner, person, pack, at);
+  await markTrayStickerPutIn(ctx, pack, at);
   const holding = await pagesHolding(ctx, owner, person);
   const teamStickers = await unlockReadyTeamsAmong(ctx, owner, holding, at);
   const landing = holding.find(({ state }) => state === "ready") ?? holding[0];
@@ -73,8 +86,19 @@ async function hypeUnlockedBy(ctx: MutationCtx, owner: PageOwner, row: Item, at:
 
 async function turnedAgain(ctx: MutationCtx, owner: PageOwner, row: Item): Promise<Turned | null> {
   if (isStickerItem(row)) return stickerTurnedAgain(ctx, owner, row);
-  const drop = await foundIn(ctx, row.member, row.key as CrateKey, { crests: await crestsShownTo(ctx, row.member) });
+  const crate = await crateOf(ctx, row);
+  const drop = crate === null ? null : await foundIn(ctx, row.member, crate, { crests: await crestsShownTo(ctx, row.member) });
   return drop === null ? null : { face: { kind: "hoggie", drop }, applied: null, page: { kind: "hoggies" }, unlocked: nothingUnlocked, again: true };
+}
+
+async function crateOf(ctx: QueryCtx, row: Item): Promise<CrateKey | null> {
+  if (!isTrayHoggie(row)) return row.key as CrateKey;
+  const placed = await trayItemKeyed(ctx, row.key);
+  return placed === null ? null : crateKeyOf(placed.pack);
+}
+
+function isTrayHoggie(row: Item): boolean {
+  return row.source === "hoggie" && isTrayKey(row.key);
 }
 
 async function stickerTurnedAgain(ctx: QueryCtx, owner: PageOwner, row: StickerItem): Promise<Turned> {

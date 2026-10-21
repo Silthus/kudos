@@ -5,7 +5,7 @@ import { putDropIn } from "../hoggies/drops";
 import { markTurned } from "../items/ledger";
 import type { MemberId } from "../workspace/directory";
 import { recordMilestonesOf } from "./milestones";
-import { shownTrayItem, type TrayItem } from "./opening";
+import { shownTrayItem, trayKeyOf, type TrayItem } from "./opening";
 import { crateKeyOf } from "./packs";
 import { recordPackSticker } from "./stickers";
 import { tallyHoggieFound, tallyNewFace } from "./tallies";
@@ -22,7 +22,7 @@ type StoredSticker = Extract<Stored, { kind: "sticker" }>;
 export async function putItemIn(ctx: MutationCtx, owner: PageOwner, item: Id<"trayItems">, at: number): Promise<TrayItem | null> {
   const stored = await ctx.db.get(item);
   if (stored?.member !== owner.member || stored.putInAt !== undefined) return null;
-  await place(ctx, owner.workspace, stored, at);
+  await placeFromTheTray(ctx, owner.workspace, stored, at);
   await recordMilestonesOf(ctx, owner, at);
   return shownTrayItem(stored);
 }
@@ -30,7 +30,7 @@ export async function putItemIn(ctx: MutationCtx, owner: PageOwner, item: Id<"tr
 export async function putEveryItemIn(ctx: MutationCtx, owner: PageOwner, at: number): Promise<PutIn> {
   const inPutInOrder = await putInOrderOf(ctx, owner);
   const placing = inPutInOrder.slice(0, mostPutInACall);
-  for (const item of placing) await place(ctx, owner.workspace, item, at);
+  for (const item of placing) await placeFromTheTray(ctx, owner.workspace, item, at);
   if (placing.length > 0) await recordMilestonesOf(ctx, owner, at);
   return { items: placing.map(shownTrayItem), more: inPutInOrder.length > placing.length };
 }
@@ -57,7 +57,7 @@ function byTeamPage(stickers: StoredSticker[], pages: TeamPage[]): StoredSticker
     .map(({ sticker }) => sticker);
 }
 
-async function place(ctx: MutationCtx, workspace: string, item: Stored, at: number) {
+export async function placeFromTheTray(ctx: MutationCtx, workspace: string, item: Stored, at: number): Promise<void> {
   await ctx.db.patch(item._id, { putInAt: at });
   if (item.kind === "hoggie") return putHoggieIn(ctx, item, at);
   await markTurned(ctx, item.member, "sticker", item.pack, at);
@@ -71,7 +71,16 @@ export async function putStickerIn(ctx: MutationCtx, { workspace, member }: Page
   return true;
 }
 
-async function putHoggieIn(ctx: MutationCtx, { member, pack, hoggie, rarity }: Extract<Stored, { kind: "hoggie" }>, at: number) {
+export async function markTrayStickerPutIn(ctx: MutationCtx, pack: Id<"thoughtfulPacks">, at: number): Promise<void> {
+  const waiting = await ctx.db
+    .query("trayItems")
+    .withIndex("by_pack_kind", (q) => q.eq("pack", pack).eq("kind", "sticker"))
+    .first();
+  if (waiting !== null && waiting.putInAt === undefined) await ctx.db.patch(waiting._id, { putInAt: at });
+}
+
+async function putHoggieIn(ctx: MutationCtx, { _id, member, pack, hoggie, rarity }: Extract<Stored, { kind: "hoggie" }>, at: number) {
+  await markTurned(ctx, member, "hoggie", trayKeyOf(_id), at);
   await putDropIn(ctx, member, crateKeyOf(pack), at);
   await tallyHoggieFound(ctx, member, { hoggie, rarity }, at);
 }

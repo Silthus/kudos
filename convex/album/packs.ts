@@ -104,10 +104,18 @@ async function packFor(ctx: MutationCtx, { workspace, giver, message, day, at }:
 
 type Thanks = { workspace: string; giver: MemberId; recipient: MemberId; message: MessageRef; at: number };
 
-async function earnThanksItems(ctx: MutationCtx, { workspace, giver, recipient, message, at }: Thanks, pack: PackId, holdsSticker: boolean) {
-  const earning = { workspace, member: giver, reason: { kind: "thanks" as const, person: recipient, message }, earnedAt: at };
+async function earnThanksItems(ctx: MutationCtx, thanks: Thanks, pack: PackId, holdsSticker: boolean) {
+  const earning = thanksEarningOf(thanks);
   await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack) });
   if (holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack });
+}
+
+export function earnPackItemsOf(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">) {
+  return earnThanksItems(ctx, pack, pack._id, pack.holdsSticker);
+}
+
+export function thanksEarningOf({ workspace, giver, recipient, message, at }: Thanks) {
+  return { workspace, member: giver, reason: { kind: "thanks" as const, person: recipient, message }, earnedAt: at };
 }
 
 export function crateKeyOf(pack: PackId): CrateKey {
