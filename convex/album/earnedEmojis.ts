@@ -75,7 +75,7 @@ export async function earnedEmojiCountOf(ctx: QueryCtx, workspace: string, membe
 export async function emojiStackOf(ctx: QueryCtx, workspace: string, member: MemberId, most: number): Promise<EmojiStack> {
   const turned = await turnedOf(ctx, member);
   const names = new Map([...(await namesHeldIn(ctx, workspace))].map(([name, id]) => [id as string, name]));
-  const earned = [...(await teamsUnlockedBy(ctx, member)), ...(await tiersTurnedBy(ctx, member, turned)), ...(await levelEmojisReachedBy(ctx, member)), ...(await hypesShownEarnedBy(ctx, { workspace, member }, turned))].filter(({ id }) => names.has(id));
+  const earned = [...(await teamsUnlockedBy(ctx, member)), ...(await hypesShownEarnedBy(ctx, { workspace, member }, turned)), ...(await tiersTurnedBy(ctx, member, turned)), ...(await levelEmojisReachedBy(ctx, member))].filter(({ id }) => names.has(id));
   const drops = await randomEmojisHeldBy(ctx, workspace, member);
   const shown: ShownEmoji[] = [];
   for (const { id, picture } of earned.slice(0, most)) shown.push(await shownEmojiOf(ctx, workspace, await picture(), names.get(id)!));

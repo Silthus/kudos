@@ -1,5 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
-import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
+import { allTimeBoardsIn, type AllTimeBoards, type BoardPlace } from "../album/boards";
 import { teamEmojiOf } from "../album/earnedEmojis";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/hoggies";
 import { peopleHeldBy } from "../album/stickers";
@@ -13,8 +13,6 @@ import { xpToReach } from "../progression/levels";
 import type { MemberId } from "../workspace/directory";
 
 export type CardHoggie = { hoggie: string; name: string; rarity: Rarity; picture: string };
-
-export type BoardPlace = { rank: number; tied: boolean; thoughtful: number };
 
 export type LevelWay = { level: number; share: number };
 

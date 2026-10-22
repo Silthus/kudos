@@ -30,6 +30,8 @@ export type ThoughtfulBoards = {
 
 export type BoardViewer = { workspace: string; member: MemberId };
 
+export type BoardPlace = { rank: number; tied: boolean; thoughtful: number };
+
 type BoardReader = { workspace: string; member: MemberId | null };
 
 export type AllTimeBoards = Pick<ThoughtfulBoards, "people" | "teams">;
@@ -79,6 +81,21 @@ export async function thoughtfulBoardsOf(ctx: QueryCtx, viewer: BoardViewer, { w
   };
 }
 
+export async function weekPlaceOf(ctx: QueryCtx, member: BoardViewer): Promise<BoardPlace | null> {
+  if (!(await isOnTheBoards(ctx, member.member)) || (await currentNameAndPictureOf(ctx, member.member)) === null) return null;
+  const tallies = await talliesIn(ctx, member.workspace, await weekKeyOf(ctx, member));
+  const thoughtful = tallies.find(({ giver }) => giver === member.member)?.awards ?? 0;
+  if (thoughtful === 0) return null;
+  const others = tallies.filter(({ giver, awards }) => giver !== member.member && awards >= thoughtful);
+  let [ahead, tied] = [0, false];
+  for (const { giver, awards } of others) {
+    if (!(await isRanked(ctx, giver))) continue;
+    if (awards > thoughtful) ahead += 1;
+    else tied = true;
+  }
+  return { rank: ahead + 1, tied, thoughtful };
+}
+
 export async function allTimeBoardsIn(ctx: QueryCtx, workspace: string): Promise<AllTimeBoards> {
   const companyTeams = await companyTeamsOf(ctx);
   const givers = await giversIn(ctx, { workspace, member: null }, allTimeKey, companyTeams);
@@ -86,15 +103,30 @@ export async function allTimeBoardsIn(ctx: QueryCtx, workspace: string): Promise
 }
 
 async function giversOf(ctx: QueryCtx, viewer: BoardViewer, period: BoardPeriod, companyTeams: CompanyTeam[]): Promise<Giver[]> {
-  const today = allowanceDay(Date.now(), (await timeZoneOf(ctx, viewer.member)) ?? undefined);
-  return giversIn(ctx, viewer, periodKeyOf(period, today), companyTeams);
+  return giversIn(ctx, viewer, periodKeyOf(period, await todayOf(ctx, viewer)), companyTeams);
+}
+
+async function weekKeyOf(ctx: QueryCtx, member: BoardViewer): Promise<PeriodKey> {
+  return periodKeyOf("week", await todayOf(ctx, member));
+}
+
+async function todayOf(ctx: QueryCtx, { member }: BoardViewer): Promise<DayKey> {
+  return allowanceDay(Date.now(), (await timeZoneOf(ctx, member)) ?? undefined);
+}
+
+async function isRanked(ctx: QueryCtx, giver: MemberId): Promise<boolean> {
+  return (await isOnTheBoards(ctx, giver)) && (await currentNameAndPictureOf(ctx, giver)) !== null;
+}
+
+function talliesIn(ctx: QueryCtx, workspace: string, period: PeriodKey) {
+  return ctx.db
+    .query("thoughtfulBoardTallies")
+    .withIndex("by_workspace_period_giver", (q) => q.eq("workspace", workspace).eq("period", period))
+    .collect();
 }
 
 async function giversIn(ctx: QueryCtx, reader: BoardReader, period: PeriodKey, companyTeams: CompanyTeam[]): Promise<Giver[]> {
-  const tallies = await ctx.db
-    .query("thoughtfulBoardTallies")
-    .withIndex("by_workspace_period_giver", (q) => q.eq("workspace", reader.workspace).eq("period", period))
-    .collect();
+  const tallies = await talliesIn(ctx, reader.workspace, period);
   const givers = await Promise.all(tallies.map(async ({ giver, awards }) => ((await isOnTheBoards(ctx, giver)) ? giverOf(ctx, reader, giver, awards, companyTeams) : null)));
   return givers.filter((giver) => giver !== null);
 }
