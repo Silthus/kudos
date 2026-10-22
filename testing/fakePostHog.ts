@@ -135,9 +135,12 @@ function isPersonEvent({ event }: Pick<CapturedEvent, "event">) {
   return event === "$identify" || event === "$set";
 }
 
+const realFetch = globalThis.fetch;
+
 export function routedFetch(postHog: FakePostHog, otherwise: typeof fetch) {
   return async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : input);
+    if (url.protocol === "data:") return realFetch(input, init);
     return postHog.owns(url) ? postHog.fetch(input, init) : otherwise(input, init);
   };
 }

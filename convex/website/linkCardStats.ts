@@ -1,9 +1,11 @@
 import type { QueryCtx } from "../_generated/server";
 import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
+import { emojiArtPictureOf } from "../album/emojiCatalogue";
 import { teamEmojiOf } from "../album/earnedEmojis";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/hoggies";
 import { peopleHeldBy } from "../album/stickers";
 import { storedHoldersIn, type StoredHolder } from "../companyProfiles/storedFaces";
+import type { TeamCrestArt } from "../companyProfiles/teams";
 import type { PersonTeam } from "../album/personPage";
 import type { Rarity } from "../hoggies/catalogue";
 import { hoggiesShownTo } from "../hoggies/flag";
@@ -16,9 +18,9 @@ export type CardHoggie = { hoggie: string; name: string; rarity: Rarity; picture
 
 export type BoardPlace = { rank: number; tied: boolean; thoughtful: number };
 
-export type LevelWay = { level: number; share: number };
+export type LevelWay = { level: number; xp: number; share: number };
 
-export type CardTeam = { name: string; emoji: string | null };
+export type CardTeam = { name: string; emoji: string | null; crest: string | null };
 
 export type PersonStats = { person: MemberId; teams: CardTeam[]; way: LevelWay | null; place: BoardPlace | null; hoggies: { found: number; total: number } | null; rarest: CardHoggie[]; people: number; asOf: number };
 
@@ -61,7 +63,7 @@ export async function personStatsOf(ctx: QueryCtx, { workspace, origin, boards, 
   const hoggies = await hoggiesOf(person);
   return {
     person,
-    teams: await cardTeamsOf(ctx, workspace, teams),
+    teams: await cardTeamsOf(ctx, workspace, origin, teams),
     way: level === null ? null : await levelWayOf(ctx, person, level),
     place: placeOf((await boards()).people.find(({ member }) => member === person)),
     hoggies: hoggies === null ? null : { found: hoggies.found, total: hoggies.total },
@@ -82,19 +84,24 @@ export async function teamStatsOf(reads: CardReads, team: CompanyTeamRow): Promi
   };
 }
 
-async function cardTeamsOf(ctx: QueryCtx, workspace: string, teams: PersonTeam[]): Promise<CardTeam[]> {
+async function cardTeamsOf(ctx: QueryCtx, workspace: string, origin: string, teams: PersonTeam[]): Promise<CardTeam[]> {
   const shown: CardTeam[] = [];
   for (const { team, name, art } of teams) {
     const emoji = await teamEmojiOf(ctx, workspace, { team, art });
-    shown.push({ name, emoji: emoji?.inSlack ? emoji.name : null });
+    shown.push({ name, emoji: emoji?.inSlack ? emoji.name : null, crest: crestPictureOf(origin, art) });
   }
   return shown;
+}
+
+function crestPictureOf(origin: string, art: TeamCrestArt): string | null {
+  if (art === null) return null;
+  return art.kind === "crest" ? `${origin}${emojiArtPictureOf("team", art.slug)}` : art.url;
 }
 
 async function levelWayOf(ctx: QueryCtx, person: MemberId, level: number): Promise<LevelWay> {
   const { xp } = await standingOf(ctx, person);
   const [startsAt, nextAt] = [xpToReach(level), xpToReach(level + 1)];
-  return { level, share: Math.min(1, Math.max(0, (xp - startsAt) / (nextAt - startsAt))) };
+  return { level, xp, share: Math.min(1, Math.max(0, (xp - startsAt) / (nextAt - startsAt))) };
 }
 
 function placeOf(row: { rank: number | null; tied: boolean; thoughtful: number } | undefined): BoardPlace | null {

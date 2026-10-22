@@ -8,6 +8,7 @@ import { rarityWord } from "../hoggies/catalogue";
 import type { BoardPlace, CardHoggie, CardTeam, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
 import type { LinkPreview, PersonPreview, TeamPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn } from "./blocks";
+import { cardKeyOf, pictureBlocksOf, playerCardOf, type PlayerCard } from "./playerCard";
 import { textOf } from "./directory";
 import { callSlack, nextRateLimitedAttempt, readSlack, retryDelayOf, slackErrorCodeOf } from "./webApi";
 
@@ -26,8 +27,9 @@ export const unfoldLinks = observedAction({
   handler: async (ctx, { workspace, sharer, links, channel, ts, sharedOutside, attempt = 1 }) => {
     const previews = await ctx.runQuery(internal.website.linkPreviews.linkPreviewsOf, { workspace, sharer, links });
     if (previews.length === 0 || (sharedOutside === "unsaid" && !(await isUnshared(channel)))) return;
+    const pictured = await ctx.runQuery(internal.slack.cardPictures.cardImageShownIn, { workspace });
     const unfurls: Record<string, { blocks: unknown[] }> = {};
-    for (const preview of previews) unfurls[preview.url] = { blocks: cardBlocksOf(preview, await emojisUnlockedOn(ctx, workspace, preview)) };
+    for (const preview of previews) unfurls[preview.url] = { blocks: await unfoldedCardOf(ctx, preview, await emojisUnlockedOn(ctx, workspace, preview), pictured) };
     const answer = await callSlack("chat.unfurl", { channel, ts, unfurls });
     if (answer.ok) return;
     if (answer.error === "ratelimited") {
@@ -67,6 +69,37 @@ function linksOf(links: unknown): string[] {
 }
 
 const barSegments = 10;
+
+const drawingDeadlineMs = 5000;
+
+async function unfoldedCardOf(ctx: ActionCtx, preview: LinkPreview, emojis: number, pictured: boolean) {
+  if (!pictured || preview.kind !== "person" || preview.stats === undefined) return cardBlocksOf(preview, emojis);
+  const card = playerCardOf(preview, preview.stats, emojis);
+  const picture = await cardPictureOf(ctx, card);
+  return picture === null ? cardBlocksOf(preview, emojis) : pictureBlocksOf(preview, card, picture, preview.stats.asOf);
+}
+
+async function cardPictureOf(ctx: ActionCtx, card: PlayerCard): Promise<string | null> {
+  const key = await cardKeyOf(card);
+  const kept = await ctx.runQuery(internal.slack.cardPictures.pictureAt, { key });
+  return kept ?? withinDeadline(ctx.runAction(internal.slack.cardDrawing.drawn, { card, key }));
+}
+
+async function withinDeadline(drawing: Promise<string | null>): Promise<string | null> {
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    deadline = setTimeout(() => resolve(null), drawingDeadlineMs);
+  });
+  const drawn = drawing.catch((error: unknown) => {
+    console.warn(`link previews: card picture not drawn: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  });
+  try {
+    return await Promise.race([drawn, late]);
+  } finally {
+    clearTimeout(deadline);
+  }
+}
 
 export async function emojisUnlockedOn(ctx: ActionCtx, workspace: string, preview: LinkPreview): Promise<number> {
   if (preview.kind !== "person" || preview.stats === undefined) return 0;
