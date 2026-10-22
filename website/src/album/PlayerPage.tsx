@@ -18,7 +18,7 @@ import { rarityWordOf } from "./opening";
 import { PetHoggie, petOf } from "./PetHoggie";
 import { OwnHypePick, ownHypeEmojiOf, type HypePicker } from "./OwnHypePick";
 import { findYourselfHref, hrefOf, type Place } from "./place";
-import { isAQuietCard, isAQuietWeek, ownWeekOf, teammateWeekOf, type EmojiStack, type PageWeek, type SaidLine } from "./playerPage";
+import { holdsNothingButEmojis, isAQuietCard, isAQuietWeek, ownWeekOf, teammateWeekOf, type EmojiStack, type PageWeek, type SaidLine } from "./playerPage";
 import { ShareLink } from "./ShareLink";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
 import "./playerPage.css";
@@ -60,7 +60,7 @@ function failureOf(own: boolean, reads: PlayerReads): Failed | undefined {
 }
 
 function pageOf(own: boolean, { cards: { card, emojis }, week, together }: PlayerReads): Page | null {
-  if (card?.kind !== "card" || (emojis === undefined && isAQuietCard(card.card, null))) return null;
+  if (card?.kind !== "card" || (emojis === undefined && holdsNothingButEmojis(card.card))) return null;
   const shown = { own, card: card.card, emojis: emojis?.kind === "emojis" ? emojis : null };
   if (own) return week?.kind === "week" ? { ...shown, week: ownWeekOf(week), together: null, hypePick: together?.kind === "person" && together.hypePick === true ? together : null } : null;
   return together?.kind === "person" ? { ...shown, week: teammateWeekOf(cardWeekOf(card)), together, hypePick: null } : null;

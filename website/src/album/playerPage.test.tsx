@@ -37,6 +37,10 @@ function withEmojisWaiting(cards: PlayerCardRead): PlayerCardRead {
   return (asking, person) => ({ ...cards(asking, person), emojis: undefined });
 }
 
+function withEmojisBroken(cards: PlayerCardRead): PlayerCardRead {
+  return (asking, person) => ({ ...cards(asking, person), emojis: { kind: "broken" } });
+}
+
 async function region(name: string) {
   return within(await screen.findByRole("region", { name }, arrival));
 }
@@ -109,6 +113,13 @@ describe("LP93 LP94 LP96: page D shows your own page as a player card, your rare
     visit("/book#people/milo-strand", withPageD, { playerCards: withEmojisWaiting(fixedPlayerCards()) });
 
     await screen.findByRole("region", { name: "Milo's week" }, arrival).catch(() => null);
+    expect(screen.queryByText("Milo's album is just getting started.")).not.toBeInTheDocument();
+  });
+
+  it("never calls a card quiet while its emojis could not be counted", async () => {
+    visit("/book#people/milo-strand", withPageD, { playerCards: withEmojisBroken(fixedPlayerCards()) });
+
+    expect((await region("Milo Strand's card")).getByRole("group", { name: "Emojis not counted yet" })).toBeInTheDocument();
     expect(screen.queryByText("Milo's album is just getting started.")).not.toBeInTheDocument();
   });
 
