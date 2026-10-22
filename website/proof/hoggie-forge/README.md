@@ -1,0 +1,20 @@
+# Hoggie forge sandbox proof
+
+Head `d6ce628c` (the forge earns a face-down item) was deployed by hand to the sandbox `different-dog-467` on 2026-10-22. The dry run deleted no index, and every function live on the sandbox was exported by this tree. The served bundle was this build's. Flags `hoggie-forge` 980536 and `hidden-items` are on for `environment = sandbox` only, read for real from PostHog.
+
+The member is the made-up one from the first run (`drive.mts`, `cast.mts`, `drive-output.txt`), signed in again with a fresh `authSessions` and `authRefreshTokens` row. `seedMore.mts` appended four copies each of Asleep and Beaker (common), 70's Dance (rare) and later Burger (common) with `convex import --append` for `drops` and `hoggieTallies`, numbered after the member's drops so `dropTallies` keeps its one row.
+
+1. **The forge ends face down.** Asleep's entry offers `Forge 3 into an Uncommon` with `Keeps one Asleep. Gives an Uncommon you don't have yet.` (`1-asleep-ready.png`). The press fuses the copies into a face-down card in the entry, `Forged into an Uncommon. Turn it over.` (`2-face-down-in-entry.png`).
+2. **The click turns it like every item.** The card lifts out of the entry (`3-lifted-to-the-flip.png`), flips to `Safari · Uncommon hoggie · New` (`4-turned-safari.png`), flies into its slot on Hoggies (`5-put-in-uncommon.png`), and, since Safari was the member's tenth find of a tier, the medal beat plays `Curious · Bronze` on Milestones (`6-medal-curious-bronze.png`). The whole turn is in the PR's recording.
+3. **Escape sets it aside.** Beaker's forge, then Escape: the entry stays open at one copy and the top bar says `1 item waits` (`7-escape-keeps-entry.png`). The item board shows the face-down item tagged `Forged` (`8-board-forged-tag.png`). Since `e46fbe1b` the item board and its pill wait while any hoggie's entry is open, and the board opens once the entry closes; that change is proven in `hoggieForge.test.tsx` and was not walked here.
+4. **A full rarity still forges.** 70's Dance, a rare with every Epic held, offers `Forge 3 into an Epic` with `Keeps one 70's Dance. Gives an Epic. You hold every one already.` (`9-70s-dance-every-epic-held.png`). Its turn found Driving Hogzilla, `Epic hoggie` with no `New` (`10-duplicate-epic.png`), which lands as `×2` (`11-duplicate-landed-x2.png`).
+5. **A legendary has no forge.** Rocket at four copies says nothing of forging (`12-rocket-legendary-no-forge.png`).
+6. **Reduced motion.** With `matchMedia` stubbed in the tab (the preview can't emulate the media feature), Burger's forge mounted the reveal straight in its `down` phase, and the click landed Dadd Ai without the flight (`reduced-motion-trace.txt`, `13-reduced-motion-landed.png`).
+7. **The API.** Through `convex run --identity` as the member: Asleep's request again answers its turned item and Beaker's its face-down item, spending nothing (`forgeHoggie-item-resend-turned.json`, `forgeHoggie-item-resend-face-down.json`); a legendary Rocket, Asleep at one copy and the malformed request `a:b` answer `refused` (`forgeHoggie-item-rocket-legendary.json`, `forgeHoggie-item-asleep-one-copy.json`, `forgeHoggie-item-malformed.json`). Each forged hoggie keeps one copy (`copies-after.txt`).
+8. **Analytics.** PostHog received one `hoggie dropped` with `crate_kind = forge` and no pack XP per turn, at the turn: Safari and Dadd Ai new, Driving Hogzilla not new. Beaker's unturned item and the resends sent none (`posthog-forge-turn-events.txt`).
+
+The first run, on `0d89c70e` before the face-down item, is in this folder's git history.
+
+Run:
+- `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/hoggie-forge/drive.mts`
+- `bun website/proof/hoggie-forge/seed.mts <member id> <out dir>` for a new member, or `bun website/proof/hoggie-forge/seedMore.mts <member id> <out dir> <first drop number> <hoggie>...` for one that already has drops, then `convex import --append --format jsonLines --table <table> -y <out dir>/<table>.jsonl` for each file it wrote.

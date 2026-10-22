@@ -17,6 +17,14 @@ export async function drawOf({ secret, member, crate, version, floor = "common",
   return { rarity, hoggie: hoggies[pickAt(digest, 4, hoggies.length)]!.hoggie };
 }
 
+export type PickInput = { secret: string; member: string; crate: string; version: number; among: CatalogueHoggie[] };
+
+export async function pickOf({ secret, member, crate, version, among }: PickInput): Promise<Drawn> {
+  const digest = await digestOf(`${secret}:${member}:${crate}:${version}`);
+  const { hoggie, rarity } = among[pickAt(digest, 0, among.length)]!;
+  return { rarity, hoggie };
+}
+
 export async function packBonusOf({ secret, member, crate }: PackDrawInput): Promise<PackBonus | null> {
   const band = packBands[kindOf(crate)];
   if (band === null) return null;

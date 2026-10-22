@@ -469,6 +469,7 @@ button.al-hoggies-note .al-hoggie-art {
 }
 
 .al-entry {
+  position: relative;
   display: flex;
   width: min(100%, 40rem);
   flex-direction: column;
@@ -745,4 +746,178 @@ button.al-hoggies-note .al-hoggie-art {
 
 .al-entry-pet-problem:empty {
   display: none;
+}
+
+.al-entry-forge {
+  display: grid;
+  justify-items: start;
+  gap: 0.375rem;
+}
+
+.al-entry-forge-note {
+  margin: 0;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+.al-forge {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  border-radius: inherit;
+  background: color-mix(in oklab, var(--card) 94%, var(--al-rarity));
+  padding: 1.5rem;
+}
+
+.al-forge:focus-visible {
+  outline: 3px solid var(--al-rarity);
+  outline-offset: -3px;
+}
+
+.al-forge-stage {
+  position: relative;
+  display: grid;
+  width: 12.5rem;
+  height: 12.5rem;
+  place-items: center;
+}
+
+.al-forge-copy,
+.al-forge-flash {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.al-forge-copy {
+  padding: 3.25rem;
+}
+
+.al-forge-flash {
+  border-radius: 999px;
+  background: radial-gradient(circle, #fff 0%, color-mix(in oklab, var(--al-rarity) 50%, transparent) 45%, transparent 70%);
+  opacity: 0;
+}
+
+.al-forge-card.ib-item {
+  position: absolute;
+  inset: 2.5rem;
+  width: auto;
+  height: auto;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.5rem color-mix(in oklab, var(--al-rarity) 28%, transparent);
+}
+
+.al-forge-caption {
+  margin: 0;
+  color: var(--al-rarity-ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+  text-align: center;
+  opacity: 0;
+}
+
+.al-forge[data-phase="down"] .al-forge-copy {
+  opacity: 0;
+}
+
+.al-forge[data-phase="down"] .al-forge-caption {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .al-forge[data-phase="fuse"] .al-forge-copy[data-copy="0"] {
+    animation: al-forge-fuse-left 0.6s cubic-bezier(0.5, 0, 0.9, 0.4) both;
+  }
+
+  .al-forge[data-phase="fuse"] .al-forge-copy[data-copy="1"] {
+    animation: al-forge-fuse-top 0.6s cubic-bezier(0.5, 0, 0.9, 0.4) both;
+  }
+
+  .al-forge[data-phase="fuse"] .al-forge-copy[data-copy="2"] {
+    animation: al-forge-fuse-right 0.6s cubic-bezier(0.5, 0, 0.9, 0.4) both;
+  }
+
+  .al-forge[data-phase="flash"] .al-forge-copy {
+    opacity: 0;
+  }
+
+  .al-forge[data-phase="flash"] .al-forge-flash {
+    animation: al-forge-flash 0.2s ease-out both;
+  }
+
+  .al-forge[data-phase="down"] .al-forge-card {
+    animation: al-forge-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+
+  .al-forge[data-phase="down"] .al-forge-caption {
+    animation: al-forge-caption 0.35s ease-out 0.35s both;
+  }
+}
+
+@keyframes al-forge-fuse-left {
+  from {
+    transform: translate(-6rem, 1.5rem) rotate(-14deg);
+  }
+  to {
+    transform: scale(0.6);
+  }
+}
+
+@keyframes al-forge-fuse-top {
+  from {
+    transform: translateY(-4rem) rotate(6deg);
+  }
+  to {
+    transform: scale(0.6);
+  }
+}
+
+@keyframes al-forge-fuse-right {
+  from {
+    transform: translate(6rem, 1.5rem) rotate(14deg);
+  }
+  to {
+    transform: scale(0.6);
+  }
+}
+
+@keyframes al-forge-flash {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.8;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes al-forge-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes al-forge-caption {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

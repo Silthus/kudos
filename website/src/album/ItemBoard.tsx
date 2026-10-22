@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ReachedTier } from "../../../convex/album/milestones";
+import { hoggieNamed } from "../../../convex/hoggies/catalogue";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { NamedEmoji } from "../Emoji";
@@ -181,6 +182,7 @@ function tagOf(reason: BoardReason) {
   if (reason.kind === "levelUp") return `Level ${reason.level}`;
   if (reason.kind === "team") return reason.name;
   if (reason.kind === "milestone") return medalWordsOf(reason);
+  if (reason.kind === "forge") return "Forged";
   return null;
 }
 
@@ -188,7 +190,12 @@ function itemLabelOf(reason: BoardReason) {
   if (reason.kind === "levelUp") return `A face-down item from level ${reason.level}. Turn it over`;
   if (reason.kind === "team") return `A face-down item for filling the ${reason.name} page. Turn it over`;
   if (reason.kind === "milestone") return `A face-down item for ${medalSpokenOf(reason)}. Turn it over`;
+  if (reason.kind === "forge") return forgedItemLabelOf(reason.hoggie);
   return "A face-down item. Turn it over";
+}
+
+export function forgedItemLabelOf(hoggie: string) {
+  return `A face-down item forged from ${hoggieNamed(hoggie)?.name ?? hoggie}. Turn it over`;
 }
 
 export function itemsWaitWordsOf({ items, more }: Board) {

@@ -10,7 +10,7 @@ import { useSectionOnceLanded } from "../linkTarget";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import { rememberSignInStarted } from "../signInAttempt";
-import type { Album, BoardPeriod } from "./answer";
+import type { Album, BoardPeriod, HoggiesShown } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
@@ -26,6 +26,7 @@ import { AppEmojiSection } from "../settings/AppEmojiList";
 import { EmojiWizardHost } from "./findInSlack";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { addressOf, home, landingStateOf, myPageOf, placeOf, placeShownAt, type MyPage, type Place } from "./place";
+import { useForge } from "./useForge";
 import { useVisitArrival } from "./visitArrival";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
@@ -46,6 +47,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const profile = useAlbumProfile(onProfile);
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
+  const forging = useForge(actions.forgeHoggie);
   const onLevelUp = place.kind === "levelUp";
   const levelUp = useLevelUp(place.kind === "levelUp" ? place.level : null);
   useTheAlbumInsteadOfAClosedReveal(onLevelUp && levelUp?.kind === "off" && album?.kind === "album" && album.board !== null, myPage, replaceAddress);
@@ -85,7 +87,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         person={<PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
-        hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} makePet={actions.makePet} {...answers} />}
+        hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} makePet={actions.makePet} forging={forging} {...answers} />}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}
         putIn={actions.putIn}
@@ -97,6 +99,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         missedXpMoment={visit.missed}
         shareItem={actions.shareItem}
         closeHowItWorks={actions.closeHowItWorks}
+        anEntryIsOpen={anEntryIsOpenAt(place, hoggies)}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>
@@ -116,6 +119,11 @@ function AlbumSettingsSections({ album, useAppEmojis, useSlackEmojiMatches, mapS
 }
 
 type ReplaceAddress = (href: string, state: unknown) => void;
+
+function anEntryIsOpenAt(place: Place, hoggies: HoggiesShown | undefined) {
+  if (place.kind !== "hoggies" || place.hoggie === null) return false;
+  return hoggies === undefined || (hoggies.kind === "hoggies" && hoggies.hoggies.some(({ hoggie }) => hoggie === place.hoggie));
+}
 
 function useTheAlbumInsteadOfAClosedReveal(closed: boolean, myPage: MyPage, replaceAddress: ReplaceAddress) {
   useEffect(() => {

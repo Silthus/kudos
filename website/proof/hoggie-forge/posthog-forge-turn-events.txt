@@ -1,0 +1,15 @@
+PostHog project 662840, execute-sql, 2026-10-22, head d6ce628c:
+SELECT timestamp, event, properties.crate_kind, properties.rarity, properties.is_new, properties.surface, properties.pack_xp, properties.environment FROM events WHERE event IN ('hoggie dropped', 'item turned') AND timestamp > toDateTime('2026-10-22 04:10:00') ORDER BY timestamp
+
+The proof member's rows (one distinct ID), from 04:17 on:
+2026-10-22T04:17:34.698000Z|item turned|(null)|uncommon|True|(null)|(null)|sandbox
+2026-10-22T04:17:34.698000Z|hoggie dropped|forge|uncommon|True|website|(null)|sandbox
+2026-10-22T04:20:27.847000Z|hoggie dropped|forge|epic|False|website|(null)|sandbox
+2026-10-22T04:20:27.847000Z|item turned|(null)|epic|False|(null)|(null)|sandbox
+2026-10-22T04:21:46.445000Z|hoggie dropped|forge|uncommon|True|website|(null)|sandbox
+2026-10-22T04:21:46.445000Z|item turned|(null)|uncommon|True|(null)|(null)|sandbox
+
+Four forges, three turns, three hoggie dropped events with crate_kind forge and no pack XP, each at its turn and none at the forge:
+Asleep -> Safari (uncommon, new); 70's Dance -> Driving Hogzilla (epic, a duplicate, is_new false, every epic held); Burger -> Dadd Ai (uncommon, new, reduced motion).
+Beaker's item, set aside face down, sent none. The two resends of forge requests sent none.
+Sticker item turns from two other distinct IDs in the same window belong to another lane's members, not this proof.
