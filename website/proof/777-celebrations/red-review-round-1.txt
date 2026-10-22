@@ -1,0 +1,5 @@
+     × with unlocks on and no unlocks launch, the maintainer's switch answers refused and launches nothing 21ms
+     × with no announcement channel picked, the Admin tab offers no switch, since nothing is celebrated in public 38ms
+     × says nothing is celebrated in public while the read shows them off 82ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed | 26 passed (29)

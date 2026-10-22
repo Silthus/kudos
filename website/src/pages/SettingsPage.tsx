@@ -10,14 +10,15 @@ import { CompanyProfileSection } from "../settings/CompanyProfileSection";
 import { EmojiMappingSection } from "../settings/EmojiMapping";
 import { GroupPicker } from "../settings/GroupPicker";
 import { MessageSettingRow } from "../settings/MessageSettingRow";
+import { PublicCelebrations } from "../settings/PublicCelebrations";
 import { TeammateMatching } from "../settings/TeammateMatching";
 import { WeeklyPost } from "../settings/WeeklyPost";
 import { WorkspaceSettings } from "../settings/WorkspaceSettings";
 import type { MessageSetting, MySettings, ShellActions } from "../shell";
 
-type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji">; useEmojiMappings: EmojiMappingsRead; onSignOut: () => void; albumSections?: ReactNode };
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji">; useEmojiMappings: EmojiMappingsRead; onSignOut: () => void; albumSections?: ReactNode };
 
-export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace, weeklyPost }, actions, useEmojiMappings, onSignOut, albumSections }: SettingsPageProps) {
+export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace, weeklyPost, publicCelebrations }, actions, useEmojiMappings, onSignOut, albumSections }: SettingsPageProps) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -47,6 +48,7 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
       {admin !== undefined && <TeammateMatching admin={admin} linkCompanyProfile={actions.linkCompanyProfile} />}
       {workspace !== undefined && <WorkspaceSettings workspace={workspace} setWorkspaceSettings={actions.setWorkspaceSettings} />}
       {weeklyPost !== undefined && <WeeklyPost setting={weeklyPost} setWeeklyPost={actions.setWeeklyPost} pickWeeklyPostChannel={actions.pickWeeklyPostChannel} />}
+      {publicCelebrations !== undefined && <PublicCelebrations on={publicCelebrations} setPublicCelebrations={actions.setPublicCelebrations} />}
       {workspace !== undefined && <EmojiMappingSection useEmojiMappings={useEmojiMappings} mapSlackEmoji={actions.mapSlackEmoji} />}
       {albumSections}
       <AccountPanel onSignOut={onSignOut} />

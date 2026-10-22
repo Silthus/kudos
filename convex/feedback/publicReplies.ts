@@ -8,6 +8,7 @@ import type { MessageRef } from "../engine/messageEvent";
 import { wantsMessage } from "../messageSettings/messageSettings";
 import { questsApplyIn } from "../quests/flag";
 import { xpLevelsShownIn } from "../progression/xpLevels";
+import { publicCelebrationsOn } from "../workspace/celebrationsSwitch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { segmentValidator, type Line } from "./segments";
@@ -46,7 +47,7 @@ export const celebrateLevel = internalMutation({
 
 export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, section: PublicSection) {
   const { announcementChannel: channel } = await settingsOf(ctx, ref.workspace);
-  if (channel === null) return;
+  if (channel === null || !(await publicCelebrationsOn(ctx, ref.workspace))) return;
   const existing = await publicReplyRow(ctx, ref, channel);
   if (existing === null) {
     const reply = await ctx.db.insert("publicReplies", { ...ref, channel, sections: [section], version: 1, shown: { state: "posting" } });
@@ -68,7 +69,7 @@ async function announceRewardedLevel(ctx: MutationCtx, { workspace, member, leve
 
 export async function announce(ctx: MutationCtx, workspace: string, announced: Announced, section: PublicSection) {
   const { announcementChannel } = await settingsOf(ctx, workspace);
-  if (announcementChannel === null) return;
+  if (announcementChannel === null || !(await publicCelebrationsOn(ctx, workspace))) return;
   const notice = { workspace, ...announced, channel: announcementChannel, sections: [section], version: 1, shown: { state: "posting" as const } };
   await deliver(ctx, await ctx.db.insert("publicReplies", notice));
 }
@@ -134,7 +135,7 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
 }
 
 async function isShownAtAll(ctx: QueryCtx, row: Doc<"publicReplies">) {
-  return (await xpLevelsShownIn(ctx, row.workspace)) && (await isRewardShownIn(ctx, row)) && (await isCelebratedWhereItIs(ctx, row));
+  return (await xpLevelsShownIn(ctx, row.workspace)) && (await publicCelebrationsOn(ctx, row.workspace)) && (await isRewardShownIn(ctx, row)) && (await isCelebratedWhereItIs(ctx, row));
 }
 
 async function isRewardShownIn(ctx: QueryCtx, row: Doc<"publicReplies">) {
