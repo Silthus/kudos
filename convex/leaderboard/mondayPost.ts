@@ -13,6 +13,7 @@ import { maintainerSettingsApplyTo } from "../workspace/workspaceSettings";
 import { workspaceGroupsBoardOf } from "./groupBoards";
 import { channelRefusalValidator, mondayPostOutcomeValidator, type ChannelCheck } from "./mondayPostOutcome";
 import { wholeWeekBefore } from "./periods";
+import { featureNewGivers } from "./newGivers";
 import { isTimeZone } from "./timeZones";
 import { topKudosPostOf, type TopKudosPost } from "./topKudos";
 import { giversIn } from "./totals";
@@ -153,7 +154,9 @@ export const claimWeek = internalMutation({
     if (channel === null) return null;
     const post = await weeklyPostOf(ctx, workspace, thisMonday, settings.timeZone);
     const claim = await ctx.db.insert("mondayPostClaims", { workspace, week: thisMonday, claimedAt: Date.now(), channel, outcome: hasNothingToSay(post) ? "nobody-gave" : "claimed" });
-    return hasNothingToSay(post) ? null : { claim, channel, post };
+    if (hasNothingToSay(post)) return null;
+    if (post.kind === "topKudos") await featureNewGivers(ctx, workspace, thisMonday, post.newGivers ?? []);
+    return { claim, channel, post };
   },
 });
 
@@ -237,11 +240,11 @@ async function pickedChannelIn(ctx: QueryCtx, workspace: string) {
 
 async function weeklyPostOf(ctx: QueryCtx, workspace: string, thisMonday: DayKey, timeZone: string): Promise<WeeklyPost> {
   if (!(await albumSlackAppliesToWorkspace(ctx, workspace))) return lastWeeksPostOf(ctx, workspace, thisMonday);
-  return topKudosPostOf(ctx, workspace, { from: wallClockAt(dayAfter(thisMonday, -7), 0, timeZone), to: wallClockAt(thisMonday, 0, timeZone) });
+  return topKudosPostOf(ctx, workspace, { from: wallClockAt(dayAfter(thisMonday, -7), 0, timeZone), to: wallClockAt(thisMonday, 0, timeZone) }, thisMonday);
 }
 
 function hasNothingToSay(post: WeeklyPost) {
-  return post.kind === "groups" ? post.givers === 0 : post.kudos.length === 0 && post.teams.length === 0;
+  return post.kind === "groups" ? post.givers === 0 : post.kudos.length === 0 && post.teams.length === 0 && (post.newGivers ?? []).length === 0;
 }
 
 async function lastWeeksPostOf(ctx: QueryCtx, workspace: string, thisMonday: DayKey): Promise<MondayPost> {

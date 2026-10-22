@@ -43,6 +43,19 @@ export const linkPreviewsOf = internalQuery({
   },
 });
 
+export const personCardOf = internalQuery({
+  args: { workspace: v.string(), person: v.id("members") },
+  handler: async (ctx, { workspace, person }): Promise<PersonPreview | null> => {
+    const origin = siteOriginFor(workspace);
+    if (origin === null) return null;
+    return personPreviewOf(ctx, { ...cardReadsOf(ctx, workspace, origin), rich: true }, personPageOf(origin, person), person);
+  },
+});
+
+export function personPageOf(origin: string, person: MemberId) {
+  return pageUrlOf(origin, "people", person);
+}
+
 async function sharerDecisionOf(ctx: QueryCtx, workspace: string, user: string, flag: Flag<boolean>) {
   const sharer = await lookup(ctx, workspace, user);
   if (sharer?.kind === "member") return memberDecisionWithoutWriting(ctx, flag, sharer.member);

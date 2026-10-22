@@ -760,6 +760,12 @@ export default defineSchema({
     outcome: mondayPostOutcomeValidator,
   }).index("by_workspace_week", ["workspace", "week"]),
 
+  featuredNewGivers: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    week: v.string(),
+  }).index("by_member", ["member"]),
+
   leaderboardSettings: defineTable({
     member: v.id("members"),
     visible: v.boolean(),

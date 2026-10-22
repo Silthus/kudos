@@ -65,7 +65,7 @@ function linksOf(links: unknown): string[] {
 
 const barSquares = 10;
 
-function cardBlocksOf(preview: LinkPreview) {
+export function cardBlocksOf(preview: LinkPreview) {
   if (preview.stats !== undefined) return preview.kind === "person" ? richPersonCardOf(preview, preview.stats) : richTeamCardOf(preview, preview.stats);
   const lines = [nameLineOf(preview), ...(preview.kind === "person" ? personLinesOf(preview) : [peopleCountOf(preview.people)])];
   return [headOf(preview, lines), { type: "context", elements: [mrkdwn(`${productName} album · ${preview.kind} page`)] }];

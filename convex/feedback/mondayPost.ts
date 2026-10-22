@@ -7,6 +7,8 @@ import { asWritten } from "./groupCopy";
 import { medalOf } from "./leaderboard";
 import type { Find } from "../items/finds";
 import type { Line } from "./segments";
+import { personPageOf } from "../website/linkPreviews";
+import type { MemberId } from "../workspace/directory";
 
 export function renderMondayPost({ groups, mostImproved, givers }: MondayPost): Line[] {
   const mostImprovedLine: Line[] = mostImproved === null ? [] : [[{ text: `📈 Most improved: ${asWritten({ name: mostImproved })}` }]];
@@ -31,12 +33,15 @@ export type PublicEmoji = Omit<ShownEmoji, "picture"> & { picture: string | null
 
 export type TeamRow = { team: string; count: string; emoji: PublicEmoji | null };
 
-export type TopKudosMessage = { headline: string; kudos: TopKudosEntry[]; teams: { headline: string; rows: TeamRow[] } | null };
+export type NewGiverRow = { place: number; member: MemberId; name: string; page: string | null; thoughtful: number };
 
-export function renderTopKudosPost({ kudos, teams, origin }: TopKudosPost): TopKudosMessage {
+export type TopKudosMessage = { headline: string; kudos: TopKudosEntry[]; newGivers: { headline: string; rows: NewGiverRow[] } | null; teams: { headline: string; rows: TeamRow[] } | null };
+
+export function renderTopKudosPost({ kudos, teams, origin, newGivers = [] }: TopKudosPost): TopKudosMessage {
   return {
     headline: "🏆 Last week's top thoughtful kudos",
     kudos: kudos.map((entry, index) => ({ lead: leadOf(entry, index + 1), quote: quoteOf(entry.words), permalink: entry.permalink })),
+    newGivers: newGivers.length === 0 ? null : { headline: "🌱 Top new givers last week", rows: newGivers.map((giver, index) => ({ place: index + 1, ...giver, page: origin === null ? null : personPageOf(origin, giver.member) })) },
     teams: teams.length === 0 ? null : { headline: "Team stickers unlocked last week", rows: teams.map(({ name, count, emoji }) => ({ team: name, count: `×${count}`, emoji: emoji === null ? null : { ...emoji, picture: publicPictureOf(emoji.picture, origin) } })) },
   };
 }
