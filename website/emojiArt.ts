@@ -147,8 +147,13 @@ function shareArtFiles() {
 }
 
 function brandPictureOf(folder: string, hoggie: string) {
-  const named = join(folder, `${hoggie}.png`);
-  return existsSync(named) ? named : join(folder, `${hoggie}-1.png`);
+  return [join(folder, `${hoggie}.png`), join(folder, `${hoggie}-1.png`)].find((file) => existsSync(file)) ?? pictureTheModuleNames(folder, hoggie);
+}
+
+function pictureTheModuleNames(folder: string, hoggie: string) {
+  const file = /new URL\("\.\/([^"]+\.png)"/.exec(readFileSync(join(folder, `${hoggie}.mjs`), "utf8"))?.[1];
+  if (file === undefined) throw new Error(`No brand picture for the hoggie ${hoggie}`);
+  return join(folder, file);
 }
 
 function pngData(folder: string, name: string) {
