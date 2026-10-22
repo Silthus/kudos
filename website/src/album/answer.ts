@@ -4,7 +4,7 @@ import type { OwnHypePick } from "../../../convex/album/emojiMappings";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
-import type { ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
+import type { ForgeAnswer, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
 import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
@@ -179,13 +179,14 @@ export type PersonRead = (asking: boolean, person: string | null) => PersonShown
 
 export type { AlbumHoggie, AlbumRarity };
 
-export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null };
+export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null; forge?: true };
 
 export type { PetAnswer };
 
 export type PetReply = PetAnswer | Denial;
 
 export type HypePickReply = OwnHypePick | Denial;
+export type ForgeReply = ForgeAnswer | Denial;
 
 export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };
 

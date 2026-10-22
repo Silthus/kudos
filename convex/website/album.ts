@@ -16,7 +16,9 @@ import { teamPagesAndPeopleOf, type StoredMatch, type TeamPage, type TeamPagesAn
 import { unlockTeamStickerOf } from "../album/teamStickers";
 import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
-import { hoggiesShownTo, petHoggieShownTo } from "../hoggies/flag";
+import type { Id } from "../_generated/dataModel";
+import { hoggieForgeShownTo, hoggiesShownTo, petHoggieShownTo } from "../hoggies/flag";
+import { forge } from "../hoggies/forge";
 import { makePetOf, petOf, petsIn, type Pet } from "../hoggies/pet";
 import { hiddenItemsShownTo } from "../items/flag";
 import { boardOf, type FaceDown } from "../items/ledger";
@@ -123,9 +125,11 @@ export type AlbumWeekRead = { kind: "off" } | AlbumWeekAnswer;
 
 export type AlbumProfileRead = { kind: "off" } | AlbumProfileAnswer;
 
-export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies & { pet?: string | null };
+export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies & { pet?: string | null; forge?: true };
 
 export type PetAnswer = { kind: "picked"; pet: string } | { kind: "refused" };
+
+export type ForgeAnswer = { kind: "forged"; item: Id<"items"> } | { kind: "refused" };
 
 export type AlbumHoggiesRead = { kind: "off" } | AlbumHoggiesAnswer;
 
@@ -307,7 +311,7 @@ export const markEmojisSeen = memberMutation({
   },
 });
 
-export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)), ...(await petPickOf(ctx, me)) } : { kind: "off" }));
+export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)), ...(await petPickOf(ctx, me)), ...(await forgeOfferOf(ctx, me)) } : { kind: "off" }));
 
 async function petPickOf(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumHoggiesAnswer, "pet">> {
   return (await petHoggieShownTo(ctx, me.member)) ? { pet: await petOf(ctx, me) } : {};
@@ -320,6 +324,26 @@ export const makePet = memberMutation({
     return pet === null ? { kind: "refused" } : { kind: "picked", pet };
   },
 });
+
+async function forgeOfferOf(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumHoggiesAnswer, "forge">> {
+  return (await forgeShownTo(ctx, me.member)) ? { forge: true } : {};
+}
+
+export const forgeHoggie = memberMutation({
+  args: { hoggie: v.string(), request: v.string() },
+  handler: async (ctx, me, _person, { hoggie, request }): Promise<ForgeAnswer> => {
+    const item = (await forgesHoggies(ctx, me.member)) ? await forge(ctx, me, hoggie, request, Date.now()) : null;
+    return item === null ? { kind: "refused" } : { kind: "forged", item };
+  },
+});
+
+async function forgesHoggies(ctx: QueryCtx, member: MemberId) {
+  return (await albumHoggiesShownTo(ctx, member)) && (await forgeShownTo(ctx, member));
+}
+
+async function forgeShownTo(ctx: QueryCtx, member: MemberId) {
+  return (await hoggieForgeShownTo(ctx, member)) && (await hiddenItemsShownTo(ctx, member));
+}
 
 async function picksPets(ctx: QueryCtx, member: MemberId) {
   return (await albumHoggiesShownTo(ctx, member)) && (await petHoggieShownTo(ctx, member));

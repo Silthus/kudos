@@ -37,7 +37,7 @@ const noLevelUp: LevelUpRead = (level) => (level === null ? undefined : { kind: 
 
 const noXpMoment: XpMomentRead = (asking) => (asking ? { kind: "off" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "arrive" | "endXpMoment" | "closeHowItWorks">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment };
 
@@ -49,9 +49,13 @@ export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { setting
   return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useEmojiMappings: emojiMappings, useSlackEmojiMatches: slackEmojiMatches, useAppEmojis: appEmojis, useThoughtfulBoards: boards, useAlbumWeek: weeks, useAlbumPerson: people, useAlbumProfile: profile, useAlbumHoggies: hoggies, useLevelUp: levelUp, useXpMoment: xpMoment }, commands, capturer);
 }
 
+export function findTheAlbum() {
+  return screen.findByRole("button", { name: /^Your emojis/ }, { timeout: 10_000 });
+}
+
 export async function renderSettingsPage(settings: SettingsRead, commands: Commands = {}) {
   const view = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway), { settings, commands });
-  await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
+  await findTheAlbum();
   return { ...view, showSettingsAgain: () => view.showVisitor({ ...shellFixtures.member }) };
 }
 
@@ -77,6 +81,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     turnItem: vi.fn(commands.turnItem ?? (async () => ({ kind: "refused" }) as const)),
     shareItem: vi.fn(commands.shareItem ?? (async () => ({ kind: "refused" }) as const)),
     makePet: vi.fn(commands.makePet ?? (async () => ({ kind: "refused" }) as const)),
+    forgeHoggie: vi.fn(commands.forgeHoggie ?? (async () => ({ kind: "refused" }) as const)),
     arrive: vi.fn(commands.arrive ?? (async (from: number | null) => ({ kind: "arrived", lastVisit: from }) as const)),
     endXpMoment: vi.fn(commands.endXpMoment ?? (async (_from: number, until: number) => ({ kind: "arrived", lastVisit: until }) as const)),
     closeHowItWorks: vi.fn(commands.closeHowItWorks ?? (async () => ({ kind: "closed" }) as const)),

@@ -77,6 +77,10 @@ export async function isTurned(ctx: QueryCtx, member: MemberId, source: ItemSour
   return (await itemOf(ctx, member, source, key))?.turnedAt !== undefined;
 }
 
+export function earnedItemOf(ctx: QueryCtx, member: MemberId, source: ItemSource, key: string): Promise<Doc<"items"> | null> {
+  return itemOf(ctx, member, source, key);
+}
+
 function itemOf(ctx: QueryCtx, member: MemberId, source: ItemSource, key: string): Promise<Doc<"items"> | null> {
   return ctx.db
     .query("items")

@@ -17,7 +17,9 @@ export const rarities: ReadonlyArray<{ rarity: Rarity; weight: number }> = [
   { rarity: "legendary", weight: 2 },
 ];
 
-const labels: Record<Rarity, string> = { common: "⬜ Common", uncommon: "🟩 Uncommon", rare: "🟦 Rare", epic: "🟪 Epic", legendary: "🟧 Legendary" };
+const words: Record<Rarity, string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary" };
+
+const squares: Record<Rarity, string> = { common: "⬜", uncommon: "🟩", rare: "🟦", epic: "🟪", legendary: "🟧" };
 
 const versionOne: Record<Rarity, ReadonlyArray<readonly [hoggie: string, name: string]>> = {
   common: [
@@ -249,16 +251,26 @@ export const catalogue = {
 
 export const firstVersionWithCrests = 2;
 
+export const sparesForged = 3;
+
 export type PackBand = { xp: { least: number; most: number; step: number }; coins: { least: number; most: number }; version: number };
 
 const everyKindsFirstBand: PackBand = { xp: { least: 5, most: 25, step: 5 }, coins: { least: 1, most: 5 }, version: 1 };
 
 const thoughtfulBand: PackBand = { xp: { least: 15, most: 15, step: 5 }, coins: { least: 0, most: 0 }, version: 2 };
 
-export const packBands: Record<CrateKind, PackBand | null> = { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand, thoughtful: thoughtfulBand, level: null, welcome: null, team: null, milestone: null };
+export const packBands: Record<CrateKind, PackBand | null> = { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand, thoughtful: thoughtfulBand, level: null, welcome: null, team: null, milestone: null, forge: null };
 
 export function rarityLabel(rarity: Rarity): string {
-  return labels[rarity];
+  return `${squares[rarity]} ${words[rarity]}`;
+}
+
+export function rarityWord(rarity: Rarity): string {
+  return words[rarity];
+}
+
+export function rarityAbove(rarity: Rarity): Rarity | null {
+  return rarities[rarities.findIndex((entry) => entry.rarity === rarity) + 1]?.rarity ?? null;
 }
 
 export function hoggiesOfRarity(rarity: Rarity): CatalogueHoggie[] {

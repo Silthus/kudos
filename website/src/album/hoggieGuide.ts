@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { rarityAbove, sparesForged } from "../../../convex/hoggies/catalogue";
 import type { Rarity } from "../shell";
 import type { AlbumHoggie, AlbumHoggies, AlbumRarity } from "./answer";
 import { rarityWordOf } from "./opening";
@@ -49,6 +50,20 @@ export function oddsWords(hoggie: AlbumHoggie, answer: AlbumHoggies) {
 export function hoggieLabelOf(hoggie: AlbumHoggie) {
   if (!hoggie.found) return `Not found yet, a ${rarityWordOf(hoggie.rarity).toLowerCase()} hoggie`;
   return `${hoggie.name}, ${rarityWordOf(hoggie.rarity)}, ${copiesWords(hoggie.count)}`;
+}
+
+export type ForgeOffer = { kind: "ready" | "short"; into: Rarity; full: boolean };
+
+export function forgeOfferOf(hoggie: AlbumHoggie, answer: AlbumHoggies): ForgeOffer | null {
+  const into = rarityAbove(hoggie.rarity);
+  if (!hoggie.found || into === null) return null;
+  const full = answer.hoggies.every((other) => other.rarity !== into || other.found);
+  return { kind: hoggie.spares >= sparesForged ? "ready" : "short", into, full };
+}
+
+export function aRarityWordOf(rarity: Rarity) {
+  const word = rarityWordOf(rarity);
+  return `${/^[AEIOU]/.test(word) ? "an" : "a"} ${word}`;
 }
 
 export function hoggieNameShownOf(hoggie: AlbumHoggie) {

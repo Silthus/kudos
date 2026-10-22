@@ -6,11 +6,13 @@ import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { offForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
 import { edit, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text, type RichElement } from "../../testing/slackMessages";
+import { holds } from "../../testing/hoggies";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { quotedCharactersAtMost } from "../feedback/mondayPost";
+import { hoggiesOfRarity } from "../hoggies/catalogue";
 import type { AlbumAnswer } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 
@@ -210,6 +212,19 @@ describe("LP51 LP53 LP54: Share posts a turned win into the weekly-post channel,
     await sharesThe(asAlice, tier);
 
     expect(leadsPosted()).toEqual(["*Alice Marchetti* filled the Product Analytics page and found a legendary Rocket", "*Alice Marchetti* earned the bronze First thank-you medal and found an epic Angel"]);
+  });
+
+  test("a forged hoggie leads with the three copies it was forged from", async () => {
+    await fourMembers([...shareOn, onForEveryone("hoggie-forge")]);
+    const asAlice = await signedIn(alice);
+    await holds(t, await memberOf(alice), "angel", "angel", "angel", "angel", ...hoggiesOfRarity("legendary").flatMap(({ hoggie }) => (hoggie === "rocket" ? [] : [hoggie])));
+    const forged = await asAlice.mutation(api.website.album.forgeHoggie, { hoggie: "angel", request: "share-a-forge" });
+    if (forged.kind !== "forged") throw new Error(`the forge answered ${forged.kind}`);
+    await turns(asAlice, forged.item);
+
+    await sharesThe(asAlice, forged.item);
+
+    expect(leadsPosted()).toEqual(["*Alice Marchetti* forged three copies of Angel and found a legendary Rocket"]);
   });
 });
 

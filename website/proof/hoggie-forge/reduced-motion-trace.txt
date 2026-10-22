@@ -1,0 +1,7 @@
+Reduced motion on the sandbox, 2026-10-22, head d6ce628c. matchMedia("(prefers-reduced-motion: reduce)") stubbed to match in the tab (the preview can't emulate the media feature).
+A MutationObserver logged each data-phase the forge reveal took and each status text, from four Burgers.
+
+t=292743  status "Driving Hogzilla: Epic hoggie"        (left over from the run before)
+t=292953  al-forge data-phase=down                     (the reveal mounted face down; no fuse, no flash)
+t=296907  status "Dadd Ai: Uncommon hoggie · New"      (the click landed the find without the flight)
+landed:   [data-landed] "New No. 069 Dadd Ai Uncommon"

@@ -1,8 +1,10 @@
 import type { QueryCtx } from "../_generated/server";
 import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
+import { teamEmojiOf } from "../album/earnedEmojis";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/hoggies";
 import { peopleHeldBy } from "../album/stickers";
 import { storedHoldersIn, type StoredHolder } from "../companyProfiles/storedFaces";
+import type { PersonTeam } from "../album/personPage";
 import type { Rarity } from "../hoggies/catalogue";
 import { hoggiesShownTo } from "../hoggies/flag";
 import { hoggieSharePictureOf } from "../items/shareArt";
@@ -16,7 +18,9 @@ export type BoardPlace = { rank: number; tied: boolean; thoughtful: number };
 
 export type LevelWay = { level: number; share: number };
 
-export type PersonStats = { way: LevelWay | null; place: BoardPlace | null; hoggies: { found: number; total: number } | null; rarest: CardHoggie[]; people: number; asOf: number };
+export type CardTeam = { name: string; emoji: string | null };
+
+export type PersonStats = { person: MemberId; teams: CardTeam[]; way: LevelWay | null; place: BoardPlace | null; hoggies: { found: number; total: number } | null; rarest: CardHoggie[]; people: number; asOf: number };
 
 export type TeamStats = { place: BoardPlace | null; saidThanks: number; rarest: CardHoggie[]; asOf: number };
 
@@ -53,9 +57,11 @@ async function shownHoggiesOf(ctx: QueryCtx, member: MemberId): Promise<AlbumHog
   return (await hoggiesShownTo(ctx, member)) ? albumHoggiesOf(ctx, member) : null;
 }
 
-export async function personStatsOf(ctx: QueryCtx, { origin, boards, hoggiesOf }: CardReads, person: MemberId, level: number | null): Promise<PersonStats> {
+export async function personStatsOf(ctx: QueryCtx, { workspace, origin, boards, hoggiesOf }: CardReads, person: MemberId, level: number | null, teams: PersonTeam[]): Promise<PersonStats> {
   const hoggies = await hoggiesOf(person);
   return {
+    person,
+    teams: await cardTeamsOf(ctx, workspace, teams),
     way: level === null ? null : await levelWayOf(ctx, person, level),
     place: placeOf((await boards()).people.find(({ member }) => member === person)),
     hoggies: hoggies === null ? null : { found: hoggies.found, total: hoggies.total },
@@ -74,6 +80,15 @@ export async function teamStatsOf(reads: CardReads, team: CompanyTeamRow): Promi
     rarest: cardHoggiesOf(await foundByTheTeam(reads, team), origin),
     asOf: Date.now(),
   };
+}
+
+async function cardTeamsOf(ctx: QueryCtx, workspace: string, teams: PersonTeam[]): Promise<CardTeam[]> {
+  const shown: CardTeam[] = [];
+  for (const { team, name, art } of teams) {
+    const emoji = await teamEmojiOf(ctx, workspace, { team, art });
+    shown.push({ name, emoji: emoji?.inSlack ? emoji.name : null });
+  }
+  return shown;
 }
 
 async function levelWayOf(ctx: QueryCtx, person: MemberId, level: number): Promise<LevelWay> {

@@ -37,6 +37,20 @@ export type ItemTurns = {
   turn: (item: string, from: HTMLElement | null) => void;
 };
 
+export type ItemTurning = { turn: (item: string, from: HTMLElement | null) => void; turned: (item: string) => boolean };
+
+const ItemTurningContext = createContext<ItemTurning>({ turn: () => {}, turned: () => false });
+
+export const ItemTurningProvider = ItemTurningContext.Provider;
+
+export function useItemTurning() {
+  return useContext(ItemTurningContext);
+}
+
+export function itemTurningOf({ turn, turnedThisVisit }: ItemTurns): ItemTurning {
+  return { turn, turned: (item) => turnedThisVisit.some((turned) => turned.item === item) };
+}
+
 const LandingContext = createContext<Landing | null>(null);
 
 export const LandingProvider = LandingContext.Provider;
