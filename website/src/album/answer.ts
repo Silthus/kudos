@@ -12,6 +12,7 @@ import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
 import type { ShareOffers } from "../../../convex/website/itemShare";
+import type { CardEmojisRead, CardWeek, PlayerCard, PlayerCardAnswer, PlayerCardRead as PlayerCardAnswered } from "../../../convex/website/playerCard";
 
 export type AlbumMe = { name: string; face: Face; person: string; team: string | null };
 
@@ -217,30 +218,13 @@ export type XpMomentShown = XpMomentAnswer | Denial | { kind: "connecting" } | {
 
 export type XpMomentRead = (asking: boolean) => XpMomentShown | undefined;
 
-export type CardPlace = { rank: number; tied: boolean; thoughtful: number };
+export type { CardWeek, PlayerCard, PlayerCardAnswer };
 
-export type RarestFind = Omit<FoundHoggie, "firstAt"> & { firstAt: number };
+export type CardEmojis = Extract<CardEmojisRead, { kind: "emojis" }>;
 
-export type CardMedal = { milestone: MilestoneId; tier: MilestoneTierId };
+export type PlayerCardShown = PlayerCardAnswered | Denial | { kind: "connecting" } | { kind: "broken" };
 
-export type PlayerCard = WeekPerson & {
-  team: PersonTeam | null;
-  level: AlbumLevel | null;
-  place: CardPlace | null;
-  people: { held: number; newest: WeekPerson[] };
-  hoggies: { found: number; total: number; rarest: RarestFind | null } | null;
-  medals: { count: number; best: CardMedal[] };
-};
-
-export type CardWeek = { days: number[]; thanked: number; thankedBy: number; packsOpened: number; hugs: number; kudosOfWeek: KudosOfTheWeek | null };
-
-export type PlayerCardAnswer = { kind: "card"; card: PlayerCard; week?: CardWeek };
-
-export type CardEmojis = { kind: "emojis"; count: number; shown: { name: string; picture: string; inSlack: boolean }[] };
-
-export type PlayerCardShown = PlayerCardAnswer | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
-
-export type CardEmojisShown = CardEmojis | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
+export type CardEmojisShown = CardEmojisRead | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type PlayerCardReads = { card: PlayerCardShown | undefined; emojis: CardEmojisShown | undefined };
 

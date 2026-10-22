@@ -252,8 +252,24 @@
 .al-pp-id {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.875rem;
+  column-gap: 0.875rem;
   align-items: center;
+}
+
+.al-pp-share,
+.al-pp-share .al-share {
+  display: contents;
+}
+
+.al-pp-share .al-share-said {
+  grid-column: 1 / -1;
+  margin: 0.5rem 0 0;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+.al-pp-share .al-share-said:empty {
+  margin: 0;
 }
 
 .al-pp-stats {
@@ -437,6 +453,17 @@
   padding: 0.75rem 1rem;
 }
 
+.al-pp-hype {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  padding: 0.75rem 1rem;
+}
+
 .al-pp-together-head {
   display: flex;
   align-items: center;
@@ -607,7 +634,7 @@
     font-size: 1.25rem;
   }
 
-  .al-pp-id .al-pp-share {
+  .al-pp-share button {
     align-self: start;
   }
 
@@ -689,6 +716,7 @@
     grid-column: 2;
   }
 
+  .al-pp .al-pp-hype,
   .al-pp .al-pp-feed {
     grid-column: 1 / -1;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

@@ -140,6 +140,39 @@ describe("LP94 LP95 LP98: getPlayerCard answers one card model for your own page
   });
 });
 
+describe("LP94: a card's medals and place follow the album and the board", { timeout: 120_000 }, () => {
+  test("while hidden-items is on, a medal counts on the card only once its owner has turned its tier, as on their Milestones page", async () => {
+    await switchWebsite(t, postHog, true, "album", "collection", "packs", "xp-levels", "hidden-items", flag);
+    await thanks(bob, why, alice);
+    await opensAndPutsInEveryPack(bob);
+
+    const album = await (await signedIn(bob)).query(api.website.album.getAlbum, {});
+    const held = "milestones" in album ? album.milestones.flatMap(({ tiers }) => tiers.filter(({ earnedAt }) => earnedAt !== null)) : [];
+    const bobsId = await memberOf(bob);
+    const reached = await t.run(async (ctx) => (await ctx.db.query("milestoneTiers").collect()).filter(({ member }) => member === bobsId));
+
+    expect(reached.length).toBeGreaterThan(held.length);
+    expect(await cardOf(dana, bob)).toMatchObject({ kind: "card", card: { medals: { count: held.length } } });
+  });
+
+  test("the card of the last of 1,400 givers this week reads in one query, sharing its place with a giver on equal awards", async () => {
+    const givers = 1400;
+    const last = await t.run(async (ctx) => {
+      const members: MemberId[] = [];
+      for (let n = 1; n <= givers; n += 1) {
+        const member = await ctx.db.insert("members", { workspace: "T1", user: `U${n}`, kind: "member", asOf: 0, name: `Giver ${n}` });
+        await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "week:2026-10-12", giver: member, awards: Math.max(2, n) });
+        members.push(member);
+      }
+      return members[0]!;
+    });
+
+    const answer = await (await signedIn(alice)).query(api.website.playerCard.getPlayerCard, { person: last });
+
+    expect(answer).toMatchObject({ kind: "card", card: { place: { rank: givers - 1, tied: true, thoughtful: 2 } } });
+  });
+});
+
 describe("LP94: getPlayerCardEmojis counts a person's emojis unlocked in a read of its own", { timeout: 120_000 }, () => {
   test("the count is the album Emojis tab's earned count for its owner, and the stack shows their pictures", async () => {
     await thanks(bob, why, alice);

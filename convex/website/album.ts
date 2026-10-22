@@ -405,7 +405,7 @@ async function meIn(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumAnswer["me"
   return { name: me.name ?? nameless, face: await storedFaceOf(ctx, me), person: me.member };
 }
 
-async function levelOf(ctx: QueryCtx, member: MemberId): Promise<AlbumAnswer["level"]> {
+export async function levelOf(ctx: QueryCtx, member: MemberId): Promise<AlbumAnswer["level"]> {
   const { level, xp } = await progressionHomeOf(ctx, member);
   return { level, xp, startsAt: xpToReach(level), nextAt: xpToReach(level + 1) };
 }
