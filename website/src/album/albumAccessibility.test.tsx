@@ -10,6 +10,7 @@ import { albumFixtures, fixedAlbum, fixedPeople, fixturePackOpeningOf, fixturePu
 import type { BoardsShown, HoggiesShown, MyAlbum, WeekShown } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
+import { fixedPlayerCards } from "./playerCardFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
@@ -167,6 +168,26 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
 
       expect(await violationsIn(container)).toEqual([]);
     }, 30_000);
+  }
+});
+
+describe("LP93: person page D passes axe in light and dark, wide and on a phone", () => {
+  const withPageD = { ...albumFixtures.midway, personPageD: true, linkPreviews: true } as const;
+  for (const dark of [false, true]) {
+    for (const wide of [true, false]) {
+      for (const path of ["/book#me", "/book#people/wren-alder", "/book#people/milo-strand"]) {
+        it(`${path} in ${dark ? "dark" : "light"}, ${wide ? "wide" : "on a phone"}`, async () => {
+          fakeSystemTheme(dark);
+          if (wide) preferWideScreen();
+          else aWideScreenThatNarrows().narrow();
+          window.history.replaceState(null, "", path);
+          const { container } = renderAlbum(memberWithTheAlbum, fixedAlbum(withPageD), { playerCards: fixedPlayerCards(), weeks: fixtureWeeks(), people: fixedPeople(withPageD) });
+          await screen.findByRole("region", { name: /card$/ }, { timeout: 10_000 });
+
+          expect(await violationsIn(container)).toEqual([]);
+        }, 30_000);
+      }
+    }
   }
 });
 

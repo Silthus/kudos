@@ -648,7 +648,7 @@ describe("LP88: rich link cards are behind rich-link-cards", { timeout: 30_000 }
 const cardImageFlag = "card-image";
 const cardImageFlags = [...richFlags, cardImageFlag];
 
-describe("LP93 LP94: while card-image is on, a person link unfolds into a picture of their player card", { timeout: 60_000 }, () => {
+describe("LP99 LP100: while card-image is on, a person link unfolds into a picture of their player card", { timeout: 60_000 }, () => {
   test("the unfold is the stored picture, its facts in the alt text, and one line with the page link and the day", async () => {
     const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
     const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
@@ -693,7 +693,7 @@ describe("LP93 LP94: while card-image is on, a person link unfolds into a pictur
   });
 });
 
-describe("LP95: a picture is drawn once per card", { timeout: 60_000 }, () => {
+describe("LP101: a picture is drawn once per card", { timeout: 60_000 }, () => {
   test("the same card shared again reuses its stored picture", async () => {
     const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");
@@ -723,7 +723,7 @@ describe("LP95: a picture is drawn once per card", { timeout: 60_000 }, () => {
   });
 });
 
-describe("LP96: a picture that can't be drawn gives way to the card", { timeout: 60_000 }, () => {
+describe("LP102: a picture that can't be drawn gives way to the card", { timeout: 60_000 }, () => {
   test("when drawing fails, the link unfolds into the rich card and nothing is stored", async () => {
     const { Resvg } = await import("@resvg/resvg-js");
     vi.spyOn(Resvg.prototype, "render").mockImplementation(() => {
@@ -757,7 +757,7 @@ describe("LP96: a picture that can't be drawn gives way to the card", { timeout:
   });
 });
 
-describe("LP97: the card picture is behind card-image", { timeout: 60_000 }, () => {
+describe("LP103: the card picture is behind card-image", { timeout: 60_000 }, () => {
   test("while the flag is off, a person with everything to brag about unfolds into today's rich card and nothing is drawn", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");

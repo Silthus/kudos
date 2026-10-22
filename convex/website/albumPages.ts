@@ -9,6 +9,7 @@ import { weekEditionOf, type Issue, type WeekTab } from "../album/weekIssue";
 import type { WeekKudos, WeekKudosList } from "../album/weekKudos";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { givenFactsOf } from "../engine/awards";
+import { publicThoughtfulKudosOf } from "../engine/spotlight";
 import type { DayKey } from "../engine/allowance";
 import type { MessageRef } from "../engine/messageEvent";
 import { profileLinkOf } from "../slack/permalink";
@@ -123,6 +124,11 @@ async function issueShown(ctx: QueryCtx, workspace: string, { kudosOfWeek, thank
   };
 }
 
+export async function publicKudosOfTheWeekShown(ctx: QueryCtx, workspace: string, pick: NonNullable<Issue["kudosOfWeek"]>): Promise<AlbumIssue["kudosOfWeek"]> {
+  if ((await publicThoughtfulKudosOf(ctx, pick.message)) === null) return null;
+  return kudosOfTheWeekShown(ctx, workspace, mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked"), pick);
+}
+
 async function kudosOfTheWeekShown(ctx: QueryCtx, workspace: string, mentions: Mentions, { message, hugs, at }: NonNullable<Issue["kudosOfWeek"]>): Promise<AlbumIssue["kudosOfWeek"]> {
   const given = await givenFactsOf(ctx, message);
   if (given === null) return null;
@@ -137,7 +143,7 @@ async function kudosShown(ctx: QueryCtx, mentions: Mentions, message: MessageRef
   return { message: await kudosWordsOf(ctx, mentions, message), permalink: await permalinkOfMessage(ctx, message), at };
 }
 
-async function faceIn(ctx: QueryCtx, workspace: string, person: MemberId): Promise<AlbumPersonFace> {
+export async function faceIn(ctx: QueryCtx, workspace: string, person: MemberId): Promise<AlbumPersonFace> {
   const { name, picture } = await nameAndPictureOf(ctx, person);
   return { person, ...companyTeammateOf(name, picture, (await storedCompanyFaceOf(ctx, workspace, person)) ?? null) };
 }

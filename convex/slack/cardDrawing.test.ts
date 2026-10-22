@@ -29,7 +29,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("LP93: the player card is drawn as a PNG", { timeout: 60_000 }, () => {
+describe("LP99: the player card is drawn as a PNG", { timeout: 60_000 }, () => {
   test.each([
     ["a rich member", richMember],
     ["a quiet member", quietMember],
@@ -58,7 +58,7 @@ describe("LP93: the player card is drawn as a PNG", { timeout: 60_000 }, () => {
   });
 });
 
-describe("LP95: a card's key is a hash of its facts", () => {
+describe("LP101: a card's key is a hash of its facts", () => {
   test("the same facts give the same key", async () => {
     expect(await cardKeyOf({ ...richMember })).toBe(await cardKeyOf(richMember));
     expect(await cardKeyOf(richMember)).toMatch(/^[0-9a-f]{64}$/);
