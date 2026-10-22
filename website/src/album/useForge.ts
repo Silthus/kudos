@@ -1,10 +1,9 @@
 import { useCallback, useRef, useState } from "react";
-import type { Drop } from "../../../convex/hoggies/drops";
 import type { ForgeReply } from "./answer";
 
 export type ForgeProblem = "refused" | "unreachable";
 
-export type Forged = { from: string; drop: Drop };
+export type Forged = { from: string; item: string };
 
 export type SendForge = (hoggie: string, request: string) => Promise<ForgeReply>;
 
@@ -27,7 +26,7 @@ export function useForge(sendForge: SendForge): Forging {
       sendForge(hoggie, request)
         .then((reply) => {
           unanswered.current.delete(hoggie);
-          if (reply.kind === "forged") setReveals((waiting) => withEntry(waiting, hoggie, { from: hoggie, drop: reply.drop }));
+          if (reply.kind === "forged") setReveals((waiting) => withEntry(waiting, hoggie, { from: hoggie, item: reply.item }));
           else setProblems((shown) => withEntry(shown, hoggie, "refused"));
         })
         .catch(() => setProblems((shown) => withEntry(shown, hoggie, "unreachable")))

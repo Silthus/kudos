@@ -52,13 +52,13 @@ export function hoggieLabelOf(hoggie: AlbumHoggie) {
   return `${hoggie.name}, ${rarityWordOf(hoggie.rarity)}, ${copiesWords(hoggie.count)}`;
 }
 
-export type ForgeOffer = { kind: "ready" | "short" | "full"; into: Rarity };
+export type ForgeOffer = { kind: "ready" | "short"; into: Rarity; full: boolean };
 
 export function forgeOfferOf(hoggie: AlbumHoggie, answer: AlbumHoggies): ForgeOffer | null {
   const into = rarityAbove(hoggie.rarity);
   if (!hoggie.found || into === null) return null;
-  if (answer.hoggies.every((other) => other.rarity !== into || other.found)) return { kind: "full", into };
-  return { kind: hoggie.spares >= sparesForged ? "ready" : "short", into };
+  const full = answer.hoggies.every((other) => other.rarity !== into || other.found);
+  return { kind: hoggie.spares >= sparesForged ? "ready" : "short", into, full };
 }
 
 export function aRarityWordOf(rarity: Rarity) {

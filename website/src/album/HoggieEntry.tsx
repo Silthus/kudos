@@ -1,4 +1,5 @@
 import { IconX } from "@posthog/icons";
+import { rarityAbove } from "../../../convex/hoggies/catalogue";
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 import type { AlbumHoggie, AlbumHoggies } from "./answer";
 import { keepFocusIn } from "./focusTrap";
@@ -8,6 +9,7 @@ import { copiesWords, hoggieNameShownOf, numberOf, oddsWords, rarityTintOf } fro
 import { rarityWordOf } from "./opening";
 import { dateOf } from "./teamPage";
 import type { Forged, Forging } from "./useForge";
+import { useItemTurning, type ItemTurning } from "./useItemBoard";
 import type { PetPicking, PetProblem } from "./usePetPick";
 
 type EntryProps = { hoggie: AlbumHoggie; answer: AlbumHoggies; picking: PetPicking | null; forging: Forging | null; steps: AlbumHoggie[]; onStep: (hoggie: AlbumHoggie) => void; onClose: () => void };
@@ -16,8 +18,11 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   const title = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useFocusWhileOpen(hoggie);
-  const forged = forging?.reveals[hoggie.hoggie] ?? null;
-  const revealing = forged !== null;
+  const turning = useItemTurning();
+  const waiting = forging?.reveals[hoggie.hoggie] ?? null;
+  const forged = waiting !== null && !turning.turned(waiting.item) ? waiting : null;
+  const into = rarityAbove(hoggie.rarity);
+  const revealing = forged !== null && into !== null;
   const stepBy = (by: number) => onStep(neighbourOf(hoggie, steps, by));
   const keys: Record<string, () => void> = { Escape: onClose, ArrowLeft: () => stepBy(-1), ArrowRight: () => stepBy(1) };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -52,7 +57,7 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
             {forging !== null && <ForgeOfferLine hoggie={hoggie} answer={answer} forging={forging} />}
           </div>
         </div>
-        {forging !== null && forged !== null && <ForgeReveal forged={forged} onEnd={() => endTheForge(forging, forged, answer, onStep)} />}
+        {forging !== null && forged !== null && into !== null && <ForgeReveal forged={forged} into={into} onTurn={(card) => turnTheForged(forging, forged, turning, card)} onLater={() => forging.done(forged.from)} />}
         <div className="al-entry-steps" inert={revealing}>
           <button type="button" className="al-entry-step" onClick={() => stepBy(-1)}>
             <span aria-hidden="true">←</span> Previous
@@ -67,10 +72,9 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   );
 }
 
-function endTheForge(forging: Forging, { from, drop }: Forged, answer: AlbumHoggies, onStep: (hoggie: AlbumHoggie) => void) {
-  const forgedEntry = answer.hoggies.find(({ hoggie }) => hoggie === drop.hoggie);
+function turnTheForged(forging: Forging, { from, item }: Forged, turning: ItemTurning, card: HTMLElement) {
+  turning.turn(item, card);
   forging.done(from);
-  if (forgedEntry !== undefined) onStep(forgedEntry);
 }
 
 function FoundFacts({ hoggie, answer }: { hoggie: AlbumHoggie; answer: AlbumHoggies }) {

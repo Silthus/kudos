@@ -99,6 +99,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         missedXpMoment={visit.missed}
         shareItem={actions.shareItem}
         closeHowItWorks={actions.closeHowItWorks}
+        forgeOnScreen={{ sending: forging.sending !== null, item: place.kind === "hoggies" && place.hoggie !== null ? (forging.reveals[place.hoggie]?.item ?? null) : null }}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>

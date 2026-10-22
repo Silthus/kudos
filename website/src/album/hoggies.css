@@ -770,7 +770,6 @@ button.al-hoggies-note .al-hoggie-art {
   border-radius: inherit;
   background: color-mix(in oklab, var(--card) 94%, var(--al-rarity));
   padding: 1.5rem;
-  cursor: pointer;
 }
 
 .al-forge:focus-visible {
@@ -787,8 +786,7 @@ button.al-hoggies-note .al-hoggie-art {
 }
 
 .al-forge-copy,
-.al-forge-flash,
-.al-forge-result {
+.al-forge-flash {
   position: absolute;
   inset: 0;
   display: grid;
@@ -805,11 +803,13 @@ button.al-hoggies-note .al-hoggie-art {
   opacity: 0;
 }
 
-.al-forge-result {
-  border-radius: 999px;
-  background: radial-gradient(circle, color-mix(in oklab, var(--al-rarity) 30%, transparent), transparent 70%);
-  padding: 1rem;
-  opacity: 0;
+.al-forge-card.ib-item {
+  position: absolute;
+  inset: 2.5rem;
+  width: auto;
+  height: auto;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.5rem color-mix(in oklab, var(--al-rarity) 28%, transparent);
 }
 
 .al-forge-caption {
@@ -821,13 +821,11 @@ button.al-hoggies-note .al-hoggie-art {
   opacity: 0;
 }
 
-.al-forge[data-phase="shown"] .al-forge-copy,
-.al-forge[data-phase="burst"] .al-forge-copy {
+.al-forge[data-phase="down"] .al-forge-copy {
   opacity: 0;
 }
 
-.al-forge[data-phase="shown"] .al-forge-result,
-.al-forge[data-phase="shown"] .al-forge-caption {
+.al-forge[data-phase="down"] .al-forge-caption {
   opacity: 1;
 }
 
@@ -852,11 +850,11 @@ button.al-hoggies-note .al-hoggie-art {
     animation: al-forge-flash 0.2s ease-out both;
   }
 
-  .al-forge[data-phase="burst"] .al-forge-result {
-    animation: al-forge-burst 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  .al-forge[data-phase="down"] .al-forge-card {
+    animation: al-forge-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   }
 
-  .al-forge[data-phase="burst"] .al-forge-caption {
+  .al-forge[data-phase="down"] .al-forge-caption {
     animation: al-forge-caption 0.35s ease-out 0.35s both;
   }
 }
@@ -902,7 +900,7 @@ button.al-hoggies-note .al-hoggie-art {
   }
 }
 
-@keyframes al-forge-burst {
+@keyframes al-forge-pop {
   from {
     opacity: 0;
     transform: scale(0.3) rotate(-20deg);
