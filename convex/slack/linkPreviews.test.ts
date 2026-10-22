@@ -432,6 +432,21 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     expect(blocksOf(url)[1]).toEqual({ type: "section", fields: [{ type: "mrkdwn", text: "🔓 *4* emojis unlocked" }] });
   });
 
+  test("a random drop counts while its Slack emoji is there, as in the album, and not once Slack has removed it", async () => {
+    const t = await workspace({ flags: [...richFlags, "random-emojis"].map(onForEveryone) });
+    const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
+    await t.run(async (ctx) => {
+      const pack = await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: juno, recipient: bram, week: "2026-10-19", message: { workspace: "T1", conversation: "C1", message: "1760000000.000100" }, holdsSticker: false, at: Date.now() });
+      await ctx.db.insert("customEmoji", { workspace: "T1", name: "party-parrot", image: "https://emoji.slack-edge.com/T1/party-parrot/1.png", listing: 1 });
+      for (const name of ["party-parrot", "removed-from-slack"]) await ctx.db.insert("randomEmojiDrops", { member: juno, name, pack, at: Date.now() });
+    });
+    const url = `${site}/book#people/${juno}`;
+
+    await shared(t, [url]);
+
+    expect(blocksOf(url)[1]).toEqual({ type: "section", fields: [{ type: "mrkdwn", text: "🔓 *1* emoji unlocked" }] });
+  });
+
   test("an emoji the album can't name yet isn't counted", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");
@@ -526,14 +541,15 @@ describe("LP84 LP85: a rich card stays within Convex's limits", { timeout: 120_0
 });
 
 describe("LP84: a person card's emoji count stays within Convex's limits", { timeout: 120_000 }, () => {
-  test("a message linking six people who each unlocked hundreds of emojis counts them for five and unfolds every card under Convex's transaction limits", async () => {
+  test("a message linking three people who each unlocked hundreds of emojis, beside a big leaderboard, counts them for two and unfolds every card under Convex's transaction limits", async () => {
     const t = await workspace({ flags: [...richFlags, "hidden-items", "random-emojis"].map(onForEveryone), transactionLimits: true });
-    const givers = await peopleWhoUnlockedEveryHype(t, 6, 200);
+    await teamWithEveryHoggie(t, "big-team", 220);
+    const givers = await peopleWhoUnlockedEveryHype(t, 3, 500, 200);
     const links = givers.map((giver) => `${site}/book#people/${giver}`);
 
     await shared(t, links);
 
-    expect(links.map((link) => JSON.stringify(blocksOf(link)).match(/\*(\d+)\* emojis unlocked/)?.[1] ?? null)).toEqual(["400", "400", "400", "400", "400", null]);
+    expect(links.map((link) => JSON.stringify(blocksOf(link)).match(/\*(\d+)\* emojis unlocked/)?.[1] ?? null)).toEqual(["400", "400", null]);
   });
 });
 
@@ -725,7 +741,7 @@ async function collected(t: Backend, member: MemberId, ...people: MemberId[]) {
   });
 }
 
-async function peopleWhoUnlockedEveryHype(t: Backend, givers: number, people: number): Promise<MemberId[]> {
+async function peopleWhoUnlockedEveryHype(t: Backend, givers: number, people: number, drops: number): Promise<MemberId[]> {
   return t.run(async (ctx) => {
     const recipients: MemberId[] = [];
     for (let index = 0; index < people; index += 1) {
@@ -733,13 +749,14 @@ async function peopleWhoUnlockedEveryHype(t: Backend, givers: number, people: nu
       await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person: recipient, name: `thanked-${index}-hype` });
       recipients.push(recipient);
     }
+    for (let drop = 0; drop < drops; drop += 1) await ctx.db.insert("customEmoji", { workspace: "T1", name: `drop-${drop}`, image: `https://emoji.slack-edge.com/T1/drop-${drop}/1.png`, listing: 1 });
     const message = { workspace: "T1", conversation: "C1", message: "1760000000.000100" };
     const unlocked: MemberId[] = [];
     for (let index = 0; index < givers; index += 1) {
       const giver = await ctx.db.insert("members", { workspace: "T1", user: `U_GIVER${index}`, kind: "member", name: `Giver ${index}` });
       for (const [drop, recipient] of recipients.entries()) {
         const pack = await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver, recipient, week: "2026-10-19", message, holdsSticker: false, at: Date.now() });
-        await ctx.db.insert("randomEmojiDrops", { member: giver, name: `drop-${drop}`, pack, at: Date.now() });
+        if (drop < drops) await ctx.db.insert("randomEmojiDrops", { member: giver, name: `drop-${drop}`, pack, at: Date.now() });
       }
       unlocked.push(giver);
     }

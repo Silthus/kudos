@@ -41,7 +41,7 @@ const mostPictures = 9;
 
 const mostCollectionsReadPerMessage = 20;
 
-const mostEmojiCountsPerMessage = 5;
+const mostEmojiCountsPerMessage = 2;
 
 export function cardReadsOf(ctx: QueryCtx, workspace: string, origin: string): CardReads {
   let boards: Promise<AllTimeBoards> | undefined;
