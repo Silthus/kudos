@@ -78,6 +78,15 @@ describe("AL27: earned emoji art is built as static PNGs under fixed catalogue p
   });
 });
 
+describe("LP87: every hoggie's picture is a public PNG Slack can fetch for a link card", () => {
+  test("the build holds a PNG for every hoggie of the catalogue at its share path", { timeout: buildTimeout }, async () => {
+    const { sharePictures } = await productionBuild();
+
+    expect([...sharePictures.keys()].toSorted()).toEqual(hoggieCatalogue.hoggies.map(({ hoggie }) => `/share/${hoggie}.png`).toSorted());
+    expect([...sharePictures].filter(([, png]) => !isPng(png)).map(([path]) => path)).toEqual([]);
+  });
+});
+
 function isPng(png: Uint8Array) {
   return pngSignature.every((byte, index) => png[index] === byte);
 }
@@ -87,7 +96,7 @@ function sizeOf(png: Uint8Array) {
   return { width: header.getUint32(0), height: header.getUint32(4) };
 }
 
-type ProductionBuild = { chunks: Rolldown.OutputChunk[]; stylesheets: Map<string, string>; emojiPictures: Map<string, Uint8Array> };
+type ProductionBuild = { chunks: Rolldown.OutputChunk[]; stylesheets: Map<string, string>; emojiPictures: Map<string, Uint8Array>; sharePictures: Map<string, Uint8Array> };
 
 let built: Promise<ProductionBuild> | undefined;
 
@@ -105,8 +114,13 @@ async function buildForProduction(): Promise<ProductionBuild> {
   return {
     chunks: files.filter((file): file is Rolldown.OutputChunk => file.type === "chunk"),
     stylesheets: new Map(files.filter((file): file is Rolldown.OutputAsset => file.type === "asset" && file.fileName.endsWith(".css")).map((file) => [file.fileName, String(file.source)])),
-    emojiPictures: new Map(files.filter((file): file is Rolldown.OutputAsset => file.type === "asset" && file.fileName.startsWith("emoji/")).map((file) => [`/${file.fileName}`, bytesOf(file.source)])),
+    emojiPictures: picturesUnder(files, "emoji/"),
+    sharePictures: picturesUnder(files, "share/"),
   };
+}
+
+function picturesUnder(files: Array<Rolldown.OutputChunk | Rolldown.OutputAsset>, folder: string) {
+  return new Map(files.filter((file): file is Rolldown.OutputAsset => file.type === "asset" && file.fileName.startsWith(folder)).map((file) => [`/${file.fileName}`, bytesOf(file.source)]));
 }
 
 function firstLoadOf(chunks: Rolldown.OutputChunk[]): Rolldown.OutputChunk[] {
