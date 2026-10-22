@@ -69,7 +69,7 @@ function rankWords(facts: Facts) {
   return `No. ${facts.rank.rank}${facts.rank.tied ? " tied" : ""}`;
 }
 
-function Title({ name, className }: { name: string; className: string }) {
+export function Title({ name, className }: { name: string; className: string }) {
   return (
     <PageTitle tab="Profile">
       <span className={`ph-no-capture ${className}`}>{name}</span>
@@ -77,16 +77,16 @@ function Title({ name, className }: { name: string; className: string }) {
   );
 }
 
-function HoggieImage({ slug }: { slug: string }) {
+export function HoggieImage({ slug }: { slug: string }) {
   const picture = hoggiePictureOf({ kind: "hoggie", slug });
   return picture === undefined ? null : <img src={picture} alt="" draggable={false} />;
 }
 
-function rarityStyle(rarity: string): CSSProperties {
+export function rarityStyle(rarity: string): CSSProperties {
   return { "--pp-rarity": `var(--rarity-${rarity})` } as CSSProperties;
 }
 
-function Bar({ share, className = "" }: { share: number; className?: string }) {
+export function Bar({ share, className = "" }: { share: number; className?: string }) {
   return (
     <span className={`pp-bar-track ${className}`} aria-hidden="true">
       <span className="pp-bar-fill" style={{ width: `${Math.max(3, Math.min(1, share) * 100)}%` }} />
@@ -94,7 +94,7 @@ function Bar({ share, className = "" }: { share: number; className?: string }) {
   );
 }
 
-function TeamLine({ team }: { team: AlbumTeam | undefined }) {
+export function TeamLine({ team }: { team: AlbumTeam | undefined }) {
   if (team === undefined) return <span className="pp-quiet">No team yet</span>;
   return (
     <AppLink href={hrefOf({ kind: "team", team: team.team })} className="pp-team">
@@ -358,7 +358,7 @@ function plainOf(note: KindNote) {
   return message.segments.map((segment) => ("text" in segment ? segment.text : "")).join("");
 }
 
-function LevelRing({ share, level, children }: { share: number; level: number; children: ReactNode }) {
+export function LevelRing({ share, level, children }: { share: number; level: number; children: ReactNode }) {
   const radius = 54;
   const length = 2 * Math.PI * radius;
   return (

@@ -20,6 +20,10 @@ import { LandedHype } from "./ItemBoard";
 import { OwnHypePick, type HypePicker } from "./OwnHypePick";
 import { NewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
+import { isMix, isPrototypeShell, prototypeMember, useVariant } from "./prototype/personPagePrototype";
+import { MixVariant } from "./prototype/MixVariants";
+import { visitPageOf } from "./prototype/mixPages";
+import { prototypeWeekOf, visitedHoggies, visitedLevel, visitedPetOf } from "./prototype/prototypeFixtures";
 
 type HypeShown = Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">;
 
@@ -29,7 +33,14 @@ export function PersonAnswerPage({ shown, album, picker, ...answers }: PersonAns
   if (shown === undefined) return <LoadingPage shape="column" />;
   if (shown.kind === "no-person" || shown.kind === "off") return <NotFoundPage />;
   if (shown.kind !== "person") return <AnswerPage answer={shown} {...answers} />;
+  if (isPrototypeShell) return <PrototypePerson album={album} person={shown} picker={picker} />;
   return <PersonPage album={album} person={shown} picker={picker} />;
+}
+
+function PrototypePerson({ album, person, picker }: { album: Album; person: Person; picker: HypePicker }) {
+  const variant = useVariant();
+  if (!isMix(variant)) return <PersonPage album={album} person={person} picker={picker} />;
+  return <MixVariant layout={variant} album={album} page={visitPageOf({ album, person, hoggies: visitedHoggies, week: prototypeWeekOf(prototypeMember), level: visitedLevel, pet: visitedPetOf(person.person) })} />;
 }
 
 export function isWaitingForThePerson(shown: PersonShown | undefined) {

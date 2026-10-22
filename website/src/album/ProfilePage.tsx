@@ -20,8 +20,11 @@ import { dateOf } from "./teamPage";
 import { ShareLink } from "./ShareLink";
 import "./team.css";
 import "./profile.css";
-import { isPrototypeShell, useVariant } from "./prototype/personPagePrototype";
+import { isMix, isPrototypeShell, prototypeMember, useVariant } from "./prototype/personPagePrototype";
 import { ProfileVariant } from "./prototype/ProfileVariants";
+import { MixVariant } from "./prototype/MixVariants";
+import { ownPageOf } from "./prototype/mixPages";
+import { prototypeWeekOf } from "./prototype/prototypeFixtures";
 
 type ProfileAnswerProps = { album: Album; profile: ProfileShown | undefined; boards: BoardsShown | undefined; hoggies: HoggiesShown | undefined; onSignIn: () => void; onSignOut: () => void };
 
@@ -42,6 +45,7 @@ export function ProfileAnswerPage({ album, profile, boards, hoggies, ...answers 
 function PrototypeProfile({ album, answered }: { album: Album; answered: Answered }) {
   const variant = useVariant();
   if (variant === "now") return <ProfilePage album={album} profile={answered.profile} standing={standingOf(answered.boards, myTeamOf(album)?.team ?? null)} hoggies={answered.hoggies} />;
+  if (isMix(variant)) return <MixVariant layout={variant} album={album} page={ownPageOf({ album, ...answered, week: prototypeWeekOf(prototypeMember) })} />;
   return <ProfileVariant variant={variant} album={album} profile={answered.profile} boards={answered.boards} hoggies={answered.hoggies} />;
 }
 

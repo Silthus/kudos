@@ -1248,3 +1248,17 @@
   color: #fff;
   font-size: 0.75rem;
 }
+
+@media (max-width: 47.99rem) {
+  .pp-bar-label {
+    min-width: 0;
+  }
+
+  .pp-bar-name {
+    display: none;
+  }
+
+  .pp-bar-select {
+    max-width: 7.5rem;
+  }
+}

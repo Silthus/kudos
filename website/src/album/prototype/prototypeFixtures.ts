@@ -1,10 +1,11 @@
 // PROTOTYPE fixtures: one rich and one quiet made-up member for the person-page variants.
 import type { AppReads } from "../../App";
 import { albumFixtures, fixedAlbum } from "../albumFixtures";
-import type { Album, ThoughtfulBoards } from "../answer";
+import type { Album, AlbumLevel, AlbumPet, AlbumWeek, ThoughtfulBoards } from "../answer";
 import { boardsFixtures, fixedBoards } from "../boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "../hoggiesFixtures";
 import { fixedProfile, profileFixtures } from "../profileFixtures";
+import { weekFixtures } from "../weekFixtures";
 import type { PrototypeMember } from "./personPagePrototype";
 
 const started = albumFixtures.started;
@@ -42,4 +43,16 @@ const quietBoards: ThoughtfulBoards = { ...boardsFixtures.quiet, pinned: { me: b
 export function prototypeReadsOf(member: PrototypeMember): Pick<AppReads, "useAlbum" | "useThoughtfulBoards" | "useAlbumProfile" | "useAlbumHoggies"> {
   if (member === "quiet") return { useAlbum: fixedAlbum(quiet), useThoughtfulBoards: fixedBoards(quietBoards), useAlbumProfile: fixedProfile(profileFixtures.quiet), useAlbumHoggies: fixedHoggies(hoggiesFixtures.newcomer) };
   return { useAlbum: fixedAlbum(rich), useThoughtfulBoards: fixedBoards(richBoards), useAlbumProfile: fixedProfile(profileFixtures.noted), useAlbumHoggies: fixedHoggies(hoggiesFixtures.midway) };
+}
+
+export function prototypeWeekOf(member: PrototypeMember): AlbumWeek {
+  return member === "quiet" ? weekFixtures.noHistory : weekFixtures.full;
+}
+
+export const visitedHoggies = hoggiesFixtures.midway;
+
+export const visitedLevel: AlbumLevel = { level: 8, xp: 2310, startsAt: 2100, nextAt: 2800 };
+
+export function visitedPetOf(person: string): AlbumPet {
+  return { person: person as never, hoggie: "banana", name: "Banana", rarity: "common" };
 }
