@@ -134,7 +134,7 @@ function launchedFlight(item: TrayItem, to: Slot, tray: HTMLElement | null): Fli
 }
 
 function slotElementOf(slot: Slot): Element | null {
-  return shownOrNull(document.querySelector(`[data-slot="${CSS.escape(slot)}"]`)) ?? shownOrNull(document.querySelector(".al-side-toggle")) ?? document.querySelector(".al-brand");
+  return shownOrNull(document.querySelector(`[data-slot="${CSS.escape(slot)}"]`)) ?? shownOrNull(document.querySelector(".al-burger")) ?? document.querySelector(".al-brand");
 }
 
 function shownOrNull(element: Element | null) {

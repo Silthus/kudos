@@ -425,29 +425,28 @@
   padding: 1rem 0.875rem;
 }
 
-.al-side-toggle {
-  display: flex;
-  width: 100%;
-  min-height: 2.75rem;
-  align-items: center;
-  justify-content: space-between;
-  border: 0;
-  background: transparent;
-  padding: 0 1rem;
-  color: inherit;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
+.al-drawer {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  z-index: 50;
+  width: min(20rem, calc(100% - 3.5rem));
+  height: calc(100dvh - 100% - 1px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--border);
+  background: var(--chrome, var(--background));
+  box-shadow: 12px 0 32px rgb(0 0 0 / 0.18);
 }
 
-.al-side-toggle svg {
-  width: 1rem;
-  height: 1rem;
-  transition: transform 160ms ease-out;
-}
-
-.al-side[data-open] .al-side-toggle svg {
-  transform: rotate(180deg);
+.al-drawer-backdrop {
+  position: absolute;
+  top: calc(100% + 1px);
+  right: 0;
+  left: 0;
+  z-index: 50;
+  height: calc(100dvh - 100% - 1px);
+  background: rgb(0 0 0 / 0.4);
 }
 
 .al-search {
@@ -816,19 +815,6 @@
     flex-direction: column;
   }
 
-  .al-side {
-    position: static;
-    width: auto;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .al-side-panel {
-    min-height: 0;
-    padding-top: 0;
-  }
-
   .al-main {
     padding: 1rem 1rem 3rem;
   }
@@ -849,9 +835,27 @@
   .al-opens-out {
     transition-duration: 0s;
   }
+}
 
-  .al-side-toggle svg {
-    transition: none;
+@media (prefers-reduced-motion: no-preference) {
+  .al-drawer {
+    animation: al-drawer-in 180ms ease-out;
+  }
+
+  .al-drawer-backdrop {
+    animation: al-backdrop-in 180ms ease-out;
+  }
+}
+
+@keyframes al-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes al-backdrop-in {
+  from {
+    opacity: 0;
   }
 }
 
@@ -924,6 +928,13 @@
 .al-period-switch button[aria-pressed="true"] {
   background: var(--foreground);
   color: var(--card);
+}
+
+@media (max-width: 23rem) {
+  .al-top {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
 }
 
 @media (max-width: 22rem) {

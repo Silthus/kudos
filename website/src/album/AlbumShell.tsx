@@ -128,7 +128,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
         {puttingIn.said}
       </p>
       <div className="al-body" inert={playing || covered}>
-        <Sidebar album={landed} place={place} wide={wide} />
+        {wide && <Sidebar album={landed} place={place} />}
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
