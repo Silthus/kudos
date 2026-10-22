@@ -264,6 +264,8 @@
 .al-pp-share .al-share-said {
   grid-column: 1 / -1;
   margin: 0.5rem 0 0;
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
 }
 
 .al-pp-share .al-share-said:empty {
