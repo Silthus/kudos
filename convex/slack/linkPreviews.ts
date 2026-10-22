@@ -1,10 +1,11 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { medalText } from "../feedback/profileCard";
 import { productName } from "../feedback/naming";
-import { rarityLabel } from "../hoggies/catalogue";
-import type { BoardPlace, CardHoggie, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
+import { rarityWord } from "../hoggies/catalogue";
+import type { BoardPlace, CardHoggie, CardTeam, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
 import type { LinkPreview, PersonPreview, TeamPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn } from "./blocks";
 import { textOf } from "./directory";
@@ -25,7 +26,9 @@ export const unfoldLinks = observedAction({
   handler: async (ctx, { workspace, sharer, links, channel, ts, sharedOutside, attempt = 1 }) => {
     const previews = await ctx.runQuery(internal.website.linkPreviews.linkPreviewsOf, { workspace, sharer, links });
     if (previews.length === 0 || (sharedOutside === "unsaid" && !(await isUnshared(channel)))) return;
-    const answer = await callSlack("chat.unfurl", { channel, ts, unfurls: Object.fromEntries(previews.map((preview) => [preview.url, { blocks: cardBlocksOf(preview) }])) });
+    const unfurls: Record<string, { blocks: unknown[] }> = {};
+    for (const preview of previews) unfurls[preview.url] = { blocks: cardBlocksOf(preview, await emojisUnlockedOn(ctx, workspace, preview)) };
+    const answer = await callSlack("chat.unfurl", { channel, ts, unfurls });
     if (answer.ok) return;
     if (answer.error === "ratelimited") {
       const next = nextRateLimitedAttempt(attempt, "chat.unfurl");
@@ -63,18 +66,28 @@ function linksOf(links: unknown): string[] {
   });
 }
 
-const barSquares = 10;
+const barSegments = 10;
 
-export function cardBlocksOf(preview: LinkPreview) {
-  if (preview.stats !== undefined) return preview.kind === "person" ? richPersonCardOf(preview, preview.stats) : richTeamCardOf(preview, preview.stats);
+export async function emojisUnlockedOn(ctx: ActionCtx, workspace: string, preview: LinkPreview): Promise<number> {
+  if (preview.kind !== "person" || preview.stats === undefined) return 0;
+  return ctx.runQuery(internal.website.linkPreviews.emojisUnlockedOf, { workspace, person: preview.stats.person });
+}
+
+export function cardBlocksOf(preview: LinkPreview, emojis: number) {
+  if (preview.stats !== undefined) return preview.kind === "person" ? richPersonCardOf(preview, preview.stats, emojis) : richTeamCardOf(preview, preview.stats);
   const lines = [nameLineOf(preview), ...(preview.kind === "person" ? personLinesOf(preview) : [peopleCountOf(preview.people)])];
   return [headOf(preview, lines), { type: "context", elements: [mrkdwn(`${productName} album · ${preview.kind} page`)] }];
 }
 
-function richPersonCardOf(preview: PersonPreview, stats: PersonStats) {
-  const fields = [...placeFieldsOf(stats.place, "leaderboard"), ...(stats.hoggies === null || stats.hoggies.found === 0 ? [] : [`🦔 *${stats.hoggies.found}* of ${stats.hoggies.total} hoggies found`]), ...(stats.people === 0 ? [] : [`📒 *${stats.people}* ${stats.people === 1 ? "person" : "people"} in their album`])];
+function richPersonCardOf(preview: PersonPreview, stats: PersonStats, emojis: number) {
+  const fields = [
+    ...placeFieldsOf(stats.place, "leaderboard"),
+    ...(stats.hoggies === null || stats.hoggies.found === 0 ? [] : [`🦔 *${stats.hoggies.found}* of ${stats.hoggies.total} hoggies found`]),
+    ...(stats.people === 0 ? [] : [`📒 *${stats.people}* ${stats.people === 1 ? "person" : "people"} in their album`]),
+    ...(emojis === 0 ? [] : [`🔓 *${emojis}* ${emojis === 1 ? "emoji" : "emojis"} unlocked`]),
+  ];
   const quiet = fields.length === 0 && stats.rarest.length === 0;
-  const lines = [nameLineOf(preview), ...(preview.teams.length === 0 ? [] : [preview.teams.map(escaped).join(", ")]), ...(stats.way === null ? [] : [levelLineOf(stats.way)]), ...medalLinesOf(preview), ...(quiet ? ["🌱 Just getting started. Their first thanks and finds show up here."] : [])];
+  const lines = [nameLineOf(preview), ...teamLinesOf(stats.teams), ...(stats.way === null ? [] : levelLinesOf(stats.way)), ...medalLinesOf(preview), ...(quiet ? ["🌱 Just getting started. Their first thanks and finds show up here."] : [])];
   return [headOf(preview, lines), ...statBlocksOf(fields, stats.rarest), datedFootOf(preview, stats.asOf)];
 }
 
@@ -95,13 +108,17 @@ function nameLineOf(preview: LinkPreview) {
   return `*<${preview.page}|${escaped(preview.name)}>*`;
 }
 
-function levelLineOf({ level, share }: LevelWay) {
-  return `*Level ${level} → ${level + 1}*  ${barOf(share)}`;
+function teamLinesOf(teams: CardTeam[]) {
+  return teams.length === 0 ? [] : [teams.map(({ name, emoji }) => (emoji === null ? escaped(name) : `:${emoji}: ${escaped(name)}`)).join(" · ")];
+}
+
+function levelLinesOf({ level, share }: LevelWay) {
+  return [`*Level ${level} → ${level + 1}*`, barOf(share)];
 }
 
 function barOf(share: number) {
-  const filled = Math.min(barSquares, Math.floor(share * barSquares));
-  return "🟧".repeat(filled) + "⬜".repeat(barSquares - filled);
+  const filled = Math.min(barSegments, Math.floor(share * barSegments));
+  return "▰".repeat(filled) + "▱".repeat(barSegments - filled);
 }
 
 function placeFieldsOf(place: BoardPlace | null, board: string) {
@@ -116,7 +133,7 @@ function statBlocksOf(fields: string[], rarest: CardHoggie[]) {
 function rarestHoggiesOf(rarest: CardHoggie[]) {
   const [first] = rarest;
   const pictures = rarest.map(({ picture, name }) => ({ type: "image", image_url: picture, alt_text: name }));
-  return { type: "context", elements: [...pictures, mrkdwn(`Rarest find: *${escaped(first!.name)}* · ${rarityLabel(first!.rarity)}`)] };
+  return { type: "context", elements: [...pictures, mrkdwn(`Rarest find: *${escaped(first!.name)}* · ${rarityWord(first!.rarity)}`)] };
 }
 
 function datedFootOf(preview: LinkPreview, asOf: number) {

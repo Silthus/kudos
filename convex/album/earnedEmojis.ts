@@ -16,7 +16,9 @@ import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
 import type { ParseHook } from "../parser/parser";
-import { holdsTheHypeOf, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
+import { holdsTheHypeOf, hypesHeldFor, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
+import { boardOf } from "../items/ledger";
+import { hiddenItemsShownTo } from "../items/flag";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
@@ -62,6 +64,37 @@ export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: Em
   }
   for (const { id, name, image, from, at } of await randomEmojisHeldBy(ctx, owner.workspace, owner.member)) emojis.push({ id, kind: "random", name, from: await nameOrUnnamed(ctx, from), picture: image, earned: true, earnedAt: at, seen: seen.has(id), inSlack: true, progress: null });
   return { emojis, more: hype.more };
+}
+
+export async function earnedEmojiCountOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<number> {
+  const turned = await turnedOf(ctx, member);
+  const named = new Set((await namesHeldIn(ctx, workspace)).values());
+  const earned = [...(await teamsUnlockedBetween(ctx, member, allTime)).map(({ id }) => id), ...(await hypesShownEarnedBy(ctx, member, turned)), ...(await tiersTurnedBy(ctx, member, turned)), ...(await levelEmojisReachedBy(ctx, member))];
+  return earned.filter((id) => named.has(id)).length + (await randomEmojisHeldBy(ctx, workspace, member)).length;
+}
+
+const allTime: Instants = { from: -Infinity, to: Infinity };
+
+type Turned = { seen: Set<string>; held: HypesHeld | undefined };
+
+async function turnedOf(ctx: QueryCtx, member: MemberId): Promise<Turned> {
+  const seen = await seenBy(ctx, member);
+  return { seen, held: (await hiddenItemsShownTo(ctx, member)) ? hypesHeldFor(await boardOf(ctx, member)) : undefined };
+}
+
+async function hypesShownEarnedBy(ctx: QueryCtx, member: MemberId, { seen, held }: Turned): Promise<EarnedEmojiId[]> {
+  const shown = unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen).slice(0, mostHypeEmojisShown);
+  return shown.filter(({ person }) => !isHeldForItsItem(person, seen, held)).map(({ person }) => `hype:${person}` as const);
+}
+
+async function tiersTurnedBy(ctx: QueryCtx, member: MemberId, { seen, held }: Turned): Promise<EarnedEmojiId[]> {
+  const reached = (await tiersReachedBetween(ctx, member, allTime)).map(({ id }) => id);
+  return held === undefined ? reached : reached.filter((id) => seen.has(id));
+}
+
+async function levelEmojisReachedBy(ctx: QueryCtx, member: MemberId): Promise<EarnedEmojiId[]> {
+  const { level } = await progressionHomeOf(ctx, member);
+  return (await emojiLevelsOf(ctx, member)).filter((reward) => level >= reward).map((reward) => `level:${reward}` as const);
 }
 
 export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }: EarnedEmojis): Promise<SharedEmoji[] | null> {

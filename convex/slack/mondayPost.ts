@@ -5,11 +5,10 @@ import { renderMondayPost, renderTopKudosPost, type NewGiverRow, type TeamRow, t
 import type { ClaimedWeek, foundChannelValidator } from "../leaderboard/mondayPost";
 import type { MondayPostOutcome } from "../leaderboard/mondayPostOutcome";
 import type { TopKudosPost } from "../leaderboard/topKudos";
-import type { PersonPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn } from "./blocks";
 import type { ActionCtx } from "../_generated/server";
 import { attemptCall, isRefusedForItsBlocks, slackTextOf, type Attempt } from "./delivery";
-import { cardBlocksOf } from "./linkPreviews";
+import { cardBlocksOf, emojisUnlockedOn } from "./linkPreviews";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 const attemptsAtMost = 3;
@@ -19,7 +18,7 @@ const refusedInChannel = new Set(["no_permission", "restricted_action", "restric
 
 type FoundChannel = Infer<typeof foundChannelValidator>;
 
-type CardedMessage = TopKudosMessage & { card: PersonPreview | null };
+type CardedMessage = TopKudosMessage & { card: ReturnType<typeof cardBlocksOf> | null };
 
 type JoinedChannel = { channel?: { name?: string; is_private?: boolean; is_ext_shared?: boolean } };
 
@@ -79,10 +78,11 @@ async function postWeek(ctx: ActionCtx, workspace: string, { channel, post }: Cl
   return isRefusedForItsBlocks(sent) && hasPictures(message) ? attemptCall(ctx, workspace, "chat.postMessage", topKudosMessageOf(channel, withoutPictures(message))) : sent;
 }
 
-async function firstNewGiversCardOf(ctx: ActionCtx, workspace: string, { origin, newGivers = [] }: TopKudosPost): Promise<PersonPreview | null> {
+async function firstNewGiversCardOf(ctx: ActionCtx, workspace: string, { origin, newGivers = [] }: TopKudosPost): Promise<CardedMessage["card"]> {
   const [first] = newGivers;
   if (origin === null || first === undefined) return null;
-  return ctx.runQuery(internal.website.linkPreviews.personCardOf, { workspace, person: first.member });
+  const preview = await ctx.runQuery(internal.website.linkPreviews.personCardOf, { workspace, person: first.member });
+  return preview === null ? null : cardBlocksOf(preview, await emojisUnlockedOn(ctx, workspace, preview));
 }
 
 function topKudosMessageOf(channel: string, message: CardedMessage) {
@@ -106,7 +106,7 @@ function fallbackTextOf({ headline, kudos, newGivers, teams }: TopKudosMessage) 
 }
 
 function blocksOf({ headline, kudos, newGivers, teams, card }: CardedMessage) {
-  const giverBlocks = newGivers === null ? [] : [sectionOf(`*${escaped(newGivers.headline)}*`), ...newGivers.rows.flatMap((row) => [sectionOf(newGiverLineOf(row)), ...(row.place === 1 && card !== null ? cardBlocksOf(card) : [])])];
+  const giverBlocks = newGivers === null ? [] : [sectionOf(`*${escaped(newGivers.headline)}*`), ...newGivers.rows.flatMap((row) => [sectionOf(newGiverLineOf(row)), ...(row.place === 1 && card !== null ? card : [])])];
   const teamBlocks = teams === null ? [] : [sectionOf(`*${escaped(teams.headline)}*`), ...teams.rows.slice(0, teamRowsShown).map(teamBlockOf), ...otherTeamsOf(teams.rows.slice(teamRowsShown))];
   return [sectionOf(`*${escaped(headline)}*`), ...kudos.map(kudosBlockOf), ...giverBlocks, ...teamBlocks];
 }

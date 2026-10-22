@@ -14,6 +14,7 @@ import { publish } from "../bus/publish";
 import type { CrateKey } from "../hoggies/crateKey";
 import { dropFor, dropOf, foundIn, packOf, type Drop } from "../hoggies/drops";
 import { crestsShownTo } from "../hoggies/flag";
+import { dropForged } from "../hoggies/forge";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { achievementHoggiesShownTo, isAnAchievement } from "./achievementFlag";
@@ -63,7 +64,8 @@ async function landFirstTime(ctx: MutationCtx, owner: PageOwner, row: Item, at: 
 
 async function drawTheHoggie(ctx: MutationCtx, owner: PageOwner, row: Item, at: number): Promise<Landed | null> {
   const crate = row.key as CrateKey;
-  await dropFor(ctx, owner.member, crate, at, { surface: "website", floor: row.floor, unowned: isAnAchievement(row.reason) });
+  if (row.reason.kind === "forge") await dropForged(ctx, owner.member, crate, row.reason.hoggie, at);
+  else await dropFor(ctx, owner.member, crate, at, { surface: "website", floor: row.floor, unowned: isAnAchievement(row.reason) });
   const drop = await dropOf(ctx, owner.member, crate);
   if (drop === null) return null;
   await tallyHoggieFound(ctx, owner.member, { hoggie: drop.hoggie, rarity: drop.rarity }, at);

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { memberDecisionWithoutWriting, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import { earnedEmojiCountOf } from "../album/earnedEmojis";
 import { personTeamsOf } from "../album/personPage";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { profileCardOf, type Medal } from "../profileCard/profileCard";
@@ -56,6 +57,11 @@ export function personPageOf(origin: string, person: MemberId) {
   return pageUrlOf(origin, "people", person);
 }
 
+export const emojisUnlockedOf = internalQuery({
+  args: { workspace: v.string(), person: v.id("members") },
+  handler: (ctx, { workspace, person }): Promise<number> => earnedEmojiCountOf(ctx, workspace, person),
+});
+
 async function sharerDecisionOf(ctx: QueryCtx, workspace: string, user: string, flag: Flag<boolean>) {
   const sharer = await lookup(ctx, workspace, user);
   if (sharer?.kind === "member") return memberDecisionWithoutWriting(ctx, flag, sharer.member);
@@ -85,7 +91,7 @@ async function personPreviewOf(ctx: QueryCtx, unfolding: Unfolding, url: string,
   const { name, level, medals } = await profileCardOf(ctx, person, { own: false, viewer: null });
   const teams = await personTeamsOf(ctx, workspace, person);
   const preview: PersonPreview = { kind: "person", url, page: pageUrlOf(origin, "people", person), name, picture: await pictureOf(ctx, workspace, person), teams: teams.map((team) => team.name), level, medals };
-  return rich ? { ...preview, stats: await personStatsOf(ctx, unfolding, person, level) } : preview;
+  return rich ? { ...preview, stats: await personStatsOf(ctx, unfolding, person, level, teams) } : preview;
 }
 
 async function pictureOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<string | null> {

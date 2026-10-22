@@ -22,7 +22,7 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { albumAtTheLanding } from "./landedAlbum";
 import { TurnFlight } from "./TurnFlight";
-import { shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
+import { itemTurningOf, ItemTurningProvider, shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
 import { cardShownAt, useHowItWorks } from "./useHowItWorks";
 import { useTeamUnlock } from "./useTeamUnlock";
@@ -52,9 +52,10 @@ export type AlbumShellProps = {
   missedXpMoment: MissedXpMoment;
   shareItem: (item: string) => Promise<ShareReply>;
   closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
+  anEntryIsOpen: boolean;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -99,7 +100,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     emojiMoments.shownElsewhere([`team:${team}`]);
     finish();
   };
-  const turns = shownUnless(items, anotherMoment || playing);
+  const turns = shownUnless(items, anotherMoment || playing || anEntryIsOpen);
   const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
   const covered = boardShown || sinceTheLastVisit.covers || howItWorks.card !== null;
@@ -133,7 +134,9 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
           {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
             <LandingProvider value={turns.landing}>
-              <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+              <ItemTurningProvider value={itemTurningOf(turns)}>
+                <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+              </ItemTurningProvider>
             </LandingProvider>
           </ErrorBoundary>
         </main>

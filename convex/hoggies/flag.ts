@@ -14,6 +14,12 @@ export const hoggieAvatarFlag = { key: "hoggie-avatar", safeDefault: false, valu
 
 export const petHoggieFlag = { key: "pet-hoggie", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
+export const hoggieForgeFlag = { key: "hoggie-forge", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function hoggieForgeShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, hoggieForgeFlag, member);
+}
+
 export function hoggiesShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecision(ctx, collectionFlag, member);
 }

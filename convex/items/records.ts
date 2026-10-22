@@ -11,6 +11,7 @@ export const itemReasonValidator = v.union(
   v.object({ kind: v.literal("welcome") }),
   v.object({ kind: v.literal("team"), team: v.string(), name: v.string() }),
   v.object({ kind: v.literal("milestone"), milestone: milestoneIdValidator, tier: milestoneTierValidator }),
+  v.object({ kind: v.literal("forge"), hoggie: v.string() }),
 );
 
 export const itemValidator = v.object({

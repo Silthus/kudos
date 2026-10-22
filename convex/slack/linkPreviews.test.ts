@@ -7,6 +7,7 @@ import { memberChanged, settle, testBackend, type Backend } from "../../testing/
 import { linkSharedEvent, type LinkSharedOptions } from "../../testing/slackMessages";
 import type { LadderId, TierId } from "../achievements/ladders";
 import type { MemberId } from "../workspace/directory";
+import { xpToReach } from "../progression/levels";
 
 const now = new Date("2026-10-21T10:00:00Z");
 const site = "https://hedgehug.example";
@@ -308,6 +309,8 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     await thanked(t, { [juno]: 12, [bram]: 5 });
     await found(t, juno, "asleep", "wizard", "angel");
     await collected(t, juno, bram);
+    await teamEmojiInSlack(t, "kettle-works");
+    await unlockedTeamSticker(t, juno, "kettle-works");
     const url = `${site}/book#people/${juno}`;
 
     await shared(t, [url]);
@@ -315,7 +318,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\nKettle Works, Lanterns\n*Level 3 → 4*  🟧🟧⬜⬜⬜⬜⬜⬜⬜⬜\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\n:team-kettle-works: Kettle Works · Lanterns\n*Level 3 → 4*\n▰▰▱▱▱▱▱▱▱▱\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
         accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" },
       },
       {
@@ -325,11 +328,12 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
           { type: "mrkdwn", text: "💛 *12* thoughtful kudos given" },
           { type: "mrkdwn", text: "🦔 *3* of 151 hoggies found" },
           { type: "mrkdwn", text: "📒 *1* person in their album" },
+          { type: "mrkdwn", text: "🔓 *1* emoji unlocked" },
         ],
       },
       {
         type: "context",
-        elements: [hoggiePicture("wizard", "Wizard"), hoggiePicture("angel", "Angel"), hoggiePicture("asleep", "Asleep"), { type: "mrkdwn", text: "Rarest find: *Wizard* · 🟧 Legendary" }],
+        elements: [hoggiePicture("wizard", "Wizard"), hoggiePicture("angel", "Angel"), hoggiePicture("asleep", "Asleep"), { type: "mrkdwn", text: "Rarest find: *Wizard* · Legendary" }],
       },
       { type: "context", elements: [{ type: "mrkdwn", text: asOf }] },
     ]);
@@ -364,6 +368,96 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     });
   });
 
+  test("the level sits on its own line, above a slim bar that fits beside the picture", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const url = `${site}/book#people/${await memberOf(t, "U_JUNO")}`;
+
+    await shared(t, [url]);
+
+    expect(textLinesOf(url)).toEqual(expect.arrayContaining(["*Level 3 → 4*", "▰▰▱▱▱▱▱▱▱▱"]));
+  });
+
+  test("the rarest find names its rarity in a word, without a coloured square", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    await found(t, juno, "angel");
+    const url = `${site}/book#people/${juno}`;
+
+    await shared(t, [url]);
+
+    expect(blocksOf(url)[2]).toEqual({ type: "context", elements: [hoggiePicture("angel", "Angel"), { type: "mrkdwn", text: "Rarest find: *Angel* · Epic" }] });
+  });
+
+  test("their teams show right under their name, each with its team emoji where Slack has it, else the name alone", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    await teamEmojiInSlack(t, "lanterns");
+    await teamEmojiNamed(t, "kettle-works");
+    const url = `${site}/book#people/${await memberOf(t, "U_JUNO")}`;
+
+    await shared(t, [url]);
+
+    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${url}|Juno Park>*`, "Kettle Works · :team-lanterns: Lanterns"]);
+  });
+
+  test("a person on no team shows no team line", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const url = `${site}/book#people/${await memberOf(t, "U_BRAM")}`;
+
+    await shared(t, [url]);
+
+    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${url}|Bram Ode>*`, "*Level 1 → 2*"]);
+  });
+
+  test("the emojis they unlocked count as their album counts them: team stickers, hype, milestone and level emojis", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
+    await teamEmojiNamed(t, "kettle-works");
+    await unlockedTeamSticker(t, juno, "kettle-works");
+    await gaveFirstPack(t, juno, bram);
+    await reachedMilestoneTier(t, juno, "people", "bronze");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "milestone:people:bronze", name: "people-bronze" });
+      await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "level:5", name: "level-5" });
+      await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "level:10", name: "level-10" });
+      const progress = await ctx.db
+        .query("memberProgress")
+        .withIndex("by_member", (q) => q.eq("member", juno))
+        .unique();
+      await ctx.db.patch(progress!._id, { xp: xpToReach(5) });
+    });
+    const url = `${site}/book#people/${juno}`;
+
+    await shared(t, [url]);
+
+    expect(blocksOf(url)[1]).toEqual({ type: "section", fields: [{ type: "mrkdwn", text: "🔓 *4* emojis unlocked" }] });
+  });
+
+  test("a random drop counts while its Slack emoji is there, as in the album, and not once Slack has removed it", async () => {
+    const t = await workspace({ flags: [...richFlags, "random-emojis"].map(onForEveryone) });
+    const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
+    await t.run(async (ctx) => {
+      const pack = await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: juno, recipient: bram, week: "2026-10-19", message: { workspace: "T1", conversation: "C1", message: "1760000000.000100" }, holdsSticker: false, at: Date.now() });
+      await ctx.db.insert("customEmoji", { workspace: "T1", name: "party-parrot", image: "https://emoji.slack-edge.com/T1/party-parrot/1.png", listing: 1 });
+      for (const name of ["party-parrot", "removed-from-slack"]) await ctx.db.insert("randomEmojiDrops", { member: juno, name, pack, at: Date.now() });
+    });
+    const url = `${site}/book#people/${juno}`;
+
+    await shared(t, [url]);
+
+    expect(blocksOf(url)[1]).toEqual({ type: "section", fields: [{ type: "mrkdwn", text: "🔓 *1* emoji unlocked" }] });
+  });
+
+  test("an emoji the album can't name yet isn't counted", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    await reachedMilestoneTier(t, juno, "people", "bronze");
+    const url = `${site}/book#people/${juno}`;
+
+    await shared(t, [url]);
+
+    expect(JSON.stringify(blocksOf(url))).not.toMatch(/unlocked/);
+  });
+
   test("a member with nothing to brag about yet gets a friendly line, not a row of zeros", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
     const url = `${site}/book#people/${await memberOf(t, "U_BRAM")}`;
@@ -371,7 +465,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     await shared(t, [url]);
 
     expect(blocksOf(url)).toEqual([
-      { type: "section", text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\n*Level 1 → 2*  ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜\n🌱 Just getting started. Their first thanks and finds show up here.`, verbatim: true }, accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" } },
+      { type: "section", text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\n*Level 1 → 2*\n▱▱▱▱▱▱▱▱▱▱\n🌱 Just getting started. Their first thanks and finds show up here.`, verbatim: true }, accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" } },
       { type: "context", elements: [{ type: "mrkdwn", text: asOf }] },
     ]);
   });
@@ -391,7 +485,7 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people\n🟧🟧🟧🟧🟧🟧⬜⬜⬜⬜  *2 of 3* have said thanks`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people\n▰▰▰▰▰▰▱▱▱▱  *2 of 3* have said thanks`, verbatim: true },
         accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
       },
       {
@@ -401,7 +495,7 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
           { type: "mrkdwn", text: "💛 *15* thoughtful kudos given" },
         ],
       },
-      { type: "context", elements: [hoggiePicture("angel", "Angel"), hoggiePicture("asleep", "Asleep"), { type: "mrkdwn", text: "Rarest find: *Angel* · 🟪 Epic" }] },
+      { type: "context", elements: [hoggiePicture("angel", "Angel"), hoggiePicture("asleep", "Asleep"), { type: "mrkdwn", text: "Rarest find: *Angel* · Epic" }] },
       { type: "context", elements: [{ type: "mrkdwn", text: teamAsOf }] },
     ]);
   });
@@ -443,6 +537,19 @@ describe("LP84 LP85: a rich card stays within Convex's limits", { timeout: 120_0
     await shared(t, links);
 
     expect(Object.keys(slack.callsTo("chat.unfurl")[0]!.unfurls as object)).toEqual(links);
+  });
+});
+
+describe("LP84: a person card's emoji count stays within Convex's limits", { timeout: 120_000 }, () => {
+  test("a message linking three people who each unlocked hundreds of emojis, beside a leaderboard of 900 givers, counts every one and unfolds every card under Convex's transaction limits", async () => {
+    const t = await workspace({ flags: [...richFlags, "hidden-items", "random-emojis"].map(onForEveryone), transactionLimits: true });
+    await boardOf(t, 900);
+    const givers = await peopleWhoUnlockedEveryHype(t, 3, 500, 200);
+    const links = givers.map((giver) => `${site}/book#people/${giver}`);
+
+    await shared(t, links);
+
+    expect(links.map((link) => JSON.stringify(blocksOf(link)).match(/\*(\d+)\* emojis unlocked/)?.[1] ?? null)).toEqual(["400", "400", "400"]);
   });
 });
 
@@ -632,6 +739,67 @@ async function collected(t: Backend, member: MemberId, ...people: MemberId[]) {
   await t.run(async (ctx) => {
     for (const person of people) await ctx.db.insert("albumStickers", { member, person, from: "history", at: Date.now() });
   });
+}
+
+async function boardOf(t: Backend, givers: number) {
+  await t.run(async (ctx) => {
+    for (let index = 0; index < givers; index += 1) {
+      const member = await ctx.db.insert("members", { workspace: "T1", user: `U_BOARD${index}`, kind: "member", name: `Giver on the board ${index}` });
+      await ctx.db.insert("companyFaces", { workspace: "T1", member, face: null, profile: 5000 + index });
+      await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: member, awards: 1 + (index % 7) });
+    }
+  });
+}
+
+async function peopleWhoUnlockedEveryHype(t: Backend, givers: number, people: number, drops: number): Promise<MemberId[]> {
+  return t.run(async (ctx) => {
+    const recipients: MemberId[] = [];
+    for (let index = 0; index < people; index += 1) {
+      const recipient = await ctx.db.insert("members", { workspace: "T1", user: `U_THANKED${index}`, kind: "member", name: `Thanked ${index}` });
+      await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person: recipient, name: `thanked-${index}-hype` });
+      recipients.push(recipient);
+    }
+    for (let drop = 0; drop < drops; drop += 1) await ctx.db.insert("customEmoji", { workspace: "T1", name: `drop-${drop}`, image: `https://emoji.slack-edge.com/T1/drop-${drop}/1.png`, listing: 1 });
+    const message = { workspace: "T1", conversation: "C1", message: "1760000000.000100" };
+    const unlocked: MemberId[] = [];
+    for (let index = 0; index < givers; index += 1) {
+      const giver = await ctx.db.insert("members", { workspace: "T1", user: `U_GIVER${index}`, kind: "member", name: `Giver ${index}` });
+      for (const [drop, recipient] of recipients.entries()) {
+        const pack = await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver, recipient, week: "2026-10-19", message, holdsSticker: false, at: Date.now() });
+        if (drop < drops) await ctx.db.insert("randomEmojiDrops", { member: giver, name: `drop-${drop}`, pack, at: Date.now() });
+      }
+      unlocked.push(giver);
+    }
+    return unlocked;
+  });
+}
+
+function textLinesOf(url: string): string[] {
+  return (blocksOf(url)[0] as { text: { text: string } }).text.text.split("\n");
+}
+
+async function teamEmojiNamed(t: Backend, team: string) {
+  await t.run((ctx) => ctx.db.insert("emojiNames", { workspace: "T1", emoji: `team:${team}`, name: `team-${team}` }));
+}
+
+async function teamEmojiInSlack(t: Backend, team: string) {
+  await teamEmojiNamed(t, team);
+  await t.run((ctx) => ctx.db.insert("customEmoji", { workspace: "T1", name: `team-${team}`, image: `https://emoji.slack-edge.com/T1/team-${team}/1.png`, listing: 1 }));
+}
+
+async function unlockedTeamSticker(t: Backend, member: MemberId, team: string) {
+  await t.run((ctx) => ctx.db.insert("teamStickers", { member, workspace: "T1", team, at: Date.now(), name: team, art: null, emoji: `team-${team}` }));
+}
+
+async function gaveFirstPack(t: Backend, giver: MemberId, recipient: MemberId) {
+  await t.run(async (ctx) => {
+    await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver, recipient, week: "2026-10-19", message: { workspace: "T1", conversation: "C1", message: "1760000000.000100" }, holdsSticker: false, at: Date.now() });
+    await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person: recipient, name: "bram-hype" });
+  });
+}
+
+async function reachedMilestoneTier(t: Backend, member: MemberId, milestone: "people", tier: "bronze") {
+  await t.run((ctx) => ctx.db.insert("milestoneTiers", { member, milestone, tier, at: Date.now(), catalogue: 1 }));
 }
 
 function cardOf(url: string) {
