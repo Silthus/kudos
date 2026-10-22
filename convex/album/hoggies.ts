@@ -21,7 +21,7 @@ export async function albumHoggiesOf(ctx: QueryCtx, member: MemberId): Promise<A
     rarities: collection.rarities.map(({ rarity, chance, owned, total }) => ({ rarity, chance, found: owned, total })),
     found: collection.owned,
     total: collection.total,
-    rarest: rarestFindsIn(hoggies),
+    rarest: rarestFindsIn(hoggies, rarestFindsShown),
   };
 }
 
@@ -29,9 +29,9 @@ function albumHoggieOf(hoggie: HeldHoggie): AlbumHoggie {
   return { ...hoggie, found: hoggie.count > 0, spares: Math.max(0, hoggie.count - 1) };
 }
 
-function rarestFindsIn(hoggies: AlbumHoggie[]): AlbumHoggie[] {
+export function rarestFindsIn<Found extends Pick<AlbumHoggie, "found" | "firstAt" | "rarity">>(hoggies: Found[], most: number): Array<Found & { firstAt: number }> {
   return hoggies
-    .filter((hoggie): hoggie is AlbumHoggie & { firstAt: number } => hoggie.found && hoggie.firstAt !== null)
+    .filter((hoggie): hoggie is Found & { firstAt: number } => hoggie.found && hoggie.firstAt !== null)
     .toSorted((one, other) => rarestFirst.indexOf(one.rarity) - rarestFirst.indexOf(other.rarity) || other.firstAt - one.firstAt)
-    .slice(0, rarestFindsShown);
+    .slice(0, most);
 }
