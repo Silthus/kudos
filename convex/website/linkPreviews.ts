@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { memberDecisionWithoutWriting, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import { earnedEmojiCountOf } from "../album/earnedEmojis";
 import { personTeamsOf } from "../album/personPage";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { profileCardOf, type Medal } from "../profileCard/profileCard";
@@ -41,6 +42,11 @@ export const linkPreviewsOf = internalQuery({
     }
     return previews;
   },
+});
+
+export const emojisUnlockedOf = internalQuery({
+  args: { workspace: v.string(), person: v.id("members") },
+  handler: (ctx, { workspace, person }): Promise<number> => earnedEmojiCountOf(ctx, workspace, person),
 });
 
 async function sharerDecisionOf(ctx: QueryCtx, workspace: string, user: string, flag: Flag<boolean>) {

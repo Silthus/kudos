@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
-import { earnedEmojiCountOf, teamEmojiOf } from "../album/earnedEmojis";
+import { teamEmojiOf } from "../album/earnedEmojis";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/hoggies";
 import { peopleHeldBy } from "../album/stickers";
 import { storedHoldersIn, type StoredHolder } from "../companyProfiles/storedFaces";
@@ -20,7 +20,7 @@ export type LevelWay = { level: number; share: number };
 
 export type CardTeam = { name: string; emoji: string | null };
 
-export type PersonStats = { teams: CardTeam[]; way: LevelWay | null; place: BoardPlace | null; hoggies: { found: number; total: number } | null; rarest: CardHoggie[]; people: number; emojis: number | null; asOf: number };
+export type PersonStats = { person: MemberId; teams: CardTeam[]; way: LevelWay | null; place: BoardPlace | null; hoggies: { found: number; total: number } | null; rarest: CardHoggie[]; people: number; asOf: number };
 
 export type TeamStats = { place: BoardPlace | null; saidThanks: number; rarest: CardHoggie[]; asOf: number };
 
@@ -34,52 +34,39 @@ export type CardReads = {
   boards: () => Promise<AllTimeBoards>;
   holders: () => Promise<Map<number, StoredHolder>>;
   hoggiesOf: (member: MemberId) => Promise<AlbumHoggies | null>;
-  emojisOf: (member: MemberId) => Promise<number | null>;
 };
 
 const mostPictures = 9;
 
 const mostCollectionsReadPerMessage = 20;
 
-const mostEmojiCountsPerMessage = 2;
-
 export function cardReadsOf(ctx: QueryCtx, workspace: string, origin: string): CardReads {
   let boards: Promise<AllTimeBoards> | undefined;
   let holders: Promise<Map<number, StoredHolder>> | undefined;
-  return {
-    workspace,
-    origin,
-    boards: () => (boards ??= allTimeBoardsIn(ctx, workspace)),
-    holders: () => (holders ??= storedHoldersIn(ctx, workspace)),
-    hoggiesOf: budgetedPerMessage(mostCollectionsReadPerMessage, (member) => shownHoggiesOf(ctx, member)),
-    emojisOf: budgetedPerMessage(mostEmojiCountsPerMessage, (member) => earnedEmojiCountOf(ctx, workspace, member)),
-  };
-}
-
-function budgetedPerMessage<Read>(most: number, readOf: (member: MemberId) => Promise<Read>): (member: MemberId) => Promise<Read | null> {
-  const reads = new Map<MemberId, Promise<Read | null>>();
-  return (member) => {
-    const read = reads.get(member);
+  const collections = new Map<MemberId, Promise<AlbumHoggies | null>>();
+  const hoggiesOf = (member: MemberId) => {
+    const read = collections.get(member);
     if (read !== undefined) return read;
-    if (reads.size >= most) return Promise.resolve(null);
-    return reads.set(member, readOf(member)).get(member)!;
+    if (collections.size >= mostCollectionsReadPerMessage) return Promise.resolve(null);
+    return collections.set(member, shownHoggiesOf(ctx, member)).get(member)!;
   };
+  return { workspace, origin, boards: () => (boards ??= allTimeBoardsIn(ctx, workspace)), holders: () => (holders ??= storedHoldersIn(ctx, workspace)), hoggiesOf };
 }
 
 async function shownHoggiesOf(ctx: QueryCtx, member: MemberId): Promise<AlbumHoggies | null> {
   return (await hoggiesShownTo(ctx, member)) ? albumHoggiesOf(ctx, member) : null;
 }
 
-export async function personStatsOf(ctx: QueryCtx, { workspace, origin, boards, hoggiesOf, emojisOf }: CardReads, person: MemberId, level: number | null, teams: PersonTeam[]): Promise<PersonStats> {
+export async function personStatsOf(ctx: QueryCtx, { workspace, origin, boards, hoggiesOf }: CardReads, person: MemberId, level: number | null, teams: PersonTeam[]): Promise<PersonStats> {
   const hoggies = await hoggiesOf(person);
   return {
+    person,
     teams: await cardTeamsOf(ctx, workspace, teams),
     way: level === null ? null : await levelWayOf(ctx, person, level),
     place: placeOf((await boards()).people.find(({ member }) => member === person)),
     hoggies: hoggies === null ? null : { found: hoggies.found, total: hoggies.total },
     rarest: cardHoggiesOf(hoggies?.hoggies ?? [], origin),
     people: (await peopleHeldBy(ctx, person)).size,
-    emojis: await emojisOf(person),
     asOf: Date.now(),
   };
 }

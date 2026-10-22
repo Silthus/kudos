@@ -541,15 +541,15 @@ describe("LP84 LP85: a rich card stays within Convex's limits", { timeout: 120_0
 });
 
 describe("LP84: a person card's emoji count stays within Convex's limits", { timeout: 120_000 }, () => {
-  test("a message linking three people who each unlocked hundreds of emojis, beside a big leaderboard, counts them for two and unfolds every card under Convex's transaction limits", async () => {
+  test("a message linking three people who each unlocked hundreds of emojis, beside a leaderboard of 900 givers, counts every one and unfolds every card under Convex's transaction limits", async () => {
     const t = await workspace({ flags: [...richFlags, "hidden-items", "random-emojis"].map(onForEveryone), transactionLimits: true });
-    await teamWithEveryHoggie(t, "big-team", 220);
+    await boardOf(t, 900);
     const givers = await peopleWhoUnlockedEveryHype(t, 3, 500, 200);
     const links = givers.map((giver) => `${site}/book#people/${giver}`);
 
     await shared(t, links);
 
-    expect(links.map((link) => JSON.stringify(blocksOf(link)).match(/\*(\d+)\* emojis unlocked/)?.[1] ?? null)).toEqual(["400", "400", null]);
+    expect(links.map((link) => JSON.stringify(blocksOf(link)).match(/\*(\d+)\* emojis unlocked/)?.[1] ?? null)).toEqual(["400", "400", "400"]);
   });
 });
 
@@ -738,6 +738,16 @@ async function teamWithEveryHoggie(t: Backend, team: string, size: number, first
 async function collected(t: Backend, member: MemberId, ...people: MemberId[]) {
   await t.run(async (ctx) => {
     for (const person of people) await ctx.db.insert("albumStickers", { member, person, from: "history", at: Date.now() });
+  });
+}
+
+async function boardOf(t: Backend, givers: number) {
+  await t.run(async (ctx) => {
+    for (let index = 0; index < givers; index += 1) {
+      const member = await ctx.db.insert("members", { workspace: "T1", user: `U_BOARD${index}`, kind: "member", name: `Giver on the board ${index}` });
+      await ctx.db.insert("companyFaces", { workspace: "T1", member, face: null, profile: 5000 + index });
+      await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: member, awards: 1 + (index % 7) });
+    }
   });
 }
 
