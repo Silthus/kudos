@@ -2,9 +2,11 @@
 
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { roundHogBoldUrl, roundHogRegularUrl, roundHogSemiBoldUrl } from "@posthog/brand/fonts";
 import { Resvg } from "@resvg/resvg-js";
 import { v } from "convex/values";
 import satori from "satori";
+import "wawoff2/decompress.js";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { rarityWord, type Rarity } from "../hoggies/catalogue";
@@ -28,10 +30,10 @@ const rarityInk: Record<Rarity, string> = { common: "#aeb3c4", uncommon: "#4ade8
 
 const stackInk = { people: ["#6c7bd9", "#d9786c", "#5fb592"], emojis: ["#f5b301", "#ff7a45", "#c084fc"], medals: ["#d39a68", "#bfc2c8", "#e2b53a"] };
 
-const fontFiles = [
-  { file: "RoundHog.woff2", weight: 400 },
-  { file: "RoundHog-SemiBold.woff2", weight: 600 },
-  { file: "RoundHog-Bold.woff2", weight: 700 },
+const fontFaces = [
+  { url: roundHogRegularUrl, weight: 400 },
+  { url: roundHogSemiBoldUrl, weight: 600 },
+  { url: roundHogBoldUrl, weight: 700 },
 ] as const;
 
 export const drawn = observedAction({
@@ -67,7 +69,7 @@ async function pictureOrNull(url: string | null): Promise<string | null> {
 
 type Woff2Decompress = (woff2: Uint8Array) => Promise<Uint8Array>;
 
-const packages = createRequire(import.meta.url);
+const decompress = createRequire(import.meta.url)("wawoff2/decompress.js") as Woff2Decompress;
 
 type Font = { name: string; data: Buffer; weight: 400 | 600 | 700; style: "normal" };
 
@@ -82,10 +84,9 @@ function fontsOf() {
 }
 
 async function decodedFonts(): Promise<Font[]> {
-  const decompress = packages("wawoff2/decompress") as Woff2Decompress;
   const decoded: Font[] = [];
-  for (const { file, weight } of fontFiles) {
-    const woff2 = await readFile(packages.resolve(`@posthog/brand/fonts/${file}`));
+  for (const { url, weight } of fontFaces) {
+    const woff2 = await readFile(new URL(url));
     decoded.push({ name: "RoundHog", data: Buffer.from(await decompress(woff2)), weight, style: "normal" });
   }
   return decoded;
