@@ -739,6 +739,22 @@ describe("LP96: a picture that can't be drawn gives way to the card", { timeout:
     expect(JSON.stringify(blocksOf(url))).toMatch(/person page · as of/);
     expect(await storedPicturesOf(t)).toEqual([]);
   });
+
+  test("a drawing slower than 5 seconds gives way to the rich card, and the next share shows the picture it kept", async () => {
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    const url = `${site}/book#people/${juno}`;
+    answeringLate(junoFace, 6_000);
+
+    await sharedWhileDrawing(t, [url], {}, { whileFunctionsRun: true });
+    await sharedWhileDrawing(t, [url], { messageTs: "1760349900.000200" });
+
+    const [late, again] = slack.callsTo("chat.unfurl").map(({ unfurls }) => (unfurls as Record<string, { blocks: unknown[] }>)[url]!.blocks);
+    const pictures = await storedPicturesOf(t);
+    expect(late![0]).toMatchObject({ type: "section", accessory: { type: "image", image_url: junoFace } });
+    expect(pictures).toHaveLength(1);
+    expect(again![0]).toMatchObject({ type: "image", image_url: pictures[0]!.url });
+  });
 });
 
 describe("LP97: the card picture is behind card-image", { timeout: 60_000 }, () => {
@@ -825,10 +841,18 @@ async function shared(t: Backend, urls: string[], options: LinkSharedOptions = {
   await settle(t);
 }
 
-async function sharedWhileDrawing(t: Backend, urls: string[], options: LinkSharedOptions = {}) {
+async function sharedWhileDrawing(t: Backend, urls: string[], options: LinkSharedOptions = {}, settling: Parameters<typeof settleInTimeOrder>[1] = {}) {
   const response = await t.fetch("/slack/events", await signedRequest(linkSharedEvent(urls, { user: "U_BRAM", ...options })));
   expect(response.status).toBe(200);
-  await settleInTimeOrder(t);
+  await settleInTimeOrder(t, settling);
+}
+
+function answeringLate(url: string, delayMs: number) {
+  const answer = globalThis.fetch;
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input instanceof Request ? input.url : input) === url) await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return answer(input, init);
+  });
 }
 
 function blocksOf(url: string): unknown[] {
