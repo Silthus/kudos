@@ -217,11 +217,12 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
   });
 
-  it("after a turn has emptied the board, a forged item set aside waits behind the items-wait pill once the entry closes", async () => {
+  it("after a turn with reduced motion, while other items still wait, a forged item set aside waits behind the items-wait pill once the entry closes", async () => {
     preferReducedMotion();
     const secondItem = "forged-asleep-again" as BoardItem["item"];
     const replies: ForgeReply[] = [forgedCake, { kind: "forged", item: secondItem }];
-    const { user, albumAnswers } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }), async () => replies.shift()!);
+    const waiting = albumFixtures.withItems;
+    const { user, albumAnswers } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }), async () => replies.shift()!, { album: waiting });
 
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await user.click(await theFaceDownItem());
@@ -229,12 +230,12 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     goTo("/book#hoggies/asleep");
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await theFaceDownItem();
-    albumAnswers({ ...withNoItems, board: { items: [{ ...asleepForged, item: secondItem }], more: false } });
+    albumAnswers({ ...waiting, board: { items: [...waiting.board!.items, { ...asleepForged, item: secondItem }], more: false } });
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
     await user.click(screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!);
 
-    expect(await screen.findByRole("button", { name: /1 item waits/ }, { timeout: arrival })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /4 items wait/ }, { timeout: arrival })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
   });
 
