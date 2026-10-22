@@ -19,12 +19,13 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { mondayPostSwitchShownTo, type MondayPostSwitch } from "../leaderboard/mondayPost";
 import { welcomeNudgeSwitchOf } from "./welcomeNudge";
+import { celebrationsSwitchShownTo } from "../workspace/celebrationsSwitch";
 import { thoughtfulGiversShownTo } from "../album/thoughtfulGivers";
 import { teaserOf } from "./teaser";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsShownTo } from "../messageSettings/flag";
-import { messageSettingsOf, notificationSwitchesOf, type MessageSetting, type NotificationSwitches } from "../messageSettings/messageSettings";
+import { messageSettingsOf, notificationSwitchesOf, type MessageSetting, type ShownNotificationSwitches } from "../messageSettings/messageSettings";
 import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
@@ -71,8 +72,8 @@ export type ShownTab =
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
   | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string; refused: ItemRefusal | null }
-  | { tab: "settings"; onTheBoards: boolean | null; progress: NotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean; groups: GroupChoice | null }
-  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null; welcomeNudge: boolean | null; customKudosEmoji: CustomKudosEmojiPicker | null };
+  | { tab: "settings"; onTheBoards: boolean | null; progress: ShownNotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean; groups: GroupChoice | null }
+  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; publicCelebrations: boolean | null; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null; welcomeNudge: boolean | null; customKudosEmoji: CustomKudosEmojiPicker | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
@@ -247,6 +248,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         tab,
         announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
+        publicCelebrations: await celebrationsSwitchShownTo(ctx, viewer.workspace, viewer),
         groupMode: await groupModeShownTo(ctx, viewer.workspace, viewer),
         mondayPost: await mondayPostSwitchShownTo(ctx, viewer.workspace, viewer),
         welcomeNudge: await welcomeNudgeSwitchOf(ctx, viewer),

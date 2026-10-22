@@ -7,6 +7,7 @@ import { hugsShownTo } from "../hugs/flag";
 import { unlocksAppliedTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
 import { coinsVisibleTo } from "../wallet/visibility";
+import { publicCelebrationsOn } from "../workspace/celebrationsSwitch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { directMessageKinds, messageKinds, placesChosenFrom, type MessageKind, type MessageKindEntry, type MessagePlace } from "./kinds";
@@ -14,6 +15,8 @@ import { directMessageKinds, messageKinds, placesChosenFrom, type MessageKind, t
 export type MessageSetting = MessageKindEntry & { applies: boolean; on: boolean; place: MessagePlace; places: readonly MessagePlace[] };
 
 export type NotificationSwitches = { muteNotices: boolean; dms: boolean };
+
+export type ShownNotificationSwitches = Partial<Pick<NotificationSwitches, "muteNotices">> & Pick<NotificationSwitches, "dms">;
 
 type Applies = (ctx: QueryCtx, member: MemberId, workspace: string) => Promise<boolean>;
 
@@ -24,7 +27,7 @@ const appliesWhile: Record<MessageKind, Applies> = {
   "new-features": async (ctx, member) => (await xpLevelsOnFor(ctx, member)) && (await unlocksAppliedTo(ctx, member)),
   quests: (ctx, member) => questsApplyTo(ctx, member),
   achievements: async (ctx, member, workspace) => (await bookAppliesIn(ctx, workspace)) && (await stateOf(ctx, member, "book")) === "open",
-  celebrations: (ctx, _, workspace) => xpLevelsShownIn(ctx, workspace),
+  celebrations: async (ctx, _, workspace) => (await xpLevelsShownIn(ctx, workspace)) && (await publicCelebrationsOn(ctx, workspace)),
   "hugs-recap": (ctx, member) => hugsShownTo(ctx, member),
 };
 
@@ -88,13 +91,19 @@ export async function placeWhenOn(ctx: QueryCtx, member: MemberId, kind: Message
   return chosen === "none" ? defaultPlaceOf(kind) : chosen;
 }
 
-export async function notificationSwitchesOf(ctx: QueryCtx, member: MemberId): Promise<NotificationSwitches> {
-  return { muteNotices: !(await wantsMessage(ctx, member, "celebrations")), dms: await wantsAnyDirectMessage(ctx, member) };
+export async function notificationSwitchesOf(ctx: QueryCtx, member: MemberId): Promise<ShownNotificationSwitches> {
+  const dms = await wantsAnyDirectMessage(ctx, member);
+  if (!(await publicCelebrationsOnFor(ctx, member))) return { dms };
+  return { muteNotices: !(await wantsMessage(ctx, member, "celebrations")), dms };
 }
 
 export async function setNotificationSwitches(ctx: MutationCtx, member: MemberId, { muteNotices, dms }: Partial<NotificationSwitches>) {
-  if (muteNotices !== undefined) await setMessageSetting(ctx, member, "celebrations", muteNotices ? "none" : "channel");
+  if (muteNotices !== undefined && (await publicCelebrationsOnFor(ctx, member))) await setMessageSetting(ctx, member, "celebrations", muteNotices ? "none" : "channel");
   if (dms !== undefined) for (const kind of directMessageKinds) await setMessageSetting(ctx, member, kind, dms ? await placeWhenOn(ctx, member, kind) : "none");
+}
+
+async function publicCelebrationsOnFor(ctx: QueryCtx, member: MemberId) {
+  return publicCelebrationsOn(ctx, (await chatUserOf(ctx, member)).workspace);
 }
 
 async function wantsAnyDirectMessage(ctx: QueryCtx, member: MemberId) {
