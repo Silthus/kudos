@@ -29,6 +29,6 @@ export function renderProfileCardUsage(): Line[] {
   return [[{ text: `Type \`${slashCommand} @someone\` to see their profile card.` }]];
 }
 
-function medalText({ tier, name }: Medal) {
+export function medalText({ tier, name }: Medal) {
   return `${medals[tier]} ${name}`;
 }

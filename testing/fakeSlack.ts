@@ -3,6 +3,7 @@ import type { ChannelMessage } from "./slackMessages";
 export type SlackUser = {
   id: string;
   team_id: string;
+  name?: string;
   deleted?: boolean;
   is_bot?: boolean;
   is_admin?: boolean;
@@ -24,7 +25,7 @@ export type SlackUserGroup = {
 
 export type UserGroupOptions = { handle?: string; name?: string; users?: string[]; disabled?: boolean; autoType?: "admin" | "owner" };
 
-export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared" };
+export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared" | "pending-shared"; joined?: boolean };
 
 export type SlackArgs = Record<string, unknown>;
 
@@ -64,6 +65,7 @@ export class FakeSlack {
   private readonly customEmoji = new Map<string, string>();
   private readonly channels = new Map<string, SlackChannel>();
   private workspaceUrl = "https://t1.slack.com/";
+  private channelsPerPage = 200;
 
   withWorkspaceUrl(url: string) {
     this.workspaceUrl = url;
@@ -88,6 +90,15 @@ export class FakeSlack {
   withChannel(id: string, channel: SlackChannel) {
     this.channels.set(id, channel);
     return this;
+  }
+
+  listingChannelsPerPage(count: number) {
+    this.channelsPerPage = count;
+    return this;
+  }
+
+  hasJoined(id: string) {
+    return this.channels.get(id)?.joined === true;
   }
 
   withCustomEmoji(name: string, value: string) {
@@ -219,6 +230,9 @@ export class FakeSlack {
     if (method === "conversations.history") return this.history(args);
     if (method === "conversations.replies") return this.replies(args);
     if (method === "conversations.join") return this.join(field("channel"));
+    if (method === "conversations.list") return this.listChannels(args);
+    if (method === "chat.unfurl") return unfurlAnswerTo(args);
+    if (method === "conversations.info") return this.channelInfo(field("channel"));
     if (method === "auth.test") return { ok: true, url: this.workspaceUrl, team: "Kudos Test", team_id: "T1", user: "kudos", user_id: "U_KUDOS_BOT", bot_id: "B_KUDOS" };
     return { ok: false, error: "unknown_method" };
   }
@@ -228,7 +242,34 @@ export class FakeSlack {
     if (channel === undefined) return { ok: true, channel: { id } };
     if (channel.kind === "private") return { ok: false, error: "method_not_supported_for_channel_type" };
     if (channel.kind === "archived") return { ok: false, error: "is_archived" };
-    return { ok: true, channel: { id, name: channel.name, is_channel: true, is_private: false, is_archived: false, is_ext_shared: channel.kind === "shared" } };
+    const alreadyIn = channel.joined === true;
+    channel.joined = true;
+    const joined = { id, name: channel.name, is_channel: true, is_private: false, is_archived: false, is_ext_shared: channel.kind === "shared" };
+    return { ok: true, ...(alreadyIn && { warning: "already_in_channel" }), channel: joined };
+  }
+
+  private channelInfo(id: string) {
+    const channel = this.channels.get(id);
+    if (channel === undefined || channel.kind === "private") return { ok: false, error: "channel_not_found" };
+    return { ok: true, channel: { id, name: channel.name, is_channel: true, is_archived: channel.kind === "archived", is_ext_shared: channel.kind === "shared", is_pending_ext_shared: channel.kind === "pending-shared" } };
+  }
+
+  private listChannels(args: SlackArgs) {
+    if (args.types !== "public_channel") return { ok: false, error: "invalid_types" };
+    const listed = [...this.channels.entries()].filter(([, channel]) => channel.kind !== "private" && !(args.exclude_archived === "true" && channel.kind === "archived"));
+    const from = Number(args.cursor ?? 0);
+    const to = from + Math.min(Number(args.limit ?? 100), this.channelsPerPage);
+    const channels = listed.slice(from, to).map(([id, channel]) => ({
+      id,
+      name: channel.name,
+      is_channel: true,
+      is_private: false,
+      is_archived: channel.kind === "archived",
+      is_ext_shared: channel.kind === "shared",
+      is_pending_ext_shared: channel.kind === "pending-shared",
+      is_member: channel.joined === true,
+    }));
+    return { ok: true, channels, response_metadata: { next_cursor: to < listed.length ? String(to) : "" } };
   }
 
   private userGroupsListed(args: SlackArgs) {
@@ -286,6 +327,13 @@ function isWithin(ts: string, { oldest, latest, inclusive }: SlackArgs) {
 function order(ts: string) {
   const [seconds = "0", fraction = ""] = ts.split(".");
   return Number(seconds) * 1_000_000 + Number(fraction.padEnd(6, "0").slice(0, 6));
+}
+
+function unfurlAnswerTo({ channel, ts, unfurl_id, source, unfurls }: SlackArgs) {
+  const addressed = (channel !== undefined && ts !== undefined) !== (unfurl_id !== undefined && source !== undefined);
+  const cards = typeof unfurls === "object" && unfurls !== null ? Object.values(unfurls) : [];
+  const shaped = cards.length > 0 && cards.every((card) => Array.isArray((card as { blocks?: unknown }).blocks));
+  return addressed && shaped ? { ok: true } : { ok: false, error: "invalid_arguments" };
 }
 
 export function isWelcome(args: SlackArgs) {

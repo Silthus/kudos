@@ -255,6 +255,25 @@ describe("LP26 LP35: endXpMoment moves the last visit to the newest instant the 
     expect(await everythingWritten()).toEqual(before);
   });
 
+  test("LP61: a moment started from the glow after the visit's own one ended moves the last visit on to the newest instant it read, and never plays or moves for the collected one again", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+    const visitsOwn = await theMomentOf(asAlice);
+    await endOf(asAlice, visitsOwn);
+    const cameInSince = await thanks(carol, alice);
+    later();
+
+    const missed = await theMomentOf(asAlice);
+    expect(missed.since, "the glow's moment starts where the visit's own ended").toBe(visitsOwn.until);
+    expect(missed.excerpts.map(({ entry }) => entry.at)).toEqual([cameInSince.at]);
+    expect(await endOf(asAlice, missed)).toEqual({ kind: "arrived", lastVisit: missed.until });
+    expect(await momentOf(asAlice), "the collected moments").toEqual({ kind: "none", lastVisit: missed.until });
+
+    const before = await everythingWritten();
+    expect(await endOf(asAlice, visitsOwn), "ending the visit's own moment again").toEqual({ kind: "arrived", lastVisit: missed.until });
+    expect(await everythingWritten()).toEqual(before);
+  });
+
   test("an instant no moment read moves nothing", async () => {
     const asAlice = await aReturningMember(alice);
     await thanks(bob, alice);
@@ -351,6 +370,110 @@ describe("website commands pass one guard", { timeout: 60_000 }, () => {
     const asAlice = await signedIn(alice);
 
     await expect(asAlice.mutation(api.website.xpMoment.endXpMoment, { from: 1, until: 2, skipped: false, member: "someone" } as never)).rejects.toThrow(/member/);
+  });
+});
+
+describe("LP72: the XP moment carries the first-thanks top-up", { timeout: 60_000 }, () => {
+  test("a returning member's first kudos shows in its excerpt with the top-up's XP, and the climb starts from before that kudos and crosses level 2", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await aReturningMember(alice);
+
+    await thanks(alice, carol);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the excerpts with their XP").toEqual([
+      ["kudosGiven", 15],
+      ["levelUp", 0],
+    ]);
+    expect(moment.xp, "the orb's total").toBe(15);
+    expect([moment.climb.from, moment.climb.to].map(({ level, xp }) => [level, xp]), "the climb").toEqual([
+      [1, 5],
+      [2, 20],
+    ]);
+  });
+
+  test("a member who thanked before they ever visited plays the moment from the instant before that kudos at their first visit, then ends it as any moment", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    await thanks(bob, alice);
+    const { at } = await thanks(alice, carol);
+    const asAlice = await signedIn(alice);
+
+    const moment = await theMomentOf(asAlice);
+
+    expect(moment.excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the excerpts with their XP").toEqual([
+      ["kudosGiven", 15],
+      ["levelUp", 0],
+    ]);
+    expect(moment.excerpts[0]!.entry.at, "the first kudos' excerpt").toBe(at);
+    expect([moment.climb.from, moment.climb.to].map(({ level, xp }) => [level, xp]), "the climb").toEqual([
+      [1, 5],
+      [2, 20],
+    ]);
+    expect(await endOf(asAlice, moment), "the moment's end").toMatchObject({ kind: "arrived", lastVisit: moment.until });
+    expect(await momentOf(asAlice), "the next read").toEqual({ kind: "none", lastVisit: moment.until });
+  });
+
+  test.each([
+    ["before", false],
+    ["after", true],
+  ])("a newcomer's first arrival read while their first kudos' XP waits holds %s the top-up lands, so the moment still plays", async (_, landsBeforeArrival) => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await signedIn(alice);
+    const held = await thanksWhileItsXpWaits(alice, carol);
+    expect(await momentOf(asAlice), "the first read").toEqual({ kind: "none", lastVisit: null });
+
+    if (landsBeforeArrival) await held.record();
+    await arrive(asAlice, null);
+    if (!landsBeforeArrival) await held.record();
+
+    expect((await theMomentOf(asAlice)).excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the excerpts with their XP").toEqual([
+      ["kudosGiven", 20],
+      ["levelUp", 0],
+    ]);
+  });
+
+  test("a newcomer whose first kudos' XP never records stops holding their first arrival once the moment stops waiting for it", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await signedIn(alice);
+    await thanksWhileItsXpWaits(alice, carol);
+    vi.setSystemTime(Date.now() + 11 * minuteMs);
+
+    await arrive(asAlice, null);
+
+    expect(await momentOf(asAlice), "the next read").toMatchObject({ kind: "none", lastVisit: await newestKudosDecidedFor(carol) });
+  });
+
+  test("a newcomer who has only received kudos arrives past them at their first visit, as before", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await signedIn(alice);
+    await thanks(bob, alice);
+
+    await arrive(asAlice, null);
+
+    expect(await momentOf(asAlice), "the next read").toMatchObject({ kind: "none", lastVisit: await newestKudosDecidedFor(alice) });
+  });
+
+  test("a later kudos plays at its own XP, without the top-up", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "onboarding");
+    const asAlice = await signedIn(alice);
+    await thanks(alice, carol);
+    const first = await theMomentOf(asAlice);
+    await endOf(asAlice, first);
+    later();
+
+    await thanks(alice, bob);
+
+    expect((await theMomentOf(asAlice)).excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the excerpts with their XP").toEqual([["kudosGiven", 10]]);
+  });
+
+  test("while onboarding is off, a first kudos plays at its 10 XP and a member with no last visit reads none, as before", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, carol);
+    const asCarol = await signedIn(carol);
+    await thanks(carol, bob);
+
+    expect((await theMomentOf(asAlice)).excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the returning member's excerpts").toEqual([["kudosGiven", 10]]);
+    expect(await momentOf(asCarol), "the member with no last visit").toEqual({ kind: "none", lastVisit: null });
   });
 });
 

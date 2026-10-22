@@ -135,3 +135,23 @@ export const recordXpMomentEnded = internalMutation({
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "xpMomentEnded", ...ending }));
   },
 });
+
+const howItWorksCloseValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  triedSlack: v.boolean(),
+  at: v.number(),
+});
+
+export type HowItWorksClose = Infer<typeof howItWorksCloseValidator>;
+
+export async function reportHowItWorksClosed(ctx: MutationCtx, close: HowItWorksClose) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordHowItWorksClosed, close);
+}
+
+export const recordHowItWorksClosed = internalMutation({
+  args: howItWorksCloseValidator,
+  handler: async (ctx, close): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "howItWorksClosed", ...close }));
+  },
+});

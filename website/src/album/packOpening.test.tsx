@@ -162,15 +162,6 @@ describe("AL47: the packs button opens the oldest waiting pack, sealed, and only
     expect(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" })).not.toHaveTextContent(/card|sticker/i);
   });
 
-  it("with no pack waiting, says how to earn one", async () => {
-    const { user } = visit(albumFixtures.newcomer, async () => ({ kind: "refused" }));
-
-    await user.click((await topBar()).getByRole("button", { name: "No packs waiting" }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Open your packs" }));
-
-    expect(dialog.getByRole("heading", { name: "No packs waiting" })).toBeInTheDocument();
-    expect(dialog.getByText("Thank someone in Slack and say why. Each thoughtful kudos earns a pack, one per person a week.")).toBeInTheDocument();
-  });
 });
 
 describe("AL47: the opening turns one card a beat", () => {
@@ -326,7 +317,7 @@ describe("AL47: the XP bar counts up by the pack bonus", () => {
 });
 
 describe("AL47: the opened cards fly into the top bar's tray", () => {
-  it("Done flies them up, the tray counting them only once they land, and gives focus back to the packs button", async () => {
+  it("#127: Done flies them up, the tray counting them only once they land, and with the last pack opened gives focus to the tray", async () => {
     const { user } = visit(albumFixtures.onePack, async () => opened(stickerAndHoggie("juno-park")));
     const dialog = await openThePacks(user);
     await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
@@ -337,8 +328,17 @@ describe("AL47: the opened cards fly into the top bar's tray", () => {
 
     expect(screen.getByRole("dialog", { name: "Open your packs" })).toHaveAttribute("data-step", "flying");
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Open your packs" })).not.toBeInTheDocument(), { timeout: 2000 });
-    expect((await topBar()).getByRole("button", { name: "Tray, 2 to put in" })).toBeInTheDocument();
-    expect((await topBar()).getByRole("button", { name: "No packs waiting" })).toHaveFocus();
+    expect((await topBar()).queryByRole("button", { name: /packs/i })).not.toBeInTheDocument();
+    expect((await topBar()).getByRole("button", { name: "Tray, 2 to put in" })).toHaveFocus();
+  });
+
+  it("#127: closing with packs still waiting gives focus back to the packs button", async () => {
+    const { user } = visit(albumFixtures.midway, async () => opened(stickerAndHoggie("juno-park")));
+    await openThePacks(user);
+
+    await user.click(screen.getByRole("button", { name: "Close the pack opening" }));
+
+    expect((await topBar()).getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveFocus();
   });
 
   it("Open next pack flies these up and brings the next pack, sealed", async () => {

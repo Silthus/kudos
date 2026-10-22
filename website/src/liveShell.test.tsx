@@ -400,8 +400,8 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     const weeks = [{ week: "2026-10-12", days: [0, 1, 0, 0, 0, 0, 0] }, { week: "2026-10-05", days: quiet.days }];
     const ines = { person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" } };
     const thanksToInes = { people: [ines], morePeople: 0, message: { kind: "text", segments: [{ kind: "text", text: "Thanks for the review" }], edited: false }, at: Date.parse("2026-10-13T10:00:00Z") };
-    const thisWeek = { kind: "week", week: "2026-10-12", weeks, issue: { ...quiet, kudosGiven: 1, thoughtfulGiven: 1, days: weeks[0]!.days, thanked: { people: [ines], more: 0 }, given: { kudos: [thanksToInes], more: false } } };
-    const lastWeek = { kind: "week", week: "2026-10-05", weeks, issue: quiet };
+    const thisWeek = { kind: "week", week: "2026-10-12", thisWeek: "2026-10-12", weeks, issue: { ...quiet, kudosGiven: 1, thoughtfulGiven: 1, days: weeks[0]!.days, thanked: { people: [ines], more: 0 }, given: { kudos: [thanksToInes], more: false } } };
+    const lastWeek = { kind: "week", week: "2026-10-05", thisWeek: "2026-10-12", weeks, issue: quiet };
     const weekAnswer = (args: { week?: string }) => (args.week === "2026-10-05" ? lastWeek : thisWeek);
     showTheAlbum(albumV1, (query, args) => (query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : undefined));
     window.history.replaceState(null, "", "/book#milestones");
@@ -524,7 +524,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     await user.click(screen.getByRole("button", { name: "Put your teammate's card in" }));
 
     await waitFor(() => expect(sentOverHttp).toHaveBeenCalledOnce());
-    expect(await bar.findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await waitFor(() => expect(bar.queryByRole("button", { name: /^Tray/ })).not.toBeInTheDocument());
     await user.click(bar.getByRole("button", { name: "Open your packs, 1 waiting" }));
     expect(screen.getByText("For thanking a teammate")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Rip open the pack for thanking a teammate" }));

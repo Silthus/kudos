@@ -1,18 +1,19 @@
 import { hoggiesOfRarity, packBands, rarities, type CatalogueHoggie, type Rarity } from "./catalogue";
 import { kindOf, type CrateKey } from "./crateKey";
 
-export type DrawInput = { secret: string; member: string; crate: string; version: number; floor?: Rarity };
+export type DrawInput = { secret: string; member: string; crate: string; version: number; floor?: Rarity; owned?: ReadonlySet<string> };
 
 export type Drawn = { rarity: Rarity; hoggie: string };
+
+type Pool = { rarity: Rarity; weight: number; hoggies: CatalogueHoggie[] };
 
 export type PackDrawInput = { secret: string; member: string; crate: CrateKey };
 
 export type PackBonus = { xp: number; coins: number };
 
-export async function drawOf({ secret, member, crate, version, floor = "common" }: DrawInput): Promise<Drawn> {
+export async function drawOf({ secret, member, crate, version, floor = "common", owned = new Set() }: DrawInput): Promise<Drawn> {
   const digest = await digestOf(`${secret}:${member}:${crate}:${version}`);
-  const rarity = rarityAt(fractionAt(digest, 0), raritiesFrom(floor));
-  const hoggies = hoggiesOfRarity(rarity);
+  const { rarity, hoggies } = poolAt(fractionAt(digest, 0), poolsFrom(floor, owned));
   return { rarity, hoggie: hoggies[pickAt(digest, 4, hoggies.length)]!.hoggie };
 }
 
@@ -45,13 +46,15 @@ function fractionAt(digest: DataView, offset: number) {
   return digest.getUint32(offset) / 2 ** 32;
 }
 
-function raritiesFrom(floor: Rarity) {
-  return rarities.slice(rarities.findIndex(({ rarity }) => rarity === floor));
+function poolsFrom(floor: Rarity, owned: ReadonlySet<string>): Pool[] {
+  const every = rarities.slice(rarities.findIndex(({ rarity }) => rarity === floor)).map(({ rarity, weight }) => ({ rarity, weight, hoggies: hoggiesOfRarity(rarity) }));
+  const unowned = every.map((pool) => ({ ...pool, hoggies: pool.hoggies.filter(({ hoggie }) => !owned.has(hoggie)) })).filter(({ hoggies }) => hoggies.length > 0);
+  return unowned.length > 0 ? unowned : every;
 }
 
-function rarityAt(fraction: number, drawable: typeof rarities): Rarity {
-  const point = fraction * drawable.reduce((total, { weight }) => total + weight, 0);
+function poolAt(fraction: number, pools: Pool[]): Pool {
+  const point = fraction * pools.reduce((total, { weight }) => total + weight, 0);
   let end = 0;
-  for (const { rarity, weight } of drawable) if (point < (end += weight)) return rarity;
-  return drawable.at(-1)!.rarity;
+  for (const pool of pools) if (point < (end += pool.weight)) return pool;
+  return pools.at(-1)!;
 }

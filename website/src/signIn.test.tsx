@@ -145,6 +145,8 @@ describe("F28: a link from Slack that asks to sign in", () => {
     { address: "/sign-in/", destination: "/" },
     { address: "/sign-in/quests", destination: "/quests" },
     { address: "/sign-in/leaderboard?period=month", destination: "/leaderboard?period=month" },
+    { address: "/sign-in/leaderboard?period=last-week", destination: "/leaderboard?period=last-week" },
+    { address: "/sign-in/activity?week=2026-09-28", destination: "/activity?week=2026-09-28" },
   ])("on the closed website, $address starts Slack's sign-in once, returning to $destination", async ({ address, destination }) => {
     arriveAt(address);
     const { actions, showVisitor } = renderApp(shellFixtures.loading);

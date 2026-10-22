@@ -90,6 +90,12 @@ jobs:
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
 
+      # A shared emoji name added to the catalogue reaches every registry already in use at this deploy, not at the next company sync.
+      - name: Reserve the shared emoji names in every registry in use
+        run: pnpm exec convex run album/emojiNames:reserveSharedEmojiNames
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
+
       - name: Backfill the pending-crate index once
         if: ${{ !cancelled() && steps.deploy.outcome == 'success' }}
         run: pnpm exec convex run quests/pendingCrates:backfillPendingCrates

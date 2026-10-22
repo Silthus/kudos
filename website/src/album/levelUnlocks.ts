@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import type { LoopLesson } from "../../../convex/website/album";
 import type { Climb, XpMoment } from "../../../convex/website/xpMoment";
 import type { Album, AlbumEmoji } from "./answer";
 import type { XpMomentSequence } from "./useXpMoment";
 
-export type LevelUnlocks = { items: number; emojis: AlbumEmoji[] };
+export type LevelUnlocks = { items: number; emojis: AlbumEmoji[]; howTo: LoopLesson | null };
 
 type Kept = { moment: XpMoment; unlocks: LevelUnlocks };
 
@@ -13,7 +14,12 @@ export function useLevelUnlocks(album: Album, { ended, play }: XpMomentSequence,
   const [kept, keep] = useState<Kept | null>(null);
   if (ended !== null && kept?.moment !== ended) keep({ moment: ended, unlocks: levelUnlocksOf(album, ended.climb) });
   useUnlockedOnceTheTakeoverShows(kept, play?.phase === "takeover", unlocked);
-  return ended !== null && kept?.moment === ended ? kept.unlocks : null;
+  return ended !== null && kept?.moment === ended ? asAnsweredNow(kept.unlocks, album) : null;
+}
+
+function asAnsweredNow(unlocks: LevelUnlocks, { emojis }: Album): LevelUnlocks {
+  const answered = new Map(emojis.map((emoji) => [emoji.id, emoji]));
+  return { ...unlocks, emojis: unlocks.emojis.map((emoji) => answered.get(emoji.id) ?? emoji) };
 }
 
 function useUnlockedOnceTheTakeoverShows(kept: Kept | null, takingOver: boolean, unlocked: (ids: string[]) => void) {
@@ -26,11 +32,12 @@ function useUnlockedOnceTheTakeoverShows(kept: Kept | null, takingOver: boolean,
   }, [kept, takingOver, unlocked]);
 }
 
-function levelUnlocksOf({ board, emojis }: Album, climb: Climb): LevelUnlocks {
+function levelUnlocksOf({ board, emojis, emojiHowTo }: Album, climb: Climb): LevelUnlocks {
   const crossed = (level: number) => level > climb.from.level && level <= climb.to.level;
   return {
     items: board?.items.filter(({ reason }) => reason.kind === "levelUp" && crossed(reason.level)).length ?? 0,
     emojis: emojis.filter((emoji) => emoji.kind === "level" && emoji.earned && !emoji.seen && crossed(levelOfEmoji(emoji))),
+    howTo: emojiHowTo ?? null,
   };
 }
 

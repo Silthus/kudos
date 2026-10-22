@@ -59,6 +59,7 @@ import { questDrawValidator, questProgressValidator, questSwapValidator } from "
 import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
 import { welcomedAsValidator } from "./welcome/welcomedAs";
+import { directoryEntryValidator } from "./workspace/directoryEntry";
 import { memberProfileFields } from "./workspace/memberProfile";
 import { coinSpendValidator } from "./wallet/wallet";
 
@@ -90,6 +91,8 @@ export default defineSchema({
   }),
 
   lastVisits: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
+
+  howItWorksCloses: defineTable({ member: v.id("members"), triedSlack: v.boolean(), at: v.number() }).index("by_member", ["member"]),
 
   companyProfiles: defineTable({
     firstName: v.string(),
@@ -159,6 +162,8 @@ export default defineSchema({
   })
     .index("by_user", ["workspace", "user"])
     .index("by_admin", ["workspace", "admin"]),
+
+  listedMembers: defineTable({ workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() }).index("by_user", ["workspace", "user"]),
 
   userGroups: defineTable({
     workspace: v.string(),

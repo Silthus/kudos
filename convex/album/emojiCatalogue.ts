@@ -4,6 +4,10 @@ import type { MilestoneTier } from "./records";
 
 export const emojiLevels = [5, 10, 15, 20, 25] as const;
 
+export const levelTwoEmoji = { level: 2, name: "raised_hands" } as const;
+
+export const everyEmojiLevel: readonly number[] = [levelTwoEmoji.level, ...emojiLevels];
+
 export type MilestoneTierEmoji = { milestone: MilestoneId; tier: MilestoneTier; name: string };
 
 export const milestoneTierEmojis: readonly MilestoneTierEmoji[] = milestoneCatalogue.milestones.flatMap(({ id, steps }) => steps.map(({ tier, name }) => ({ milestone: id, tier, name })));

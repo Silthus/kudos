@@ -18,12 +18,12 @@ export async function personPageOf(ctx: QueryCtx, owner: PageOwner, person: Memb
   return {
     ...((await pairTallyFor(ctx, owner.member, person)) ?? anEmptyPair()),
     held: owner.member === person || (await inTheAlbumOf(ctx, owner.member, person)),
-    teams: await teamsOf(ctx, owner.workspace, person),
+    teams: await personTeamsOf(ctx, owner.workspace, person),
     hype: await hypeEmojiOf(ctx, owner, person),
   };
 }
 
-async function teamsOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<PersonTeam[]> {
+export async function personTeamsOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<PersonTeam[]> {
   const profile = (await storedCompanyMatchOf(ctx, workspace, person))?.profile ?? null;
   if (profile === null) return [];
   return (await companyTeamsOf(ctx))

@@ -7,34 +7,36 @@ import { PageTitle } from "../PageTitle";
 import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
-import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
+import { hypeEmblemPicture, slugOf } from "../../../convex/album/emojiCatalogue";
 import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
 import { ComingSoonToSlack, FindInSlackWhileOn, MapInPlace, useMapsInPlace, useSlackWay } from "./findInSlack";
 import { hrefOf } from "./place";
 import { PersonPicture } from "./PersonPicture";
+import { ShareLink } from "./ShareLink";
 import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { dateOf, firstNameOf, howToCollectWords, personIn } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
 import { LandedHype } from "./ItemBoard";
+import { OwnHypePick, type HypePicker } from "./OwnHypePick";
 import { NewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
 type HypeShown = Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">;
 
-type PersonAnswerProps = { shown: PersonShown | undefined; album: Album; onSignIn: () => void; onSignOut: () => void };
+type PersonAnswerProps = { shown: PersonShown | undefined; album: Album; picker: HypePicker; onSignIn: () => void; onSignOut: () => void };
 
-export function PersonAnswerPage({ shown, album, ...answers }: PersonAnswerProps) {
+export function PersonAnswerPage({ shown, album, picker, ...answers }: PersonAnswerProps) {
   if (shown === undefined) return <LoadingPage shape="column" />;
   if (shown.kind === "no-person" || shown.kind === "off") return <NotFoundPage />;
   if (shown.kind !== "person") return <AnswerPage answer={shown} {...answers} />;
-  return <PersonPage album={album} person={shown} />;
+  return <PersonPage album={album} person={shown} picker={picker} />;
 }
 
 export function isWaitingForThePerson(shown: PersonShown | undefined) {
   return shown === undefined;
 }
 
-function PersonPage({ album, person }: { album: Album; person: Person }) {
+function PersonPage({ album, person, picker }: { album: Album; person: Person; picker: HypePicker }) {
   const first = firstNameOf(person.name);
   const caption = useId();
   const pet = petOf(album, person.person);
@@ -93,7 +95,8 @@ function PersonPage({ album, person }: { album: Album; person: Person }) {
               </SlackLink>
             </div>
           )}
-          <HypeEmoji person={person} first={first} />
+          <ShareLink album={album} page={{ kind: "person", person: person.person }} cardOf={`${first}'s`} />
+          <HypeEmoji person={person} first={first} picker={picker} emojiPage={album.emojiPage} />
           {!person.held && (
             <div className="al-howto">
               <p className="al-eyebrow">
@@ -114,7 +117,7 @@ function teamHrefOf(team: Pick<AlbumTeam, "team">) {
   return hrefOf({ kind: "team", team: team.team });
 }
 
-function HypeEmoji({ person, first }: { person: Person; first: string }) {
+function HypeEmoji({ person, first, picker, emojiPage }: { person: Person; first: string; picker: HypePicker; emojiPage: string | null }) {
   const { earned, name, picture, inSlack } = person.hype;
   return (
     <div className="al-person-hype ph-no-capture" data-earned={earned ? "" : undefined}>
@@ -123,7 +126,7 @@ function HypeEmoji({ person, first }: { person: Person; first: string }) {
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
       </p>
-      {name !== null && <HypeInSlack emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} earned={earned} />}
+      {person.hypePick ? <OwnHypePick emoji={{ kind: "hype", name: name ?? `${slugOf(person.name)}-hype`, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? false }} emojiPage={emojiPage} {...picker} /> : name !== null && <HypeInSlack emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} earned={earned} />}
     </div>
   );
 }

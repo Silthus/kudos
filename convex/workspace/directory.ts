@@ -1,4 +1,4 @@
-import { v, type Infer, type ObjectType } from "convex/values";
+import { v, type ObjectType } from "convex/values";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
@@ -8,6 +8,7 @@ import { followMembersLater } from "../analytics/person";
 import { keepCompanyFacesLater } from "../companyProfiles/storedFaces";
 import { publish } from "../bus/publish";
 import { reconcileMember, reconcileUser } from "../groups/reconcile";
+import { directoryEntryValidator } from "./directoryEntry";
 import { memberProfileFieldNames, memberProfileFields, type MemberProfile } from "./memberProfile";
 
 export type MemberId = Id<"members">;
@@ -17,13 +18,7 @@ export type MemberFacts =
   | { kind: "bot" }
   | { kind: "not-a-member" };
 
-export const directoryEntryValidator = v.union(
-  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()), admin: v.optional(v.boolean()), ...memberProfileFields }),
-  v.object({ kind: v.literal("bot") }),
-  v.object({ kind: v.literal("not-a-member") }),
-);
-
-export type DirectoryEntry = Infer<typeof directoryEntryValidator>;
+export { directoryEntryValidator, type DirectoryEntry } from "./directoryEntry";
 
 export async function lookup(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<MemberFacts | undefined> {
   const row = await memberRow(ctx, workspace, user);
@@ -78,6 +73,11 @@ export async function displayNameOf(ctx: QueryCtx, member: MemberId): Promise<st
   return row?.kind === "member" ? row.name : undefined;
 }
 
+export async function profileNameOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
+  const row = await ctx.db.get(member);
+  return row?.kind === "member" ? (row.displayName ?? row.realName) : undefined;
+}
+
 export type PersonFacts = { workspace: string; user: ChatUserId; admin: boolean } & MemberProfile;
 
 export async function personFactsOf(ctx: QueryCtx, member: MemberId): Promise<PersonFacts | null> {
@@ -109,10 +109,12 @@ export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;
 
 export const fillEntry = internalMutation({
   args: directoryRecordArgs,
-  handler: async (ctx, directoryRecord) => {
-    if ((await memberRow(ctx, directoryRecord.workspace, directoryRecord.user)) === null) await record(ctx, directoryRecord);
-  },
+  handler: (ctx, directoryRecord) => recordIfUnknown(ctx, directoryRecord),
 });
+
+export async function recordIfUnknown(ctx: MutationCtx, directoryRecord: DirectoryRecord) {
+  if ((await memberRow(ctx, directoryRecord.workspace, directoryRecord.user)) === null) await record(ctx, directoryRecord);
+}
 
 export const nameMembersWithoutName = internalMutation({
   args: { names: v.array(v.object({ workspace: v.string(), user: v.string(), name: v.string() })) },

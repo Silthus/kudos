@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
-import type { ShareReply, TurnReply } from "../shell";
+import type { HowItWorksCloseReply, ShareReply, TurnReply } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments } from "./EmojiMoment";
 import { GettingStarted } from "./GettingStarted";
+import { HowItWorks } from "./HowItWorks";
 import { AfterTheLanding, ItemBoard, ItemsWait } from "./ItemBoard";
 import { useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
@@ -21,11 +22,13 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { albumAtTheLanding } from "./landedAlbum";
 import { TurnFlight } from "./TurnFlight";
-import { shownUnless, useItemBoard, LandingProvider } from "./useItemBoard";
+import { shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
+import { cardShownAt, useHowItWorks } from "./useHowItWorks";
 import { useTeamUnlock } from "./useTeamUnlock";
+import { MomentGlow } from "./MomentGlow";
 import { useXpMomentSequence } from "./useXpMoment";
-import type { XpMomentAhead } from "./visitArrival";
+import type { MissedXpMoment, XpMomentAhead } from "./visitArrival";
 import { XpMomentCanvas, XpMomentSummary } from "./XpMoment";
 import "./album.css";
 
@@ -46,14 +49,16 @@ export type AlbumShellProps = {
   turnItem: (item: string) => Promise<TurnReply>;
   xpMoment: XpMomentAhead;
   endXpMoment: (skipped: boolean) => void;
+  missedXpMoment: MissedXpMoment;
   shareItem: (item: string) => Promise<ShareReply>;
+  closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks }: AlbumShellProps) {
   const wide = useWideScreen();
-  const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
+  const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered, trayButton, emojiButton);
   const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
   const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker, { waits: puttingIn.busy });
   const { held, hold, release } = useHeld();
@@ -68,18 +73,25 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const popover = usePopover<TopBarPopups>();
   const { show } = popover;
   const [justUnlocked, setJustUnlocked] = useState<string[]>([]);
+  const [opensOnJustUnlocked, setOpensOnJustUnlocked] = useState(false);
   const showTheEmojis = useCallback(
     (ids: string[]) => {
       setJustUnlocked(ids);
+      setOpensOnJustUnlocked(true);
       show("emojis");
     },
     [show],
   );
-  const items = useItemBoard(album.board, turnItem, album.level, keyOf(place));
+  useEffect(() => {
+    if (popover.open !== "emojis") setOpensOnJustUnlocked(false);
+  }, [popover.open]);
+  const visitCard = useHowItWorks(answered, closeHowItWorks);
+  const items = useItemBoard(album.board, turnItem, album.level, keyOf(place), { teachesTheLoop: visitCard.answered === null });
   const shares = useWinShares(shareItem);
   const flying = items.flight !== null;
   const sinceTheLastVisit = useXpMomentSequence(xpMoment, { itemsWait: (album.board?.items.length ?? 0) > 0, onEnd: endXpMoment });
-  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits;
+  const howItWorks = cardShownAt(visitCard, { landing: items.landing, turning: items.turning, momentWaits: sinceTheLastVisit.waits });
+  const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits || howItWorks.holds;
   const emojiMoments = useEmojiMoments(album, anotherMoment, markEmojisSeen, showTheEmojis);
   const levelUnlocks = useLevelUnlocks(album, sinceTheLastVisit, emojiMoments.shownElsewhere);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
@@ -88,23 +100,29 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     finish();
   };
   const turns = shownUnless(items, anotherMoment || playing);
-  const landed = useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]);
+  const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
-  const covered = boardShown || sinceTheLastVisit.covers;
+  const covered = boardShown || sinceTheLastVisit.covers || howItWorks.card !== null;
   const awaitingAMoment = playing || unlocking.sending !== null || covered;
+  const glows = missedXpMoment.glows && !anotherMoment && !awaitingAMoment && (missedXpMoment.moment !== null || turns.offered);
+  const collectWhatWaits = () => {
+    missedXpMoment.start();
+    turns.show();
+  };
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell" data-xp-moment={sinceTheLastVisit.covers ? "" : undefined}>
-      <TopBar album={album} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={landed} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
       {sinceTheLastVisit.play !== null && <XpMomentCanvas play={sinceTheLastVisit.play} me={album.me} levelUnlocks={levelUnlocks} />}
       {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} landed={<AfterTheLanding turns={turns} album={album} shares={shares} />} touched={turns.touched} onTouch={turns.touch} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
-      {album.board !== null && <ItemsWait turns={turns} album={album} shares={shares} />}
+      {howItWorks.card !== null && <HowItWorks card={howItWorks.card} onClose={visitCard.close} />}
+      {album.board !== null && <ItemsWait turns={turns} album={album} shares={shares} pill={!missedXpMoment.glows} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
@@ -124,6 +142,10 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   );
 }
 
+function firstShown(buttons: RefObject<HTMLElement | null>[]) {
+  return buttons.find(({ current }) => current !== null)?.current;
+}
+
 function heldLevelOf(held: Held, level: AlbumLevel | null): Held {
   return level === null ? held : { ...held, level };
 }
@@ -136,7 +158,7 @@ function useUnlockedFocusAfterTheMoment(playing: boolean) {
   }, [playing]);
 }
 
-function usePackOpening(answered: Album) {
+function usePackOpening(answered: Album, trayButton: RefObject<HTMLElement | null>, emojiButton: RefObject<HTMLElement | null>) {
   const [opening, setOpening] = useState(false);
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
   const album = useMemo(() => (opened.size === 0 ? answered : { ...answered, packs: answered.packs.filter(({ pack }) => !opened.has(pack)) }), [answered, opened]);
@@ -144,9 +166,9 @@ function usePackOpening(answered: Album) {
   const packsButton = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (wasOpen.current && !opening) packsButton.current?.focus();
+    if (wasOpen.current && !opening) firstShown([packsButton, trayButton, emojiButton])?.focus();
     wasOpen.current = opening;
-  }, [opening]);
+  }, [opening, trayButton, emojiButton]);
   const open = useCallback(() => setOpening(true), []);
   const close = useCallback(() => setOpening(false), []);
   return { opening, open, close, packsButton, album, rememberOpened };

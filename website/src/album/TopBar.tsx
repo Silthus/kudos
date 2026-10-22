@@ -1,5 +1,5 @@
 import { IconCrown, IconEmoji, IconGear, IconPulse, IconStack } from "@posthog/icons";
-import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode, type RefObject } from "react";
 import { AppLink } from "../AppLink";
 import { useCapturing } from "../browserAnalytics/capturing";
 import { useCountUp } from "../countUp";
@@ -9,9 +9,10 @@ import { Feedback } from "../Feedback";
 import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumLevel } from "./answer";
 import { EmojiPanel } from "./EmojiPanel";
+import { usableCountOf } from "./emojiShelf";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
-import { home, hrefOf, type Place } from "./place";
+import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
 import { TrayPanel } from "./TrayPanel";
 import type { Popover } from "./usePopover";
 
@@ -21,22 +22,25 @@ export type TopBarPopups = "tray" | "emojis" | "menu";
 
 type TopBarPopover = Popover<TopBarPopups>;
 
-type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; opensOnJustUnlocked: boolean; held: Held; popsTheLevel?: boolean; moving: boolean; inert: boolean; glow?: ReactNode; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
 
-export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTheLevel = false, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
+export function TopBar({ album, place, wide, popover, justUnlocked, opensOnJustUnlocked, held, popsTheLevel = false, moving, inert, glow, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
+  const trayItems = held.tray ?? album.tray.length;
+  const trayShown = album.board === null && (trayItems > 0 || moving || tray.busy);
   useTrayOpenOnThePacksPage(place, popover);
+  useTrayPanelClosedWithoutTheTray(trayShown, popover);
   return (
     <header className="al-top" inert={inert}>
-      <AppLink href={hrefOf(home)} className="al-brand" data-slot="home">
+      <AppLink href={addressOf(home, myPageOf(album))} className="al-brand" data-slot="home">
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
       </AppLink>
-      <XpBar level={held.level ?? album.level} moving={moving} pops={popsTheLevel} />
+      <XpBar level={held.level ?? album.level} moving={moving} pops={popsTheLevel} glow={glow} />
       <div className="al-top-end">
-        {album.board === null && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />}
-        {album.board === null && <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />}
+        {album.board === null && (album.packs.length > 0 || moving) && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} focusAfter={emojiButton} />}
+        {trayShown && <TrayButton album={album} items={trayItems} popover={popover} button={trayButton} tray={tray} focusAfter={emojiButton} />}
         {wide && <PageLinks place={place} />}
-        <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} />
+        <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} />
         <FeedbackButton />
         {wide ? <MeAndSettings album={album} place={place} /> : <Menu album={album} place={place} popover={popover} />}
       </div>
@@ -44,7 +48,7 @@ export function TopBar({ album, place, wide, popover, justUnlocked, held, popsTh
   );
 }
 
-function XpBar({ level: settled, moving, pops }: { level: AlbumLevel; moving: boolean; pops: boolean }) {
+function XpBar({ level: settled, moving, pops, glow }: { level: AlbumLevel; moving: boolean; pops: boolean; glow: ReactNode }) {
   const counted = useCountUp(settled.xp);
   const level = moving && !prefersReducedMotion() ? { ...settled, xp: counted } : settled;
   const popped = usePoppedWhenItRises(level.level, pops);
@@ -59,6 +63,7 @@ function XpBar({ level: settled, moving, pops }: { level: AlbumLevel; moving: bo
       <span className="al-xp-words">
         {xpToNextOf(level)} XP to level {level.level + 1}
       </span>
+      {glow}
     </div>
   );
 }
@@ -88,9 +93,26 @@ function useTrayOpenOnThePacksPage(place: Place, popover: TopBarPopover) {
   }, [onThePacksPage, show]);
 }
 
-type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; waitsForPuttingIn: boolean; onOpen: () => void };
+function useTrayPanelClosedWithoutTheTray(trayShown: boolean, popover: TopBarPopover) {
+  const { open, close } = popover;
+  useEffect(() => {
+    if (!trayShown && open === "tray") close();
+  }, [trayShown, open, close]);
+}
 
-function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen }: PacksButtonProps) {
+function useFocusPassedOnWhenItLeaves(button: RefObject<HTMLElement | null>, next: RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const leaving = button.current;
+    return () => {
+      if (leaving !== null && leaving === document.activeElement) next.current?.focus();
+    };
+  }, [button, next]);
+}
+
+type PacksButtonProps = { waiting: number; more: boolean; current: boolean; button: RefObject<HTMLButtonElement | null>; waitsForPuttingIn: boolean; onOpen: () => void; focusAfter: RefObject<HTMLElement | null> };
+
+function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen, focusAfter }: PacksButtonProps) {
+  useFocusPassedOnWhenItLeaves(button, focusAfter);
   const count = more ? `${waiting}+` : `${waiting}`;
   return (
     <button type="button" ref={button} onClick={waitsForPuttingIn ? undefined : onOpen} aria-disabled={waitsForPuttingIn || undefined} aria-haspopup="dialog" className="al-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={current ? "page" : undefined} data-labelled={current ? "" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${count} waiting`}>
@@ -109,9 +131,10 @@ function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen
   );
 }
 
-type TrayButtonProps = { album: Album; items: number; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+type TrayButtonProps = { album: Album; items: number; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; tray: TrayActions; focusAfter: RefObject<HTMLElement | null> };
 
-function TrayButton({ album, items, popover, button, tray }: TrayButtonProps) {
+function TrayButton({ album, items, popover, button, tray, focusAfter }: TrayButtonProps) {
+  useFocusPassedOnWhenItLeaves(button, focusAfter);
   const putting = (send: () => void) => {
     popover.close();
     button.current?.focus();
@@ -144,17 +167,26 @@ function trayLabelOf(items: number, busy: boolean) {
   return items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`;
 }
 
-function EmojiButton({ album, popover, button, justUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[] }) {
-  const earned = earnedEmojisOf(album);
+function EmojiButton({ album, popover, button, justUnlocked, opensOnJustUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[]; opensOnJustUnlocked: boolean }) {
+  const { count, label } = emojiCountOf(album);
   return (
-    <PopoverButton name="emojis" popover={popover} button={button} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} onFollow={popover.close} />}>
+    <PopoverButton name="emojis" popover={popover} button={button} label={label} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} onFollow={popover.close} />}>
       <IconEmoji />
       <span className="al-emojis-count" aria-hidden="true">
-        {earned}
+        {count}
       </span>
       <OpensOut>Emojis</OpensOut>
     </PopoverButton>
   );
+}
+
+function emojiCountOf(album: Album) {
+  if (album.emojiHowTo === undefined) {
+    const earned = earnedEmojisOf(album);
+    return { count: earned, label: `Your emojis, ${earned} earned` };
+  }
+  const usable = usableCountOf(album.emojis);
+  return { count: usable, label: `Your emojis, ${usable} you can use` };
 }
 
 type PopoverButtonProps = { name: TopBarPopups; popover: TopBarPopover; label: string; panelLabel: string; className: string; panelClassName?: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };
@@ -200,15 +232,12 @@ const pageLinks: PageLink[] = [
 function PageLinks({ place }: { place: Place }) {
   return (
     <>
-      {pageLinks.map(({ kind, label, Icon }) => {
-        const current = place.kind === kind;
-        return (
-          <AppLink key={kind} href={hrefOf({ kind })} className="al-icon-link" aria-current={current ? "page" : undefined} data-labelled={current ? "" : undefined}>
-            <Icon />
-            <OpensOut>{label}</OpensOut>
-          </AppLink>
-        );
-      })}
+      {pageLinks.map(({ kind, label, Icon }) => (
+        <AppLink key={kind} href={hrefOf({ kind })} className="al-icon-link" aria-current={place.kind === kind ? "page" : undefined} data-labelled="">
+          <Icon />
+          <OpensOut>{label}</OpensOut>
+        </AppLink>
+      ))}
     </>
   );
 }
@@ -216,7 +245,7 @@ function PageLinks({ place }: { place: Place }) {
 function MeAndSettings({ album, place, onFollow }: { album: Album; place: Place; onFollow?: () => void }) {
   return (
     <span className="al-me-group">
-      <AppLink href={hrefOf({ kind: "profile" })} className="al-me" aria-label={`Your profile, ${album.me.name}`} aria-current={place.kind === "profile" ? "page" : undefined} onFollow={onFollow}>
+      <AppLink href={addressOf(home, myPageOf(album))} className="al-me" aria-label={`Your profile, ${album.me.name}`} aria-current={place.kind === "profile" ? "page" : undefined} onFollow={onFollow}>
         <MemberFace face={album.me.face} className="al-me-face" />
         <span className="al-me-name ph-no-capture">{album.me.name}</span>
       </AppLink>

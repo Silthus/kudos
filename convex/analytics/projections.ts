@@ -63,6 +63,7 @@ export type ProductEvent = {
     | "album sticker collected"
     | "item turned"
     | "xp moment ended"
+    | "onboarding card closed"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -87,7 +88,8 @@ export type UsageFact =
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
   | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number }
-  | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number };
+  | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number }
+  | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number };
 
 export type PickSurface = "welcome" | "settings" | "website";
 
@@ -293,5 +295,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "hugs recap sent", subject, at: fact.at, properties: { hugs_given: fact.given, hugs_received: fact.received, xp: fact.xp } };
     case "xpMomentEnded":
       return { event: "xp moment ended", subject, at: fact.at, properties: { skipped: fact.skipped, excerpts_shown: fact.excerptsShown, folded: fact.folded } };
+    case "howItWorksClosed":
+      return { event: "onboarding card closed", subject, at: fact.at, properties: { tried_slack: fact.triedSlack } };
   }
 }

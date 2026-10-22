@@ -24,13 +24,14 @@ export type CrestsShown = { crests: boolean };
 
 export type DroppedAt = { at: number; n: number; decided: number; drop: Drop };
 
-export type DropContext = { surface?: Surface; floor?: Rarity; waits?: boolean };
+export type DropContext = { surface?: Surface; floor?: Rarity; unowned?: boolean; waits?: boolean };
 
 export type FindContext = { surface?: Surface; waits?: boolean };
 
-export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { floor, ...context }: DropContext): Promise<void> {
+export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { floor, unowned = false, ...context }: DropContext): Promise<void> {
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
-  await recordFind(ctx, member, crate, await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, floor }), at, context);
+  const owned = unowned ? await ownedBy(ctx, member) : undefined;
+  await recordFind(ctx, member, crate, await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, floor, owned }), at, context);
 }
 
 export async function recordFind(ctx: MutationCtx, member: MemberId, crate: CrateKey, { hoggie, rarity }: Drawn, at: number, { surface, waits = false }: FindContext): Promise<void> {
@@ -183,6 +184,14 @@ async function countFound(ctx: MutationCtx, member: MemberId, hoggie: string, at
   }
   await ctx.db.patch(tally._id, { count: tally.count + 1 });
   return tally.count + 1;
+}
+
+async function ownedBy(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
+  const tallies = await ctx.db
+    .query("hoggieTallies")
+    .withIndex("by_member_hoggie", (q) => q.eq("member", member))
+    .take(catalogue.hoggies.length);
+  return new Set(tallies.map(({ hoggie }) => hoggie));
 }
 
 export function tallyOf(ctx: QueryCtx, member: MemberId, hoggie: string): Promise<Doc<"hoggieTallies"> | null> {

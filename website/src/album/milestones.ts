@@ -1,5 +1,5 @@
 import { emojiArtPictureOf, milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
-import { milestoneCatalogue, type MilestoneId } from "../../../convex/album/milestoneCatalogue";
+import { stepNameOf, type MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { LadderCard } from "../shell";
 import type { Album, AlbumEmoji, AlbumMilestone, MilestoneTierId } from "./answer";
@@ -95,8 +95,11 @@ export function medalKeyOf({ milestone, tier }: ReachedTier) {
 }
 
 export function medalWordsOf({ milestone, tier }: ReachedTier) {
-  const step = milestoneCatalogue.milestones.find(({ id }) => id === milestone)?.steps.find((listed) => listed.tier === tier);
-  return `${step?.name ?? milestoneNameOf(milestone)} · ${tierWordOf(tier)}`;
+  return `${stepNameOf(milestone, tier)} · ${tierWordOf(tier)}`;
+}
+
+export function medalSpokenOf({ milestone, tier }: ReachedTier) {
+  return `the ${stepNameOf(milestone, tier)} ${tierWordOf(tier).toLowerCase()} medal`;
 }
 
 export function medalEmojiOf(album: Album, { milestone, tier }: ReachedTier): TierEmoji | null {

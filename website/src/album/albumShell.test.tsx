@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople, startedWith } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
@@ -27,8 +27,8 @@ function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: She
   return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway), capturer });
 }
 
-function visitWhileCapturing(path: string) {
-  return visit(path, albumFixtures.midway, memberWithTheAlbum, { capture: vi.fn() } as unknown as Capturer);
+function visitWhileCapturing(path: string, album: MyAlbum = albumFixtures.midway) {
+  return visit(path, album, memberWithTheAlbum, { capture: vi.fn() } as unknown as Capturer);
 }
 
 function opensOutTo(control: HTMLElement) {
@@ -85,7 +85,7 @@ describe("AL67: the album is the only shell", () => {
 });
 
 describe("AL42: the top bar", () => {
-  it("carries the brand, the XP bar, the packs button, the tray, Activity, Leaderboard, the emojis, the member and the settings cog, and no tabs", async () => {
+  it("carries the brand, the XP bar, the packs button while packs wait, Activity, Leaderboard, the emojis, the member and the settings cog, and no tabs", async () => {
     visit("/");
     const bar = await topBar();
 
@@ -93,7 +93,6 @@ describe("AL42: the top bar", () => {
     expect(bar.getByText("Level 6")).toBeInTheDocument();
     expect(bar.getByText("290 XP to level 7")).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveAttribute("aria-haspopup", "dialog");
-    expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
     expect(bar.getByRole("link", { name: "Activity" })).toHaveAttribute("href", "/activity");
     expect(bar.getByRole("link", { name: "Leaderboard" })).toHaveAttribute("href", "/leaderboard");
     expect(bar.getByRole("button", { name: "Your emojis, 9 earned" })).toBeInTheDocument();
@@ -107,29 +106,35 @@ describe("AL42: the top bar", () => {
     expect((await topBar()).getByRole("button", { name: "Open your packs, 1 waiting" })).toHaveTextContent("1 pack");
   });
 
-  it("says no packs are waiting and how to earn one", async () => {
+  it("#127: with no pack waiting and nothing in the tray, holds neither the packs button nor the tray", async () => {
     visit("/", albumFixtures.newcomer);
-    expect((await topBar()).getByRole("button", { name: "No packs waiting" })).toHaveTextContent("Say thanks to earn one");
+    const bar = await topBar();
+
+    expect(bar.queryByRole("button", { name: /packs/i })).not.toBeInTheDocument();
+    expect(bar.queryByRole("button", { name: /^Tray/ })).not.toBeInTheDocument();
+    expect(bar.getByRole("button", { name: /^Your emojis/ })).toBeInTheDocument();
   });
 
-  it("the tray opens to say it holds nothing yet", async () => {
-    const { user } = visit("/");
-    const tray = (await topBar()).getByRole("button", { name: "Tray, nothing to put in" });
+  it("#127: holds the tray while it holds something to put in, and leaves the packs button out while no pack waits", async () => {
+    const { user } = visit("/", { ...albumFixtures.trayed, packs: [] });
+    const bar = await topBar();
+    const tray = bar.getByRole("button", { name: /^Tray, \d+ to put in$/ });
 
     await user.click(tray);
 
     expect(tray).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("region", { name: "Tray" })).toHaveTextContent("Open a pack and what it holds waits here to be put in.");
+    expect(screen.getByRole("region", { name: "Tray" })).toBeInTheDocument();
+    expect(bar.queryByRole("button", { name: /packs/i })).not.toBeInTheDocument();
   });
 
-  it("Activity and Leaderboard keep their names while only icons show, and the page's own entry is current and labelled", async () => {
+  it("#127: on desktop Activity and Leaderboard write out their names on every page, and the page's own entry is current", async () => {
     visit("/activity");
     const bar = await topBar();
 
     expect(bar.getByRole("link", { name: "Activity" })).toHaveAttribute("aria-current", "page");
     expect(bar.getByRole("link", { name: "Activity" })).toHaveAttribute("data-labelled", "");
     expect(bar.getByRole("link", { name: "Leaderboard" })).not.toHaveAttribute("aria-current");
-    expect(bar.getByRole("link", { name: "Leaderboard" })).not.toHaveAttribute("data-labelled");
+    expect(bar.getByRole("link", { name: "Leaderboard" })).toHaveAttribute("data-labelled", "");
   });
 
   it("#695: holds Feedback while the visit is captured, and the sidebar holds only teams and pages", async () => {
@@ -144,23 +149,23 @@ describe("AL42: the top bar", () => {
   });
 
   it("#695: the packs button, the tray, Activity, Leaderboard, the emojis and Feedback each open out to their label", async () => {
-    visitWhileCapturing("/");
+    visitWhileCapturing("/", { ...albumFixtures.midway, tray: albumFixtures.trayed.tray });
     const bar = await topBar();
 
     expect(opensOutTo(bar.getByRole("button", { name: "Open your packs, 2 waiting" }))).toBe("2 packsReady to open");
-    expect(opensOutTo(bar.getByRole("button", { name: "Tray, nothing to put in" }))).toBe("Tray");
+    expect(opensOutTo(bar.getByRole("button", { name: /^Tray, \d+ to put in$/ }))).toBe("Tray");
     expect(opensOutTo(bar.getByRole("link", { name: "Activity" }))).toBe("Activity");
     expect(opensOutTo(bar.getByRole("link", { name: "Leaderboard" }))).toBe("Leaderboard");
     expect(opensOutTo(bar.getByRole("button", { name: "Your emojis, 9 earned" }))).toBe("Emojis");
     expect(opensOutTo(bar.getByRole("button", { name: "Feedback" }))).toBe("Feedback");
   });
 
-  it("#695: the packs button stays open on the packs page, as Activity and Leaderboard do on theirs", async () => {
+  it("#695: the packs button stays open on the packs page, and the emojis stay an icon", async () => {
     visit("/book#packs");
     const bar = await topBar();
 
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveAttribute("data-labelled", "");
-    expect(bar.getByRole("link", { name: "Activity" })).not.toHaveAttribute("data-labelled");
+    expect(bar.getByRole("button", { name: "Your emojis, 9 earned" })).not.toHaveAttribute("data-labelled");
   });
 
   it("the member's face and name lead to the profile, current there", async () => {
@@ -403,18 +408,41 @@ function holdsWhatItScrolls(selector: string, rules: DesktopRule[]) {
   return always !== "static" && !positions.some(({ conditional, style }) => conditional && style.position === "static");
 }
 
-describe("AL42: Getting started", () => {
-  it("shows on the profile, the album's home, while unfinished, counting what's done and naming the next step", async () => {
+describe("LP76: Getting started follows the loop", () => {
+  it("shows on the profile, the album's home, while unfinished, counting what's done and naming the next step with how to do it", async () => {
     visit("/");
     const strip = await screen.findByRole("region", { name: "Getting started" });
 
     expect(strip).toHaveTextContent("Getting started · 2 of 4");
-    expect(strip).toHaveTextContent("Next: Open a pack");
-    expect(within(strip).getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual(["Give a hug: done", "Give a thoughtful kudos: done", "Open a pack: not yet", "Complete a team page: not yet"]);
+    expect(strip).toHaveTextContent("Next: Turn an item · turn a waiting item on your board");
+    expect(within(strip).getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual(["Give a hug: done", "Give a thoughtful kudos: done", "Turn an item: not yet", "Reach level 2: not yet"]);
+  });
+
+  it.each([
+    ["nothing done", { hugged: false, thoughtful: false, turned: false, levelTwo: false }, "Next: Give a hug · react with 🦔 on any message in Slack"],
+    ["a hug given", { hugged: true, thoughtful: false, turned: false, levelTwo: false }, "Next: Give a thoughtful kudos · thank a teammate with 🦔 in a message and say why"],
+    ["only level 2 left", { hugged: true, thoughtful: true, turned: true, levelTwo: false }, "Next: Reach level 2 · your first kudos takes you there"],
+    ["level 2 reached first", { hugged: false, thoughtful: false, turned: false, levelTwo: true }, "Next: Give a hug · react with 🦔 on any message in Slack"],
+  ])("with %s, names the first step not done, with the workspace's kudos emoji in its hint", async (_, steps, next) => {
+    visit("/", { ...albumFixtures.midway, gettingStarted: startedWith(steps) });
+
+    expect(await screen.findByRole("region", { name: "Getting started" })).toHaveTextContent(next);
+  });
+
+  it("shows a custom kudos emoji as its picture", async () => {
+    visit("/", { ...albumFixtures.midway, gettingStarted: { ...startedWith({ hugged: false, thoughtful: false, turned: false, levelTwo: false }), kudos: { kudosEmoji: "hoggo", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hoggo/1.png" } } });
+
+    expect(within(await screen.findByRole("region", { name: "Getting started" })).getByRole("img", { name: ":hoggo:" })).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/hoggo/1.png");
   });
 
   it("is gone once all four are done", async () => {
     visit("/", albumFixtures.started);
+    await screen.findByRole("navigation", { name: "Album" });
+    expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
+  });
+
+  it("is gone while getAlbum answers none, as with onboarding off", async () => {
+    visit("/", { ...albumFixtures.midway, gettingStarted: null });
     await screen.findByRole("navigation", { name: "Album" });
     expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
   });
@@ -533,12 +561,12 @@ describe("AL43: page changes the address didn't come from a link", () => {
 describe("AL55: the phone layout", () => {
   it("folds the sidebar into a drawer and Activity, Leaderboard, the member and Settings into a menu, keeping XP, packs, tray and emojis in the bar", async () => {
     aWideScreenThatNarrows().narrow();
-    const { user } = visit("/");
+    const { user } = visit("/", { ...albumFixtures.midway, tray: albumFixtures.trayed.tray });
     const bar = await topBar();
 
     expect(bar.getByText("Level 6")).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toBeInTheDocument();
-    expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    expect(bar.getByRole("button", { name: /^Tray, \d+ to put in$/ })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Your emojis, 9 earned" })).toBeInTheDocument();
     expect(bar.queryByRole("link", { name: "Activity" })).not.toBeInTheDocument();
 

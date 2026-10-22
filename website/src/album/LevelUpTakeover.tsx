@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import type { LoopLesson } from "../../../convex/website/album";
 import type { Climb } from "../../../convex/website/xpMoment";
+import { NamedEmoji } from "../Emoji";
 import type { AlbumEmoji } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { ItemBack } from "./ItemBoard";
@@ -40,14 +42,14 @@ export function LevelUpTakeover({ climb: { to }, unlocks, onDone }: { climb: Cli
   );
 }
 
-function Unlocks({ unlocks: { items, emojis } }: { unlocks: LevelUnlocks }) {
+function Unlocks({ unlocks: { items, emojis, howTo } }: { unlocks: LevelUnlocks }) {
   if (items === 0 && emojis.length === 0) return null;
   const itemsShown = items > 0 ? 1 : 0;
   return (
     <ul className="xpm-lvl-unlocks">
       {items > 0 && <ItemsUnlocked count={items} />}
       {emojis.map((emoji, index) => (
-        <EmojiUnlocked key={emoji.id} emoji={emoji} order={itemsShown + index} />
+        <EmojiUnlocked key={emoji.id} emoji={emoji} howTo={howTo} order={itemsShown + index} />
       ))}
     </ul>
   );
@@ -72,15 +74,35 @@ function ItemsUnlocked({ count }: { count: number }) {
   );
 }
 
-function EmojiUnlocked({ emoji, order }: { emoji: AlbumEmoji; order: number }) {
+function EmojiUnlocked({ emoji, howTo, order }: { emoji: AlbumEmoji; howTo: LoopLesson | null; order: number }) {
+  const usable = howTo !== null && emoji.inSlack;
   return (
-    <li aria-label={`New emoji :${emoji.name}:`} style={orderOf(order)}>
+    <li aria-label={usable ? `:${emoji.name}: unlocked` : `New emoji :${emoji.name}:`} style={orderOf(order)}>
       <EmojiPicture emoji={emoji} size={unlockEmojiSize} />
-      <span>
-        <strong className="ph-no-capture">:{emoji.name}:</strong>
-        <small>New emoji unlocked</small>
-      </span>
+      {usable ? <HowToUseWords name={emoji.name} howTo={howTo} /> : <NewEmojiWords name={emoji.name} />}
     </li>
+  );
+}
+
+function NewEmojiWords({ name }: { name: string }) {
+  return (
+    <span>
+      <strong className="ph-no-capture">:{name}:</strong>
+      <small>New emoji unlocked</small>
+    </span>
+  );
+}
+
+function HowToUseWords({ name, howTo: { kudosEmoji, kudosEmojiImage } }: { name: string; howTo: LoopLesson }) {
+  return (
+    <span>
+      <strong>
+        <span className="ph-no-capture">:{name}:</span> unlocked
+      </strong>
+      <small>
+        React or thank with it. It counts like <NamedEmoji name={kudosEmoji} image={kudosEmojiImage ?? undefined} />.
+      </small>
+    </span>
   );
 }
 

@@ -10,11 +10,11 @@ import { useSectionOnceLanded } from "../linkTarget";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import { rememberSignInStarted } from "../signInAttempt";
-import type { Album } from "./answer";
+import type { Album, BoardPeriod } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
-import { isWaitingForTheBoards, useBoardsOfPeriod } from "./boardPeriods";
+import { isWaitingForTheBoards, useBoardsOfPeriod, type AddressedChoice } from "./boardPeriods";
 import { useHoggieAddress } from "./hoggieAddress";
 import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
 import { NewLabelsProvider, newLabelsSinceOf } from "./newLabels";
@@ -25,35 +25,37 @@ import { SharedEmojis } from "./SharedEmojis";
 import { AppEmojiSection } from "../settings/AppEmojiList";
 import { EmojiWizardHost } from "./findInSlack";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
-import { home, hrefOf, landingStateOf, placeOf, type Place } from "./place";
+import { addressOf, home, landingStateOf, myPageOf, placeOf, placeShownAt, type MyPage, type Place } from "./place";
 import { useForge } from "./useForge";
 import { useVisitArrival } from "./visitArrival";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
 export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp, useXpMoment }: AppProps & { arrivals: number }) {
   const { route, navigate, replaceAddress } = useRoute();
-  const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
+  const myPage = myPageOf(album?.kind === "album" ? album : undefined);
+  const place = placeShownAt(placeOf(route, window.location.hash, window.history.state), myPage);
   const visit = useVisitArrival(album, useXpMoment(album?.kind === "album"), actions);
   const newLabelsSince = newLabelsSinceOf(album, visit.arrivedAt);
-  useCanonicalAddressOnceShown(place, album?.kind === "album", replaceAddress);
+  useCanonicalAddressOnceShown(place, myPage, album?.kind === "album", replaceAddress);
+  const viewAddress = useViewAddress(myPage, replaceAddress);
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);
   const onLeaderboard = place.kind === "leaderboard";
   const onProfile = place.kind === "profile";
-  const boards = useBoardsOfPeriod(useThoughtfulBoards, onLeaderboard, onProfile);
+  const boards = useBoardsOfPeriod(useThoughtfulBoards, onLeaderboard, onProfile, viewAddress && periodAddressedIn(place, viewAddress));
   const profile = useAlbumProfile(onProfile);
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
   const forging = useForge(actions.forgeHoggie);
   const onLevelUp = place.kind === "levelUp";
   const levelUp = useLevelUp(place.kind === "levelUp" ? place.level : null);
-  useTheAlbumInsteadOfAClosedReveal(onLevelUp && levelUp?.kind === "off" && album?.kind === "album" && album.board !== null, replaceAddress);
+  useTheAlbumInsteadOfAClosedReveal(onLevelUp && levelUp?.kind === "off" && album?.kind === "album" && album.board !== null, myPage, replaceAddress);
   const onPerson = place.kind === "person";
   const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
-  const edition = useWeekEdition(useAlbumWeek, onActivity);
+  const edition = useWeekEdition(useAlbumWeek, onActivity, viewAddress && weekAddressedIn(place, viewAddress));
   const expectArrival = useTitleFocusOnArrival(arrivals);
   useTitleFocusAfterChange(album === undefined ? "loading" : album.kind);
   useSectionOnceLanded(route, album?.kind === "album" && onSettings && settings?.kind === "settings");
@@ -82,7 +84,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
-        person={<PersonAnswerPage shown={person} album={album} {...answers} />}
+        person={<PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} makePet={actions.makePet} forging={forging} {...answers} />}
@@ -94,7 +96,9 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         turnItem={actions.turnItem}
         xpMoment={visit.moment}
         endXpMoment={visit.endTheMoment}
+        missedXpMoment={visit.missed}
         shareItem={actions.shareItem}
+        closeHowItWorks={actions.closeHowItWorks}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>
@@ -113,14 +117,35 @@ function AlbumSettingsSections({ album, useAppEmojis, useSlackEmojiMatches, mapS
   );
 }
 
-function useTheAlbumInsteadOfAClosedReveal(closed: boolean, replaceAddress: (href: string, state: unknown) => void) {
+type ReplaceAddress = (href: string, state: unknown) => void;
+
+function useTheAlbumInsteadOfAClosedReveal(closed: boolean, myPage: MyPage, replaceAddress: ReplaceAddress) {
   useEffect(() => {
-    if (closed) replaceAddress(keepingSignInCode(hrefOf(home)), null);
-  }, [closed, replaceAddress]);
+    if (closed) replaceAddress(keepingSignInCode(addressOf(home, myPage)), null);
+  }, [closed, myPage, replaceAddress]);
 }
 
-function useCanonicalAddressOnceShown(place: Place, shown: boolean, replaceAddress: (href: string, state: unknown) => void) {
-  const canonical = keepingSignInCode(hrefOf(place));
+function useViewAddress(myPage: MyPage, replaceAddress: ReplaceAddress) {
+  const replaceTheView = useCallback((place: Place) => replaceAddress(keepingSignInCode(addressOf(place, myPage)), window.history.state), [myPage, replaceAddress]);
+  return myPage === null ? null : replaceTheView;
+}
+
+function periodAddressedIn(place: Place, viewAddress: (place: Place) => void): AddressedChoice<BoardPeriod> {
+  return {
+    chosen: (place.kind === "leaderboard" && place.period) || "week",
+    choose: (period) => viewAddress(period === "week" ? { kind: "leaderboard" } : { kind: "leaderboard", period }),
+  };
+}
+
+function weekAddressedIn(place: Place, viewAddress: (place: Place) => void): AddressedChoice<string | undefined> {
+  return {
+    chosen: place.kind === "activity" ? place.week : undefined,
+    choose: (week) => viewAddress(week === undefined ? { kind: "activity" } : { kind: "activity", week }),
+  };
+}
+
+function useCanonicalAddressOnceShown(place: Place, myPage: MyPage, shown: boolean, replaceAddress: ReplaceAddress) {
+  const canonical = keepingSignInCode(addressOf(place, myPage));
   const landingState = landingStateOf(place);
   useEffect(() => {
     if (shown && canonical !== currentAddress()) replaceAddress(canonical, landingState);

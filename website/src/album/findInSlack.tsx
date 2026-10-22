@@ -4,7 +4,7 @@ import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
 import type { ShellActions } from "../shell";
 import type { AlbumEmoji } from "./answer";
 import { AddToSlackButton } from "./AddToSlackButton";
-import { SlackEmojiWizard, type WizardPick } from "./SlackEmojiWizard";
+import { SlackEmojiWizard, type MappingPick } from "./SlackEmojiWizard";
 import { comingSoonToSlackWords, type SlackWay } from "./slackWay";
 import "./emoji.css";
 
@@ -36,7 +36,7 @@ export function EmojiWizardHost({ on, inPlace, emojis, emojiPage, useSlackEmojiM
   return (
     <EmojiWizardContext value={on ? wizard : null}>
       {children}
-      {on && open !== null && !openedUnderOtherRights && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} takesAnyEmoji={byTheAdmin} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
+      {on && open !== null && !openedUnderOtherRights && <SlackEmojiWizard emoji={open.emoji} whose={byTheAdmin ? "the" : "your"} inUse={byTheAdmin ? "takes" : "skips"} changes={byTheAdmin && open.emoji.inSlack} emojiPage={emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} pick={async (slackEmoji) => pickOf(await mapMyEmoji(open.emoji.id, slackEmoji))} onClose={close} />}
     </EmojiWizardContext>
   );
 }
@@ -67,6 +67,12 @@ export function NotInSlack({ emoji, emojiPage }: { emoji: HeldEmoji; emojiPage: 
   return <FindInSlackButton name={emoji.name} onClick={(opener) => wizard.open(emoji, opener)} />;
 }
 
+export function SetItUp({ emoji, emojiPage }: { emoji: HeldEmoji; emojiPage: string | null }) {
+  const wizard = useContext(EmojiWizardContext);
+  if (wizard === null || wizard.inPlace === "member") return <NotInSlack emoji={emoji} emojiPage={emojiPage} />;
+  return <FindInSlackButton name={emoji.name} purpose="set-up" onClick={(opener) => wizard.open(emoji, opener)} />;
+}
+
 export function FindInSlackWhileOn({ emoji }: { emoji: HeldEmoji }) {
   const wizard = useContext(EmojiWizardContext);
   const live = useLiveEmoji(emoji);
@@ -78,23 +84,30 @@ export function MapInPlace({ emoji }: { emoji: HeldEmoji }) {
   const wizard = useContext(EmojiWizardContext);
   const live = useLiveEmoji(emoji);
   if (wizard?.inPlace !== "admin") return null;
-  return <FindInSlackButton name={live.name} changes={live.inSlack} onClick={(opener) => wizard.open(live, opener)} />;
+  return <FindInSlackButton name={live.name} purpose={live.inSlack ? "change" : "find"} onClick={(opener) => wizard.open(live, opener)} />;
 }
 
 export function ComingSoonToSlack() {
   return <span className="al-coming-soon">{comingSoonToSlackWords}</span>;
 }
 
-type FindInSlackButtonProps = { name: string; changes?: boolean; onClick: (opener: HTMLElement) => void };
+const purposeWords = {
+  find: { shown: "Find in Slack", label: "Find" },
+  change: { shown: "Change", label: "Change" },
+  "set-up": { shown: "Set it up", label: "Set up" },
+} as const;
 
-export function FindInSlackButton({ name, changes = false, onClick }: FindInSlackButtonProps) {
+type FindInSlackButtonProps = { name: string; purpose?: keyof typeof purposeWords; onClick: (opener: HTMLElement) => void };
+
+export function FindInSlackButton({ name, purpose = "find", onClick }: FindInSlackButtonProps) {
+  const words = purposeWords[purpose];
   const open = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onClick(event.currentTarget);
   };
   return (
-    <button type="button" className="al-add-to-slack-button ph-no-capture" aria-label={`${changes ? "Change" : "Find"} :${name}: in Slack`} onClick={open}>
-      {changes ? "Change" : "Find in Slack"}
+    <button type="button" className="al-add-to-slack-button ph-no-capture" aria-label={`${words.label} :${name}: in Slack`} onClick={open}>
+      {words.shown}
     </button>
   );
 }
@@ -106,7 +119,7 @@ export function giveFocusBack(opener: HTMLElement, fallback: HTMLElement | null)
   fallback.focus();
 }
 
-export function pickOf(reply: { kind: string }): WizardPick {
+export function pickOf(reply: { kind: string }): MappingPick {
   if (reply.kind === "mapped") return "mapped";
   return reply.kind === "refused" ? "refused" : "unreachable";
 }

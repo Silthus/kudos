@@ -217,6 +217,23 @@ export function userGroupEvent(type: "subteam_created" | "subteam_updated" | "su
   return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000) });
 }
 
+export function channelCreatedEvent(channel: string, options: { team?: string; eventId?: string } = {}) {
+  eventCounter += 1;
+  const team = options.team ?? "T1";
+  const event = { type: "channel_created", channel: { id: channel, name: "fresh-channel", created: Math.floor(Date.now() / 1000), creator: "U_ALICE" } };
+  return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000) });
+}
+
+export type LinkSharedOptions = { team?: string; user?: string; channel?: string; messageTs?: string; eventId?: string; source?: "conversations_history" | "composer"; unfurlId?: string; externallyShared?: boolean | "unsaid" };
+
+export function linkSharedEvent(urls: string[], options: LinkSharedOptions = {}) {
+  eventCounter += 1;
+  const { team = "T1", user = "U_ALICE", channel = "C_GENERAL", messageTs = "1760349800.000100", source = "conversations_history", unfurlId = `${channel}.${messageTs}.${user}` } = options;
+  const links = urls.map((url) => ({ domain: new URL(url).hostname, url }));
+  const event = { type: "link_shared", channel: source === "composer" ? "COMPOSER" : channel, is_bot_user_member: true, user, message_ts: messageTs, unfurl_id: unfurlId, source, links, event_ts: messageTs };
+  return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000), ...(options.externallyShared !== "unsaid" && { is_ext_shared_channel: options.externallyShared ?? false }) });
+}
+
 export type Conversation = { channel_id: string; channel_name: string };
 
 export type SlashCommandOptions = { command?: "/hedgehug" | "/kudos"; team?: string; user?: string; responseUrl?: string };

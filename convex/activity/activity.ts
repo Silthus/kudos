@@ -9,7 +9,7 @@ import { giverXpOf } from "../progression/progression";
 import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { hugsShownTo } from "../hugs/flag";
-import { withoutSkinTone } from "../slack/reactions";
+import { withoutSkinTone } from "../workspace/slackEmoji";
 import { hugsGivenByDecision, hugsOnTheMessageAsOf, hugsReceivedByDecision, hugsReceivedSnapshot, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
 import { hugXp } from "../hugs/xp";
 import { levelUpsByDecision } from "../unlocks/unlocks";

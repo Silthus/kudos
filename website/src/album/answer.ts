@@ -1,9 +1,11 @@
 import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
+import type { OwnHypePick } from "../../../convex/album/emojiMappings";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
-import type { ForgeAnswer, ItemBoard, PetAnswer } from "../../../convex/website/album";
+import type { ForgeAnswer, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
+import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
 import type { AppliedReward } from "../../../convex/progression/rewards";
@@ -39,8 +41,6 @@ export type AlbumMilestone = { id: MilestoneId; count: number; tiers: { tier: Mi
 
 export type { AlbumPet };
 
-export type GettingStarted = { hugged: boolean; thoughtful: boolean; opened: boolean; completed: boolean };
-
 export type Album = {
   kind: "album";
   me: AlbumMe;
@@ -61,6 +61,10 @@ export type Album = {
   board: ItemBoard | null;
   pets?: AlbumPet[];
   lastVisit?: number | null;
+  emojiHowTo?: LoopLesson;
+  howItWorks?: HowItWorksCard;
+  shareableUrls?: true;
+  linkPreviews?: true;
 } & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;
@@ -135,7 +139,7 @@ export type WeekIssue = {
 
 export type WeekTab = { week: string; days: number[] };
 
-export type AlbumWeek = { kind: "week"; week: string; weeks: WeekTab[]; issue: WeekIssue | null };
+export type AlbumWeek = { kind: "week"; week: string; thisWeek: string; weeks: WeekTab[]; issue: WeekIssue | null };
 
 export type WeekShown = AlbumWeek | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
@@ -166,6 +170,7 @@ export type PersonPage = {
   teams: PersonTeam[];
   hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean };
   slackProfile: string | null;
+  hypePick?: true;
 };
 
 export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
@@ -180,6 +185,7 @@ export type { PetAnswer };
 
 export type PetReply = PetAnswer | Denial;
 
+export type HypePickReply = OwnHypePick | Denial;
 export type ForgeReply = ForgeAnswer | Denial;
 
 export type KindNote = { giver: WeekPerson; message: Message; permalink: string | null; at: number };

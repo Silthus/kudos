@@ -4,7 +4,7 @@ import type { ActionCtx, MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { claimCustomEmojiRefresh, type CustomEmoji } from "../workspace/customEmoji";
-import { textOf } from "./directory";
+import { textOf, workspaceOfToken } from "./directory";
 import { nextRateLimitedAttempt, readSlack, retryDelayOf, slackErrorCodeOf } from "./webApi";
 
 type EmojiChanged = { type: "emoji_changed" };
@@ -56,14 +56,6 @@ async function customEmojiListed(): Promise<Listing> {
   if (answer.error === withoutScope) return { kind: "listed", emoji: [], scopeMissing: true };
   if (answer.error === "ratelimited") return { kind: "rate-limited", retryAfterMs: retryDelayOf(answer) };
   throw new ReportableError(`Slack emoji.list failed: ${slackErrorCodeOf(answer.error)}`);
-}
-
-async function workspaceOfToken() {
-  const identity = await readSlack<{ team_id?: unknown }>("auth.test", {});
-  if (!identity.ok) throw new ReportableError(`Slack auth.test failed: ${slackErrorCodeOf(identity.error)}`);
-  const workspace = textOf(identity.team_id);
-  if (workspace === undefined) throw new ReportableError("Slack auth.test answered without a team");
-  return workspace;
 }
 
 function customEmojiOf(listed: unknown): CustomEmoji[] {

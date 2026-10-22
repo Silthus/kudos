@@ -1,6 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import type { Message } from "../activity/entries";
 import { kudosWordsOf, mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, type Mentions } from "../activity/kudos";
+import { ownHypePickShownTo } from "../album/flag";
 import { personPageOf, type HypeEmoji, type PersonTeam } from "../album/personPage";
 import { lastKindNoteTo, newestStickersOf, type KindNote } from "../album/profile";
 import type { HoggieFound } from "../album/records";
@@ -34,6 +35,7 @@ export type AlbumPersonAnswer = AlbumPersonFace & {
   teams: PersonTeam[];
   hype: HypeEmoji;
   slackProfile: string | null;
+  hypePick?: true;
 };
 
 export type PeopleShown = { people: AlbumPersonFace[]; more: number };
@@ -54,7 +56,7 @@ export type AlbumIssue = Omit<Issue, "kudosOfWeek" | "thanked" | "thankedBy" | "
   received: AlbumWeekKudosList;
 };
 
-export type AlbumWeekAnswer = { kind: "week"; week: DayKey; weeks: WeekTab[]; issue: AlbumIssue | null };
+export type AlbumWeekAnswer = { kind: "week"; week: DayKey; thisWeek: DayKey; weeks: WeekTab[]; issue: AlbumIssue | null };
 
 export type AlbumKindNote = AlbumKudos & { giver: AlbumPersonFace };
 
@@ -71,7 +73,12 @@ export async function albumPersonOf(ctx: QueryCtx, me: VerifiedMember, person: M
     ...history,
     best: best === null ? null : await kudosShown(ctx, mentions, best.message, best.at),
     slackProfile: await slackProfileOf(ctx, me.workspace, person),
+    ...(await hypePickOn(ctx, me, person)),
   };
+}
+
+async function hypePickOn(ctx: QueryCtx, me: VerifiedMember, person: MemberId): Promise<Pick<AlbumPersonAnswer, "hypePick">> {
+  return person === me.member && (await ownHypePickShownTo(ctx, me.member)) ? { hypePick: true } : {};
 }
 
 async function slackProfileOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<string | null> {
@@ -80,8 +87,8 @@ async function slackProfileOf(ctx: QueryCtx, workspace: string, person: MemberId
 }
 
 export async function albumWeekOf(ctx: QueryCtx, me: VerifiedMember, asked: DayKey | undefined): Promise<AlbumWeekAnswer> {
-  const { week, weeks, issue } = await weekEditionOf(ctx, me.member, asked, Date.now());
-  return { kind: "week", week, weeks, issue: issue === null ? null : await issueShown(ctx, me.workspace, issue) };
+  const { week, thisWeek, weeks, issue } = await weekEditionOf(ctx, me.member, asked, Date.now());
+  return { kind: "week", week, thisWeek, weeks, issue: issue === null ? null : await issueShown(ctx, me.workspace, issue) };
 }
 
 export async function albumProfileOf(ctx: QueryCtx, me: VerifiedMember, peopleSearched: number): Promise<AlbumProfileAnswer> {

@@ -194,6 +194,7 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     expect(week).toEqual({
       kind: "week",
       week: theWeek,
+      thisWeek: theWeek,
       weeks: [{ week: theWeek, days: [0, 4, 0, 0, 0, 0, 0] }],
       issue: {
         kudosGiven: 1,
@@ -300,7 +301,8 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     clock = Date.now();
     await thanks(carol, why, alice);
 
-    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, weeks: [{ week: "2026-10-19" }], issue: null });
+    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [{ week: "2026-10-19" }], issue: null });
+    expect(await weekOf(alice, "2026-10-19")).toMatchObject({ thisWeek: theWeek });
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", issue: { kudosReceived: 1, thankedBy: { people: [{ person: await memberOf(carol) }] } } });
   });
 
@@ -321,7 +323,7 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     await thanks(bob, "ty", carol);
     await memberOf(dana);
 
-    expect(await weekOf(dana)).toEqual({ kind: "week", week: theWeek, weeks: [], issue: null });
+    expect(await weekOf(dana)).toEqual({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [], issue: null });
   });
 
   test("this week is the member's own week in their time zone", async () => {

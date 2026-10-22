@@ -7,6 +7,7 @@ import { newestDecidedReceivedBy } from "../engine/awards";
 import { talliesOf } from "../hoggies/collection";
 import { hiddenItemsShownTo } from "../items/flag";
 import { newestTurnOf } from "../items/ledger";
+import { firstThanksAwaitsItsMoment } from "../progression/firstThanks";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { memberMutation } from "./memberMutation";
@@ -49,7 +50,9 @@ export async function arrivedPastWhatWasPutIn(ctx: QueryCtx, member: MemberId): 
 }
 
 async function activityAwaitsTheMoment(ctx: QueryCtx, member: MemberId, lastVisit: number | null): Promise<boolean> {
-  return lastVisit !== null && (await xpMomentsShownTo(ctx, member)) && (await newestDecidedSince(ctx, member, { above: lastVisit })) !== null;
+  if (!(await xpMomentsShownTo(ctx, member))) return false;
+  if (lastVisit === null) return firstThanksAwaitsItsMoment(ctx, member, Date.now());
+  return (await newestDecidedSince(ctx, member, { above: lastVisit })) !== null;
 }
 
 async function moveToTheNewestOf(ctx: MutationCtx, member: MemberId) {

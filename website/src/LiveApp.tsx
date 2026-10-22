@@ -182,6 +182,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const pickWeeklyPostChannel = useSentOnce(api.website.commands.pickWeeklyPostChannel);
   const mapSlackEmoji = useSentOnce(api.website.emojiMappings.mapSlackEmoji);
   const mapMyEmoji = useSentOnce(api.website.emojiWizard.mapMyEmoji);
+  const pickMyHypeEmoji = useSentOnce(api.website.emojiMappings.pickMyHypeEmoji);
   const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
   const unlockTeamSticker = useSentOnce(api.website.album.unlockTeamSticker);
   const putIn = useSentOnce(api.website.album.putIn);
@@ -193,6 +194,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const makePet = useSentOnce(api.website.album.makePet);
   const forgeHoggie = useSentOnce(api.website.album.forgeHoggie);
   const endXpMoment = useSentOnce(api.website.xpMoment.endXpMoment);
+  const closeHowItWorks = useSentOnce(api.website.onboarding.closeHowItWorks);
   return useMemo(
     () => ({
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
@@ -205,6 +207,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       pickWeeklyPostChannel: (link) => answerWithin(commandAnswerBudgetMs, pickWeeklyPostChannel({ link })),
       mapSlackEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapSlackEmoji({ emoji, to })),
       mapMyEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapMyEmoji({ emoji, to })),
+      pickMyHypeEmoji: (emoji) => answerWithin(commandAnswerBudgetMs, pickMyHypeEmoji({ emoji })),
       openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })).then(openShown),
       unlockTeamSticker: (team) => answerWithin(commandAnswerBudgetMs, unlockTeamSticker({ team })),
       putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })).then(putInShown),
@@ -216,6 +219,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       makePet: (hoggie) => answerWithin(commandAnswerBudgetMs, makePet({ hoggie })),
       forgeHoggie: (hoggie, request) => answerWithin(commandAnswerBudgetMs, forgeHoggie({ hoggie, request })),
       endXpMoment: (from, until, skipped) => answerWithin(commandAnswerBudgetMs, endXpMoment({ from, until, skipped })),
+      closeHowItWorks: (triedSlack) => answerWithin(commandAnswerBudgetMs, closeHowItWorks({ triedSlack })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -223,7 +227,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, forgeHoggie, arrive, endXpMoment, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, onSignInFailure],
   );
 }
 

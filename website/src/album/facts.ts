@@ -1,4 +1,4 @@
-import type { Album, AlbumLevel, AlbumTeam, GettingStarted } from "./answer";
+import type { Album, AlbumLevel, AlbumTeam } from "./answer";
 
 export function myTeamOf(album: Album): AlbumTeam | undefined {
   return album.teams.find(({ mine }) => mine);
@@ -31,13 +31,6 @@ export function xpToNextOf({ xp, nextAt }: AlbumLevel) {
 export function levelShareOf({ xp, startsAt, nextAt }: AlbumLevel) {
   return nextAt <= startsAt ? 1 : Math.min(1, Math.max(0, (xp - startsAt) / (nextAt - startsAt)));
 }
-
-export const gettingStartedSteps: { step: keyof GettingStarted; goal: string }[] = [
-  { step: "hugged", goal: "Give a hug" },
-  { step: "thoughtful", goal: "Give a thoughtful kudos" },
-  { step: "opened", goal: "Open a pack" },
-  { step: "completed", goal: "Complete a team page" },
-];
 
 export function plural(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`;

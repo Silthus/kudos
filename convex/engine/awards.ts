@@ -326,6 +326,30 @@ export async function messageOfAward(ctx: QueryCtx, award: AwardId): Promise<Mes
   return row === null ? null : { workspace: row.workspace, conversation: row.conversation, message: row.message };
 }
 
+export async function oldestAwardGivenBy(ctx: QueryCtx, giver: MemberId): Promise<{ award: AwardId; decided: number } | null> {
+  const oldest = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_decided", (q) => q.eq("giver", giver))
+    .first();
+  return oldest === null ? null : { award: oldest._id, decided: oldest._creationTime };
+}
+
+export async function firstDecidedOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<number | null> {
+  const first = await ctx.db
+    .query("awards")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .first();
+  return first?._creationTime ?? null;
+}
+
+export async function hasGivenAnAward(ctx: QueryCtx, giver: MemberId): Promise<boolean> {
+  const any = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_decided", (q) => q.eq("giver", giver))
+    .first();
+  return any !== null;
+}
+
 export async function firstThanksOf(ctx: QueryCtx, giver: MemberId): Promise<number[]> {
   const awards = await ctx.db
     .query("awards")

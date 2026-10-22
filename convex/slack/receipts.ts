@@ -15,7 +15,8 @@ import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
 import { hugReactionValidator } from "../hugs/reaction";
 import { giveHug } from "../hugs/hugs";
-import { withoutSkinTone } from "./reactions";
+import { linkSharingValidator } from "./linkPreviews";
+import { withoutSkinTone } from "../workspace/slackEmoji";
 
 type Receipt = { workspace: string; eventId: string };
 
@@ -115,12 +116,31 @@ export const receiveUserGroupChanged = internalMutation({
   },
 });
 
+export const receiveChannelCreated = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), channel: v.string() },
+  handler: async (ctx, { channel, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await ctx.scheduler.runAfter(0, internal.slack.channelJoins.joinCreatedChannel, { channel });
+  },
+});
+
 export const receiveEmojiChanged = internalMutation({
   args: { workspace: v.string(), eventId: v.string() },
   handler: async (ctx, receipt) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     await refreshCustomEmojiLater(ctx, receipt.workspace);
+  },
+});
+
+export const receiveLinkShared = internalMutation({
+  args: { eventId: v.string(), ...linkSharingValidator },
+  handler: async (ctx, { eventId, ...sharing }) => {
+    const receipt = { workspace: sharing.workspace, eventId };
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await ctx.scheduler.runAfter(0, internal.slack.linkPreviews.unfoldLinks, sharing);
   },
 });
 

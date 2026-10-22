@@ -93,6 +93,11 @@ async function sidebar() {
   return within(await screen.findByRole("navigation", { name: "Album" }));
 }
 
+async function theTrayLeaves() {
+  const bar = await topBar();
+  await waitFor(() => expect(bar.queryByRole("button", { name: /^Tray/ })).not.toBeInTheDocument());
+}
+
 async function openTheTray(user: ReturnType<typeof visit>["user"]) {
   await user.click((await topBar()).getByRole("button", { name: /^Tray/ }));
   return within(await screen.findByRole("region", { name: "Tray" }));
@@ -152,15 +157,22 @@ describe("AL47: the tray panel lists each item with where it goes", () => {
     expect(tray.getByRole("button", { name: "Put Ivo Strand's card in" })).toBeInTheDocument();
   });
 
-  it("with one item offers Put it in, and with none says how the tray fills", async () => {
-    const { user, unmount } = visit(withTray(albumFixtures.midway, [banana]), {});
+  it("with one item offers Put it in", async () => {
+    const { user } = visit(withTray(albumFixtures.midway, [banana]), {});
     expect((await openTheTray(user)).getByRole("button", { name: "Put it in" })).toBeInTheDocument();
-    unmount();
+  });
 
-    const empty = visit(withTray(albumFixtures.midway, []), {});
-    const tray = await openTheTray(empty.user);
-    expect(tray.getByText("Open a pack and what it holds waits here to be put in.")).toBeInTheDocument();
-    expect(tray.queryByRole("button", { name: /^Put/ })).not.toBeInTheDocument();
+  it("#127: an open tray emptied from elsewhere leaves the bar closed, handing focus to the emojis, and comes back closed when an item arrives", async () => {
+    const { user, live } = visit(withTray(albumFixtures.midway, [banana]), {});
+    await openTheTray(user);
+
+    live.answerNext({ ...live.now(), tray: [] });
+    await theTrayLeaves();
+    expect((await topBar()).getByRole("button", { name: /^Your emojis/ })).toHaveFocus();
+    live.answerNext({ ...live.now(), tray: [banana] });
+
+    expect(await (await topBar()).findByRole("button", { name: "Tray, 1 to put in" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("region", { name: "Tray" })).not.toBeInTheDocument();
   });
 
   it("keeps each face and name in a ph-no-capture block", async () => {
@@ -176,7 +188,7 @@ describe("AL47: the tray panel lists each item with where it goes", () => {
 });
 
 describe("AL11: Put them all in calls putAllIn until more is false, flying each item in the order the command answers", () => {
-  it("puts a tray of 60 in over three answers, each call only once the last page has landed, and the tray empties", async () => {
+  it("puts a tray of 60 in over three answers, each call only once the last page has landed, and the emptied tray leaves the bar, handing focus to the emojis", async () => {
     preferReducedMotion();
     const tray = sixtyItems();
     const pages = [deferred<PutAllInReply>(), deferred<PutAllInReply>(), deferred<PutAllInReply>()];
@@ -194,7 +206,8 @@ describe("AL11: Put them all in calls putAllIn until more is false, flying each 
     expect(putAllIn).toHaveBeenCalledTimes(3);
     await act(async () => pages[2]!.resolve({ kind: "placed", items: tray.slice(50), more: false }));
 
-    expect(await (await topBar()).findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await theTrayLeaves();
+    expect((await topBar()).getByRole("button", { name: /^Your emojis/ })).toHaveFocus();
     expect(putAllIn).toHaveBeenCalledTimes(3);
     expect(screen.getByRole("status", { name: "Putting in" })).toHaveTextContent("60 cards put in your album.");
   });
@@ -223,7 +236,7 @@ describe("AL11: Put them all in calls putAllIn until more is false, flying each 
 
     await act(() => vi.advanceTimersByTimeAsync(putInGapMs(3)));
     expect(side.getByRole("link", { name: /Lanterns/ })).toHaveTextContent("Ready to unlock");
-    expect(await bar.findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await theTrayLeaves();
   });
 
   it("each flight heads for its glowing slot: a hoggie to Hoggies, a sticker to its team page, someone unnamed to the album's home", async () => {
@@ -246,7 +259,7 @@ describe("AL11: Put them all in calls putAllIn until more is false, flying each 
 
     await user.keyboard("{Escape}");
 
-    expect(await (await topBar()).findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await theTrayLeaves();
     expect(document.querySelectorAll(".al-flight").length).toBe(0);
   });
 });
@@ -265,7 +278,7 @@ describe("AL11: a put-in sequence follows the tray as it is, and ends with the a
     expect(await bar.findByRole("button", { name: "Tray, putting in, 1 to go" })).toBeInTheDocument();
     expect(document.querySelector(".al-flight")).toHaveAttribute("data-to", "team:paper-moons");
     await act(() => vi.advanceTimersByTimeAsync(putInFlightMs));
-    expect(await bar.findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await theTrayLeaves();
   });
 
   it("sends no further page once the album has gone, mid-flight or while a page is on its way", async () => {
@@ -318,7 +331,7 @@ describe("AL55: with reduced motion every put-in shows its end state at once", (
 
     await user.click((await openTheTray(user)).getByRole("button", { name: "Put them all in · 2" }));
 
-    expect(await (await topBar()).findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await theTrayLeaves();
     expect(document.querySelectorAll(".al-flight, [data-beckon]").length).toBe(0);
     expect((await sidebar()).getByRole("link", { name: /Lanterns/ })).toHaveTextContent("Ready to unlock");
   });
@@ -395,6 +408,6 @@ describe("AL47: the last pack's end offers to put everything in", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Open your packs" })).not.toBeInTheDocument());
     expect(putAllIn).toHaveBeenCalledTimes(1);
-    expect(await (await topBar()).findByRole("button", { name: "Tray, nothing to put in" })).toBeInTheDocument();
+    await theTrayLeaves();
   });
 });

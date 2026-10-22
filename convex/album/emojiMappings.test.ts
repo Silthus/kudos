@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
@@ -97,6 +97,25 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     ]);
     expect(mappings.levels).toEqual([5, 10, 15, 20, 25]);
     expect(mappings.people.map(({ name }) => name)).toEqual([alice, bruno, ...lanterns, owner, ...otters].map(({ name }) => name).toSorted((one, other) => one.localeCompare(other)));
+  });
+
+  test("LP71: while onboarding is on for the maintainer, Settings offer level 2 and list raised_hands as its emoji; while off, raised_hands is Slack's own emoji with no place and mapping to level 2 is refused, writing nothing", async () => {
+    await aliceCollects(otters[0]!);
+    await slackHas("party-parrot");
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji", "hidden-items", "onboarding");
+    const asOwner = await signedIn(owner);
+
+    const offered = await mappingsOf(asOwner);
+    expect(offered.levels).toEqual([2, 5, 10, 15, 20, 25]);
+    expect(offered.emoji).toContainEqual({ name: "raised_hands", image: standardPicture("1f64c"), mapping: { kind: "level", level: 2 } });
+
+    await switchWebsite(t, postHog, true, ...albumOpen, "standard-emoji", "hidden-items");
+    const withheld = await mappingsOf(asOwner);
+    expect(withheld.levels).toEqual([5, 10, 15, 20, 25]);
+    expect(withheld.emoji).toContainEqual({ name: "raised_hands", image: standardPicture("1f64c"), mapping: null });
+    const before = await everyTable();
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "party-parrot", to: { kind: "level", level: 2 } })).toEqual({ kind: "refused" });
+    expect(await everyTable()).toEqual(before);
   });
 
   test("a Slack emoji mapped to a team is that team's emoji at once: named and pictured as in Slack, in Slack, and kept by a member who unlocked it before", async () => {
@@ -243,6 +262,106 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     theRoll.next = { chance: 0, pick: 0.5 };
     await aliceCollects(otters[0]!);
     expect((await albumOf(await signedIn(alice))).emojis.filter(({ kind }) => kind === "random"), "a pack opens within Convex's limits with every random emoji classed").toHaveLength(1);
+  });
+});
+
+describe("#128: the hype picker offers every Slack member", { timeout: 90_000 }, () => {
+  const nova = person("Nova", "Underhill");
+
+  test("a Slack member HedgeHug has never come across is offered by name once Slack's members are listed, and the hype emoji mapped to them is theirs once a pack earns it", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    await slackHas("nova-cheer");
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: keyOf(await mappingsOf(asOwner), nova) } })).toEqual({ kind: "mapped" });
+
+    const mappings = await mappingsOf(asOwner);
+    expect(mappings.people.filter(({ name }) => name === nova.name), "offered once, now as a member").toHaveLength(1);
+    expect(mappings.emoji).toEqual([{ name: "nova-cheer", image: slackPicture("nova-cheer"), mapping: { kind: "hype", person: keyOf(mappings, nova) } }]);
+    await aliceCollects(nova);
+    expect(await emojiWithId(await signedIn(alice), `hype:${await memberOf(nova)}`)).toMatchObject({ name: "nova-cheer", earned: true, inSlack: true });
+  });
+
+  test("a Slack emoji the maintainer doesn't have, mapped to a member HedgeHug has never come across, is refused and records nobody", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+    const before = withoutFlagRows(await everyTable());
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: keyOf(await mappingsOf(asOwner), nova) } })).toEqual({ kind: "refused" });
+    expect(withoutFlagRows(await everyTable())).toEqual(before);
+  });
+
+  test("bots, deleted users and people of another workspace are never offered, a member Slack later lists as deleted stops being offered, and their old key is refused", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    slack.withMember("U_HELPER_BOT", { ...slackUser(person("Helper", "Bot")), is_bot: true });
+    slack.withMember("U_GONE", { ...slackUser(person("Gone", "Away")), deleted: true });
+    slack.withMember("U_GUESTHOUSE", { ...slackUser(person("Other", "Workspace")), team_id: "T2" });
+    await slackHas("nova-cheer");
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+    const novasKey = keyOf(await mappingsOf(asOwner), nova);
+
+    expect((await mappingsOf(asOwner)).people.map(({ name }) => name)).toEqual([...everyone, nova].map(({ name }) => name).toSorted((one, other) => one.localeCompare(other)));
+
+    slack.withMember(nova.user, { ...slackUser(nova), deleted: true });
+    await slackMembersAreListed();
+    const before = withoutFlagRows(await everyTable());
+
+    expect((await mappingsOf(asOwner)).people.map(({ name }) => name)).not.toContain(nova.name);
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: novasKey } })).toEqual({ kind: "refused" });
+    expect(withoutFlagRows(await everyTable())).toEqual(before);
+  });
+
+  test("listing Slack's members records nobody in the directory and keeps nobody of another workspace", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    slack.withMember("U_GUESTHOUSE", { ...slackUser(person("Other", "Workspace")), team_id: "T2" });
+    const { listedMembers: _nobodyListedYet, ...before } = withoutFlagRows(await everyTable());
+
+    await slackMembersAreListed();
+
+    const { listedMembers, ...after } = withoutFlagRows(await everyTable());
+    expect(after).toEqual(before);
+    expect(listedMembers).not.toContainEqual(expect.objectContaining({ workspace: "T2" }));
+    expect(listedMembers).not.toContainEqual(expect.objectContaining({ entry: expect.objectContaining({ name: "Other Workspace" }) }));
+  });
+
+  test("a page of Slack's list older than the one kept changes nothing, even once Slack has listed the person as gone", async () => {
+    const listed = (asOf: number, entry: { kind: "member"; name: string } | { kind: "not-a-member" }) => ({ listings: [{ workspace: "T1", user: nova.user, entry, asOf }] });
+    const asOwner = await signedIn(owner);
+    const offeredNames = async () => (await mappingsOf(asOwner)).people.map(({ name }) => name);
+
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now(), { kind: "member", name: nova.name }));
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now() - minuteMs, { kind: "member", name: "Nova Formerly" }));
+    expect(await offeredNames()).toContain(nova.name);
+    expect(await offeredNames()).not.toContain("Nova Formerly");
+
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now() + minuteMs, { kind: "not-a-member" }));
+    await t.mutation(internal.workspace.listedMembers.keepListedMembers, listed(Date.now(), { kind: "member", name: nova.name }));
+    expect(await offeredNames()).not.toContain(nova.name);
+  });
+
+  test("a rate-limited list of Slack's members waits for Slack's Retry-After and then lists them", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    slack.answering("users.list", rateLimitedFor(30));
+
+    await slackMembersAreListed();
+
+    expect((await mappingsOf(await signedIn(owner))).people.map(({ name }) => name)).toContain(nova.name);
+  });
+
+  test("a listed member who joins the directory while the picker is open can still be picked by the key it offered", async () => {
+    slack.withMember(nova.user, slackUser(nova));
+    await slackHas("nova-cheer");
+    await slackMembersAreListed();
+    const asOwner = await signedIn(owner);
+    const offeredKey = keyOf(await mappingsOf(asOwner), nova);
+    await thanks(alice, why, nova);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "nova-cheer", to: { kind: "hype", person: offeredKey } })).toEqual({ kind: "mapped" });
+    const mappings = await mappingsOf(asOwner);
+    expect(mappings.emoji).toEqual([{ name: "nova-cheer", image: slackPicture("nova-cheer"), mapping: { kind: "hype", person: keyOf(mappings, nova) } }]);
   });
 });
 
@@ -498,6 +617,11 @@ function twoTeams(): TeamPage[] {
 async function slackHas(...names: string[]) {
   for (const name of names) slack.withCustomEmoji(name, slackPicture(name));
   await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+  await settle(t);
+}
+
+async function slackMembersAreListed() {
+  await t.action(internal.slack.directory.listSlackMembers, {});
   await settle(t);
 }
 

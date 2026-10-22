@@ -21,7 +21,11 @@ export async function randomEmojiNamesIn(ctx: QueryCtx, workspace: string): Prom
 }
 
 export async function isClassed(ctx: QueryCtx, workspace: string, name: string): Promise<boolean> {
-  return (await classRowOf(ctx, workspace, name)) !== null;
+  return (await classOf(ctx, workspace, name)) !== null;
+}
+
+export async function classOf(ctx: QueryCtx, workspace: string, name: string): Promise<EmojiClass | null> {
+  return (await classRowOf(ctx, workspace, name))?.class ?? null;
 }
 
 export async function classEmoji(ctx: MutationCtx, workspace: string, name: string, emojiClass: EmojiClass): Promise<boolean> {

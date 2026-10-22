@@ -43,13 +43,14 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   const prepareStep = steps.find((step) => step.run?.includes("website/flag:prepareWebsiteFlag"));
   const faceSyncStep = steps.find((step) => step.run?.includes("companyProfiles/sync:syncCompanyProfiles"));
   const pendingCratesStep = steps.find((step) => step.run?.includes("quests/pendingCrates:backfillPendingCrates"));
-  const keyedSteps = [deployStep, pendingCratesStep, uploadStep, prepareStep, faceSyncStep];
+  const emojiNamesStep = steps.find((step) => step.run?.includes("album/emojiNames:reserveSharedEmojiNames"));
+  const keyedSteps = [deployStep, pendingCratesStep, uploadStep, prepareStep, faceSyncStep, emojiNamesStep];
 
   test(trigger, () => {
     expect(workflow.on).toEqual(on);
   });
 
-  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the pending-crate backfill, the website upload, prepareWebsiteFlag and the face sync", () => {
+  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the pending-crate backfill, the website upload, prepareWebsiteFlag, the face sync and the emoji name reservation", () => {
     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_DEPLOY_KEY: `\${{ secrets.${secret} }}` });
     const elsewhere = JSON.stringify(workflow, (_, value) => (keyedSteps.includes(value) ? undefined : value));
     expect(elsewhere).not.toContain("secrets");
@@ -76,6 +77,11 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(steps.indexOf(faceSyncStep!)).toBeGreaterThan(steps.indexOf(prepareStep!));
     expect(faceSyncStep?.run).toBe("pnpm exec convex run companyProfiles/sync:syncCompanyProfiles");
     expect(faceSyncStep?.if).toBe(prepareStep?.if);
+  });
+
+  test("LP71: every deploy reserves the shared emoji names in every workspace whose registry is in use, after the face sync, so a new shared name never waits for a company sync", () => {
+    expect(steps.indexOf(emojiNamesStep!)).toBeGreaterThan(steps.indexOf(faceSyncStep!));
+    expect(emojiNamesStep?.run).toBe("pnpm exec convex run album/emojiNames:reserveSharedEmojiNames");
   });
 
   test("the workflow reads the repository and nothing more, and keeps no git credentials", () => {

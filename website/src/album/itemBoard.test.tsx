@@ -49,6 +49,16 @@ function withLevelItems(level: number): Album {
   return { ...withItems, board: { ...board, items: [...board.items, ...levelItems] } };
 }
 
+function withAchievementItems(): Album {
+  const board = withItems.board!;
+  const earnedAt = board.items[0]!.earnedAt;
+  const achievementItems: BoardItem[] = [
+    { item: "team-lanterns" as BoardItem["item"], earnedAt: earnedAt + 1, reason: { kind: "team", team: "lanterns", name: "Lanterns" } },
+    { item: "medal-hoggies-gold" as BoardItem["item"], earnedAt: earnedAt + 2, reason: { kind: "milestone", milestone: "hoggies", tier: "gold" } },
+  ];
+  return { ...withItems, board: { ...board, items: [...board.items, ...achievementItems] } };
+}
+
 function withoutTheItem(album: Album, item: string): Album {
   const board = album.board!;
   return { ...album, board: { ...board, items: board.items.filter((waiting) => waiting.item !== item) }, level: { ...album.level, xp: album.level.xp + 15 } };
@@ -221,6 +231,18 @@ describe("The item board", () => {
     expect(new Set(backs).size, "distinct backs").toBe(1);
   });
 
+  it("tags a filled team's item with its team and a medal's item with its medal, beside a back that is the same as every other back", async () => {
+    visit(withAchievementItems());
+    const board = await theBoard();
+    const teamItem = board.getByRole("button", { name: "A face-down item for filling the Lanterns page. Turn it over" });
+    const medalItem = board.getByRole("button", { name: "A face-down item for the Hoarder gold medal. Turn it over" });
+    expect(within(teamItem).getByText("Lanterns")).toBeVisible();
+    expect(within(medalItem).getByText("Hoarder · Gold")).toBeVisible();
+    const thanksItems = board.getAllByRole("button", { name: "A face-down item. Turn it over" });
+    const backs = [teamItem, medalItem, ...thanksItems].map((item) => item.querySelector(".ib-back")!.outerHTML);
+    expect(new Set(backs).size, "distinct backs").toBe(1);
+  });
+
   it("waits while the level-up page plays", async () => {
     visit(withItems, { path: "/book#level-up/7", levelUp: fixedLevelUp(levelUpFixtures.levelSeven) });
     await screen.findByRole("navigation", { name: "Album" });
@@ -238,12 +260,12 @@ describe("The item board", () => {
 });
 
 describe("With the item board off", () => {
-  it("keeps the packs button and the tray as they were", async () => {
+  it("keeps the packs button and the tray while they hold something", async () => {
     window.history.replaceState(null, "", "/book#me");
-    renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway));
+    renderAlbum(memberWithTheAlbum, fixedAlbum({ ...albumFixtures.midway, tray: albumFixtures.trayed.tray }));
     const bar = await topBar();
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toBeVisible();
-    expect(bar.getByRole("button", { name: "Tray, nothing to put in" })).toBeVisible();
+    expect(bar.getByRole("button", { name: /^Tray, \d+ to put in$/ })).toBeVisible();
     expect(screen.queryByRole("dialog", { name: "Your items" })).toBeNull();
   });
 });

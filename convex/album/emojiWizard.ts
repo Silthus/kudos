@@ -5,7 +5,8 @@ import { currentMembersOf, type MemberId } from "../workspace/directory";
 import { slackEmojiImageOf, slackEmojiNamed, slackEmojiReachOf, slackEmojiStartingWith, type SlackEmojiReach } from "../workspace/slackEmoji";
 import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
 import { emojiMappingInPlaceShownTo, emojiWizardShownTo } from "./flag";
-import { emojiArtPictureOf, emojiLevels, milestoneTierArtOf, milestoneTierEmojiOf, slugOf } from "./emojiCatalogue";
+import { emojiArtPictureOf, everyEmojiLevel, milestoneTierArtOf, milestoneTierEmojiOf, slugOf } from "./emojiCatalogue";
+import { levelEmojiPictureOf } from "./levelEmojis";
 import { emojiClassesIn, isClassed } from "./emojiClasses";
 import { hypeFaceOf, isEarnedBy, teamPictureOf, type EarnedEmojiKind } from "./earnedEmojis";
 import { placeSlackEmoji, targetOf, type MappingTarget } from "./emojiMappings";
@@ -63,19 +64,19 @@ export async function emojiInPlaceFor(ctx: QueryCtx, member: MemberId): Promise<
 
 export async function mapAppEmojiInPlace(ctx: MutationCtx, workspace: string, maintainer: MemberId, emoji: string, name: string): Promise<boolean> {
   const place = appEmojiPlaceOf(ctx, emoji);
-  return place !== null && (await placeSlackEmoji(ctx, workspace, name, place, false, maintainer));
+  return place !== null && (await placeSlackEmoji(ctx, workspace, name, place, false, { member: maintainer, as: "maintainer" }));
 }
 
 export type AppEmojiRows = { rows: AppEmojiRow[]; more: boolean };
 
-export async function appEmojisIn(ctx: QueryCtx, workspace: string): Promise<AppEmojiRows> {
+export async function appEmojisIn(ctx: QueryCtx, workspace: string, levels: readonly number[]): Promise<AppEmojiRows> {
   const teams = new Map((await companyTeamsOf(ctx)).map((team) => [team.team, team]));
   const currentMembers = new Set<string>(await currentMembersOf(ctx, workspace));
   const holders = await holdersIn(ctx, currentMembers);
   const registered = (await registeredEmojisIn(ctx, workspace)).map((row) => ({ ...row, holders: holders.get(row.emoji) ?? 0 }));
   const rows: AppEmojiRow[] = [];
   for (const { emoji, name, mappedBy, holders: held } of registered.toSorted((one, other) => other.holders - one.holders || one.name.localeCompare(other.name))) {
-    const shown = await shownAppEmojiOf(ctx, workspace, emoji, teams, currentMembers);
+    const shown = await shownAppEmojiOf(ctx, workspace, emoji, { teams, currentMembers, levels });
     if (shown === null) continue;
     if (rows.length === mostAppEmojisListed) return { rows, more: true };
     const image = await slackEmojiImageOf(ctx, workspace, name);
@@ -148,7 +149,9 @@ function diceOf(one: string[], other: string[]): number {
 
 type ShownAppEmoji = Pick<AppEmojiRow, "kind" | "from" | "picture">;
 
-async function shownAppEmojiOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId, teams: Map<string, CompanyTeam>, currentMembers: Set<string>): Promise<ShownAppEmoji | null> {
+type AppEmojiCauses = { teams: Map<string, CompanyTeam>; currentMembers: Set<string>; levels: readonly number[] };
+
+async function shownAppEmojiOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId, { teams, currentMembers, levels }: AppEmojiCauses): Promise<ShownAppEmoji | null> {
   const [kind, cause] = splitOnce(emoji);
   if (kind === "team") {
     const team = teams.get(cause);
@@ -158,7 +161,7 @@ async function shownAppEmojiOf(ctx: QueryCtx, workspace: string, emoji: EarnedEm
     const tier = milestoneTierEmojiOf(cause);
     return tier === null ? null : { kind, from: tier.name, picture: emojiArtPictureOf("milestone", milestoneTierArtOf(tier.milestone, tier.tier)) };
   }
-  if (kind === "level") return { kind, from: `Level ${cause}`, picture: emojiArtPictureOf("level", Number(cause)) };
+  if (kind === "level") return levels.includes(Number(cause)) ? { kind, from: `Level ${cause}`, picture: levelEmojiPictureOf(Number(cause)) } : null;
   if (!currentMembers.has(cause)) return null;
   const { name, picture } = await hypeFaceOf(ctx, workspace, cause as MemberId);
   return { kind: "hype", from: name, picture };
@@ -171,7 +174,7 @@ async function holdersIn(ctx: QueryCtx, currentMembers: Set<string>): Promise<Ma
   };
   for (const { member, team } of await ctx.db.query("teamStickers").take(mostHoldingsCounted)) holds(member, `team:${team}`);
   for (const { member, milestone, tier } of await ctx.db.query("milestoneTiers").take(mostHoldingsCounted)) holds(member, `milestone:${milestone}:${tier}`);
-  for (const { member, xp } of await ctx.db.query("memberProgress").take(mostHoldingsCounted)) for (const reward of emojiLevels.filter((level) => levelOf(xp) >= level)) holds(member, `level:${reward}`);
+  for (const { member, xp } of await ctx.db.query("memberProgress").take(mostHoldingsCounted)) for (const reward of everyEmojiLevel.filter((level) => levelOf(xp) >= level)) holds(member, `level:${reward}`);
   for (const { giver, recipient } of await ctx.db.query("thoughtfulPacks").take(mostHoldingsCounted)) holds(giver, `hype:${recipient}`);
   return new Map([...holdings].map(([emoji, members]) => [emoji, members.size]));
 }

@@ -8,10 +8,16 @@ export type SlackEmoji = ListedEmoji;
 
 export type SlackEmojiReach = "custom" | "customAndStandard";
 
+const skinToneSuffix = /::skin-tone-[2-6]$/;
+
 export const standardEmojiFlag = { key: "standard-emoji", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
 export async function slackEmojiReachOf(ctx: QueryCtx, member: MemberId): Promise<SlackEmojiReach> {
   return (await memberDecisionWithoutWriting(ctx, standardEmojiFlag, member)) ? "customAndStandard" : "custom";
+}
+
+export function withoutSkinTone(emoji: string): string {
+  return emoji.replace(skinToneSuffix, "");
 }
 
 export async function slackEmojiImageOf(ctx: QueryCtx, workspace: string, name: string): Promise<string | undefined> {

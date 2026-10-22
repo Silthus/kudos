@@ -5,7 +5,7 @@ import type { ItemBoard, LoopLesson, TurnedFaceShown } from "../../../convex/web
 import { useNavigate } from "../AppLink";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { TurnReply } from "../shell";
-import type { AlbumLevel } from "./answer";
+import type { Album, AlbumLevel } from "./answer";
 import { hrefOf, type Place } from "./place";
 import type { Turned } from "./turnSequence";
 import { useTurnFlight, type Flight, type FlightBoxes } from "./useTurnFlight";
@@ -25,6 +25,7 @@ export type ItemTurns = {
   turning: boolean;
   trouble: string | null;
   landing: Landing | null;
+  landingDue: boolean;
   closedByLater: boolean;
   flight: Flight | null;
   boxes: FlightBoxes;
@@ -51,7 +52,7 @@ export function shownUnless(turns: ItemTurns, waits: boolean): ShownTurns {
   return { ...turns, open: waiting && turns.shown === "board", offered: waiting && turns.shown !== "board" };
 }
 
-export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel, page: string): ItemTurns {
+export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel, page: string, { teachesTheLoop }: { teachesTheLoop: boolean }): ItemTurns {
   const navigate = useNavigate();
   const [shown, setShown] = useState<Shown>("board");
   const [turnedOver, setTurnedOver] = useState<ReadonlyMap<string, TurnedFaceShown>>(() => new Map());
@@ -59,6 +60,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const sending = useRef(false);
   const [trouble, setTrouble] = useState<string | null>(null);
   const [landing, setLanding] = useState<Landing | null>(null);
+  const [landingDue, setLandingDue] = useState(false);
   const [heldLevel, setHeldLevel] = useState<AlbumLevel | null>(null);
   const [touched, setTouched] = useState(false);
   const touch = useCallback(() => setTouched(true), []);
@@ -72,11 +74,12 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const land = useCallback(
     (item: string, { face, applied, unlocked, page, teaches }: Turned, flown: boolean) => {
       setTurnedOver((turned) => new Map(turned).set(item, face));
+      setLandingDue(false);
       landings.current += 1;
-      setLanding({ item, face, applied, unlocked, teaches: teaches ?? null, turn: landings.current, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length });
+      setLanding({ item, face, applied, unlocked, teaches: teachesTheLoop ? (teaches ?? null) : null, turn: landings.current, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length });
       navigate(hrefOf(placeOf(page)));
     },
-    [navigate],
+    [navigate, teachesTheLoop],
   );
   const phase = useCallback((next: LandingPhase) => setLanding((last) => (last === null ? null : { ...last, phase: next })), []);
   const medalShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, medalsShown: shown(last) })), []);
@@ -112,6 +115,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       if (sending.current) return;
       sending.current = true;
       setTurning(true);
+      setLandingDue(true);
       setTrouble(null);
       const answer = turnedOf(turnItem(item), setTrouble);
       if (from === null || prefersReducedMotion()) {
@@ -123,6 +127,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       } else await flyIn(item, from, answer);
       sending.current = false;
       setTurning(false);
+      setLandingDue(false);
     },
     [turnItem, land, flyIn],
   );
@@ -131,7 +136,7 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
     setShown("board");
   }, []);
   const later = useCallback(() => setShown("later"), []);
-  return { board, turnedThisVisit, shown, turning, trouble, landing, closedByLater: shown === "later", flight, boxes, heldLevel, touched, touch, show, later, turn: (item, from) => void turn(item, from) };
+  return { board, turnedThisVisit, shown, turning, trouble, landing, landingDue, closedByLater: shown === "later", flight, boxes, heldLevel, touched, touch, show, later, turn: (item, from) => void turn(item, from) };
 }
 
 function useForgottenOnLeavingThePage(page: string, settled: boolean, setLanding: (landing: null) => void) {
@@ -157,6 +162,12 @@ function placeOf(page: Turned["page"]): Place {
 export function useLandedSticker(person: string): Landing | null {
   const landing = useLanding();
   return landing?.face.kind === "sticker" && landing.face.person === person ? landing : null;
+}
+
+export function useEmojisKeptUntilTheLanding(album: Album, landingDue: boolean): Album {
+  const [kept, keep] = useState(album.emojis);
+  if (!landingDue && kept !== album.emojis) keep(album.emojis);
+  return landingDue && kept !== album.emojis ? { ...album, emojis: kept } : album;
 }
 
 export function landedMarksOf(landing: Landing | null) {
