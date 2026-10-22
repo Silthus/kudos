@@ -40,6 +40,11 @@ export function escaped(text: string) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
+export function slackDayOf(at: number) {
+  const seconds = Math.floor(at / 1000);
+  return `<!date^${seconds}^{date_short}|${new Date(seconds * 1000).toISOString().slice(0, 10)}>`;
+}
+
 export function mrkdwn(text: string) {
   return { type: "mrkdwn", text };
 }

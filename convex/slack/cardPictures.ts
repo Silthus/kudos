@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
-import { emojiStackOf, type EmojiStack } from "../album/earnedEmojis";
+import { emojiStackOf } from "../album/earnedEmojis";
 import { workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import { hoggieSharePictureOf } from "../items/shareArt";
 import type { Face } from "../website/faces";
@@ -18,10 +18,19 @@ export const cardImageShownIn = internalQuery({
 
 export const drawnCardOf = internalQuery({
   args: { workspace: v.string(), person: v.id("members") },
-  handler: async (ctx, { workspace, person }): Promise<DrawnCard | null> => {
+  handler: async (ctx, { workspace, person }): Promise<Omit<DrawnCard, "emojis"> | null> => {
+    const origin = siteOriginFor(workspace);
+    return origin === null ? null : drawnCardFrom(origin, await playerCardOf(ctx, workspace, person));
+  },
+});
+
+export const drawnEmojisOf = internalQuery({
+  args: { workspace: v.string(), person: v.id("members") },
+  handler: async (ctx, { workspace, person }): Promise<DrawnCard["emojis"] | null> => {
     const origin = siteOriginFor(workspace);
     if (origin === null) return null;
-    return drawnCardFrom(origin, await playerCardOf(ctx, workspace, person), await emojiStackOf(ctx, workspace, person, emojisOnTheCard));
+    const { count, shown } = await emojiStackOf(ctx, workspace, person, emojisOnTheCard);
+    return { count, pictures: shown.map(({ picture }) => absoluteOn(origin, picture)) };
   },
 });
 
@@ -53,7 +62,7 @@ function keptAt(ctx: QueryCtx, key: string) {
     .first();
 }
 
-function drawnCardFrom(origin: string, card: PlayerCard, emojis: EmojiStack): DrawnCard {
+function drawnCardFrom(origin: string, card: PlayerCard): Omit<DrawnCard, "emojis"> {
   const { name, face, level, team, place, hoggies, people, medals } = card;
   return {
     name,
@@ -63,7 +72,6 @@ function drawnCardFrom(origin: string, card: PlayerCard, emojis: EmojiStack): Dr
     place,
     hoggies: hoggies === null ? null : { found: hoggies.found, total: hoggies.total, rarest: hoggies.rarest === null ? null : { name: hoggies.rarest.name, rarity: hoggies.rarest.rarity, picture: `${origin}${hoggieSharePictureOf(hoggies.rarest.hoggie)}`, foundAt: hoggies.rarest.firstAt } },
     people: { held: people.held, newest: people.newest.map((person) => drawnFaceOf(origin, person.face)) },
-    emojis: { count: emojis.count, pictures: emojis.shown.map(({ picture }) => absoluteOn(origin, picture)) },
     medals: { count: medals.count, best: medals.best.map(({ tier }) => tier) },
   };
 }

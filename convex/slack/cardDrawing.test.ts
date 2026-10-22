@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { testBackend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
-import { cardPictureOf, cardSize } from "./cardDrawing";
+import { cardPictureOf } from "./cardDrawing";
 import { cardKeyOf, type DrawnCard } from "./playerCard";
 
 const site = "https://hedgehug.example";
@@ -47,7 +47,7 @@ describe("LP99: the player card is drawn as a PNG", { timeout: 60_000 }, () => {
     const png = await cardPictureOf(card, noArt);
 
     expect([...png.subarray(0, 8)]).toEqual(pngSignature);
-    expect(dimensionsOf(png)).toEqual(cardSize);
+    expect(dimensionsOf(png)).toEqual({ width: 1200, height: 630 });
     expect(png.byteLength).toBeGreaterThan(10_000);
     expect(png.byteLength).toBeLessThan(1_000_000);
   });
@@ -65,6 +65,21 @@ describe("LP99: the player card is drawn as a PNG", { timeout: 60_000 }, () => {
     expect(stored.files).toHaveLength(1);
     expect(again).toBe(first);
     expect(await t.query(internal.slack.cardPictures.pictureAt, { key })).toBe(first);
+  });
+
+  test("a picture drawn while its art was briefly unreachable is shown but not kept, so the next share draws it again", async () => {
+    vi.stubGlobal("fetch", async () => new Response("try later", { status: 503 }));
+    const t = testBackend();
+    const key = await cardKeyOf(richMember);
+
+    const shown = await t.action(internal.slack.cardDrawing.drawn, { card: richMember, key });
+    await t.action(internal.slack.cardDrawing.drawn, { card: richMember, key });
+
+    const stored = await t.run(async (ctx) => ({ rows: await ctx.db.query("cardPictures").collect(), files: await ctx.db.system.query("_storage").collect() }));
+    expect(shown).toMatch(/^https:/);
+    expect(stored.rows).toEqual([]);
+    expect(stored.files).toHaveLength(2);
+    expect(await t.query(internal.slack.cardPictures.pictureAt, { key })).toBeNull();
   });
 });
 

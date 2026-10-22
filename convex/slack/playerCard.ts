@@ -3,7 +3,7 @@ import { milestoneTierValidator } from "../album/records";
 import { productName } from "../feedback/naming";
 import { rarityValidator, rarityWord } from "../hoggies/catalogue";
 import type { PersonPreview } from "../website/linkPreviews";
-import { escaped, mrkdwn } from "./blocks";
+import { escaped, mrkdwn, slackDayOf } from "./blocks";
 
 const drawingVersion = 2;
 
@@ -56,11 +56,9 @@ export async function cardKeyOf(card: DrawnCard): Promise<string> {
 }
 
 export function pictureBlocksOf(preview: PersonPreview, card: DrawnCard, picture: string, asOf: number) {
-  const seconds = Math.floor(asOf / 1000);
-  const day = `<!date^${seconds}^{date_short}|${new Date(seconds * 1000).toISOString().slice(0, 10)}>`;
   return [
     { type: "image", image_url: picture, alt_text: altTextOf(card) },
-    { type: "context", elements: [mrkdwn(`*<${preview.page}|${escaped(preview.name)}>* · ${productName} album · as of ${day}`)] },
+    { type: "context", elements: [mrkdwn(`*<${preview.page}|${escaped(preview.name)}>* · ${productName} album · as of ${slackDayOf(asOf)}`)] },
   ];
 }
 

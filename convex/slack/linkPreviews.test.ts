@@ -697,21 +697,22 @@ describe("LP99 LP100: while card-image is on, a person link unfolds into a pictu
 });
 
 describe("LP101: a picture is drawn once per card", { timeout: 60_000 }, () => {
-  test("the same card shared again reuses its stored picture", async () => {
+  test("the same card shared again shows the picture drawn the first time, without drawing it again", async () => {
     const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");
     await thanked(t, { [juno]: 12 });
     const url = `${site}/book#people/${juno}`;
-
     await sharedWhileDrawing(t, [url]);
+    await drawingRefused();
+
     await sharedWhileDrawing(t, [url], { messageTs: "1760349900.000200" });
 
-    const pictures = await storedPicturesOf(t);
-    expect(pictures).toHaveLength(1);
-    expect(slack.callsTo("chat.unfurl").map(({ unfurls }) => (unfurls as Record<string, { blocks: Array<{ image_url?: string }> }>)[url]!.blocks[0]!.image_url)).toEqual([pictures[0]!.url, pictures[0]!.url]);
+    const [first, again] = sentPicturesOf(url);
+    expect(first).toMatch(/^https:/);
+    expect(again).toBe(first);
   });
 
-  test("a changed fact draws a new picture under a new key", async () => {
+  test("a changed fact unfolds into a new picture that shows it", async () => {
     const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");
     const url = `${site}/book#people/${juno}`;
@@ -720,18 +721,15 @@ describe("LP101: a picture is drawn once per card", { timeout: 60_000 }, () => {
     await found(t, juno, "wizard");
     await sharedWhileDrawing(t, [url], { messageTs: "1760349900.000200" });
 
-    const pictures = await storedPicturesOf(t);
-    expect(pictures).toHaveLength(2);
-    expect(new Set(pictures.map(({ key }) => key)).size).toBe(2);
+    const [first, again] = sentPicturesOf(url);
+    expect(again).not.toBe(first);
+    expect(altTextsOf(url)[1]).toContain("Rarest find: Wizard, Legendary");
   });
 });
 
 describe("LP102: a picture that can't be drawn gives way to the card", { timeout: 60_000 }, () => {
   test("when drawing fails, the link unfolds into the rich card and nothing is stored", async () => {
-    const { Resvg } = await import("@resvg/resvg-js");
-    vi.spyOn(Resvg.prototype, "render").mockImplementation(() => {
-      throw new Error("drawing refused");
-    });
+    await drawingRefused();
     const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");
     const url = `${site}/book#people/${juno}`;
@@ -741,6 +739,22 @@ describe("LP102: a picture that can't be drawn gives way to the card", { timeout
     expect(blocksOf(url)[0]).toMatchObject({ type: "section", accessory: { type: "image", image_url: junoFace } });
     expect(JSON.stringify(blocksOf(url))).toMatch(/person page · as of/);
     expect(await storedPicturesOf(t)).toEqual([]);
+  });
+
+  test("when the picture can't even be looked up, the person and the team beside them still unfold into their cards", async () => {
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "digest").mockImplementation(async (algorithm, data) => {
+      if (algorithm === "SHA-256" && new TextDecoder().decode(data as Uint8Array).includes('"card"')) throw new Error("no hash today");
+      return digest(algorithm, data);
+    });
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    const [person, team] = [`${site}/book#people/${juno}`, `${site}/book#teams/kettle-works`];
+
+    await sharedWhileDrawing(t, [person, team]);
+
+    expect(blocksOf(person)[0]).toMatchObject({ type: "section", accessory: { type: "image", image_url: junoFace } });
+    expect(JSON.stringify(blocksOf(team))).toMatch(/team page · as of/);
   });
 
   test("a drawing slower than 5 seconds gives way to the rich card, and the next share shows the picture it kept", async () => {
@@ -848,6 +862,21 @@ async function sharedWhileDrawing(t: Backend, urls: string[], options: LinkShare
   const response = await t.fetch("/slack/events", await signedRequest(linkSharedEvent(urls, { user: "U_BRAM", ...options })));
   expect(response.status).toBe(200);
   await settleInTimeOrder(t, settling);
+}
+
+async function drawingRefused() {
+  const { Resvg } = await import("@resvg/resvg-js");
+  vi.spyOn(Resvg.prototype, "render").mockImplementation(() => {
+    throw new Error("drawing refused");
+  });
+}
+
+function sentPicturesOf(url: string) {
+  return slack.callsTo("chat.unfurl").map(({ unfurls }) => (unfurls as Record<string, { blocks: Array<{ image_url?: string }> }>)[url]!.blocks[0]!.image_url);
+}
+
+function altTextsOf(url: string) {
+  return slack.callsTo("chat.unfurl").map(({ unfurls }) => (unfurls as Record<string, { blocks: Array<{ alt_text?: string }> }>)[url]!.blocks[0]!.alt_text);
 }
 
 function answeringLate(url: string, delayMs: number) {

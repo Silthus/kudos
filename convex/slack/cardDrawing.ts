@@ -13,7 +13,7 @@ import type { MilestoneTier } from "../album/records";
 import { rarityWord, type Rarity } from "../hoggies/catalogue";
 import { counted, drawnCardValidator, foundDayOf, isAQuietCard, placeWordsOf, quietLineOf, type DrawnCard, type DrawnFace } from "./playerCard";
 
-export const cardSize = { width: 1200, height: 630 };
+const cardSize = { width: 1200, height: 630 };
 
 export type CardArt = { face: string | null; crest: string | null; rarest: string | null; people: (string | null)[]; emojis: (string | null)[] };
 
@@ -40,9 +40,10 @@ const fontFaces = [
 export const drawn = observedAction({
   args: { card: drawnCardValidator, key: v.string() },
   handler: async (ctx, { card, key }): Promise<string | null> => {
-    const png = await cardPictureOf(card, await artOf(card));
+    const { art, lasting } = await artOf(card);
+    const png = await cardPictureOf(card, art);
     const picture = await ctx.storage.store(new Blob([Buffer.from(png)], { type: "image/png" }));
-    return ctx.runMutation(internal.slack.cardPictures.kept, { key, picture });
+    return lasting ? ctx.runMutation(internal.slack.cardPictures.kept, { key, picture }) : ctx.storage.getUrl(picture);
   },
 });
 
@@ -51,26 +52,32 @@ export async function cardPictureOf(card: DrawnCard, art: CardArt): Promise<Uint
   return new Resvg(svg, { fitTo: { mode: "width", value: cardSize.width } }).render().asPng();
 }
 
-export async function artOf(card: DrawnCard): Promise<CardArt> {
+export async function artOf(card: DrawnCard): Promise<{ art: CardArt; lasting: boolean }> {
   const [face, crest, rarest, people, emojis] = await Promise.all([
-    pictureOrNull(card.face.picture),
-    pictureOrNull(card.team?.crest ?? null),
-    pictureOrNull(card.hoggies?.rarest?.picture ?? null),
-    Promise.all(card.people.newest.map((person) => pictureOrNull(person.picture))),
-    Promise.all(card.emojis.pictures.map(pictureOrNull)),
+    fetchedPicture(card.face.picture),
+    fetchedPicture(card.team?.crest ?? null),
+    fetchedPicture(card.hoggies?.rarest?.picture ?? null),
+    Promise.all(card.people.newest.map((person) => fetchedPicture(person.picture))),
+    Promise.all(card.emojis.pictures.map(fetchedPicture)),
   ]);
-  return { face, crest, rarest, people, emojis };
+  const fetched = [face, crest, rarest, ...people, ...emojis];
+  return {
+    art: { face: face.picture, crest: crest.picture, rarest: rarest.picture, people: people.map(({ picture }) => picture), emojis: emojis.map(({ picture }) => picture) },
+    lasting: fetched.every(({ settled }) => settled),
+  };
 }
 
-async function pictureOrNull(url: string | null): Promise<string | null> {
-  if (url === null) return null;
+type Fetched = { picture: string | null; settled: boolean };
+
+async function fetchedPicture(url: string | null): Promise<Fetched> {
+  if (url === null) return { picture: null, settled: true };
   try {
     const answer = await fetch(url, { signal: AbortSignal.timeout(artTimeoutMs) });
     const type = answer.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-    if (!answer.ok || !pictureTypes.has(type)) return null;
-    return `data:${type};base64,${Buffer.from(await answer.arrayBuffer()).toString("base64")}`;
+    if (answer.ok && pictureTypes.has(type)) return { picture: `data:${type};base64,${Buffer.from(await answer.arrayBuffer()).toString("base64")}`, settled: true };
+    return { picture: null, settled: answer.status < 500 };
   } catch {
-    return null;
+    return { picture: null, settled: false };
   }
 }
 
@@ -199,7 +206,7 @@ function statsOf({ hoggies, people, emojis, medals }: DrawnCard, art: CardArt): 
   ];
   const line = `1px solid ${ink.border}`;
   const rows = [cells.slice(0, 2), cells.slice(2)];
-  return h("div", { flexDirection: "column" }, ...rows.map((row, rowIndex) => h("div", { borderBottom: rowIndex === 0 ? line : undefined }, ...row.map((cell, index) => statCellOf(index === 0 ? { borderRight: line } : {}, ...cell)))));
+  return h("div", { flexDirection: "column" }, ...rows.map((row, rowIndex) => h("div", { borderBottom: rowIndex === 0 ? line : undefined }, ...row.map((cell, index) => statCellOf(row.length === 1 ? { width: "100%" } : index === 0 ? { borderRight: line } : {}, ...cell)))));
 }
 
 function stacked(index: number): Record<string, unknown> {

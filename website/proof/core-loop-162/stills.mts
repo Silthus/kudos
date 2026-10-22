@@ -31,7 +31,7 @@ const quiet: DrawnCard = {
 };
 
 for (const [name, card] of Object.entries({ rich, quiet })) {
-  const png = await cardPictureOf(card, await artOf(card));
+  const png = await cardPictureOf(card, (await artOf(card)).art);
   writeFileSync(`${into}/${name}.png`, png);
   console.log(`${name}.png ${png.byteLength} bytes`);
 }
