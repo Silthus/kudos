@@ -764,7 +764,8 @@ export default defineSchema({
     workspace: v.string(),
     member: v.id("members"),
     week: v.string(),
-  }).index("by_member", ["member"]),
+    place: v.number(),
+  }).index("by_workspace_week", ["workspace", "week"]),
 
   leaderboardSettings: defineTable({
     member: v.id("members"),

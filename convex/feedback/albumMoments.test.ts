@@ -437,7 +437,7 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
     expect(leadsOf(posted), "one top kudos").toEqual(["*1. Alice Marchetti* thanked *Bob Okonkwo*"]);
     expect(newGiverLinesOf(posted)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 3 thoughtful kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 2 thoughtful kudos`, `3. *<${await pageOf(dana)}|Dana Ferreira>* · 1 thoughtful kudos`]);
     expect(cardsIn(posted), "one card, right after the first new giver").toEqual([{ after: newGiverLinesOf(posted)[0], name: `*<${await pageOf(carol)}|Carol Lindqvist>*` }]);
-    expect(String(posted?.text).split("\n").slice(-1)).toEqual(["🌱 Top new givers last week: 1. Carol Lindqvist 3, 2. Alice Marchetti 2, 3. Dana Ferreira 1"]);
+    expect(String(posted?.text).split("\n").slice(-1)).toEqual(["🌱 Top new givers last week: 1. Carol Lindqvist · 3, 2. Alice Marchetti · 2, 3. Dana Ferreira · 1"]);
     expect(posted?.unfurl_links).toBe(false);
   });
 
@@ -476,15 +476,54 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
     expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(alice)}|Alice Marchetti>* · 1 thoughtful kudos`]);
   });
 
-  test("a post Slack rate-limited lists the same new givers when it goes out", async () => {
+  test("givers listed before never crowd out a new one, however many of them gave more", async () => {
     await fourMembers(highlightsOn);
     await thanks(carol, "Thanks for the careful design review today", dana);
-    slack.answering("chat.postMessage", rateLimitedFor(30));
+    await t.run(async (ctx) => {
+      const { _id, _creationTime, ...tally } = (await ctx.db.query("thoughtfulBoardTallies").collect()).find(({ period }) => period.startsWith("week:"))!;
+      const { _id: carolsId, _creationTime: joined, ...someone } = (await ctx.db.get(tally.giver))!;
+      for (let leader = 0; leader < 201; leader++) {
+        const giver = await ctx.db.insert("members", { ...someone, user: `U_LEADER_${leader}` });
+        await ctx.db.insert("thoughtfulBoardTallies", { ...tally, giver, awards: 5 });
+        await ctx.db.insert("featuredNewGivers", { workspace: "T1", member: giver, week: "2020-01-06", place: 1 });
+      }
+    });
+
+    await mondayPostSent();
+
+    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`]);
+  });
+
+  test("a post Slack rate-limited lists the same new givers when it goes out, even when last week's counts changed meanwhile", async () => {
+    await fourMembers(highlightsOn);
+    await thanks(carol, "Thanks for the careful design review today", dana);
+    const latecomer = await memberIdOf(dana);
+    slack.answering("chat.postMessage", async (answerAsSlackWould) => {
+      await t.run(async (ctx) => {
+        const { _id, _creationTime, ...tally } = (await ctx.db.query("thoughtfulBoardTallies").collect()).find(({ period }) => period.startsWith("week:"))!;
+        await ctx.db.insert("thoughtfulBoardTallies", { ...tally, giver: latecomer, awards: 5 });
+      });
+      return rateLimitedFor(30)(answerAsSlackWould);
+    });
 
     await mondayPostSent();
 
     const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`;
     expect(mondayPosts().map(newGiverLinesOf), "the refused post and the one Slack took").toEqual([[carolsLine], [carolsLine]]);
+  });
+
+  test("givers of a post Slack refused for its channel are still new in a later week", async () => {
+    await fourMembers(highlightsOn);
+    await thanks(carol, "Thanks for the careful design review today", dana);
+    slack.answering("chat.postMessage", slackError("channel_not_found"));
+    await mondayPostSent();
+    settleKudos = (backend) => settleUpTo(backend, Date.now());
+
+    await thanks(carol, "Thanks for the patient pairing session", dana);
+    await settleUpTo(t, nextMondayNine + hourMs);
+
+    const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`;
+    expect(mondayPosts().map(newGiverLinesOf), "the refused post and the next week's").toEqual([[carolsLine], [carolsLine]]);
   });
 
   test.each([

@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import type { DayKey } from "../engine/allowance";
@@ -11,25 +12,42 @@ export const weeklyHighlightsFlag = { key: "weekly-highlights", safeDefault: fal
 export const newGiversListed = 3;
 export const mostGiversRanked = 5_000;
 export const mostGiversChecked = 200;
+export const mostGiversFeatured = 5_000;
 
 export type NewGiver = { member: MemberId; name: string; thoughtful: number };
+
+type Tally = Doc<"thoughtfulBoardTallies">;
 
 export function weeklyHighlightsApplyTo(ctx: QueryCtx, workspace: string): Promise<boolean> {
   return workspaceDecisionWithoutWriting(ctx, weeklyHighlightsFlag, workspace);
 }
 
 export async function newGiversOf(ctx: QueryCtx, workspace: string, postWeek: DayKey): Promise<NewGiver[]> {
+  const ranked = await giversRankedIn(ctx, workspace, postWeek);
+  const featured = await featuredIn(ctx, workspace);
+  const featuredThisWeek = featured.filter(({ week }) => week === postWeek).sort((one, other) => one.place - other.place);
+  if (featuredThisWeek.length > 0) return namedOnTheBoards(ctx, featuredThisWeek.map(({ member }) => ({ giver: member, awards: ranked.find(({ giver }) => giver === member)?.awards ?? 0 })));
+  const featuredBefore = new Set(featured.map(({ member }) => member));
+  return namedOnTheBoards(ctx, ranked.filter(({ giver }) => !featuredBefore.has(giver)).slice(0, mostGiversChecked));
+}
+
+export async function featureNewGivers(ctx: MutationCtx, workspace: string, postWeek: DayKey, givers: NewGiver[]) {
+  if ((await featuredIn(ctx, workspace, postWeek)).length > 0) return;
+  for (const [index, { member }] of givers.entries()) await ctx.db.insert("featuredNewGivers", { workspace, member, week: postWeek, place: index + 1 });
+}
+
+export async function unfeatureNewGivers(ctx: MutationCtx, workspace: string, postWeek: DayKey) {
+  for (const { _id } of await featuredIn(ctx, workspace, postWeek)) await ctx.db.delete(_id);
+}
+
+async function namedOnTheBoards(ctx: QueryCtx, candidates: Pick<Tally, "giver" | "awards">[]) {
   const listed: NewGiver[] = [];
-  for (const { giver, awards } of (await giversRankedIn(ctx, workspace, postWeek)).slice(0, mostGiversChecked)) {
-    const named = (await isNewIn(ctx, giver, postWeek)) && (await isOnTheBoards(ctx, giver)) ? await currentNameAndPictureOf(ctx, giver) : null;
+  for (const { giver, awards } of candidates) {
+    const named = (await isOnTheBoards(ctx, giver)) ? await currentNameAndPictureOf(ctx, giver) : null;
     if (named !== null) listed.push({ member: giver, name: named.name ?? nameless, thoughtful: awards });
     if (listed.length === newGiversListed) break;
   }
   return listed;
-}
-
-export async function featureNewGivers(ctx: MutationCtx, workspace: string, postWeek: DayKey, givers: NewGiver[]) {
-  for (const { member } of givers) if ((await featuredOf(ctx, member)) === null) await ctx.db.insert("featuredNewGivers", { workspace, member, week: postWeek });
 }
 
 async function giversRankedIn(ctx: QueryCtx, workspace: string, postWeek: DayKey) {
@@ -40,14 +58,9 @@ async function giversRankedIn(ctx: QueryCtx, workspace: string, postWeek: DayKey
   return tallies.sort((one, other) => other.awards - one.awards || one._creationTime - other._creationTime);
 }
 
-async function isNewIn(ctx: QueryCtx, giver: MemberId, postWeek: DayKey) {
-  const featured = await featuredOf(ctx, giver);
-  return featured === null || featured.week === postWeek;
-}
-
-function featuredOf(ctx: QueryCtx, member: MemberId) {
+function featuredIn(ctx: QueryCtx, workspace: string, week?: DayKey) {
   return ctx.db
     .query("featuredNewGivers")
-    .withIndex("by_member", (q) => q.eq("member", member))
-    .first();
+    .withIndex("by_workspace_week", (q) => (week === undefined ? q.eq("workspace", workspace) : q.eq("workspace", workspace).eq("week", week)))
+    .take(mostGiversFeatured);
 }

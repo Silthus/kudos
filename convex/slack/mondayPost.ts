@@ -100,7 +100,7 @@ function withoutPictures(message: CardedMessage): CardedMessage {
 }
 
 function fallbackTextOf({ headline, kudos, newGivers, teams }: TopKudosMessage) {
-  const giverLine = newGivers === null ? [] : [`${newGivers.headline}: ${newGivers.rows.map(({ place, name, thoughtful }) => `${place}. ${name} ${thoughtful}`).join(", ")}`];
+  const giverLine = newGivers === null ? [] : [`${newGivers.headline}: ${newGivers.rows.map(({ place, name, thoughtful }) => `${place}. ${name} · ${thoughtful}`).join(", ")}`];
   const teamLine = teams === null ? [] : [`${teams.headline}: ${teams.rows.map(({ team, count }) => `${team} ${count}`).join(", ")}`];
   return [headline, ...kudos.map(({ lead, quote, permalink }) => `${plainOf(lead)}: ${quote}${permalink === null ? "" : ` ${permalink}`}`), ...giverLine, ...teamLine].map(escaped).join("\n");
 }

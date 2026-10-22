@@ -13,7 +13,7 @@ import { maintainerSettingsApplyTo } from "../workspace/workspaceSettings";
 import { workspaceGroupsBoardOf } from "./groupBoards";
 import { channelRefusalValidator, mondayPostOutcomeValidator, type ChannelCheck } from "./mondayPostOutcome";
 import { wholeWeekBefore } from "./periods";
-import { featureNewGivers } from "./newGivers";
+import { featureNewGivers, unfeatureNewGivers } from "./newGivers";
 import { isTimeZone } from "./timeZones";
 import { topKudosPostOf, type TopKudosPost } from "./topKudos";
 import { giversIn } from "./totals";
@@ -176,6 +176,7 @@ export const recordOutcome = internalMutation({
     const row = await ctx.db.get(claim);
     if (row === null || row.outcome !== "claimed") return;
     await ctx.db.patch(claim, { outcome });
+    if (outcome === "cant-post") await unfeatureNewGivers(ctx, row.workspace, row.week);
     await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace: row.workspace });
   },
 });
