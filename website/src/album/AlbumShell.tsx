@@ -1,4 +1,3 @@
-import { hoggieNamed } from "../../../convex/hoggies/catalogue";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
@@ -53,9 +52,10 @@ export type AlbumShellProps = {
   missedXpMoment: MissedXpMoment;
   shareItem: (item: string) => Promise<ShareReply>;
   closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
+  anEntryIsOpen: boolean;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -100,7 +100,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     emojiMoments.shownElsewhere([`team:${team}`]);
     finish();
   };
-  const turns = shownUnless(items, anotherMoment || playing || aHoggieEntryIsOpen(place));
+  const turns = shownUnless(items, anotherMoment || playing || anEntryIsOpen);
   const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
   const covered = boardShown || sinceTheLastVisit.covers || howItWorks.card !== null;
@@ -143,10 +143,6 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       </div>
     </div>
   );
-}
-
-function aHoggieEntryIsOpen(place: Place) {
-  return place.kind === "hoggies" && place.hoggie !== null && hoggieNamed(place.hoggie) !== undefined;
 }
 
 function firstShown(buttons: RefObject<HTMLElement | null>[]) {

@@ -10,7 +10,7 @@ import { useSectionOnceLanded } from "../linkTarget";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import { rememberSignInStarted } from "../signInAttempt";
-import type { Album, BoardPeriod } from "./answer";
+import type { Album, BoardPeriod, HoggiesShown } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
@@ -99,6 +99,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         missedXpMoment={visit.missed}
         shareItem={actions.shareItem}
         closeHowItWorks={actions.closeHowItWorks}
+        anEntryIsOpen={anEntryIsOpenAt(place, hoggies)}
       />
       </NewLabelsProvider>
       </EmojiWizardHost>
@@ -118,6 +119,11 @@ function AlbumSettingsSections({ album, useAppEmojis, useSlackEmojiMatches, mapS
 }
 
 type ReplaceAddress = (href: string, state: unknown) => void;
+
+function anEntryIsOpenAt(place: Place, hoggies: HoggiesShown | undefined) {
+  if (place.kind !== "hoggies" || place.hoggie === null) return false;
+  return hoggies === undefined || (hoggies.kind === "hoggies" && hoggies.hoggies.some(({ hoggie }) => hoggie === place.hoggie));
+}
 
 function useTheAlbumInsteadOfAClosedReveal(closed: boolean, myPage: MyPage, replaceAddress: ReplaceAddress) {
   useEffect(() => {

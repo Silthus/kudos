@@ -217,11 +217,41 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
   });
 
+  it("after a turn has emptied the board, a forged item set aside waits behind the items-wait pill once the entry closes", async () => {
+    preferReducedMotion();
+    const secondItem = "forged-asleep-again" as BoardItem["item"];
+    const replies: ForgeReply[] = [forgedCake, { kind: "forged", item: secondItem }];
+    const { user, albumAnswers } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }), async () => replies.shift()!);
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await user.click(await theFaceDownItem());
+    await screen.findByRole("status", { name: "Turned over" });
+    goTo("/book#hoggies/asleep");
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await theFaceDownItem();
+    albumAnswers({ ...withNoItems, board: { items: [{ ...asleepForged, item: secondItem }], more: false } });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
+    await user.click(screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!);
+
+    expect(await screen.findByRole("button", { name: /1 item waits/ }, { timeout: arrival })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
+  });
+
   it("an address naming no hoggie opens no entry and holds no item board", async () => {
     visit("/book#hoggies/no-such-hoggie", forgeOn({ asleep: 4 }), undefined, { album: withAsleepForged });
 
     const board = within(await screen.findByRole("dialog", { name: "Your items" }, { timeout: arrival }));
     expect(board.getByRole("button", { name: asleepCard })).toBeInTheDocument();
+  });
+
+  it("a hoggie's address over a Hoggies page that shows no entry holds no item board", async () => {
+    window.history.replaceState(null, "", "/book#hoggies/asleep");
+    renderAlbum(memberWithTheAlbum, (asking) => (asking ? withAsleepForged : undefined), { hoggies: (asking) => (asking ? { kind: "broken" } : undefined) });
+
+    const board = within(await screen.findByRole("dialog", { name: "Your items" }, { timeout: arrival }));
+    expect(board.getByRole("button", { name: asleepCard })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Asleep" })).not.toBeInTheDocument();
   });
 
   it("while the face-down item waits in the entry the item board stays closed, though it lists the forged item", async () => {
