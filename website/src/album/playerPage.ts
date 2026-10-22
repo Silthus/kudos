@@ -31,6 +31,10 @@ export function isAQuietWeek({ days, thanked, thankedBy, packsOpened, hugs, kudo
   return days.every((count) => count === 0) && thanked + thankedBy + packsOpened + hugs === 0 && kudosOfWeek === null && (lines ?? []).length === 0;
 }
 
-export function isAQuietCard({ hoggies, people, medals }: PlayerCard, emojis: EmojiStack | null) {
-  return (hoggies?.found ?? 0) + people.held + (emojis?.count ?? 0) + medals.count === 0;
+export function holdsNothingButEmojis({ hoggies, people, medals }: PlayerCard) {
+  return (hoggies?.found ?? 0) + people.held + medals.count === 0;
+}
+
+export function isAQuietCard(card: PlayerCard, emojis: EmojiStack | null) {
+  return emojis?.count === 0 && holdsNothingButEmojis(card);
 }

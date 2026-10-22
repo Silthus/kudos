@@ -444,6 +444,11 @@
   justify-self: end;
 }
 
+.al-pp-hype code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .al-pp-together {
   display: grid;
   gap: 0.5rem;
@@ -455,6 +460,7 @@
 
 .al-pp-hype {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
