@@ -17,7 +17,9 @@ export const rarities: ReadonlyArray<{ rarity: Rarity; weight: number }> = [
   { rarity: "legendary", weight: 2 },
 ];
 
-const labels: Record<Rarity, string> = { common: "⬜ Common", uncommon: "🟩 Uncommon", rare: "🟦 Rare", epic: "🟪 Epic", legendary: "🟧 Legendary" };
+const words: Record<Rarity, string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary" };
+
+const squares: Record<Rarity, string> = { common: "⬜", uncommon: "🟩", rare: "🟦", epic: "🟪", legendary: "🟧" };
 
 const versionOne: Record<Rarity, ReadonlyArray<readonly [hoggie: string, name: string]>> = {
   common: [
@@ -258,7 +260,11 @@ const thoughtfulBand: PackBand = { xp: { least: 15, most: 15, step: 5 }, coins: 
 export const packBands: Record<CrateKind, PackBand | null> = { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand, thoughtful: thoughtfulBand, level: null, welcome: null, team: null, milestone: null };
 
 export function rarityLabel(rarity: Rarity): string {
-  return labels[rarity];
+  return `${squares[rarity]} ${words[rarity]}`;
+}
+
+export function rarityWord(rarity: Rarity): string {
+  return words[rarity];
 }
 
 export function hoggiesOfRarity(rarity: Rarity): CatalogueHoggie[] {
