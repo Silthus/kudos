@@ -634,6 +634,19 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theTakeover()).not.toHaveTextContent(/React or thank with it|counts like/);
   });
 
+  it("LP72: while the takeover stays open, an emoji Slack stops having loses the how-to line and one Slack starts having gains it", async () => {
+    const album = anAlbumThatAnswers({ ...atLevelTen, emojis: levelTenEarnedInSlack(true), emojiHowTo: kudosEmojiHowTo });
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen, read: album.read });
+    expect(within(theTakeover()!).getByRole("listitem", { name: ":level-10: unlocked" })).toBeInTheDocument();
+
+    const slackHas = (inSlack: boolean, name: string) => (answered: Album) => ({ ...answered, emojis: answered.emojis.map((emoji) => (emoji.id === "level:10" ? { ...emoji, name, inSlack, seen: true } : emoji)) });
+    await act(async () => album.answers(slackHas(false, "level-ten")));
+    expect(within(theTakeover()!).getByRole("listitem", { name: "New emoji :level-ten:" })).toHaveTextContent(/^:level-ten:New emoji unlocked$/);
+
+    await act(async () => album.answers(slackHas(true, "ten")));
+    expect(within(theTakeover()!).getByRole("listitem", { name: ":ten: unlocked" })).toHaveTextContent(/React or thank with it/);
+  });
+
   it("leaves out an emoji the member has already seen and the items line when none of the level's items wait, and flows into All caught up", async () => {
     const seenAlready = levelTenEarned.map((emoji) => (emoji.id === "level:10" ? { ...emoji, seen: true } : emoji));
     await crossTheLevel({ moment: { ...toLevelTen, waiting: 0 }, album: { ...atLevelTen, emojis: seenAlready, board: { items: [], more: false } } });
