@@ -433,6 +433,17 @@ describe("LP84 LP85: a rich card stays within Convex's limits", { timeout: 120_0
 
     expect(Object.keys(slack.callsTo("chat.unfurl")[0]!.unfurls as object)).toEqual(links);
   });
+
+  test("a message linking ten different teams, every teammate holding every hoggie, unfolds every card under Convex's transaction limits", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone), transactionLimits: true });
+    const teams = Array.from({ length: 10 }, (_, index) => `team-${index}`);
+    for (const [index, team] of teams.entries()) await teamWithEveryHoggie(t, team, 22, 1000 + index * 22);
+    const links = teams.map((team) => `${site}/book#teams/${team}`);
+
+    await shared(t, links);
+
+    expect(Object.keys(slack.callsTo("chat.unfurl")[0]!.unfurls as object)).toEqual(links);
+  });
 });
 
 describe("LP86: a rich card shows only the leaderboard's facts and the person's own page, the same whoever shares it", { timeout: 30_000 }, () => {
@@ -598,9 +609,9 @@ async function matched(t: Backend, member: MemberId, profile: number) {
   });
 }
 
-async function teamWithEveryHoggie(t: Backend, team: string, size: number): Promise<MemberId[]> {
+async function teamWithEveryHoggie(t: Backend, team: string, size: number, firstProfile = 1000): Promise<MemberId[]> {
   const { catalogue } = await import("../hoggies/catalogue");
-  const profiles = Array.from({ length: size }, (_, index) => 1000 + index);
+  const profiles = Array.from({ length: size }, (_, index) => firstProfile + index);
   const people: MemberId[] = [];
   for (const profile of profiles) {
     people.push(
@@ -613,7 +624,7 @@ async function teamWithEveryHoggie(t: Backend, team: string, size: number): Prom
       }),
     );
   }
-  await t.run((ctx) => ctx.db.insert("companyTeams", { team, name: "Big Team", leads: [], people: profiles, asOf: 0 }));
+  await t.run((ctx) => ctx.db.insert("companyTeams", { team, name: team, leads: [], people: profiles, asOf: 0 }));
   return people;
 }
 

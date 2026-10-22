@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/hoggies";
 import { peopleHeldBy } from "../album/stickers";
-import { storedHoldersIn } from "../companyProfiles/storedFaces";
+import { storedHoldersIn, type StoredHolder } from "../companyProfiles/storedFaces";
 import type { Rarity } from "../hoggies/catalogue";
 import { hoggiesShownTo } from "../hoggies/flag";
 import { hoggieSharePictureOf } from "../items/shareArt";
@@ -24,17 +24,29 @@ type Found = Pick<AlbumHoggie, "hoggie" | "name" | "rarity" | "found" | "firstAt
 
 type CompanyTeamRow = { team: string; people: number[] };
 
-export type CardReads = { workspace: string; origin: string; boards: () => Promise<AllTimeBoards>; hoggiesOf: (member: MemberId) => Promise<AlbumHoggies | null> };
+export type CardReads = {
+  workspace: string;
+  origin: string;
+  boards: () => Promise<AllTimeBoards>;
+  holders: () => Promise<Map<number, StoredHolder>>;
+  hoggiesOf: (member: MemberId) => Promise<AlbumHoggies | null>;
+};
 
 const mostPictures = 9;
 
-const mostTeamPeopleRead = 20;
+const mostCollectionsReadPerMessage = 20;
 
 export function cardReadsOf(ctx: QueryCtx, workspace: string, origin: string): CardReads {
   let boards: Promise<AllTimeBoards> | undefined;
-  const hoggies = new Map<MemberId, Promise<AlbumHoggies | null>>();
-  const hoggiesOf = (member: MemberId) => hoggies.get(member) ?? hoggies.set(member, shownHoggiesOf(ctx, member)).get(member)!;
-  return { workspace, origin, boards: () => (boards ??= allTimeBoardsIn(ctx, workspace)), hoggiesOf };
+  let holders: Promise<Map<number, StoredHolder>> | undefined;
+  const collections = new Map<MemberId, Promise<AlbumHoggies | null>>();
+  const hoggiesOf = (member: MemberId) => {
+    const read = collections.get(member);
+    if (read !== undefined) return read;
+    if (collections.size >= mostCollectionsReadPerMessage) return Promise.resolve(null);
+    return collections.set(member, shownHoggiesOf(ctx, member)).get(member)!;
+  };
+  return { workspace, origin, boards: () => (boards ??= allTimeBoardsIn(ctx, workspace)), holders: () => (holders ??= storedHoldersIn(ctx, workspace)), hoggiesOf };
 }
 
 async function shownHoggiesOf(ctx: QueryCtx, member: MemberId): Promise<AlbumHoggies | null> {
@@ -53,13 +65,13 @@ export async function personStatsOf(ctx: QueryCtx, { origin, boards, hoggiesOf }
   };
 }
 
-export async function teamStatsOf(ctx: QueryCtx, reads: CardReads, team: CompanyTeamRow): Promise<TeamStats> {
-  const { workspace, origin, boards } = reads;
+export async function teamStatsOf(reads: CardReads, team: CompanyTeamRow): Promise<TeamStats> {
+  const { origin, boards } = reads;
   const { people, teams } = await boards();
   return {
     place: placeOf(teams.find((row) => row.team === team.team)),
     saidThanks: people.filter((giver) => giver.teams.includes(team.team)).length,
-    rarest: cardHoggiesOf(await foundByTheTeam(ctx, reads, team), origin),
+    rarest: cardHoggiesOf(await foundByTheTeam(reads, team), origin),
     asOf: Date.now(),
   };
 }
@@ -74,9 +86,9 @@ function placeOf(row: { rank: number | null; tied: boolean; thoughtful: number }
   return row === undefined || row.rank === null ? null : { rank: row.rank, tied: row.tied, thoughtful: row.thoughtful };
 }
 
-async function foundByTheTeam(ctx: QueryCtx, { workspace, hoggiesOf }: CardReads, team: CompanyTeamRow): Promise<Found[]> {
-  const holders = await storedHoldersIn(ctx, workspace);
-  const members = team.people.flatMap((profile) => holders.get(profile)?.member ?? []).slice(0, mostTeamPeopleRead);
+async function foundByTheTeam({ holders, hoggiesOf }: CardReads, team: CompanyTeamRow): Promise<Found[]> {
+  const matched = await holders();
+  const members = team.people.flatMap((profile) => matched.get(profile)?.member ?? []);
   const found = await Promise.all(members.map(async (member) => ((await hoggiesOf(member))?.hoggies ?? []).filter((hoggie) => hoggie.found)));
   return [...new Map(found.flat().map((hoggie) => [hoggie.hoggie, hoggie])).values()];
 }

@@ -34,8 +34,12 @@ export const linkPreviewsOf = internalQuery({
     const origin = siteOriginFor(workspace);
     if (origin === null || !(await sharerDecisionOf(ctx, workspace, sharer, linkPreviewsFlag))) return [];
     const unfolding = { ...cardReadsOf(ctx, workspace, origin), rich: await sharerDecisionOf(ctx, workspace, sharer, richLinkCardsFlag) };
-    const previews = await Promise.all(links.map((url) => previewOf(ctx, unfolding, url)));
-    return previews.filter((preview) => preview !== null);
+    const previews: LinkPreview[] = [];
+    for (const url of links) {
+      const preview = await previewOf(ctx, unfolding, url);
+      if (preview !== null) previews.push(preview);
+    }
+    return previews;
   },
 });
 
@@ -84,7 +88,7 @@ async function teamPreviewOf(ctx: QueryCtx, unfolding: Unfolding, url: string, k
   if (team === null) return null;
   const { origin, rich } = unfolding;
   const preview: TeamPreview = { kind: "team", url, page: pageUrlOf(origin, "teams", team.team), name: team.name, picture: team.crestImage ?? null, people: team.people.length };
-  return rich ? { ...preview, stats: await teamStatsOf(ctx, unfolding, team) } : preview;
+  return rich ? { ...preview, stats: await teamStatsOf(unfolding, team) } : preview;
 }
 
 function pageUrlOf(origin: string, section: "people" | "teams", key: string) {
