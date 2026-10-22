@@ -3,11 +3,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
-import type { Album } from "./answer";
+import { albumFixtures, fixedAlbum, fixedPeople, fixturePersonOf } from "./albumFixtures";
+import type { Album, PersonPage, PersonRead, PlayerCardRead } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./hoggiesFixtures";
-import { fixedPlayerCards } from "./playerCardFixtures";
+import { fixedPlayerCards, playerCardFixtures } from "./playerCardFixtures";
 import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 
@@ -26,9 +26,15 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
-function visit(address: string, album: Album = withPageD) {
+type Reads = { playerCards?: PlayerCardRead; people?: PersonRead };
+
+function visit(address: string, album: Album = withPageD, { playerCards = fixedPlayerCards(), people = fixedPeople(album) }: Reads = {}) {
   window.history.replaceState(null, "", address);
-  return renderAlbum(shellFixtures.member, fixedAlbum(album), { playerCards: fixedPlayerCards(), weeks: fixtureWeeks(), people: fixedPeople(album), boards: fixedBoards(boardsFixtures.week), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.glance) });
+  return renderAlbum(shellFixtures.member, fixedAlbum(album), { playerCards, weeks: fixtureWeeks(), people, boards: fixedBoards(boardsFixtures.week), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.glance) });
+}
+
+function withEmojisWaiting(cards: PlayerCardRead): PlayerCardRead {
+  return (asking, person) => ({ ...cards(asking, person), emojis: undefined });
 }
 
 async function region(name: string) {
@@ -55,7 +61,7 @@ describe("LP93 LP94 LP96: page D shows your own page as a player card, your rare
     const stats = within((await region("Your card")).getByRole("list", { name: "Your stats" }));
     expect(stats.getByRole("link", { name: "64 of 151 hoggies found" })).toHaveAttribute("href", "/book#hoggies");
     expect(stats.getByRole("link", { name: `24 of ${withPageD.people.length} people` })).toBeInTheDocument();
-    expect(stats.getByRole("link", { name: "7 emojis" })).toBeInTheDocument();
+    expect(stats.getByRole("group", { name: "7 emojis" })).toBeInTheDocument();
     expect(stats.getByRole("link", { name: "4 medals" })).toBeInTheDocument();
     expect((await region("Your card")).getByRole("link", { name: "No. 1 this week · 7 thoughtful kudos" })).toHaveAttribute("href", "/leaderboard");
   });
@@ -78,6 +84,33 @@ describe("LP93 LP94 LP96: page D shows your own page as a player card, your rare
     expect(week.getByRole("list", { name: "Latest kudos" })).toBeInTheDocument();
   });
 
+  it("offers your own hype emoji pick when your person page offers it", async () => {
+    const ownPage: PersonPage = { ...(fixturePersonOf(withPageD, "wren-alder") as PersonPage), person: withPageD.me.person, name: withPageD.me.name, hypePick: true };
+    visit("/book#me", withPageD, { people: (asking, person) => (asking && person === ownPage.person ? ownPage : undefined) });
+
+    expect(await screen.findByRole("button", { name: "Pick your hype emoji" }, arrival)).toBeInTheDocument();
+  });
+
+  it("points you to find your team while you have none", async () => {
+    visit("/book#me", withPageD, { playerCards: fixedPlayerCards([{ ...playerCardFixtures.sam, card: { ...playerCardFixtures.sam.card, team: null } }]) });
+
+    expect((await region("Your card")).getByRole("link", { name: "Find your team" })).toHaveAttribute("href", "/settings?section=company-profile");
+  });
+
+  it("shows the card while your emojis are still on their way", async () => {
+    visit("/book#me", withPageD, { playerCards: withEmojisWaiting(fixedPlayerCards()) });
+
+    const stats = within((await region("Your card")).getByRole("list", { name: "Your stats" }));
+    expect(stats.getByRole("link", { name: "4 medals" })).toBeInTheDocument();
+    expect(stats.queryByRole("group", { name: /emojis/ })).not.toBeInTheDocument();
+  });
+
+  it("names each day's kudos on the week's day bars", async () => {
+    visit("/book#me");
+
+    expect((await region("This week")).getByRole("img", { name: /^Kudos by day: Mon \d+, Tue \d+/ })).toBeInTheDocument();
+  });
+
   it("shows the same page for your own person page address", async () => {
     visit("/book#people/sam-example");
 
@@ -97,6 +130,7 @@ describe("LP93 LP95 LP96: page D shows a teammate's card, their rarest find, the
     expect(card.getByRole("link", { name: "No. 3 tied this week · 4 thoughtful kudos" })).toBeInTheDocument();
     expect(card.getByRole("group", { name: "21 of 151 hoggies found" })).toBeInTheDocument();
     expect(card.queryByRole("link", { name: "21 of 151 hoggies found" })).not.toBeInTheDocument();
+    expect(card.getByRole("group", { name: "9 people" })).toBeInTheDocument();
   });
 
   it("shows their week's totals and their kudos of the week, never their individual kudos lines", async () => {
@@ -117,12 +151,24 @@ describe("LP93 LP95 LP96: page D shows a teammate's card, their rarest find, the
     expect(together.getByText("You thanked Wren")).toBeInTheDocument();
     expect(together.getByText("Wren thanked you")).toBeInTheDocument();
     expect(together.getByText("Hugs")).toBeInTheDocument();
+    expect(together.getByRole("link", { name: "Open in Slack, Wren's profile (opens in a new tab)" })).toBeInTheDocument();
   });
 
-  it("shows their rarest find under their name", async () => {
+  it("shows their rarest find under their name, with no way into your own hoggies", async () => {
     visit("/book#people/wren-alder");
 
-    expect((await region("Wren's rarest find")).getByText("Epic")).toBeInTheDocument();
+    const rarest = await region("Wren's rarest find");
+    expect(rarest.getByText("Epic")).toBeInTheDocument();
+    expect(rarest.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("counts a week of only opened packs as a week, not a quiet one", async () => {
+    const packsOnly = { ...playerCardFixtures.wren, week: { days: [0, 0, 0, 0, 0, 0, 0], thanked: 0, thankedBy: 0, packsOpened: 1, hugs: 0, kudosOfWeek: null } };
+    visit("/book#people/wren-alder", withPageD, { playerCards: fixedPlayerCards([packsOnly]) });
+
+    const week = await region("Wren's week");
+    expect(week.getByText("pack opened")).toBeInTheDocument();
+    expect(week.queryByText(/quiet week/)).not.toBeInTheDocument();
   });
 });
 

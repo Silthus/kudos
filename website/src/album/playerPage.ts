@@ -27,14 +27,10 @@ export function teammateWeekOf({ kudosOfWeek, ...totals }: CardWeek): PageWeek {
   return { ...totals, kudosOfWeek, lines: null };
 }
 
-export function isAQuietWeek({ days, kudosOfWeek, lines }: PageWeek) {
-  return days.every((count) => count === 0) && kudosOfWeek === null && (lines ?? []).length === 0;
+export function isAQuietWeek({ days, thanked, thankedBy, packsOpened, hugs, kudosOfWeek, lines }: PageWeek) {
+  return days.every((count) => count === 0) && thanked + thankedBy + packsOpened + hugs === 0 && kudosOfWeek === null && (lines ?? []).length === 0;
 }
 
-export function isAQuietCard({ hoggies, people, medals }: PlayerCard, emojis: EmojiStack) {
-  return (hoggies?.found ?? 0) + people.held + emojis.count + medals.count === 0;
-}
-
-export function levelShareOf({ xp, startsAt, nextAt }: NonNullable<PlayerCard["level"]>) {
-  return nextAt <= startsAt ? 1 : Math.min(1, Math.max(0, (xp - startsAt) / (nextAt - startsAt)));
+export function isAQuietCard({ hoggies, people, medals }: PlayerCard, emojis: EmojiStack | null) {
+  return (hoggies?.found ?? 0) + people.held + (emojis?.count ?? 0) + medals.count === 0;
 }

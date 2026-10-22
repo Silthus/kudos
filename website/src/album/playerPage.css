@@ -252,8 +252,22 @@
 .al-pp-id {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.875rem;
+  column-gap: 0.875rem;
   align-items: center;
+}
+
+.al-pp-share,
+.al-pp-share .al-share {
+  display: contents;
+}
+
+.al-pp-share .al-share-said {
+  grid-column: 1 / -1;
+  margin: 0.5rem 0 0;
+}
+
+.al-pp-share .al-share-said:empty {
+  margin: 0;
 }
 
 .al-pp-stats {
@@ -607,7 +621,7 @@
     font-size: 1.25rem;
   }
 
-  .al-pp-id .al-pp-share {
+  .al-pp-share button {
     align-self: start;
   }
 

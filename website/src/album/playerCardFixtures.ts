@@ -1,21 +1,24 @@
+import type { MemberId } from "../../../convex/workspace/directory";
 import type { CardEmojisShown, CardWeek, PlayerCard, PlayerCardRead, PlayerCardShown } from "./answer";
 
 const day = 86_400_000;
 
 const now = Date.parse("2026-10-18T10:00:00Z");
 
+const memberIdOf = (slug: string) => slug as MemberId;
+
 const face = (initials: string) => ({ kind: "initials", initials }) as const;
 
 const teamOf = (team: string, name: string, crest: string) => ({ team, name, art: { kind: "crest", slug: crest } }) as const;
 
 const newest = [
-  { person: "perrin-holt", name: "Perrin Holt", face: face("PH") },
-  { person: "wren-alder", name: "Wren Alder", face: face("WA") },
-  { person: "fen-marlowe", name: "Fen Marlowe", face: face("FM") },
+  { person: memberIdOf("perrin-holt"), name: "Perrin Holt", face: face("PH") },
+  { person: memberIdOf("wren-alder"), name: "Wren Alder", face: face("WA") },
+  { person: memberIdOf("fen-marlowe"), name: "Fen Marlowe", face: face("FM") },
 ];
 
 const samCard: PlayerCard = {
-  person: "sam-example",
+  person: memberIdOf("sam-example"),
   name: "Sam Example",
   face: face("SE"),
   team: teamOf("lanterns", "Lanterns", "workflows"),
@@ -27,19 +30,19 @@ const samCard: PlayerCard = {
 };
 
 const wrenCard: PlayerCard = {
-  person: "wren-alder",
+  person: memberIdOf("wren-alder"),
   name: "Wren Alder",
   face: face("WA"),
   team: teamOf("kettle-works", "Kettle Works", "experiments"),
   level: { level: 4, xp: 610, startsAt: 500, nextAt: 800 },
   place: { rank: 3, tied: true, thoughtful: 4 },
-  people: { held: 9, newest: [newest[0]!, { person: "sam-example", name: "Sam Example", face: face("SE") }] },
+  people: { held: 9, newest: [newest[0]!, { person: memberIdOf("sam-example"), name: "Sam Example", face: face("SE") }] },
   hoggies: { found: 21, total: 151, rarest: { hoggie: "burning-money", name: "Burning Money", rarity: "epic", firstAt: now - 8 * day } },
   medals: { count: 2, best: [{ milestone: "people", tier: "bronze" }] },
 };
 
 const quietCard: PlayerCard = {
-  person: "milo-strand",
+  person: memberIdOf("milo-strand"),
   name: "Milo Strand",
   face: face("MS"),
   team: null,
@@ -57,7 +60,7 @@ const wrenWeek: CardWeek = {
   packsOpened: 2,
   hugs: 5,
   kudosOfWeek: {
-    giver: { person: "perrin-holt", name: "Perrin Holt", face: face("PH") },
+    giver: { person: memberIdOf("perrin-holt"), name: "Perrin Holt", face: face("PH") },
     message: { kind: "text", segments: [{ kind: "text", text: "Thank you for staying late to calm the noisy alert before the launch." }], edited: false },
     permalink: "https://example.slack.com/archives/C1/p3",
     at: now - 2 * day,

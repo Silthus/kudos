@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { IconArrowRight, IconCrown, IconHeart } from "@posthog/icons";
+import { hypeEmblemPicture, slugOf } from "../../../convex/album/emojiCatalogue";
 import { AppLink } from "../AppLink";
 import { KudosMessage } from "../activity/KudosMessage";
 import { LadderEmblem } from "../book/LadderEmblem";
@@ -12,12 +13,13 @@ import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
 import type { Album, CardEmojisShown, KudosOfTheWeek, PersonPage, PersonShown, PlayerCard, PlayerCardAnswer, PlayerCardReads, PlayerCardShown, WeekPerson, WeekShown } from "./answer";
-import { plural } from "./facts";
+import { levelShareOf, plural, xpToNextOf } from "./facts";
 import { emblemOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { PetHoggie, petOf } from "./PetHoggie";
-import { hrefOf, type Place } from "./place";
-import { isAQuietCard, isAQuietWeek, levelShareOf, ownWeekOf, teammateWeekOf, type EmojiStack, type PageWeek, type SaidLine } from "./playerPage";
+import { OwnHypePick, type HypePicker } from "./OwnHypePick";
+import { findYourselfHref, hrefOf, type Place } from "./place";
+import { isAQuietCard, isAQuietWeek, ownWeekOf, teammateWeekOf, type EmojiStack, type PageWeek, type SaidLine } from "./playerPage";
 import { ShareLink } from "./ShareLink";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
 import "./playerPage.css";
@@ -26,18 +28,18 @@ type Answers = { onSignIn: () => void; onSignOut: () => void };
 
 export type PlayerReads = { cards: PlayerCardReads; week: WeekShown | undefined; together: PersonShown | undefined };
 
-type PlayerAnswerProps = { album: Album; own: boolean; reads: PlayerReads } & Answers;
+type PlayerAnswerProps = { album: Album; own: boolean; reads: PlayerReads; picker: HypePicker } & Answers;
 
-type Page = { own: boolean; card: PlayerCard; emojis: EmojiStack; week: PageWeek; together: PersonPage | null };
+type Page = { own: boolean; card: PlayerCard; emojis: EmojiStack | null; week: PageWeek; together: PersonPage | null; hypePick: PersonPage | null };
 
-type Failed = Exclude<PlayerCardShown | CardEmojisShown | WeekShown | PersonShown, { kind: "card" | "emojis" | "week" | "person" }>;
+type Failed = Exclude<PlayerCardShown | WeekShown | PersonShown, { kind: "card" | "week" | "person" }>;
 
-export function PlayerAnswerPage({ album, own, reads, ...answers }: PlayerAnswerProps) {
+export function PlayerAnswerPage({ album, own, reads, picker, ...answers }: PlayerAnswerProps) {
   const failed = failureOf(own, reads);
   if (failed !== undefined) return failed.kind === "off" || failed.kind === "no-person" ? <NotFoundPage /> : <AnswerPage answer={failed} {...answers} />;
   const page = pageOf(own, reads);
   if (page === null) return <LoadingPage shape="column" />;
-  return <PlayerPage album={album} page={page} />;
+  return <PlayerPage album={album} page={page} picker={picker} />;
 }
 
 export function isWaitingForThePlayer(own: boolean, reads: PlayerReads) {
@@ -51,24 +53,25 @@ export function playerAskedAt(place: Place, album: Album): string | null {
 }
 
 function readsOf(own: boolean, { cards, week, together }: PlayerReads) {
-  return [cards.card, cards.emojis, own ? week : together];
+  return [cards.card, own ? week : together];
 }
 
 function failureOf(own: boolean, reads: PlayerReads): Failed | undefined {
-  return readsOf(own, reads).find((read): read is Failed => read !== undefined && !["card", "emojis", "week", "person"].includes(read.kind));
+  return readsOf(own, reads).find((read): read is Failed => read !== undefined && !["card", "week", "person"].includes(read.kind));
 }
 
 function pageOf(own: boolean, { cards: { card, emojis }, week, together }: PlayerReads): Page | null {
-  if (card?.kind !== "card" || emojis?.kind !== "emojis") return null;
-  if (own) return week?.kind === "week" ? { own, card: card.card, emojis, week: ownWeekOf(week), together: null } : null;
-  return together?.kind === "person" ? { own, card: card.card, emojis, week: teammateWeekOf(cardWeekOf(card)), together } : null;
+  if (card?.kind !== "card") return null;
+  const shown = { own, card: card.card, emojis: emojis?.kind === "emojis" ? emojis : null };
+  if (own) return week?.kind === "week" ? { ...shown, week: ownWeekOf(week), together: null, hypePick: together?.kind === "person" && together.hypePick === true ? together : null } : null;
+  return together?.kind === "person" ? { ...shown, week: teammateWeekOf(cardWeekOf(card)), together, hypePick: null } : null;
 }
 
 function cardWeekOf({ week }: PlayerCardAnswer) {
   return week ?? { days: [0, 0, 0, 0, 0, 0, 0], thanked: 0, thankedBy: 0, packsOpened: 0, hugs: 0, kudosOfWeek: null };
 }
 
-function PlayerPage({ album, page }: { album: Album; page: Page }) {
+function PlayerPage({ album, page, picker }: { album: Album; page: Page; picker: HypePicker }) {
   return (
     <article className="al-page-body al-pp">
       <section className="al-pp-card" aria-label={page.own ? "Your card" : `${page.card.name}'s card`}>
@@ -82,6 +85,7 @@ function PlayerPage({ album, page }: { album: Album; page: Page }) {
         <RankStrip page={page} />
         {isAQuietCard(page.card, page.emojis) ? <QuietStats page={page} /> : <Stats album={album} page={page} />}
       </section>
+      {page.hypePick !== null && <YourHypeEmoji person={page.hypePick} emojiPage={album.emojiPage} picker={picker} />}
       {page.card.hoggies !== null && <RarestFind page={page} />}
       {page.together !== null && <Together name={page.card.name} together={page.together} />}
       <Week page={page} />
@@ -126,11 +130,11 @@ function Who({ album, page: { own, card, together } }: { album: Album; page: Pag
       <PageTitle tab={own ? "Profile" : card.name}>
         <span className="ph-no-capture al-pp-name">{card.name}</span>
       </PageTitle>
-      <TeamLine team={card.team} />
+      <TeamLine team={card.team} own={own} />
       {card.level !== null && (
         <p className="al-pp-xp al-pp-small">
           <strong>{card.level.xp.toLocaleString("en-GB")} XP</strong>
-          <span className="al-pp-quiet"> {own ? `· ${Math.max(0, card.level.nextAt - card.level.xp)} to level ${card.level.level + 1}` : `· level ${card.level.level}`}</span>
+          <span className="al-pp-quiet"> {own ? `· ${xpToNextOf(card.level).toLocaleString("en-GB")} to level ${card.level.level + 1}` : `· level ${card.level.level}`}</span>
         </p>
       )}
       {!held && <p className="al-pp-small al-pp-quiet al-pp-howto ph-no-capture">{howToCollectWords(album, card.person, card.name)}</p>}
@@ -138,7 +142,13 @@ function Who({ album, page: { own, card, together } }: { album: Album; page: Pag
   );
 }
 
-function TeamLine({ team }: { team: PlayerCard["team"] }) {
+function TeamLine({ team, own }: { team: PlayerCard["team"]; own: boolean }) {
+  if (team === null && own)
+    return (
+      <AppLink href={findYourselfHref} className="al-pp-small al-pp-more">
+        Find your team
+      </AppLink>
+    );
   if (team === null) return <span className="al-pp-quiet al-pp-small">No team yet</span>;
   return (
     <AppLink href={hrefOf({ kind: "team", team: team.team })} className="al-pp-team">
@@ -177,7 +187,7 @@ function Stats({ album, page: { own, card, emojis } }: { album: Album; page: Pag
   return (
     <ul className="al-pp-stats" aria-label={`${owner} stats`}>
       {hoggies !== null && (
-        <Stat own={own} href={hrefOf({ kind: "hoggies", hoggie: null })} label={`${hoggies.found} of ${hoggies.total} hoggies found`} meter>
+        <Stat href={own ? hrefOf({ kind: "hoggies", hoggie: null }) : null} label={`${hoggies.found} of ${hoggies.total} hoggies found`} meter>
           <span className="al-pp-stat-figure">
             <strong>{hoggies.found}</strong>
             <span className="al-pp-quiet">/{hoggies.total}</span>
@@ -186,22 +196,24 @@ function Stats({ album, page: { own, card, emojis } }: { album: Album; page: Pag
           <span className="al-pp-stat-label">hoggies found</span>
         </Stat>
       )}
-      <Stat own={own} href={hrefOf({ kind: "milestones" })} label={`${people.held} of ${album.people.length} people`}>
+      <Stat href={own ? hrefOf({ kind: "milestones" }) : null} label={own ? `${people.held} of ${album.people.length} people` : plural(people.held, "person", "people")}>
         <Stack>{people.newest.map((person) => <MemberFace key={person.person} face={person.face} className="al-pp-stack-face" />)}</Stack>
         <span className="al-pp-stat-figure">
           <strong>{people.held}</strong>
-          <span className="al-pp-quiet">/{album.people.length}</span>
+          {own && <span className="al-pp-quiet">/{album.people.length}</span>}
         </span>
         <span className="al-pp-stat-label">people</span>
       </Stat>
-      <Stat own={own} href={hrefOf({ kind: "settings" })} label={plural(emojis.count, "emoji", "emojis")}>
-        <Stack className="al-pp-stack-emoji">{emojis.shown.map(({ name, picture }) => <img key={name} src={picture} alt="" width={22} height={22} draggable={false} />)}</Stack>
-        <span className="al-pp-stat-figure">
-          <strong>{emojis.count}</strong>
-        </span>
-        <span className="al-pp-stat-label">emojis</span>
-      </Stat>
-      <Stat own={own} href={hrefOf({ kind: "milestones" })} label={plural(medals.count, "medal", "medals")}>
+      {emojis !== null && (
+        <Stat href={null} label={plural(emojis.count, "emoji", "emojis")}>
+          <Stack className="al-pp-stack-emoji">{emojis.shown.map(({ name, picture }) => <img key={name} src={picture} alt="" width={22} height={22} draggable={false} />)}</Stack>
+          <span className="al-pp-stat-figure">
+            <strong>{emojis.count}</strong>
+          </span>
+          <span className="al-pp-stat-label">emojis</span>
+        </Stat>
+      )}
+      <Stat href={own ? hrefOf({ kind: "milestones" }) : null} label={plural(medals.count, "medal", "medals")}>
         <Stack className="al-pp-stack-medals">{medals.best.map(({ milestone, tier }) => <LadderEmblem key={milestone} ladder={emblemOf(milestone)} best={tier} size={26} />)}</Stack>
         <span className="al-pp-stat-figure">
           <strong>{medals.count}</strong>
@@ -212,11 +224,11 @@ function Stats({ album, page: { own, card, emojis } }: { album: Album; page: Pag
   );
 }
 
-function Stat({ own, href, label, meter = false, children }: { own: boolean; href: string; label: string; meter?: boolean; children: ReactNode }) {
+function Stat({ href, label, meter = false, children }: { href: string | null; label: string; meter?: boolean; children: ReactNode }) {
   const className = `al-pp-stat${meter ? " al-pp-meter" : ""}`;
   return (
     <li>
-      {own ? (
+      {href !== null ? (
         <AppLink href={href} className={className} aria-label={label}>
           {children}
         </AppLink>
@@ -261,7 +273,7 @@ function RarestFind({ page: { own, card } }: { page: Page }) {
           </span>
         </div>
       ) : (
-        <AppLink href={hrefOf({ kind: "hoggies", hoggie: rarest.hoggie })} className="al-pp-rarest-main">
+        <FoundHoggie href={own ? hrefOf({ kind: "hoggies", hoggie: rarest.hoggie }) : null}>
           <span className="al-pp-rarest-art">
             <HoggieImage slug={rarest.hoggie} />
           </span>
@@ -271,11 +283,40 @@ function RarestFind({ page: { own, card } }: { page: Page }) {
             <span className="al-pp-rarity-word">{rarityWordOf(rarest.rarity)}</span>
             <span className="al-pp-quiet al-pp-small">Found {dateOf(rarest.firstAt)}</span>
           </span>
+        </FoundHoggie>
+      )}
+      {own && (
+        <AppLink href={hrefOf({ kind: "hoggies", hoggie: null })} className="al-pp-rarest-count al-pp-more">
+          All hoggies <IconArrowRight aria-hidden="true" />
         </AppLink>
       )}
-      <AppLink href={hrefOf({ kind: "hoggies", hoggie: null })} className="al-pp-rarest-count al-pp-more">
-        All hoggies <IconArrowRight aria-hidden="true" />
-      </AppLink>
+    </section>
+  );
+}
+
+function FoundHoggie({ href, children }: { href: string | null; children: ReactNode }) {
+  return href === null ? (
+    <div className="al-pp-rarest-main">{children}</div>
+  ) : (
+    <AppLink href={href} className="al-pp-rarest-main">
+      {children}
+    </AppLink>
+  );
+}
+
+function YourHypeEmoji({ person, emojiPage, picker }: { person: PersonPage; emojiPage: string | null; picker: HypePicker }) {
+  const { name, picture, inSlack } = person.hype;
+  return (
+    <section className="al-pp-together" aria-label="Your hype emoji">
+      <div className="al-pp-together-head">
+        <h2 className="al-pp-label">Your hype emoji</h2>
+        <OwnHypePick emoji={{ kind: "hype", name: name ?? `${slugOf(person.name)}-hype`, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? false }} emojiPage={emojiPage} {...picker} />
+      </div>
+      {name !== null && (
+        <p className="al-pp-small ph-no-capture">
+          <code>:{name}:</code>
+        </p>
+      )}
     </section>
   );
 }
@@ -359,12 +400,14 @@ function Week({ page: { own, card, week } }: { page: Page }) {
 
 const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
 
+const weekdayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 function DayBars({ days }: { days: number[] }) {
   const busiest = Math.max(1, ...days);
   return (
-    <span className="al-pp-days" aria-hidden="true">
+    <span className="al-pp-days" role="img" aria-label={`Kudos by day: ${days.map((count, day) => `${weekdayNames[day]} ${count}`).join(", ")}`}>
       {days.map((count, day) => (
-        <span key={day} className="al-pp-day">
+        <span key={day} className="al-pp-day" aria-hidden="true">
           <span className="al-pp-day-fill" data-empty={count === 0 ? "" : undefined} style={{ "--al-pp-day": String(count / busiest) } as CSSProperties} />
           <span className="al-pp-day-name">{dayNames[day]}</span>
         </span>
