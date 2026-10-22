@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import type { AllTimeBoards } from "../album/boards";
-import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie } from "../album/hoggies";
+import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
+import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/hoggies";
 import { peopleHeldBy } from "../album/stickers";
 import { storedHoldersIn } from "../companyProfiles/storedFaces";
 import type { Rarity } from "../hoggies/catalogue";
@@ -16,35 +16,51 @@ export type BoardPlace = { rank: number; tied: boolean; thoughtful: number };
 
 export type LevelWay = { level: number; share: number };
 
-export type PersonStats = { way: LevelWay | null; place: BoardPlace | null; hoggies: { found: number; total: number } | null; rarest: CardHoggie[]; people: number };
+export type PersonStats = { way: LevelWay | null; place: BoardPlace | null; hoggies: { found: number; total: number } | null; rarest: CardHoggie[]; people: number; asOf: number };
 
-export type TeamStats = { place: BoardPlace | null; saidThanks: number; rarest: CardHoggie[] };
+export type TeamStats = { place: BoardPlace | null; saidThanks: number; rarest: CardHoggie[]; asOf: number };
 
 type Found = Pick<AlbumHoggie, "hoggie" | "name" | "rarity" | "found" | "firstAt">;
 
 type CompanyTeamRow = { team: string; people: number[] };
 
-export type CardReads = { workspace: string; origin: string; boards: () => Promise<AllTimeBoards> };
+export type CardReads = { workspace: string; origin: string; boards: () => Promise<AllTimeBoards>; hoggiesOf: (member: MemberId) => Promise<AlbumHoggies | null> };
 
 const mostPictures = 9;
 
-export async function personStatsOf(ctx: QueryCtx, { origin, boards }: CardReads, person: MemberId, level: number | null): Promise<PersonStats> {
-  const hoggies = (await hoggiesShownTo(ctx, person)) ? await albumHoggiesOf(ctx, person) : null;
+const mostTeamPeopleRead = 20;
+
+export function cardReadsOf(ctx: QueryCtx, workspace: string, origin: string): CardReads {
+  let boards: Promise<AllTimeBoards> | undefined;
+  const hoggies = new Map<MemberId, Promise<AlbumHoggies | null>>();
+  const hoggiesOf = (member: MemberId) => hoggies.get(member) ?? hoggies.set(member, shownHoggiesOf(ctx, member)).get(member)!;
+  return { workspace, origin, boards: () => (boards ??= allTimeBoardsIn(ctx, workspace)), hoggiesOf };
+}
+
+async function shownHoggiesOf(ctx: QueryCtx, member: MemberId): Promise<AlbumHoggies | null> {
+  return (await hoggiesShownTo(ctx, member)) ? albumHoggiesOf(ctx, member) : null;
+}
+
+export async function personStatsOf(ctx: QueryCtx, { origin, boards, hoggiesOf }: CardReads, person: MemberId, level: number | null): Promise<PersonStats> {
+  const hoggies = await hoggiesOf(person);
   return {
     way: level === null ? null : await levelWayOf(ctx, person, level),
     place: placeOf((await boards()).people.find(({ member }) => member === person)),
     hoggies: hoggies === null ? null : { found: hoggies.found, total: hoggies.total },
     rarest: cardHoggiesOf(hoggies?.hoggies ?? [], origin),
     people: (await peopleHeldBy(ctx, person)).size,
+    asOf: Date.now(),
   };
 }
 
-export async function teamStatsOf(ctx: QueryCtx, { workspace, origin, boards }: CardReads, team: CompanyTeamRow): Promise<TeamStats> {
+export async function teamStatsOf(ctx: QueryCtx, reads: CardReads, team: CompanyTeamRow): Promise<TeamStats> {
+  const { workspace, origin, boards } = reads;
   const { people, teams } = await boards();
   return {
     place: placeOf(teams.find((row) => row.team === team.team)),
     saidThanks: people.filter((giver) => giver.teams.includes(team.team)).length,
-    rarest: cardHoggiesOf(await foundByTheTeam(ctx, workspace, team), origin),
+    rarest: cardHoggiesOf(await foundByTheTeam(ctx, reads, team), origin),
+    asOf: Date.now(),
   };
 }
 
@@ -58,10 +74,10 @@ function placeOf(row: { rank: number | null; tied: boolean; thoughtful: number }
   return row === undefined || row.rank === null ? null : { rank: row.rank, tied: row.tied, thoughtful: row.thoughtful };
 }
 
-async function foundByTheTeam(ctx: QueryCtx, workspace: string, team: CompanyTeamRow): Promise<Found[]> {
+async function foundByTheTeam(ctx: QueryCtx, { workspace, hoggiesOf }: CardReads, team: CompanyTeamRow): Promise<Found[]> {
   const holders = await storedHoldersIn(ctx, workspace);
-  const members = team.people.flatMap((profile) => holders.get(profile)?.member ?? []);
-  const found = await Promise.all(members.map(async (member) => ((await hoggiesShownTo(ctx, member)) ? (await albumHoggiesOf(ctx, member)).hoggies.filter((hoggie) => hoggie.found) : [])));
+  const members = team.people.flatMap((profile) => holders.get(profile)?.member ?? []).slice(0, mostTeamPeopleRead);
+  const found = await Promise.all(members.map(async (member) => ((await hoggiesOf(member))?.hoggies ?? []).filter((hoggie) => hoggie.found)));
   return [...new Map(found.flat().map((hoggie) => [hoggie.hoggie, hoggie])).values()];
 }
 

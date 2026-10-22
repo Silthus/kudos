@@ -297,8 +297,9 @@ describe("LP82: link previews are behind link-previews", { timeout: 30_000 }, ()
 
 const richFlag = "rich-link-cards";
 const richFlags = [...everyFlag, "collection", richFlag];
-const asOf = "HedgeHug album · person page · as of <!date^1760349800^{date_short}|2025-10-13>";
-const teamAsOf = "HedgeHug album · team page · as of <!date^1760349800^{date_short}|2025-10-13>";
+const madeAt = `<!date^${now.getTime() / 1000}^{date_short}|2026-10-21>`;
+const asOf = `HedgeHug album · person page · as of ${madeAt}`;
+const teamAsOf = `HedgeHug album · team page · as of ${madeAt}`;
 
 describe("LP84: while rich-link-cards is on, a person card shows the level bar, the stats and the rarest hoggies", { timeout: 30_000 }, () => {
   test("a person link unfolds into the level bar, their four strongest stats and their rarest hoggies' pictures, dated", async () => {
@@ -422,6 +423,18 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
   });
 });
 
+describe("LP84 LP85: a rich card stays within Convex's limits", { timeout: 120_000 }, () => {
+  test("a message linking a big team, its people and their full collections unfolds every card under Convex's transaction limits", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone), transactionLimits: true });
+    const people = await teamWithEveryHoggie(t, "big-team", 220);
+    const links = [`${site}/book#teams/big-team`, ...people.slice(0, 3).map((person) => `${site}/book#people/${person}`)];
+
+    await shared(t, links);
+
+    expect(Object.keys(slack.callsTo("chat.unfurl")[0]!.unfurls as object)).toEqual(links);
+  });
+});
+
 describe("LP86: a rich card shows only the leaderboard's facts and the person's own page, the same whoever shares it", { timeout: 30_000 }, () => {
   test("a member off the boards shows no place and no thoughtful kudos, and their team doesn't count them", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
@@ -518,10 +531,10 @@ function withPreviews(previews: FlagDefinition) {
   return [...everyFlag.filter((flag) => flag !== previewsFlag).map(onForEveryone), previews];
 }
 
-type WorkspaceSetup = { flags?: FlagDefinition[] };
+type WorkspaceSetup = { flags?: FlagDefinition[]; transactionLimits?: boolean };
 
-async function workspace({ flags = everyFlag.map(onForEveryone) }: WorkspaceSetup = {}) {
-  const t = await flagsFromPostHog(testBackend(), postHog, ...flags);
+async function workspace({ flags = everyFlag.map(onForEveryone), transactionLimits = false }: WorkspaceSetup = {}) {
+  const t = await flagsFromPostHog(testBackend({ transactionLimits }), postHog, ...flags);
   await bookShippedBeforeAnyoneJoined(t);
   for (const user of ["U_JUNO", "U_BRAM"] as const) {
     await memberChanged(t, "team_join", { id: user, ...people[user] });
@@ -583,6 +596,25 @@ async function matched(t: Backend, member: MemberId, profile: number) {
       .unique();
     await ctx.db.patch(row!._id, { profile });
   });
+}
+
+async function teamWithEveryHoggie(t: Backend, team: string, size: number): Promise<MemberId[]> {
+  const { catalogue } = await import("../hoggies/catalogue");
+  const profiles = Array.from({ length: size }, (_, index) => 1000 + index);
+  const people: MemberId[] = [];
+  for (const profile of profiles) {
+    people.push(
+      await t.run(async (ctx) => {
+        const member = await ctx.db.insert("members", { workspace: "T1", user: `U_TEAM${profile}`, kind: "member", name: `Teammate ${profile}` });
+        await ctx.db.insert("companyFaces", { workspace: "T1", member, face: null, profile });
+        await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: member, awards: 1 });
+        for (const [index, { hoggie }] of catalogue.hoggies.entries()) await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: index, firstN: index + 1 });
+        return member;
+      }),
+    );
+  }
+  await t.run((ctx) => ctx.db.insert("companyTeams", { team, name: "Big Team", leads: [], people: profiles, asOf: 0 }));
+  return people;
 }
 
 async function collected(t: Backend, member: MemberId, ...people: MemberId[]) {

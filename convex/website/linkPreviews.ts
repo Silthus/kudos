@@ -5,8 +5,7 @@ import { personTeamsOf } from "../album/personPage";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { profileCardOf, type Medal } from "../profileCard/profileCard";
 import { isAPersonOf, lookup, nameAndPictureOf, type MemberId } from "../workspace/directory";
-import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
-import { personStatsOf, teamStatsOf, type CardReads, type PersonStats, type TeamStats } from "./linkCardStats";
+import { cardReadsOf, personStatsOf, teamStatsOf, type CardReads, type PersonStats, type TeamStats } from "./linkCardStats";
 import { siteOriginFor } from "./link";
 
 export const linkPreviewsFlag = { key: "link-previews", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -34,8 +33,7 @@ export const linkPreviewsOf = internalQuery({
   handler: async (ctx, { workspace, sharer, links }): Promise<LinkPreview[]> => {
     const origin = siteOriginFor(workspace);
     if (origin === null || !(await sharerDecisionOf(ctx, workspace, sharer, linkPreviewsFlag))) return [];
-    let boards: Promise<AllTimeBoards> | undefined;
-    const unfolding = { workspace, origin, rich: await sharerDecisionOf(ctx, workspace, sharer, richLinkCardsFlag), boards: () => (boards ??= allTimeBoardsIn(ctx, workspace)) };
+    const unfolding = { ...cardReadsOf(ctx, workspace, origin), rich: await sharerDecisionOf(ctx, workspace, sharer, richLinkCardsFlag) };
     const previews = await Promise.all(links.map((url) => previewOf(ctx, unfolding, url)));
     return previews.filter((preview) => preview !== null);
   },
