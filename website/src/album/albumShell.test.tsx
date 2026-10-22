@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum, fixedPeople, startedWith } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
@@ -635,6 +635,32 @@ describe("AL55: the phone layout", () => {
     expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
     expect(burger).toHaveAttribute("aria-expanded", "false");
     expect(burger).toHaveFocus();
+  });
+
+  it("#157: the burger closes the drawer onto itself even when tapping it gave it no focus, as in Safari", async () => {
+    aWideScreenThatNarrows().narrow();
+    const { user } = visit("/");
+    const burger = (await topBar()).getByRole("button", { name: "Teams and pages" });
+    await user.click(burger);
+    screen.getByRole("searchbox", { name: "Search teams and people" }).focus();
+
+    fireEvent.click(burger);
+
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    expect(burger).toHaveFocus();
+  });
+
+  it("#157: tabbing past the drawer's last entry closes it, so focus never lands on the page under it", async () => {
+    aWideScreenThatNarrows().narrow();
+    const { user } = visit("/");
+    const bar = await topBar();
+    await user.click(bar.getByRole("button", { name: "Teams and pages" }));
+    within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: /^Milestones/ }).focus();
+
+    await user.tab();
+
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    expect(bar.getByRole("link", { name: "HedgeHug" })).toHaveFocus();
   });
 
   it("#157: the drawer and the menu take turns, one open at a time", async () => {

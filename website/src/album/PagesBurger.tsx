@@ -1,5 +1,5 @@
 import { IconBurger } from "@posthog/icons";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, type FocusEvent } from "react";
 import type { Album } from "./answer";
 import type { Place } from "./place";
 import { TeamsAndPages } from "./Sidebar";
@@ -16,9 +16,13 @@ export function PagesBurger({ album, place, popover }: PagesBurgerProps) {
     popover.close();
     burger.current?.focus();
   };
+  const closeWhenFocusLeaves = (event: FocusEvent<HTMLElement>) => {
+    const next = event.relatedTarget;
+    if (open && next !== null && !event.currentTarget.contains(next)) popover.close();
+  };
   return (
-    <span className="al-popover-anchor" ref={open ? popover.anchor : undefined}>
-      <button type="button" ref={burger} className="al-top-button al-burger" aria-label="Teams and pages" aria-expanded={open} aria-controls={open ? drawer : undefined} onClick={() => popover.toggle("pages")}>
+    <span className="al-popover-anchor" ref={open ? popover.anchor : undefined} onBlur={closeWhenFocusLeaves}>
+      <button type="button" ref={burger} className="al-top-button al-burger" aria-label="Teams and pages" aria-expanded={open} aria-controls={open ? drawer : undefined} onClick={open ? closeOntoTheBurger : () => popover.show("pages")}>
         <IconBurger />
       </button>
       {open && (

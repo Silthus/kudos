@@ -935,6 +935,10 @@
     padding-right: 0.5rem;
     padding-left: 0.5rem;
   }
+
+  .al-top-end {
+    gap: 0.125rem;
+  }
 }
 
 @media (max-width: 22rem) {
