@@ -67,8 +67,8 @@ describe("LP99: the player card is drawn as a PNG", { timeout: 60_000 }, () => {
     expect(await t.query(internal.slack.cardPictures.pictureAt, { key })).toBe(first);
   });
 
-  test("a picture drawn while its art was briefly unreachable is shown but not kept, so the next share draws it again", async () => {
-    vi.stubGlobal("fetch", async () => new Response("try later", { status: 503 }));
+  test.each([503, 429, 408])("a picture drawn while its art answered %i is shown but not kept, so the next share draws it again", async (status) => {
+    vi.stubGlobal("fetch", async () => new Response("try later", { status }));
     const t = testBackend();
     const key = await cardKeyOf(richMember);
 

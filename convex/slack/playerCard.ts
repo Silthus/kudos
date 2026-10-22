@@ -5,7 +5,7 @@ import { rarityValidator, rarityWord } from "../hoggies/catalogue";
 import type { PersonPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn, slackDayOf } from "./blocks";
 
-const drawingVersion = 2;
+const drawingVersion = 3;
 
 const faceValidator = v.object({ picture: v.union(v.string(), v.null()), initials: v.string() });
 

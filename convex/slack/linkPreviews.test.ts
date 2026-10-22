@@ -722,6 +722,7 @@ describe("LP101: a picture is drawn once per card", { timeout: 60_000 }, () => {
     await sharedWhileDrawing(t, [url], { messageTs: "1760349900.000200" });
 
     const [first, again] = sentPicturesOf(url);
+    expect(first).toMatch(/^https:/);
     expect(again).not.toBe(first);
     expect(altTextsOf(url)[1]).toContain("Rarest find: Wizard, Legendary");
   });

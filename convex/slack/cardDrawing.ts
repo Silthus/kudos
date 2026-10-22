@@ -25,6 +25,8 @@ const artTimeoutMs = 2000;
 
 const pictureTypes = new Set(["image/png", "image/jpeg", "image/gif"]);
 
+const laterStatuses = new Set([408, 429]);
+
 const ink = { page: "#1e1f23", card: "#25262b", border: "#3e424f", text: "#f3f4f6", quiet: "#aeb3c4", accent: "#ff7a45", accentInk: "#ff9a6e", track: "#3a3c44", gold: "#f5b301" };
 
 const rarityInk: Record<Rarity, string> = { common: "#aeb3c4", uncommon: "#4ade80", rare: "#60a5fa", epic: "#c084fc", legendary: "#fb923c" };
@@ -75,7 +77,7 @@ async function fetchedPicture(url: string | null): Promise<Fetched> {
     const answer = await fetch(url, { signal: AbortSignal.timeout(artTimeoutMs) });
     const type = answer.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
     if (answer.ok && pictureTypes.has(type)) return { picture: `data:${type};base64,${Buffer.from(await answer.arrayBuffer()).toString("base64")}`, settled: true };
-    return { picture: null, settled: answer.status < 500 };
+    return { picture: null, settled: answer.status < 500 && !laterStatuses.has(answer.status) };
   } catch {
     return { picture: null, settled: false };
   }
