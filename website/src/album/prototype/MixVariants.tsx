@@ -84,7 +84,7 @@ function Who({ page, album }: { page: MixPage; album: Album }) {
   const held = page.together?.held ?? true;
   return (
     <div className="pp-m-who">
-      <p className="pp-eyebrow">{page.own ? "Your page" : held ? "Teammate · in your album" : "Teammate · not in your album yet"}</p>
+      {!page.own && <p className="pp-eyebrow">{held ? "Teammate · in your album" : "Teammate · not in your album yet"}</p>}
       <Title name={page.name} className="pp-m-name" />
       <TeamLine team={page.team} />
       <p className="pp-m-xp pp-small">
