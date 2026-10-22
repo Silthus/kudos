@@ -265,6 +265,16 @@
   list-style: none;
 }
 
+.al-pp-stats li {
+  container-type: inline-size;
+}
+
+@container (max-width: 13rem) {
+  .al-pp-stat:not(.al-pp-meter) .al-pp-stat-label {
+    grid-column: 1 / -1;
+  }
+}
+
 .al-pp-stats li:nth-child(odd) {
   border-right: 1px solid var(--border);
 }
