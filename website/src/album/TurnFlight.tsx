@@ -7,12 +7,13 @@ import { rarityWordOf } from "./opening";
 import { Confetti, Sparkles } from "./PackCards";
 import { PersonPicture } from "./PersonPicture";
 import type { Chip, Flight, FlightBoxes, MedalPop } from "./useTurnFlight";
+import { comboFor, faceWordOf } from "./arcade/motion";
 
 export function TurnFlight({ flight, boxes }: { flight: Flight; boxes: FlightBoxes }) {
   const { face } = flight;
   return (
     <>
-      <div className="ib-air" aria-hidden="true">
+      <div className="ib-air" aria-hidden="true" data-face={face === null ? undefined : faceWordOf(face)} data-combo={comboFor(flight.item)}>
         <Flyer flight={flight} boxes={boxes} />
         {flight.burst && face !== null && <Burst flight={flight} face={face} />}
         {flight.caption && face !== null && <Caption flight={flight} face={face} />}

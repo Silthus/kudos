@@ -1,0 +1,1036 @@
+/* PROTOTYPE: the arcade look, from the launch video "Gotta Thank 'Em All".
+   One layer over today's album. Nothing here applies until <html> carries data-look:
+   - [data-look]          both arcade readings: the moments and the chunky pieces (the "accents" layer)
+   - [data-look="arcade"] the full reading adds colour fields, halftone, paper panels and slammed page titles
+   A flag could later set the same attribute. */
+
+/* ---------- tokens ---------- */
+
+:root[data-look] {
+  --arc-ink: #15110f;
+  --arc-paper: #fff6ea;
+  --arc-white: #ffffff;
+  --arc-yellow: #ffd400;
+  --arc-orange: #ff5a1f;
+  --arc-cyan: #1ec8ff;
+  --arc-magenta: #ff3ea5;
+  --arc-green: #22c55e;
+  --arc-purple: #7c3aed;
+  --arc-blue: #1e6ff2;
+  --arc-gold: #e4b520;
+  --arc-share: #1f8a3b;
+  --arc-share-deep: #0f5a24;
+  --arc-q: #f05a28;
+  --arc-border: 3px solid var(--arc-ink);
+  --arc-drop: 0 6px 0 var(--arc-ink);
+  --arc-drop-big: 0 10px 0 var(--arc-ink);
+  --arc-radius: 20px;
+  --arc-halftone: radial-gradient(circle, rgb(0 0 0 / 0.13) 1.3px, transparent 1.7px) 0 0 / 14px 14px;
+  --arc-slam: cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+/* ---------- motion helpers ---------- */
+
+@keyframes arc-slam {
+  0% {
+    opacity: 0;
+    scale: 2.6;
+  }
+  60% {
+    opacity: 1;
+    scale: 0.94;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes arc-pop {
+  0% {
+    scale: 0.2;
+  }
+  55% {
+    scale: 1.18 0.86;
+  }
+  75% {
+    scale: 0.94 1.06;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes arc-shake {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  15% {
+    translate: -9px 5px;
+    rotate: -0.6deg;
+  }
+  30% {
+    translate: 8px -6px;
+    rotate: 0.5deg;
+  }
+  45% {
+    translate: -6px -3px;
+    rotate: -0.3deg;
+  }
+  60% {
+    translate: 4px 4px;
+  }
+  80% {
+    translate: -2px -1px;
+  }
+}
+
+@keyframes arc-colour-in {
+  0%,
+  35% {
+    filter: grayscale(1) brightness(0.6);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes arc-glow {
+  50% {
+    box-shadow:
+      var(--arc-drop),
+      0 0 0 6px color-mix(in oklab, var(--glow, var(--arc-yellow)) 55%, transparent),
+      0 0 34px 10px var(--glow, var(--arc-yellow));
+  }
+}
+
+@keyframes arc-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+/* ---------- utilities (for anything new built in the arcade look) ---------- */
+
+:root[data-look] .arc-punch {
+  color: var(--arc-white);
+  font-family: RoundHog, var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--arc-ink);
+  text-shadow: 0.08em 0.08em 0 var(--arc-ink);
+}
+
+:root[data-look] .arc-card {
+  border: var(--arc-border);
+  border-radius: var(--arc-radius);
+  background: var(--arc-white);
+  box-shadow: var(--arc-drop);
+}
+
+:root[data-look] .arc-halftone {
+  background-image: var(--arc-halftone);
+}
+
+/* ============================================================
+   Accents layer: both arcade readings
+   ============================================================ */
+
+/* Slammed type, used by every moment title */
+:root[data-look] :is(.ib-title, .ib-caption-name, .xpm-lvl-title, .al-unlock-title, .al-level-up-title) {
+  color: var(--arc-white);
+  font-family: RoundHog, var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--arc-ink);
+  text-shadow: 0.08em 0.08em 0 var(--arc-ink);
+}
+
+/* Chunky pieces: hard ink edges and a hard shadow instead of soft blur */
+:root[data-look] :is(.al-profile-rank, .al-profile-tile, .al-board, .al-ms-row, .al-started, .al-level-up-card .al-slot) {
+  border: var(--arc-border);
+  border-radius: var(--arc-radius);
+  box-shadow: var(--arc-drop);
+}
+
+:root[data-look] :is(.al-level, .al-xp-track) {
+  border: 2px solid var(--arc-ink);
+}
+
+:root[data-look] .al-level {
+  background: var(--arc-yellow);
+  color: var(--arc-ink);
+  font-weight: 800;
+}
+
+:root[data-look] .al-xp-fill {
+  background: linear-gradient(90deg, var(--arc-yellow), var(--arc-orange));
+}
+
+/* ---------- the item board: face-down turns ---------- */
+
+:root[data-look] .ib-scrim {
+  background: var(--arc-halftone), var(--arc-magenta);
+}
+
+:root[data-look] .ib-ground[data-dark] .ib-scrim {
+  background: var(--arc-halftone), var(--arc-magenta);
+}
+
+:root[data-look] .ib-title {
+  font-size: clamp(2rem, 6vw, 3.75rem);
+  rotate: -2deg;
+  animation: arc-slam 380ms var(--arc-slam) both;
+}
+
+:root[data-look] .ib-title::before {
+  display: block;
+  margin-bottom: 0.35em;
+  color: var(--arc-yellow);
+  font-size: 0.42em;
+  content: "Flip 'em over!" / "";
+}
+
+:root[data-look] .ib-ground :is(.xpm-collected, .xpm-norm) {
+  color: var(--arc-white);
+  font-weight: 700;
+  text-shadow: 0 2px 0 var(--arc-ink);
+}
+
+:root[data-look] .ib-ground .xpm-collected strong {
+  color: var(--arc-yellow);
+}
+
+:root[data-look] :is(.ib-back, .ib-slot[data-first] .ib-back) {
+  border: 4px solid var(--arc-ink);
+  background:
+    radial-gradient(circle, transparent 0 60%, var(--arc-paper) 61%),
+    radial-gradient(circle, var(--arc-paper) 0 56%, transparent 57%),
+    repeating-conic-gradient(var(--arc-q) 0 6deg, transparent 6deg 14deg),
+    var(--arc-paper);
+  box-shadow: var(--arc-drop);
+}
+
+:root[data-look] .ib-slot[data-first] .ib-back {
+  box-shadow: var(--arc-drop-big);
+}
+
+:root[data-look] .ib-q {
+  color: var(--arc-q);
+  -webkit-text-stroke: 0.04em var(--arc-ink);
+  paint-order: stroke fill;
+}
+
+:root[data-look] .ib-item:hover .ib-back {
+  transform: translateY(-6px) rotate(-4deg);
+}
+
+:root[data-look] .ib-later {
+  border: var(--arc-border);
+  background: var(--arc-white);
+  box-shadow: 0 4px 0 var(--arc-ink);
+  color: var(--arc-ink);
+  font-weight: 700;
+}
+
+/* ---------- the reveal ---------- */
+
+/* The turn and the hold play on a solid field with rays, the video's freeze frame; the field
+   falls away only when the item flies to its slot on the page */
+:root[data-look] .ib-ground:is([data-stage="turn"], [data-stage="hold"]) .ib-scrim {
+  opacity: 1;
+  transition-duration: 120ms;
+}
+
+:root[data-look] .ib-scrim::after {
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(from 0deg at 50% 42%, rgb(255 255 255 / 0.16) 0deg 9deg, transparent 9deg 22deg);
+  content: "";
+}
+
+:root[data-look] .al-shell:has(.ib-air[data-face="legendary"]) .ib-scrim {
+  background: var(--arc-halftone), var(--arc-orange);
+}
+
+:root[data-look] .al-shell:has(.ib-air[data-face="legendary"]) .ib-scrim::after {
+  background: repeating-conic-gradient(from 0deg at 50% 42%, rgb(255 212 0 / 0.55) 0deg 9deg, transparent 9deg 22deg);
+}
+
+:root[data-look] .al-shell:has(.ib-air[data-face="sticker"]) .ib-scrim {
+  background: var(--arc-halftone), var(--arc-green);
+}
+
+:root[data-look] .ib-caption {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:root[data-look] .ib-disc {
+  border: 5px solid var(--arc-ink);
+  background: radial-gradient(circle at 50% 40%, color-mix(in oklab, var(--burst) 30%, white), white 72%);
+  box-shadow:
+    var(--arc-drop-big),
+    0 0 0 8px color-mix(in oklab, var(--burst) 70%, transparent),
+    0 0 60px 18px var(--burst);
+}
+
+:root[data-look] .ib-front .al-hoggie-art {
+  animation: arc-pop 520ms var(--arc-slam) both;
+}
+
+:root[data-look] .ib-caption-name {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  animation: arc-slam 320ms var(--arc-slam) both;
+}
+
+:root[data-look] .ib-caption-what {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.875rem;
+  border: var(--arc-border);
+  border-radius: 12px;
+  background: var(--burst);
+  box-shadow: 0 4px 0 var(--arc-ink);
+  color: var(--arc-white);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* The punch word over the reveal: COMMON! RARE! EPIC! LEGENDARY!! STICKER GET! */
+:root[data-look] .ib-air[data-face]:has(.ib-caption)::before {
+  position: fixed;
+  top: calc(var(--al-top-height) + 4vh);
+  left: 50%;
+  z-index: 2;
+  color: var(--arc-yellow);
+  font-family: RoundHog, var(--font-sans);
+  font-size: clamp(2.5rem, 9vw, 6.5rem);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--arc-ink);
+  text-shadow: 0.08em 0.08em 0 var(--arc-ink);
+  translate: -50% 0;
+  rotate: -3deg;
+  animation: arc-slam 300ms var(--arc-slam) both;
+}
+
+:root[data-look] .ib-air[data-face="common"]:has(.ib-caption)::before {
+  content: "Common!" / "";
+  color: var(--arc-white);
+}
+
+:root[data-look] .ib-air[data-face="uncommon"]:has(.ib-caption)::before {
+  content: "Uncommon!" / "";
+}
+
+:root[data-look] .ib-air[data-face="rare"]:has(.ib-caption)::before {
+  content: "Rare!" / "";
+  color: var(--arc-cyan);
+}
+
+:root[data-look] .ib-air[data-face="epic"]:has(.ib-caption)::before {
+  content: "Epic!" / "";
+  color: #c4a1ff;
+}
+
+:root[data-look] .ib-air[data-face="legendary"]:has(.ib-caption)::before {
+  content: "Legendary!!" / "";
+  color: var(--arc-yellow);
+  font-size: clamp(3rem, 11vw, 8rem);
+}
+
+:root[data-look] .ib-air[data-face="sticker"]:has(.ib-caption)::before {
+  content: "Sticker get!" / "";
+}
+
+/* The combo counter, top right, counting turns since the page loaded */
+:root[data-look] .ib-air[data-combo]:has(.ib-burst)::after {
+  position: fixed;
+  top: calc(var(--al-top-height) + 1rem);
+  right: 1.25rem;
+  color: var(--arc-white);
+  font-family: RoundHog, var(--font-sans);
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--arc-ink);
+  text-shadow: 0.1em 0.1em 0 var(--arc-ink);
+  content: "Combo ×" attr(data-combo) / "";
+  rotate: 4deg;
+  animation: arc-pop 360ms var(--arc-slam) both;
+}
+
+@media (max-width: 600px) {
+  :root[data-look] .ib-air[data-face]:has(.ib-caption)::before {
+    top: calc(var(--al-top-height) + 9vh);
+  }
+
+  :root[data-look] .ib-caption-what {
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+}
+
+/* Big hit 1 of 4: the legendary freeze frame shakes once and glows white */
+:root[data-look] .ib-air[data-face="legendary"]:has(.ib-burst) {
+  animation: arc-shake 520ms linear both;
+}
+
+:root[data-look] .ib-air[data-face="legendary"] .ib-flash {
+  background: radial-gradient(circle, white 0 40%, transparent 70%);
+}
+
+/* The flying +XP number */
+:root[data-look] .ib-chip {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--arc-yellow);
+  font-family: RoundHog, var(--font-sans);
+  font-size: 2rem;
+  font-weight: 800;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.18em var(--arc-ink);
+  text-shadow: 0.08em 0.08em 0 var(--arc-ink);
+}
+
+/* After the landing: the turned strip, the win line and the big SHARE button */
+:root[data-look] :is(.ib-turned, .ib-wait, .ib-win) {
+  border: var(--arc-border);
+  background: var(--arc-white);
+  box-shadow: 0 4px 0 var(--arc-ink);
+  color: var(--arc-ink);
+}
+
+:root[data-look] .ib-turned-xp {
+  color: var(--arc-ink);
+  background: var(--arc-yellow);
+  padding-inline: 0.375rem;
+  border-radius: 6px;
+}
+
+:root[data-look] .ib-share {
+  padding: 0.5rem 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--arc-share);
+  box-shadow:
+    0 6px 0 var(--arc-share-deep),
+    0 10px 0 var(--arc-ink);
+  color: var(--arc-white);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: translate 90ms ease, box-shadow 90ms ease;
+}
+
+@media (max-width: 600px) {
+  :root[data-look] .ib-share {
+    padding: 0.375rem 1.25rem;
+    font-size: 1rem;
+  }
+}
+
+:root[data-look] .ib-share:active {
+  translate: 0 6px;
+  box-shadow:
+    0 0 0 var(--arc-share-deep),
+    0 4px 0 var(--arc-ink);
+}
+
+/* ---------- the level-up takeover ---------- */
+
+/* Big hit 2 of 4 */
+:root[data-look] .xpm-lvl {
+  background: var(--arc-halftone), var(--arc-purple);
+  color: var(--arc-white);
+  animation: arc-shake 520ms linear 560ms both;
+}
+
+:root[data-look] .xpm-lvl-rays {
+  background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--arc-yellow) 55%, transparent) 0deg 8deg, transparent 8deg 20deg);
+}
+
+:root[data-look] .xpm-lvl-shock {
+  border-color: var(--arc-ink);
+}
+
+:root[data-look] .xpm-lvl-disc {
+  border: 6px solid var(--arc-ink);
+  background: var(--arc-yellow);
+  box-shadow: var(--arc-drop-big);
+  color: var(--arc-ink);
+}
+
+:root[data-look] .xpm-lvl-title {
+  font-size: clamp(2.5rem, 9vw, 5.5rem);
+  rotate: -2deg;
+}
+
+:root[data-look] .xpm-lvl-unlocks > li {
+  border: var(--arc-border);
+  border-radius: 16px;
+  background: var(--arc-white);
+  box-shadow: 0 4px 0 var(--arc-ink);
+  color: var(--arc-ink);
+}
+
+:root[data-look] .xpm-lvl-next {
+  color: var(--arc-white);
+  font-weight: 700;
+}
+
+:root[data-look] .xpm-lvl-continue {
+  border: var(--arc-border);
+  background: var(--arc-yellow);
+  box-shadow: 0 4px 0 var(--arc-ink);
+  color: var(--arc-ink);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* ---------- the level-up page: three "?" cards ---------- */
+
+:root[data-look] .al-level-up-burst {
+  border: var(--arc-border);
+  border-radius: var(--arc-radius);
+  background: var(--arc-halftone), var(--arc-purple);
+  box-shadow: var(--arc-drop);
+  color: var(--arc-white);
+}
+
+:root[data-look] :is(.al-level-up-kicker, .al-level-up-from) {
+  color: var(--arc-white);
+  font-weight: 700;
+}
+
+:root[data-look] .al-level-up-title {
+  font-size: clamp(3rem, 10vw, 6rem);
+  rotate: -2deg;
+  animation: arc-slam 380ms var(--arc-slam) both;
+}
+
+:root[data-look] .al-level-up-title::after {
+  content: "!" / "";
+}
+
+:root[data-look] .al-level-up-card .al-slot {
+  overflow: hidden;
+}
+
+:root[data-look] .al-level-up-card .al-slot[data-face-up] {
+  --glow: var(--rarity-color, var(--card-rarity, var(--arc-yellow)));
+}
+
+:root[data-look] .al-level-up-skip {
+  border: var(--arc-border);
+  background: var(--arc-white);
+  box-shadow: 0 4px 0 var(--arc-ink);
+  font-weight: 800;
+}
+
+/* ---------- TEAM COMPLETE: the team unlock moment ---------- */
+
+/* Big hit 3 of 4: the crest slams in and the frame shakes once */
+:root[data-look] .al-unlock-moment {
+  animation: arc-shake 520ms linear 420ms both;
+}
+
+:root[data-look] .al-unlock-dim {
+  background: var(--arc-halftone), color-mix(in oklab, var(--arc-orange) 92%, transparent);
+}
+
+:root[data-look] .al-unlock-rays {
+  background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--arc-yellow) 65%, transparent) 0deg 9deg, transparent 9deg 20deg);
+}
+
+:root[data-look] .al-unlock-title {
+  font-size: clamp(1.25rem, 3.4vw, 2rem);
+  rotate: -2deg;
+}
+
+:root[data-look] .al-unlock-title::before {
+  display: block;
+  margin-bottom: 0.2em;
+  color: var(--arc-yellow);
+  font-size: 2.1em;
+  content: "Team complete!" / "";
+  animation: arc-slam 340ms var(--arc-slam) both;
+}
+
+:root[data-look] .al-unlock-sub {
+  color: var(--arc-white);
+  font-weight: 700;
+}
+
+:root[data-look] .al-unlock-continue-button {
+  border: var(--arc-border);
+  background: var(--arc-yellow);
+  box-shadow: 0 4px 0 var(--arc-ink);
+  color: var(--arc-ink);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* The seal on a ready team page glows until it is pressed */
+:root[data-look] .al-seal[data-state="ready"] {
+  --glow: var(--arc-gold);
+  border-radius: 50%;
+  animation: arc-glow 1.6s ease-in-out infinite;
+}
+
+/* ---------- the leaderboard (both) ---------- */
+
+:root[data-look] .al-board-row[data-you] {
+  background: color-mix(in oklab, var(--arc-yellow) 45%, var(--card));
+}
+
+:root[data-look] .al-board-rank {
+  font-weight: 800;
+}
+
+/* ---------- the medal ladder ---------- */
+
+:root[data-look] .al-ms-medal[data-step="earned"] .al-ms-medal-art {
+  filter: drop-shadow(0 3px 0 var(--arc-ink));
+}
+
+:root[data-look] .al-ms-tag {
+  border: 2px solid var(--arc-ink);
+  background: var(--arc-yellow);
+  color: var(--arc-ink);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Full arcade: colour fields that change on every cut
+   ============================================================ */
+
+:root[data-look="arcade"] *,
+:root[data-look="arcade"] {
+  --background: var(--arc-paper);
+  --card: var(--arc-white);
+  --muted: #f4ead9;
+  --border: color-mix(in oklab, var(--arc-ink) 28%, transparent);
+  --al-accent: #e2450f;
+  --al-accent-ink: #b8360a;
+}
+
+:root[data-look="arcade"] .al-shell {
+  --arc-field: var(--arc-orange);
+  --arc-on-field: var(--arc-ink);
+}
+
+:root[data-look="arcade"] .al-shell:has(.al-profile) {
+  --arc-field: var(--arc-yellow);
+}
+
+:root[data-look="arcade"] .al-shell:has(.al-team-page) {
+  --arc-field: var(--arc-green);
+}
+
+:root[data-look="arcade"] .al-shell:has(.al-person) {
+  --arc-field: var(--arc-cyan);
+}
+
+:root[data-look="arcade"] .al-shell:has(.al-hoggies) {
+  --arc-field: var(--arc-magenta);
+}
+
+:root[data-look="arcade"] .al-shell:has(:is(.al-ms, .al-level-up)) {
+  --arc-field: var(--arc-purple);
+  --arc-on-field: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-shell:has(.al-leaderboard) {
+  --arc-field: var(--arc-blue);
+  --arc-on-field: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-body {
+  background: var(--arc-halftone), var(--arc-field);
+  color: var(--arc-ink);
+}
+
+/* The top bar: an ink strip with a yellow brand, like the video's HUD */
+:root[data-look="arcade"] .al-top {
+  border-bottom: var(--arc-border);
+  background: var(--arc-ink);
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-top :is(.al-brand-word, .al-xp-words) {
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-top .al-brand-word {
+  color: var(--arc-yellow);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+:root[data-look="arcade"] .al-top :is(.al-icon-link, .al-top-button, .al-me, .al-cog) {
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] :is(.al-top, .al-top *) {
+  --card: #2b2420;
+  --muted: #3a312b;
+  --border: rgb(255 255 255 / 0.55);
+  --al-accent-soft: rgb(255 212 0 / 0.2);
+  --foreground: var(--arc-white);
+  --muted-foreground: rgb(255 255 255 / 0.75);
+}
+
+:root[data-look="arcade"] .al-top .ib-wait {
+  border: 2px solid var(--arc-yellow);
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-xp-track {
+  border-color: var(--arc-white);
+  background: #2a1255;
+}
+
+/* The sidebar sits on the field; its pieces are white chunky buttons */
+:root[data-look="arcade"] .al-side {
+  border-right: 0;
+  background: transparent;
+}
+
+:root[data-look="arcade"] :is(.al-search, .al-mine, .al-team, .al-page) {
+  border: var(--arc-border);
+  border-radius: 14px;
+  background: var(--arc-white);
+  box-shadow: 0 4px 0 var(--arc-ink);
+}
+
+:root[data-look="arcade"] :is(.al-page, .al-team) {
+  margin-block: 0.375rem;
+}
+
+:root[data-look="arcade"] .al-side-heading {
+  color: var(--arc-on-field);
+  font-weight: 800;
+}
+
+/* Each page is a paper panel on its field; long words stay ink on white */
+:root[data-look="arcade"] .al-main > :is(.al-page-body, article, section.al-started) {
+  border: var(--arc-border);
+  border-radius: 26px;
+  background: var(--arc-paper);
+  box-shadow: var(--arc-drop-big);
+}
+
+:root[data-look="arcade"] .al-main > :is(.al-page-body, article) {
+  margin-block: 1.25rem 5rem;
+  padding: clamp(1rem, 3vw, 2.25rem);
+}
+
+/* Page titles slam in */
+:root[data-look="arcade"] .al-main h1 {
+  color: var(--arc-yellow);
+  font-family: RoundHog, var(--font-sans);
+  font-size: clamp(2.25rem, 6vw, 3.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--arc-ink);
+  text-shadow: 0.08em 0.08em 0 var(--arc-ink);
+  rotate: -1.5deg;
+  transform-origin: 0 50%;
+  overflow-wrap: normal;
+  animation: arc-slam 360ms var(--arc-slam) both;
+}
+
+:root[data-look="arcade"] .al-main .al-level-up-title {
+  color: var(--arc-white);
+  transform-origin: 50% 50%;
+}
+
+:root[data-look="arcade"] .al-eyebrow {
+  display: inline-block;
+  justify-self: start;
+  align-self: flex-start;
+  width: fit-content;
+  padding: 0.125rem 0.625rem;
+  border: 2px solid var(--arc-ink);
+  border-radius: 8px;
+  background: var(--arc-ink);
+  color: var(--arc-yellow);
+  font-weight: 800;
+}
+
+/* Your page */
+:root[data-look="arcade"] :is(.al-profile-tile, .al-profile-rank) {
+  background: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-profile-rank {
+  background: var(--arc-ink);
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-profile-rank :is(.al-eyebrow, .al-profile-rank-line, .al-profile-rank-team, .al-profile-more) {
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-profile-rank-number {
+  color: var(--arc-yellow);
+  font-size: 3.5rem;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.12em var(--arc-ink);
+}
+
+:root[data-look="arcade"] :is(.al-profile-heading, .al-ms-section-title, .al-hoggies-bar-title, .al-hoggies-group-title) {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+:root[data-look="arcade"] .al-profile-tile-count {
+  font-weight: 800;
+}
+
+:root[data-look="arcade"] :is(.al-bar, .al-profile-bar) {
+  border: 2px solid var(--arc-ink);
+  background: var(--arc-paper);
+}
+
+:root[data-look="arcade"] .al-quote {
+  padding: 0.875rem 1rem;
+  border: var(--arc-border);
+  border-left-width: 3px;
+  border-radius: 16px;
+  background: var(--arc-white);
+  box-shadow: 0 4px 0 var(--arc-ink);
+}
+
+/* Teammate stickers: grey until collected, then a flash to colour */
+:root[data-look="arcade"] .al-photo-sticker {
+  border: var(--arc-border);
+  border-radius: 18px;
+  background: var(--arc-white);
+  box-shadow: var(--arc-drop);
+}
+
+:root[data-look="arcade"] .al-photo-link .al-photo-sticker {
+  animation: arc-colour-in 700ms ease-out both;
+}
+
+:root[data-look="arcade"] .al-photo-person:nth-child(2) .al-photo-sticker {
+  animation-delay: 90ms;
+}
+
+:root[data-look="arcade"] .al-photo-person:nth-child(3) .al-photo-sticker {
+  animation-delay: 180ms;
+}
+
+:root[data-look="arcade"] .al-photo-person:nth-child(4) .al-photo-sticker {
+  animation-delay: 270ms;
+}
+
+:root[data-look="arcade"] .al-photo-person:nth-child(5) .al-photo-sticker {
+  animation-delay: 360ms;
+}
+
+:root[data-look="arcade"] .al-photo-person:nth-child(6) .al-photo-sticker {
+  animation-delay: 450ms;
+}
+
+:root[data-look="arcade"] .al-photo-link:is(:hover, :focus-visible) .al-photo-sticker {
+  outline: 5px solid var(--arc-yellow);
+  outline-offset: 3px;
+  box-shadow:
+    var(--arc-drop),
+    0 0 0 11px var(--arc-ink);
+}
+
+:root[data-look="arcade"] .al-photo-name {
+  font-weight: 800;
+}
+
+:root[data-look="arcade"] .al-photo-sticker-large {
+  outline: 6px solid var(--arc-yellow);
+  outline-offset: 4px;
+}
+
+:root[data-look="arcade"] .al-hype-frame {
+  border: var(--arc-border);
+  box-shadow: 0 4px 0 var(--arc-ink);
+}
+
+:root[data-look="arcade"] :is(.al-fact, .al-person-team) {
+  border: 2px solid var(--arc-ink);
+  border-radius: 14px;
+  background: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-fact {
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 3px 0 var(--arc-ink);
+}
+
+:root[data-look="arcade"] .al-fact-value {
+  font-weight: 800;
+}
+
+/* Hoggies */
+:root[data-look="arcade"] :is(.al-hoggies-glass, .al-hoggies-collection, .al-hoggies-note) {
+  border: var(--arc-border);
+  border-radius: var(--arc-radius);
+  box-shadow: var(--arc-drop);
+}
+
+:root[data-look="arcade"] .al-hoggies-plate {
+  border: 2px solid var(--arc-ink);
+  border-radius: 14px;
+  background: var(--arc-white);
+  box-shadow: 0 3px 0 var(--arc-ink);
+}
+
+:root[data-look="arcade"] .al-hoggies-plate:not([data-found]) {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-look="arcade"] .al-hoggies-plate[data-found] .al-hoggies-plate-art {
+  transition: scale 160ms var(--arc-slam);
+}
+
+:root[data-look="arcade"] .al-hoggies-plate[data-found]:hover .al-hoggies-plate-art {
+  scale: 1.12 0.94;
+}
+
+:root[data-look="arcade"] .al-hoggies-filter {
+  border: 2px solid var(--arc-ink);
+  font-weight: 800;
+}
+
+:root[data-look="arcade"] .al-hoggies-filter[aria-pressed="true"] {
+  background: var(--arc-ink);
+  color: var(--arc-yellow);
+}
+
+/* Milestones: the medal ladder */
+@media (min-width: 64rem) {
+  :root[data-look="arcade"] .al-ms-head {
+    flex-wrap: wrap;
+  }
+
+  :root[data-look="arcade"] .al-ms-head-words {
+    flex: 1 1 22rem;
+  }
+}
+
+:root[data-look="arcade"] .al-ms-tally {
+  padding: 0.75rem 1rem;
+  border: var(--arc-border);
+  border-radius: var(--arc-radius);
+  background: var(--arc-ink);
+  box-shadow: var(--arc-drop);
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-ms-tally :is(.al-ms-tally-count, .al-ms-closest, .al-ms-quiet) {
+  color: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-ms-tally-count {
+  color: var(--arc-yellow);
+  font-weight: 800;
+}
+
+:root[data-look="arcade"] .al-ms-row {
+  background: var(--arc-white);
+}
+
+:root[data-look="arcade"] .al-ms-rail {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--arc-ink);
+}
+
+/* The leaderboard: ink header, chunky rows, #1 on gold */
+:root[data-look="arcade"] .al-board-head {
+  margin: -3px -3px 0;
+  border-radius: var(--arc-radius) var(--arc-radius) 0 0;
+  background: var(--arc-ink);
+  color: var(--arc-yellow);
+}
+
+:root[data-look="arcade"] .al-board-head * {
+  color: var(--arc-yellow);
+}
+
+:root[data-look="arcade"] .al-board-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:root[data-look="arcade"] .al-board-row {
+  border-bottom: 2px solid color-mix(in oklab, var(--arc-ink) 14%, transparent);
+}
+
+:root[data-look="arcade"] .al-board-row:first-child .al-board-rank {
+  display: inline-grid;
+  min-width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--arc-ink);
+  border-radius: 50%;
+  background: var(--arc-gold);
+  color: var(--arc-ink);
+  place-items: center;
+}
+
+:root[data-look="arcade"] .al-board-score {
+  color: var(--arc-share);
+  font-weight: 800;
+}
+
+:root[data-look="arcade"] :is(.al-period-switch, .al-board-pick) {
+  border: 2px solid var(--arc-ink);
+  font-weight: 800;
+}
+
+/* Getting started */
+:root[data-look="arcade"] .al-started {
+  background: var(--arc-white);
+}
+
+/* ---------- respect reduced motion: no slams, pops, shakes or glows ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-look] *,
+  :root[data-look] *::before,
+  :root[data-look] *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+  }
+
+  :root[data-look] :is(.xpm-lvl, .al-unlock-moment, .ib-air) {
+    animation: none !important;
+  }
+}

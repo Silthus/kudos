@@ -1,0 +1,71 @@
+.proto-bar {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font: 600 13px/1 ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+  white-space: nowrap;
+}
+
+.proto-bar-arrow,
+.proto-bar-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: #2a2a2a;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.proto-bar-arrow {
+  width: 30px;
+  height: 30px;
+}
+
+.proto-bar-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.proto-bar-play {
+  padding: 8px 12px;
+}
+
+.proto-bar-label {
+  min-width: 150px;
+  text-align: center;
+}
+
+.proto-bar-key {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #ffd400;
+  color: #111;
+}
+
+.proto-bar-rule {
+  width: 1px;
+  height: 20px;
+  background: #444;
+}
+
+@media (max-width: 600px) {
+  .proto-bar-name {
+    display: none;
+  }
+
+  .proto-bar-label {
+    min-width: 0;
+  }
+}
