@@ -16,7 +16,7 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   const title = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useFocusWhileOpen(hoggie);
-  const forged = forging?.forged?.from === hoggie.hoggie ? forging.forged : null;
+  const forged = forging?.reveals[hoggie.hoggie] ?? null;
   const revealing = forged !== null;
   const stepBy = (by: number) => onStep(neighbourOf(hoggie, steps, by));
   const keys: Record<string, () => void> = { Escape: onClose, ArrowLeft: () => stepBy(-1), ArrowRight: () => stepBy(1) };
@@ -67,9 +67,9 @@ export function HoggieEntry({ hoggie, answer, picking, forging, steps, onStep, o
   );
 }
 
-function endTheForge(forging: Forging, { drop }: Forged, answer: AlbumHoggies, onStep: (hoggie: AlbumHoggie) => void) {
+function endTheForge(forging: Forging, { from, drop }: Forged, answer: AlbumHoggies, onStep: (hoggie: AlbumHoggie) => void) {
   const forgedEntry = answer.hoggies.find(({ hoggie }) => hoggie === drop.hoggie);
-  forging.done();
+  forging.done(from);
   if (forgedEntry !== undefined) onStep(forgedEntry);
 }
 

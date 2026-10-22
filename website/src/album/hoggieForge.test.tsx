@@ -293,6 +293,28 @@ describe("HF9, HF10: Forge sends forgeHoggie once and plays the forged hoggie's 
     expect(await screen.findByRole("status", { name: "Forged" })).toHaveTextContent("Forged: Cake · Uncommon · New");
   });
 
+  it("two forges answered while the member was away each keep their reveal for their own entry", async () => {
+    const forgedDisco: ForgeReply = { kind: "forged", drop: { hoggie: "basketball-coach", name: "Basketball Coach", rarity: "uncommon", art: { kind: "hoggie", slug: "basketball-coach" }, copy: 1, isNew: true } };
+    const answers: Array<(reply: ForgeReply) => void> = [];
+    const { user } = visit("/book#hoggies/asleep", forgeOn({ asleep: 4, ball: 4 }), () => new Promise((resolve) => answers.push(resolve)));
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    goTo("/book#leaderboard");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await act(async () => answers[0]!(forgedCake));
+    goTo("/book#hoggies/ball");
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await act(async () => answers[1]!(forgedDisco));
+    expect(await screen.findByRole("status", { name: "Forged" }), "Ball's own reveal").toHaveTextContent("Forged: Basketball Coach · Uncommon · New");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("status", { name: "Forged" })).not.toBeInTheDocument());
+
+    goTo("/book#leaderboard");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    goTo("/book#hoggies/asleep");
+    expect(await screen.findByRole("status", { name: "Forged" }), "Asleep's reveal, kept").toHaveTextContent("Forged: Cake · Uncommon · New");
+  });
+
   it("each answered forge sends a new request", async () => {
     const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 7 }), async () => ({ kind: "refused" }));
 

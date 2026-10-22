@@ -8,12 +8,12 @@ export type Forged = { from: string; drop: Drop };
 
 export type SendForge = (hoggie: string, request: string) => Promise<ForgeReply>;
 
-export type Forging = { sending: string | null; problems: Partial<Record<string, ForgeProblem>>; forged: Forged | null; forge: (hoggie: string) => void; done: () => void };
+export type Forging = { sending: string | null; problems: Partial<Record<string, ForgeProblem>>; reveals: Partial<Record<string, Forged>>; forge: (hoggie: string) => void; done: (hoggie: string) => void };
 
 export function useForge(sendForge: SendForge): Forging {
   const [sending, setSending] = useState<string | null>(null);
   const [problems, setProblems] = useState<Partial<Record<string, ForgeProblem>>>({});
-  const [forged, setForged] = useState<Forged | null>(null);
+  const [reveals, setReveals] = useState<Partial<Record<string, Forged>>>({});
   const inFlight = useRef(false);
   const unanswered = useRef(new Map<string, string>());
   const forge = useCallback(
@@ -21,16 +21,16 @@ export function useForge(sendForge: SendForge): Forging {
       if (inFlight.current) return;
       inFlight.current = true;
       setSending(hoggie);
-      setProblems((shown) => withProblem(shown, hoggie, undefined));
+      setProblems((shown) => withEntry(shown, hoggie, undefined));
       const request = unanswered.current.get(hoggie) ?? crypto.randomUUID();
       unanswered.current.set(hoggie, request);
       sendForge(hoggie, request)
         .then((reply) => {
           unanswered.current.delete(hoggie);
-          if (reply.kind === "forged") setForged({ from: hoggie, drop: reply.drop });
-          else setProblems((shown) => withProblem(shown, hoggie, "refused"));
+          if (reply.kind === "forged") setReveals((waiting) => withEntry(waiting, hoggie, { from: hoggie, drop: reply.drop }));
+          else setProblems((shown) => withEntry(shown, hoggie, "refused"));
         })
-        .catch(() => setProblems((shown) => withProblem(shown, hoggie, "unreachable")))
+        .catch(() => setProblems((shown) => withEntry(shown, hoggie, "unreachable")))
         .finally(() => {
           inFlight.current = false;
           setSending(null);
@@ -38,11 +38,11 @@ export function useForge(sendForge: SendForge): Forging {
     },
     [sendForge],
   );
-  const done = useCallback(() => setForged(null), []);
-  return { sending, problems, forged, forge, done };
+  const done = useCallback((hoggie: string) => setReveals((waiting) => withEntry(waiting, hoggie, undefined)), []);
+  return { sending, problems, reveals, forge, done };
 }
 
-function withProblem(shown: Partial<Record<string, ForgeProblem>>, hoggie: string, problem: ForgeProblem | undefined) {
-  const { [hoggie]: _, ...others } = shown;
-  return problem === undefined ? others : { ...others, [hoggie]: problem };
+function withEntry<T>(entries: Partial<Record<string, T>>, hoggie: string, entry: T | undefined): Partial<Record<string, T>> {
+  const { [hoggie]: _, ...others } = entries;
+  return entry === undefined ? others : { ...others, [hoggie]: entry };
 }
