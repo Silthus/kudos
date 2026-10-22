@@ -422,7 +422,7 @@ const highlightsOn = [onForEveryone(albumSlack), onForEveryone(weeklyHighlights)
 const nextMondayNine = mondayNine + weekMs;
 
 describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top three new givers", { timeout: 180_000 }, () => {
-  test("only the most hugged kudos is quoted, then last week's top three thoughtful givers with their page and count, ties to whoever gave first, and the first one's card", async () => {
+  test("only the most hugged kudos is quoted, unranked, its people linked to their pages and its message left for Slack to embed, then last week's top three thoughtful givers with their page and count, ties to whoever gave first, and the first one's card", async () => {
     await fourMembers(highlightsOn);
     const mostHugged = await thanks(alice, "Thanks for staying late on the release checklist", bob);
     await thanks(alice, "Thanks for the second pair of eyes on the rollout", carol);
@@ -434,11 +434,12 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
     await mondayPostSent();
 
     const posted = mondayPost();
-    expect(leadsOf(posted), "one top kudos").toEqual(["*1. Alice Marchetti* thanked *Bob Okonkwo*"]);
+    expect(posted?.blocks?.[1]?.text?.text, "one top kudos").toEqual(`*<${await pageOf(alice)}|Alice Marchetti>* thanked *<${await pageOf(bob)}|Bob Okonkwo>*\n>Thanks for staying late on the release checklist @Bob Okonkwo :taco:\n<${permalinkOf(mostHugged)}|Open in Slack>`);
+    expect(leadsOf(posted)).toHaveLength(1);
     expect(newGiverLinesOf(posted)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 3 thoughtful kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 2 thoughtful kudos`, `3. *<${await pageOf(dana)}|Dana Ferreira>* · 1 thoughtful kudos`]);
     expect(cardsIn(posted), "one card, right after the first new giver").toEqual([{ after: newGiverLinesOf(posted)[0], name: `*<${await pageOf(carol)}|Carol Lindqvist>*` }]);
     expect(String(posted?.text).split("\n").slice(-1)).toEqual(["🌱 Top new givers last week: 1. Carol Lindqvist · 3, 2. Alice Marchetti · 2, 3. Dana Ferreira · 1"]);
-    expect(posted?.unfurl_links).toBe(false);
+    expect({ unfurl_links: posted?.unfurl_links, unfurl_media: posted?.unfurl_media }, "Slack embeds the quoted message, and our own links get no card from a bot's post").toEqual({ unfurl_links: true, unfurl_media: false });
   });
 
   test("a giver listed in an earlier week's post is never listed again, fewer than three are listed as they are, and with nobody new the section is left out", async () => {
@@ -557,7 +558,7 @@ function newGiverLinesOf(posted: Posted | undefined) {
 
 function cardsIn(posted: Posted | undefined) {
   const blocks = posted?.blocks ?? [];
-  return blocks.flatMap(({ type, text }, index) => (type === "section" && text?.text.startsWith("*<") ? [{ after: blocks[index - 1]?.text?.text, name: text.text.split("\n")[0] }] : []));
+  return blocks.flatMap(({ type, text }, index) => (type === "section" && text?.text.startsWith("*<") && !text.text.includes(" thanked ") ? [{ after: blocks[index - 1]?.text?.text, name: text.text.split("\n")[0] }] : []));
 }
 
 async function memberIdOf(someone: Person) {

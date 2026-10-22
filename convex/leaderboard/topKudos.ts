@@ -25,7 +25,9 @@ export const recipientsNamed = 3;
 
 const mentionLookupsAtMost = 3 * wordedSegmentsQuotedAtMost;
 
-export type QuotedKudos = { giver: string; recipients: string[]; moreRecipients: number; words: Segment[]; permalink: string | null; find: Find | null };
+export type QuotedPerson = { member: MemberId; name: string };
+
+export type QuotedKudos = { giver: QuotedPerson; recipients: QuotedPerson[]; moreRecipients: number; words: Segment[]; permalink: string | null; find: Find | null };
 
 export type UnlockedTeam = { name: string; count: number; emoji: ShownEmoji | null };
 
@@ -58,10 +60,10 @@ async function rankedKudosOf(ctx: QueryCtx, workspace: string, week: Instants): 
 }
 
 async function quotedKudosOf(ctx: QueryCtx, mentions: Mentions, message: MessageRef, { giver, recipients, segments }: DrawableKudos): Promise<Omit<QuotedKudos, "find">> {
-  const named: string[] = [];
-  for (const recipient of recipients.slice(0, recipientsNamed)) named.push(await nameOf(ctx, recipient));
+  const named: QuotedPerson[] = [];
+  for (const recipient of recipients.slice(0, recipientsNamed)) named.push(await quotedPersonOf(ctx, recipient));
   return {
-    giver: await nameOf(ctx, giver),
+    giver: await quotedPersonOf(ctx, giver),
     recipients: named,
     moreRecipients: recipients.length - named.length,
     words: await readableSegmentsOf(mentions, message.workspace, quotedSegmentsOf(segments)),
@@ -90,6 +92,6 @@ async function teamsUnlockedOf(ctx: QueryCtx, workspace: string, week: Instants)
   return teams;
 }
 
-async function nameOf(ctx: QueryCtx, member: MemberId) {
-  return (await nameAndPictureOf(ctx, member)).name ?? nameless;
+async function quotedPersonOf(ctx: QueryCtx, member: MemberId): Promise<QuotedPerson> {
+  return { member, name: (await nameAndPictureOf(ctx, member)).name ?? nameless };
 }

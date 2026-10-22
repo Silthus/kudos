@@ -86,7 +86,7 @@ async function firstNewGiversCardOf(ctx: ActionCtx, workspace: string, { origin,
 }
 
 function topKudosMessageOf(channel: string, message: CardedMessage) {
-  return { channel, text: fallbackTextOf(message), blocks: blocksOf(message), unfurl_links: false, unfurl_media: false };
+  return { channel, text: fallbackTextOf(message), blocks: blocksOf(message), unfurl_links: message.embedsQuotedMessage, unfurl_media: false };
 }
 
 function hasPictures({ teams, card }: CardedMessage) {
@@ -154,7 +154,10 @@ function sectionOf(text: string) {
 }
 
 export function mrkdwnOf(words: Words[]) {
-  return words.map(({ text, strong }) => (strong ? `*${escaped(text)}*` : escaped(text))).join("");
+  return words.map(({ text, strong, link }) => {
+    const shown = link === undefined ? escaped(text) : `<${link}|${escaped(text)}>`;
+    return strong ? `*${shown}*` : shown;
+  }).join("");
 }
 
 export function plainOf(words: Words[]) {
