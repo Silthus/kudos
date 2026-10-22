@@ -43,3 +43,9 @@ export type AlbumShown = { album?: true };
 export async function albumOnProfileOf(ctx: QueryCtx, member: MemberId): Promise<AlbumShown> {
   return (await albumShownTo(ctx, member)) ? { album: true } : {};
 }
+
+export const personPageDFlag = { key: "person-page-d", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function personPageDShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, personPageDFlag, member);
+}

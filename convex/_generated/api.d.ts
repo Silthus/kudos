@@ -332,6 +332,7 @@ import type * as website_linkPreviews from "../website/linkPreviews.js";
 import type * as website_memberMutation from "../website/memberMutation.js";
 import type * as website_memberQuery from "../website/memberQuery.js";
 import type * as website_onboarding from "../website/onboarding.js";
+import type * as website_playerCard from "../website/playerCard.js";
 import type * as website_profile from "../website/profile.js";
 import type * as website_profileCard from "../website/profileCard.js";
 import type * as website_quests from "../website/quests.js";
@@ -692,6 +693,7 @@ declare const fullApi: ApiFromModules<{
   "website/memberMutation": typeof website_memberMutation;
   "website/memberQuery": typeof website_memberQuery;
   "website/onboarding": typeof website_onboarding;
+  "website/playerCard": typeof website_playerCard;
   "website/profile": typeof website_profile;
   "website/profileCard": typeof website_profileCard;
   "website/quests": typeof website_quests;

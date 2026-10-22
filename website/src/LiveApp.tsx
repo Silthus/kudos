@@ -9,7 +9,7 @@ import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
-import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, LevelUpShown, PersonShown, ProfileShown, WeekShown, XpMomentShown } from "./album/answer";
+import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, LevelUpShown, PersonShown, PlayerCardReads, ProfileShown, WeekShown, XpMomentShown } from "./album/answer";
 import { albumOf, openShown, putAllInShown, putInShown } from "./album/liveAlbum";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
@@ -56,6 +56,7 @@ function LiveApp() {
       useAlbumHoggies={(asking) => useLiveAlbumHoggies(asking, unreachable)}
       useLevelUp={(level) => useLiveLevelUp(level, unreachable)}
       useXpMoment={(asking) => useLiveXpMoment(asking, unreachable)}
+      usePlayerCard={(asking, person) => useLivePlayerCard(asking, person, unreachable)}
     />
   );
 }
@@ -111,6 +112,21 @@ function useLiveAlbumHoggies(asking: boolean, unreachable: boolean): HoggiesShow
 function useLiveLevelUp(level: number | null, unreachable: boolean): LevelUpShown | undefined {
   const request = useMemo((): RequestForQueries => (level === null ? {} : { levelUp: { query: api.website.album.getLevelUp, args: { level } } }), [level]);
   const { levelUp: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
+}
+
+function useLivePlayerCard(asking: boolean, person: string | null, unreachable: boolean): PlayerCardReads {
+  const request = useMemo(
+    (): RequestForQueries => (asking && person !== null ? { card: { query: api.website.playerCard.getPlayerCard, args: { person } }, emojis: { query: api.website.playerCard.getPlayerCardEmojis, args: { person } } } : {}),
+    [asking, person],
+  );
+  const { card, emojis } = useQueries(request);
+  return { card: shownOrWaiting(card, unreachable), emojis: shownOrWaiting(emojis, unreachable) };
+}
+
+function shownOrWaiting<Answer>(answer: Answer | Error | undefined, unreachable: boolean): Answer | { kind: "connecting" } | { kind: "broken" } | undefined {
   if (answer instanceof Error) return { kind: "broken" };
   if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return answer;

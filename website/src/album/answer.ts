@@ -65,6 +65,7 @@ export type Album = {
   howItWorks?: HowItWorksCard;
   shareableUrls?: true;
   linkPreviews?: true;
+  personPageD?: true;
 } & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;
@@ -215,3 +216,32 @@ export type LevelUpRead = (level: number | null) => LevelUpShown | undefined;
 export type XpMomentShown = XpMomentAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type XpMomentRead = (asking: boolean) => XpMomentShown | undefined;
+
+export type CardPlace = { rank: number; tied: boolean; thoughtful: number };
+
+export type RarestFind = Omit<FoundHoggie, "firstAt"> & { firstAt: number };
+
+export type CardMedal = { milestone: MilestoneId; tier: MilestoneTierId };
+
+export type PlayerCard = WeekPerson & {
+  team: PersonTeam | null;
+  level: AlbumLevel | null;
+  place: CardPlace | null;
+  people: { held: number; newest: WeekPerson[] };
+  hoggies: { found: number; total: number; rarest: RarestFind | null } | null;
+  medals: { count: number; best: CardMedal[] };
+};
+
+export type CardWeek = { days: number[]; thanked: number; thankedBy: number; packsOpened: number; hugs: number; kudosOfWeek: KudosOfTheWeek | null };
+
+export type PlayerCardAnswer = { kind: "card"; card: PlayerCard; week?: CardWeek };
+
+export type CardEmojis = { kind: "emojis"; count: number; shown: { name: string; picture: string; inSlack: boolean }[] };
+
+export type PlayerCardShown = PlayerCardAnswer | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type CardEmojisShown = CardEmojis | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type PlayerCardReads = { card: PlayerCardShown | undefined; emojis: CardEmojisShown | undefined };
+
+export type PlayerCardRead = (asking: boolean, person: string | null) => PlayerCardReads;
