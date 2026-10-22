@@ -551,7 +551,7 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
 function adminGroups({ announcementChannel, achievements, publicCelebrations, groupMode, mondayPost, welcomeNudge, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
-  const publicCelebrationsLines = publicCelebrations === null ? [] : [publicCelebrationsLinesOf(what, publicCelebrations)];
+  const publicCelebrationsLines = publicCelebrations === null || announcementChannel === null ? [] : [publicCelebrationsLinesOf(what, publicCelebrations)];
   const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
   const mondayPostLines = mondayPost === null ? [] : [mondayPostLinesOf(mondayPost)];
   const welcomeNudgeLines = welcomeNudge === null ? [] : [welcomeNudgeLinesOf(welcomeNudge)];

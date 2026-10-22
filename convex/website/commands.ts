@@ -355,7 +355,7 @@ export const setWeeklyPost = memberMutation({
 export const setPublicCelebrations = memberMutation({
   args: { on: v.boolean() },
   handler: async (ctx, me, person, { on }): Promise<PublicCelebrationsAnswer> => {
-    if (!(await maintainerSettingsApplyTo(ctx, me.member)) || (await celebrationsSwitchReadIn(ctx, me.workspace)) === null) return refused;
+    if (!(await noLaunchWaitsFor(queryOnly(ctx), me)) || !(await maintainerSettingsApplyTo(ctx, me.member)) || (await celebrationsSwitchReadIn(ctx, me.workspace)) === null) return refused;
     await runFromWebsite(ctx, me, person, { type: "setPublicCelebrations", on }, `website:setPublicCelebrations:${me.member}`);
     return (await celebrationsSwitchReadIn(ctx, me.workspace)) === on ? { kind: "set" } : refused;
   },

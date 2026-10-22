@@ -77,6 +77,14 @@ describe("public celebrations stop while the workspace switches them off", { tim
     expect(postsIn("C_NEWS")).toEqual([levelUpPost]);
   });
 
+  test("with no announcement channel picked, the Admin tab offers no switch, since nothing is celebrated in public", async () => {
+    const t = await workspaceWith([celebrationsSwitch, "xp-levels"], { announcementChannel: null });
+
+    await adminTabOpen(t, "U_ADMIN");
+
+    expect(publishedHome(slack, "U_ADMIN")).not.toContain("section: *Public celebrations*");
+  });
+
   test("a level up through a kudos posts nothing in the announcement channel, and the level-up DM still arrives", async () => {
     const t = await workspaceWith([celebrationsSwitch, "xp-levels"]);
     await adminTabOpen(t, "U_ADMIN");
@@ -170,9 +178,9 @@ describe("public celebrations stop while the workspace switches them off", { tim
   });
 });
 
-async function workspaceWith(flags: string[]) {
+async function workspaceWith(flags: string[], { announcementChannel = "C_NEWS" }: { announcementChannel?: string | null } = {}) {
   const t = await flagsFromPostHog(testBackend(), postHog, ...flags.map(onForEveryone));
-  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, announcementChannel: "C_NEWS" }));
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, ...(announcementChannel !== null && { announcementChannel }) }));
   return t;
 }
 

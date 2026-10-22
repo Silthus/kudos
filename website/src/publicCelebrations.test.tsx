@@ -52,6 +52,13 @@ describe("the maintainer switches public celebrations only through setPublicCele
     expect(theSwitch()).toBeChecked();
   });
 
+  it("says nothing is celebrated in public while the read shows them off", async () => {
+    await showSettings(forTheMaintainer(false));
+
+    expect(publicCelebrationsSection()).toHaveTextContent("I don't celebrate anyone's progress in public. Each teammate still hears about their own.");
+    expect(theSwitch()).not.toBeChecked();
+  });
+
   it("sends the switch once, holds it until it answers, and says so once the read shows it off", async () => {
     let answer: (reply: PublicCelebrationsReply) => void = () => undefined;
     const later = new Promise<PublicCelebrationsReply>((resolve) => (answer = resolve));

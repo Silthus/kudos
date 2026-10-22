@@ -119,6 +119,20 @@ describe("only the maintainer switches public celebrations from Settings, and on
   });
 });
 
+describe("a website command never launches unlocks", { timeout: 60_000 }, () => {
+  test("with unlocks on and no unlocks launch, the maintainer's switch answers refused and launches nothing", async () => {
+    const owner = await aWorkspace({ flags: [...everyFlag, "everyone-board", "unlocks"] });
+    await settle(t);
+    const before = await everyTable();
+
+    expect(await owner.switchPublicCelebrations(false)).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everyTable()).toEqual(before);
+    expect(before.unlockLaunches).toEqual([]);
+  });
+});
+
 describe("members can't pick public celebrations in Settings while the workspace switches them off", { timeout: 60_000 }, () => {
   test("a member's Settings read carries no celebrations kind while off, and their own choice again once on", async () => {
     const owner = await aWorkspace();
