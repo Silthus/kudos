@@ -40,6 +40,10 @@ export async function randomEmojisHeldBy(ctx: QueryCtx, workspace: string, membe
   return held;
 }
 
+export async function randomEmojiCountOf(ctx: QueryCtx, member: MemberId): Promise<number> {
+  return (await randomEmojisShownTo(ctx, member)) ? (await dropsOf(ctx, member)).length : 0;
+}
+
 export async function holdsRandomEmoji(ctx: QueryCtx, member: MemberId, name: string): Promise<boolean> {
   const drop = await ctx.db
     .query("randomEmojiDrops")

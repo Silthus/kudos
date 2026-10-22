@@ -72,7 +72,7 @@ async function personPreviewOf(ctx: QueryCtx, unfolding: Unfolding, url: string,
   const { name, level, medals } = await profileCardOf(ctx, person, { own: false, viewer: null });
   const teams = await personTeamsOf(ctx, workspace, person);
   const preview: PersonPreview = { kind: "person", url, page: pageUrlOf(origin, "people", person), name, picture: await pictureOf(ctx, workspace, person), teams: teams.map((team) => team.name), level, medals };
-  return rich ? { ...preview, stats: await personStatsOf(ctx, unfolding, person, level) } : preview;
+  return rich ? { ...preview, stats: await personStatsOf(ctx, unfolding, person, level, teams) } : preview;
 }
 
 async function pictureOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<string | null> {

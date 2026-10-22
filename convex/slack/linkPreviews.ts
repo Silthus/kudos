@@ -3,8 +3,8 @@ import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { medalText } from "../feedback/profileCard";
 import { productName } from "../feedback/naming";
-import { rarityLabel } from "../hoggies/catalogue";
-import type { BoardPlace, CardHoggie, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
+import { rarityWord } from "../hoggies/catalogue";
+import type { BoardPlace, CardHoggie, CardTeam, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
 import type { LinkPreview, PersonPreview, TeamPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn } from "./blocks";
 import { textOf } from "./directory";
@@ -63,7 +63,7 @@ function linksOf(links: unknown): string[] {
   });
 }
 
-const barSquares = 10;
+const barSegments = 10;
 
 function cardBlocksOf(preview: LinkPreview) {
   if (preview.stats !== undefined) return preview.kind === "person" ? richPersonCardOf(preview, preview.stats) : richTeamCardOf(preview, preview.stats);
@@ -72,9 +72,14 @@ function cardBlocksOf(preview: LinkPreview) {
 }
 
 function richPersonCardOf(preview: PersonPreview, stats: PersonStats) {
-  const fields = [...placeFieldsOf(stats.place, "leaderboard"), ...(stats.hoggies === null || stats.hoggies.found === 0 ? [] : [`🦔 *${stats.hoggies.found}* of ${stats.hoggies.total} hoggies found`]), ...(stats.people === 0 ? [] : [`📒 *${stats.people}* ${stats.people === 1 ? "person" : "people"} in their album`])];
+  const fields = [
+    ...placeFieldsOf(stats.place, "leaderboard"),
+    ...(stats.hoggies === null || stats.hoggies.found === 0 ? [] : [`🦔 *${stats.hoggies.found}* of ${stats.hoggies.total} hoggies found`]),
+    ...(stats.people === 0 ? [] : [`📒 *${stats.people}* ${stats.people === 1 ? "person" : "people"} in their album`]),
+    ...(stats.emojis === null || stats.emojis === 0 ? [] : [`🔓 *${stats.emojis}* ${stats.emojis === 1 ? "emoji" : "emojis"} unlocked`]),
+  ];
   const quiet = fields.length === 0 && stats.rarest.length === 0;
-  const lines = [nameLineOf(preview), ...(preview.teams.length === 0 ? [] : [preview.teams.map(escaped).join(", ")]), ...(stats.way === null ? [] : [levelLineOf(stats.way)]), ...medalLinesOf(preview), ...(quiet ? ["🌱 Just getting started. Their first thanks and finds show up here."] : [])];
+  const lines = [nameLineOf(preview), ...teamLinesOf(stats.teams), ...(stats.way === null ? [] : levelLinesOf(stats.way)), ...medalLinesOf(preview), ...(quiet ? ["🌱 Just getting started. Their first thanks and finds show up here."] : [])];
   return [headOf(preview, lines), ...statBlocksOf(fields, stats.rarest), datedFootOf(preview, stats.asOf)];
 }
 
@@ -95,13 +100,17 @@ function nameLineOf(preview: LinkPreview) {
   return `*<${preview.page}|${escaped(preview.name)}>*`;
 }
 
-function levelLineOf({ level, share }: LevelWay) {
-  return `*Level ${level} → ${level + 1}*  ${barOf(share)}`;
+function teamLinesOf(teams: CardTeam[]) {
+  return teams.length === 0 ? [] : [teams.map(({ name, emoji }) => (emoji === null ? escaped(name) : `:${emoji}: ${escaped(name)}`)).join(" · ")];
+}
+
+function levelLinesOf({ level, share }: LevelWay) {
+  return [`*Level ${level} → ${level + 1}*`, barOf(share)];
 }
 
 function barOf(share: number) {
-  const filled = Math.min(barSquares, Math.floor(share * barSquares));
-  return "🟧".repeat(filled) + "⬜".repeat(barSquares - filled);
+  const filled = Math.min(barSegments, Math.floor(share * barSegments));
+  return "▰".repeat(filled) + "▱".repeat(barSegments - filled);
 }
 
 function placeFieldsOf(place: BoardPlace | null, board: string) {
@@ -116,7 +125,7 @@ function statBlocksOf(fields: string[], rarest: CardHoggie[]) {
 function rarestHoggiesOf(rarest: CardHoggie[]) {
   const [first] = rarest;
   const pictures = rarest.map(({ picture, name }) => ({ type: "image", image_url: picture, alt_text: name }));
-  return { type: "context", elements: [...pictures, mrkdwn(`Rarest find: *${escaped(first!.name)}* · ${rarityLabel(first!.rarity)}`)] };
+  return { type: "context", elements: [...pictures, mrkdwn(`Rarest find: *${escaped(first!.name)}* · ${rarityWord(first!.rarity)}`)] };
 }
 
 function datedFootOf(preview: LinkPreview, asOf: number) {

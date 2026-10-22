@@ -13,10 +13,12 @@ import type { MilestoneAnswer } from "./milestones";
 import { isFirstPackFor, packsEarnedBetween, type Instants } from "./packs";
 import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
 import { randomEmojisShownTo } from "./flag";
-import { holdsRandomEmoji, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
+import { holdsRandomEmoji, randomEmojiCountOf, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
 import type { ParseHook } from "../parser/parser";
-import { holdsTheHypeOf, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
+import { holdsTheHypeOf, hypesHeldFor, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
+import { boardOf } from "../items/ledger";
+import { hiddenItemsShownTo } from "../items/flag";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
@@ -62,6 +64,39 @@ export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: Em
   }
   for (const { id, name, image, from, at } of await randomEmojisHeldBy(ctx, owner.workspace, owner.member)) emojis.push({ id, kind: "random", name, from: await nameOrUnnamed(ctx, from), picture: image, earned: true, earnedAt: at, seen: seen.has(id), inSlack: true, progress: null });
   return { emojis, more: hype.more };
+}
+
+export async function earnedEmojiCountOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<number> {
+  const turned = await turnedOnlyIf(ctx, member);
+  const earned = [...(await teamsUnlockedBetween(ctx, member, allTime)).map(({ id }) => id), ...(await hypesTurnedBy(ctx, member, turned)), ...(await tiersTurnedBy(ctx, member, turned)), ...(await levelEmojisReachedBy(ctx, member))];
+  let named = 0;
+  for (const id of earned) if ((await emojiNameOf(ctx, workspace, id)) !== null) named += 1;
+  return named + (await randomEmojiCountOf(ctx, member));
+}
+
+const allTime: Instants = { from: -Infinity, to: Infinity };
+
+type Turned = { itemsShown: false } | { itemsShown: true; seen: Set<string>; held: HypesHeld };
+
+async function turnedOnlyIf(ctx: QueryCtx, member: MemberId): Promise<Turned> {
+  if (!(await hiddenItemsShownTo(ctx, member))) return { itemsShown: false };
+  return { itemsShown: true, seen: await seenBy(ctx, member), held: hypesHeldFor(await boardOf(ctx, member)) };
+}
+
+async function hypesTurnedBy(ctx: QueryCtx, member: MemberId, turned: Turned): Promise<EarnedEmojiId[]> {
+  const people = (await peoplePackedBy(ctx, member, mostHypeEmojisShown)).map(({ person }) => person);
+  const shown = turned.itemsShown ? people.filter((person) => !isHeldForItsItem(person, turned.seen, turned.held)) : people;
+  return shown.map((person) => `hype:${person}` as const);
+}
+
+async function tiersTurnedBy(ctx: QueryCtx, member: MemberId, turned: Turned): Promise<EarnedEmojiId[]> {
+  const reached = (await tiersReachedBetween(ctx, member, allTime)).map(({ id }) => id);
+  return turned.itemsShown ? reached.filter((id) => turned.seen.has(id)) : reached;
+}
+
+async function levelEmojisReachedBy(ctx: QueryCtx, member: MemberId): Promise<EarnedEmojiId[]> {
+  const { level } = await progressionHomeOf(ctx, member);
+  return (await emojiLevelsOf(ctx, member)).filter((reward) => level >= reward).map((reward) => `level:${reward}` as const);
 }
 
 export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }: EarnedEmojis): Promise<SharedEmoji[] | null> {
