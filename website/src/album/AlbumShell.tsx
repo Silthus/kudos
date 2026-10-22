@@ -31,6 +31,8 @@ import { useXpMomentSequence } from "./useXpMoment";
 import type { MissedXpMoment, XpMomentAhead } from "./visitArrival";
 import { XpMomentCanvas, XpMomentSummary } from "./XpMoment";
 import "./album.css";
+import { isPrototypeShell } from "./prototype/personPagePrototype";
+import { PrototypeBar } from "./prototype/PrototypeBar";
 
 export type AlbumShellProps = {
   album: Album;
@@ -127,6 +129,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
       </p>
+      {isPrototypeShell && <PrototypeBar />}
       <div className="al-body" inert={playing || covered}>
         <Sidebar album={landed} place={place} wide={wide} />
         <main className="al-main" aria-busy={busy || undefined}>

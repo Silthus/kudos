@@ -20,6 +20,8 @@ import { dateOf } from "./teamPage";
 import { ShareLink } from "./ShareLink";
 import "./team.css";
 import "./profile.css";
+import { isPrototypeShell, useVariant } from "./prototype/personPagePrototype";
+import { ProfileVariant } from "./prototype/ProfileVariants";
 
 type ProfileAnswerProps = { album: Album; profile: ProfileShown | undefined; boards: BoardsShown | undefined; hoggies: HoggiesShown | undefined; onSignIn: () => void; onSignOut: () => void };
 
@@ -30,10 +32,17 @@ type Answered = { profile: AlbumProfile; boards: ThoughtfulBoards; hoggies: Albu
 export function ProfileAnswerPage({ album, profile, boards, hoggies, ...answers }: ProfileAnswerProps) {
   const reads = { profile, boards, hoggies };
   const answered = answeredOf(reads);
+  if (answered !== null && isPrototypeShell) return <PrototypeProfile album={album} answered={answered} />;
   if (answered !== null) return <ProfilePage album={album} profile={answered.profile} standing={standingOf(answered.boards, myTeamOf(album)?.team ?? null)} hoggies={answered.hoggies} />;
   const failed = failureOf(reads);
   if (failed !== undefined) return <AnswerPage answer={failed} {...answers} />;
   return <LoadingPage shape="column" />;
+}
+
+function PrototypeProfile({ album, answered }: { album: Album; answered: Answered }) {
+  const variant = useVariant();
+  if (variant === "now") return <ProfilePage album={album} profile={answered.profile} standing={standingOf(answered.boards, myTeamOf(album)?.team ?? null)} hoggies={answered.hoggies} />;
+  return <ProfileVariant variant={variant} album={album} profile={answered.profile} boards={answered.boards} hoggies={answered.hoggies} />;
 }
 
 export function isWaitingForTheProfile(reads: ProfileReads) {
