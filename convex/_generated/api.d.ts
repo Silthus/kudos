@@ -183,6 +183,7 @@ import type * as leaderboard_improvementLine from "../leaderboard/improvementLin
 import type * as leaderboard_mondayPost from "../leaderboard/mondayPost.js";
 import type * as leaderboard_mondayPostOutcome from "../leaderboard/mondayPostOutcome.js";
 import type * as leaderboard_myGroupBoard from "../leaderboard/myGroupBoard.js";
+import type * as leaderboard_newGivers from "../leaderboard/newGivers.js";
 import type * as leaderboard_peer from "../leaderboard/peer.js";
 import type * as leaderboard_periods from "../leaderboard/periods.js";
 import type * as leaderboard_rankedBoard from "../leaderboard/rankedBoard.js";
@@ -331,6 +332,7 @@ import type * as website_itemShare from "../website/itemShare.js";
 import type * as website_lastVisit from "../website/lastVisit.js";
 import type * as website_leaderboard from "../website/leaderboard.js";
 import type * as website_link from "../website/link.js";
+import type * as website_linkCardStats from "../website/linkCardStats.js";
 import type * as website_linkPreviews from "../website/linkPreviews.js";
 import type * as website_memberMutation from "../website/memberMutation.js";
 import type * as website_memberQuery from "../website/memberQuery.js";
@@ -547,6 +549,7 @@ declare const fullApi: ApiFromModules<{
   "leaderboard/mondayPost": typeof leaderboard_mondayPost;
   "leaderboard/mondayPostOutcome": typeof leaderboard_mondayPostOutcome;
   "leaderboard/myGroupBoard": typeof leaderboard_myGroupBoard;
+  "leaderboard/newGivers": typeof leaderboard_newGivers;
   "leaderboard/peer": typeof leaderboard_peer;
   "leaderboard/periods": typeof leaderboard_periods;
   "leaderboard/rankedBoard": typeof leaderboard_rankedBoard;
@@ -695,6 +698,7 @@ declare const fullApi: ApiFromModules<{
   "website/lastVisit": typeof website_lastVisit;
   "website/leaderboard": typeof website_leaderboard;
   "website/link": typeof website_link;
+  "website/linkCardStats": typeof website_linkCardStats;
   "website/linkPreviews": typeof website_linkPreviews;
   "website/memberMutation": typeof website_memberMutation;
   "website/memberQuery": typeof website_memberQuery;
