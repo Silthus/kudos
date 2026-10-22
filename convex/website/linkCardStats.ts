@@ -12,6 +12,8 @@ import { standingOf } from "../progression/progression";
 import { xpToReach } from "../progression/levels";
 import type { MemberId } from "../workspace/directory";
 
+export type { BoardPlace };
+
 export type CardHoggie = { hoggie: string; name: string; rarity: Rarity; picture: string };
 
 export type LevelWay = { level: number; share: number };
