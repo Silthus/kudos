@@ -157,7 +157,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     expect(await screen.findByRole("status", { name: "Turned over" })).toHaveTextContent("Cake: Uncommon hoggie · New");
   });
 
-  it("Escape leaves the forged item face down on the item board, unturned, and keeps the entry open", async () => {
+  it("Escape sets the forged item aside, keeps the entry open to use, and the item board opens with it once the entry closes", async () => {
     const { user, actions, albumAnswers } = visit("/book#hoggies/asleep", forgeOn({ asleep: 4 }));
 
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
@@ -166,11 +166,38 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     await user.keyboard("{Escape}");
 
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
-    expect(screen.getByRole("dialog", { name: "Asleep" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
+    const close = screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!;
+    expect(close.closest("[inert]"), "the entry takes presses").toBeNull();
+    await user.click(close);
+
     const board = within(await screen.findByRole("dialog", { name: "Your items" }, { timeout: arrival }));
     expect(board.getByRole("button", { name: asleepCard })).toBeInTheDocument();
     expect(board.getByText("Forged")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Asleep" })).not.toBeInTheDocument();
     expect(actions.turnItem).not.toHaveBeenCalled();
+  });
+
+  it("with the forge gone while its face-down item waits, the entry stays open to use and the item board opens with the item once it closes", async () => {
+    let hoggiesShown: AlbumHoggies = forgeOn({ asleep: 4 });
+    window.history.replaceState(null, "", "/book#hoggies/asleep");
+    let albumShown = withNoItems;
+    const { user, showVisitor } = renderAlbum(memberWithTheAlbum, (asking) => (asking ? albumShown : undefined), { hoggies: (asking) => (asking ? hoggiesShown : undefined), commands: { forgeHoggie: async () => forgedCake } });
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
+    await theFaceDownItem();
+    albumShown = withAsleepForged;
+    hoggiesShown = withCopies(hoggiesFixtures.midway, { asleep: 1 });
+    act(() => showVisitor({ ...memberWithTheAlbum }));
+
+    await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
+    expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
+    const close = screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!;
+    expect(close.closest("[inert]"), "the entry takes presses").toBeNull();
+    await user.click(close);
+
+    const board = within(await screen.findByRole("dialog", { name: "Your items" }, { timeout: arrival }));
+    expect(board.getByRole("button", { name: asleepCard })).toBeInTheDocument();
   });
 
   it("while the face-down item waits in the entry the item board stays closed, though it lists the forged item", async () => {

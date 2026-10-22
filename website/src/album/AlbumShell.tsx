@@ -22,7 +22,7 @@ import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
 import { albumAtTheLanding } from "./landedAlbum";
 import { TurnFlight } from "./TurnFlight";
-import { itemTurningOf, ItemTurningProvider, shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider, type ItemTurns } from "./useItemBoard";
+import { itemTurningOf, ItemTurningProvider, shownUnless, useEmojisKeptUntilTheLanding, useItemBoard, LandingProvider } from "./useItemBoard";
 import { usePopover } from "./usePopover";
 import { cardShownAt, useHowItWorks } from "./useHowItWorks";
 import { useTeamUnlock } from "./useTeamUnlock";
@@ -52,12 +52,9 @@ export type AlbumShellProps = {
   missedXpMoment: MissedXpMoment;
   shareItem: (item: string) => Promise<ShareReply>;
   closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
-  forgeOnScreen: ForgeOnScreen;
 } & PutInCommands;
 
-export type ForgeOnScreen = { sending: boolean; item: string | null };
-
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, forgeOnScreen }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -102,7 +99,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     emojiMoments.shownElsewhere([`team:${team}`]);
     finish();
   };
-  const turns = shownUnless(items, anotherMoment || playing || forgeHolds(forgeOnScreen, items));
+  const turns = shownUnless(items, anotherMoment || playing || aHoggieEntryIsOpen(place));
   const landed = useEmojisKeptUntilTheLanding(useMemo(() => albumAtTheLanding(album, turns.landing), [album, turns.landing]), turns.landingDue);
   const boardShown = turns.open || flying;
   const covered = boardShown || sinceTheLastVisit.covers || howItWorks.card !== null;
@@ -147,8 +144,8 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   );
 }
 
-function forgeHolds({ sending, item }: ForgeOnScreen, turns: ItemTurns) {
-  return sending || (item !== null && !itemTurningOf(turns).turned(item));
+function aHoggieEntryIsOpen(place: Place) {
+  return place.kind === "hoggies" && place.hoggie !== null;
 }
 
 function firstShown(buttons: RefObject<HTMLElement | null>[]) {
