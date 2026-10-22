@@ -81,7 +81,7 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
           if (wide) preferWideScreen();
           else aWideScreenThatNarrows().narrow();
           const { container } = visit(path, album, boards, week, hoggies);
-          await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
+          await screen.findByRole(wide ? "navigation" : "button", { name: wide ? "Album" : "Teams and pages" }, { timeout: 10_000 });
 
           expect(await violationsIn(container)).toEqual([]);
         }, 30_000);
