@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { albumFixtures, fixedAlbum } from "./album/albumFixtures";
 import { fixedSettings, settingsFixtures } from "./settingsFixtures";
-import { renderAlbum, renderApp, renderSettingsPage } from "./test/renderApp";
+import { findTheAlbum, renderAlbum, renderApp, renderSettingsPage } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -93,7 +93,7 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
     (await startSignInFromKeyboard()).unmount();
     const { showVisitor } = renderAlbum(shellFixtures.loading, fixedAlbum(albumFixtures.midway));
     showVisitor(shellFixtures.member);
-    await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
+    await findTheAlbum();
     showVisitor(shellFixtures.signedOut);
     expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
@@ -185,7 +185,7 @@ describe("F28: a link from Slack that asks to sign in", () => {
 
     await waitFor(() => expect(currentAddress() + window.location.hash).toBe("/book#me"), { timeout: 10_000 });
     expect(actions.signIn).not.toHaveBeenCalled();
-    expect(screen.getByRole("navigation", { name: "Album" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Your emojis/ })).toBeInTheDocument();
   });
 
   it.each([

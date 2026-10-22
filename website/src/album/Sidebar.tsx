@@ -1,4 +1,4 @@
-import { IconCheck, IconChevronDown, IconRibbon, IconSearch } from "@posthog/icons";
+import { IconCheck, IconRibbon, IconSearch } from "@posthog/icons";
 import { useId, useState } from "react";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -9,30 +9,19 @@ import { hrefOf, type Place } from "./place";
 
 const shownAtFirst = 10;
 
-type SidebarProps = { album: Album; place: Place; wide: boolean };
-
-export function Sidebar({ album, place, wide }: SidebarProps) {
-  const [open, setOpen] = useState(false);
-  const panel = useId();
-  const close = () => setOpen(false);
+export function Sidebar({ album, place }: { album: Album; place: Place }) {
   return (
-    <nav className="al-side" aria-label="Album" data-open={open ? "" : undefined}>
-      {!wide && (
-        <button type="button" className="al-side-toggle" aria-expanded={open} aria-controls={open ? panel : undefined} onClick={() => setOpen(!open)}>
-          Teams and pages
-          <IconChevronDown />
-        </button>
-      )}
-      {(wide || open) && (
-        <div id={panel} className="al-side-panel">
-          <Contents album={album} place={place} onFollow={close} />
-        </div>
-      )}
+    <nav className="al-side" aria-label="Album">
+      <div className="al-side-panel">
+        <TeamsAndPages album={album} place={place} onFollow={stayBeside} />
+      </div>
     </nav>
   );
 }
 
-function Contents({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+function stayBeside() {}
+
+export function TeamsAndPages({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
   const [search, setSearch] = useState("");
   const words = search.trim();
   return (

@@ -49,9 +49,13 @@ export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { setting
   return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useEmojiMappings: emojiMappings, useSlackEmojiMatches: slackEmojiMatches, useAppEmojis: appEmojis, useThoughtfulBoards: boards, useAlbumWeek: weeks, useAlbumPerson: people, useAlbumProfile: profile, useAlbumHoggies: hoggies, useLevelUp: levelUp, useXpMoment: xpMoment }, commands, capturer);
 }
 
+export function findTheAlbum() {
+  return screen.findByRole("button", { name: /^Your emojis/ }, { timeout: 10_000 });
+}
+
 export async function renderSettingsPage(settings: SettingsRead, commands: Commands = {}) {
   const view = renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway), { settings, commands });
-  await screen.findByRole("navigation", { name: "Album" }, { timeout: 10_000 });
+  await findTheAlbum();
   return { ...view, showSettingsAgain: () => view.showVisitor({ ...shellFixtures.member }) };
 }
 
