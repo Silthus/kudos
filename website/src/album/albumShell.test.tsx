@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum, fixedPeople, startedWith } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
@@ -319,9 +319,9 @@ describe("AL42: the sidebar", () => {
 });
 
 describe("#708: the sidebar stays in view", () => {
-  it("stays below the top bar at desktop widths and scrolls its own content, and becomes the drawer on a phone", () => {
+  it("stays below the top bar at desktop widths and scrolls its own content, and on a phone gives way to a drawer that scrolls its own under the top bar", () => {
     expect(declarationsOf(".al-side")).toMatchObject({ position: "sticky", top: "var(--al-top-height)", height: "calc(100vh - var(--al-top-height))", "overflow-y": "auto" });
-    expect(declarationsOf(".al-side", cssFrom("@media (max-width: 63.999rem)"))).toMatchObject({ position: "static", height: "auto" });
+    expect(declarationsOf(".al-drawer")).toMatchObject({ position: "absolute", top: "calc(100% + 1px)", height: "calc(100dvh - 100% - 1px)", "overflow-y": "auto" });
   });
 
   it("no scroll box lets the hidden text it scrolls stretch the page past the album, so the sidebar never runs out of room to stick", () => {
@@ -577,12 +577,114 @@ describe("AL55: the phone layout", () => {
     expect(menu.getByRole("link", { name: "Your profile, Sam Example" })).toHaveAttribute("href", "/book#me");
     expect(menu.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
 
-    const drawer = screen.getByRole("button", { name: "Teams and pages" });
-    expect(drawer).toHaveAttribute("aria-expanded", "false");
+    const burger = bar.getByRole("button", { name: "Teams and pages" });
+    expect(burger).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("searchbox", { name: "Search teams and people" })).not.toBeInTheDocument();
-    await user.click(drawer);
-    expect(drawer).toHaveAttribute("aria-expanded", "true");
+    await user.click(burger);
+    expect(burger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("searchbox", { name: "Search teams and people" })).toBeInTheDocument();
+  });
+
+  it("#157: holds Teams and pages behind a burger at the bar's far left, before the brand, with nothing under the bar", async () => {
+    aWideScreenThatNarrows().narrow();
+    visit("/");
+    const [bar] = await screen.findAllByRole("banner");
+    const burger = within(bar!).getByRole("button", { name: "Teams and pages" });
+
+    expect(bar!.querySelector("a[href], button")).toBe(burger);
+    expect(screen.getAllByRole("button", { name: "Teams and pages" })).toEqual([burger]);
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+  });
+
+  it("#157: the burger opens the drawer with the sidebar's teams and pages, moves focus into it, and closes it again", async () => {
+    aWideScreenThatNarrows().narrow();
+    const { user } = visit("/");
+    const burger = (await topBar()).getByRole("button", { name: "Teams and pages" });
+
+    await user.click(burger);
+
+    const drawer = screen.getByRole("navigation", { name: "Album" });
+    expect(burger).toHaveAttribute("aria-expanded", "true");
+    expect(burger).toHaveAttribute("aria-controls", drawer.id);
+    expect(drawer).toHaveFocus();
+    expect(within(drawer).getByRole("searchbox", { name: "Search teams and people" })).toBeInTheDocument();
+    expect(within(drawer).getByRole("list", { name: "Teams" })).toBeInTheDocument();
+    expect(within(drawer).getByRole("list", { name: "More of your album" })).toBeInTheDocument();
+
+    await user.click(burger);
+
+    expect(burger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    expect(burger).toHaveFocus();
+  });
+
+  it("#157: Escape and a tap on the backdrop close the drawer, giving focus back to the burger", async () => {
+    aWideScreenThatNarrows().narrow();
+    const { user } = visit("/");
+    const burger = (await topBar()).getByRole("button", { name: "Teams and pages" });
+
+    await user.click(burger);
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    expect(burger).toHaveFocus();
+
+    await user.click(burger);
+    await user.click(document.querySelector(".al-drawer-backdrop")!);
+
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    expect(burger).toHaveAttribute("aria-expanded", "false");
+    expect(burger).toHaveFocus();
+  });
+
+  it("#157: the burger closes the drawer onto itself even when tapping it gave it no focus, as in Safari", async () => {
+    aWideScreenThatNarrows().narrow();
+    const { user } = visit("/");
+    const burger = (await topBar()).getByRole("button", { name: "Teams and pages" });
+    await user.click(burger);
+    screen.getByRole("searchbox", { name: "Search teams and people" }).focus();
+
+    fireEvent.click(burger);
+
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    expect(burger).toHaveFocus();
+  });
+
+  it("#157: tabbing past the drawer's last entry closes it, so focus never lands on the page under it", async () => {
+    aWideScreenThatNarrows().narrow();
+    const { user } = visit("/");
+    const bar = await topBar();
+    await user.click(bar.getByRole("button", { name: "Teams and pages" }));
+    within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: /^Milestones/ }).focus();
+
+    await user.tab();
+
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    expect(bar.getByRole("link", { name: "HedgeHug" })).toHaveFocus();
+  });
+
+  it("#157: the drawer and the menu take turns, one open at a time", async () => {
+    aWideScreenThatNarrows().narrow();
+    const { user } = visit("/");
+    const bar = await topBar();
+
+    await user.click(bar.getByRole("button", { name: "Menu" }));
+    await user.click(bar.getByRole("button", { name: "Teams and pages" }));
+
+    expect(screen.queryByRole("region", { name: "Menu" })).not.toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Album" })).toBeInTheDocument();
+
+    await user.click(bar.getByRole("button", { name: "Menu" }));
+
+    expect(screen.getByRole("region", { name: "Menu" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+  });
+
+  it("#157: a wide screen keeps the sidebar beside the page and holds no burger", async () => {
+    visit("/");
+
+    expect(await sidebar()).toBeTruthy();
+    expect((await topBar()).queryByRole("button", { name: "Teams and pages" })).not.toBeInTheDocument();
   });
 
   it("#695: keeps Feedback in the bar, where its form can stay open, and Settings in the menu", async () => {

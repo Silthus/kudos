@@ -13,12 +13,13 @@ import { usableCountOf } from "./emojiShelf";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
 import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
+import { PagesBurger } from "./PagesBurger";
 import { TrayPanel } from "./TrayPanel";
 import type { Popover } from "./usePopover";
 
 export type TrayActions = { busy: boolean; trouble: string | null; putIn: (item: string) => void; putAllIn: () => void };
 
-export type TopBarPopups = "tray" | "emojis" | "menu";
+export type TopBarPopups = "tray" | "emojis" | "menu" | "pages";
 
 type TopBarPopover = Popover<TopBarPopups>;
 
@@ -31,6 +32,7 @@ export function TopBar({ album, place, wide, popover, justUnlocked, opensOnJustU
   useTrayPanelClosedWithoutTheTray(trayShown, popover);
   return (
     <header className="al-top" inert={inert}>
+      {!wide && <PagesBurger album={album} place={place} popover={popover} />}
       <AppLink href={addressOf(home, myPageOf(album))} className="al-brand" data-slot="home">
         <HedgehogSitting size={30} />
         <span className="al-brand-word">HedgeHug</span>
