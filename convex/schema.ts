@@ -393,6 +393,8 @@ export default defineSchema({
 
   welcomeNudgeSwitches: defineTable({ workspace: v.string(), on: v.boolean() }).index("by_workspace", ["workspace"]),
 
+  celebrationsSwitches: defineTable({ workspace: v.string(), on: v.boolean() }).index("by_workspace", ["workspace"]),
+
   thoughtfulGiverCounts: defineTable({ workspace: v.string(), week: v.string(), givers: v.number() }).index("by_workspace_week", ["workspace", "week"]),
 
   indicators: defineTable({
