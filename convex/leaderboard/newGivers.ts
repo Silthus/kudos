@@ -1,4 +1,3 @@
-import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import type { DayKey } from "../engine/allowance";
@@ -16,7 +15,7 @@ export const mostGiversFeatured = 5_000;
 
 export type NewGiver = { member: MemberId; name: string; thoughtful: number };
 
-type Tally = Doc<"thoughtfulBoardTallies">;
+type RankedGiver = { giver: MemberId; awards: number };
 
 export function weeklyHighlightsApplyTo(ctx: QueryCtx, workspace: string): Promise<boolean> {
   return workspaceDecisionWithoutWriting(ctx, weeklyHighlightsFlag, workspace);
@@ -40,7 +39,7 @@ export async function unfeatureNewGivers(ctx: MutationCtx, workspace: string, po
   for (const { _id } of await featuredIn(ctx, workspace, postWeek)) await ctx.db.delete(_id);
 }
 
-async function namedOnTheBoards(ctx: QueryCtx, candidates: Pick<Tally, "giver" | "awards">[]) {
+async function namedOnTheBoards(ctx: QueryCtx, candidates: RankedGiver[]) {
   const listed: NewGiver[] = [];
   for (const { giver, awards } of candidates) {
     const named = (await isOnTheBoards(ctx, giver)) ? await currentNameAndPictureOf(ctx, giver) : null;
