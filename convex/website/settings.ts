@@ -10,6 +10,7 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageSettingsOf, type MessageSetting } from "../messageSettings/messageSettings";
 import { channelLinkOf } from "../slack/permalink";
+import { celebrationsSwitchReadIn } from "../workspace/celebrationsSwitch";
 import { personFactsOf, timeZoneOf } from "../workspace/directory";
 import { workspaceUrlOf } from "../workspace/url";
 import { workspaceSettingsPartOf, workspaceSettingsShownTo, type WorkspaceSettingsPart } from "../workspace/workspaceSettings";
@@ -33,7 +34,7 @@ export type AdminProfiles = {
 
 export type WeeklyPostSetting = Omit<WeeklyPostSwitch, "channel" | "channelPicked"> & { channelLink: string | null };
 
-export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles; workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting } & SectionSettings;
+export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles; workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting; publicCelebrations?: boolean } & SectionSettings;
 
 export type SettingsAnswer = MySettings | { kind: "not-found" };
 
@@ -51,10 +52,11 @@ async function settingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<MySettings
   return { kind: "settings", ...(await sectionSettingsOf(ctx, me)), ...(await companyProfileSectionOf(ctx, me)), ...(await adminPartOf(ctx, me)), ...(await workspacePartOf(ctx, me)) };
 }
 
-async function workspacePartOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting }> {
+async function workspacePartOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ workspace?: WorkspaceSettingsPart; weeklyPost?: WeeklyPostSetting; publicCelebrations?: boolean }> {
   if (!(await workspaceSettingsShownTo(ctx, me.member))) return {};
   const weeklyPost = await weeklyPostSettingOf(ctx, me);
-  return { workspace: await workspaceSettingsPartOf(ctx, me.workspace), ...(weeklyPost !== null && { weeklyPost }) };
+  const publicCelebrations = await celebrationsSwitchReadIn(ctx, me.workspace);
+  return { workspace: await workspaceSettingsPartOf(ctx, me.workspace), ...(weeklyPost !== null && { weeklyPost }), ...(publicCelebrations !== null && { publicCelebrations }) };
 }
 
 async function weeklyPostSettingOf(ctx: QueryCtx, me: VerifiedMember): Promise<WeeklyPostSetting | null> {

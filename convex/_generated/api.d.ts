@@ -347,6 +347,7 @@ import type * as website_xpMoment from "../website/xpMoment.js";
 import type * as website_xpMomentsFlag from "../website/xpMomentsFlag.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as welcome_welcomedAs from "../welcome/welcomedAs.js";
+import type * as workspace_celebrationsSwitch from "../workspace/celebrationsSwitch.js";
 import type * as workspace_customEmoji from "../workspace/customEmoji.js";
 import type * as workspace_directory from "../workspace/directory.js";
 import type * as workspace_directoryEntry from "../workspace/directoryEntry.js";
@@ -708,6 +709,7 @@ declare const fullApi: ApiFromModules<{
   "website/xpMomentsFlag": typeof website_xpMomentsFlag;
   "welcome/welcome": typeof welcome_welcome;
   "welcome/welcomedAs": typeof welcome_welcomedAs;
+  "workspace/celebrationsSwitch": typeof workspace_celebrationsSwitch;
   "workspace/customEmoji": typeof workspace_customEmoji;
   "workspace/directory": typeof workspace_directory;
   "workspace/directoryEntry": typeof workspace_directoryEntry;

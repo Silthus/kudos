@@ -39,7 +39,7 @@ const noXpMoment: XpMomentRead = (asking) => (asking ? { kind: "off" } : undefin
 
 const noPlayerCards: PlayerCardRead = (asking) => (asking ? { card: { kind: "off" }, emojis: { kind: "off" } } : { card: undefined, emojis: undefined });
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "mapSlackEmoji" | "mapMyEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment, usePlayerCard: noPlayerCards };
 
@@ -71,6 +71,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     setWorkspaceSettings: vi.fn(commands.setWorkspaceSettings ?? (async () => ({ kind: "refused", reason: null }) as const)),
     setWeeklyPost: vi.fn(commands.setWeeklyPost ?? (async () => ({ kind: "refused" }) as const)),
     pickWeeklyPostChannel: vi.fn(commands.pickWeeklyPostChannel ?? (async () => ({ kind: "refused", reason: null }) as const)),
+    setPublicCelebrations: vi.fn(commands.setPublicCelebrations ?? (async () => ({ kind: "refused" }) as const)),
     mapSlackEmoji: vi.fn(commands.mapSlackEmoji ?? (async () => ({ kind: "refused" }) as const)),
     mapMyEmoji: vi.fn(commands.mapMyEmoji ?? (async () => ({ kind: "refused" }) as const)),
     pickMyHypeEmoji: vi.fn(commands.pickMyHypeEmoji ?? (async () => ({ kind: "refused" }) as const)),

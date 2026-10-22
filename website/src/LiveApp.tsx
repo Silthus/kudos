@@ -196,6 +196,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
   const setWeeklyPost = useSentOnce(api.website.commands.setWeeklyPost);
   const pickWeeklyPostChannel = useSentOnce(api.website.commands.pickWeeklyPostChannel);
+  const setPublicCelebrations = useSentOnce(api.website.commands.setPublicCelebrations);
   const mapSlackEmoji = useSentOnce(api.website.emojiMappings.mapSlackEmoji);
   const mapMyEmoji = useSentOnce(api.website.emojiWizard.mapMyEmoji);
   const pickMyHypeEmoji = useSentOnce(api.website.emojiMappings.pickMyHypeEmoji);
@@ -221,6 +222,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
       setWeeklyPost: (on) => answerWithin(commandAnswerBudgetMs, setWeeklyPost({ on })),
       pickWeeklyPostChannel: (link) => answerWithin(commandAnswerBudgetMs, pickWeeklyPostChannel({ link })),
+      setPublicCelebrations: (on) => answerWithin(commandAnswerBudgetMs, setPublicCelebrations({ on })),
       mapSlackEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapSlackEmoji({ emoji, to })),
       mapMyEmoji: (emoji, to) => answerWithin(commandAnswerBudgetMs, mapMyEmoji({ emoji, to })),
       pickMyHypeEmoji: (emoji) => answerWithin(commandAnswerBudgetMs, pickMyHypeEmoji({ emoji })),
@@ -243,7 +245,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, onSignInFailure],
   );
 }
 

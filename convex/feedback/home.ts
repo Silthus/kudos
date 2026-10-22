@@ -16,7 +16,7 @@ import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { hasCoinPrice, perkOf, type Perk } from "../progression/tree";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
-import type { MessageSetting, NotificationSwitches } from "../messageSettings/messageSettings";
+import type { MessageSetting, NotificationSwitches, ShownNotificationSwitches } from "../messageSettings/messageSettings";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
 import { questOf } from "../quests/pool";
@@ -474,7 +474,7 @@ function settingsGroups({ onTheBoards, progress, messages, achievements, channel
   const leaderboard = onTheBoards === null ? [] : [[...leaderboardSwitch(onTheBoards), ...sectionLinksTo("visibility")]];
   const primaryGroup = groups === null ? [] : [[primaryGroupSetting(groups), ...sectionLinksTo("group")]];
   const copy = settingCopyOf(achievements, channelPicked);
-  const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
+  const progression = progress === null ? [] : [notificationSwitchLinesOf(copy, progress)];
   const sent = messages === null ? [] : [[...whatISendYouOf(messages), ...sectionLinksTo("messages")]];
   return [...leaderboard, ...primaryGroup, ...progression, ...sent];
 }
@@ -534,8 +534,12 @@ function celebrated(achievements: boolean) {
   return achievements ? "level ups and achievements" : "level ups";
 }
 
-function setting(copy: Record<keyof NotificationSwitches, SettingCopy>, settings: NotificationSwitches, key: keyof NotificationSwitches): HomeLine {
-  const on = settings[key];
+function notificationSwitchLinesOf(copy: Record<keyof NotificationSwitches, SettingCopy>, { muteNotices, dms }: ShownNotificationSwitches): HomeLine[] {
+  const muteNoticesLines = muteNotices === undefined ? [] : [setting(copy, "muteNotices", muteNotices)];
+  return [...muteNoticesLines, setting(copy, "dms", dms)];
+}
+
+function setting(copy: Record<keyof NotificationSwitches, SettingCopy>, key: keyof NotificationSwitches, on: boolean): HomeLine {
   const { text, label } = copy[key][on ? "whenOn" : "whenOff"];
   return { kind: "action", text, action: { label, command: { type: "setProgressSettings", ...changeOf(key, !on) } } };
 }
@@ -544,14 +548,21 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements, groupMode, mondayPost, welcomeNudge, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, publicCelebrations, groupMode, mondayPost, welcomeNudge, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
+  const publicCelebrationsLines = publicCelebrations === null || announcementChannel === null ? [] : [publicCelebrationsLinesOf(what, publicCelebrations)];
   const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
   const mondayPostLines = mondayPost === null ? [] : [mondayPostLinesOf(mondayPost)];
   const welcomeNudgeLines = welcomeNudge === null ? [] : [welcomeNudgeLinesOf(welcomeNudge)];
   const customKudosEmojiLines = customKudosEmoji === null ? [] : [customKudosEmojiLinesOf(customKudosEmoji)];
-  return [channelLines, ...groupModeLines, ...mondayPostLines, ...welcomeNudgeLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  return [channelLines, ...publicCelebrationsLines, ...groupModeLines, ...mondayPostLines, ...welcomeNudgeLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function publicCelebrationsLinesOf(what: string, on: boolean): HomeLine[] {
+  const heading: HomeLine = { kind: "text", text: bold("Public celebrations") };
+  if (!on) return [heading, { kind: "action", text: `I don't celebrate anyone's ${what} in public. Each teammate still hears about their own.`, action: { label: "Switch on", command: { type: "setPublicCelebrations", on: true } } }];
+  return [heading, { kind: "action", text: `I celebrate teammates' ${what} in the announcement channel.`, action: { label: "Switch off", command: { type: "setPublicCelebrations", on: false } } }];
 }
 
 function welcomeNudgeLinesOf(on: boolean): HomeLine[] {

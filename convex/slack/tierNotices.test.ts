@@ -394,6 +394,21 @@ describe("P63 P64 P69: Settings and Admin say they cover achievements where the 
   });
 });
 
+describe("public celebrations stop while the workspace switches them off", () => {
+  test("the tiers a kudos earns while they are off are told by DM and celebrated nowhere in public", async () => {
+    const t = await workspaceDeciding(onForEveryone("celebrations-switch"));
+    await t.run((ctx) => ctx.db.insert("celebrationsSwitches", { workspace: "T1", on: false }));
+    await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(tierDmsTo("U_ALICE")).toHaveLength(1);
+    expect(tierDmsTo("U_BOB")).toHaveLength(1);
+    expect(publicPosts()).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("publicReplies").collect())).toEqual([]);
+  });
+});
+
 async function workspace({ announcementChannel }: { announcementChannel?: string } = {}) {
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, ...(announcementChannel && { announcementChannel }) }));
