@@ -1,6 +1,0 @@
-Sandbox different-dog-467, 2026-10-21, tab with window.matchMedia stubbed so "(prefers-reduced-motion: reduce)" matches
-(the T3 preview cannot emulate the media feature; prefersReducedMotion() in website/src/reducedMotion.ts reads matchMedia).
-Seeded four Balls, clicked "Forge 3 into an Uncommon", sampled .al-forge[data-phase] every 20 ms for 2.5 s:
-[{"phase":"shown","ms":433,"caption":"Forged: Swimmer · Uncommon · New"}]
-The reveal mounted straight in "shown" with its caption; no fuse, flash or burst phase ran. It then rested and stepped to Swimmer's entry.
-Without the stub (runs 1 and 2) the reveal was caught in "fuse" right after the click (2-forge-fuse.png) and later in "shown" (3-forged-reveal.png).
