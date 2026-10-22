@@ -524,7 +524,11 @@ const toLevelTen: XpMoment = {
 
 const levelTenEarned = returning.emojis.map((emoji) => (emoji.id === "level:10" ? { ...emoji, earned: true, earnedAt: lastVisit + 50 * minute, seen: false, progress: null } : emoji));
 
-const atLevelTen: Album = { ...returning, level: toLevelTen.climb.to, emojis: levelTenEarned, board: { items: [...returning.board!.items, ...levelItemsOf(10)], more: false } };
+const levelTenEarnedInSlack = (inSlack: boolean) => levelTenEarned.map((emoji) => (emoji.id === "level:10" ? { ...emoji, inSlack } : emoji));
+
+const kudosEmojiHowTo = { kudosEmoji: "hedgehog", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hedgehog/1.png" };
+
+const atLevelTen: Album ={ ...returning, level: toLevelTen.climb.to, emojis: levelTenEarned, board: { items: [...returning.board!.items, ...levelItemsOf(10)], more: false } };
 
 const collectedAndStreamed = 1.42 + 0.55 + 0.7 + 0.38;
 
@@ -611,16 +615,36 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
   });
 
-  it("LP72: while onboarding is on, shows the level's emoji as :name: unlocked with how to use it, naming the workspace's kudos emoji", async () => {
-    const kudosEmoji = { kudosEmoji: "hedgehog", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hedgehog/1.png" };
-    await crossTheLevel({ moment: toLevelTen, album: { ...atLevelTen, emojiHowTo: kudosEmoji } });
+  it("LP72: while onboarding is on, shows the level's emoji Slack has as :name: unlocked with how to use it, naming the workspace's kudos emoji", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: { ...atLevelTen, emojis: levelTenEarnedInSlack(true), emojiHowTo: kudosEmojiHowTo } });
 
     const unlocked = within(theTakeover()!).getByRole("listitem", { name: ":level-10: unlocked" });
     expect(unlocked).toHaveTextContent(":level-10: unlocked");
     const howTo = within(unlocked).getByText(/^React or thank with it\. It counts like/);
     expect(howTo).toHaveTextContent(/^React or thank with it\. It counts like \.$/);
-    expect(within(howTo).getByRole("img", { name: ":hedgehog:" })).toHaveAttribute("src", kudosEmoji.kudosEmojiImage);
+    expect(within(howTo).getByRole("img", { name: ":hedgehog:" })).toHaveAttribute("src", kudosEmojiHowTo.kudosEmojiImage);
     expect(unlocked).not.toHaveTextContent("New emoji unlocked");
+  });
+
+  it("LP72: while onboarding is on, a level's emoji Slack lacks keeps New emoji unlocked and promises no use", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: { ...atLevelTen, emojis: levelTenEarnedInSlack(false), emojiHowTo: kudosEmojiHowTo } });
+
+    const unlocked = within(theTakeover()!).getByRole("listitem", { name: "New emoji :level-10:" });
+    expect(unlocked).toHaveTextContent(/^:level-10:New emoji unlocked$/);
+    expect(theTakeover()).not.toHaveTextContent(/React or thank with it|counts like/);
+  });
+
+  it("LP72: while the takeover stays open, an emoji Slack stops having loses the how-to line and one Slack starts having gains it", async () => {
+    const album = anAlbumThatAnswers({ ...atLevelTen, emojis: levelTenEarnedInSlack(true), emojiHowTo: kudosEmojiHowTo });
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen, read: album.read });
+    expect(within(theTakeover()!).getByRole("listitem", { name: ":level-10: unlocked" })).toBeInTheDocument();
+
+    const slackHas = (inSlack: boolean, name: string) => (answered: Album) => ({ ...answered, emojis: answered.emojis.map((emoji) => (emoji.id === "level:10" ? { ...emoji, name, inSlack, seen: true } : emoji)) });
+    await act(async () => album.answers(slackHas(false, "level-ten")));
+    expect(within(theTakeover()!).getByRole("listitem", { name: "New emoji :level-ten:" })).toHaveTextContent(/^:level-ten:New emoji unlocked$/);
+
+    await act(async () => album.answers(slackHas(true, "ten")));
+    expect(within(theTakeover()!).getByRole("listitem", { name: ":ten: unlocked" })).toHaveTextContent(/React or thank with it/);
   });
 
   it("leaves out an emoji the member has already seen and the items line when none of the level's items wait, and flows into All caught up", async () => {

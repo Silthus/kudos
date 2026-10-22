@@ -75,10 +75,11 @@ function ItemsUnlocked({ count }: { count: number }) {
 }
 
 function EmojiUnlocked({ emoji, howTo, order }: { emoji: AlbumEmoji; howTo: LoopLesson | null; order: number }) {
+  const usable = howTo !== null && emoji.inSlack;
   return (
-    <li aria-label={howTo === null ? `New emoji :${emoji.name}:` : `:${emoji.name}: unlocked`} style={orderOf(order)}>
+    <li aria-label={usable ? `:${emoji.name}: unlocked` : `New emoji :${emoji.name}:`} style={orderOf(order)}>
       <EmojiPicture emoji={emoji} size={unlockEmojiSize} />
-      {howTo === null ? <NewEmojiWords name={emoji.name} /> : <HowToUseWords name={emoji.name} howTo={howTo} />}
+      {usable ? <HowToUseWords name={emoji.name} howTo={howTo} /> : <NewEmojiWords name={emoji.name} />}
     </li>
   );
 }

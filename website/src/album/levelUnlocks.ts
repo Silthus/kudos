@@ -14,7 +14,12 @@ export function useLevelUnlocks(album: Album, { ended, play }: XpMomentSequence,
   const [kept, keep] = useState<Kept | null>(null);
   if (ended !== null && kept?.moment !== ended) keep({ moment: ended, unlocks: levelUnlocksOf(album, ended.climb) });
   useUnlockedOnceTheTakeoverShows(kept, play?.phase === "takeover", unlocked);
-  return ended !== null && kept?.moment === ended ? kept.unlocks : null;
+  return ended !== null && kept?.moment === ended ? asAnsweredNow(kept.unlocks, album) : null;
+}
+
+function asAnsweredNow(unlocks: LevelUnlocks, { emojis }: Album): LevelUnlocks {
+  const answered = new Map(emojis.map((emoji) => [emoji.id, emoji]));
+  return { ...unlocks, emojis: unlocks.emojis.map((emoji) => answered.get(emoji.id) ?? emoji) };
 }
 
 function useUnlockedOnceTheTakeoverShows(kept: Kept | null, takingOver: boolean, unlocked: (ids: string[]) => void) {
