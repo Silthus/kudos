@@ -9,12 +9,13 @@ import satori from "satori";
 import "wawoff2/decompress.js";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
+import type { MilestoneTier } from "../album/records";
 import { rarityWord, type Rarity } from "../hoggies/catalogue";
-import { isJustStarting, justStarting, playerCardValidator, type PlayerCard } from "./playerCard";
+import { counted, drawnCardValidator, foundDayOf, isAQuietCard, placeWordsOf, quietLineOf, type DrawnCard, type DrawnFace } from "./playerCard";
 
 export const cardSize = { width: 1200, height: 630 };
 
-export type CardArt = { face: string | null; crest: string | null; rarest: string | null };
+export type CardArt = { face: string | null; crest: string | null; rarest: string | null; people: (string | null)[]; emojis: (string | null)[] };
 
 type Node = { type: string; props: Record<string, unknown> & { style?: Record<string, unknown>; children?: unknown } };
 
@@ -28,7 +29,7 @@ const ink = { page: "#1e1f23", card: "#25262b", border: "#3e424f", text: "#f3f4f
 
 const rarityInk: Record<Rarity, string> = { common: "#aeb3c4", uncommon: "#4ade80", rare: "#60a5fa", epic: "#c084fc", legendary: "#fb923c" };
 
-const stackInk = { people: ["#6c7bd9", "#d9786c", "#5fb592"], emojis: ["#f5b301", "#ff7a45", "#c084fc"], medals: ["#d39a68", "#bfc2c8", "#e2b53a"] };
+const medalInk: Record<MilestoneTier, string> = { bronze: "#d39a68", silver: "#bfc2c8", gold: "#e2b53a", diamond: "#7dd3fc" };
 
 const fontFaces = [
   { url: roundHogRegularUrl, weight: 400 },
@@ -37,7 +38,7 @@ const fontFaces = [
 ] as const;
 
 export const drawn = observedAction({
-  args: { card: playerCardValidator, key: v.string() },
+  args: { card: drawnCardValidator, key: v.string() },
   handler: async (ctx, { card, key }): Promise<string | null> => {
     const png = await cardPictureOf(card, await artOf(card));
     const picture = await ctx.storage.store(new Blob([Buffer.from(png)], { type: "image/png" }));
@@ -45,14 +46,20 @@ export const drawn = observedAction({
   },
 });
 
-export async function cardPictureOf(card: PlayerCard, art: CardArt): Promise<Uint8Array> {
+export async function cardPictureOf(card: DrawnCard, art: CardArt): Promise<Uint8Array> {
   const svg = await satori(cardTreeOf(card, art) as never, { ...cardSize, fonts: await fontsOf() });
   return new Resvg(svg, { fitTo: { mode: "width", value: cardSize.width } }).render().asPng();
 }
 
-export async function artOf(card: PlayerCard): Promise<CardArt> {
-  const [face, crest, rarest] = await Promise.all([pictureOrNull(card.face), pictureOrNull(card.team?.crest ?? null), pictureOrNull(card.rarest?.picture ?? null)]);
-  return { face, crest, rarest };
+export async function artOf(card: DrawnCard): Promise<CardArt> {
+  const [face, crest, rarest, people, emojis] = await Promise.all([
+    pictureOrNull(card.face.picture),
+    pictureOrNull(card.team?.crest ?? null),
+    pictureOrNull(card.hoggies?.rarest?.picture ?? null),
+    Promise.all(card.people.newest.map((person) => pictureOrNull(person.picture))),
+    Promise.all(card.emojis.pictures.map(pictureOrNull)),
+  ]);
+  return { face, crest, rarest, people, emojis };
 }
 
 async function pictureOrNull(url: string | null): Promise<string | null> {
@@ -101,30 +108,29 @@ function picture(src: string, size: number, style: Record<string, unknown> = {})
   return { type: "img", props: { src, width: size, height: size, style: { width: size, height: size, ...style } } };
 }
 
-function cardTreeOf(card: PlayerCard, art: CardArt): Node {
+function cardTreeOf(card: DrawnCard, art: CardArt): Node {
   return h(
     "div",
     { width: cardSize.width, height: cardSize.height, padding: 40, gap: 32, background: ink.page, color: ink.text, fontFamily: "RoundHog" },
     playerSideOf(card, art),
-    rarestSideOf(card, art),
+    card.hoggies === null ? null : rarestSideOf(card.hoggies.rarest, art),
   );
 }
 
-function playerSideOf(card: PlayerCard, art: CardArt): Node {
+function playerSideOf(card: DrawnCard, art: CardArt): Node {
   return h(
     "div",
-    { flexDirection: "column", width: 720, padding: 36, gap: 24, justifyContent: "space-between", borderRadius: 32, border: `2px solid ${ink.border}`, backgroundColor: ink.card, backgroundImage: "radial-gradient(circle at 0% 0%, rgba(255,122,69,0.16), rgba(255,122,69,0) 60%)" },
+    { flexDirection: "column", flexGrow: card.hoggies === null ? 1 : 0, width: card.hoggies === null ? undefined : 720, padding: 36, gap: 24, justifyContent: "space-between", borderRadius: 32, border: `2px solid ${ink.border}`, backgroundColor: ink.card, backgroundImage: "radial-gradient(circle at 0% 0%, rgba(255,122,69,0.16), rgba(255,122,69,0) 60%)" },
     h("div", { alignItems: "center", gap: 32 }, ringOf(card, art), whoOf(card, art)),
     rankStripOf(card),
-    isJustStarting(card) ? quietLineOf() : statsOf(card),
+    isAQuietCard(card) ? quietLineIn(card) : statsOf(card, art),
   );
 }
 
-function ringOf({ name, level }: PlayerCard, art: CardArt): Node {
+function ringOf({ face, level }: DrawnCard, art: CardArt): Node {
   const size = 176;
   const radius = 80;
   const around = 2 * Math.PI * radius;
-  const share = level?.share ?? 0;
   const ring = {
     type: "svg",
     props: {
@@ -134,63 +140,74 @@ function ringOf({ name, level }: PlayerCard, art: CardArt): Node {
       style: { position: "absolute", top: 0, left: 0 },
       children: [
         { type: "circle", props: { cx: size / 2, cy: size / 2, r: radius, fill: "none", stroke: ink.track, strokeWidth: 12 } },
-        share > 0 && { type: "circle", props: { cx: size / 2, cy: size / 2, r: radius, fill: "none", stroke: ink.accent, strokeWidth: 12, strokeLinecap: "round", strokeDasharray: `${around * share} ${around}`, transform: `rotate(-90 ${size / 2} ${size / 2})` } },
+        level !== null && { type: "circle", props: { cx: size / 2, cy: size / 2, r: radius, fill: "none", stroke: ink.accent, strokeWidth: 12, strokeLinecap: "round", strokeDasharray: `${around * Math.max(0.03, level.share)} ${around}`, transform: `rotate(-90 ${size / 2} ${size / 2})` } },
       ].filter(Boolean),
     },
   };
-  const face = art.face === null ? h("div", { width: 132, height: 132, borderRadius: 66, alignItems: "center", justifyContent: "center", backgroundColor: "#33353d", color: ink.quiet, fontSize: 48, fontWeight: 700 }, initialsOf(name)) : picture(art.face, 132, { borderRadius: 66, objectFit: "cover" });
   return h(
     "div",
     { position: "relative", width: size, height: size, alignItems: "center", justifyContent: "center", flexShrink: 0 },
     ring as Node,
-    face,
+    faceOf(face, art.face, 132),
     level === null ? null : h("div", { position: "absolute", bottom: -4, alignItems: "baseline", gap: 4, padding: "4px 16px", borderRadius: 999, backgroundColor: ink.accent, color: "#141414", border: `4px solid ${ink.card}` }, h("span", { fontSize: 20, fontWeight: 700 }, "LV"), h("span", { fontSize: 32, fontWeight: 700 }, String(level.level))),
   );
 }
 
-function whoOf({ name, team, level }: PlayerCard, art: CardArt): Node {
+function faceOf(face: DrawnFace, drawn: string | null, size: number, style: Record<string, unknown> = {}): Node {
+  if (drawn !== null) return picture(drawn, size, { borderRadius: size / 2, objectFit: "cover", ...style });
+  return h("div", { width: size, height: size, borderRadius: size / 2, alignItems: "center", justifyContent: "center", backgroundColor: "#33353d", color: ink.quiet, fontSize: Math.round(size * 0.36), fontWeight: 700, ...style }, face.initials);
+}
+
+function whoOf({ name, team, level }: DrawnCard, art: CardArt): Node {
   return h(
     "div",
     { flexDirection: "column", gap: 10, flexGrow: 1, minWidth: 0 },
     h("div", { fontSize: 54, fontWeight: 700, letterSpacing: -1.5, lineHeight: 1.05, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, name),
-    team === null ? null : h("div", { alignItems: "center", gap: 12, fontSize: 30, fontWeight: 600 }, art.crest === null ? null : picture(art.crest, 40), team.name),
+    team === null ? h("div", { fontSize: 26, color: ink.quiet }, "No team yet") : h("div", { alignItems: "center", gap: 12, fontSize: 30, fontWeight: 600 }, art.crest === null ? null : picture(art.crest, 40), team.name),
     level === null ? null : h("div", { alignItems: "baseline", gap: 10, fontSize: 28 }, h("span", { fontWeight: 700 }, `${level.xp.toLocaleString("en-GB")} XP`), h("span", { color: ink.quiet }, `· level ${level.level}`)),
   );
 }
 
-function rankStripOf({ place }: PlayerCard): Node {
+function rankStripOf({ place }: DrawnCard): Node {
   const ranked = place !== null;
   return h(
     "div",
     { alignItems: "center", gap: 16, padding: "16px 22px", borderRadius: 18, fontSize: 28, border: `2px solid ${ranked ? "rgba(245,179,1,0.5)" : "rgba(255,122,69,0.3)"}`, backgroundColor: ranked ? "rgba(245,179,1,0.12)" : "rgba(255,122,69,0.1)" },
-    crownOf(ranked ? ink.gold : ink.accentInk),
-    ranked ? h("span", { fontWeight: 700 }, `No. ${place.rank}${place.tied ? " tied" : ""} all time`) : h("span", { fontWeight: 700 }, "Not on the board yet"),
-    ranked ? h("span", { color: ink.quiet }, `· ${place.thoughtful} thoughtful kudos`) : null,
+    iconOf(ranked ? crown : heart, ranked ? ink.gold : ink.accentInk),
+    h("span", { fontWeight: 700 }, placeWordsOf(place)),
+    ranked ? h("span", { color: ink.quiet }, `· ${counted(place.thoughtful, "thoughtful kudos", "thoughtful kudos")}`) : null,
   );
 }
 
-function crownOf(colour: string): Node {
+const crown = "M3 18h18l-1.5-10-5 4L12 5l-2.5 7-5-4z";
+
+const heart = "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z";
+
+function iconOf(path: string, colour: string): Node {
   return {
     type: "svg",
-    props: { width: 34, height: 34, viewBox: "0 0 24 24", children: { type: "path", props: { d: "M3 18h18l-1.5-10-5 4L12 5l-2.5 7-5-4z", fill: "none", stroke: colour, strokeWidth: 2, strokeLinejoin: "round" } } },
+    props: { width: 34, height: 34, viewBox: "0 0 24 24", children: { type: "path", props: { d: path, fill: "none", stroke: colour, strokeWidth: 2, strokeLinejoin: "round" } } },
   };
 }
 
-function statsOf({ hoggies, people, emojis, medals }: PlayerCard): Node {
-  const found = hoggies?.found ?? 0;
-  const total = hoggies?.total ?? 0;
+function statsOf({ hoggies, people, emojis, medals }: DrawnCard, art: CardArt): Node {
+  const cells: Child[][] = [
+    ...(hoggies === null ? [] : [[h("div", { flexDirection: "column", gap: 10, flexGrow: 1 }, figureOf(hoggies.found, hoggies.total, "hoggies found"), barOf(hoggies.total === 0 ? 0 : hoggies.found / hoggies.total))]]),
+    [stackOf(people.newest.map((face, index) => faceOf(face, art.people[index] ?? null, 38, stacked(index)))), figureOf(people.held, null, people.held === 1 ? "person" : "people")],
+    [stackOf(art.emojis.map((drawn, index) => (drawn === null ? discOf("#4a4d57", index) : picture(drawn, 38, stacked(index))))), figureOf(emojis.count, null, emojis.count === 1 ? "emoji" : "emojis")],
+    [stackOf(medals.best.map((tier, index) => discOf(medalInk[tier], index))), figureOf(medals.count, null, medals.count === 1 ? "medal" : "medals")],
+  ];
   const line = `1px solid ${ink.border}`;
-  return h(
-    "div",
-    { flexDirection: "column" },
-    h(
-      "div",
-      { borderBottom: line },
-      statCellOf({ borderRight: line }, h("div", { flexDirection: "column", gap: 10, flexGrow: 1 }, figureOf(found, total, "hoggies found"), barOf(total === 0 ? 0 : found / total))),
-      statCellOf({}, stackOf(stackInk.people, people), figureOf(people, null, people === 1 ? "person" : "people")),
-    ),
-    h("div", {}, statCellOf({ borderRight: line }, stackOf(stackInk.emojis, emojis), figureOf(emojis, null, emojis === 1 ? "emoji" : "emojis")), statCellOf({}, stackOf(stackInk.medals, medals), figureOf(medals, null, medals === 1 ? "medal" : "medals"))),
-  );
+  const rows = [cells.slice(0, 2), cells.slice(2)];
+  return h("div", { flexDirection: "column" }, ...rows.map((row, rowIndex) => h("div", { borderBottom: rowIndex === 0 ? line : undefined }, ...row.map((cell, index) => statCellOf(index === 0 ? { borderRight: line } : {}, ...cell)))));
+}
+
+function stacked(index: number): Record<string, unknown> {
+  return { border: `3px solid ${ink.card}`, marginLeft: index === 0 ? 0 : -8 };
+}
+
+function discOf(colour: string, index: number): Node {
+  return h("div", { width: 38, height: 38, borderRadius: 19, backgroundColor: colour, ...stacked(index) });
 }
 
 function statCellOf(edge: Record<string, unknown>, ...children: Child[]): Node {
@@ -208,40 +225,31 @@ function figureOf(figure: number, of: number | null, label: string): Node {
 }
 
 function barOf(share: number): Node {
-  return h("div", { height: 12, borderRadius: 6, backgroundColor: ink.track, width: "100%" }, h("div", { height: 12, borderRadius: 6, backgroundColor: ink.accent, width: `${Math.max(share > 0 ? 4 : 0, Math.round(share * 100))}%` }));
+  return h("div", { height: 12, borderRadius: 6, backgroundColor: ink.track, width: "100%" }, h("div", { height: 12, borderRadius: 6, backgroundColor: ink.accent, width: `${Math.max(3, Math.round(Math.min(1, share) * 100))}%` }));
 }
 
-function stackOf(colours: string[], count: number): Node {
-  const shown = colours.slice(0, Math.min(colours.length, count));
+function stackOf(shown: Node[]): Node {
   if (shown.length === 0) return h("div", { width: 30, height: 30, borderRadius: 15, border: `3px dashed ${ink.border}` });
-  return h("div", {}, ...shown.map((colour, index) => h("div", { width: 38, height: 38, borderRadius: 19, backgroundColor: colour, border: `3px solid ${ink.card}`, marginLeft: index === 0 ? 0 : -14 })));
+  return h("div", {}, ...shown);
 }
 
-function quietLineOf(): Node {
-  return h("div", { padding: "22px 4px", fontSize: 28, lineHeight: 1.3, color: ink.quiet, borderTop: `1px solid ${ink.border}` }, `${justStarting}.`);
+function quietLineIn({ name }: DrawnCard): Node {
+  return h("div", { padding: "22px 4px", fontSize: 28, lineHeight: 1.3, color: ink.quiet, borderTop: `1px solid ${ink.border}` }, quietLineOf(name));
 }
 
-function rarestSideOf({ rarest }: PlayerCard, art: CardArt): Node {
+function rarestSideOf(rarest: NonNullable<DrawnCard["hoggies"]>["rarest"], art: CardArt): Node {
   const colour = rarest === null ? ink.border : rarityInk[rarest.rarity];
   return h(
     "div",
-    { flexDirection: "column", flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 18, padding: 32, borderRadius: 32, border: `2px solid ${colour}`, backgroundColor: ink.card, backgroundImage: `radial-gradient(circle at 50% 30%, ${colour}33, ${colour}00 65%)` },
+    { flexDirection: "column", flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 32, borderRadius: 32, border: `2px solid ${colour}`, backgroundColor: ink.card, backgroundImage: `radial-gradient(circle at 50% 30%, ${colour}33, ${colour}00 65%)` },
     h(
       "div",
       { width: 236, height: 236, borderRadius: 118, alignItems: "center", justifyContent: "center", border: `6px solid ${colour}`, backgroundColor: "#1a1b1f", color: ink.quiet, fontSize: 96, fontWeight: 700 },
       rarest === null || art.rarest === null ? "?" : picture(art.rarest, 196),
     ),
     h("div", { fontSize: 22, fontWeight: 700, letterSpacing: 2.5, color: ink.accentInk }, "RAREST FIND"),
-    rarest === null ? h("div", { fontSize: 28, color: ink.quiet, textAlign: "center" }, "No hoggie found yet") : h("div", { fontSize: 46, fontWeight: 700, letterSpacing: -1, textAlign: "center" }, rarest.name),
+    rarest === null ? h("div", { fontSize: 28, color: ink.quiet, textAlign: "center" }, "No hoggie found yet.") : h("div", { fontSize: 46, fontWeight: 700, letterSpacing: -1, textAlign: "center" }, rarest.name),
     rarest === null ? null : h("div", { fontSize: 24, fontWeight: 700, letterSpacing: 2, color: colour }, rarityWord(rarest.rarity).toUpperCase()),
+    rarest === null ? null : h("div", { fontSize: 22, color: ink.quiet }, `Found ${foundDayOf(rarest.foundAt)}`),
   );
-}
-
-function initialsOf(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]!.toUpperCase())
-    .join("");
 }

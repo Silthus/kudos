@@ -6,6 +6,8 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { linkSharedEvent, type LinkSharedOptions } from "../../testing/slackMessages";
 import type { LadderId, TierId } from "../achievements/ladders";
+import { allowanceDay } from "../engine/allowance";
+import { keyOf } from "../leaderboard/periods";
 import type { MemberId } from "../workspace/directory";
 import { xpToReach } from "../progression/levels";
 
@@ -653,6 +655,7 @@ describe("LP99 LP100: while card-image is on, a person link unfolds into a pictu
     const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
     const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
     await thanked(t, { [juno]: 12, [bram]: 5 });
+    await thankedThisWeek(t, { [juno]: 4, [bram]: 2 });
     await found(t, juno, "asleep", "wizard", "angel");
     await collected(t, juno, bram);
     await teamEmojiInSlack(t, "kettle-works");
@@ -666,20 +669,20 @@ describe("LP99 LP100: while card-image is on, a person link unfolds into a pictu
       {
         type: "image",
         image_url: picture!.url,
-        alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 on the all-time leaderboard, 12 thoughtful kudos given. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 2 medals. Rarest find: Wizard, Legendary.",
+        alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 this week, 4 thoughtful kudos. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 0 medals. Rarest find: Wizard, Legendary, found 21 Oct 2026.",
       },
       { type: "context", elements: [{ type: "mrkdwn", text: `*<${url}|Juno Park>* · HedgeHug album · as of ${madeAt}` }] },
     ]);
   });
 
-  test("a quiet member's picture says they are just getting started, never a row of zeros", async () => {
+  test("a quiet member's picture welcomes them in words, never a row of zeros", async () => {
     const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
     const bram = await memberOf(t, "U_BRAM");
     const url = `${site}/book#people/${bram}`;
 
     await sharedWhileDrawing(t, [url]);
 
-    expect((blocksOf(url)[0] as { alt_text: string }).alt_text).toBe("Bram Ode's player card. Level 1, 0 XP. Just getting started: their first thanks and finds show up here.");
+    expect((blocksOf(url)[0] as { alt_text: string }).alt_text).toBe("Bram Ode's player card. Level 1, 0 XP. No team yet. Not on this week's board yet. Bram's album is just getting started. No hoggie found yet.");
   });
 
   test("a team link keeps its card while card-image is on", async () => {
@@ -867,6 +870,13 @@ function hoggiePicture(hoggie: string, name: string) {
 async function thanked(t: Backend, givers: Record<string, number>) {
   await t.run(async (ctx) => {
     for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: giver as MemberId, awards });
+  });
+}
+
+async function thankedThisWeek(t: Backend, givers: Record<string, number>) {
+  const thisWeek = keyOf("week", allowanceDay(Date.now(), undefined));
+  await t.run(async (ctx) => {
+    for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: thisWeek, giver: giver as MemberId, awards });
   });
 }
 

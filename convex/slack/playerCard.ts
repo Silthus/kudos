@@ -1,57 +1,61 @@
 import { v, type Infer } from "convex/values";
+import { milestoneTierValidator } from "../album/records";
 import { productName } from "../feedback/naming";
 import { rarityValidator, rarityWord } from "../hoggies/catalogue";
-import type { PersonStats } from "../website/linkCardStats";
 import type { PersonPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn } from "./blocks";
 
-const drawingVersion = 1;
+const drawingVersion = 2;
 
-const placeValidator = v.object({ rank: v.number(), tied: v.boolean(), thoughtful: v.number() });
+const faceValidator = v.object({ picture: v.union(v.string(), v.null()), initials: v.string() });
 
-export const playerCardValidator = v.object({
+const rarestValidator = v.object({ name: v.string(), rarity: rarityValidator, picture: v.string(), foundAt: v.number() });
+
+export const drawnCardValidator = v.object({
   name: v.string(),
-  face: v.union(v.string(), v.null()),
+  face: faceValidator,
   level: v.union(v.object({ level: v.number(), xp: v.number(), share: v.number() }), v.null()),
   team: v.union(v.object({ name: v.string(), crest: v.union(v.string(), v.null()) }), v.null()),
-  place: v.union(placeValidator, v.null()),
-  hoggies: v.union(v.object({ found: v.number(), total: v.number() }), v.null()),
-  people: v.number(),
-  emojis: v.number(),
-  medals: v.number(),
-  rarest: v.union(v.object({ name: v.string(), rarity: rarityValidator, picture: v.string() }), v.null()),
+  place: v.union(v.object({ rank: v.number(), tied: v.boolean(), thoughtful: v.number() }), v.null()),
+  hoggies: v.union(v.object({ found: v.number(), total: v.number(), rarest: v.union(rarestValidator, v.null()) }), v.null()),
+  people: v.object({ held: v.number(), newest: v.array(faceValidator) }),
+  emojis: v.object({ count: v.number(), pictures: v.array(v.string()) }),
+  medals: v.object({ count: v.number(), best: v.array(milestoneTierValidator) }),
 });
 
-export type PlayerCard = Infer<typeof playerCardValidator>;
+export type DrawnCard = Infer<typeof drawnCardValidator>;
 
-export function playerCardOf(preview: PersonPreview, stats: PersonStats, emojis: number): PlayerCard {
-  const [team] = stats.teams;
-  const [rarest] = stats.rarest;
-  return {
-    name: preview.name,
-    face: preview.picture,
-    level: stats.way,
-    team: team === undefined ? null : { name: team.name, crest: team.crest },
-    place: stats.place,
-    hoggies: stats.hoggies,
-    people: stats.people,
-    emojis,
-    medals: preview.medals.length,
-    rarest: rarest === undefined ? null : { name: rarest.name, rarity: rarest.rarity, picture: rarest.picture },
-  };
+export type DrawnFace = DrawnCard["face"];
+
+const foundOn = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+
+export function isAQuietCard({ hoggies, people, emojis, medals }: DrawnCard) {
+  return (hoggies?.found ?? 0) + people.held + emojis.count + medals.count === 0;
 }
 
-export function isJustStarting({ place, hoggies, people, emojis, medals, rarest }: PlayerCard) {
-  return place === null && (hoggies?.found ?? 0) === 0 && people === 0 && emojis === 0 && medals === 0 && rarest === null;
+export function quietLineOf(name: string) {
+  return `${firstNameOf(name)}'s album is just getting started.`;
 }
 
-export async function cardKeyOf(card: PlayerCard): Promise<string> {
+export function placeWordsOf(place: DrawnCard["place"]) {
+  return place === null ? "Not on this week's board yet" : `No. ${place.rank}${place.tied ? " tied" : ""} this week`;
+}
+
+export function foundDayOf(at: number) {
+  return foundOn.format(at);
+}
+
+export function counted(count: number, one: string, many: string) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+export async function cardKeyOf(card: DrawnCard): Promise<string> {
   const facts = new TextEncoder().encode(JSON.stringify({ drawingVersion, card }));
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", facts));
   return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export function pictureBlocksOf(preview: PersonPreview, card: PlayerCard, picture: string, asOf: number) {
+export function pictureBlocksOf(preview: PersonPreview, card: DrawnCard, picture: string, asOf: number) {
   const seconds = Math.floor(asOf / 1000);
   const day = `<!date^${seconds}^{date_short}|${new Date(seconds * 1000).toISOString().slice(0, 10)}>`;
   return [
@@ -60,24 +64,34 @@ export function pictureBlocksOf(preview: PersonPreview, card: PlayerCard, pictur
   ];
 }
 
-export function altTextOf(card: PlayerCard): string {
-  const facts = [`${card.name}'s player card`, ...levelFactsOf(card), ...(card.team === null ? [] : [card.team.name]), ...(isJustStarting(card) ? [justStarting] : statFactsOf(card))];
-  return facts.map((fact) => `${fact}.`).join(" ");
+export function altTextOf(card: DrawnCard): string {
+  const facts = [`${card.name}'s player card`, ...levelFactsOf(card), card.team?.name ?? "No team yet", placeFactOf(card), ...(isAQuietCard(card) ? [quietLineOf(card.name)] : statFactsOf(card)), ...rarestFactsOf(card)];
+  return facts.map((fact) => (fact.endsWith(".") ? fact : `${fact}.`)).join(" ");
 }
 
-export const justStarting = "Just getting started: their first thanks and finds show up here";
-
-function levelFactsOf({ level }: PlayerCard) {
+function levelFactsOf({ level }: DrawnCard) {
   return level === null ? [] : [`Level ${level.level}, ${level.xp.toLocaleString("en-GB")} XP`];
 }
 
-function statFactsOf({ place, hoggies, people, emojis, medals, rarest }: PlayerCard) {
+function placeFactOf({ place }: DrawnCard) {
+  return place === null ? placeWordsOf(place) : `${placeWordsOf(place)}, ${counted(place.thoughtful, "thoughtful kudos", "thoughtful kudos")}`;
+}
+
+function statFactsOf({ hoggies, people, emojis, medals }: DrawnCard) {
   return [
-    ...(place === null ? [] : [`No. ${place.rank}${place.tied ? ", tied," : ""} on the all-time leaderboard, ${place.thoughtful} thoughtful kudos given`]),
-    ...(hoggies === null || hoggies.found === 0 ? [] : [`${hoggies.found} of ${hoggies.total} hoggies found`]),
-    ...(people === 0 ? [] : [`${people} ${people === 1 ? "person" : "people"} in their album`]),
-    ...(emojis === 0 ? [] : [`${emojis} ${emojis === 1 ? "emoji" : "emojis"} unlocked`]),
-    ...(medals === 0 ? [] : [`${medals} ${medals === 1 ? "medal" : "medals"}`]),
-    ...(rarest === null ? [] : [`Rarest find: ${rarest.name}, ${rarityWord(rarest.rarity)}`]),
+    ...(hoggies === null ? [] : [`${hoggies.found} of ${hoggies.total} hoggies found`]),
+    `${counted(people.held, "person", "people")} in their album`,
+    `${counted(emojis.count, "emoji", "emojis")} unlocked`,
+    counted(medals.count, "medal", "medals"),
   ];
+}
+
+function rarestFactsOf({ hoggies }: DrawnCard) {
+  if (hoggies === null) return [];
+  const { rarest } = hoggies;
+  return rarest === null ? ["No hoggie found yet"] : [`Rarest find: ${rarest.name}, ${rarityWord(rarest.rarity)}, found ${foundDayOf(rarest.foundAt)}`];
+}
+
+function firstNameOf(name: string) {
+  return name.split(/\s+/, 1)[0] ?? name;
 }

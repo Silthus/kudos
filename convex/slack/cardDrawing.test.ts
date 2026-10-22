@@ -2,26 +2,35 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { testBackend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import { cardPictureOf, cardSize } from "./cardDrawing";
-import { cardKeyOf, type PlayerCard } from "./playerCard";
+import { cardKeyOf, type DrawnCard } from "./playerCard";
 
 const site = "https://hedgehug.example";
 
-const richMember: PlayerCard = {
+const richMember: DrawnCard = {
   name: "Wren Alder",
-  face: "https://res.cloudinary.com/posthog/wren.png",
+  face: { picture: "https://res.cloudinary.com/posthog/wren.png", initials: "WA" },
   level: { level: 8, xp: 2310, share: 0.62 },
   team: { name: "Kettle Works", crest: "https://res.cloudinary.com/posthog/kettle-works.png" },
   place: { rank: 1, tied: false, thoughtful: 7 },
-  hoggies: { found: 64, total: 151 },
-  people: 24,
-  emojis: 7,
-  medals: 4,
-  rarest: { name: "Wizard", rarity: "legendary", picture: `${site}/share/wizard.png` },
+  hoggies: { found: 64, total: 151, rarest: { name: "Wizard", rarity: "legendary", picture: `${site}/share/wizard.png`, foundAt: Date.UTC(2026, 9, 3) } },
+  people: { held: 24, newest: [{ picture: null, initials: "IF" }, { picture: null, initials: "BO" }, { picture: null, initials: "JP" }] },
+  emojis: { count: 7, pictures: [`${site}/emoji/team-kettle-works.png`] },
+  medals: { count: 4, best: ["gold", "silver", "bronze"] },
 };
 
-const quietMember: PlayerCard = { name: "Ivo Fenn", face: null, level: { level: 1, xp: 0, share: 0 }, team: null, place: null, hoggies: { found: 0, total: 151 }, people: 0, emojis: 0, medals: 0, rarest: null };
+const quietMember: DrawnCard = {
+  name: "Ivo Fenn",
+  face: { picture: null, initials: "IF" },
+  level: { level: 1, xp: 0, share: 0 },
+  team: null,
+  place: null,
+  hoggies: { found: 0, total: 151, rarest: null },
+  people: { held: 0, newest: [] },
+  emojis: { count: 0, pictures: [] },
+  medals: { count: 0, best: [] },
+};
 
-const noArt = { face: null, crest: null, rarest: null };
+const noArt = { face: null, crest: null, rarest: null, people: [], emojis: [] };
 
 const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
@@ -33,6 +42,7 @@ describe("LP99: the player card is drawn as a PNG", { timeout: 60_000 }, () => {
   test.each([
     ["a rich member", richMember],
     ["a quiet member", quietMember],
+    ["a member whose hoggies are hidden", { ...richMember, hoggies: null }],
   ])("%s's card is a 1200×630 PNG small enough for Slack to fetch", async (_, card) => {
     const png = await cardPictureOf(card, noArt);
 
@@ -64,17 +74,19 @@ describe("LP101: a card's key is a hash of its facts", () => {
     expect(await cardKeyOf(richMember)).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  test.each<[string, Partial<PlayerCard>]>([
+  test.each<[string, Partial<DrawnCard>]>([
     ["name", { name: "Wren A." }],
-    ["face", { face: null }],
+    ["face", { face: { picture: null, initials: "WA" } }],
     ["level", { level: { level: 8, xp: 2311, share: 0.62 } }],
     ["team", { team: null }],
     ["place", { place: { rank: 2, tied: false, thoughtful: 7 } }],
-    ["hoggies", { hoggies: { found: 65, total: 151 } }],
-    ["people", { people: 25 }],
-    ["emojis", { emojis: 8 }],
-    ["medals", { medals: 5 }],
-    ["rarest", { rarest: null }],
+    ["hoggies", { hoggies: { ...richMember.hoggies!, found: 65 } }],
+    ["rarest", { hoggies: { ...richMember.hoggies!, rarest: null } }],
+    ["people", { people: { ...richMember.people, held: 25 } }],
+    ["newest faces", { people: { ...richMember.people, newest: richMember.people.newest.slice(1) } }],
+    ["emojis", { emojis: { ...richMember.emojis, count: 8 } }],
+    ["medals", { medals: { count: 5, best: ["gold", "silver", "bronze"] } }],
+    ["best medals", { medals: { count: 4, best: ["diamond", "silver", "bronze"] } }],
   ])("a changed %s gives a new key", async (_, change) => {
     expect(await cardKeyOf({ ...richMember, ...change })).not.toBe(await cardKeyOf(richMember));
   });

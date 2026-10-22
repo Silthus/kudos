@@ -93,7 +93,7 @@ async function cardTeamsOf(ctx: QueryCtx, workspace: string, origin: string, tea
   return shown;
 }
 
-function crestPictureOf(origin: string, art: TeamCrestArt): string | null {
+export function crestPictureOf(origin: string, art: TeamCrestArt): string | null {
   if (art === null) return null;
   return art.kind === "crest" ? `${origin}${emojiArtPictureOf("team", art.slug)}` : art.url;
 }
