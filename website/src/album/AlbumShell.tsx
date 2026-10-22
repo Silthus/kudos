@@ -1,3 +1,4 @@
+import { hoggieNamed } from "../../../convex/hoggies/catalogue";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
@@ -145,7 +146,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
 }
 
 function aHoggieEntryIsOpen(place: Place) {
-  return place.kind === "hoggies" && place.hoggie !== null;
+  return place.kind === "hoggies" && place.hoggie !== null && hoggieNamed(place.hoggie) !== undefined;
 }
 
 function firstShown(buttons: RefObject<HTMLElement | null>[]) {
