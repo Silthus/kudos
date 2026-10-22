@@ -44,6 +44,19 @@ export const linkPreviewsOf = internalQuery({
   },
 });
 
+export const personCardOf = internalQuery({
+  args: { workspace: v.string(), person: v.id("members") },
+  handler: async (ctx, { workspace, person }): Promise<PersonPreview | null> => {
+    const origin = siteOriginFor(workspace);
+    if (origin === null) return null;
+    return personPreviewOf(ctx, { ...cardReadsOf(ctx, workspace, origin), rich: true }, personPageOf(origin, person), person);
+  },
+});
+
+export function personPageOf(origin: string, person: MemberId) {
+  return pageUrlOf(origin, "people", person);
+}
+
 export const emojisUnlockedOf = internalQuery({
   args: { workspace: v.string(), person: v.id("members") },
   handler: (ctx, { workspace, person }): Promise<number> => earnedEmojiCountOf(ctx, workspace, person),

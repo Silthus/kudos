@@ -1,12 +1,14 @@
 import type { Segment } from "../activity/entries";
 import type { MondayPost, PostedGroup } from "../leaderboard/mondayPost";
 import type { ShownEmoji } from "../album/earnedEmojis";
-import type { QuotedKudos, TopKudosPost } from "../leaderboard/topKudos";
+import type { QuotedKudos, QuotedPerson, TopKudosPost } from "../leaderboard/topKudos";
 import { publicPictureOf } from "./albumSlack";
 import { asWritten } from "./groupCopy";
 import { medalOf } from "./leaderboard";
 import type { Find } from "../items/finds";
 import type { Line } from "./segments";
+import { personPageOf } from "../website/linkPreviews";
+import type { MemberId } from "../workspace/directory";
 
 export function renderMondayPost({ groups, mostImproved, givers }: MondayPost): Line[] {
   const mostImprovedLine: Line[] = mostImproved === null ? [] : [[{ text: `📈 Most improved: ${asWritten({ name: mostImproved })}` }]];
@@ -23,7 +25,7 @@ function peopleCount(givers: number) {
 
 export const quotedCharactersAtMost = 200;
 
-export type Words = { text: string; strong?: true };
+export type Words = { text: string; strong?: true; link?: string };
 
 export type TopKudosEntry = { lead: Words[]; quote: string; permalink: string | null };
 
@@ -31,26 +33,45 @@ export type PublicEmoji = Omit<ShownEmoji, "picture"> & { picture: string | null
 
 export type TeamRow = { team: string; count: string; emoji: PublicEmoji | null };
 
-export type TopKudosMessage = { headline: string; kudos: TopKudosEntry[]; teams: { headline: string; rows: TeamRow[] } | null };
+export type NewGiverRow = { place: number; member: MemberId; name: string; page: string | null; thoughtful: number };
 
-export function renderTopKudosPost({ kudos, teams, origin }: TopKudosPost): TopKudosMessage {
+export type TopKudosMessage = { headline: string; kudos: TopKudosEntry[]; embedsQuotedMessage: boolean; newGivers: { headline: string; rows: NewGiverRow[] } | null; teams: { headline: string; rows: TeamRow[] } | null };
+
+export function renderTopKudosPost({ kudos, teams, origin, newGivers: highlightedGivers }: TopKudosPost): TopKudosMessage {
+  const highlighted = highlightedGivers !== undefined;
+  const newGivers = highlightedGivers ?? [];
+  const pageOf = (person: QuotedPerson) => (origin === null ? undefined : personPageOf(origin, person.member));
   return {
     headline: "🏆 Last week's top thoughtful kudos",
-    kudos: kudos.map((entry, index) => ({ lead: leadOf(entry, index + 1), quote: quoteOf(entry.words), permalink: entry.permalink })),
+    kudos: kudos.map((entry, index) => ({ lead: highlighted ? linkedLeadOf(entry, pageOf) : leadOf(entry, index + 1), quote: quoteOf(entry.words), permalink: entry.permalink })),
+    embedsQuotedMessage: highlighted,
+    newGivers: newGivers.length === 0 ? null : { headline: "🌱 Top new givers last week", rows: newGivers.map((giver, index) => ({ place: index + 1, ...giver, page: origin === null ? null : personPageOf(origin, giver.member) })) },
     teams: teams.length === 0 ? null : { headline: "Team stickers unlocked last week", rows: teams.map(({ name, count, emoji }) => ({ team: name, count: `×${count}`, emoji: emoji === null ? null : { ...emoji, picture: publicPictureOf(emoji.picture, origin) } })) },
   };
 }
 
 function leadOf({ giver, recipients, moreRecipients, find }: QuotedKudos, place: number): Words[] {
-  return [{ text: `${place}. ${giver}`, strong: true }, { text: " thanked " }, ...listedNames(recipients, moreRecipients), ...(find === null ? [] : [{ text: ` and found ${findWordsOf(find)}` }])];
+  return [{ text: `${place}. ${giver.name}`, strong: true }, { text: " thanked " }, ...listedNames(recipients.map(({ name }) => ({ text: name, strong: true })), moreRecipients), ...foundWordsOf(find)];
+}
+
+function linkedLeadOf({ giver, recipients, moreRecipients, find }: QuotedKudos, pageOf: (person: QuotedPerson) => string | undefined): Words[] {
+  const linked = (person: QuotedPerson): Words => {
+    const page = pageOf(person);
+    return page === undefined ? { text: person.name, strong: true } : { text: person.name, strong: true, link: page };
+  };
+  return [linked(giver), { text: " thanked " }, ...listedNames(recipients.map(linked), moreRecipients), ...foundWordsOf(find)];
+}
+
+function foundWordsOf(find: Find | null): Words[] {
+  return find === null ? [] : [{ text: ` and found ${findWordsOf(find)}` }];
 }
 
 export function findWordsOf({ name, rarity }: Find) {
   return `${rarity === "epic" ? "an" : "a"} ${rarity} ${name}`;
 }
 
-function listedNames(names: string[], more: number): Words[] {
-  const listed: Words[] = names.map((name) => ({ text: name, strong: true }));
+function listedNames(names: Words[], more: number): Words[] {
+  const listed = [...names];
   const last = more > 0 ? { text: `${more} more` } : listed.pop();
   const joined = listed.flatMap((name, index) => (index === 0 ? [name] : [{ text: ", " }, name]));
   return last === undefined ? joined : [...joined, ...(joined.length > 0 ? [{ text: " and " }] : []), last];

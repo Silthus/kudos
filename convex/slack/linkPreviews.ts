@@ -68,12 +68,12 @@ function linksOf(links: unknown): string[] {
 
 const barSegments = 10;
 
-async function emojisUnlockedOn(ctx: ActionCtx, workspace: string, preview: LinkPreview): Promise<number> {
+export async function emojisUnlockedOn(ctx: ActionCtx, workspace: string, preview: LinkPreview): Promise<number> {
   if (preview.kind !== "person" || preview.stats === undefined) return 0;
   return ctx.runQuery(internal.website.linkPreviews.emojisUnlockedOf, { workspace, person: preview.stats.person });
 }
 
-function cardBlocksOf(preview: LinkPreview, emojis: number) {
+export function cardBlocksOf(preview: LinkPreview, emojis: number) {
   if (preview.stats !== undefined) return preview.kind === "person" ? richPersonCardOf(preview, preview.stats, emojis) : richTeamCardOf(preview, preview.stats);
   const lines = [nameLineOf(preview), ...(preview.kind === "person" ? personLinesOf(preview) : [peopleCountOf(preview.people)])];
   return [headOf(preview, lines), { type: "context", elements: [mrkdwn(`${productName} album · ${preview.kind} page`)] }];

@@ -4,7 +4,7 @@ import { offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly } from "
 import type { FlagDefinition } from "../../testing/fakePostHog";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
-import { FakeSlack, slackError, type SlackCall } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor, slackError, type SlackCall } from "../../testing/fakeSlack";
 import { signedRequest } from "../../testing/signedSlack";
 import { deleteMessage, memberChanged, post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
@@ -57,10 +57,12 @@ let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
 let refusesPictures = false;
+let settleKudos = settle;
 
 beforeEach(() => {
   theGate.shut = false;
   refusesPictures = false;
+  settleKudos = settle;
   for (const level of ["log", "info", "warn", "error", "debug"] as const) vi.spyOn(console, level).mockImplementation(() => {});
 });
 
@@ -415,6 +417,158 @@ describe("AL61 AL63: a weekly post quotes only public kudos", { timeout: 180_000
   });
 });
 
+const weeklyHighlights = "weekly-highlights";
+const highlightsOn = [onForEveryone(albumSlack), onForEveryone(weeklyHighlights)];
+const nextMondayNine = mondayNine + weekMs;
+
+describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top three new givers", { timeout: 180_000 }, () => {
+  test("only the most hugged kudos is quoted, unranked, its people linked to their pages and its message left for Slack to embed, then last week's top three thoughtful givers with their page and count, ties to whoever gave first, and the first one's card", async () => {
+    await fourMembers(highlightsOn);
+    const mostHugged = await thanks(alice, "Thanks for staying late on the release checklist", bob);
+    await thanks(alice, "Thanks for the second pair of eyes on the rollout", carol);
+    for (const words of ["Thanks for the careful design review today", "Thanks for the patient pairing session", "Thanks for fixing the flaky build"]) await thanks(carol, words, dana);
+    await thanks(dana, "Thanks for covering the support rotation", carol);
+    await thanks(bob, "Thanks for the thorough incident write-up", alice);
+    for (const hugger of [carol, dana]) await hugs(hugger, mostHugged);
+
+    await mondayPostSent();
+
+    const posted = mondayPost();
+    expect(posted?.blocks?.[1]?.text?.text, "one top kudos").toEqual(`*<${await pageOf(alice)}|Alice Marchetti>* thanked *<${await pageOf(bob)}|Bob Okonkwo>*\n>Thanks for staying late on the release checklist @Bob Okonkwo :taco:\n<${permalinkOf(mostHugged)}|Open in Slack>`);
+    expect(leadsOf(posted)).toHaveLength(1);
+    expect(newGiverLinesOf(posted)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 3 thoughtful kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 2 thoughtful kudos`, `3. *<${await pageOf(dana)}|Dana Ferreira>* · 1 thoughtful kudos`]);
+    expect(cardsIn(posted), "one card, right after the first new giver").toEqual([{ after: newGiverLinesOf(posted)[0], name: `*<${await pageOf(carol)}|Carol Lindqvist>*` }]);
+    expect(String(posted?.text).split("\n").slice(-1)).toEqual(["🌱 Top new givers last week: 1. Carol Lindqvist · 3, 2. Alice Marchetti · 2, 3. Dana Ferreira · 1"]);
+    expect({ unfurl_links: posted?.unfurl_links, unfurl_media: posted?.unfurl_media }, "Slack embeds the quoted message, and our own links get no card from a bot's post").toEqual({ unfurl_links: true, unfurl_media: false });
+  });
+
+  test("a giver listed in an earlier week's post is never listed again, fewer than three are listed as they are, and with nobody new the section is left out", async () => {
+    await fourMembers(highlightsOn);
+    for (const words of ["Thanks for the careful design review today", "Thanks for the patient pairing session"]) await thanks(carol, words, dana);
+    await thanks(alice, "Thanks for staying late on the release checklist", bob);
+    await mondayPostSent();
+    settleKudos = (backend) => settleUpTo(backend, Date.now());
+    for (const words of ["Thanks for fixing the flaky build", "Thanks for the clear notes after planning", "Thanks for the deploy checklist"]) await thanks(carol, words, dana);
+    await thanks(alice, "Thanks for the second pair of eyes on the rollout", carol);
+    await thanks(bob, "Thanks for the thorough incident write-up", alice);
+    await settleUpTo(t, nextMondayNine + hourMs);
+    await thanks(carol, "Thanks for the steady hand during the incident", dana);
+    await settleUpTo(t, nextMondayNine + weekMs + hourMs);
+
+    const [first, second, third] = mondayPosts();
+    expect(newGiverLinesOf(first)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 2 thoughtful kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 1 thoughtful kudos`]);
+    expect(newGiverLinesOf(second), "only the giver not listed before").toEqual([`1. *<${await pageOf(bob)}|Bob Okonkwo>* · 1 thoughtful kudos`]);
+    expect(cardsIn(second)).toEqual([{ after: newGiverLinesOf(second)[0], name: `*<${await pageOf(bob)}|Bob Okonkwo>*` }]);
+    expect(third?.blocks?.map(({ text }) => text?.text), "no new-givers section").not.toContain("*🌱 Top new givers last week*");
+    expect(cardsIn(third)).toEqual([]);
+  });
+
+  test("a member off the leaderboards is never listed, however many thoughtful kudos they gave", async () => {
+    await fourMembers(highlightsOn);
+    for (const words of ["Thanks for the careful design review today", "Thanks for the patient pairing session"]) await thanks(dana, words, carol);
+    await thanks(alice, "Thanks for staying late on the release checklist", bob);
+    const offTheBoards = await memberIdOf(dana);
+    await t.run(async (ctx) => {
+      await setLeaderboardVisibility(ctx, offTheBoards, false);
+    });
+
+    await mondayPostSent();
+
+    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(alice)}|Alice Marchetti>* · 1 thoughtful kudos`]);
+  });
+
+  test("givers listed before never crowd out a new one, however many of them gave more", async () => {
+    await fourMembers(highlightsOn);
+    await thanks(carol, "Thanks for the careful design review today", dana);
+    await t.run(async (ctx) => {
+      const { _id, _creationTime, ...tally } = (await ctx.db.query("thoughtfulBoardTallies").collect()).find(({ period }) => period.startsWith("week:"))!;
+      const { _id: carolsId, _creationTime: joined, ...someone } = (await ctx.db.get(tally.giver))!;
+      for (let leader = 0; leader < 201; leader++) {
+        const giver = await ctx.db.insert("members", { ...someone, user: `U_LEADER_${leader}` });
+        await ctx.db.insert("thoughtfulBoardTallies", { ...tally, giver, awards: 5 });
+        await ctx.db.insert("featuredNewGivers", { workspace: "T1", member: giver, week: "2020-01-06", place: 1 });
+      }
+    });
+
+    await mondayPostSent();
+
+    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`]);
+  });
+
+  test("a post Slack rate-limited lists the same new givers when it goes out, even when last week's counts changed meanwhile", async () => {
+    await fourMembers(highlightsOn);
+    await thanks(carol, "Thanks for the careful design review today", dana);
+    const latecomer = await memberIdOf(dana);
+    slack.answering("chat.postMessage", async (answerAsSlackWould) => {
+      await t.run(async (ctx) => {
+        const { _id, _creationTime, ...tally } = (await ctx.db.query("thoughtfulBoardTallies").collect()).find(({ period }) => period.startsWith("week:"))!;
+        await ctx.db.insert("thoughtfulBoardTallies", { ...tally, giver: latecomer, awards: 5 });
+      });
+      return rateLimitedFor(30)(answerAsSlackWould);
+    });
+
+    await mondayPostSent();
+
+    const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`;
+    expect(mondayPosts().map(newGiverLinesOf), "the refused post and the one Slack took").toEqual([[carolsLine], [carolsLine]]);
+  });
+
+  test("givers of a post Slack refused for its channel are still new in a later week", async () => {
+    await fourMembers(highlightsOn);
+    await thanks(carol, "Thanks for the careful design review today", dana);
+    slack.answering("chat.postMessage", slackError("channel_not_found"));
+    await mondayPostSent();
+    settleKudos = (backend) => settleUpTo(backend, Date.now());
+
+    await thanks(carol, "Thanks for the patient pairing session", dana);
+    await settleUpTo(t, nextMondayNine + hourMs);
+
+    const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`;
+    expect(mondayPosts().map(newGiverLinesOf), "the refused post and the next week's").toEqual([[carolsLine], [carolsLine]]);
+  });
+
+  test.each([
+    { condition: "with weekly-highlights off", flags: [offForEveryone(weeklyHighlights)] },
+    { condition: "in production, while weekly-highlights is on in the sandbox only", flags: [onInTheSandboxOnly(weeklyHighlights)], production: true },
+    { condition: "with weekly-highlights on for someone else's email only", flags: [onForEmails(weeklyHighlights, dana.email)] },
+  ])("$condition, the weekly post is the same as while PostHog has no weekly-highlights flag", async ({ flags, production }) => {
+    const withoutTheFlag = await aWeekOfFourGivers([], production);
+
+    const posted = await aWeekOfFourGivers(flags, production);
+
+    expect(posted).toEqual(withoutTheFlag);
+    expect(leadsOf(posted)).toHaveLength(3);
+  });
+});
+
+async function aWeekOfFourGivers(flags: FlagDefinition[], production = false) {
+  await fourMembers([onForEveryone(albumSlack), ...flags]);
+  if (production) vi.stubEnv("KUDOS_ENVIRONMENT", "production");
+  await thanks(alice, "Thanks for staying late on the release checklist", bob);
+  await thanks(carol, "Thanks for the careful design review today", dana);
+  await thanks(dana, "Thanks for covering the support rotation", carol);
+  await thanks(bob, "Thanks for the thorough incident write-up", alice);
+  await mondayPostSent();
+  return mondayPost();
+}
+
+function newGiverLinesOf(posted: Posted | undefined) {
+  return (posted?.blocks ?? []).flatMap(({ type, text }) => (type === "section" && /^\d\. \*</.test(text?.text ?? "") ? [text!.text] : []));
+}
+
+function cardsIn(posted: Posted | undefined) {
+  const blocks = posted?.blocks ?? [];
+  return blocks.flatMap(({ type, text }, index) => (type === "section" && text?.text.startsWith("*<") && !text.text.includes(" thanked ") ? [{ after: blocks[index - 1]?.text?.text, name: text.text.split("\n")[0] }] : []));
+}
+
+async function memberIdOf(someone: Person) {
+  return t.run(async (ctx) => (await ctx.db.query("members").collect()).find(({ user }) => user === someone.user)!._id);
+}
+
+async function pageOf(someone: Person) {
+  return `${site}/book#people/${encodeURIComponent(await memberIdOf(someone))}`;
+}
+
 const albumSlackOff: Array<{ condition: string; flags: FlagDefinition[]; turnOff?: () => void; momentsSent?: { recaps: number; mondayPosts: number } }> = [
   { condition: "with album-slack off", flags: [offForEveryone(albumSlack)] },
   { condition: "while PostHog has no album-slack flag", flags: [] },
@@ -514,7 +668,7 @@ async function thanks(giver: Person, words: string, ...recipientsAndWhere: Array
   const thanked = recipients.flatMap(({ user }) => [mention(user), text(" ")]);
   await post(t, [section(text(`${words} `), ...thanked, emoji("taco"))], { user: giver.user, ts, channel: sentIn, ...(where.channelType && { channelType: where.channelType }) });
   authors.set(`${sentIn}/${ts}`, giver.user);
-  await settle(t);
+  await settleKudos(t);
   return { channel: sentIn, ts };
 }
 
@@ -523,7 +677,7 @@ const authors = new Map<string, string>();
 async function hugs(hugger: Person, { channel: hugged, ts }: Sent) {
   vi.setSystemTime(Date.now() + minuteMs);
   await react(t, { user: hugger.user, itemUser: authors.get(`${hugged}/${ts}`)!, channel: hugged, ts });
-  await settle(t);
+  await settleKudos(t);
 }
 
 async function joined(people: number): Promise<Person[]> {

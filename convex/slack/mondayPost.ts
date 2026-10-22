@@ -1,12 +1,14 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
-import { renderMondayPost, renderTopKudosPost, type TeamRow, type TopKudosEntry, type TopKudosMessage, type Words } from "../feedback/mondayPost";
+import { renderMondayPost, renderTopKudosPost, type NewGiverRow, type TeamRow, type TopKudosEntry, type TopKudosMessage, type Words } from "../feedback/mondayPost";
 import type { ClaimedWeek, foundChannelValidator } from "../leaderboard/mondayPost";
 import type { MondayPostOutcome } from "../leaderboard/mondayPostOutcome";
+import type { TopKudosPost } from "../leaderboard/topKudos";
 import { escaped, mrkdwn } from "./blocks";
 import type { ActionCtx } from "../_generated/server";
 import { attemptCall, isRefusedForItsBlocks, slackTextOf, type Attempt } from "./delivery";
+import { cardBlocksOf, emojisUnlockedOn } from "./linkPreviews";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 const attemptsAtMost = 3;
@@ -15,6 +17,8 @@ const otherTeamsCharactersAtMost = 2_900;
 const refusedInChannel = new Set(["no_permission", "restricted_action", "restricted_action_read_only_channel", "restricted_action_thread_only_channel", "ekm_access_denied"]);
 
 type FoundChannel = Infer<typeof foundChannelValidator>;
+
+type CardedMessage = TopKudosMessage & { card: ReturnType<typeof cardBlocksOf> | null };
 
 type JoinedChannel = { channel?: { name?: string; is_private?: boolean; is_ext_shared?: boolean } };
 
@@ -69,32 +73,47 @@ export const postMondayPost = observedAction({
 
 async function postWeek(ctx: ActionCtx, workspace: string, { channel, post }: ClaimedWeek): Promise<Attempt> {
   if (post.kind === "groups") return attemptCall(ctx, workspace, "chat.postMessage", { channel, text: slackTextOf(renderMondayPost(post)) });
-  const message = renderTopKudosPost(post);
+  const message = { ...renderTopKudosPost(post), card: await firstNewGiversCardOf(ctx, workspace, post) };
   const sent = await attemptCall(ctx, workspace, "chat.postMessage", topKudosMessageOf(channel, message));
   return isRefusedForItsBlocks(sent) && hasPictures(message) ? attemptCall(ctx, workspace, "chat.postMessage", topKudosMessageOf(channel, withoutPictures(message))) : sent;
 }
 
-function topKudosMessageOf(channel: string, message: TopKudosMessage) {
-  return { channel, text: fallbackTextOf(message), blocks: blocksOf(message), unfurl_links: false, unfurl_media: false };
+async function firstNewGiversCardOf(ctx: ActionCtx, workspace: string, { origin, newGivers = [] }: TopKudosPost): Promise<CardedMessage["card"]> {
+  const [first] = newGivers;
+  if (origin === null || first === undefined) return null;
+  const preview = await ctx.runQuery(internal.website.linkPreviews.personCardOf, { workspace, person: first.member });
+  return preview === null ? null : cardBlocksOf(preview, await emojisUnlockedOn(ctx, workspace, preview));
 }
 
-function hasPictures({ teams }: TopKudosMessage) {
-  return teams?.rows.some(({ emoji }) => emoji?.picture) ?? false;
+function topKudosMessageOf(channel: string, message: CardedMessage) {
+  return { channel, text: fallbackTextOf(message), blocks: blocksOf(message), unfurl_links: message.embedsQuotedMessage, unfurl_media: false };
 }
 
-function withoutPictures(message: TopKudosMessage): TopKudosMessage {
-  if (message.teams === null) return message;
-  return { ...message, teams: { ...message.teams, rows: message.teams.rows.map((row) => (row.emoji === null ? row : { ...row, emoji: { ...row.emoji, picture: null } })) } };
+function hasPictures({ teams, card }: CardedMessage) {
+  return card !== null || (teams?.rows.some(({ emoji }) => emoji?.picture) ?? false);
 }
 
-function fallbackTextOf({ headline, kudos, teams }: TopKudosMessage) {
+function withoutPictures(message: CardedMessage): CardedMessage {
+  const { teams } = message;
+  if (teams === null) return { ...message, card: null };
+  return { ...message, card: null, teams: { ...teams, rows: teams.rows.map((row) => (row.emoji === null ? row : { ...row, emoji: { ...row.emoji, picture: null } })) } };
+}
+
+function fallbackTextOf({ headline, kudos, newGivers, teams }: TopKudosMessage) {
+  const giverLine = newGivers === null ? [] : [`${newGivers.headline}: ${newGivers.rows.map(({ place, name, thoughtful }) => `${place}. ${name} · ${thoughtful}`).join(", ")}`];
   const teamLine = teams === null ? [] : [`${teams.headline}: ${teams.rows.map(({ team, count }) => `${team} ${count}`).join(", ")}`];
-  return [headline, ...kudos.map(({ lead, quote, permalink }) => `${plainOf(lead)}: ${quote}${permalink === null ? "" : ` ${permalink}`}`), ...teamLine].map(escaped).join("\n");
+  return [headline, ...kudos.map(({ lead, quote, permalink }) => `${plainOf(lead)}: ${quote}${permalink === null ? "" : ` ${permalink}`}`), ...giverLine, ...teamLine].map(escaped).join("\n");
 }
 
-function blocksOf({ headline, kudos, teams }: TopKudosMessage) {
+function blocksOf({ headline, kudos, newGivers, teams, card }: CardedMessage) {
+  const giverBlocks = newGivers === null ? [] : [sectionOf(`*${escaped(newGivers.headline)}*`), ...newGivers.rows.flatMap((row) => [sectionOf(newGiverLineOf(row)), ...(row.place === 1 && card !== null ? card : [])])];
   const teamBlocks = teams === null ? [] : [sectionOf(`*${escaped(teams.headline)}*`), ...teams.rows.slice(0, teamRowsShown).map(teamBlockOf), ...otherTeamsOf(teams.rows.slice(teamRowsShown))];
-  return [sectionOf(`*${escaped(headline)}*`), ...kudos.map(kudosBlockOf), ...teamBlocks];
+  return [sectionOf(`*${escaped(headline)}*`), ...kudos.map(kudosBlockOf), ...giverBlocks, ...teamBlocks];
+}
+
+function newGiverLineOf({ place, name, page, thoughtful }: NewGiverRow) {
+  const named = page === null ? escaped(name) : `<${page}|${escaped(name)}>`;
+  return `${place}. *${named}* · ${thoughtful} thoughtful kudos`;
 }
 
 function kudosBlockOf({ lead, quote, permalink }: TopKudosEntry) {
@@ -135,7 +154,10 @@ function sectionOf(text: string) {
 }
 
 export function mrkdwnOf(words: Words[]) {
-  return words.map(({ text, strong }) => (strong ? `*${escaped(text)}*` : escaped(text))).join("");
+  return words.map(({ text, strong, link }) => {
+    const shown = link === undefined ? escaped(text) : `<${link}|${escaped(text)}>`;
+    return strong ? `*${shown}*` : shown;
+  }).join("");
 }
 
 export function plainOf(words: Words[]) {
