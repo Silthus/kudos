@@ -2,7 +2,8 @@ import { useRef, useState } from "react";
 import type { EmojiPlace } from "../../../convex/album/emojiMappings";
 import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
 import type { ShellActions } from "../shell";
-import type { HypePickReply } from "./answer";
+import { hypeEmblemPicture, slugOf } from "../../../convex/album/emojiCatalogue";
+import type { HypePickReply, PersonPage } from "./answer";
 import { SlackEmojiWizard, type WizardEmoji, type WizardPick } from "./SlackEmojiWizard";
 
 export type HypePicker = { useSlackEmojiMatches: SlackEmojiMatchesRead; pickMyHypeEmoji: ShellActions["pickMyHypeEmoji"] };
@@ -17,6 +18,10 @@ const holderWordsOf: Record<EmojiPlace["kind"], string> = {
   hype: "someone else's hype emoji",
   unmapped: "held back by an admin",
 };
+
+export function ownHypeEmojiOf({ name: personName, hype: { name, picture, inSlack } }: PersonPage): OwnHypePickProps["emoji"] {
+  return { kind: "hype", name: name ?? `${slugOf(personName)}-hype`, picture: picture ?? hypeEmblemPicture, from: personName, inSlack: inSlack ?? false };
+}
 
 export function OwnHypePick({ emoji, emojiPage, useSlackEmojiMatches, pickMyHypeEmoji }: OwnHypePickProps) {
   const [open, setOpen] = useState(false);

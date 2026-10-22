@@ -17,7 +17,7 @@ import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { dateOf, firstNameOf, howToCollectWords, personIn } from "./teamPage";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker } from "./useItemBoard";
 import { LandedHype } from "./ItemBoard";
-import { OwnHypePick, type HypePicker } from "./OwnHypePick";
+import { OwnHypePick, ownHypeEmojiOf, type HypePicker } from "./OwnHypePick";
 import { NewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
@@ -126,7 +126,7 @@ function HypeEmoji({ person, first, picker, emojiPage }: { person: Person; first
         {name !== null && <code>:{name}:</code>}
         <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
       </p>
-      {person.hypePick ? <OwnHypePick emoji={{ kind: "hype", name: name ?? `${slugOf(person.name)}-hype`, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? false }} emojiPage={emojiPage} {...picker} /> : name !== null && <HypeInSlack emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} earned={earned} />}
+      {person.hypePick ? <OwnHypePick emoji={ownHypeEmojiOf(person)} emojiPage={emojiPage} {...picker} /> : name !== null && <HypeInSlack emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} earned={earned} />}
     </div>
   );
 }

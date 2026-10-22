@@ -351,17 +351,19 @@ describe("#708: the sidebar stays in view", () => {
       "@media (min-width: 64rem) and (prefers-reduced-motion: reduce) { .g { position: static } }",
       "@media (max-width: 63.999rem), (min-width: 90rem) { .h { position: static } }",
       "@media (max-width: 47.99rem) { .i { position: static } }",
+      ".j { overflow: auto; position: relative }",
+      "@container (max-width: 13rem) { .j { position: static } }",
     ].join("\n");
 
-    expect(looseScrollBoxesIn(css)).toEqual([".b", ".c", ".d", ".e", ".g", ".h"]);
-    expect(atRulesIn(`${css}\n@layer later { .a { position: static } }\n/* @container */`)).toEqual(["@media", "@supports", "@keyframes", "@layer"]);
+    expect(looseScrollBoxesIn(css)).toEqual([".b", ".c", ".d", ".e", ".g", ".h", ".j"]);
+    expect(atRulesIn(`${css}\n@layer later { .a { position: static } }\n/* @scope */`)).toEqual(["@media", "@supports", "@keyframes", "@container", "@layer"]);
   });
 });
 
 type DesktopRule = { selectors: string[]; style: CSSStyleDeclaration; conditional: boolean };
 
 const everyDesktopWidth = "(min-width: 64rem)";
-const readAtRules = ["@media", "@supports", "@keyframes"];
+const readAtRules = ["@media", "@supports", "@container", "@keyframes"];
 
 function atRulesIn(css: string) {
   return [...new Set(css.replace(/\/\*[\s\S]*?\*\//g, "").match(/@[\w-]+/g) ?? [])];
@@ -389,6 +391,7 @@ function rulesWithin(rules: CSSRuleList, conditional: boolean): DesktopRule[] {
     if (rule instanceof CSSStyleRule) return [{ selectors: rule.selectorText.split(",").map((selector) => selector.trim()), style: rule.style, conditional }];
     if (rule instanceof CSSMediaRule) return onlyBelowDesktop(rule.media.mediaText) ? [] : rulesWithin(rule.cssRules, conditional || rule.media.mediaText !== everyDesktopWidth);
     if (rule instanceof CSSSupportsRule) return rulesWithin(rule.cssRules, conditional);
+    if (rule instanceof CSSContainerRule) return rulesWithin(rule.cssRules, true);
     return [];
   });
 }

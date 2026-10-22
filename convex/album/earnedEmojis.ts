@@ -66,12 +66,24 @@ export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: Em
   return { emojis, more: hype.more };
 }
 
+export type EmojiStack = { count: number; shown: ShownEmoji[] };
+
 export async function earnedEmojiCountOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<number> {
-  const turned = await turnedOf(ctx, member);
-  const named = new Set((await namesHeldIn(ctx, workspace)).values());
-  const earned = [...(await teamsUnlockedBetween(ctx, member, allTime)).map(({ id }) => id), ...(await hypesShownEarnedBy(ctx, member, turned)), ...(await tiersTurnedBy(ctx, member, turned)), ...(await levelEmojisReachedBy(ctx, member))];
-  return earned.filter((id) => named.has(id)).length + (await randomEmojisHeldBy(ctx, workspace, member)).length;
+  return (await emojiStackOf(ctx, workspace, member, 0)).count;
 }
+
+export async function emojiStackOf(ctx: QueryCtx, workspace: string, member: MemberId, most: number): Promise<EmojiStack> {
+  const turned = await turnedOf(ctx, member);
+  const names = new Map([...(await namesHeldIn(ctx, workspace))].map(([name, id]) => [id as string, name]));
+  const earned = [...(await teamsUnlockedBy(ctx, member)), ...(await hypesShownEarnedBy(ctx, { workspace, member }, turned)), ...(await tierEmojisTurnedBy(ctx, member, turned)), ...(await levelEmojisReachedBy(ctx, member))].filter(({ id }) => names.has(id));
+  const drops = await randomEmojisHeldBy(ctx, workspace, member);
+  const shown: ShownEmoji[] = [];
+  for (const { id, picture } of earned.slice(0, most)) shown.push(await shownEmojiOf(ctx, workspace, await picture(), names.get(id)!));
+  for (const { name, image } of drops.slice(0, most - shown.length)) shown.push({ name, picture: image, inSlack: true });
+  return { count: earned.length + drops.length, shown };
+}
+
+type CountedEmoji = { id: string; picture: () => Promise<string> };
 
 const allTime: Instants = { from: -Infinity, to: Infinity };
 
@@ -82,19 +94,27 @@ async function turnedOf(ctx: QueryCtx, member: MemberId): Promise<Turned> {
   return { seen, held: (await hiddenItemsShownTo(ctx, member)) ? hypesHeldFor(await boardOf(ctx, member)) : undefined };
 }
 
-async function hypesShownEarnedBy(ctx: QueryCtx, member: MemberId, { seen, held }: Turned): Promise<EarnedEmojiId[]> {
+async function hypesShownEarnedBy(ctx: QueryCtx, { workspace, member }: PageOwner, { seen, held }: Turned): Promise<CountedEmoji[]> {
   const shown = unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen).slice(0, mostHypeEmojisShown);
-  return shown.filter(({ person }) => !isHeldForItsItem(person, seen, held)).map(({ person }) => `hype:${person}` as const);
+  return shown.filter(({ person }) => !isHeldForItsItem(person, seen, held)).map(({ person }) => ({ id: `hype:${person}`, picture: async () => (await hypeFaceOf(ctx, workspace, person)).picture }));
 }
 
-async function tiersTurnedBy(ctx: QueryCtx, member: MemberId, { seen, held }: Turned): Promise<EarnedEmojiId[]> {
-  const reached = (await tiersReachedBetween(ctx, member, allTime)).map(({ id }) => id);
-  return held === undefined ? reached : reached.filter((id) => seen.has(id));
+async function tierEmojisTurnedBy(ctx: QueryCtx, member: MemberId, { seen, held }: Turned): Promise<CountedEmoji[]> {
+  const reached = await tiersReachedBetween(ctx, member, allTime);
+  return (held === undefined ? reached : reached.filter(({ id }) => seen.has(id))).map(countedNow);
 }
 
-async function levelEmojisReachedBy(ctx: QueryCtx, member: MemberId): Promise<EarnedEmojiId[]> {
+async function levelEmojisReachedBy(ctx: QueryCtx, member: MemberId): Promise<CountedEmoji[]> {
   const { level } = await progressionHomeOf(ctx, member);
-  return (await emojiLevelsOf(ctx, member)).filter((reward) => level >= reward).map((reward) => `level:${reward}` as const);
+  return (await emojiLevelsOf(ctx, member)).filter((reward) => level >= reward).map((reward) => countedNow({ id: `level:${reward}`, picture: levelEmojiPictureOf(reward) }));
+}
+
+async function teamsUnlockedBy(ctx: QueryCtx, member: MemberId): Promise<CountedEmoji[]> {
+  return (await teamsUnlockedBetween(ctx, member, allTime)).map(countedNow);
+}
+
+function countedNow({ id, picture }: EarnedCause): CountedEmoji {
+  return { id, picture: () => Promise.resolve(picture) };
 }
 
 export async function sharedEmojisOf(ctx: QueryCtx, member: MemberId, { emojis }: EarnedEmojis): Promise<SharedEmoji[] | null> {

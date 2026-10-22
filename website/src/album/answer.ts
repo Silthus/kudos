@@ -12,6 +12,7 @@ import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
 import type { ShareOffers } from "../../../convex/website/itemShare";
+import type { CardEmojisRead, CardWeek, PlayerCard, PlayerCardAnswer, PlayerCardRead as PlayerCardAnswered } from "../../../convex/website/playerCard";
 
 export type AlbumMe = { name: string; face: Face; person: string; team: string | null };
 
@@ -65,6 +66,7 @@ export type Album = {
   howItWorks?: HowItWorksCard;
   shareableUrls?: true;
   linkPreviews?: true;
+  personPageD?: true;
 } & ShareOffers;
 
 export type AlbumAnswer = { kind: "off" } | Album;
@@ -215,3 +217,15 @@ export type LevelUpRead = (level: number | null) => LevelUpShown | undefined;
 export type XpMomentShown = XpMomentAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type XpMomentRead = (asking: boolean) => XpMomentShown | undefined;
+
+export type { CardWeek, PlayerCard, PlayerCardAnswer };
+
+export type CardEmojis = Extract<CardEmojisRead, { kind: "emojis" }>;
+
+export type PlayerCardShown = PlayerCardAnswered | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type CardEmojisShown = CardEmojisRead | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type PlayerCardReads = { card: PlayerCardShown | undefined; emojis: CardEmojisShown | undefined };
+
+export type PlayerCardRead = (asking: boolean, person: string | null) => PlayerCardReads;

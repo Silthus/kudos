@@ -21,6 +21,7 @@ import { NewLabelsProvider, newLabelsSinceOf } from "./newLabels";
 import { isWaitingForTheLevelUp, LevelUpAnswerPage } from "./LevelUp";
 import { LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
+import { isWaitingForThePlayer, PlayerAnswerPage, playerAskedAt } from "./PlayerPage";
 import { SharedEmojis } from "./SharedEmojis";
 import { AppEmojiSection } from "../settings/AppEmojiList";
 import { EmojiWizardHost } from "./findInSlack";
@@ -30,7 +31,7 @@ import { useForge } from "./useForge";
 import { useVisitArrival } from "./visitArrival";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp, useXpMoment }: AppProps & { arrivals: number }) {
+export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp, useXpMoment, usePlayerCard }: AppProps & { arrivals: number }) {
   const { route, navigate, replaceAddress } = useRoute();
   const album = useAlbum(true);
   const myPage = myPageOf(album?.kind === "album" ? album : undefined);
@@ -42,17 +43,22 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);
   const onLeaderboard = place.kind === "leaderboard";
-  const onProfile = place.kind === "profile";
+  const player = album?.kind === "album" ? playerAskedAt(place, album) : null;
+  const ownPlayer = album?.kind === "album" && player === album.me.person;
+  const onProfile = place.kind === "profile" && player === null;
   const boards = useBoardsOfPeriod(useThoughtfulBoards, onLeaderboard, onProfile, viewAddress && periodAddressedIn(place, viewAddress));
   const profile = useAlbumProfile(onProfile);
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
+  const playerCards = usePlayerCard(player !== null, player);
+  const ownWeek = useAlbumWeek(ownPlayer, undefined);
   const forging = useForge(actions.forgeHoggie);
   const onLevelUp = place.kind === "levelUp";
   const levelUp = useLevelUp(place.kind === "levelUp" ? place.level : null);
   useTheAlbumInsteadOfAClosedReveal(onLevelUp && levelUp?.kind === "off" && album?.kind === "album" && album.board !== null, myPage, replaceAddress);
-  const onPerson = place.kind === "person";
-  const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
+  const onPerson = place.kind === "person" && player === null;
+  const person = useAlbumPerson(onPerson || player !== null, player ?? (place.kind === "person" ? place.person : null));
+  const playerReads = { cards: playerCards, week: ownWeek, together: person };
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
   const edition = useWeekEdition(useAlbumWeek, onActivity, viewAddress && weekAddressedIn(place, viewAddress));
@@ -80,12 +86,12 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp)) || (player !== null && isWaitingForThePlayer(ownPlayer, playerReads))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
-        person={<PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
-        profile={<ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
+        person={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
+        profile={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} makePet={actions.makePet} forging={forging} {...answers} />}
         openThoughtfulPack={actions.openThoughtfulPack}

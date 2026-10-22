@@ -4,6 +4,7 @@ import { recordMilestonesOf, tiersEarnedBy, type MilestoneAnswer, type ReachedTi
 import type { MilestoneId } from "../album/milestoneCatalogue";
 import type { PageOwner } from "../album/teamPages";
 import type { MemberId } from "../workspace/directory";
+import { hiddenItemsShownTo } from "./flag";
 
 type AnsweredTier = MilestoneAnswer["tiers"][number];
 
@@ -12,6 +13,14 @@ export async function unlockMilestoneTiers(ctx: MutationCtx, owner: PageOwner, a
   const unlocked: ReachedTier[] = [];
   for (const tier of await tiersEarnedBy(ctx, owner.member)) if (await markEmojiSeen(ctx, owner.member, tierEmojiOf(tier), at)) unlocked.push(tier);
   return unlocked;
+}
+
+export async function tiersTurnedBy(ctx: QueryCtx, member: MemberId): Promise<ReachedTier[]> {
+  const earned = await tiersEarnedBy(ctx, member);
+  if (!(await hiddenItemsShownTo(ctx, member))) return earned;
+  const turned: ReachedTier[] = [];
+  for (const tier of earned) if ((await seenAtOf(ctx, member, tierEmojiOf(tier))) !== null) turned.push(tier);
+  return turned;
 }
 
 export async function milestonesHeldForTheirTurn(ctx: QueryCtx, member: MemberId, milestones: MilestoneAnswer[]): Promise<MilestoneAnswer[]> {
