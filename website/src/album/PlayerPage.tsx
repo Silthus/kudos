@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
 import { IconArrowRight, IconCrown, IconHeart } from "@posthog/icons";
-import { hypeEmblemPicture, slugOf } from "../../../convex/album/emojiCatalogue";
 import { AppLink } from "../AppLink";
 import { KudosMessage } from "../activity/KudosMessage";
 import { LadderEmblem } from "../book/LadderEmblem";
@@ -17,7 +16,7 @@ import { levelShareOf, plural, xpToNextOf } from "./facts";
 import { emblemOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { PetHoggie, petOf } from "./PetHoggie";
-import { OwnHypePick, type HypePicker } from "./OwnHypePick";
+import { OwnHypePick, ownHypeEmojiOf, type HypePicker } from "./OwnHypePick";
 import { findYourselfHref, hrefOf, type Place } from "./place";
 import { isAQuietCard, isAQuietWeek, ownWeekOf, teammateWeekOf, type EmojiStack, type PageWeek, type SaidLine } from "./playerPage";
 import { ShareLink } from "./ShareLink";
@@ -61,7 +60,7 @@ function failureOf(own: boolean, reads: PlayerReads): Failed | undefined {
 }
 
 function pageOf(own: boolean, { cards: { card, emojis }, week, together }: PlayerReads): Page | null {
-  if (card?.kind !== "card") return null;
+  if (card?.kind !== "card" || (emojis === undefined && isAQuietCard(card.card, null))) return null;
   const shown = { own, card: card.card, emojis: emojis?.kind === "emojis" ? emojis : null };
   if (own) return week?.kind === "week" ? { ...shown, week: ownWeekOf(week), together: null, hypePick: together?.kind === "person" && together.hypePick === true ? together : null } : null;
   return together?.kind === "person" ? { ...shown, week: teammateWeekOf(cardWeekOf(card)), together, hypePick: null } : null;
@@ -85,10 +84,10 @@ function PlayerPage({ album, page, picker }: { album: Album; page: Page; picker:
         <RankStrip page={page} />
         {isAQuietCard(page.card, page.emojis) ? <QuietStats page={page} /> : <Stats album={album} page={page} />}
       </section>
-      {page.hypePick !== null && <YourHypeEmoji person={page.hypePick} emojiPage={album.emojiPage} picker={picker} />}
       {page.card.hoggies !== null && <RarestFind page={page} />}
       {page.together !== null && <Together name={page.card.name} together={page.together} />}
       <Week page={page} />
+      {page.hypePick !== null && <YourHypeEmoji person={page.hypePick} emojiPage={album.emojiPage} picker={picker} />}
     </article>
   );
 }
@@ -204,15 +203,13 @@ function Stats({ album, page: { own, card, emojis } }: { album: Album; page: Pag
         </span>
         <span className="al-pp-stat-label">people</span>
       </Stat>
-      {emojis !== null && (
-        <Stat href={null} label={plural(emojis.count, "emoji", "emojis")}>
-          <Stack className="al-pp-stack-emoji">{emojis.shown.map(({ name, picture }) => <img key={name} src={picture} alt="" width={22} height={22} draggable={false} />)}</Stack>
-          <span className="al-pp-stat-figure">
-            <strong>{emojis.count}</strong>
-          </span>
-          <span className="al-pp-stat-label">emojis</span>
-        </Stat>
-      )}
+      <Stat href={null} label={emojis === null ? "Emojis not counted yet" : plural(emojis.count, "emoji", "emojis")}>
+        <Stack className="al-pp-stack-emoji">{(emojis?.shown ?? []).map(({ name, picture }) => <img key={name} src={picture} alt="" width={22} height={22} draggable={false} />)}</Stack>
+        <span className="al-pp-stat-figure">
+          <strong>{emojis?.count ?? "–"}</strong>
+        </span>
+        <span className="al-pp-stat-label">emojis</span>
+      </Stat>
       <Stat href={own ? hrefOf({ kind: "milestones" }) : null} label={plural(medals.count, "medal", "medals")}>
         <Stack className="al-pp-stack-medals">{medals.best.map(({ milestone, tier }) => <LadderEmblem key={milestone} ladder={emblemOf(milestone)} best={tier} size={26} />)}</Stack>
         <span className="al-pp-stat-figure">
@@ -305,18 +302,11 @@ function FoundHoggie({ href, children }: { href: string | null; children: ReactN
 }
 
 function YourHypeEmoji({ person, emojiPage, picker }: { person: PersonPage; emojiPage: string | null; picker: HypePicker }) {
-  const { name, picture, inSlack } = person.hype;
   return (
-    <section className="al-pp-together" aria-label="Your hype emoji">
-      <div className="al-pp-together-head">
-        <h2 className="al-pp-label">Your hype emoji</h2>
-        <OwnHypePick emoji={{ kind: "hype", name: name ?? `${slugOf(person.name)}-hype`, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? false }} emojiPage={emojiPage} {...picker} />
-      </div>
-      {name !== null && (
-        <p className="al-pp-small ph-no-capture">
-          <code>:{name}:</code>
-        </p>
-      )}
+    <section className="al-pp-hype" aria-label="Your hype emoji">
+      <h2 className="al-pp-label">Your hype emoji</h2>
+      {person.hype.name !== null && <code className="al-pp-small ph-no-capture">:{person.hype.name}:</code>}
+      <OwnHypePick emoji={ownHypeEmojiOf(person)} emojiPage={emojiPage} {...picker} />
     </section>
   );
 }

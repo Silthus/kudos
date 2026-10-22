@@ -102,7 +102,14 @@ describe("LP93 LP94 LP96: page D shows your own page as a player card, your rare
 
     const stats = within((await region("Your card")).getByRole("list", { name: "Your stats" }));
     expect(stats.getByRole("link", { name: "4 medals" })).toBeInTheDocument();
-    expect(stats.queryByRole("group", { name: /emojis/ })).not.toBeInTheDocument();
+    expect(stats.getByRole("group", { name: "Emojis not counted yet" })).toBeInTheDocument();
+  });
+
+  it("waits for the emojis before calling a card with nothing else in it quiet", async () => {
+    visit("/book#people/milo-strand", withPageD, { playerCards: withEmojisWaiting(fixedPlayerCards()) });
+
+    await screen.findByRole("region", { name: "Milo's week" }, arrival).catch(() => null);
+    expect(screen.queryByText("Milo's album is just getting started.")).not.toBeInTheDocument();
   });
 
   it("names each day's kudos on the week's day bars", async () => {

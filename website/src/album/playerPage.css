@@ -453,6 +453,17 @@
   padding: 0.75rem 1rem;
 }
 
+.al-pp-hype {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  padding: 0.75rem 1rem;
+}
+
 .al-pp-together-head {
   display: flex;
   align-items: center;
@@ -705,6 +716,7 @@
     grid-column: 2;
   }
 
+  .al-pp .al-pp-hype,
   .al-pp .al-pp-feed {
     grid-column: 1 / -1;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
