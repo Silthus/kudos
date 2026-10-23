@@ -29,7 +29,11 @@
     "@auth/core": "0.41.3",
     "@convex-dev/auth": "0.0.96",
     "@convex-dev/static-hosting": "0.2.1",
+    "@posthog/brand": "0.13.0",
     "@posthog/convex": "^2.1.5",
-    "convex": "^1.46.0"
+    "@resvg/resvg-js": "2.6.2",
+    "convex": "^1.46.0",
+    "satori": "0.63.2",
+    "wawoff2": "2.0.1"
   }
 }

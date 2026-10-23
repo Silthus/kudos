@@ -3,9 +3,11 @@ import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testin
 import { FakeSlack, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { linkSharedEvent, type LinkSharedOptions } from "../../testing/slackMessages";
 import type { LadderId, TierId } from "../achievements/ladders";
+import { allowanceDay } from "../engine/allowance";
+import { keyOf } from "../leaderboard/periods";
 import type { MemberId } from "../workspace/directory";
 import { xpToReach } from "../progression/levels";
 
@@ -645,6 +647,178 @@ describe("LP88: rich link cards are behind rich-link-cards", { timeout: 30_000 }
   });
 });
 
+const cardImageFlag = "card-image";
+const cardImageFlags = [...richFlags, cardImageFlag];
+
+describe("LP99 LP100: while card-image is on, a person link unfolds into a picture of their player card", { timeout: 60_000 }, () => {
+  test("the unfold is the stored picture, its facts in the alt text, and one line with the page link and the day", async () => {
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
+    await thanked(t, { [juno]: 12, [bram]: 5 });
+    await thankedThisWeek(t, { [juno]: 4, [bram]: 2 });
+    await found(t, juno, "asleep", "wizard", "angel");
+    await collected(t, juno, bram);
+    await teamEmojiInSlack(t, "kettle-works");
+    await unlockedTeamSticker(t, juno, "kettle-works");
+    const url = `${site}/book#people/${juno}`;
+
+    await sharedWhileDrawing(t, [url]);
+
+    const [picture] = await storedPicturesOf(t);
+    expect(blocksOf(url)).toEqual([
+      {
+        type: "image",
+        image_url: picture!.url,
+        alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 this week, 4 thoughtful kudos. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 0 medals. Rarest find: Wizard, Legendary, found 21 Oct 2026.",
+      },
+      { type: "context", elements: [{ type: "mrkdwn", text: `*<${url}|Juno Park>* · HedgeHug album · as of ${madeAt}` }] },
+    ]);
+  });
+
+  test("a quiet member's picture welcomes them in words, never a row of zeros", async () => {
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const bram = await memberOf(t, "U_BRAM");
+    const url = `${site}/book#people/${bram}`;
+
+    await sharedWhileDrawing(t, [url]);
+
+    expect((blocksOf(url)[0] as { alt_text: string }).alt_text).toBe("Bram Ode's player card. Level 1, 0 XP. No team yet. Not on this week's board yet. Bram's album is just getting started. No hoggie found yet.");
+  });
+
+  test("a team link keeps its card while card-image is on", async () => {
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const url = `${site}/book#teams/kettle-works`;
+
+    await sharedWhileDrawing(t, [url]);
+
+    expect(JSON.stringify(blocksOf(url))).toMatch(/team page · as of/);
+    expect(await storedPicturesOf(t)).toEqual([]);
+  });
+});
+
+describe("LP101: a picture is drawn once per card", { timeout: 60_000 }, () => {
+  test("the same card shared again shows the picture drawn the first time, without drawing it again", async () => {
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    await thanked(t, { [juno]: 12 });
+    const url = `${site}/book#people/${juno}`;
+    await sharedWhileDrawing(t, [url]);
+    await drawingRefused();
+
+    await sharedWhileDrawing(t, [url], { messageTs: "1760349900.000200" });
+
+    const [first, again] = sentPicturesOf(url);
+    expect(first).toMatch(/^https:/);
+    expect(again).toBe(first);
+  });
+
+  test("a changed fact unfolds into a new picture that shows it", async () => {
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    const url = `${site}/book#people/${juno}`;
+    await sharedWhileDrawing(t, [url]);
+
+    await found(t, juno, "wizard");
+    await sharedWhileDrawing(t, [url], { messageTs: "1760349900.000200" });
+
+    const [first, again] = sentPicturesOf(url);
+    expect(first).toMatch(/^https:/);
+    expect(again).not.toBe(first);
+    expect(altTextsOf(url)[1]).toContain("Rarest find: Wizard, Legendary");
+  });
+});
+
+describe("LP102: a picture that can't be drawn gives way to the card", { timeout: 60_000 }, () => {
+  test("when drawing fails, the link unfolds into the rich card and nothing is stored", async () => {
+    await drawingRefused();
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    const url = `${site}/book#people/${juno}`;
+
+    await sharedWhileDrawing(t, [url]);
+
+    expect(blocksOf(url)[0]).toMatchObject({ type: "section", accessory: { type: "image", image_url: junoFace } });
+    expect(JSON.stringify(blocksOf(url))).toMatch(/person page · as of/);
+    expect(await storedPicturesOf(t)).toEqual([]);
+  });
+
+  test("when the picture can't even be looked up, the person and the team beside them still unfold into their cards", async () => {
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "digest").mockImplementation(async (algorithm, data) => {
+      if (algorithm === "SHA-256" && new TextDecoder().decode(data as Uint8Array).includes('"card"')) throw new Error("no hash today");
+      return digest(algorithm, data);
+    });
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    const [person, team] = [`${site}/book#people/${juno}`, `${site}/book#teams/kettle-works`];
+
+    await sharedWhileDrawing(t, [person, team]);
+
+    expect(blocksOf(person)[0]).toMatchObject({ type: "section", accessory: { type: "image", image_url: junoFace } });
+    expect(JSON.stringify(blocksOf(team))).toMatch(/team page · as of/);
+  });
+
+  test("a drawing slower than 5 seconds gives way to the rich card, and the next share shows the picture it kept", async () => {
+    const t = await workspace({ flags: cardImageFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    const url = `${site}/book#people/${juno}`;
+    answeringLate(junoFace, 6_000);
+
+    await sharedWhileDrawing(t, [url], {}, { whileFunctionsRun: true });
+    await sharedWhileDrawing(t, [url], { messageTs: "1760349900.000200" });
+
+    const [late, again] = slack.callsTo("chat.unfurl").map(({ unfurls }) => (unfurls as Record<string, { blocks: unknown[] }>)[url]!.blocks);
+    const pictures = await storedPicturesOf(t);
+    expect(late![0]).toMatchObject({ type: "section", accessory: { type: "image", image_url: junoFace } });
+    expect(pictures).toHaveLength(1);
+    expect(again![0]).toMatchObject({ type: "image", image_url: pictures[0]!.url });
+  });
+});
+
+describe("LP103: the card picture is behind card-image", { timeout: 60_000 }, () => {
+  test("while the flag is off, a person with everything to brag about unfolds into today's rich card and nothing is drawn", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    await thanked(t, { [juno]: 12 });
+    const url = `${site}/book#people/${juno}`;
+
+    await sharedWhileDrawing(t, [url]);
+
+    expect(blocksOf(url)[0]).toMatchObject({ type: "section", accessory: { type: "image", image_url: junoFace } });
+    expect(await storedPicturesOf(t)).toEqual([]);
+  });
+
+  test("the sandbox-only flag gives production today's rich card", async () => {
+    vi.stubEnv("KUDOS_ENVIRONMENT", "production");
+    const t = await workspace({ flags: [...richFlags.map(onForEveryone), onInTheSandboxOnly(cardImageFlag)] });
+    const juno = await memberOf(t, "U_JUNO");
+    const url = `${site}/book#people/${juno}`;
+
+    await sharedWhileDrawing(t, [url]);
+
+    expect(blocksOf(url)[0]).toMatchObject({ type: "section" });
+    expect(await storedPicturesOf(t)).toEqual([]);
+  });
+
+  test("without rich-link-cards, the flag leaves the plain card", async () => {
+    const t = await workspace({ flags: [...everyFlag, "collection", cardImageFlag].map(onForEveryone) });
+    const juno = await memberOf(t, "U_JUNO");
+    const url = `${site}/book#people/${juno}`;
+
+    await sharedWhileDrawing(t, [url]);
+
+    expect(JSON.stringify(blocksOf(url))).not.toMatch(/as of/);
+    expect(await storedPicturesOf(t)).toEqual([]);
+  });
+});
+
+async function storedPicturesOf(t: Backend) {
+  return t.run(async (ctx) => {
+    const rows = await ctx.db.query("cardPictures").collect();
+    return Promise.all(rows.map(async ({ key, picture }) => ({ key, url: await ctx.storage.getUrl(picture) })));
+  });
+}
+
 function withPreviews(previews: FlagDefinition) {
   return [...everyFlag.filter((flag) => flag !== previewsFlag).map(onForEveryone), previews];
 }
@@ -685,6 +859,35 @@ async function shared(t: Backend, urls: string[], options: LinkSharedOptions = {
   await settle(t);
 }
 
+async function sharedWhileDrawing(t: Backend, urls: string[], options: LinkSharedOptions = {}, settling: Parameters<typeof settleInTimeOrder>[1] = {}) {
+  const response = await t.fetch("/slack/events", await signedRequest(linkSharedEvent(urls, { user: "U_BRAM", ...options })));
+  expect(response.status).toBe(200);
+  await settleInTimeOrder(t, settling);
+}
+
+async function drawingRefused() {
+  const { Resvg } = await import("@resvg/resvg-js");
+  vi.spyOn(Resvg.prototype, "render").mockImplementation(() => {
+    throw new Error("drawing refused");
+  });
+}
+
+function sentPicturesOf(url: string) {
+  return slack.callsTo("chat.unfurl").map(({ unfurls }) => (unfurls as Record<string, { blocks: Array<{ image_url?: string }> }>)[url]!.blocks[0]!.image_url);
+}
+
+function altTextsOf(url: string) {
+  return slack.callsTo("chat.unfurl").map(({ unfurls }) => (unfurls as Record<string, { blocks: Array<{ alt_text?: string }> }>)[url]!.blocks[0]!.alt_text);
+}
+
+function answeringLate(url: string, delayMs: number) {
+  const answer = globalThis.fetch;
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input instanceof Request ? input.url : input) === url) await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return answer(input, init);
+  });
+}
+
 function blocksOf(url: string): unknown[] {
   const unfurls = slack.callsTo("chat.unfurl")[0]!.unfurls as Record<string, { blocks: unknown[] }>;
   return unfurls[url]!.blocks;
@@ -697,6 +900,13 @@ function hoggiePicture(hoggie: string, name: string) {
 async function thanked(t: Backend, givers: Record<string, number>) {
   await t.run(async (ctx) => {
     for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: giver as MemberId, awards });
+  });
+}
+
+async function thankedThisWeek(t: Backend, givers: Record<string, number>) {
+  const thisWeek = keyOf("week", allowanceDay(Date.now(), undefined));
+  await t.run(async (ctx) => {
+    for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: thisWeek, giver: giver as MemberId, awards });
   });
 }
 

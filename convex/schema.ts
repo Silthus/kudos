@@ -841,4 +841,8 @@ export default defineSchema({
     flag: v.string(),
     value: v.union(v.string(), v.boolean()),
   }).index("by_member_flag_value", ["member", "flag", "value"]),
+  cardPictures: defineTable({
+    key: v.string(),
+    picture: v.id("_storage"),
+  }).index("by_key", ["key"]),
 });

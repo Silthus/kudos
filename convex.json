@@ -1,0 +1,5 @@
+{
+  "node": {
+    "externalPackages": ["@resvg/resvg-js", "satori", "wawoff2", "@posthog/brand"]
+  }
+}

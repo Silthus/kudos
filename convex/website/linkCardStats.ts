@@ -1,9 +1,11 @@
 import type { QueryCtx } from "../_generated/server";
 import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
+import { emojiArtPictureOf } from "../album/emojiCatalogue";
 import { teamEmojiOf } from "../album/earnedEmojis";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/hoggies";
 import { peopleHeldBy } from "../album/stickers";
 import { storedHoldersIn, type StoredHolder } from "../companyProfiles/storedFaces";
+import type { TeamCrestArt } from "../companyProfiles/teams";
 import type { PersonTeam } from "../album/personPage";
 import type { Rarity } from "../hoggies/catalogue";
 import { hoggiesShownTo } from "../hoggies/flag";
@@ -89,6 +91,11 @@ async function cardTeamsOf(ctx: QueryCtx, workspace: string, teams: PersonTeam[]
     shown.push({ name, emoji: emoji?.inSlack ? emoji.name : null });
   }
   return shown;
+}
+
+export function crestPictureOf(origin: string, art: TeamCrestArt): string | null {
+  if (art === null) return null;
+  return art.kind === "crest" ? `${origin}${emojiArtPictureOf("team", art.slug)}` : art.url;
 }
 
 async function levelWayOf(ctx: QueryCtx, person: MemberId, level: number): Promise<LevelWay> {

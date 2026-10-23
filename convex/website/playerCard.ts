@@ -41,7 +41,7 @@ export type CardEmojisRead = ({ kind: "emojis" } & EmojiStack) | { kind: "off" }
 
 const newestPeopleOnTheCard = 3;
 
-const emojisOnTheCard = 4;
+export const emojisOnTheCard = 4;
 
 const medalsOnTheCard = 3;
 
