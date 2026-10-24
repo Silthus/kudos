@@ -11,14 +11,15 @@ on:
 permissions:
   contents: read
 
-# One deploy at a time; a newer Gate's deploy waits for the running deploy, then the newest one wins.
+# One deploy at a time, never cancelled; every waiting deploy keeps its turn, and the tip check below skips those main has moved past.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
+  queue: max
 
 jobs:
   # Main's tip as it stands when this run starts. A Gate that did not pass deploys nothing, and the deploy job deploys the Gate's commit only while it is still the tip:
-  # a newer merge's own Gate deploys the newer commit, a merge whose push fired no Gate is deployed by the next merge's, and a rerun of an older Gate never rolls production back.
+  # a newer merge's own Gate deploys the newer commit, a merge whose push started no Gate is deployed by the next merge's or by the Gate run by hand on main, and a rerun of an older Gate never rolls production back.
   tip:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest

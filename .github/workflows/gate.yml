@@ -1,9 +1,11 @@
 name: Gate
 
+# A run started by hand on main gates its tip, and Deploy production follows it, for a merge whose push started no Gate.
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -11,7 +11,7 @@ type Workflow = {
   on: unknown;
   env?: Record<string, string>;
   permissions: unknown;
-  concurrency: { group: string; "cancel-in-progress": boolean };
+  concurrency: { group: string; "cancel-in-progress": boolean; queue?: string };
   jobs: Record<string, Job>;
 };
 
@@ -110,7 +110,7 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   });
 
   test("deploys run one at a time and a running deploy is never cancelled", () => {
-    expect(workflow.concurrency).toEqual({ group: `deploy-${name}`, "cancel-in-progress": false });
+    expect(workflow.concurrency).toMatchObject({ group: `deploy-${name}`, "cancel-in-progress": false });
   });
 
   test("every run reads the branch's tip as it stands when the run starts, and the deploy job deploys only that commit", () => {
@@ -167,5 +167,13 @@ describe("production deploys what main's Gate passed", () => {
 
   test("deploys the Gate's commit only while it is still main's tip, so a newer merge's Gate deploys the newer commit and a rerun of an older Gate never rolls production back", () => {
     expect(deployJob?.if).toBe("${{ needs.tip.outputs.sha == github.event.workflow_run.head_sha }}");
+  });
+
+  test("every waiting deploy keeps its turn, so a rerun of an older Gate never pushes the tip's deploy out of the queue", () => {
+    expect(workflow.concurrency.queue).toBe("max");
+  });
+
+  test("a merge whose push started no Gate is deployed by running the Gate by hand on main", () => {
+    expect(workflowOf("gate.yml").on).toMatchObject({ workflow_dispatch: null });
   });
 });
