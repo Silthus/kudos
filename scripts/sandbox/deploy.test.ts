@@ -228,6 +228,21 @@ describe("status", () => {
     await running.finish();
   });
 
+  test("refuses when a deploy starts while it reads the served bundle", async () => {
+    const { sandbox } = fakeSandbox();
+    await deploySandbox(options(), portsWith(sandbox).ports);
+    const servedBundle = sandbox.servedBundle;
+    sandbox.servedBundle = async () => {
+      leases.take({ branch: "lane/b", sha: "def5678", worktree: "/work/b", since: "2026-10-24T10:01:00.000Z" });
+      return servedBundle();
+    };
+
+    const { code, output } = await statusOf(sandbox);
+
+    expect(code).toBe(1);
+    expect(output).toContain("a deploy started while status ran: lane/b@def5678; run status again once it is done");
+  });
+
   test("says when the last deploy didn't finish", async () => {
     const { sandbox } = fakeSandbox();
     await deploySandbox(options(), portsWith(sandbox).ports);

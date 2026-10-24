@@ -101,6 +101,11 @@ export async function sandboxStatus(stateDir: string, ports: Ports): Promise<num
     ports.log(`this tree (${here.branch}@${here.sha}${here.dirty ? " with uncommitted changes" : ""}) is not live: ${describe(last)} is`);
     return 1;
   }
+  const started = ports.leases.holder();
+  if (started || JSON.stringify(readRecord(stateDir)) !== JSON.stringify(last)) {
+    ports.log(`a deploy started while status ran${started ? `: ${describe(started)}` : ""}; run status again once it is done`);
+    return 1;
+  }
   ports.log("this tree is live");
   return 0;
 }

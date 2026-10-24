@@ -12,7 +12,9 @@ export function gitLanes(repo: string, now: Date): Lanes {
       if (heads.size === 0) return [];
       const { patterns, paths } = definitionOf(item);
       const found = git(repo, ["grep", "-l", "-E", "--all-match", ...patterns.flatMap((pattern) => ["-e", pattern]), ...heads.keys(), "--", ...paths], [0, 1]);
-      const shas = new Set(found.split("\n").filter(Boolean).map((line) => line.slice(0, line.indexOf(":"))));
+      const hits = found.split("\n").filter(Boolean);
+      const definingHits = item.kind === "index" ? hits.filter((hit) => definesIndexBesideItsTable(git(repo, ["show", hit]), item.name)) : hits;
+      const shas = new Set(definingHits.map((hit) => hit.slice(0, hit.indexOf(":"))));
       return [...new Set([...shas].map((sha) => heads!.get(sha)!))].sort().map((name): Lane => ({ name }));
     },
   };
@@ -51,6 +53,15 @@ function definitionOf({ kind, name }: Item): { patterns: string[]; paths: string
       return { patterns: [tableDefinition(table), `\\.index\\([[:space:]]*["'\`]${escape(index)}["'\`]`], paths: ["convex/"] };
     }
   }
+}
+
+function definesIndexBesideItsTable(source: string, name: string) {
+  const [table, index] = name.split(".") as [string, string];
+  const tables = [...source.matchAll(new RegExp(`${wordStart}([A-Za-z0-9_$]+)\\s*:\\s*defineTable`, "g"))];
+  const at = tables.findIndex((match) => match[2] === table);
+  if (at < 0) return false;
+  const definition = source.slice(tables[at]!.index, tables[at + 1]?.index ?? source.length);
+  return new RegExp(`\\.index\\(\\s*["'\`]${escape(index)}["'\`]`).test(definition);
 }
 
 function worktrees(repo: string) {

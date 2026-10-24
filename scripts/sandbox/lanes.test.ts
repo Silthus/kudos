@@ -43,7 +43,7 @@ beforeAll(() => {
     "convex/schema.ts": 'export default defineSchema({ kudos: defineTable({}), pairTallies: defineTable({}).index("by_pair", ["pair"]) });\n',
   });
   branchFromMain("other/table", {
-    "convex/schema.ts": 'export default defineSchema({ kudos: defineTable({}), weekTallies: defineTable({}).index("by_pair", ["pair"]) });\n',
+    "convex/schema.ts": 'export default defineSchema({\n  pairTallies: defineTable({ pair: v.string() }),\n  weekTallies: defineTable({ pair: v.string() })\n    .index("by_pair", ["pair"]),\n});\n',
   });
   branchFromMain("merged/lane", { "convex/album/week.ts": "export const getAlbumWeek = query({});\n" });
   git(work, "switch", "-q", "main");
@@ -81,8 +81,9 @@ describe("the live lanes that define what the sandbox serves", () => {
   test("finds tables and indexes in a lane's schema, matching an index only beside its own table", async () => {
     const lanes = gitLanes(work, now);
 
-    expect(await lanes.defining({ kind: "table", name: "pairTallies" })).toEqual([{ name: "origin/album/2" }]);
+    expect(await lanes.defining({ kind: "table", name: "pairTallies" })).toEqual([{ name: "origin/album/2" }, { name: "origin/other/table" }]);
     expect(await lanes.defining({ kind: "index", name: "pairTallies.by_pair" })).toEqual([{ name: "origin/album/2" }]);
+    expect(await lanes.defining({ kind: "index", name: "weekTallies.by_pair" })).toEqual([{ name: "origin/other/table" }]);
   });
 
   test("finds nothing for what no live lane defines", async () => {
