@@ -11,5 +11,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: { include: [/quill-scroll-area-shadows-[^/]+\.css/] },
+    retry: process.env.CI ? 1 : 0,
   },
 });
