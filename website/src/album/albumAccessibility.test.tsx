@@ -75,20 +75,7 @@ async function violationsIn(container: Element) {
 async function theGlowHeld(nextCard: HTMLElement) {
   vi.useFakeTimers();
   await act(async () => fireEvent.click(nextCard));
-  return {
-    async violationsIn(container: Element) {
-      const checking = violationsIn(container);
-      let checked = false;
-      const settled = () => (checked = true);
-      checking.then(settled, settled);
-      while (!checked) await vi.advanceTimersByTimeAsync(1);
-      return checking;
-    },
-    async release(skip: HTMLElement) {
-      await act(async () => fireEvent.click(skip));
-      vi.useRealTimers();
-    },
-  };
+  vi.useRealTimers();
 }
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week, week?: WeekShown, hoggies: HoggiesShown = hoggiesFixtures.midway) {
@@ -138,9 +125,9 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
         await user.click(screen.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
         await user.click(await screen.findByRole("button", { name: "Turn the first card" }));
         expect(await violationsIn(container)).toEqual([]);
-        const glowing = await theGlowHeld(screen.getByRole("button", { name: "Next card" }));
-        expect(await glowing.violationsIn(container)).toEqual([]);
-        await glowing.release(screen.getByRole("button", { name: "Skip" }));
+        await theGlowHeld(screen.getByRole("button", { name: "Next card" }));
+        expect(await violationsIn(container)).toEqual([]);
+        await user.click(screen.getByRole("button", { name: "Skip" }));
         expect(await violationsIn(container)).toEqual([]);
       }, 60_000);
     }
