@@ -24,15 +24,6 @@ const { values, positionals } = parseArgs({
 
 const repo = spawnSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).stdout.trim();
 const stateDir = join(process.env.XDG_STATE_HOME ?? join(homedir(), ".local/state"), "kudos-sandbox");
-const ports: Ports = {
-  sandbox: convexSandbox(sandboxDeployment, repo),
-  checkout: gitCheckout(repo),
-  lanes: gitLanes(repo, new Date()),
-  isAlive,
-  pause: () => new Promise((resolve) => setTimeout(resolve, 10_000)),
-  log: (line) => console.log(line),
-  now: () => new Date(),
-};
 
 process.exitCode = await main();
 
@@ -43,6 +34,15 @@ async function main() {
     return values.help ? 0 : 64;
   }
   try {
+    const ports: Ports = {
+      sandbox: convexSandbox(sandboxDeployment, repo),
+      checkout: gitCheckout(repo),
+      lanes: gitLanes(repo, new Date()),
+      isAlive,
+      pause: () => new Promise((resolve) => setTimeout(resolve, 10_000)),
+      log: (line) => console.log(line),
+      now: () => new Date(),
+    };
     if (command === "status") return await sandboxStatus(stateDir, ports);
     fetchLanes();
     const steps = workflowSteps(readFileSync(join(repo, ".github/workflows/deploy-sandbox.yml"), "utf8"));

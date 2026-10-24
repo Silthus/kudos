@@ -12,19 +12,20 @@ type FunctionSpec = { url: string; functions: { identifier?: string; method?: st
 
 export function convexSandbox(name: string, repo: string): Sandbox {
   const env = sandboxEnv(name);
-  const capture = (command: string) => captured(command, repo, env);
+  const convex = (...args: string[]) => captured(["pnpm", "exec", "convex", ...args], repo, env);
   return {
     name,
     async served(): Promise<Definitions> {
-      const spec = JSON.parse(capture("pnpm exec convex function-spec")) as FunctionSpec;
+      const spec = JSON.parse(convex("function-spec").stdout) as FunctionSpec;
       if (!spec.url.includes(`//${name}.`)) throw new Error(`convex function-spec read ${spec.url}, not ${name}`);
       return {
         functions: spec.functions.map((fn) => fn.identifier ?? `${fn.method} ${fn.path}`),
-        tables: capture("pnpm exec convex data").split("\n").filter(Boolean),
+        tables: convex("data").stdout.split("\n").filter(Boolean),
       };
     },
     async dryRun() {
-      return dryRunOf(capture("pnpm exec convex deploy --dry-run -y --typecheck disable 2>&1"));
+      const { stdout, stderr } = convex("deploy", "--dry-run", "-y", "--typecheck", "disable");
+      return dryRunOf(`${stdout}\n${stderr}`);
     },
     async run(step) {
       const { status } = spawnSync("bash", ["-o", "pipefail", "-c", step], { cwd: repo, env, stdio: "inherit" });
@@ -38,13 +39,13 @@ export function convexSandbox(name: string, repo: string): Sandbox {
 }
 
 export function gitCheckout(repo: string): Checkout {
-  const git = (command: string) => captured(`git ${command}`, repo, process.env);
-  const dirty = git("status --porcelain -- . :!node_modules") !== "";
+  const git = (...args: string[]) => captured(["git", ...args], repo, process.env).stdout;
+  const dirty = git("status", "--porcelain", "--", ".", ":!node_modules") !== "";
   return {
-    branch: git("branch --show-current") || git("for-each-ref --points-at=HEAD --count=1 --format=%(refname:short) refs/remotes/origin") || "detached",
-    sha: git("rev-parse --short HEAD") + (dirty ? "-dirty" : ""),
+    branch: git("branch", "--show-current") || git("for-each-ref", "--points-at=HEAD", "--count=1", "--format=%(refname:short)", "refs/remotes/origin") || "detached",
+    sha: git("rev-parse", "--short", "HEAD") + (dirty ? "-dirty" : ""),
     worktree: repo,
-    inventory: async () => JSON.parse(captured(`bun ${inventoryScript}`, repo, process.env)) as Definitions,
+    inventory: async () => JSON.parse(captured(["bun", inventoryScript], repo, process.env).stdout) as Definitions,
     builtBundle: () => bundleIn(readFileSync(join(repo, "website/dist/index.html"), "utf8"), "website/dist/index.html"),
   };
 }
@@ -85,8 +86,8 @@ function bundleIn(html: string, where: string) {
   return bundle;
 }
 
-function captured(command: string, cwd: string, env: NodeJS.ProcessEnv) {
-  const { status, stdout, stderr } = spawnSync("bash", ["-o", "pipefail", "-c", command], { cwd, env, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
-  if (status !== 0) throw new Error(`${command} failed with exit ${status}:\n${stdout}${stderr}`);
-  return stdout.trim();
+function captured([command, ...args]: string[], cwd: string, env: NodeJS.ProcessEnv) {
+  const { status, stdout, stderr } = spawnSync(command!, args, { cwd, env, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+  if (status !== 0) throw new Error(`${[command, ...args].join(" ")} failed with exit ${status}:\n${stdout}${stderr}`);
+  return { stdout: stdout.trim(), stderr };
 }
