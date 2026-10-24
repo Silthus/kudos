@@ -13,6 +13,10 @@ This repository is public: keep customer names, customer data and usage numbers 
 
 `pnpm gate` runs the typecheck, the tests, and Coherence's spec and vocabulary checks. It is the ship-to-main gate: green locally before a pull request merges to `main`. CI runs it on every pull request, beside the Coherence workflow in fail mode.
 
+## Sandbox
+
+Lanes share the sandbox deployment `different-dog-467`. Deploy to it only with `pnpm sandbox-deploy` from the tree you mean to prove, and run `pnpm sandbox-deploy status` right before each capture; `--help` lists the options.
+
 ## Coherence
 
 Coherence guards this repository's specs, vocabulary and invariants. Its hooks (`.claude/settings.json`, `.codex/hooks.json`) bring specs, practices and findings into the session.
