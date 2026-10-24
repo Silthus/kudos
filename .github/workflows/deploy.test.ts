@@ -5,14 +5,33 @@ import { parse } from "yaml";
 import { runStep } from "./workflowStep";
 
 type Step = { id?: string; name?: string; if?: string; run?: string; uses?: string; with?: Record<string, unknown>; env?: Record<string, string> };
-type Job = { env?: Record<string, string>; needs?: string | string[]; uses?: string; with?: Record<string, unknown>; outputs?: Record<string, string>; steps?: Step[] };
+type Job = { env?: Record<string, string>; if?: string; needs?: string | string[]; uses?: string; with?: Record<string, unknown>; outputs?: Record<string, string>; steps?: Step[] };
 type Workflow = {
+  name: string;
   on: unknown;
   env?: Record<string, string>;
   permissions: unknown;
   concurrency: { group: string; "cancel-in-progress": boolean };
   jobs: Record<string, Job>;
 };
+
+function workflowOf(file: string) {
+  return parse(readFileSync(new URL(`./${file}`, import.meta.url), "utf8")) as Workflow;
+}
+
+function deployJobOf(workflow: Workflow) {
+  return Object.values(workflow.jobs).find((job) => job.steps?.some((step) => step.run?.includes("convex deploy")));
+}
+
+function needsOf(job: Job | undefined) {
+  return [job?.needs ?? []].flat();
+}
+
+function checkoutOf(job: Job | undefined) {
+  return job?.steps?.find((step) => step.uses?.startsWith("actions/checkout@"));
+}
+
+const gateSuite = "./.github/workflows/gate-suite.yml";
 
 const deployments = [
   {
@@ -26,18 +45,17 @@ const deployments = [
   {
     name: "production",
     file: "deploy-production.yml",
-    trigger: "only a push to main deploys, never a pull request",
-    on: { push: { branches: ["main"] } },
+    trigger: "only main's Gate finishing starts a deploy, never a push or a pull request",
+    on: { workflow_run: { workflows: [workflowOf("gate.yml").name], types: ["completed"], branches: ["main"] } },
     secret: "CONVEX_DEPLOY_KEY_PRODUCTION",
     backfill: "pnpm exec convex run quests/pendingCrates:backfillPendingCrates",
   },
 ];
 
 describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret, backfill }) => {
-  const workflow = parse(readFileSync(new URL(`./${file}`, import.meta.url), "utf8")) as Workflow;
-  const deployJob = Object.values(workflow.jobs).find((job) => job.steps?.some((step) => step.run?.includes("convex deploy")));
+  const workflow = workflowOf(file);
+  const deployJob = deployJobOf(workflow);
   const steps = deployJob?.steps ?? [];
-  const checkoutOf = (job: Job | undefined) => job?.steps?.find((step) => step.uses?.startsWith("actions/checkout@"));
   const deployStep = steps.find((step) => step.run?.includes("convex deploy"));
   const uploadStep = steps.find((step) => step.run?.includes("static-hosting upload"));
   const prepareStep = steps.find((step) => step.run?.includes("website/flag:prepareWebsiteFlag"));
@@ -91,19 +109,14 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     for (const job of jobsWithSteps) expect(checkoutOf(job)?.with).toMatchObject({ "persist-credentials": false });
   });
 
-  test("the gate suite passes on the very commit the deploy job then deploys", () => {
-    const [suiteJob, suite] = Object.entries(workflow.jobs).find(([, job]) => job.uses === "./.github/workflows/gate-suite.yml") ?? [];
-    expect(suite?.with).toEqual({ ref: "${{ needs.tip.outputs.sha }}" });
-    expect(deployJob?.needs).toEqual(expect.arrayContaining(["tip", suiteJob]));
-    expect(checkoutOf(deployJob)?.with).toMatchObject({ ref: "${{ needs.tip.outputs.sha }}" });
-  });
-
   test("deploys run one at a time and a running deploy is never cancelled", () => {
     expect(workflow.concurrency).toEqual({ group: `deploy-${name}`, "cancel-in-progress": false });
   });
 
-  test("every run deploys the branch's tip as it stands when the run starts, so a burst of pushes never leaves the deployment behind", () => {
+  test("every run reads the branch's tip as it stands when the run starts, and the deploy job deploys only that commit", () => {
     const tip = workflow.jobs.tip;
+    expect(needsOf(deployJob)).toContain("tip");
+    expect(checkoutOf(deployJob)?.with).toMatchObject({ ref: "${{ needs.tip.outputs.sha }}" });
     expect(checkoutOf(tip)?.with).toMatchObject({ ref: "${{ github.ref }}" });
     expect(tip?.outputs?.sha).toBe("${{ steps.tip.outputs.sha }}");
     const checkedOut = "c".repeat(40);
@@ -126,5 +139,33 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(withRemoteTip("exit 128")).not.toBe(0);
     const nestedBranchFirst = `printf '%s\\trefs/heads/x/refs/heads/main\\n%s\\trefs/heads/main\\n' ${gated} ${"b".repeat(40)}`;
     expect(withRemoteTip(nestedBranchFirst)).not.toBe(0);
+  });
+});
+
+describe("the sandbox gates its own commit", () => {
+  const workflow = workflowOf("deploy-sandbox.yml");
+
+  test("the gate suite passes on the branch's tip before the deploy job deploys it, so a burst of pushes never leaves the deployment behind", () => {
+    const [suiteJob, suite] = Object.entries(workflow.jobs).find(([, job]) => job.uses === gateSuite) ?? [];
+    expect(suite?.with).toEqual({ ref: "${{ needs.tip.outputs.sha }}" });
+    expect(needsOf(deployJobOf(workflow))).toEqual(expect.arrayContaining(["tip", suiteJob]));
+  });
+});
+
+describe("production deploys what main's Gate passed", () => {
+  const workflow = workflowOf("deploy-production.yml");
+  const deployJob = deployJobOf(workflow);
+
+  test("runs no test suite of its own, so each merge runs the suite once", () => {
+    expect(Object.values(workflow.jobs).filter((job) => job.uses === gateSuite)).toEqual([]);
+  });
+
+  test("a Gate that failed, was cancelled or was skipped deploys nothing", () => {
+    expect(workflow.jobs.tip?.if).toBe("${{ github.event.workflow_run.conclusion == 'success' }}");
+    expect(needsOf(deployJob)).toContain("tip");
+  });
+
+  test("deploys the Gate's commit only while it is still main's tip, so a newer merge's Gate deploys the newer commit and a rerun of an older Gate never rolls production back", () => {
+    expect(deployJob?.if).toBe("${{ needs.tip.outputs.sha == github.event.workflow_run.head_sha }}");
   });
 });

@@ -1,23 +1,26 @@
-# Every push to main deploys main's tip to the production Convex deployment.
+# Every Gate run that passes on main deploys its commit to the production Convex deployment; the Gate is the deploy's gate, so each merge runs the suite once.
 # The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag, read the faces and backfill the pending-crate index.
 name: Deploy production
 
 on:
-  push:
+  workflow_run:
+    workflows: [Gate]
+    types: [completed]
     branches: [main]
 
 permissions:
   contents: read
 
-# One deploy at a time; a newer push waits for the running deploy, then the newest one wins.
+# One deploy at a time; a newer Gate's deploy waits for the running deploy, then the newest one wins.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
 jobs:
-  # The branch's tip as it stands when this run starts, not the commit that queued it: runs take turns, so each deploys the newest code, a burst of merges never leaves the deployment behind, and a rerun never rolls it back.
-  # The gate suite checks this one commit and the deploy job deploys it.
+  # Main's tip as it stands when this run starts. A Gate that did not pass deploys nothing, and the deploy job deploys the Gate's commit only while it is still the tip:
+  # a newer merge's own Gate deploys the newer commit, a merge whose push fired no Gate is deployed by the next merge's, and a rerun of an older Gate never rolls production back.
   tip:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -32,14 +35,9 @@ jobs:
       - id: tip
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-  gate:
-    needs: tip
-    uses: ./.github/workflows/gate-suite.yml
-    with:
-      ref: ${{ needs.tip.outputs.sha }}
-
   deploy:
-    needs: [tip, gate]
+    needs: tip
+    if: ${{ needs.tip.outputs.sha == github.event.workflow_run.head_sha }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

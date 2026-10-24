@@ -11,7 +11,9 @@ This repository is public: keep customer names, customer data and usage numbers 
 
 ## Gate
 
-`pnpm gate` runs the typecheck, the tests, and Coherence's spec and vocabulary checks. It is the ship-to-main gate: green locally before a pull request merges to `main`. CI runs it on every pull request, beside the Coherence workflow in fail mode.
+`pnpm gate` runs the typecheck, the tests, and Coherence's spec and vocabulary checks. CI runs it as the ship-to-main gate on every pull request and on `main`, beside the Coherence workflow in fail mode, and production deploys only a commit whose Gate passed on `main`.
+
+Lanes run `pnpm gate:lane` locally: the whole-repo guard tests (`*.guard.test.ts`, also `pnpm test:guards`), the typecheck, the tests the change touches since `origin/main`, and Coherence's checks, at most two lanes at once per box. A new public Convex function means listing it in `convex/publicSurface.guard.test.ts`.
 
 ## Coherence
 
