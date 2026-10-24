@@ -1,6 +1,6 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import axe from "axe-core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
@@ -15,6 +15,10 @@ import { fixedProfile, profileFixtures } from "./profileFixtures";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 
 const memberWithTheAlbum = shellFixtures.member;
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const pages: { path: string; album?: MyAlbum; boards?: BoardsShown; week?: WeekShown; hoggies?: HoggiesShown }[] = [
   { path: "/book#teams/lanterns" },
@@ -68,6 +72,25 @@ async function violationsIn(container: Element) {
   return results.violations.map((violation) => `${violation.id}: ${violation.help}`);
 }
 
+async function theGlowHeld(nextCard: HTMLElement) {
+  vi.useFakeTimers();
+  await act(async () => fireEvent.click(nextCard));
+  return {
+    async violationsIn(container: Element) {
+      const checking = violationsIn(container);
+      let checked = false;
+      const settled = () => (checked = true);
+      checking.then(settled, settled);
+      while (!checked) await vi.advanceTimersByTimeAsync(1);
+      return checking;
+    },
+    async release(skip: HTMLElement) {
+      await act(async () => fireEvent.click(skip));
+      vi.useRealTimers();
+    },
+  };
+}
+
 function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week, week?: WeekShown, hoggies: HoggiesShown = hoggiesFixtures.midway) {
   window.history.replaceState(null, "", path);
   return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), weeks: week === undefined ? fixtureWeeks() : fixedWeek(week), people: album.kind === "album" ? fixedPeople(album) : undefined, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggies), commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), unlockTeamSticker: async (team) => (album.kind === "album" ? fixtureUnlockOf(album, team) : { kind: "refused" }) } });
@@ -113,11 +136,11 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
         expect(await violationsIn(container)).toEqual([]);
 
         await user.click(screen.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
-        for (const turn of ["Turn the first card", "Next card"]) {
-          await user.click(await screen.findByRole("button", { name: turn }));
-          expect(await violationsIn(container)).toEqual([]);
-        }
-        await user.click(screen.getByRole("button", { name: "Skip" }));
+        await user.click(await screen.findByRole("button", { name: "Turn the first card" }));
+        expect(await violationsIn(container)).toEqual([]);
+        const glowing = await theGlowHeld(screen.getByRole("button", { name: "Next card" }));
+        expect(await glowing.violationsIn(container)).toEqual([]);
+        await glowing.release(screen.getByRole("button", { name: "Skip" }));
         expect(await violationsIn(container)).toEqual([]);
       }, 60_000);
     }
