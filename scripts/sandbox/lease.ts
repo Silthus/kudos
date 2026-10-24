@@ -1,50 +1,54 @@
-import { linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dlopen, FFIType } from "bun:ffi";
+import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Leases, Owner } from "./deploy";
 
-export type Owner = { branch: string; sha: string; worktree: string; thread?: string; pid: number; since: string };
+const exclusive = 2;
+const nonBlocking = 4;
+const unlock = 8;
+const libc = dlopen("libc.so.6", { flock: { args: [FFIType.i32, FFIType.i32], returns: FFIType.i32 } });
 
-export type Lease = { taken: true; release: () => void } | { taken: false; holder: Owner };
+export type KernelLeases = Leases & { descriptor(): number | undefined };
 
-export function takeLease(stateDir: string, owner: Owner, isAlive: (pid: number) => boolean): Lease {
+export function kernelLeases(stateDir: string): KernelLeases {
   mkdirSync(stateDir, { recursive: true });
-  const path = leasePath(stateDir);
-  if (claim(path, owner)) return { taken: true, release: () => releaseIfOwned(path, owner) };
-  const holder = leaseHolder(stateDir);
-  if (!holder) return takeLease(stateDir, owner, isAlive);
-  if (isAlive(holder.pid)) return { taken: false, holder };
-  releaseIfOwned(path, holder);
-  return claim(path, owner) ? { taken: true, release: () => releaseIfOwned(path, owner) } : { taken: false, holder: leaseHolder(stateDir)! };
-}
-
-export function leaseHolder(stateDir: string): Owner | undefined {
-  return readJson<Owner>(leasePath(stateDir));
-}
-
-export function readJson<T>(path: string): T | undefined {
-  try {
-    return JSON.parse(readFileSync(path, "utf8")) as T;
-  } catch {
+  const lockPath = join(stateDir, "lease.lock");
+  const ownerPath = join(stateDir, "lease.json");
+  let held: number | undefined;
+  const tryLock = () => {
+    const descriptor = openSync(lockPath, "a");
+    if (libc.symbols.flock(descriptor, exclusive | nonBlocking) === 0) return descriptor;
+    closeSync(descriptor);
     return undefined;
-  }
+  };
+  const owner = () => {
+    try {
+      return JSON.parse(readFileSync(ownerPath, "utf8")) as Owner;
+    } catch {
+      return undefined;
+    }
+  };
+  return {
+    take(next) {
+      const descriptor = tryLock();
+      if (descriptor === undefined) return { holder: owner() };
+      writeFileSync(ownerPath, JSON.stringify(next));
+      held = descriptor;
+      return {
+        release() {
+          rmSync(ownerPath, { force: true });
+          closeSync(descriptor);
+          held = undefined;
+        },
+      };
+    },
+    holder() {
+      const descriptor = tryLock();
+      if (descriptor === undefined) return owner() ?? { branch: "an unrecorded deploy", sha: "unknown", worktree: "unknown", since: "unknown" };
+      libc.symbols.flock(descriptor, unlock);
+      closeSync(descriptor);
+      return undefined;
+    },
+    descriptor: () => held,
+  };
 }
-
-function claim(path: string, owner: Owner) {
-  const draft = `${path}.${owner.pid}`;
-  writeFileSync(draft, JSON.stringify(owner));
-  try {
-    linkSync(draft, path);
-    return true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
-    throw error;
-  } finally {
-    rmSync(draft, { force: true });
-  }
-}
-
-function releaseIfOwned(path: string, owner: Owner) {
-  const current = readJson<Owner>(path);
-  if (current?.pid === owner.pid && current.since === owner.since) rmSync(path, { force: true });
-}
-
-const leasePath = (stateDir: string) => join(stateDir, "lease.json");

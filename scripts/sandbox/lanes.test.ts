@@ -42,6 +42,9 @@ beforeAll(() => {
     "convex/album/week.ts": "export const getAlbumWeek = query({});\n",
     "convex/schema.ts": 'export default defineSchema({ kudos: defineTable({}), pairTallies: defineTable({}).index("by_pair", ["pair"]) });\n',
   });
+  branchFromMain("other/table", {
+    "convex/schema.ts": 'export default defineSchema({ kudos: defineTable({}), weekTallies: defineTable({}).index("by_pair", ["pair"]) });\n',
+  });
   branchFromMain("merged/lane", { "convex/album/week.ts": "export const getAlbumWeek = query({});\n" });
   git(work, "switch", "-q", "main");
   git(work, "merge", "-q", "--ff-only", "merged/lane");
@@ -75,7 +78,7 @@ describe("the live lanes that define what the sandbox serves", () => {
     expect(await lanes.defining({ kind: "function", name: "album/person.js:getAlbumPerson" })).toEqual([{ name: `detached worktree ${join(dir, "proof-tree")}` }]);
   });
 
-  test("finds tables and indexes in a lane's schema", async () => {
+  test("finds tables and indexes in a lane's schema, matching an index only beside its own table", async () => {
     const lanes = gitLanes(work, now);
 
     expect(await lanes.defining({ kind: "table", name: "pairTallies" })).toEqual([{ name: "origin/album/2" }]);

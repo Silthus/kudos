@@ -3,24 +3,33 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { deploySandbox, sandboxStatus, type Checkout, type DryRun, type Item, type Lanes, type Ports, type Sandbox } from "./deploy";
-import { takeLease } from "./lease";
+import { deploySandbox, sandboxStatus, type Checkout, type DryRun, type Identity, type Item, type Lanes, type Leases, type Owner, type Ports, type Sandbox, type Step } from "./deploy";
 
-const steps = ["pnpm exec convex deploy -y", "pnpm exec static-hosting upload", "pnpm exec convex run website/flag:prepareWebsiteFlag"];
+const steps: Step[] = [
+  { run: "pnpm exec convex deploy -y", afterFailedStep: false },
+  { run: "pnpm exec static-hosting upload", afterFailedStep: false },
+  { run: "pnpm exec convex run website/flag:prepareWebsiteFlag", afterFailedStep: false },
+  { run: "pnpm exec convex run quests/pendingCrates:backfillPendingCrates", afterFailedStep: true },
+];
+const commands = steps.map((step) => step.run);
 
 let stateDir: string;
+let leases: Leases;
 beforeEach(() => {
   stateDir = mkdtempSync(join(tmpdir(), "sandbox-deploy-"));
+  leases = memoryLeases();
 });
 afterEach(() => {
   rmSync(stateDir, { recursive: true, force: true });
 });
 
-type SandboxSetup = { functions?: string[]; tables?: string[]; dryRun?: Partial<DryRun>; served?: string; onStep?: (step: string) => Promise<void> };
+type SandboxSetup = { functions?: string[]; tables?: string[]; dryRun?: Partial<DryRun>; served?: string; failOn?: string; holdFirstStep?: boolean };
 
-function fakeSandbox({ functions = ["a.js:f"], tables = ["t"], dryRun = {}, served, onStep }: SandboxSetup = {}) {
+function fakeSandbox({ functions = ["a.js:f"], tables = ["t"], dryRun = {}, served, failOn, holdFirstStep }: SandboxSetup = {}) {
   const ran: string[] = [];
   let bundle = "OLD";
+  let finishFirstStep = () => {};
+  const firstStepHeld = new Promise<void>((resolve) => (finishFirstStep = resolve));
   const sandbox: Sandbox = {
     name: "different-dog-467",
     served: async () => ({ functions, tables }),
@@ -30,26 +39,37 @@ function fakeSandbox({ functions = ["a.js:f"], tables = ["t"], dryRun = {}, serv
     },
     run: async (step) => {
       ran.push(step);
-      await onStep?.(step);
+      if (holdFirstStep && step === commands[0]) await firstStepHeld;
+      if (failOn && step.includes(failOn)) throw new Error(`${failOn} failed`);
       if (step.includes("upload")) bundle = served ?? "NEW";
     },
     servedBundle: async () => bundle,
   };
-  return { sandbox, ran, setBundle: (next: string) => (bundle = next) };
+  return { sandbox, ran, finishFirstStep, setBundle: (next: string) => (bundle = next) };
 }
 
-const checkout = (overrides: Partial<Checkout> = {}): Checkout => ({
-  branch: "lane/a",
-  sha: "abc1234",
+const checkout = (identity: Partial<Identity> = {}): Checkout => ({
   worktree: "/work/a",
+  identity: () => ({ branch: "lane/a", sha: "abc1234", dirty: false, ...identity }),
   inventory: async () => ({ functions: ["a.js:f"], tables: ["t"] }),
   builtBundle: () => "NEW",
-  ...overrides,
 });
 
 const lanesDefining = (definers: Record<string, string[]>): Lanes => ({
   defining: async (item: Item) => (definers[item.name] ?? []).map((name) => ({ name })),
 });
+
+function memoryLeases(): Leases {
+  let holder: Owner | undefined;
+  return {
+    take(owner) {
+      if (holder) return { holder };
+      holder = owner;
+      return { release: () => (holder = undefined) };
+    },
+    holder: () => holder,
+  };
+}
 
 function portsWith(sandbox: Sandbox, overrides: Partial<Ports> = {}) {
   const lines: string[] = [];
@@ -57,13 +77,13 @@ function portsWith(sandbox: Sandbox, overrides: Partial<Ports> = {}) {
     sandbox,
     checkout: checkout(),
     lanes: lanesDefining({}),
-    isAlive: () => true,
+    leases,
     pause: async () => {},
     log: (line) => lines.push(line),
     now: () => new Date("2026-10-24T10:00:00Z"),
     ...overrides,
   };
-  return { ports, lines, output: () => lines.join("\n") };
+  return { ports, output: () => lines.join("\n") };
 }
 
 const options = (overrides: Partial<Parameters<typeof deploySandbox>[0]> = {}) => ({
@@ -73,9 +93,25 @@ const options = (overrides: Partial<Parameters<typeof deploySandbox>[0]> = {}) =
   dryRun: false,
   drop: [],
   thread: "thread-a",
-  pid: 100,
   ...overrides,
 });
+
+async function statusOf(sandbox: Sandbox, overrides: Partial<Ports> = {}) {
+  const { ports, output } = portsWith(sandbox, overrides);
+  return { code: await sandboxStatus(stateDir, ports), output: output() };
+}
+
+async function deployHeldAtItsFirstStep(branch: string, thread: string) {
+  const held = fakeSandbox({ holdFirstStep: true });
+  const deploy = deploySandbox(options({ thread }), portsWith(held.sandbox, { checkout: checkout({ branch }) }).ports);
+  await until(() => held.ran.length > 1);
+  return {
+    finish: async () => {
+      held.finishFirstStep();
+      return deploy;
+    },
+  };
+}
 
 describe("deploying a tree to the shared sandbox", () => {
   test("dry-runs, runs the workflow's steps in order, checks the served bundle, and says what is live", async () => {
@@ -84,57 +120,23 @@ describe("deploying a tree to the shared sandbox", () => {
 
     expect(await deploySandbox(options(), ports)).toBe(0);
 
-    expect(ran).toEqual(["dry run", ...steps]);
+    expect(ran).toEqual(["dry run", ...commands]);
     expect(output()).toContain("sandbox live: lane/a@abc1234 bundle NEW");
   });
 
-  test("status prints the last deploy, so a lane can check its tree is live right before capturing", async () => {
-    const { sandbox } = fakeSandbox();
-    await deploySandbox(options(), portsWith(sandbox).ports);
-
-    const status = portsWith(sandbox);
-    expect(await sandboxStatus(stateDir, status.ports)).toBe(0);
-
-    expect(status.output()).toContain("last deploy: lane/a@abc1234 bundle NEW at 2026-10-24T10:00:00.000Z, thread thread-a");
-    expect(status.output()).toContain("this tree is live");
-  });
-
-  test("status refuses a tree that isn't the one live", async () => {
-    const { sandbox } = fakeSandbox();
-    await deploySandbox(options(), portsWith(sandbox).ports);
-
-    const status = portsWith(sandbox, { checkout: checkout({ branch: "lane/b", sha: "def5678" }) });
-    expect(await sandboxStatus(stateDir, status.ports)).toBe(1);
-
-    expect(status.output()).toContain("this tree (lane/b@def5678) is not live: lane/a@abc1234 is");
-  });
-
-  test("status says when the sandbox serves a bundle the last deploy didn't upload", async () => {
-    const { sandbox, setBundle } = fakeSandbox();
-    await deploySandbox(options(), portsWith(sandbox).ports);
-    setBundle("OTHER");
-
-    const status = portsWith(sandbox);
-    expect(await sandboxStatus(stateDir, status.ports)).toBe(1);
-
-    expect(status.output()).toContain("served bundle OTHER is not the last deploy's NEW: someone deployed without sandbox-deploy");
-  });
-
-  test("fails and records nothing when the sandbox serves another bundle than the one built", async () => {
-    const { sandbox } = fakeSandbox({ served: "SOMEONE-ELSES" });
-    const { ports, output } = portsWith(sandbox);
+  test("refuses a tree with uncommitted changes, so the record names what the sandbox serves", async () => {
+    const { sandbox, ran } = fakeSandbox();
+    const { ports, output } = portsWith(sandbox, { checkout: checkout({ dirty: true }) });
 
     expect(await deploySandbox(options(), ports)).toBe(1);
 
-    expect(output()).toContain("the sandbox serves bundle SOMEONE-ELSES, not the NEW this tree built");
-    const status = portsWith(sandbox);
-    await sandboxStatus(stateDir, status.ports);
-    expect(status.output()).toContain("last deploy: none recorded");
+    expect(ran).toEqual(["dry run"]);
+    expect(output()).toContain("refusing to deploy: lane/a@abc1234 has uncommitted changes");
   });
 
-  test("stops after the checks and the Convex dry run with --dry-run", async () => {
+  test("stops after the checks and the Convex dry run with --dry-run, uncommitted changes and all", async () => {
     const { sandbox, ran } = fakeSandbox();
-    const { ports, output } = portsWith(sandbox);
+    const { ports, output } = portsWith(sandbox, { checkout: checkout({ dirty: true }) });
 
     expect(await deploySandbox(options({ dryRun: true }), ports)).toBe(0);
 
@@ -151,51 +153,117 @@ describe("deploying a tree to the shared sandbox", () => {
     expect(ran).toEqual(["dry run"]);
     expect(output()).toContain("the dry run targets https://affable-bat-254.convex.cloud, not different-dog-467");
   });
+
+  test("after a later step fails, still runs the steps the workflow runs after a failure, then fails", async () => {
+    const { sandbox, ran } = fakeSandbox({ failOn: "upload" });
+
+    await expect(deploySandbox(options(), portsWith(sandbox).ports)).rejects.toThrow("upload failed");
+
+    expect(ran).toEqual(["dry run", commands[0], commands[1], commands[3]]);
+  });
+
+  test("fails without recording a live deploy when the sandbox serves another bundle than the one built", async () => {
+    const { sandbox } = fakeSandbox({ served: "SOMEONE-ELSES" });
+    const { ports, output } = portsWith(sandbox);
+
+    expect(await deploySandbox(options(), ports)).toBe(1);
+
+    expect(output()).toContain("the sandbox serves bundle SOMEONE-ELSES, not the NEW this tree built");
+    expect((await statusOf(sandbox)).output).toContain("last deploy: lane/a@abc1234 started 2026-10-24T10:00:00.000Z, thread thread-a and did not finish");
+  });
+});
+
+describe("status", () => {
+  test("prints the last deploy, so a lane can check its tree is live right before a proof", async () => {
+    const { sandbox } = fakeSandbox();
+    await deploySandbox(options(), portsWith(sandbox).ports);
+
+    const { code, output } = await statusOf(sandbox);
+
+    expect(code).toBe(0);
+    expect(output).toContain("last deploy: lane/a@abc1234 bundle NEW at 2026-10-24T10:00:00.000Z, thread thread-a");
+    expect(output).toContain("this tree is live");
+  });
+
+  test("refuses a tree that isn't the one live", async () => {
+    const { sandbox } = fakeSandbox();
+    await deploySandbox(options(), portsWith(sandbox).ports);
+
+    const { code, output } = await statusOf(sandbox, { checkout: checkout({ branch: "lane/b", sha: "def5678" }) });
+
+    expect(code).toBe(1);
+    expect(output).toContain("this tree (lane/b@def5678) is not live: lane/a@abc1234 is");
+  });
+
+  test("refuses the live tree once it has uncommitted changes", async () => {
+    const { sandbox } = fakeSandbox();
+    await deploySandbox(options(), portsWith(sandbox).ports);
+
+    const { code, output } = await statusOf(sandbox, { checkout: checkout({ dirty: true }) });
+
+    expect(code).toBe(1);
+    expect(output).toContain("this tree (lane/a@abc1234 with uncommitted changes) is not live");
+  });
+
+  test("says when the sandbox serves a bundle the last deploy didn't upload", async () => {
+    const { sandbox, setBundle } = fakeSandbox();
+    await deploySandbox(options(), portsWith(sandbox).ports);
+    setBundle("OTHER");
+
+    const { code, output } = await statusOf(sandbox);
+
+    expect(code).toBe(1);
+    expect(output).toContain("served bundle OTHER is not the last deploy's NEW: it was deployed without sandbox-deploy or from another machine");
+  });
+
+  test("refuses while a deploy runs, even over a tree that was live", async () => {
+    const { sandbox } = fakeSandbox();
+    await deploySandbox(options(), portsWith(sandbox).ports);
+    const running = await deployHeldAtItsFirstStep("lane/b", "thread-b");
+
+    const { code, output } = await statusOf(sandbox);
+
+    expect(code).toBe(1);
+    expect(output).toContain("a deploy is running: lane/b@abc1234");
+    await running.finish();
+  });
+
+  test("says when the last deploy didn't finish", async () => {
+    const { sandbox } = fakeSandbox();
+    await deploySandbox(options(), portsWith(sandbox).ports);
+    const failing = fakeSandbox({ failOn: "upload" });
+    await expect(deploySandbox(options({ thread: "thread-b" }), portsWith(failing.sandbox, { checkout: checkout({ branch: "lane/b" }) }).ports)).rejects.toThrow();
+
+    const { code, output } = await statusOf(sandbox);
+
+    expect(code).toBe(1);
+    expect(output).toContain("last deploy: lane/b@abc1234 started 2026-10-24T10:00:00.000Z, thread thread-b and did not finish");
+  });
 });
 
 describe("the lease", () => {
   test("refuses while another lane holds it, naming that lane's branch and thread", async () => {
-    let finishFirst!: () => void;
-    const first = fakeSandbox({ onStep: (step) => (step === steps[0] ? new Promise<void>((resolve) => (finishFirst = resolve)) : Promise.resolve()) });
-    const firstDeploy = deploySandbox(options(), portsWith(first.sandbox).ports);
-    await until(() => first.ran.length > 1);
+    const first = await deployHeldAtItsFirstStep("lane/a", "thread-a");
 
     const second = fakeSandbox();
     const { ports, output } = portsWith(second.sandbox, { checkout: checkout({ branch: "lane/b" }) });
-    expect(await deploySandbox(options({ pid: 200, thread: "thread-b" }), ports)).toBe(1);
+    expect(await deploySandbox(options({ thread: "thread-b" }), ports)).toBe(1);
 
     expect(second.ran).toEqual([]);
-    expect(output()).toContain("lane/a@abc1234 holds the sandbox lease (thread thread-a, worktree /work/a)");
-    finishFirst();
-    expect(await firstDeploy).toBe(0);
+    expect(output()).toContain("lane/a@abc1234 (thread thread-a, worktree /work/a) holds the sandbox lease");
+    expect(await first.finish()).toBe(0);
   });
 
   test("with --wait, waits until the holder is done, then deploys", async () => {
-    let finishFirst!: () => void;
-    const first = fakeSandbox({ onStep: (step) => (step === steps[0] ? new Promise<void>((resolve) => (finishFirst = resolve)) : Promise.resolve()) });
-    const firstDeploy = deploySandbox(options(), portsWith(first.sandbox).ports);
-    await until(() => first.ran.length > 1);
+    const first = await deployHeldAtItsFirstStep("lane/a", "thread-a");
 
     const second = fakeSandbox();
-    const pause = async () => {
-      finishFirst();
-      await firstDeploy;
-    };
+    const pause = async () => void (await first.finish());
     const { ports, output } = portsWith(second.sandbox, { checkout: checkout({ branch: "lane/b" }), pause });
-    expect(await deploySandbox(options({ pid: 200, wait: true }), ports)).toBe(0);
+    expect(await deploySandbox(options({ wait: true }), ports)).toBe(0);
 
     expect(output()).toContain("waiting for lane/a@abc1234");
-    expect(second.ran).toEqual(["dry run", ...steps]);
-  });
-
-  test("takes over a lease whose holder's process is gone", async () => {
-    takeLease(stateDir, { branch: "lane/gone", sha: "0000000", worktree: "/work/gone", pid: 111, since: "2026-10-24T09:00:00.000Z" }, () => true);
-    const { sandbox, ran } = fakeSandbox();
-    const { ports } = portsWith(sandbox, { isAlive: (pid) => pid !== 111 });
-
-    expect(await deploySandbox(options(), ports)).toBe(0);
-
-    expect(ran).toEqual(["dry run", ...steps]);
+    expect(second.ran).toEqual(["dry run", ...commands]);
   });
 });
 
@@ -230,7 +298,7 @@ describe("what the sandbox serves and the tree doesn't define", () => {
 
     expect(await deploySandbox(options({ drop: ["album/week.js:getAlbumWeek"] }), ports)).toBe(0);
 
-    expect(ran).toEqual(["dry run", ...steps]);
+    expect(ran).toEqual(["dry run", ...commands]);
     expect(output()).toContain("leaving out what no live lane defines: function old.js:retired");
     expect(output()).toContain("leaving out function album/week.js:getAlbumWeek: --drop names it");
   });

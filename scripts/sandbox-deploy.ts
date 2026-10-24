@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 import { convexSandbox, gitCheckout, workflowSteps } from "./sandbox/convexSandbox";
 import { deploySandbox, sandboxStatus, type Ports } from "./sandbox/deploy";
 import { gitLanes } from "./sandbox/lanes";
+import { kernelLeases } from "./sandbox/lease";
 
 const sandboxDeployment = "different-dog-467";
 const usage = `usage: pnpm sandbox-deploy [--wait] [--dry-run] [--thread <id>] [--drop <name>]...
@@ -34,11 +35,12 @@ async function main() {
     return values.help ? 0 : 64;
   }
   try {
+    const leases = kernelLeases(stateDir);
     const ports: Ports = {
-      sandbox: convexSandbox(sandboxDeployment, repo),
+      sandbox: convexSandbox(sandboxDeployment, repo, leases.descriptor),
       checkout: gitCheckout(repo),
       lanes: gitLanes(repo, new Date()),
-      isAlive,
+      leases,
       pause: () => new Promise((resolve) => setTimeout(resolve, 10_000)),
       log: (line) => console.log(line),
       now: () => new Date(),
@@ -46,7 +48,7 @@ async function main() {
     if (command === "status") return await sandboxStatus(stateDir, ports);
     fetchLanes();
     const steps = workflowSteps(readFileSync(join(repo, ".github/workflows/deploy-sandbox.yml"), "utf8"));
-    return await deploySandbox({ stateDir, steps, wait: values.wait, dryRun: values["dry-run"], drop: values.drop, thread: values.thread, pid: process.pid }, ports);
+    return await deploySandbox({ stateDir, steps, wait: values.wait, dryRun: values["dry-run"], drop: values.drop, thread: values.thread }, ports);
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     return 1;
@@ -55,13 +57,4 @@ async function main() {
 
 function fetchLanes() {
   if (spawnSync("git", ["fetch", "--quiet", "origin"], { cwd: repo, stdio: "inherit" }).status !== 0) console.log("git fetch origin failed: naming lanes from the refs already fetched");
-}
-
-function isAlive(pid: number) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== "ESRCH";
-  }
 }

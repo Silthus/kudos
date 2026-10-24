@@ -3,14 +3,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
-import type { Checkout, Definitions, DryRun, Sandbox } from "./deploy";
+import type { Checkout, Definitions, DryRun, Sandbox, Step } from "./deploy";
 
 const inventoryScript = fileURLToPath(new URL("./inventory.ts", import.meta.url));
 
-type WorkflowStep = { id?: string; run?: string; env?: Record<string, string> };
+type WorkflowStep = { id?: string; if?: string; run?: string; env?: Record<string, string> };
 type FunctionSpec = { url: string; functions: { identifier?: string; method?: string; path?: string }[] };
 
-export function convexSandbox(name: string, repo: string): Sandbox {
+export function convexSandbox(name: string, repo: string, leaseDescriptor: () => number | undefined): Sandbox {
   const env = sandboxEnv(name);
   const convex = (...args: string[]) => captured(["pnpm", "exec", "convex", ...args], repo, env);
   return {
@@ -28,7 +28,7 @@ export function convexSandbox(name: string, repo: string): Sandbox {
       return dryRunOf(`${stdout}\n${stderr}`);
     },
     async run(step) {
-      const { status } = spawnSync("bash", ["-o", "pipefail", "-c", step], { cwd: repo, env, stdio: "inherit" });
+      const { status } = spawnSync("bash", ["-o", "pipefail", "-c", step], { cwd: repo, env, stdio: ["inherit", "inherit", "inherit", leaseDescriptor() ?? "ignore"] });
       if (status !== 0) throw new Error(`step failed with exit ${status}: ${step}`);
     },
     async servedBundle() {
@@ -40,11 +40,13 @@ export function convexSandbox(name: string, repo: string): Sandbox {
 
 export function gitCheckout(repo: string): Checkout {
   const git = (...args: string[]) => captured(["git", ...args], repo, process.env).stdout;
-  const dirty = git("status", "--porcelain", "--", ".", ":!node_modules") !== "";
   return {
-    branch: git("branch", "--show-current") || git("for-each-ref", "--points-at=HEAD", "--count=1", "--format=%(refname:short)", "refs/remotes/origin") || "detached",
-    sha: git("rev-parse", "--short", "HEAD") + (dirty ? "-dirty" : ""),
     worktree: repo,
+    identity: () => ({
+      branch: git("branch", "--show-current") || git("for-each-ref", "--points-at=HEAD", "--count=1", "--format=%(refname:short)", "refs/remotes/origin") || "detached",
+      sha: git("rev-parse", "--short", "HEAD"),
+      dirty: git("status", "--porcelain", "--", ".", ":!node_modules") !== "",
+    }),
     inventory: async () => JSON.parse(captured(["bun", inventoryScript], repo, process.env).stdout) as Definitions,
     builtBundle: () => bundleIn(readFileSync(join(repo, "website/dist/index.html"), "utf8"), "website/dist/index.html"),
   };
@@ -58,7 +60,7 @@ export function dryRunOf(output: string): DryRun {
   for (const line of output.split("\n")) {
     if (/Would delete table indexes:/.test(line)) section = deleted;
     else if (/Would add (staged )?table indexes:/.test(line)) section = added;
-    else {
+    else if (!/^\s*See progress:/.test(line)) {
       const index = /^\s*\[[-+]\]\s+(\S+)/.exec(line)?.[1];
       if (section && index) section.push(index);
       else section = undefined;
@@ -67,12 +69,12 @@ export function dryRunOf(output: string): DryRun {
   return { target, droppedIndexes: deleted.filter((index) => !added.includes(index)) };
 }
 
-export function workflowSteps(workflowYaml: string): string[] {
+export function workflowSteps(workflowYaml: string): Step[] {
   const workflow = parse(workflowYaml) as { jobs: Record<string, { steps?: WorkflowStep[] }> };
   return Object.values(workflow.jobs)
     .flatMap((job) => job.steps ?? [])
     .filter((step) => step.run && step.env?.CONVEX_DEPLOY_KEY)
-    .map((step) => (step.id === "deploy" ? `${step.run} -y` : step.run!));
+    .map((step) => ({ run: step.id === "deploy" ? `${step.run} -y` : step.run!, afterFailedStep: /!cancelled\(\)|always\(\)/.test(step.if ?? "") }));
 }
 
 function sandboxEnv(name: string): NodeJS.ProcessEnv {

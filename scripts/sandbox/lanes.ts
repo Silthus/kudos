@@ -10,8 +10,8 @@ export function gitLanes(repo: string, now: Date): Lanes {
     async defining(item) {
       heads ??= liveHeads(repo, now);
       if (heads.size === 0) return [];
-      const { pattern, paths } = definitionOf(item);
-      const found = git(repo, ["grep", "-l", "-E", "-e", pattern, ...heads.keys(), "--", ...paths], [0, 1]);
+      const { patterns, paths } = definitionOf(item);
+      const found = git(repo, ["grep", "-l", "-E", "--all-match", ...patterns.flatMap((pattern) => ["-e", pattern]), ...heads.keys(), "--", ...paths], [0, 1]);
       const shas = new Set(found.split("\n").filter(Boolean).map((line) => line.slice(0, line.indexOf(":"))));
       return [...new Set([...shas].map((sha) => heads!.get(sha)!))].sort().map((name): Lane => ({ name }));
     },
@@ -36,18 +36,20 @@ function liveHeads(repo: string, now: Date) {
   return heads;
 }
 
-function definitionOf({ kind, name }: Item): { pattern: string; paths: string[] } {
+function definitionOf({ kind, name }: Item): { patterns: string[]; paths: string[] } {
   switch (kind) {
     case "function": {
       const [module, exported] = name.split(":") as [string, string];
-      return { pattern: `export[[:space:]]+(const|let|function|async[[:space:]]+function)[[:space:]]+${escape(exported)}${wordEnd}`, paths: [`:(glob)convex/${module.replace(/\.js$/, "")}.*`] };
+      return { patterns: [`export[[:space:]]+(const|let|function|async[[:space:]]+function)[[:space:]]+${escape(exported)}${wordEnd}`], paths: [`:(glob)convex/${module.replace(/\.js$/, "")}.*`] };
     }
     case "route":
-      return { pattern: `["'\`]${escape(name.slice(name.indexOf(" ") + 1))}["'\`]`, paths: ["convex/"] };
+      return { patterns: [`["'\`]${escape(name.slice(name.indexOf(" ") + 1))}["'\`]`], paths: ["convex/"] };
     case "table":
-      return { pattern: `${wordStart}${escape(name)}[[:space:]]*:[[:space:]]*defineTable`, paths: ["convex/"] };
-    case "index":
-      return { pattern: `\\.index\\([[:space:]]*["'\`]${escape(name.slice(name.indexOf(".") + 1))}["'\`]`, paths: ["convex/"] };
+      return { patterns: [tableDefinition(name)], paths: ["convex/"] };
+    case "index": {
+      const [table, index] = name.split(".") as [string, string];
+      return { patterns: [tableDefinition(table), `\\.index\\([[:space:]]*["'\`]${escape(index)}["'\`]`], paths: ["convex/"] };
+    }
   }
 }
 
@@ -63,6 +65,7 @@ function worktrees(repo: string) {
 
 const wordEnd = "([^A-Za-z0-9_$]|$)";
 const wordStart = "(^|[^A-Za-z0-9_$])";
+const tableDefinition = (table: string) => `${wordStart}${escape(table)}[[:space:]]*:[[:space:]]*defineTable`;
 const escape = (literal: string) => literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const committedAt = (repo: string, sha: string) => Number(git(repo, ["show", "-s", "--format=%ct", sha]));
 const isAncestor = (repo: string, sha: string, of: string) => spawnSync("git", ["merge-base", "--is-ancestor", sha, of], { cwd: repo }).status === 0;

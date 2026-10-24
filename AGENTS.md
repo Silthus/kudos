@@ -15,7 +15,7 @@ This repository is public: keep customer names, customer data and usage numbers 
 
 ## Sandbox
 
-Lanes share the sandbox deployment `different-dog-467`. Deploy to it only with `pnpm sandbox-deploy` from the tree you mean to prove, and run `pnpm sandbox-deploy status` right before each capture; `--help` lists the options.
+Lanes share the sandbox deployment `different-dog-467`. Deploy to it only with `pnpm sandbox-deploy --thread <your thread id>` from the tree you mean to prove, never the Deploy sandbox workflow or a bare `convex deploy`, which skip its lease. When it refuses to drop what another lane defines, merge that lane in; pass `--drop` only for what your branch removes. Right before each proof screenshot or recording, run `pnpm sandbox-deploy status` in that tree and redeploy unless it prints `this tree is live`.
 
 ## Coherence
 
