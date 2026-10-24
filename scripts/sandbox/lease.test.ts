@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
+const bunInstalled = spawnSync("bun", ["--version"]).status === 0;
 const leaseModule = fileURLToPath(new URL("./lease.ts", import.meta.url));
 const owner = { branch: "lane/a", sha: "abc1234", worktree: "/work/a", thread: "thread-a", since: "2026-10-24T10:00:00.000Z" };
 
@@ -43,7 +44,7 @@ async function holdWhileAStepRuns() {
   return holder;
 }
 
-describe("the sandbox lease", () => {
+describe.skipIf(!bunInstalled)("the sandbox lease, where bun runs the script", () => {
   test("refuses another deploy while a deploy holds it, and names the holder", async () => {
     await holdWhileAStepRuns();
 
