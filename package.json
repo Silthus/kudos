@@ -11,6 +11,7 @@
     "coherence": "coherence spec --check && coherence lexicon --check",
     "gate": "pnpm typecheck && pnpm test && pnpm coherence",
     "website:build": "pnpm --dir website build",
+    "sandbox-deploy": "bun scripts/sandbox-deploy.ts",
     "test:handshake": "vitest run --config vitest.handshake.config.ts"
   },
   "packageManager": "pnpm@12.11.2",
