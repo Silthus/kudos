@@ -295,7 +295,7 @@ export function moveLastVisit(ctx: MutationCtx, member: MemberId, at: number): P
 - `openThoughtfulPack`, `putIn` and `putAllIn` answer refused while `hidden-items` is on; the code stays until the flag is everyone's and retired.
 - `getXpMoment` answers `none` without a last visit. `endXpMoment` moves the visit to `min(until, now)`, or to now when `until` is null, and never backwards, so two devices agree and a stale tab moves nothing. Entries decided while the moment played stay for the next one, because `until` is the newest decided instant the moment read, not the clock.
 - `excerpts` are the five newest entries after the visit, shown oldest first. `folded` counts the rest of what was read, `more` when a source was cut. `climb.from` is the standing at the member's XP minus the moment's XP.
-- Every new public function joins `convex/publicSurface.test.ts`.
+- Every new public function joins `convex/publicSurface.guard.test.ts`.
 
 ### 5. Activity (`convex/activity/activity.ts`)
 

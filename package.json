@@ -7,9 +7,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p website",
     "test": "vitest run",
+    "test:guards": "vitest run --project guards",
     "manifest": "node slack-app/render-manifest.ts",
     "coherence": "coherence spec --check && coherence lexicon --check",
     "gate": "pnpm typecheck && pnpm test && pnpm coherence",
+    "gate:lane": "bash scripts/gate-lane.sh",
     "website:build": "pnpm --dir website build",
     "test:handshake": "vitest run --config vitest.handshake.config.ts"
   },
