@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { picturesIn } from "./test/pictures";
@@ -60,7 +60,7 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
     renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway));
     expect(await screen.findByRole("heading", { level: 1, name: "Page not found" }, { timeout: 10_000 })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
-    expect(document.title).toBe("HedgeHug · Not found");
+    await waitFor(() => expect(document.title).toBe("HedgeHug · Not found"));
   });
 
   it("shows the error page when a page fails to render", () => {
