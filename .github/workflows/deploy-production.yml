@@ -18,10 +18,10 @@ concurrency:
   queue: max
 
 jobs:
-  # Main's tip as it stands when this run starts. A Gate that did not pass deploys nothing, and the deploy job deploys the Gate's commit only while it is still the tip:
+  # Main's tip as it stands when this run starts. A Gate that did not pass deploys nothing, nor does a pull request's Gate, which checks a merge commit rather than its head; and the deploy job deploys the Gate's commit only while it is still the tip:
   # a newer merge's own Gate deploys the newer commit, a merge whose push started no Gate is deployed by the next merge's or by the Gate run by hand on main, and a rerun of an older Gate never rolls production back.
   tip:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:

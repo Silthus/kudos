@@ -160,8 +160,8 @@ describe("production deploys what main's Gate passed", () => {
     expect(Object.values(workflow.jobs).filter((job) => job.uses === gateSuite)).toEqual([]);
   });
 
-  test("a Gate that failed, was cancelled or was skipped deploys nothing", () => {
-    expect(workflow.jobs.tip?.if).toBe("${{ github.event.workflow_run.conclusion == 'success' }}");
+  test("only a passed Gate of main's own commit deploys: a failed, cancelled or skipped Gate deploys nothing, nor does a pull request's Gate, which checks a merge commit rather than its head", () => {
+    expect(workflow.jobs.tip?.if).toBe("${{ github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') }}");
     expect(needsOf(deployJob)).toContain("tip");
   });
 
