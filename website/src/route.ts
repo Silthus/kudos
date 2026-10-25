@@ -150,10 +150,14 @@ export function currentAddress() {
 }
 
 export function keepingSignInCode(href: string) {
-  const code = new URLSearchParams(window.location.search).get("code");
-  if (code === null) return href;
+  return keepingParam(keepingParam(href, "code"), import.meta.env.VITE_PROTOTYPE ? "variant" : null);
+}
+
+function keepingParam(href: string, name: string | null) {
+  const value = name === null ? null : new URLSearchParams(window.location.search).get(name);
+  if (name === null || value === null) return href;
   const address = new URL(href, window.location.origin);
-  address.searchParams.set("code", code);
+  address.searchParams.set(name, value);
   return address.pathname + address.search + address.hash;
 }
 

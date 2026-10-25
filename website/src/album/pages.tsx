@@ -4,6 +4,7 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import type { Album, AlbumTeam } from "./answer";
 import { plural } from "./facts";
 import { MilestonesPage } from "./Milestones";
+import { MilestonesPrototype } from "./milestonesPrototype/MilestonesPrototype";
 import type { Place } from "./place";
 import { TeamPage } from "./TeamPage";
 import type { TeamUnlocking } from "./useTeamUnlock";
@@ -21,7 +22,7 @@ export function AlbumPage({ album, place, settings, leaderboard, activity, perso
     case "hoggies":
       return hoggies;
     case "milestones":
-      return <MilestonesPage album={album} />;
+      return import.meta.env.VITE_PROTOTYPE ? <MilestonesPrototype album={album} /> : <MilestonesPage album={album} />;
     case "packs":
       return (
         <Page tab="Packs" title="Your packs">
