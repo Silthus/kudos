@@ -30,6 +30,7 @@ const startsPerSweep = 100;
 const membersPerSweep = 100;
 const strandedPerSweep = 100;
 const dueHour = 9;
+const dayMs = 24 * 60 * 60 * 1000;
 
 export const ensureMondayDms = internalMutation({
   args: { cursor: v.optional(v.string()) },
