@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import { mondayCatalogueVersion } from "./mondayCatalogue";
 import type { Reward } from "./journey";
 
 export const questIdValidator = v.union(
@@ -52,13 +53,9 @@ export const questPool = {
 } as const satisfies QuestPool;
 
 export const mondayQuestPool = {
-  version: "monday-1",
+  version: mondayCatalogueVersion,
   quests: questPool.quests.map((quest) => ({ ...quest, reward: mondayReward })),
 } as const satisfies QuestPool;
-
-export function isDrawnOnTheMondayPath({ catalogueVersion }: { catalogueVersion: string }): boolean {
-  return catalogueVersion === mondayQuestPool.version;
-}
 
 export function questOf(quest: QuestId): PoolQuest {
   return questPool.quests.find((entry) => entry.quest === quest)!;

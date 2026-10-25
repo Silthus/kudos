@@ -1,13 +1,13 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { givenBetween, lastThankedBefore, lastThankedBy } from "../engine/awards";
-import type { MessageRef } from "../engine/messageEvent";
 import { gateDecisionOf } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import { teammatesOf, type MemberId } from "../workspace/directory";
 import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
 import type { Reward } from "./journey";
+import { isPaidOnTheMondayPath, mondayCatalogueVersion } from "./mondayCatalogue";
 import { questStartOf } from "./start";
 import type { JourneyStep } from "./step";
 
@@ -16,8 +16,6 @@ export const onboardingSteps = ["first-thanks", "someone-new", "two-days"] as co
 export type OnboardingStep = (typeof onboardingSteps)[number];
 
 const onboardingReward: Reward = { xp: 50, coins: 0, item: null };
-
-export const onboardingCatalogueVersion = "monday-1";
 
 const daysSayingWhyToFinishTwoDays = 2;
 
@@ -60,7 +58,7 @@ export async function onboardingQuestXpOf(ctx: QueryCtx, member: MemberId): Prom
   let xp = 0;
   for (const step of onboardingSteps) {
     const finish = await finishOf(ctx, member, step);
-    if (finish?.catalogueVersion === onboardingCatalogueVersion) xp += finish.xp;
+    if (finish !== null && isPaidOnTheMondayPath(finish)) xp += finish.xp;
   }
   return xp;
 }
@@ -78,7 +76,7 @@ async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent): Pro
 }
 
 async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent, firstThanks: RewardRecord | null): Promise<FinishedOnboardingQuest | null> {
-  if (firstThanks === null || isTheSameMessage(firstThanks.cause, event.message)) return null;
+  if (firstThanks === null || event.at <= firstThanks.at) return null;
   const lastThanked = await lastThankedBefore(ctx, event.awards);
   const thanksSomeoneNew = [...lastThanked.values()].includes(null) || (await hasThankedEveryone(ctx, event));
   return thanksSomeoneNew ? finished(ctx, event, "someone-new") : null;
@@ -86,13 +84,13 @@ async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent, first
 
 async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<FinishedOnboardingQuest | null> {
   if (!saysWhy(event)) return null;
-  const sayingWhy = (await givenBetween(ctx, event.giver, start, Infinity)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
+  const sayingWhy = (await givenBetween(ctx, event.giver, start, event.at)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
   const days = new Set([event.day, ...sayingWhy.map(({ day }) => day)]);
   return days.size >= daysSayingWhyToFinishTwoDays ? finished(ctx, event, "two-days") : null;
 }
 
 async function finished(ctx: MutationCtx, { workspace, giver, at, message }: KudosGivenEvent, step: OnboardingStep): Promise<FinishedOnboardingQuest | null> {
-  const paid = await finishMondayQuest(ctx, workspace, giver, { kind: "journey", step }, { reward: onboardingReward, catalogueVersion: onboardingCatalogueVersion }, at, message);
+  const paid = await finishMondayQuest(ctx, workspace, giver, { kind: "journey", step }, { reward: onboardingReward, catalogueVersion: mondayCatalogueVersion }, at, message);
   return paid ? { step, reward: onboardingReward } : null;
 }
 
@@ -103,10 +101,6 @@ async function hasThankedEveryone(ctx: QueryCtx, { workspace, giver, at }: Kudos
 
 function saysWhy({ annotations }: KudosGivenEvent): boolean {
   return gateDecisionOf(annotations)?.thoughtful === true;
-}
-
-function isTheSameMessage(cause: MessageRef | undefined, message: MessageRef): boolean {
-  return cause !== undefined && cause.workspace === message.workspace && cause.conversation === message.conversation && cause.message === message.message;
 }
 
 function finishOf(ctx: QueryCtx, member: MemberId, step: OnboardingStep) {

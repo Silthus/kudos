@@ -13,6 +13,7 @@ import { standingOf } from "../progression/progression";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 import { nextOnboardingQuestOf } from "./onboarding";
+import { openQuestCrate } from "./open";
 import { questStartOf } from "./start";
 import { weekStartOf } from "./week";
 import { rerollQuest, weeklyQuestsOf } from "./weekly";
@@ -149,6 +150,39 @@ describe("MQ3 MQ5 MQ6: the three onboarding quests are active at once", { timeou
   });
 });
 
+describe("MQ5: the onboarding quests count each kudos as of when it was given, whatever order the subscribers run in", { timeout: 60_000 }, () => {
+  test("a kudos given before the one that finished first-thanks doesn't finish someone-new, even when it is delivered after it", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    const held = holdingKudosGiven();
+
+    await thanks(alice, "thanks", bob);
+    await thanks(alice, saysWhy, carol);
+    await deliverInOrder(held[1]!, []);
+    await deliverInOrder(held[0]!, []);
+
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
+    expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(1);
+  });
+
+  test("a kudos that says why counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await memberChanged(t, "team_join", { id: carol.user, profile: { real_name: carol.name } });
+    const held = holdingKudosGiven();
+
+    await thanks(alice, saysWhy, bob);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, saysWhy, bob);
+    await deliverInOrder(held[0]!, []);
+
+    expect(await nextQuestOf(alice), "the next onboarding quest after the first day's kudos").toBe("someone-new");
+    expect(await questItemsOf(alice), "the quest items after the first day's kudos").toHaveLength(1);
+
+    await deliverInOrder(held[1]!, []);
+    expect(await questItemsOf(alice), "the quest items after the second day's kudos").toHaveLength(2);
+  });
+});
+
 describe("MQ4: the quests message kind applies on the Monday path", { timeout: 60_000 }, () => {
   test.each([
     ["on", mondayPath, true],
@@ -178,6 +212,20 @@ describe("MQ9: drawn quests come once the three onboarding quests are finished",
     await sweepForANewWeek();
 
     expect((await weekOf(alice))?.slots, "this week's drawn quests").toHaveLength(3);
+  });
+
+  test("a replay of the kudos that finished onboarding counts toward no drawn quest", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await thanks(alice, "thanks", carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    const held = holdingKudosGiven();
+    await thanks(alice, saysWhy, bob);
+    await deliverInOrder(held[0]!, []);
+
+    await deliverInOrder(held[0]!, []);
+
+    expect((await weekOf(alice))?.slots.map(({ progress }) => progress) ?? [], "each drawn quest's progress").not.toContain(1);
   });
 
   test("the next kudos after onboarding draws this week's quests and counts toward them", async () => {
@@ -239,6 +287,32 @@ describe("MQ8 MQ10 MQ12: a drawn quest on the Monday path pays 20 XP and a Hoggi
   });
 });
 
+describe("MQ4 MQ10: with the unlock path on too, the Monday path's quests pay only the Monday way", { timeout: 60_000 }, () => {
+  test("a Monday quest's reward opens no crate, so it pays no second Hoggie and no pack XP", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "unlocks", "quests");
+    await thanks(alice, saysWhy, bob);
+    const member = await memberOf(alice);
+
+    const opened = await t.run((ctx) => openQuestCrate(ctx, member, { kind: "journey", step: "first-thanks" }, "website"));
+    await settle(t);
+
+    expect(opened, "opening the quest's crate").toBe("refused");
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+  });
+
+  test("a week drawn on the unlock path is left as it is on the Monday path, paying no coins", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await memberChanged(t, "team_join", { id: alice.user, profile: { real_name: alice.name } });
+    const member = await memberOf(alice);
+    await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: Date.now(), slots: [{ slot: 0, quest: "say-why", reward: { xp: 20, coins: 10, item: null }, catalogueVersion: "2", feasibleBecause: { peopleLeft: 2, recognitionsLeft: 10 } }] }));
+
+    await thanks(alice, saysWhy, bob);
+
+    expect(await weeklyRewardsOf(alice), "the unlock path's week's reward records").toEqual([]);
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+  });
+});
+
 describe("MQ3: the weekly sweep starts quests for a member welcomed before the Monday path", { timeout: 60_000 }, () => {
   test.each([
     ["a welcome and monday-quest on", true, mondayPath, true],
@@ -261,6 +335,13 @@ async function finishOnboarding() {
   await thanks(alice, "thanks", carol);
   vi.setSystemTime(Date.now() + dayMs);
   await thanks(alice, saysWhy, bob);
+}
+
+async function startedByTheSweep(person: Person) {
+  await memberChanged(t, "team_join", { id: person.user, profile: { real_name: person.name } });
+  const member = await memberOf(person);
+  await t.run((ctx) => ctx.db.insert("welcomes", { member }));
+  await sweepForANewWeek();
 }
 
 async function sweepForANewWeek() {

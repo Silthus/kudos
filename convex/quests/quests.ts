@@ -32,13 +32,13 @@ export const followKudosGiven = internalMutation({
 
 async function mondayQuestsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestDone[]> {
   if ((await questStartOf(ctx, event.giver)) === null && gateDecisionOf(event.annotations)?.thoughtful === true && (await mondayPathShownTo(ctx, event.giver))) await startQuests(ctx, event.giver, event.at);
-  const drawn = await advanceWeeklyQuests(ctx, event);
+  const drawn = await advanceWeeklyQuests(ctx, event, "monday");
   const onboarding = await advanceOnboarding(ctx, event);
   return [...drawn.map(({ goal, reward: { xp } }) => ({ kind: "weekly", goal, xp, hoggie: true }) as const), ...onboarding.map(({ step, reward: { xp } }) => ({ kind: "journey", step, xp, hoggie: true }) as const)];
 }
 
 async function questsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestDone[]> {
-  const weekly = await advanceWeeklyQuests(ctx, event);
+  const weekly = await advanceWeeklyQuests(ctx, event, "unlocks");
   const steps = await advanceJourney(ctx, event, journey);
   const firstQuest = weekly.length === 0 ? null : await finishFirstQuestOnWeeklyFinished(ctx, event.workspace, event.giver, event.at, event.message);
   if (firstQuest !== null) steps.push(firstQuest);
