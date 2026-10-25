@@ -53,3 +53,4 @@ Prototype screenshots: [profile](https://github.com/Silthus/kudos/blob/aabbc54f2
 **After review round 1**
 - [x] The welcome's links `/book#me/quests` and `/book#me/quests/<step>` (MQ22) land at the own page D's quests section, below the top bar, with the next quest and its how-to in view: `18-welcome-link-lands-at-the-section-1280.png`, `19-welcome-link-lands-at-the-section-phone.png`. Seam 2 covers the scroll and the focus.
 - [x] A finished onboarding step whose hoggie waits offers "Turn it on your board →", and `quests viewed` waits until the item board or another moment is put away: Seam 2.
+- [x] "Show me how" (`/book#me/quests/<step>`, MQ22) opens the named step's how-to beside the next step's: `20-show-me-how-opens-the-named-step.png` (`/book#me/quests/two-days`). Seam 2 covers it and its absence on `/book#me/quests`.
