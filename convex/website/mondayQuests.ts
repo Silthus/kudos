@@ -15,13 +15,13 @@ import type { VerifiedMember } from "./memberQuery";
 
 export type QuestItemState = "waiting" | "turned" | null;
 
-export type QuestProgress = { done: number; target: number };
+export type StepProgress = { done: number; target: number };
 
 export type GettingStartedStepId = "hug" | OnboardingStep | "turn";
 
-export type GettingStartedStep = { step: GettingStartedStepId; goal: string; hint: string | null; progress: QuestProgress; done: boolean; reward: { xp: number } | null; item: QuestItemState };
+export type GettingStartedStep = { step: GettingStartedStepId; goal: string; hint: string | null; progress: StepProgress; done: boolean; reward: { xp: number } | null; item: QuestItemState };
 
-export type DrawnQuest = { quest: QuestId; goal: string; progress: QuestProgress; done: boolean; reward: { xp: number }; item: QuestItemState };
+export type DrawnQuest = { quest: QuestId; goal: string; progress: StepProgress; done: boolean; reward: { xp: number }; item: QuestItemState };
 
 export type MondayQuestList = { kind: "journey"; steps: GettingStartedStep[] } | { kind: "drawn"; quests: DrawnQuest[] };
 
