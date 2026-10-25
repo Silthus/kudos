@@ -121,7 +121,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     missedXpMoment.start();
     turns.show();
   };
-  const shellQuests = shellQuestsOf(quests, { openBoard: turns.show, landing: questsLanding, viewQuests });
+  const shellQuests = shellQuestsOf(quests, { inSight: !(playing || covered), openBoard: turns.show, landing: questsLanding, viewQuests });
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
@@ -160,11 +160,11 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   );
 }
 
-type QuestsWiring = { openBoard: () => void; landing: QuestsLanding; viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply> };
+type QuestsWiring = { inSight: boolean; openBoard: () => void; landing: QuestsLanding; viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply> };
 
-function shellQuestsOf(quests: QuestsShown | undefined, { openBoard, landing, viewQuests }: QuestsWiring): ShellQuests | null {
+function shellQuestsOf(quests: QuestsShown | undefined, { viewQuests, ...wiring }: QuestsWiring): ShellQuests | null {
   const monday = mondayQuestsIn(quests);
-  return monday === null ? null : { quests: monday, openBoard, landing, view: (surface) => void viewQuests(surface) };
+  return monday === null ? null : { quests: monday, ...wiring, view: (surface) => void viewQuests(surface) };
 }
 
 function isOwnPageD(album: Album, place: Place) {

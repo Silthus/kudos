@@ -7,7 +7,7 @@ import { CardBack } from "./PackCards";
 import { useQuestsFold, useViewedOnEachOpen, type FoldPlace, type QuestsLanding } from "./questsFold";
 import "./quests.css";
 
-export type ShellQuests = { quests: MondayQuests; openBoard: () => void; landing: QuestsLanding; view: (surface: QuestsSurface) => void };
+export type ShellQuests = { quests: MondayQuests; inSight: boolean; openBoard: () => void; landing: QuestsLanding; view: (surface: QuestsSurface) => void };
 
 type Row = { goal: string; hint: string | null; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
 
@@ -22,7 +22,7 @@ export function mondayQuestsIn(shown: QuestsShown | undefined): MondayQuests | n
 export function QuestsPanel({ shown, place }: { shown: ShellQuests; place: FoldPlace }) {
   const { open, fold, unfold } = useQuestsFold(place);
   const { tab, foldButton, toggled } = useFocusAcrossTheFold(open);
-  useViewedOnEachOpen(open, () => shown.view("panel"));
+  useViewedOnEachOpen(open, shown.inSight, () => shown.view("panel"));
   const { done, total } = doneOf(shown.quests);
   if (!open)
     return (
@@ -72,7 +72,7 @@ function focus(button: RefObject<HTMLButtonElement | null>) {
 
 export function ProfileQuests() {
   const shown = useContext(QuestsContext);
-  useViewedOnEachOpen(shown !== null, () => shown?.view("profile"));
+  useViewedOnEachOpen(shown !== null, shown?.inSight ?? false, () => shown?.view("profile"));
   const section = useLandedAt(shown?.landing);
   if (shown === null) return null;
   return (

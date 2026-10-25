@@ -100,6 +100,21 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
   });
 });
 
+describe("MQ41 MQ36: a view counts only once the quests are in sight", { timeout: 30_000 }, () => {
+  it.each<[string, string, Album, string]>([
+    ["panel", aTeamPage, albumFixtures.withItems, "panel"],
+    ["profile section", "/book#me", { ...albumFixtures.withItems, personPageD: true, linkPreviews: true }, "profile"],
+  ])("the %s records no view while the item board covers the page, and one once it is put away", async (_, address, album, surface) => {
+    const { actions, user } = visit(address, { album });
+    const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
+
+    expect(views(actions)).toEqual([]);
+    await user.click(board.getByRole("button", { name: "Later" }));
+
+    await waitFor(() => expect(views(actions)).toEqual([surface]));
+  });
+});
+
 describe("MQ39: the panel folds to a tab, and the fold is remembered", { timeout: 30_000 }, () => {
   it("folds into a tab with its ring and unfolds from it, recording a view for each open", async () => {
     const { actions, user } = visit(aTeamPage);
