@@ -168,6 +168,19 @@ function theLevelPill() {
   return theTopBar().getByText(/^Level \d+$/, { selector: ".al-level" });
 }
 
+function earnedInTheTopBar() {
+  const label = theTopBar().getByRole("button", { name: /^Your emojis, \d+ earned/, hidden: true }).getAttribute("aria-label")!;
+  return Number(/(\d+) earned/.exec(label)![1]);
+}
+
+function earnedOf(emojis: Album["emojis"]) {
+  return emojis.filter(({ earned }) => earned).length;
+}
+
+function theEmojiOnItsWay() {
+  return document.querySelector<HTMLElement>("body > .al-emoji-copy");
+}
+
 function theItemBoard() {
   return screen.queryByRole("dialog", { name: "Your items" });
 }
@@ -613,6 +626,29 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theItemBoard()).toBeInTheDocument();
     expect(theEmojiPopUp()).toBeNull();
     expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it("springs the level's emoji in, then sends it up into the emoji button, which counts it only once it lands", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+    const all = earnedOf(levelTenEarned);
+
+    expect(earnedInTheTopBar(), "while it springs in").toBe(all - 1);
+    expect(theEmojiOnItsWay()).toBeNull();
+    await inAnother(2.6);
+    expect(theEmojiOnItsWay(), "on its way up").toHaveAttribute("data-kind", "level");
+    expect(earnedInTheTopBar(), "while on its way").toBe(all - 1);
+    await inAnother(0.8);
+    expect(theEmojiOnItsWay()).toBeNull();
+    expect(earnedInTheTopBar(), "once it lands").toBe(all);
+    expect(theTakeover(), "the takeover still waits for a click").toBeInTheDocument();
+  });
+
+  it("counts the level's emoji at once when Continue comes before it lands", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+
+    await act(async () => fireEvent.click(within(theTakeover()!).getByRole("button", { name: "Continue" })));
+
+    expect(earnedInTheTopBar()).toBe(earnedOf(levelTenEarned));
   });
 
   it("LP72: while onboarding is on, shows the level's emoji Slack has as :name: unlocked with how to use it, naming the workspace's kudos emoji", async () => {

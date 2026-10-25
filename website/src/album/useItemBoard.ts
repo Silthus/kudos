@@ -5,9 +5,9 @@ import type { ItemBoard, LoopLesson, TurnedFaceShown } from "../../../convex/web
 import { useNavigate } from "../AppLink";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { TurnReply } from "../shell";
-import type { Album, AlbumLevel } from "./answer";
+import type { Album, AlbumEmoji, AlbumLevel } from "./answer";
 import { hrefOf, type Place } from "./place";
-import type { Turned } from "./turnSequence";
+import { emojiIdOf, emojiSourcesOf, type Turned } from "./turnSequence";
 import { useTurnFlight, type Flight, type FlightBoxes } from "./useTurnFlight";
 
 export type LandingPhase = "arriving" | "landed" | "done";
@@ -36,6 +36,8 @@ export type ItemTurns = {
   later: () => void;
   turn: (item: string, from: HTMLElement | null) => void;
 };
+
+export type TurnEmojis = { answered: AlbumEmoji[]; leave: (ids: string[]) => void; home: (id: string) => void; back: (ids: string[]) => void };
 
 export type ItemTurning = { turn: (item: string, from: HTMLElement | null) => void; turned: (item: string) => boolean };
 
@@ -66,7 +68,7 @@ export function shownUnless(turns: ItemTurns, waits: boolean): ShownTurns {
   return { ...turns, open: waiting && turns.shown === "board", offered: waiting && turns.shown !== "board" };
 }
 
-export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel, page: string, { teachesTheLoop }: { teachesTheLoop: boolean }): ItemTurns {
+export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string) => Promise<TurnReply>, level: AlbumLevel, page: string, { teachesTheLoop, emojis }: { teachesTheLoop: boolean; emojis: TurnEmojis }): ItemTurns {
   const navigate = useNavigate();
   const [shown, setShown] = useState<Shown>("board");
   const [turnedOver, setTurnedOver] = useState<ReadonlyMap<string, TurnedFaceShown>>(() => new Map());
@@ -84,6 +86,8 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const remaining = useRef(0);
   remaining.current = board?.items.length ?? 0;
   const landings = useRef(0);
+  const turnEmojis = useRef(emojis);
+  turnEmojis.current = emojis;
   useForgottenOnLeavingThePage(page, landing !== null && flight === null && !turning, setLanding);
   const land = useCallback(
     (item: string, { face, applied, unlocked, page, teaches }: Turned, flown: boolean) => {
@@ -105,8 +109,14 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const flyIn = useCallback(
     async (item: string, from: HTMLElement, answer: Promise<Turned | null>) => {
       setHeldLevel(level);
+      const emojiOf = (id: string) => turnEmojis.current.answered.find((emoji) => emoji.id === id && emoji.earned);
+      let away: string[] = [];
       const arrival = {
-        land: (turned: Turned) => land(item, turned, true),
+        land(turned: Turned) {
+          away = emojiSourcesOf(turned).map(emojiIdOf).filter((id) => emojiOf(id) !== undefined);
+          turnEmojis.current.leave(away);
+          land(item, turned, true);
+        },
         landed: () => phase("landed"),
         landedWithoutTheFlight,
         teamUnlocked: () => teamShown(({ teamsShown }) => teamsShown + 1),
@@ -115,8 +125,11 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
         medalShown: () => medalShown(({ medalsShown }) => medalsShown + 1),
         paid: () => setHeldLevel(null),
         nothingWaits: () => remaining.current === 0,
+        emojiOf,
+        emojiHome: (id: string) => turnEmojis.current.home(id),
       };
       const turned = await fly(item, from.getBoundingClientRect(), answer, arrival);
+      turnEmojis.current.back(away);
       setHeldLevel(null);
       if (turned !== null) teamShown(({ unlocked }) => unlocked.teamStickers.length);
       if (turned !== null) medalShown(({ unlocked }) => unlocked.milestones.length);

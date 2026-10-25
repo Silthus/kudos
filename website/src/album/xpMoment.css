@@ -17,9 +17,14 @@
   --xpm-mention-soft: color-mix(in oklab, #1d9bd1 26%, transparent);
 }
 
-.al-shell[data-xp-moment] .al-top > :not(.al-xp) {
+.al-shell[data-xp-moment] .al-top > :not(.al-xp, .al-top-end),
+.al-shell[data-xp-moment] .al-top-end > * {
   opacity: 0.25;
   transition: opacity 300ms ease-out;
+}
+
+.al-shell[data-xp-moment][data-emojis-arriving] .al-top-end > :has(> .al-emojis) {
+  opacity: 1;
 }
 
 .al-shell[data-xp-moment] .al-xp-fill {

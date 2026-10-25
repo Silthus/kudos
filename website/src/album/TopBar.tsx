@@ -11,6 +11,7 @@ import type { Album, AlbumLevel } from "./answer";
 import { EmojiPanel } from "./EmojiPanel";
 import { usableCountOf } from "./emojiShelf";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
+import { useNewEmojis } from "./newEmojis";
 import type { Held } from "./PackOpening";
 import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
 import { PagesBurger } from "./PagesBurger";
@@ -169,15 +170,24 @@ function trayLabelOf(items: number, busy: boolean) {
   return items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`;
 }
 
-function EmojiButton({ album, popover, button, justUnlocked, opensOnJustUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[]; opensOnJustUnlocked: boolean }) {
+type EmojiButtonProps = { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[]; opensOnJustUnlocked: boolean };
+
+function EmojiButton({ album, popover, button, justUnlocked, opensOnJustUnlocked }: EmojiButtonProps) {
   const { count, label } = emojiCountOf(album);
+  const fresh = useNewEmojis(album, popover.open === "emojis");
+  const newLabel = useId();
   return (
-    <PopoverButton name="emojis" popover={popover} button={button} label={label} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} onFollow={popover.close} />}>
+    <PopoverButton name="emojis" popover={popover} button={button} label={label} describedBy={fresh ? newLabel : undefined} labelled panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} onFollow={popover.close} />}>
       <IconEmoji />
       <span className="al-emojis-count" aria-hidden="true">
         {count}
       </span>
       <OpensOut>Emojis</OpensOut>
+      {fresh && (
+        <span id={newLabel} className="al-emojis-new">
+          New
+        </span>
+      )}
     </PopoverButton>
   );
 }
@@ -191,14 +201,14 @@ function emojiCountOf(album: Album) {
   return { count: usable, label: `Your emojis, ${usable} you can use` };
 }
 
-type PopoverButtonProps = { name: TopBarPopups; popover: TopBarPopover; label: string; panelLabel: string; className: string; panelClassName?: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };
+type PopoverButtonProps = { name: TopBarPopups; popover: TopBarPopover; label: string; describedBy?: string; labelled?: boolean; panelLabel: string; className: string; panelClassName?: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };
 
-function PopoverButton({ name, popover, label, panelLabel, className, panelClassName, content, children, button, busy = false }: PopoverButtonProps) {
+function PopoverButton({ name, popover, label, describedBy, labelled = false, panelLabel, className, panelClassName, content, children, button, busy = false }: PopoverButtonProps) {
   const panel = useId();
   const open = popover.open === name && !busy;
   return (
     <span className="al-popover-anchor" ref={open ? popover.anchor : undefined}>
-      <button type="button" ref={button} className={`al-top-button ${className}`} aria-label={label} aria-expanded={open} aria-controls={open ? panel : undefined} aria-disabled={busy || undefined} onClick={busy ? undefined : () => popover.toggle(name)}>
+      <button type="button" ref={button} className={`al-top-button ${className}`} aria-label={label} aria-describedby={describedBy} data-labelled={labelled ? "" : undefined} aria-expanded={open} aria-controls={open ? panel : undefined} aria-disabled={busy || undefined} onClick={busy ? undefined : () => popover.toggle(name)}>
         {children}
       </button>
       {open && (

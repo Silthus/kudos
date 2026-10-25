@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { useSyncExternalStore } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum, fixedPeople, startedWith } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
@@ -160,17 +161,79 @@ describe("AL42: the top bar", () => {
     expect(opensOutTo(bar.getByRole("button", { name: "Feedback" }))).toBe("Feedback");
   });
 
-  it("#695: the packs button stays open on the packs page, and the emojis stay an icon", async () => {
+  it("#695: the packs button stays open on the packs page", async () => {
     visit("/book#packs");
     const bar = await topBar();
 
     expect(bar.getByRole("button", { name: "Open your packs, 2 waiting" })).toHaveAttribute("data-labelled", "");
-    expect(bar.getByRole("button", { name: "Your emojis, 9 earned" })).not.toHaveAttribute("data-labelled");
+  });
+
+  it("the emoji button always shows its label beside its icon and count, not only on hover", async () => {
+    visit("/");
+    const emojis = (await topBar()).getByRole("button", { name: "Your emojis, 9 earned" });
+
+    expect(emojis).toHaveAttribute("data-labelled", "");
+    expect(opensOutTo(emojis)).toBe("Emojis");
+    expect(emojis.querySelector(".al-emojis-count")).toHaveTextContent("9");
   });
 
   it("the member's face and name lead to the profile, current there", async () => {
     visit("/book#me");
     expect((await topBar()).getByRole("link", { name: "Your profile, Sam Example" })).toHaveAttribute("aria-current", "page");
+  });
+});
+
+describe("the emoji button marks New what the member has not opened yet", () => {
+  function theEmojiButton() {
+    return within(screen.getAllByRole("banner")[0]!).getByRole("button", { name: /^Your emojis/ });
+  }
+
+  it("marks the button New while it holds an earned emoji the member has not opened the popup on, and clears it once they open it, on the next visit too", async () => {
+    const first = visit("/");
+    await topBar();
+    expect(theEmojiButton()).toHaveAccessibleDescription("New");
+
+    await act(async () => fireEvent.click(theEmojiButton()));
+    expect(theEmojiButton()).not.toHaveAccessibleDescription("New");
+    await act(async () => fireEvent.click(theEmojiButton()));
+    expect(theEmojiButton(), "once the popup closes").not.toHaveAccessibleDescription("New");
+
+    first.unmount();
+    visit("/");
+    await topBar();
+    expect(theEmojiButton(), "on the next visit").not.toHaveAccessibleDescription("New");
+  });
+
+  it("shows no New while the member holds no earned emoji", async () => {
+    visit("/", albumFixtures.newcomer);
+    await topBar();
+
+    expect(theEmojiButton()).not.toHaveAccessibleDescription("New");
+  });
+
+  it("marks New again once an emoji is earned after the member opened the popup", async () => {
+    const album = albumFixtures.midway;
+    let answer = album;
+    const listeners = new Set<() => void>();
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore(
+        (listener) => (listeners.add(listener), () => void listeners.delete(listener)),
+        () => answer,
+      );
+      return asking ? shown : undefined;
+    };
+    window.history.replaceState(null, "", "/");
+    renderAlbum(memberWithTheAlbum, read, { people: fixedPeople(album), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway) });
+    await topBar();
+    await act(async () => fireEvent.click(theEmojiButton()));
+    await act(async () => fireEvent.click(theEmojiButton()));
+    expect(theEmojiButton()).not.toHaveAccessibleDescription("New");
+
+    const locked = album.emojis.find(({ earned }) => !earned)!;
+    answer = { ...album, emojis: album.emojis.map((emoji) => (emoji.id === locked.id ? { ...emoji, earned: true, earnedAt: Date.now(), seen: true, progress: null } : emoji)) };
+    await act(async () => listeners.forEach((listener) => listener()));
+
+    expect(theEmojiButton()).toHaveAccessibleDescription("New");
   });
 });
 

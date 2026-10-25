@@ -2,20 +2,24 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import { flushSync } from "react-dom";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { TurnedFaceShown } from "../../../convex/website/album";
+import type { AlbumEmoji } from "./answer";
+import { bumpTheEmojiButton, emojiFlightTiming, flightEasing, flightFrames, springEasing, springFrames, theEmojiButton } from "./emojiFlight";
 import { medalKeyOf } from "./milestones";
-import { playTurn, turnClock, turnTiming, type FlightStage, type TurnClock, type Turned, type TurnSteps } from "./turnSequence";
+import { emojiIdOf, playTurn, turnClock, turnTiming, type EmojiSource, type FlightStage, type TurnClock, type Turned, type TurnSteps } from "./turnSequence";
 
 export type Point = { x: number; y: number };
 
-export type Flight = { item: string; from: DOMRect; stage: FlightStage; dark: boolean; face: TurnedFaceShown | null; spot: Point; size: number; burst: boolean; caption: boolean; chip: Chip | null; rings: DOMRect | null; flourish: DOMRect | null; medal: MedalPop | null };
+export type Flight = { item: string; from: DOMRect; stage: FlightStage; dark: boolean; face: TurnedFaceShown | null; spot: Point; size: number; burst: boolean; caption: boolean; chip: Chip | null; rings: DOMRect | null; flourish: DOMRect | null; medal: MedalPop | null; emoji: EmojiUp | null };
+
+export type EmojiUp = { emoji: AlbumEmoji; at: Point; flying: boolean };
 
 export type MedalPop = { tier: ReachedTier; art: DOMRect; card: DOMRect };
 
 export type Chip = { xp: number; from: Point; to: Point };
 
-export type FlightBoxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null> };
+export type FlightBoxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null>; emoji: RefObject<HTMLSpanElement | null> };
 
-export type Arrival = { land: (turned: Turned) => void; landed: () => void; landedWithoutTheFlight: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean };
+export type Arrival = { land: (turned: Turned) => void; landed: () => void; landedWithoutTheFlight: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean; emojiOf: (id: string) => AlbumEmoji | undefined; emojiHome: (id: string) => void };
 
 type FaceKind = TurnedFaceShown["kind"];
 
@@ -23,24 +27,24 @@ type Change = (patch: Partial<Flight>) => void;
 
 export function useTurnFlight() {
   const [flight, setFlight] = useState<Flight | null>(null);
-  const boxes: FlightBoxes = { flyer: useRef<HTMLDivElement>(null), flip: useRef<HTMLDivElement>(null), disc: useRef<HTMLSpanElement>(null) };
+  const boxes: FlightBoxes = { flyer: useRef<HTMLDivElement>(null), flip: useRef<HTMLDivElement>(null), disc: useRef<HTMLSpanElement>(null), emoji: useRef<HTMLSpanElement>(null) };
   const clock = useRef<TurnClock | null>(null);
   useSkipWhileFlying(flight !== null, clock);
   useSkipOnceGone(clock);
-  const { flyer, flip, disc } = boxes;
+  const { flyer, flip, disc, emoji } = boxes;
   const fly = useCallback(
     async (item: string, from: DOMRect, answer: Promise<Turned | null>, arrival: Arrival) => {
       const running = turnClock();
       clock.current = running;
       const { spot, size } = middleFor(from);
-      setFlight({ item, from, stage: "lift", dark: false, face: null, spot, size, burst: false, caption: false, chip: null, rings: null, flourish: null, medal: null });
+      setFlight({ item, from, stage: "lift", dark: false, face: null, spot, size, burst: false, caption: false, chip: null, rings: null, flourish: null, medal: null, emoji: null });
       const change: Change = (patch) => setFlight((flying) => (flying === null ? null : { ...flying, ...patch }));
-      const turned = await playTurn(running, stepsOf(running, { flyer, flip, disc }, change, arrival, { from, spot, size }), answer);
+      const turned = await playTurn(running, stepsOf(running, { flyer, flip, disc, emoji }, change, arrival, { from, spot, size }), answer);
       clock.current = null;
       setFlight(null);
       return turned;
     },
-    [flyer, flip, disc],
+    [flyer, flip, disc, emoji],
   );
   return { flight, boxes, fly, flying: flight !== null };
 }
@@ -122,6 +126,7 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
     jumpToTheMedal: (tier) => jumpTo(theMedal(tier)),
     popTheMedal: (tier) => popTheMedal(clock, change, arrival, tier),
     endTheMedal: () => change({ medal: null }),
+    sendTheEmojiUp: (source) => sendTheEmojiUp(clock, boxes, change, arrival, source),
     nothingWaits: arrival.nothingWaits,
   };
 }
@@ -132,6 +137,33 @@ async function popTheMedal(clock: TurnClock, change: Change, arrival: Arrival, t
   const art = medal?.querySelector(".al-ms-medal-art");
   change({ medal: { tier, art: rectOf(art), card: rectOf(medal) } });
   await Promise.all([clock.animate(art, medalPopFrames, { duration: turnTiming.medalPopMs, easing: "cubic-bezier(0.3, 0.8, 0.3, 1)" }), clock.animate(medal?.querySelector(".al-ms-emoji"), emojiPopFrames, { duration: turnTiming.medalPopMs, easing: "ease-out" })]);
+}
+
+async function sendTheEmojiUp(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: Arrival, source: EmojiSource) {
+  const emoji = arrival.emojiOf(emojiIdOf(source));
+  if (emoji === undefined) return;
+  const up: EmojiUp = { emoji, at: centreOf(rectOf(emojiSpotOf(source))), flying: false };
+  flushSync(() => change({ emoji: up }));
+  const picture = boxes.emoji.current;
+  await clock.animate(picture, springFrames, { duration: emojiFlightTiming.springMs, easing: springEasing });
+  await clock.sleep(emojiFlightTiming.pauseMs);
+  const button = theEmojiButton();
+  change({ emoji: { ...up, flying: true } });
+  await clock.animate(picture, picture === null || button === null ? [] : flightFrames(picture.getBoundingClientRect(), button.getBoundingClientRect()), { duration: emojiFlightTiming.flightMs, easing: flightEasing });
+  change({ emoji: null });
+  arrival.emojiHome(emoji.id);
+  bumpTheEmojiButton(button);
+}
+
+function emojiSpotOf(source: EmojiSource): Element | null {
+  switch (source.kind) {
+    case "hype":
+      return document.querySelector(".ib-landed-hype") ?? theTarget();
+    case "team":
+      return document.querySelector(`main [data-al-seal="${CSS.escape(source.team)}"]`);
+    case "medal":
+      return theMedal(source.tier)?.querySelector(".al-ms-emoji") ?? theMedal(source.tier);
+  }
 }
 
 function rectOf(element: Element | null | undefined) {

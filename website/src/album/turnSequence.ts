@@ -1,7 +1,10 @@
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { TurnAnswer } from "../../../convex/website/album";
+import { medalKeyOf } from "./milestones";
 
 export type Turned = Extract<TurnAnswer, { kind: "turned" }>;
+
+export type EmojiSource = { kind: "hype"; person: string } | { kind: "team"; team: string } | { kind: "medal"; tier: ReachedTier };
 
 export type FlightStage = "lift" | "turn" | "hold" | "land" | "unlock" | "medal" | "rest" | "back";
 
@@ -126,6 +129,7 @@ export type TurnSteps = {
   jumpToTheMedal: (tier: ReachedTier) => void;
   popTheMedal: (tier: ReachedTier) => Promise<void>;
   endTheMedal: () => void;
+  sendTheEmojiUp: (source: EmojiSource) => Promise<void>;
   nothingWaits: () => boolean;
 };
 
@@ -200,7 +204,31 @@ async function dropIn(clock: TurnClock, steps: TurnSteps) {
 }
 
 function followUpsOf(turned: Turned): FollowUp[] {
-  return [...turned.unlocked.teamStickers.map(({ team }) => teamUnlockOf(team)), ...milestoneBeatsOf(turned.unlocked.milestones)];
+  return [...hypeBeatOf(turned), ...turned.unlocked.teamStickers.map(({ team }) => teamUnlockOf(team)), ...milestoneBeatsOf(turned.unlocked.milestones)];
+}
+
+export function emojiSourcesOf(turned: Turned): EmojiSource[] {
+  const { unlocked } = turned;
+  return [...hypeOf(turned), ...unlocked.teamStickers.map(({ team }): EmojiSource => ({ kind: "team", team })), ...unlocked.milestones.map((tier): EmojiSource => ({ kind: "medal", tier }))];
+}
+
+export function emojiIdOf(source: EmojiSource) {
+  switch (source.kind) {
+    case "hype":
+      return `hype:${source.person}`;
+    case "team":
+      return `team:${source.team}`;
+    case "medal":
+      return `milestone:${medalKeyOf(source.tier)}`;
+  }
+}
+
+function hypeOf({ face, unlocked }: Turned): EmojiSource[] {
+  return unlocked.hype !== null && face.kind === "sticker" ? [{ kind: "hype", person: face.person }] : [];
+}
+
+function hypeBeatOf(turned: Turned): FollowUp[] {
+  return hypeOf(turned).map((source) => (_clock, steps) => steps.sendTheEmojiUp(source));
 }
 
 function teamUnlockOf(team: string): FollowUp {
@@ -209,7 +237,7 @@ function teamUnlockOf(team: string): FollowUp {
     if (!steps.sealInView(team)) await fadeToAnotherPage(clock, steps, () => steps.goToTheTeam(team), () => steps.jumpToTheSeal(team));
     steps.stage("unlock");
     await steps.unlockTheTeam(team);
-    await clock.sleep(turnTiming.unlockHoldMs);
+    await Promise.all([clock.sleep(turnTiming.unlockHoldMs), steps.sendTheEmojiUp({ kind: "team", team })]);
     steps.endTheUnlock();
   };
 }
@@ -224,7 +252,7 @@ function medalBeatOf(tier: ReachedTier): FollowUp {
     if (!steps.medalInView(tier)) await fadeToAnotherPage(clock, steps, steps.goToTheMilestones, () => steps.jumpToTheMedal(tier));
     steps.stage("medal");
     await steps.popTheMedal(tier);
-    await clock.sleep(turnTiming.medalHoldMs);
+    await Promise.all([clock.sleep(turnTiming.medalHoldMs), steps.sendTheEmojiUp({ kind: "medal", tier })]);
     steps.endTheMedal();
   };
 }
