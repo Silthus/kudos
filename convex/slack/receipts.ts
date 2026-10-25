@@ -12,6 +12,7 @@ import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import type { HomeRefusal } from "../feedback/homeRefusal";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
+import { howToAskedValidator } from "./welcome";
 import { reportHomeOpened } from "./appHome";
 import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
@@ -101,10 +102,11 @@ export const receiveHomeClick = internalMutation({
 });
 
 export const receiveDmLinkClick = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), user: v.string(), link: dmLinkValidator },
-  handler: async (ctx, { user, link, ...receipt }) => {
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), link: dmLinkValidator, howTo: v.optional(howToAskedValidator) },
+  handler: async (ctx, { user, link, howTo, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
+    if (howTo !== undefined) await ctx.scheduler.runAfter(0, internal.slack.welcome.replyWithHowTo, { workspace: receipt.workspace, ...howTo });
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind === "member" && (await onTheMondayPath(ctx, person.member))) await reportDmLinkClicked(ctx, { workspace: receipt.workspace, member: person.member, ...link, at: Date.now() });
   },

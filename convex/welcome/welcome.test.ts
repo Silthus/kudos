@@ -1,7 +1,7 @@
 import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
-import { FakeSlack, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
+import { FakeSlack, landsButTimesOut, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsOnForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
@@ -214,6 +214,27 @@ describe("MQ22: Show me how answers in the welcome's thread", { timeout: 60_000 
     expect(howToRepliesTo(alice).map(({ text }) => text)).toEqual([
       "*How to thank someone you haven't thanked before*\nSomeone from another team counts too.\n\nA kudos that says why looks like this, in any channel I'm in:\n> @Ana thanks for untangling the deploy, it saved my afternoon :taco:",
     ]);
+  });
+
+  test("a click Slack delivers twice is answered once", async () => {
+    t = await workspace(mondayPath);
+    await hug(bob, alice);
+    const click = showMeHowClickOf(bob);
+
+    await deliver(click);
+    await deliver(click);
+
+    expect(howToRepliesShownTo(bob)).toHaveLength(1);
+  });
+
+  test("a reply that lands while Slack's answer times out is not posted again", async () => {
+    t = await workspace(mondayPath);
+    await hug(bob, alice);
+    slack.answering("chat.postMessage", landsButTimesOut);
+
+    await showMeHow(bob);
+
+    expect(howToRepliesShownTo(bob)).toHaveLength(1);
   });
 
   test("a welcome sent without the website still shows Show me how, and it still answers", async () => {
@@ -525,9 +546,16 @@ function welcomeShownTo(person: Person) {
   return welcome;
 }
 
-async function showMeHow(person: Person) {
+function showMeHowClickOf(person: Person) {
   const welcome = welcomeShownTo(person);
-  const click = blockActions(person.user, buttonIn(welcome.blocks as Block[], "Show me how"), { inMessage: welcome });
+  return blockActions(person.user, buttonIn(welcome.blocks as Block[], "Show me how"), { inMessage: welcome });
+}
+
+async function showMeHow(person: Person) {
+  await deliver(showMeHowClickOf(person));
+}
+
+async function deliver(click: string) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(click, { contentType: "application/x-www-form-urlencoded" }));
   expect(response.status, "Slack's acknowledgement").toBe(200);
   await settle(t);
@@ -535,6 +563,10 @@ async function showMeHow(person: Person) {
 
 function howToRepliesTo(person: Person) {
   return slack.callsTo("chat.postMessage").filter(({ channel, thread_ts }) => channel === person.user && thread_ts !== undefined);
+}
+
+function howToRepliesShownTo(person: Person) {
+  return slack.messagesIn(person.user).filter(({ threadTs }) => threadTs !== undefined);
 }
 
 function noteTo(person: Person) {

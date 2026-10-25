@@ -47,9 +47,8 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   if (isOptionsRequest(payload)) return Response.json({ options: await customEmojiOptionsFor(ctx, payload) });
   if (!isMemberClick(payload)) return new Response(null, { status: 200 });
   const link = payload.actions.map(dmLinkOf).find((candidate) => candidate !== null);
-  if (link !== undefined) await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveDmLinkClick, { workspace: payload.team.id, eventId: payload.trigger_id, user: payload.user.id, link });
   const howTo = howToAskedIn(payload);
-  if (howTo !== null) await ctx.scheduler.runAfter(0, internal.slack.welcome.replyWithHowTo, { workspace: payload.team.id, ...howTo });
+  if (link !== undefined) await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveDmLinkClick, { workspace: payload.team.id, eventId: payload.trigger_id, user: payload.user.id, link, ...(howTo !== null && { howTo }) });
   const selections = selectionsIn(payload.state);
   const commands = payload.actions.flatMap((action) => commandsOf(action, selections));
   if (commands.length === 0) return new Response(null, { status: 200 });
