@@ -165,7 +165,7 @@ function BestMessage({ person, first }: { person: Person; first: string }) {
   return (
     <figure className="al-quote">
       <blockquote>
-        <KudosMessage message={person.best.message} clamped={false} />
+        <KudosMessage message={person.best.message} />
       </blockquote>
       <figcaption>
         <span>

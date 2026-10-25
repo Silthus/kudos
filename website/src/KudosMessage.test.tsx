@@ -8,8 +8,8 @@ function words(...segments: Segment[]): Message {
   return { kind: "text", segments, edited: false };
 }
 
-function shown(message: Message, { clamped = false } = {}) {
-  return render(<KudosMessage message={message} clamped={clamped} />).container;
+function shown(message: Message, { look = "album", me }: { look?: "album" | "slack"; me?: string } = {}) {
+  return render(<KudosMessage message={message} look={look} me={me} />).container;
 }
 
 function hrefsIn(container: HTMLElement) {
@@ -33,7 +33,7 @@ describe("WS210: one renderer for a kudos message", () => {
     const followed: string[] = [];
     const { container } = render(
       <NavigateProvider value={(href) => followed.push(href)}>
-        <KudosMessage message={words({ kind: "text", text: "Thanks " }, { kind: "person", name: "Dev Rao", person: "member/dev 1" })} clamped={false} />
+        <KudosMessage message={words({ kind: "text", text: "Thanks " }, { kind: "person", name: "Dev Rao", person: "member/dev 1" })} />
       </NavigateProvider>,
     );
 
@@ -66,11 +66,21 @@ describe("WS210: one renderer for a kudos message", () => {
     expect(screen.queryAllByRole("link")).toEqual([]);
   });
 
-  it("renders a known member's mention as plain text when clamped, so nothing focusable hides behind the clamp", () => {
-    const container = shown(words({ kind: "person", name: "Dev Rao", person: "member-dev" }), { clamped: true });
+  it("in the Slack look renders a known member's mention as text, so nothing in a flying excerpt is focusable", () => {
+    const container = shown(words({ kind: "person", name: "Dev Rao", person: "member-dev" }), { look: "slack" });
 
     expect(container).toHaveTextContent("@Dev Rao");
     expect(screen.queryAllByRole("link")).toEqual([]);
+  });
+
+  it("in the Slack look marks every mention as Slack does, a mention of me and a broadcast louder than the rest", () => {
+    shown(words({ kind: "person", name: "Sam Example", person: "member-me" }, { kind: "person", name: "Dev Rao", person: "member-dev" }, { kind: "group", handle: "design-team" }, { kind: "channel" }, { kind: "broadcast", range: "here" }), { look: "slack", me: "member-me" });
+
+    expect(screen.getByText("@Sam Example")).toHaveAttribute("data-mention", "loud");
+    expect(screen.getByText("@here")).toHaveAttribute("data-mention", "loud");
+    expect(screen.getByText("@Dev Rao")).toHaveAttribute("data-mention", "plain");
+    expect(screen.getByText("@design-team")).toHaveAttribute("data-mention", "plain");
+    expect(screen.getByText("#channel")).toHaveAttribute("data-mention", "plain");
   });
 
   it("renders an emoji as its unicode, else as its name between colons", () => {
@@ -154,12 +164,13 @@ describe("WS210: one renderer for a kudos message", () => {
     expect(screen.queryAllByRole("link")).toEqual([]);
   });
 
-  it("renders every link as text when clamped, so nothing focusable hides behind the clamp", () => {
-    const container = shown(words({ kind: "link", url: "https://example.com/doc", label: "the doc" }), { clamped: true });
+  it("in the Slack look renders every link as its text in Slack's link colour, never cut to a few lines", () => {
+    const container = shown(words({ kind: "link", url: "https://example.com/doc", label: "the doc" }), { look: "slack" });
 
     expect(container).toHaveTextContent("the doc");
     expect(screen.queryAllByRole("link")).toEqual([]);
-    expect(screen.getByTestId("kudos-message-words")).toHaveClass("line-clamp-2");
+    expect(screen.getByText("the doc")).toHaveAttribute("data-link");
+    expect(screen.getByTestId("kudos-message-words").className).not.toMatch(/line-clamp/);
   });
 
   it.each([
@@ -178,6 +189,12 @@ describe("WS210: one renderer for a kudos message", () => {
 
     expect(container).toHaveTextContent("ThanksEdited");
     expect(screen.getByText("Edited")).toHaveClass("text-muted-foreground");
+  });
+
+  it("in the Slack look adds (edited) as Slack does", () => {
+    const container = shown({ kind: "text", segments: [{ kind: "text", text: "Thanks" }], edited: true }, { look: "slack" });
+
+    expect(container).toHaveTextContent("Thanks (edited)");
   });
 
   it("renders nothing for a segment kind it doesn't know", () => {
@@ -201,16 +218,16 @@ describe("a kudos message renders as text", () => {
   );
 
   it.each([
-    ["with live links", false],
-    ["clamped", true],
-  ])("keeps markup, entities and unsafe links as text %s", (_, clamped) => {
-    const container = shown(hostile, { clamped });
+    ["in the album look", "album"],
+    ["in the Slack look", "slack"],
+  ] as const)("keeps markup, entities and unsafe links as text %s", (_, look) => {
+    const container = shown(hostile, { look });
 
     expect(container).toHaveTextContent('<script>alert(1)</script><img src=x onerror="alert(2)">&lt;b&gt; &amp; &#60;i&#62;click me');
     expect(container).toHaveTextContent("@<b>Eve</b>");
     expect(container).toHaveTextContent("data:text/html,<script>alert(4)</script>");
     expect(container.querySelector("script, img, b, i")).toBeNull();
     expect(hrefsIn(container).every((href) => href !== null && /^(https?:|\/book#people\/)/.test(href))).toBe(true);
-    expect(hrefsIn(container)).toEqual(clamped ? [] : ["https://example.com/safe", "/book#people/javascript%3Aalert(5)"]);
+    expect(hrefsIn(container)).toEqual(look === "slack" ? [] : ["https://example.com/safe", "/book#people/javascript%3Aalert(5)"]);
   });
 });

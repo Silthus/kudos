@@ -222,7 +222,7 @@ function KudosOfTheWeekStory({ kudos, me }: { kudos: KudosOfTheWeek; me: string 
   return (
     <Section title="The kudos of the week">
       <blockquote className="al-issue-quote">
-        <KudosMessage message={kudos.message} clamped={false} />
+        <KudosMessage message={kudos.message} />
       </blockquote>
       <div className="al-issue-byline">
         <MemberFace face={kudos.giver.face} className="al-issue-byline-face" />
@@ -266,7 +266,7 @@ function SaidLine({ kudos: { people, morePeople, message, at } }: { kudos: WeekK
           <Names people={people} more={morePeople} /> <span className="al-issue-hint">· {shortWeekdayOf(at)}</span>
         </p>
         <blockquote className="al-issue-said-words" data-quoted={isQuotable(message) || undefined}>
-          <KudosMessage message={message} clamped={false} />
+          <KudosMessage message={message} />
         </blockquote>
       </div>
     </li>
