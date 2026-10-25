@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstThanksToSomeoneNewAfter, givenBetween } from "../engine/awards";
+import { earliestAwardFrom, givenBetween } from "../engine/awards";
 import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
@@ -106,9 +106,7 @@ export async function advanceOnboarding(ctx: MutationCtx, event: KudosGivenEvent
   const start = await questStartOf(ctx, event.giver);
   if (start === null || event.at < start) return [];
   const firstThanks = await finishOf(ctx, event.giver, "first-thanks");
-  const firstThanksNow = await advanceFirstThanks(ctx, event, firstThanks);
-  const someoneNew = firstThanksNow === null ? await advanceSomeoneNew(ctx, event, firstThanks) : await someoneNewThankedSince(ctx, event);
-  const finished = [firstThanksNow, someoneNew, await advanceTwoDays(ctx, event, start)];
+  const finished = [await advanceFirstThanks(ctx, event, firstThanks), await advanceSomeoneNew(ctx, event, start), await advanceTwoDays(ctx, event, start)];
   return finished.filter((quest) => quest !== null);
 }
 
@@ -132,16 +130,10 @@ async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, firs
   return firstThanks === null && saysWhy(event.annotations) ? finishedBy(ctx, event, "first-thanks") : null;
 }
 
-async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent, firstThanks: RewardRecord | null): Promise<FinishedOnboardingQuest | null> {
-  if (firstThanks === null || event.at <= firstThanks.at || (await finishOf(ctx, event.giver, "someone-new")) !== null) return null;
+async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<FinishedOnboardingQuest | null> {
+  if ((await finishOf(ctx, event.giver, "someone-new")) !== null || !(await firstThanksCameBefore(ctx, event.giver, start, event.at))) return null;
   const someoneNew = (await thanksSomeoneNew(ctx, event)) || (await hasThankedEveryone(ctx, event.workspace, event.giver, event.at));
   return someoneNew ? finishedBy(ctx, event, "someone-new") : null;
-}
-
-async function someoneNewThankedSince(ctx: MutationCtx, { workspace, giver, at }: KudosGivenEvent): Promise<FinishedOnboardingQuest | null> {
-  if ((await finishOf(ctx, giver, "someone-new")) !== null) return null;
-  const thankedAt = await firstThanksToSomeoneNewAfter(ctx, giver, at);
-  return thankedAt === null ? null : finished(ctx, workspace, giver, "someone-new", thankedAt);
 }
 
 async function thanksSomeoneNew(ctx: QueryCtx, { giver, awards }: KudosGivenEvent): Promise<boolean> {

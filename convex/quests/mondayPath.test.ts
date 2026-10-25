@@ -170,18 +170,20 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(1);
   });
 
-  test("a kudos to someone new given after the one that finished first-thanks finishes someone-new, even when it is delivered before it", async () => {
+  test.each([
+    ["before", [1, 0]],
+    ["after", [0, 1]],
+  ])("a kudos to someone new given after the one that finished first-thanks finishes someone-new as its own, delivered %s it", async (_, order) => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);
     const held = holdingKudosGiven();
 
     await thanks(alice, saysWhy, carol);
     await thanks(alice, "thanks", bob);
-    await deliverInOrder(held[1]!, []);
-    await deliverInOrder(held[0]!, []);
+    for (const index of order) await deliverInOrder(held[index]!, []);
 
-    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([{ xp: 50, at: held[1]!.at }]);
-    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("two-days");
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([held[0]!.message.message]);
+    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([held[1]!.message.message]);
   });
 
   test("a kudos that says why counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {
@@ -551,6 +553,12 @@ async function membershipChanged(user: { id: string; deleted?: boolean }) {
   await memberChanged(t, "user_change", user);
   await settle(t);
   return at;
+}
+
+async function causesOf(person: Person, key: string) {
+  const member = await memberOf(person);
+  const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
+  return records.filter((record) => record.member === member && record.key === key).map(({ cause }) => cause?.message);
 }
 
 async function someoneNewRecordsOf(person: Person) {

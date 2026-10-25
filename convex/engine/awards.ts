@@ -224,13 +224,6 @@ export async function earliestAwardFrom(ctx: QueryCtx, giver: MemberId, recipien
   return earliest === null ? null : { award: earliest._id, at: earliest.at, created: earliest._creationTime };
 }
 
-export async function firstThanksToSomeoneNewAfter(ctx: QueryCtx, giver: MemberId, since: number): Promise<number | null> {
-  for await (const { _id, recipient, at } of ctx.db.query("awards").withIndex("by_giver_at", (q) => q.eq("giver", giver).gt("at", since))) {
-    if ((await earliestAwardFrom(ctx, giver, recipient))?.award === _id) return at;
-  }
-  return null;
-}
-
 export async function thankedAtOrBefore(ctx: QueryCtx, giver: MemberId, recipient: MemberId, atOrBefore: number): Promise<boolean> {
   for await (const { at } of ctx.db.query("awards").withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))) if (at <= atOrBefore) return true;
   return false;
