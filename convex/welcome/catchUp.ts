@@ -13,22 +13,26 @@ import { isWelcomed, recordWelcome } from "./welcome";
 const catchUp = { path: "catch-up" } as const;
 
 export async function catchUpWelcomeIn(ctx: MutationCtx, member: MemberId, at: number, { begun }: { begun: boolean }): Promise<MondayWelcome | null> {
-  if (begun) return caughtUpWelcomeOf(ctx, member, at);
-  const row = await ctx.db.get(member);
-  if (row === null || !(await catchesUp(ctx, row))) return null;
-  const { workspace, journey } = await recordWelcome(ctx, member, catchUp, at);
-  return mondayWelcomeFor(ctx, workspace, member, catchUp, journey);
+  const caughtUp = begun ? await catchUpStillOnFor(ctx, member) : await welcomedToCatchUp(ctx, member, at);
+  if (!caughtUp) return null;
+  const { workspace } = await chatUserOf(ctx, member);
+  return mondayWelcomeFor(ctx, workspace, member, catchUp, await onboardingQuestsOf(ctx, member, at));
 }
 
 export async function catchesUp(ctx: MutationCtx, { _id: member, kind }: Doc<"members">): Promise<boolean> {
-  if (kind !== "member" || (await isWelcomed(ctx, member))) return false;
-  if (!(await usedHedgeHug(ctx, member)) || !(await onTheMondayPath(ctx, member))) return false;
-  return memberDecision(ctx, catchUpWelcomeFlag, member);
+  if (kind !== "member" || (await isWelcomed(ctx, member)) || !(await usedHedgeHug(ctx, member))) return false;
+  return catchUpStillOnFor(ctx, member);
 }
 
-async function caughtUpWelcomeOf(ctx: MutationCtx, member: MemberId, at: number): Promise<MondayWelcome> {
-  const { workspace } = await chatUserOf(ctx, member);
-  return mondayWelcomeFor(ctx, workspace, member, catchUp, await onboardingQuestsOf(ctx, member, at));
+async function welcomedToCatchUp(ctx: MutationCtx, member: MemberId, at: number): Promise<boolean> {
+  const row = await ctx.db.get(member);
+  if (row === null || !(await catchesUp(ctx, row))) return false;
+  await recordWelcome(ctx, member, catchUp, at);
+  return true;
+}
+
+async function catchUpStillOnFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  return (await onTheMondayPath(ctx, member)) && memberDecision(ctx, catchUpWelcomeFlag, member);
 }
 
 async function usedHedgeHug(ctx: MutationCtx, member: MemberId): Promise<boolean> {

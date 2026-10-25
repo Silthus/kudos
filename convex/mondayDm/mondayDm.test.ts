@@ -545,6 +545,39 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
     expect(dmsTo(carol)).toEqual([]);
   });
 
+  test("a rate-limited catch-up goes out on its retry, once", async () => {
+    await usedBeforeTheMondayPath();
+    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30));
+
+    await mondayArrives();
+
+    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true]);
+    expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["catch-up"]);
+  });
+
+  test("catch-up-welcome turned off while a rate-limited catch-up waits for its retry sends the regular Monday DM instead", async () => {
+    await usedBeforeTheMondayPath();
+    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60));
+    await mondayArrives(mondayNine + 10 * minuteMs);
+
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await settleUpTo(t, mondayNine + hourMs);
+
+    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([false]);
+    expect(seen(dmsTo(carol)[0]!)[0]).toMatch(/^section: \*Your onboarding journey\* · 0 of 3 done/);
+  });
+
+  test("a member welcomed on Monday before 9:00, whose row the catch-up already ensured, gets no Monday DM that day", async () => {
+    await usedBeforeTheMondayPath();
+    await sweepsAt(mondayNine - 2 * hourMs);
+
+    await thanks(carol, saysWhy, alice);
+    await mondayArrives();
+
+    expect(dmsTo(carol).filter(saysStuckInThePipe)).toEqual([]);
+    expect(await mondayDmsSentTo(carol)).toEqual([]);
+  });
+
   test.each([
     ["monday-quest is off", [...todaysFlags, "catch-up-welcome"]],
     ["catch-up-welcome is not defined, so its read answers false", mondayPath],

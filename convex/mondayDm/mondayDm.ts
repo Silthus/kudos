@@ -129,9 +129,11 @@ async function welcomedOn(ctx: QueryCtx, member: MemberId, day: DayKey, timeZone
 }
 
 async function sectionsOf(ctx: MutationCtx, { member, monday, sections = [] }: MondayDmRow): Promise<Sections> {
-  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun: sections.includes("catch-up") });
-  const quests = catchUp === null ? await questsSectionFor(ctx, member, Date.now()) : null;
-  return { hugs: await hugsSectionFor(ctx, member, monday), quests, catchUp };
+  const hugs = await hugsSectionFor(ctx, member, monday);
+  const begun = sections.includes("catch-up");
+  if (!begun && (await welcomedOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined))) return { ...noSections, hugs };
+  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun });
+  return { hugs, quests: catchUp === null ? await questsSectionFor(ctx, member, Date.now()) : null, catchUp };
 }
 
 function sectionNamesOf({ hugs, quests, catchUp }: Sections): MondayDmSection[] {
