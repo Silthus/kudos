@@ -1,8 +1,9 @@
 import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
-import { FakeSlack, networkFailure, rateLimitedFor, type SlackArgs } from "../../testing/fakeSlack";
-import { post, react, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
+import { FakeSlack, landsButTimesOut, networkFailure, rateLimitedFor, type SlackArgs } from "../../testing/fakeSlack";
+import { flagsFromPostHog, onForEmails, onForEveryone } from "../../testing/flags";
+import { memberChanged, post, react, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest } from "../../testing/signedSlack";
 import { blockActions, buttonIn, readBlocks, type Block } from "../../testing/slackInteractions";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
@@ -13,12 +14,14 @@ import crons from "../crons";
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const mondayNine = Date.parse("2026-10-19T09:00:00Z");
 const weekendBeforeMonday = Date.parse("2026-10-18T00:00:00Z");
+const honoluluMondayNine = Date.parse("2026-10-19T19:00:00Z");
 const minuteMs = 60_000;
 const hourMs = 60 * minuteMs;
 const dayMs = 24 * hourMs;
 const siteUrl = "https://kudos.example";
 const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
+const alicesEmail = "alice@example.com";
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
 const saysWhy = "thanks for untangling the flaky migration today";
 const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items", "onboarding", "hugs", "message-settings"];
@@ -70,7 +73,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
         "✅ ~Thank someone and say why~",
         "👉 *Thank someone you haven't thanked before*",
         "⚪ Say why on 2 different days _1 of 2 days_",
-        `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me) | Stop Monday quests`,
+        `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests) | Stop Monday quests`,
         `context: ${footer}`,
       ],
     ]);
@@ -88,7 +91,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     expect(dm?.[0]).toBe(`section: Happy Monday :sun_with_face: Here are three quests for your week. Each one pays +20 XP and an unidentified Hoggie for your collection.\n\nTen unidentified Hoggies for your collection are waiting for you.`);
     expect(dm?.slice(1, 4)).toHaveLength(3);
     for (const quest of dm!.slice(1, 4)) expect(quest).toMatch(/^⚪ /);
-    expect(dm?.slice(4)).toEqual([`actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me) | Stop Monday quests`]);
+    expect(dm?.slice(4)).toEqual([`actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests) | Stop Monday quests`]);
   });
 
   test("a member taken out of monday-quest before 9:00 gets the hugs recap alone, byte for byte as today's recap", async () => {
@@ -128,6 +131,19 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     await mondayArrives();
 
     expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
+  });
+
+  test("for a member previewing the website while it is closed for the workspace, the links go through the sign-in entry", async () => {
+    slack.withMember(alice.user, { real_name: alice.name, profile: { real_name: alice.name, email: alicesEmail } });
+    await flagsFromPostHog(t, postHog, onForEmails("website", alicesEmail), ...mondayPath.map(onForEveryone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    await thanks(alice, saysWhy, bob);
+
+    await mondayArrives();
+
+    expect(seen(dmsTo(alice).at(-1)!).at(-1)).toBe(
+      `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/sign-in) | See your quests (dm-link:monday:quests → ${siteUrl}/sign-in) | Stop Monday quests`,
+    );
   });
 
   test("a member in a time zone ahead of UTC gets the DM at 9:00 there", async () => {
@@ -173,6 +189,25 @@ describe("MQ26: a member's week of hugs goes out once, in the Monday DM, whichev
 
     expect(dmsTo(alice)).toHaveLength(1);
     expect(seen(dmsTo(alice)[0]!)[0]).toMatch(/^section: :taco: Your week in hugs/);
+  });
+});
+
+describe("MQ26: once today's recap has begun its tries, the week stays its own", { timeout: 60_000 }, () => {
+  test("a Monday DM row that appears before the recap's retry leaves the hugs to the recap", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await hug(bob, alice);
+    slack.answeringIn("chat.postMessage", alice.user, rateLimitedFor(30 * 60));
+    await mondayArrives(mondayNine + 10 * minuteMs);
+
+    slack.withMember(alice.user, { real_name: alice.name, tz: "Pacific/Honolulu" });
+    await memberChanged(t, "user_change", { id: alice.user, team_id: "T1", real_name: alice.name, tz: "Pacific/Honolulu" });
+    await thanksWithinAMinute(alice, saysWhy, bob);
+    await sweepsAt(mondayNine + 15 * minuteMs);
+    await settleUpTo(t, honoluluMondayNine - minuteMs);
+    await startsFirst(sendHugsRecap);
+    await settleUpTo(t, honoluluMondayNine + minuteMs);
+
+    expect(seen(dmsTo(alice).at(-1)!)[0]).toMatch(/^section: \*Your onboarding journey\*/);
   });
 });
 
@@ -327,6 +362,17 @@ describe("MQ29 MQ30: one press on Stop Monday quests stops them, replacing the D
     expect(settingChanges()).toEqual([]);
   });
 
+  test("a DM whose post landed but whose answer was lost is still replaced in place", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    slack.answeringIn("chat.postMessage", alice.user, landsButTimesOut);
+    await mondayArrives();
+
+    await press(alice, "Stop Monday quests");
+
+    expect(dmsTo(alice).map(seen)).toEqual([["section: 🔕 *Done, no more Monday quests from me.* Changed your mind? One press brings them back.", "actions: Turn Monday quests back on"]]);
+  });
+
   test("a Stop button that carries another member's DM changes nothing for either of them", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
@@ -400,11 +446,21 @@ async function finishOnboarding(person: Person) {
 }
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
+  const ts = await postThanks(giver, words, recipients);
+  await settleInTimeOrder(t);
+  return ts;
+}
+
+async function thanksWithinAMinute(giver: Person, words: string, ...recipients: Person[]) {
+  await postThanks(giver, words, recipients);
+  await settleUpTo(t, Date.now() + minuteMs);
+}
+
+async function postThanks(giver: Person, words: string, recipients: Person[]) {
   messages += 1;
   vi.setSystemTime(Date.now() + minuteMs);
   const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${words} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
-  await settleInTimeOrder(t);
   return ts;
 }
 
