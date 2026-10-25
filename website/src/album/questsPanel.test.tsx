@@ -65,7 +65,7 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     expect(panel.getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual([
       "Give your first hug: done",
       "Thank someone and say why: next, +50 XP and an unidentified hoggie",
-      "Turn the hoggie it left on your board: not yet",
+      "Identify the hoggie it left on your board: not yet",
       "Thank someone you haven't thanked before: not yet, +50 XP and an unidentified hoggie",
       "Say why on 2 different days: not yet, +50 XP and an unidentified hoggie",
     ]);

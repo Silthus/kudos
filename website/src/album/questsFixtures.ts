@@ -11,7 +11,7 @@ function newcomerJourney(): GettingStartedStep[] {
   return [
     { step: "hug", goal: "Give your first hug", hint: "React with your kudos emoji on any message in Slack.", progress: finishedOnce, done: true, reward: null, item: null },
     { step: "first-thanks", goal: "Thank someone and say why", hint: saysWhyCounts, progress: once, done: false, reward: { xp: 50 }, item: null },
-    { step: "turn", goal: "Turn the hoggie it left on your board", hint: null, progress: once, done: false, reward: null, item: null },
+    { step: "turn", goal: "Identify the hoggie it left on your board", hint: null, progress: once, done: false, reward: null, item: null },
     { step: "someone-new", goal: "Thank someone you haven't thanked before", hint: "Someone from another team counts, and so does a new joiner.", progress: once, done: false, reward: { xp: 50 }, item: null },
     { step: "two-days", goal: "Say why on 2 different days", hint: saysWhyCounts, progress: { done: 0, target: 2 }, done: false, reward: { xp: 50 }, item: null },
   ];

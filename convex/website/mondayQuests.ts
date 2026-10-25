@@ -37,7 +37,7 @@ const once: QuestProgress = { done: 0, target: 1 };
 
 const guidance: Record<"hug" | "turn", { goal: string; hint: string | null }> = {
   hug: { goal: "Give your first hug", hint: "React with your kudos emoji on any message in Slack." },
-  turn: { goal: "Turn the hoggie it left on your board", hint: null },
+  turn: { goal: "Identify the hoggie it left on your board", hint: null },
 };
 
 const questHints: Record<OnboardingStep, string> = {
