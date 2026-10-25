@@ -18,7 +18,7 @@ const person = (name: string) => ({ name, face: { kind: "initials" as const, ini
 const kudos: Segment = { kind: "emoji", name: "raised_hands", unicode: "🙌" };
 
 const longThanks = said(
-  { kind: "person", name: "Sam Example" },
+  { kind: "person", name: "Sam Example", person: "sam-example" },
   text(" "),
   kudos,
   text(" thank you for pairing with me on the flaky deploy yesterday. I'd been staring at it for two days, and you found the race in "),
@@ -40,7 +40,7 @@ export const xpMomentFixture: XpMoment = {
     { entry: { kind: "kudosReceived", key: "k1", at: lastVisit + 10 * minute, giver: person("Ines Okafor"), channel: { visibility: "public" }, saidWhy: true, permalink: null, message: longThanks }, xp: 10 },
     { entry: { kind: "hugReceived", key: "h1", at: lastVisit + 20 * minute, givers: [person("Fen Marlowe")], emoji: "hugging_face", hugs: 3, xp: 3, on: "C1/1.1", permalink: null, kudos: said({ kind: "person", name: "Wren Alder" }, text(" "), kudos, text(" for the clearest onboarding doc I have read here")) }, xp: 3 },
     { entry: { kind: "kudosGiven", key: "k2", at: lastVisit + 30 * minute, recipients: [person("Bram Teller")], kudos: 1, channel: { visibility: "public" }, saidWhy: true, permalink: null, message: edited({ kind: "person", name: "Bram Teller" }, text(" "), kudos, text(" for getting the release notes out on a Friday")), earned: { xp: 15, questsDone: [], bonuses: [] } }, xp: 15 },
-    { entry: { kind: "kudosReceived", key: "k3", at: lastVisit + 40 * minute, giver: { name: "Oona Vasquez", face: { kind: "slack", image: "/apple-touch-icon.png", initials: "OV" } }, channel: { visibility: "public" }, saidWhy: true, permalink: null, message: said({ kind: "person", name: "Sam Example" }, text(" "), kudos, text(" for the "), { kind: "broadcast", range: "here" }, text(" heads-up")) }, xp: 10 },
+    { entry: { kind: "kudosReceived", key: "k3", at: lastVisit + 40 * minute, giver: { name: "Oona Vasquez", face: { kind: "slack", image: "/apple-touch-icon.png", initials: "OV" } }, channel: { visibility: "public" }, saidWhy: true, permalink: null, message: said({ kind: "person", name: "Sam Example", person: "sam-example" }, text(" "), kudos, text(" for the "), { kind: "broadcast", range: "here" }, text(" heads-up")) }, xp: 10 },
     { entry: { kind: "levelUp", at: lastVisit + 50 * minute, level: 7 }, xp: 0 },
   ],
   fold: { count: 12, xp: 140 },

@@ -11,7 +11,7 @@ type Unavailable = Extract<Message, { kind: "unavailable" }>;
 
 export type MessageLook = "album" | "slack";
 
-type Me = { person: string; name: string };
+type Me = { person: string };
 
 type Looks = { look: MessageLook; me: Me | undefined };
 
@@ -99,8 +99,8 @@ function Mention({ children, loud = false }: { children: string; loud?: boolean 
   );
 }
 
-function mentionsMe({ person, name }: PersonSegment, me: Me) {
-  return person === undefined ? name === me.name : person === me.person;
+function mentionsMe({ person }: PersonSegment, me: Me) {
+  return person !== undefined && person === me.person;
 }
 
 function PersonMention({ segment, linked, loud }: { segment: PersonSegment; linked: boolean; loud: boolean }) {

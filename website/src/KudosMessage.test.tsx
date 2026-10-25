@@ -8,7 +8,7 @@ function words(...segments: Segment[]): Message {
   return { kind: "text", segments, edited: false };
 }
 
-function shown(message: Message, { look = "album", me }: { look?: "album" | "slack"; me?: { person: string; name: string } } = {}) {
+function shown(message: Message, { look = "album", me }: { look?: "album" | "slack"; me?: { person: string } } = {}) {
   return render(<KudosMessage message={message} look={look} me={me} />).container;
 }
 
@@ -74,7 +74,7 @@ describe("WS210: one renderer for a kudos message", () => {
   });
 
   it("in the Slack look marks every mention as Slack does, a mention of me and a broadcast louder than the rest", () => {
-    shown(words({ kind: "person", name: "Sam Example", person: "member-me" }, { kind: "person", name: "Dev Rao", person: "member-dev" }, { kind: "group", handle: "design-team" }, { kind: "channel" }, { kind: "broadcast", range: "here" }), { look: "slack", me: { person: "member-me", name: "Sam Example" } });
+    shown(words({ kind: "person", name: "Sam Example", person: "member-me" }, { kind: "person", name: "Dev Rao", person: "member-dev" }, { kind: "group", handle: "design-team" }, { kind: "channel" }, { kind: "broadcast", range: "here" }), { look: "slack", me: { person: "member-me" } });
 
     expect(screen.getByText("@Sam Example")).toHaveAttribute("data-mention", "loud");
     expect(screen.getByText("@here")).toHaveAttribute("data-mention", "loud");
@@ -83,10 +83,11 @@ describe("WS210: one renderer for a kudos message", () => {
     expect(screen.getByText("#channel")).toHaveAttribute("data-mention", "plain");
   });
 
-  it("in the Slack look knows a mention of me by name when the read names people without linking them, and a namesake by their member", () => {
-    shown(words({ kind: "person", name: "Sam Example" }, { kind: "person", name: "Sam Example", person: "member-namesake" }), { look: "slack", me: { person: "member-me", name: "Sam Example" } });
+  it("in the Slack look knows a mention of me by my member whatever name Slack shows, and never a namesake or a person the read could not look up", () => {
+    shown(words({ kind: "person", name: "sammy", person: "member-me" }, { kind: "person", name: "Sam Example", person: "member-namesake" }, { kind: "person", name: "Sam Example" }), { look: "slack", me: { person: "member-me" } });
 
-    expect(screen.getAllByText("@Sam Example").map((mention) => mention.getAttribute("data-mention"))).toEqual(["loud", "plain"]);
+    expect(screen.getByText("@sammy")).toHaveAttribute("data-mention", "loud");
+    expect(screen.getAllByText("@Sam Example").map((mention) => mention.getAttribute("data-mention"))).toEqual(["plain", "plain"]);
   });
 
   it("renders an emoji as its unicode, else as its name between colons", () => {
