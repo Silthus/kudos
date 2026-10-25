@@ -261,6 +261,18 @@ describe("MQ16: the welcome nudge never follows a welcome", { timeout: 60_000 },
     expect(welcomesTo(bob)).toHaveLength(1);
   });
 
+  test("a nudge held by a rate limit is never sent once its member is welcomed", async () => {
+    t = await workspace(mondayPath);
+    slack.answeringIn("chat.postMessage", bob.user, rateLimitedFor(30));
+    await react(t, { user: alice.user, itemUser: bob.user, ts: messageAgo(2 * hourMs) });
+    await settleUpTo(t, Date.now() + 10_000);
+
+    await hug(bob, alice);
+
+    expect(nudgesTo(bob), "only the try the rate limit held").toHaveLength(1);
+    expect(welcomesTo(bob)).toHaveLength(1);
+  });
+
   test("a member nudged first is welcomed by their own first hug later", async () => {
     t = await workspace(mondayPath);
     await hug(alice, bob, { ts: messageAgo(2 * hourMs) });
