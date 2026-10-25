@@ -228,5 +228,5 @@ async function replyOf(sent: Promise<TurnReply>): Promise<TurnReply | { kind: "u
 }
 
 function troubleOf(kind: string) {
-  return kind === "unreachable" ? "Can't reach HedgeHug. Try again." : "That item couldn't be turned over. Try again.";
+  return kind === "unreachable" ? "Can't reach HedgeHug. Try again." : "That item couldn't be identified. Try again.";
 }

@@ -394,7 +394,7 @@ describe("LP31 LP32: collecting streams the XP into the bar and the canvas becom
     const board = within(theItemBoard()!);
     expect(board.getByText(/from 16 moments since/)).toHaveTextContent("+178 XP from 16 moments since Mon 09:12");
     expect(board.getByText("4 teammates gave thoughtful kudos this week")).toBeInTheDocument();
-    expect(board.getAllByRole("button", { name: "A face-down item. Turn it over" })).toHaveLength(3);
+    expect(board.getAllByRole("button", { name: "An unidentified item. Identify it" })).toHaveLength(3);
     expect(board.getByRole("button", { name: "Later" })).toBeInTheDocument();
     expect(document.querySelector(".al-shell")).not.toHaveAttribute("data-xp-moment");
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
@@ -467,7 +467,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     };
     await returnTo({ album: lastOne, read: live.read, turnItem });
 
-    await act(async () => fireEvent.click(within(theItemBoard()!).getByRole("button", { name: "A face-down item. Turn it over" })));
+    await act(async () => fireEvent.click(within(theItemBoard()!).getByRole("button", { name: "An unidentified item. Identify it" })));
 
     for (const seconds of [0.5, 1, 2, 3]) {
       await at(seconds);
@@ -606,6 +606,7 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(takeover.getByRole("heading", { name: "You reached level 7!" })).toBeInTheDocument();
     const items = takeover.getByRole("listitem", { name: "3 new items unlocked" });
     expect(items.querySelectorAll(".ib-back")).toHaveLength(3);
+    expect(items).toHaveTextContent("3 new items unlockedwaiting to be identified");
     expect(takeover.getByText("Level 8 is 460 XP away")).toBeInTheDocument();
     expect(takeover.getAllByRole("listitem")).toHaveLength(1);
     expect(theTakeover()).not.toHaveTextContent(/skill point|emblem/i);
@@ -621,7 +622,7 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theCanvas()).toBeNull();
     const board = within(theItemBoard()!);
     expect(board.getByText(/from 16 moments since/)).toBeInTheDocument();
-    const levelItems = board.getAllByRole("button", { name: "A face-down item from level 7. Turn it over" });
+    const levelItems = board.getAllByRole("button", { name: "An unidentified item from level 7. Identify it" });
     expect(levelItems).toHaveLength(3);
     expect(levelItems.map((item) => within(item).getByText("Level 7"))).toHaveLength(3);
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
@@ -795,7 +796,7 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
 
     await act(async () => fireEvent.click(within(theHowItWorksCard()!).getByRole("button", { name: "Got it" })));
     expect(theHowItWorksCard()).toBeNull();
-    expect(within(theItemBoard()!).getAllByRole("button", { name: "A face-down item from level 7. Turn it over" })).toHaveLength(3);
+    expect(within(theItemBoard()!).getAllByRole("button", { name: "An unidentified item from level 7. Identify it" })).toHaveLength(3);
   });
 
   it("with nothing waiting, opens once All caught up has left", async () => {
@@ -824,7 +825,7 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
 const cameInLater: XpMoment = { ...quietReturn, since: busyReturn.until, until: busyReturn.until + 10 * minute };
 
 function theGlow() {
-  return theTopBar().queryByRole("button", { name: /^(Collect XP|\d+\+? items? waits?)$/ });
+  return theTopBar().queryByRole("button", { name: /^(Collect XP|\d+\+? unidentified items? waits?)$/ });
 }
 
 async function closeTheBoard() {
@@ -839,9 +840,9 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
 
     await closeTheBoard();
 
-    expect(theGlow()).toHaveAccessibleName("3 items wait");
+    expect(theGlow()).toHaveAccessibleName("3 unidentified items wait");
     expect(theGlow()!.closest(".al-xp"), "beside the level bar").not.toBeNull();
-    expect(screen.getAllByRole("button", { name: "3 items wait" }), "one control, no pill under the top bar").toEqual([theGlow()]);
+    expect(screen.getAllByRole("button", { name: "3 unidentified items wait" }), "one control, no pill under the top bar").toEqual([theGlow()]);
     await act(async () => fireEvent.click(theGlow()!));
     expect(theItemBoard()).toBeInTheDocument();
     expect(theGlow(), "once the board is open again").toBeNull();
@@ -877,7 +878,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     const { actions, answerWith } = await returnTo();
     await act(async () => fireEvent.keyDown(window, { key: "Escape" }));
     await closeTheBoard();
-    expect(theGlow(), "the visit's own moment").toHaveAccessibleName("3 items wait");
+    expect(theGlow(), "the visit's own moment").toHaveAccessibleName("3 unidentified items wait");
 
     await act(async () => answerWith(cameInLater));
     expect(theGlow()).toHaveAccessibleName("Collect XP");
@@ -917,7 +918,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     await closeTheBoard();
 
     expect(theGlow()).toBeNull();
-    const pill = screen.getByRole("button", { name: "3 items wait" });
+    const pill = screen.getByRole("button", { name: "3 unidentified items wait" });
     expect(pill.closest("header")).toBeNull();
     await act(async () => fireEvent.click(pill));
     expect(theItemBoard()).toBeInTheDocument();

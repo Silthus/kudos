@@ -76,7 +76,7 @@ export function ItemsWait({ turns, album, shares, pill }: TurnedOverProps & { pi
   return (
     <>
       <div className="ib-strip">
-        <p role="status" aria-label="Turned over" className="ib-turned">
+        <p role="status" aria-label="Identified" className="ib-turned">
           {said && <LandedWords landing={landing} />}
         </p>
         {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
@@ -187,20 +187,20 @@ function tagOf(reason: BoardReason) {
 }
 
 function itemLabelOf(reason: BoardReason) {
-  if (reason.kind === "levelUp") return `A face-down item from level ${reason.level}. Turn it over`;
-  if (reason.kind === "team") return `A face-down item for filling the ${reason.name} page. Turn it over`;
-  if (reason.kind === "milestone") return `A face-down item for ${medalSpokenOf(reason)}. Turn it over`;
+  if (reason.kind === "levelUp") return `An unidentified item from level ${reason.level}. Identify it`;
+  if (reason.kind === "team") return `An unidentified item for filling the ${reason.name} page. Identify it`;
+  if (reason.kind === "milestone") return `An unidentified item for ${medalSpokenOf(reason)}. Identify it`;
   if (reason.kind === "forge") return forgedItemLabelOf(reason.hoggie);
-  return "A face-down item. Turn it over";
+  return "An unidentified item. Identify it";
 }
 
 export function forgedItemLabelOf(hoggie: string) {
-  return `A face-down item forged from ${hoggieNamed(hoggie)?.name ?? hoggie}. Turn it over`;
+  return `An unidentified item forged from ${hoggieNamed(hoggie)?.name ?? hoggie}. Identify it`;
 }
 
 export function itemsWaitWordsOf({ items, more }: Board) {
-  if (more) return `${items.length}+ items wait`;
-  return items.length === 1 ? "1 item waits" : `${items.length} items wait`;
+  if (more) return `${items.length}+ unidentified items wait`;
+  return items.length === 1 ? "1 unidentified item waits" : `${items.length} unidentified items wait`;
 }
 
 function useFirstItemFocused(dialog: RefObject<HTMLElement | null>, flying: boolean) {

@@ -95,7 +95,7 @@ const arrival = { timeout: 10_000 };
 
 async function theFirstItem() {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
-  return board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!;
+  return board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!;
 }
 
 let clicked = 0;
@@ -173,7 +173,7 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(theBurst()!.style.getPropertyValue("--burst")).toBe("var(--medal-silver)");
     expect(within(theBurst()!).queryByTestId("confetti")).toBeNull();
     expect(screen.getByText("Familiar faces · Silver", { selector: ".ib-medal-caption" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Turning over" })).toHaveTextContent("Familiar faces · Silver medal unlocked");
+    expect(screen.getByRole("status", { name: "Identifying" })).toHaveTextContent("Familiar faces · Silver medal unlocked");
     expect(newLabelsOn(theMedal(familiarFaces))).toHaveLength(2);
 
     await at(8.2);
@@ -213,7 +213,7 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(stage()).toBe("idle");
     await act(async () => fireEvent.click(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("button", { name: "Later" })));
 
-    expect(screen.getByRole("status", { name: "Turned over" }), "the strip after Later").not.toBeEmptyDOMElement();
+    expect(screen.getByRole("status", { name: "Identified" }), "the strip after Later").not.toBeEmptyDOMElement();
     expect(screen.queryByRole("note", { name: "Medals unlocked" }), "the line for a beat that played").toBeNull();
   });
 

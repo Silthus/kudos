@@ -564,8 +564,8 @@ describe("LP76: Getting started follows the loop", () => {
     const strip = await screen.findByRole("region", { name: "Getting started" });
 
     expect(strip).toHaveTextContent("Getting started · 2 of 4");
-    expect(strip).toHaveTextContent("Next: Turn an item · turn a waiting item on your board");
-    expect(within(strip).getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual(["Give a hug: done", "Give a thoughtful kudos: done", "Turn an item: not yet", "Reach level 2: not yet"]);
+    expect(strip).toHaveTextContent("Next: Identify an item · identify a waiting item on your board");
+    expect(within(strip).getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual(["Give a hug: done", "Give a thoughtful kudos: done", "Identify an item: not yet", "Reach level 2: not yet"]);
   });
 
   it.each([

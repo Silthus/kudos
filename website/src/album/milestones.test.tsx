@@ -115,10 +115,10 @@ describe("AL51: Milestones puts the next steps first: the closest medal of every
       }),
     );
     expect(guidance).toEqual([
-      ["Thank someone new in Slack and say why, then turn over their sticker", "12 of 25 people in your album"],
+      ["Thank someone new in Slack and say why, then identify the items it earns", "12 of 25 people in your album"],
       ["Thank anyone in Slack and say why. Thanking the same person again counts too", "9 of 25 thoughtful kudos given"],
-      ["Thank someone from a team not yet in your album, then turn over their sticker", "6 of 10 teams in your album"],
-      ["Turn over your items to find hoggies you don't have yet. Repeats don't count", "18 of 40 different hoggies found"],
+      ["Thank someone from a team not yet in your album, then identify the items it earns", "6 of 10 teams in your album"],
+      ["Identify your items to find hoggies you don't have yet. Repeats don't count", "18 of 40 different hoggies found"],
       ["Collect everyone on a team to unlock it", "1 of 5 full teams unlocked"],
     ]);
   });
