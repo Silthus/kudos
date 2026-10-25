@@ -1,3 +1,4 @@
 node_modules/
 
 .env.local
+website/dist-prototype-quests/
