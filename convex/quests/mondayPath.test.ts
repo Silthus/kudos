@@ -186,6 +186,19 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([held[1]!.message.message]);
   });
 
+  test("a kudos to someone new posted after the one that finishes first-thanks finishes someone-new, even when Slack sends it first", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    vi.setSystemTime(Date.now() + 2 * minuteMs);
+    const sayingWhy = tsOf(Date.now() - minuteMs);
+
+    const toSomeoneNew = await thanksPostedAt(tsOf(Date.now()), alice, "thanks", bob);
+    await thanksPostedAt(sayingWhy, alice, saysWhy, carol);
+
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([sayingWhy]);
+    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([toSomeoneNew]);
+  });
+
   test("a kudos that says why counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await memberChanged(t, "team_join", { id: carol.user, profile: { real_name: carol.name } });
@@ -526,12 +539,19 @@ async function weeklyRewardsOf(person: Person) {
 }
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
-  messages += 1;
   vi.setSystemTime(Date.now() + minuteMs);
-  const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
+  return thanksPostedAt(tsOf(Date.now()), giver, words, ...recipients);
+}
+
+async function thanksPostedAt(ts: string, giver: Person, words: string, ...recipients: Person[]) {
   await post(t, [section(text(`${words} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settleInTimeOrder(t);
   return ts;
+}
+
+function tsOf(at: number) {
+  messages += 1;
+  return `${at / 1000}.${String(messages).padStart(6, "0")}`;
 }
 
 async function joins(person: Person) {

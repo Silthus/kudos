@@ -6,6 +6,7 @@ import type { Award } from "../engine/awards";
 import { type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
 import { couldEarnMoreBySayingWhy, sayingWhyEarnsMore } from "../progression/perks";
 import { perkOf } from "../progression/tree";
+import { heldReplyOf } from "./heldReplies";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
@@ -148,13 +149,6 @@ export async function givenReplyOf(ctx: QueryCtx, { workspace, conversation, mes
 
 export async function gainsLineWithoutQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, { questsDone: _, ...gains }: Gains): Promise<Line | null> {
   return extrasLineOf(await gainsShownTo(ctx, workspace, member, gains), null, null);
-}
-
-function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
-  return ctx.db
-    .query("privateReplies")
-    .withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message).eq("held", true))
-    .first();
 }
 
 async function release(ctx: MutationCtx, { _id, gains }: Doc<"privateReplies">, questsDone: QuestDone[]) {

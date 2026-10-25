@@ -1,7 +1,8 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, givenBetween } from "../engine/awards";
+import { earliestAwardFrom, firstAwardsGivenAfter, givenBetween } from "../engine/awards";
+import { replyIsHeld } from "../feedback/heldReplies";
 import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
@@ -127,7 +128,20 @@ async function firstThanksCameBefore(ctx: QueryCtx, member: MemberId, start: num
 }
 
 async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, firstThanks: RewardRecord | null): Promise<FinishedOnboardingQuest | null> {
-  return firstThanks === null && saysWhy(event.annotations) ? finishedBy(ctx, event, "first-thanks") : null;
+  if (firstThanks !== null || !saysWhy(event.annotations)) return null;
+  const finishedFirstThanks = await finishedBy(ctx, event, "first-thanks");
+  await finishSomeoneNewPostedAfter(ctx, event);
+  return finishedFirstThanks;
+}
+
+async function finishSomeoneNewPostedAfter(ctx: MutationCtx, { workspace, giver, at }: KudosGivenEvent): Promise<void> {
+  if ((await finishOf(ctx, giver, "someone-new")) !== null) return;
+  for (const later of await firstAwardsGivenAfter(ctx, giver, at)) {
+    if (!(await replyIsHeld(ctx, later.message))) {
+      await finished(ctx, workspace, giver, "someone-new", later.at, later.message);
+      return;
+    }
+  }
 }
 
 async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<FinishedOnboardingQuest | null> {
