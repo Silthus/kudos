@@ -121,7 +121,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     missedXpMoment.start();
     turns.show();
   };
-  const shellQuests = shellQuestsOf(quests, { inSight: !(playing || covered), openBoard: turns.show, landing: questsLanding, viewQuests });
+  const shellQuests = shellQuestsOf(quests, { inSight: !(playing || covered || anEntryIsOpen), openBoard: turns.show, landing: questsLanding, viewQuests });
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
