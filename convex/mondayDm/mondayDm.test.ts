@@ -579,6 +579,18 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
     expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["quests"]);
   });
 
+  test("a member who moves time zone while a rate-limited catch-up waits for its retry still gets the catch-up", async () => {
+    await usedBeforeTheMondayPath();
+    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60));
+    await mondayArrives(mondayNine + 10 * minuteMs);
+
+    slack.withMember(carol.user, { real_name: carol.name, tz: "Pacific/Honolulu" });
+    await memberChanged(t, "user_change", { id: carol.user, team_id: "T1", real_name: carol.name, tz: "Pacific/Honolulu" });
+    await settleUpTo(t, honoluluMondayNine + hourMs);
+
+    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true]);
+  });
+
   test("a member welcomed on Monday before 9:00, whose row the catch-up already ensured, gets no Monday DM that day", async () => {
     await usedBeforeTheMondayPath();
     await sweepsAt(mondayNine - 2 * hourMs);

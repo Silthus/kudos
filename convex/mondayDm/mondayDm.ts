@@ -128,12 +128,18 @@ async function welcomeOn(ctx: QueryCtx, member: MemberId, day: DayKey, timeZone:
   return welcome !== null && allowanceDay(welcome._creationTime, timeZone) === day ? welcome : null;
 }
 
-async function sectionsOf(ctx: MutationCtx, { member, monday }: MondayDmRow): Promise<Sections> {
+async function sectionsOf(ctx: MutationCtx, row: MondayDmRow): Promise<Sections> {
+  const { member, monday } = row;
   const hugs = await hugsSectionFor(ctx, member, monday);
-  const welcomedThatMonday = await welcomeOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined);
-  if (welcomedThatMonday !== null && welcomedThatMonday.path !== "catch-up") return { ...noSections, hugs };
-  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun: welcomedThatMonday !== null });
+  const begun = await caughtUpByThisRow(ctx, row);
+  if (!begun && (await welcomeOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined)) !== null) return { ...noSections, hugs };
+  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun });
   return { hugs, quests: catchUp === null ? await questsSectionFor(ctx, member, Date.now()) : null, catchUp };
+}
+
+async function caughtUpByThisRow(ctx: QueryCtx, { member, _creationTime: ensuredAt }: MondayDmRow) {
+  const welcome = await welcomeOf(ctx, member);
+  return welcome?.path === "catch-up" && welcome._creationTime > ensuredAt;
 }
 
 function sectionNamesOf({ hugs, quests, catchUp }: Sections): MondayDmSection[] {
