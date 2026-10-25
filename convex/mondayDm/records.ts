@@ -2,7 +2,7 @@ import { v, type Infer } from "convex/values";
 
 export const mondayDmStateValidator = v.union(v.literal("scheduled"), v.literal("sent"), v.literal("skipped"), v.literal("failed"));
 
-export const mondayDmSectionValidator = v.union(v.literal("hugs"), v.literal("quests"));
+export const mondayDmSectionValidator = v.union(v.literal("hugs"), v.literal("quests"), v.literal("catch-up"));
 
 const recapLineValidator = v.union(v.string(), v.object({ text: v.string(), link: v.object({ url: v.string(), label: v.string() }) }));
 

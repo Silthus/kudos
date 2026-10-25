@@ -6,10 +6,12 @@ import type { Id } from "../_generated/dataModel";
 import type { MondayDm, MondayQuests } from "../mondayDm/mondayDm";
 import type { MondayDmContent } from "../mondayDm/records";
 import type { HugsSection } from "../hugs/recap";
+import type { MondayWelcome } from "../welcome/mondayWelcome";
 import { buttonOf, mrkdwn, urlButtonOf } from "./blocks";
 import { checklistBlockOf } from "./checklist";
 import { attemptArgs, attemptCall, isRateLimited, retryAfter, sendOnce, tryAtMostThreeTimes, type Attempt } from "./delivery";
 import { emojiLineBlockOf, footerOf, lineTextOf, postRecap } from "./hugsRecap";
+import { mondayWelcomeMessageOf } from "./welcome";
 
 const triesAtMost = 3;
 
@@ -44,13 +46,23 @@ export const showMondayDm = observedAction({
 });
 
 function postMondayDm(ctx: ActionCtx, dm: MondayDm): Promise<Attempt> {
-  const { workspace, user, hugs, quests, footer } = dm;
+  const { workspace, user, hugs, quests, footer, catchUp } = dm;
+  if (catchUp !== null) return attemptCall(ctx, workspace, "chat.postMessage", { channel: user, ...catchUpMessageOf(dm, catchUp) });
   if (quests === null) return postRecap(ctx, { workspace, user, lines: [...hugs!.lines, ...hugs!.closing], emojiLine: hugs!.emojiLine, footer });
   return attemptCall(ctx, workspace, "chat.postMessage", { channel: user, ...messageOf(dm, quests) });
 }
 
-function messageOf(dm: Omit<MondayDm, "user">, quests: MondayQuests) {
+function messageOf(dm: Omit<MondayDm, "user" | "catchUp">, quests: MondayQuests) {
   return { text: textOf(dm.hugs, quests), blocks: blocksOf(dm, quests) };
+}
+
+function catchUpMessageOf({ workspace, user, hugs, footer }: MondayDm, catchUp: MondayWelcome) {
+  const welcome = mondayWelcomeMessageOf(catchUp, user);
+  return {
+    ...welcome,
+    text: [...(hugs?.lines.map(lineTextOf) ?? []), welcome.text].join("\n"),
+    blocks: [...(hugs === null ? [] : hugsBlocksOf(hugs)), ...welcome.blocks, ...footerBlocksOf(workspace, footer)],
+  };
 }
 
 function stoppedMessageOf(dm: Id<"mondayDms">, workspace: string, { hugs, footer }: MondayDmContent) {
@@ -74,7 +86,7 @@ function textOf(hugs: HugsSection | null, quests: MondayQuests) {
   return [...(hugs?.lines.map(lineTextOf) ?? []), quests.heading].join("\n");
 }
 
-function blocksOf({ dm, workspace, hugs, footer }: Omit<MondayDm, "user">, quests: MondayQuests) {
+function blocksOf({ dm, workspace, hugs, footer }: Omit<MondayDm, "user" | "catchUp">, quests: MondayQuests) {
   return [
     ...(hugs === null ? [] : hugsBlocksOf(hugs)),
     { type: "section", text: mrkdwn(quests.heading) },

@@ -8,8 +8,12 @@ import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import { settingsFooterFor } from "../feedback/settingsFooter";
 import { hugsSectionFor, hugsSentInTheMondayDm, mondayAfter, type HugsSection } from "../hugs/recap";
 import { shownWaitingHoggiesOf } from "../items/ledger";
+import { onTheMondayPath } from "../quests/flag";
 import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
+import { catchesUp, catchUpWelcomeIn } from "../welcome/catchUp";
+import type { MondayWelcome } from "../welcome/mondayWelcome";
+import { welcomedAt } from "../welcome/welcome";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
 import { questsCopyOf, type QuestsCopy } from "./questsCopy";
 import type { MondayDmContent, MondayDmSection } from "./records";
@@ -17,19 +21,32 @@ import { mondayDmOf, type MondayDmRow } from "./rows";
 
 export type MondayQuests = QuestsCopy & { waiting: boolean; links: DmLinks | null };
 
-export type MondayDm = { dm: Id<"mondayDms">; workspace: string; user: string } & MondayDmContent;
+export type MondayDm = { dm: Id<"mondayDms">; workspace: string; user: string; catchUp: MondayWelcome | null } & MondayDmContent;
 
+type Sections = { hugs: HugsSection | null; quests: QuestsSection | null; catchUp: MondayWelcome | null };
+
+const noSections: Sections = { hugs: null, quests: null, catchUp: null };
 const startsPerSweep = 100;
+const membersPerSweep = 100;
 const strandedPerSweep = 100;
 const dueHour = 9;
 
 export const ensureMondayDms = internalMutation({
   args: { cursor: v.optional(v.string()) },
   handler: async (ctx, { cursor }): Promise<void> => {
-    if (cursor === undefined) await settleStrandedStarts(ctx);
+    if (cursor === undefined) await beginSweep(ctx);
     const starts = await ctx.db.query("questStarts").paginate({ numItems: startsPerSweep, cursor: cursor ?? null });
-    for (const { member } of starts.page) await ensureMondayDm(ctx, member, Date.now());
+    for (const { member } of starts.page) if (await isTheMondayDmFor(ctx, member)) await ensureMondayDm(ctx, member, Date.now());
     if (!starts.isDone) await ctx.scheduler.runAfter(0, internal.mondayDm.mondayDm.ensureMondayDms, { cursor: starts.continueCursor });
+  },
+});
+
+export const ensureCatchUpMondayDms = internalMutation({
+  args: { cursor: v.optional(v.string()) },
+  handler: async (ctx, { cursor }): Promise<void> => {
+    const members = await ctx.db.query("members").paginate({ numItems: membersPerSweep, cursor: cursor ?? null });
+    for (const member of members.page) if (await catchesUp(ctx, member)) await ensureMondayDm(ctx, member._id, Date.now());
+    if (!members.isDone) await ctx.scheduler.runAfter(0, internal.mondayDm.mondayDm.ensureCatchUpMondayDms, { cursor: members.continueCursor });
   },
 });
 
@@ -42,7 +59,7 @@ export const startMondayDm = internalMutation({
     if (row === null) return null;
     const dueAt = await dueAtOf(ctx, row.member, row.monday);
     if (dueAt > Date.now()) return scheduleTry(ctx, dm, dueAt, attempt);
-    const sections = (await isMember(ctx, row.member)) ? await sectionsOf(ctx, row) : { hugs: null, quests: null };
+    const sections = (await isMember(ctx, row.member)) ? await sectionsOf(ctx, row) : noSections;
     const sent = sectionNamesOf(sections);
     if (sent.length === 0) {
       await ctx.db.patch(dm, { state: "skipped" });
@@ -51,7 +68,7 @@ export const startMondayDm = internalMutation({
     const { workspace, user } = await chatUserOf(ctx, row.member);
     const content = await contentOf(ctx, workspace, row.member, sections);
     await ctx.db.patch(dm, { tries: attempt, dueAt: Date.now(), sections: sent, content });
-    return { dm, workspace, user, ...content };
+    return { dm, workspace, user, ...content, catchUp: sections.catchUp };
   },
 });
 
@@ -81,25 +98,47 @@ async function reportDelivered(ctx: MutationCtx, { member, monday, sections = []
   if (sections.includes("hugs")) await hugsSentInTheMondayDm(ctx, member, monday);
 }
 
+async function beginSweep(ctx: MutationCtx) {
+  await settleStrandedStarts(ctx);
+  await ctx.scheduler.runAfter(0, internal.mondayDm.mondayDm.ensureCatchUpMondayDms, {});
+}
+
+async function isTheMondayDmFor(ctx: MutationCtx, member: MemberId) {
+  return (await isMember(ctx, member)) && (await onTheMondayPath(ctx, member));
+}
+
 async function ensureMondayDm(ctx: MutationCtx, member: MemberId, at: number) {
   const timeZone = (await timeZoneOf(ctx, member)) ?? undefined;
-  const monday = mondayAfter(weekOf(allowanceDay(at, timeZone)).monday);
+  const monday = await comingMondayOf(ctx, member, allowanceDay(at, timeZone), timeZone);
   if ((await mondayDmOf(ctx, member, monday)) !== null) return;
   const dueAt = wallClockAt(monday, dueHour, timeZone);
   const dm = await ctx.db.insert("mondayDms", { member, monday, state: "scheduled", dueAt, tries: 0 });
   await ctx.scheduler.runAt(dueAt, internal.slack.mondayDm.sendMondayDm, { dm, attempt: 1 });
 }
 
-async function sectionsOf(ctx: MutationCtx, { member, monday }: MondayDmRow) {
-  const quests = await questsSectionFor(ctx, member, Date.now());
-  return { hugs: await hugsSectionFor(ctx, member, monday), quests };
+async function comingMondayOf(ctx: QueryCtx, member: MemberId, today: DayKey, timeZone: string | undefined): Promise<DayKey> {
+  const { monday } = weekOf(today);
+  return monday === today && !(await welcomedOn(ctx, member, today, timeZone)) ? today : mondayAfter(monday);
 }
 
-function sectionNamesOf({ hugs, quests }: { hugs: HugsSection | null; quests: QuestsSection | null }): MondayDmSection[] {
-  return [...(hugs === null ? [] : ["hugs" as const]), ...(quests === null ? [] : ["quests" as const])];
+async function welcomedOn(ctx: QueryCtx, member: MemberId, day: DayKey, timeZone: string | undefined) {
+  const at = await welcomedAt(ctx, member);
+  return at !== null && allowanceDay(at, timeZone) === day;
 }
 
-async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { hugs, quests }: { hugs: HugsSection | null; quests: QuestsSection | null }): Promise<MondayDmContent> {
+async function sectionsOf(ctx: MutationCtx, { member, monday, sections = [] }: MondayDmRow): Promise<Sections> {
+  const hugs = await hugsSectionFor(ctx, member, monday);
+  const begun = sections.includes("catch-up");
+  if (!begun && (await welcomedOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined))) return { ...noSections, hugs };
+  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun });
+  return { hugs, quests: catchUp === null ? await questsSectionFor(ctx, member, Date.now()) : null, catchUp };
+}
+
+function sectionNamesOf({ hugs, quests, catchUp }: Sections): MondayDmSection[] {
+  return [...(hugs === null ? [] : ["hugs" as const]), ...(quests === null ? [] : ["quests" as const]), ...(catchUp === null ? [] : ["catch-up" as const])];
+}
+
+async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { hugs, quests }: Sections): Promise<MondayDmContent> {
   return { hugs, quests: await mondayQuestsOf(ctx, workspace, member, quests), footer: hugs === null ? null : await settingsFooterFor(ctx, member) };
 }
 
