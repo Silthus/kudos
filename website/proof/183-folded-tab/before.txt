@@ -1,0 +1,28 @@
+1024 px  /book#me             7 controls under the tab  e.g. Share, No. 1 this week · 7 thoughtful
+1024 px  /book#hoggies       40 controls under the tab  e.g. Latest findAsleep18 Oct 2026, Most copiesAsleep3 copies
+1024 px  /book#milestones     0 controls under the tab
+1024 px  /book#packs          0 controls under the tab
+1024 px  /activity            2 controls under the tab  e.g. Week of 21 Sept21–27 Sept1 kud, 12–18 OctThis week in your alb
+1024 px  /leaderboard         1 controls under the tab  e.g. 7 more teams with nothing yet
+1024 px  /settings            3 controls under the tab  e.g. New features, Public celebrations
+1280 px  /book#me             0 controls under the tab
+1280 px  /book#hoggies       28 controls under the tab  e.g. Latest findAsleep18 Oct 2026, Most copiesAsleep3 copies
+1280 px  /book#milestones     0 controls under the tab
+1280 px  /book#packs          0 controls under the tab
+1280 px  /activity            2 controls under the tab  e.g. Week of 21 Sept21–27 Sept1 kud, 12–18 OctThis week in your alb
+1280 px  /leaderboard         2 controls under the tab  e.g. All time, 7 more teams with nothing yet
+1280 px  /settings            0 controls under the tab
+1440 px  /book#me             0 controls under the tab
+1440 px  /book#hoggies       23 controls under the tab  e.g. Latest findAsleep18 Oct 2026, Most copiesAsleep3 copies
+1440 px  /book#milestones     0 controls under the tab
+1440 px  /book#packs          0 controls under the tab
+1440 px  /activity            0 controls under the tab
+1440 px  /leaderboard         2 controls under the tab  e.g. All time, 7 more teams with nothing yet
+1440 px  /settings            0 controls under the tab
+1536 px  /book#me             0 controls under the tab
+1536 px  /book#hoggies       20 controls under the tab  e.g. Latest findAsleep18 Oct 2026, Most copiesAsleep3 copies
+1536 px  /book#milestones     0 controls under the tab
+1536 px  /book#packs          0 controls under the tab
+1536 px  /activity            0 controls under the tab
+1536 px  /leaderboard         2 controls under the tab  e.g. All time, 7 more teams with nothing yet
+1536 px  /settings            0 controls under the tab
