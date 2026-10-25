@@ -10,15 +10,33 @@
   --al-ms-amber: #f7a501;
 }
 
-.al-ms ol {
+.al-ms ol,
+.al-ms ul {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .al-ms h2,
+.al-ms h3,
 .al-ms p {
   margin: 0;
+}
+
+.al-ms [data-metal="bronze"] {
+  --al-ms-metal: var(--medal-bronze);
+}
+
+.al-ms [data-metal="silver"] {
+  --al-ms-metal: var(--medal-silver);
+}
+
+.al-ms [data-metal="gold"] {
+  --al-ms-metal: var(--medal-gold);
+}
+
+.al-ms [data-metal="diamond"] {
+  --al-ms-metal: var(--medal-diamond);
 }
 
 .al-ms-head {
@@ -36,186 +54,305 @@
 }
 
 .al-ms-tally {
+  display: flex;
   flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
 }
 
-.al-ms-tally strong {
+.al-ms-total {
+  font-variant-numeric: tabular-nums;
+}
+
+.al-ms-total strong {
   font-size: 2.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.al-ms-tally span {
+.al-ms-total span {
   color: var(--al-quiet);
 }
 
-.al-ms-rows {
+.al-ms-metals {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.al-ms-metals li {
+  display: flex;
+  min-width: 4.5rem;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--al-ms-metal);
+  border-radius: 0.625rem;
+  background: var(--card);
+  padding: 0.375rem 0.625rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.al-ms-metals li span:first-child {
+  order: 1;
+  color: var(--al-quiet);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.al-ms-metals strong {
+  font-size: 1.125rem;
+}
+
+.al-ms-metals li span:last-child {
+  color: var(--al-quiet);
+  font-size: 0.75rem;
+}
+
+.al-ms-section {
   display: flex;
   flex-direction: column;
+  gap: 0.625rem;
+}
+
+.al-ms-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--al-quiet);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.al-ms-section-count {
+  border-radius: 999px;
+  background: var(--muted);
+  padding: 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.al-ms-todo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.625rem;
+}
+
+.al-ms-todo-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid color-mix(in oklab, var(--al-accent) 45%, var(--border));
+  border-radius: 0.75rem;
+  background: linear-gradient(var(--al-accent-soft), var(--al-accent-soft)), var(--card);
+  padding: 0.75rem 0.875rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.al-ms-todo-card:hover {
+  border-color: var(--al-accent);
+}
+
+.al-ms-todo-card[data-in-slack] {
+  border-style: dashed;
+  background: var(--card);
+}
+
+.al-ms-todo-card strong {
+  font-size: 0.9375rem;
+}
+
+.al-ms-todo-card span {
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+.al-ms-todo-card .al-ms-todo-feeds {
+  margin-top: auto;
+  padding-top: 0.25rem;
+  color: var(--al-accent-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.al-ms-closest {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 0.875rem;
   background: var(--card);
 }
 
-.al-ms-row {
+.al-ms-next {
   display: grid;
-  grid-template-columns: 18.75rem minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) 6.5rem 11rem;
   align-items: center;
   gap: 1rem;
-  padding: 1.125rem 1.25rem;
+  padding: 0.875rem 1.125rem;
 }
 
-.al-ms-row + .al-ms-row {
+.al-ms-next + .al-ms-next {
   border-top: 1px solid var(--border);
 }
 
-.al-ms-plaque {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.875rem;
+.al-ms-next:first-child {
+  background: var(--al-ms-warm);
 }
 
-.al-ms-plaque-words {
+.al-ms-next[data-step="next"] [data-emblem] {
+  opacity: 0.55;
+}
+
+.al-ms-next-words,
+.al-ms-earned-words {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.25rem;
 }
 
-.al-ms-name {
-  font-size: 1.0625rem;
+.al-ms-earned-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.al-ms-medal-name {
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1.2;
 }
 
-.al-ms-count {
-  font-variant-numeric: tabular-nums;
-}
-
-.al-ms-count strong {
-  font-weight: 800;
-}
-
-.al-ms-count span {
+.al-ms-metal-line {
   color: var(--al-quiet);
-}
-
-.al-ms-goal {
-  margin-top: 0.25rem;
-  color: var(--al-accent-ink);
   font-size: 0.8125rem;
-  font-weight: 700;
 }
 
-.al-ms-goal[data-done] {
-  color: var(--foreground);
+.al-ms-metal-line::before {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.375rem;
+  border-radius: 50%;
+  background: var(--al-ms-metal);
+  content: "";
 }
 
-.al-ms-climb {
-  position: relative;
+.al-ms-hint {
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
-.al-ms-rail {
-  position: absolute;
-  top: 2.875rem;
-  right: 12.5%;
-  left: 12.5%;
-  height: 0.375rem;
-  margin-top: -0.1875rem;
+.al-ms-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.625rem;
+}
+
+.al-ms-bar {
+  display: block;
+  height: 0.5rem;
+  flex: 1 1 8rem;
   overflow: hidden;
   border-radius: 999px;
   background: var(--al-track);
 }
 
-.al-ms-rail::after {
+.al-ms-bar span {
   display: block;
-  width: calc(var(--al-ms-climbed) * 100%);
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--al-ms-amber), var(--al-accent));
-  content: "";
 }
 
-.al-ms-medals {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(5, auto);
-  gap: 0 0.5rem;
-}
-
-.al-ms-medal {
-  position: relative;
-  display: grid;
-  grid-row: span 5;
-  grid-template-rows: subgrid;
-  row-gap: 0;
-  justify-items: center;
-  border-radius: 0.75rem;
-  padding: 0.5rem 0.375rem 0.625rem;
-  line-height: 1.25;
-  text-align: center;
-}
-
-.al-ms-medal-art {
-  position: relative;
-  display: grid;
-  width: 4.75rem;
-  height: 4.75rem;
-  place-items: center;
-  margin-bottom: 0.25rem;
-  border-radius: 50%;
-  background: var(--card);
-}
-
-.al-ms-metal {
-  color: var(--al-quiet);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.al-ms-medal-name {
-  overflow-wrap: anywhere;
-  font-size: 0.84375rem;
-  font-weight: 700;
-}
-
-.al-ms-note {
+.al-ms-count {
+  flex-shrink: 0;
   color: var(--al-quiet);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
+.al-ms-to-go {
+  color: var(--al-accent-ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.al-ms-next[data-step="earned"] .al-ms-to-go {
+  color: var(--al-done);
+}
+
+.al-ms-earned-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: 0.625rem;
+}
+
+.al-ms-earned {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  padding: 0.625rem 0.75rem;
+}
+
+.al-ms-earned .al-ms-emoji {
+  grid-column: 2;
+}
+
+.al-ms-earned .al-ms-emoji figcaption {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.al-ms-earned .al-ms-medal-name {
+  font-size: 0.9375rem;
+}
+
+.al-ms-earned .al-ms-metal-line {
+  font-size: 0.75rem;
+}
+
+.al-ms-medal-art {
+  display: grid;
+  place-items: center;
+}
+
 .al-ms-emoji {
   display: flex;
-  width: 100%;
-  flex-direction: column;
+  min-width: 0;
   align-items: center;
-  gap: 0.25rem;
-  margin: 0.5rem 0 0;
-  border-top: 1px dashed var(--border);
-  padding-top: 0.5rem;
+  gap: 0.5rem;
+  margin: 0;
 }
 
 .al-ms-emoji img {
   width: 2rem;
   height: 2rem;
+  flex-shrink: 0;
   filter: grayscale(1);
   opacity: 0.45;
 }
 
 .al-ms-emoji figcaption {
   display: flex;
-  max-width: 100%;
+  min-width: 0;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.25rem;
 }
 
@@ -242,8 +379,8 @@
 
 .al-ms-emoji-says[data-in-place] {
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.25rem;
-  text-align: center;
 }
 
 .al-ms-emoji-says[data-in-place] .al-add-to-slack-button {
@@ -287,136 +424,37 @@
   white-space: nowrap;
 }
 
-.al-ms-medal[data-step="next"] {
-  background: radial-gradient(circle at 50% 34%, color-mix(in oklab, #f7a501 24%, transparent), transparent 70%), var(--al-ms-warm);
-  box-shadow: inset 0 0 0 2px var(--al-ms-amber);
-}
-
-.al-ms-medal[data-step="next"] .al-ms-medal-art {
-  background: var(--al-ms-warm);
-}
-
-.al-ms-medal[data-step="next"] [data-emblem] {
-  opacity: 0.55;
-}
-
-.al-ms-medal[data-step="next"] .al-ms-note {
-  color: var(--al-accent-ink);
-  font-weight: 700;
-}
-
-.al-ms-medal[data-step="later"] [data-emblem] {
-  opacity: 0.28;
-  filter: saturate(0.4);
-}
-
-.al-ms-medal[data-step="later"] .al-ms-medal-name {
-  color: var(--al-quiet);
-  font-weight: 600;
-}
-
-.al-ms-tag {
-  position: absolute;
-  top: 0.375rem;
-  right: 0.375rem;
-  z-index: 1;
-  border-radius: 999px;
-  background: var(--foreground);
-  padding: 0.125rem 0.4375rem;
-  color: var(--background);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  line-height: 1.3;
-  text-transform: uppercase;
-}
-
-.al-ms-ring {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  transform: rotate(-90deg);
-}
-
-.al-ms-ring-track {
-  fill: none;
-  stroke: var(--al-track);
-  stroke-width: 5;
-}
-
-.al-ms-ring-fill {
-  fill: none;
-  stroke: var(--al-accent);
-  stroke-linecap: round;
-  stroke-width: 5;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .al-ms-rail::after {
-    animation: al-ms-fill 0.9s cubic-bezier(0.2, 0.8, 0.3, 1) both;
-    transform-origin: left;
-  }
-}
-
-@keyframes al-ms-fill {
-  from {
-    transform: scaleX(0);
-  }
-}
-
 @media (max-width: 63.999rem) {
-  .al-ms-row {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 1rem 0.75rem;
-  }
-
   .al-ms-head {
     flex-direction: column;
     align-items: flex-start;
   }
 
   .al-ms-tally {
-    text-align: left;
+    align-items: flex-start;
+  }
+
+  .al-ms-next {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .al-ms-next .al-ms-emoji {
+    grid-column: 2 / -1;
   }
 }
 
 @media (max-width: 30rem) {
-  .al-ms-medals {
-    gap: 0.125rem;
+  .al-ms-metals {
+    flex-wrap: wrap;
   }
 
-  .al-ms-medal {
-    padding: 1.25rem 0.125rem 0.5rem;
+  .al-ms-next {
+    gap: 0.625rem;
+    padding: 0.75rem;
   }
 
-  .al-ms-medal-art {
-    width: 3.5rem;
-    height: 3.5rem;
-  }
-
-  .al-ms-medal-art [data-emblem] {
-    transform: scale(0.75);
-  }
-
-  .al-ms-rail {
-    top: 3.5rem;
-  }
-
-  .al-ms-medal-name {
-    font-size: 0.75rem;
-  }
-
-  .al-ms-metal {
-    font-size: 0.625rem;
-    letter-spacing: 0.04em;
-  }
-
-  .al-ms-tag {
-    top: 0;
-    right: 50%;
-    transform: translateX(50%);
+  .al-ms-earned-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .al-ms-emoji .al-add-to-slack,

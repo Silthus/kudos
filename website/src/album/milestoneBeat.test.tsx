@@ -231,6 +231,34 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(theMedal(fiveTeams)).toHaveAttribute("data-step", "earned");
   });
 
+  it("plays two tiers of one milestone on their own medals, the second in the row the first leaves", async () => {
+    const fullOfFriends: ReachedTier = { milestone: "people", tier: "gold" };
+    visit(familiarFaces, fullOfFriends);
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(5.5);
+    expect(theMedal(familiarFaces)).toHaveAttribute("data-step", "earned");
+    await at(9.0);
+    expect(theMedal(fullOfFriends), "waiting for its beat").toHaveAttribute("data-step", "next");
+    await at(10.1);
+    expect(stage()).toBe("medal");
+    expect(screen.getByText("Full of friends · Gold", { selector: ".ib-medal-caption" })).toBeInTheDocument();
+    expect(theMedal(fullOfFriends)).toHaveAttribute("data-step", "earned");
+    expect(theMedal(fullOfFriends)).toHaveClass("al-ms-next");
+  });
+
+  it("once the beat ends, moves the medal to Earned and shows its milestone's next tier in Closest medals", async () => {
+    visit(familiarFaces);
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(5.5);
+    expect(theMedal(familiarFaces)).toHaveClass("al-ms-next");
+    await at(9.85);
+    expect(stage()).toBe("idle");
+    expect(theMedal(familiarFaces)).toHaveClass("al-ms-earned");
+    expect(theMedal({ milestone: "people", tier: "gold" })).toHaveAttribute("data-step", "next");
+  });
+
   it("adds the gold confetti for a diamond tier", async () => {
     visit(everyonesAlbum);
     await clickOnFakeTime(await theFirstItem());

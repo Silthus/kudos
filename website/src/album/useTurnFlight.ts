@@ -19,7 +19,7 @@ export type Chip = { xp: number; from: Point; to: Point };
 
 export type FlightBoxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null>; emoji: RefObject<HTMLSpanElement | null> };
 
-export type Arrival = { land: (turned: Turned) => void; landed: () => void; landedWithoutTheFlight: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean; emojiOf: (source: EmojiSource) => AlbumEmoji | undefined; emojiHome: (id: string) => void };
+export type Arrival = { land: (turned: Turned) => void; landed: () => void; landedWithoutTheFlight: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; medalSettled: () => void; paid: () => void; nothingWaits: () => boolean; emojiOf: (source: EmojiSource) => AlbumEmoji | undefined; emojiHome: (id: string) => void };
 
 type FaceKind = TurnedFaceShown["kind"];
 
@@ -125,7 +125,10 @@ function stepsOf(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: 
     goToTheMilestones: arrival.toTheMilestones,
     jumpToTheMedal: (tier) => jumpTo(theMedal(tier)),
     popTheMedal: (tier) => popTheMedal(clock, change, arrival, tier),
-    endTheMedal: () => change({ medal: null }),
+    endTheMedal() {
+      change({ medal: null });
+      arrival.medalSettled();
+    },
     sendTheEmojiUp: (source) => sendTheEmojiUp(clock, boxes, change, arrival, source),
     nothingWaits: arrival.nothingWaits,
   };
