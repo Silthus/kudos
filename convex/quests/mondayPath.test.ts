@@ -40,6 +40,7 @@ const drawnReward = { xp: 20, coins: 0, item: null };
 const drawnPaid = { xp: 20, coins: 0 };
 const saysWhyGoal = "Thank someone and say why";
 const firstThanksDone = "Quest done: Thank someone and say why · +50 XP and an unidentified Hoggie for your collection";
+const someoneNewDone = "Quest done: Thank someone you haven't thanked before · +50 XP and an unidentified Hoggie for your collection";
 
 const deliverForReal = vi.mocked(publish).getMockImplementation()!;
 
@@ -126,7 +127,7 @@ describe("MQ3 MQ5 MQ6: the three onboarding quests are active at once", { timeou
     await thanks(alice, "thanks", carol);
 
     expect(await nextQuestOf(alice), "the next onboarding quest").toBe("two-days");
-    expect(replyTo(alice), "the second kudos' reply").toContain("Quest done: Thank someone you haven't thanked before · +50 XP and an unidentified Hoggie for your collection");
+    expect(replyTo(alice), "the second kudos' reply").toContain(someoneNewDone);
     expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(2);
   });
 
@@ -197,6 +198,7 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
 
     expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([sayingWhy]);
     expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([toSomeoneNew]);
+    expect(replyTo(alice).filter((line) => line.startsWith("Quest done:")), "the reply still to be sent tells both finishes").toEqual([firstThanksDone, someoneNewDone]);
   });
 
   test("a kudos that says why counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {

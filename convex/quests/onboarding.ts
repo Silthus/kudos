@@ -106,8 +106,9 @@ export async function onboardingQuestXpOf(ctx: QueryCtx, member: MemberId): Prom
 export async function advanceOnboarding(ctx: MutationCtx, event: KudosGivenEvent): Promise<FinishedOnboardingQuest[]> {
   const start = await questStartOf(ctx, event.giver);
   if (start === null || event.at < start) return [];
-  const firstThanks = await finishOf(ctx, event.giver, "first-thanks");
-  const finished = [await advanceFirstThanks(ctx, event, firstThanks), await advanceSomeoneNew(ctx, event, start), await advanceTwoDays(ctx, event, start)];
+  const firstThanks = await advanceFirstThanks(ctx, event, await finishOf(ctx, event.giver, "first-thanks"));
+  const someoneNewPostedAfter = firstThanks === null ? null : await finishSomeoneNewPostedAfter(ctx, event);
+  const finished = [firstThanks, someoneNewPostedAfter, await advanceSomeoneNew(ctx, event, start), await advanceTwoDays(ctx, event, start)];
   return finished.filter((quest) => quest !== null);
 }
 
@@ -128,20 +129,15 @@ async function firstThanksCameBefore(ctx: QueryCtx, member: MemberId, start: num
 }
 
 async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, firstThanks: RewardRecord | null): Promise<FinishedOnboardingQuest | null> {
-  if (firstThanks !== null || !saysWhy(event.annotations)) return null;
-  const finishedFirstThanks = await finishedBy(ctx, event, "first-thanks");
-  await finishSomeoneNewPostedAfter(ctx, event);
-  return finishedFirstThanks;
+  return firstThanks === null && saysWhy(event.annotations) ? finishedBy(ctx, event, "first-thanks") : null;
 }
 
-async function finishSomeoneNewPostedAfter(ctx: MutationCtx, { workspace, giver, at }: KudosGivenEvent): Promise<void> {
-  if ((await finishOf(ctx, giver, "someone-new")) !== null) return;
+async function finishSomeoneNewPostedAfter(ctx: MutationCtx, { workspace, giver, at }: KudosGivenEvent): Promise<FinishedOnboardingQuest | null> {
+  if ((await finishOf(ctx, giver, "someone-new")) !== null) return null;
   for (const later of await firstAwardsGivenAfter(ctx, giver, at)) {
-    if (!(await replyIsHeld(ctx, later.message))) {
-      await finished(ctx, workspace, giver, "someone-new", later.at, later.message);
-      return;
-    }
+    if (!(await replyIsHeld(ctx, later.message))) return finished(ctx, workspace, giver, "someone-new", later.at, later.message);
   }
+  return null;
 }
 
 async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<FinishedOnboardingQuest | null> {
