@@ -22,7 +22,7 @@ export const mondayWelcomeCauseValidator = v.union(
 
 export type MondayWelcomeCause = Infer<typeof mondayWelcomeCauseValidator>;
 
-const onboardingStepValidator = v.union(v.literal("first-thanks"), v.literal("someone-new"), v.literal("two-days"));
+export const onboardingStepValidator = v.union(v.literal("first-thanks"), v.literal("someone-new"), v.literal("two-days"));
 
 export const onboardingJourneyValidator = v.array(
   v.object({ step: onboardingStepValidator, goal: v.string(), finished: v.boolean(), progress: v.union(v.object({ done: v.number(), of: v.number(), unit: v.union(v.literal("kudos"), v.literal("days"), v.literal("people")) }), v.null()) }),
@@ -42,7 +42,7 @@ export type MondayWelcome = {
   journey: OnboardingQuest[];
   next: OnboardingStep | null;
   waiting: WaitingCount;
-  links: { book: string; quests: string; questsHow: string | null } | null;
+  links: { book: string; quests: string } | null;
 };
 
 export const mondayWelcomeOf = internalQuery({
@@ -56,9 +56,14 @@ export const mondayWelcomeOf = internalQuery({
       journey,
       next,
       waiting: await waitingHoggieCountOf(ctx, member),
-      links: links === null ? null : { book: links.book, quests: links.quests, questsHow: next === null ? null : links.questsHow(next) },
+      links: links === null ? null : { book: links.book, quests: links.quests },
     };
   },
+});
+
+export const howToOf = internalQuery({
+  args: { workspace: v.string() },
+  handler: async (ctx, { workspace }) => ({ kudosEmoji: (await settingsOf(ctx, workspace)).kudosEmoji }),
 });
 
 export const welcomeOutcomeValidator = v.union(v.literal("delivered"), v.literal("gone"), v.literal("failed"));

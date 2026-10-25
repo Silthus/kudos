@@ -155,7 +155,6 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
 
     const welcome = slack.messagesShownIn(alice.user).find(({ blocks }) => welcomeLinksIn((blocks ?? []) as Block[]).length > 0);
     expect(linkUrlsIn(welcome!.blocks as Block[])).toEqual({
-      "dm-link:welcome:quests-how": `${siteUrl}/sign-in/book#me/quests/someone-new`,
       "dm-link:welcome:book": `${siteUrl}/sign-in/book`,
       "dm-link:welcome:quests": `${siteUrl}/sign-in/book#me/quests`,
     });

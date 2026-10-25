@@ -132,7 +132,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
 - **MQ19 One shape.** Every welcome is, in order (Silthus/personal#171, accepted):
   1. A personal note: a greeting with the member's mention, what just happened, and the waiting line.
   2. A divider.
-  3. The card: "Your onboarding journey · N of 3 done", the checklist of the three onboarding quests (✅ and crossed off when done, 👉 on the next one, ⚪ otherwise, progress such as "0 of 2 days" on a quest that counts more than one), "Up next" with the next quest's how-to and a "Show me how" link button, and the reward line "🎁 +50 XP and an unidentified Hoggie for your collection".
+  3. The card: "Your onboarding journey · N of 3 done", the checklist of the three onboarding quests (✅ and crossed off when done, 👉 on the next one, ⚪ otherwise, progress such as "0 of 2 days" on a quest that counts more than one), "Up next" with the next quest's how-to and a "Show me how" button, and the reward line "🎁 +50 XP and an unidentified Hoggie for your collection".
   4. The buttons: "Identify it now" (or "Identify them now" for more than one), the primary, and "See your quests".
 
   No header block and no App Home button.
@@ -144,7 +144,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
   - **Catch-up:** "A hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now 😅", then "HedgeHug is how we thank each other here. …", the waiting line, and the card as the journey stands, with every step already done crossed off and counted.
 
   The exact words of each line are `round2.mts` on the prototype branch.
-- **MQ22 Link buttons.** Every link in a welcome is a URL button whose `action_id` is `dm-link:welcome:<destination>`: `book` (the item board), `quests` (the member's own profile, at the quests section) and `quests-how` (the same, at the next quest with its how-to open). The URLs carry no tracking parameter.
+- **MQ22 Link buttons.** Every link in a welcome is a URL button whose `action_id` is `dm-link:welcome:<destination>`: `book` (the item board) and `quests` (the member's own profile, at the quests section). The URLs carry no tracking parameter. "Show me how" opens no website: it is a button with the `action_id` `dm-link:welcome:quests-how` and the next quest's step as its value, so its click still records the destination `quests-how`. Kudos answers the click with a reply in the welcome's thread: "How to <the quest's goal>", the quest's how-to again, and an example kudos that says why, `@Ana thanks for untangling the deploy, it saved my afternoon` with the workspace's kudos emoji. It shows with or without the website (Silthus/personal#176, 2026-10-25).
 
 ### The Monday DM
 
