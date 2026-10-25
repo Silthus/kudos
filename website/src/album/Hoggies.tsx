@@ -73,7 +73,7 @@ function Header({ answer }: { answer: AlbumHoggies }) {
       <PageTitle tab="Hoggies" size="hero">
         Hoggies
       </PageTitle>
-      <p className="al-lede">{`Every pack rolls one hoggie. You've found ${answer.found} of ${answer.total}, from the everyday commons to the ${legendaries} legendaries.`}</p>
+      <p className="al-lede">{`Every thoughtful kudos you give earns a hoggie, one per person you thank each week. You've found ${answer.found} of ${answer.total}, from the everyday commons to the ${legendaries} legendaries.`}</p>
     </header>
   );
 }
@@ -88,7 +88,7 @@ function RarestFinds({ answer, onOpen }: { answer: AlbumHoggies; onOpen: Open })
           <span>The top shelf fills itself</span>
         </p>
         {answer.rarest.length === 0 ? (
-          <p className="al-hoggies-glass-empty">Every thoughtful kudos you give can earn a pack, and every pack rolls one hoggie. Your rarest finds stand here.</p>
+          <p className="al-hoggies-glass-empty">Every thoughtful kudos you give earns a hoggie, one per person you thank each week. Your rarest finds stand here.</p>
         ) : (
           <ul className="al-hoggies-plinths">
             {answer.rarest.map((hoggie) => (
