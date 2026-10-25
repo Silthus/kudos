@@ -1,10 +1,23 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator, type KudosGivenEvent, type MemberWelcomedEvent } from "../bus/events";
+import { analyticsIdOf } from "../analytics/person";
+import { hugGivenEventValidator, kudosGivenEventValidator, questFinishedEventValidator, type HugGivenEvent, type KudosGivenEvent, type MemberWelcomedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { requestWelcome } from "../feedback/welcome";
-import { chatUserOf, type MemberId } from "../workspace/directory";
+import { hugOf } from "../hugs/records";
+import { earnWelcomeItem } from "../items/welcome";
+import { onboardingShownTo } from "../items/onboardingFlag";
+import { gateDecisionOf } from "../progression/gate";
+import { rewardOf } from "../progression/rewards";
+import { rewardKeyOf } from "../quests/crates";
+import { mondayPathShownTo, onTheMondayPath } from "../quests/flag";
+import { isPaidOnTheMondayPath } from "../quests/mondayCatalogue";
+import { onboardingQuestsOf } from "../quests/onboarding";
+import { startQuests } from "../quests/start";
+import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
+import { isTheFirstThanks } from "./firstThanks";
+import type { MondayWelcomeCause } from "./mondayWelcome";
 import type { WelcomedAs } from "./welcomedAs";
 
 const membersPerPage = 100;
@@ -20,12 +33,64 @@ export const welcomeNewMembers = internalMutation({
   },
 });
 
+export const welcomeOnHug = internalMutation({
+  args: { event: hugGivenEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    if (event.first !== true) return;
+    if (await onTheMondayPath(ctx, event.giver)) await welcomeOnTheMondayPath(ctx, event.giver, { path: "hug", hugged: event.message }, event.at);
+    else if (await onboardingShownTo(ctx, event.giver)) await replyToTheFirstHug(ctx, event);
+  },
+});
+
+export const welcomeOnFirstThanks = internalMutation({
+  args: { event: questFinishedEventValidator },
+  handler: async (ctx, { event: { member, quest, at } }): Promise<void> => {
+    if (!isTheFirstThanks(quest)) return;
+    const finish = await rewardOf(ctx, member, rewardKeyOf(quest));
+    if (finish === null || !isPaidOnTheMondayPath(finish) || !(await onTheMondayPath(ctx, member))) return;
+    await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-given", ...(finish.cause && { kudos: finish.cause }) }, at);
+  },
+});
+
+export async function welcomeOnTheMondayPath(ctx: MutationCtx, member: MemberId, cause: MondayWelcomeCause, at: number): Promise<void> {
+  if (await isWelcomed(ctx, member)) return;
+  await ctx.db.insert("welcomes", { member, path: cause.path });
+  const { workspace, user } = await chatUserOf(ctx, member);
+  await earnWelcomeItem(ctx, workspace, member, at);
+  if (await mondayPathShownTo(ctx, member)) await startQuests(ctx, member, at);
+  await analyticsIdOf(ctx, member);
+  const journey = await onboardingQuestsOf(ctx, member, at);
+  await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverMondayWelcome, { workspace, user, member, cause, journey });
+}
+
 async function welcome(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
   if (await isWelcomed(ctx, member)) return;
+  if (await onTheMondayPath(ctx, member)) return welcomeTheThoughtfullyThanked(ctx, event, { member, as });
   const welcomed = await welcomedAs(ctx, event, as);
   await ctx.db.insert("welcomes", { member, welcomed });
   await requestWelcome(ctx, member, welcomed);
   await publish(ctx, { type: "memberWelcomed", workspace: event.workspace, member, as, at: Date.now() });
+}
+
+async function welcomeTheThoughtfullyThanked(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
+  if (as === "recipient" && isThoughtful(event)) await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-received", giver: event.giver, kudos: event.message }, event.at);
+}
+
+export function isThoughtful({ annotations }: KudosGivenEvent): boolean {
+  return gateDecisionOf(annotations)?.thoughtful === true;
+}
+
+async function replyToTheFirstHug(ctx: MutationCtx, event: HugGivenEvent) {
+  const hug = await hugOf(ctx, event.message, event.giver);
+  if (hug === null) return;
+  const { workspace, user } = await chatUserOf(ctx, event.giver);
+  const hugged = hug.author === undefined ? { kind: "peopleThanked" as const } : await authorHuggedOf(ctx, hug.author);
+  await ctx.scheduler.runAfter(0, internal.slack.firstHugReply.deliverFirstHugReply, { workspace, user, conversation: event.message.conversation, hugged });
+}
+
+async function authorHuggedOf(ctx: MutationCtx, author: MemberId) {
+  const name = await profileNameOf(ctx, author);
+  return { kind: "author" as const, ...(name !== undefined && { name }) };
 }
 
 function membersNamedIn(event: KudosGivenEvent): Welcomed[] {
