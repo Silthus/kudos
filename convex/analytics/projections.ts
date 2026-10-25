@@ -89,7 +89,7 @@ export type UsageFact =
   | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: Period; surface: LeaderboardSurface; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
-  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
+  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; via?: "dm-button"; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
   | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number }
   | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number }
@@ -303,7 +303,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
     case "primaryGroupPicked":
       return { event: "primary group picked", subject, at: fact.at, properties: { surface: fact.surface } };
     case "messageSettingChanged":
-      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }) } };
+      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }), ...(fact.via !== undefined && { via: fact.via }) } };
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
     case "hugsRecapSent":

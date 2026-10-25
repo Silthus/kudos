@@ -33,6 +33,7 @@ import type { CratePurchaseOutcome } from "../hoggies/records";
 import { buyItem } from "../store/buying";
 import { setCustomKudosEmoji } from "../store/customKudosEmoji";
 import type { ItemPurchaseOutcome } from "../store/rows";
+import { resumeMondayQuests, stopMondayQuests } from "../mondayDm/stop";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import type { Surface } from "./surface";
 import { featureValidator } from "../unlocks/feature";
@@ -67,6 +68,8 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("linkMyCompanyProfile"), profile: v.union(v.number(), v.null()) }),
   v.object({ type: v.literal("linkCompanyProfile"), member: v.union(v.id("members"), v.null()), profile: v.union(v.number(), v.literal("none"), v.null()) }),
   v.object({ type: v.literal("setWorkspaceSettings"), baseAllowance: v.number(), kudosEmoji: v.string(), hugBudget: v.number() }),
+  v.object({ type: v.literal("stopMondayQuests"), dm: v.id("mondayDms") }),
+  v.object({ type: v.literal("resumeMondayQuests"), dm: v.id("mondayDms") }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -174,6 +177,12 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     }
     case "setCustomKudosEmoji":
       if (await setCustomKudosEmoji(ctx, workspace, person, command.emoji)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      return null;
+    case "stopMondayQuests":
+      await stopMondayQuests(ctx, workspace, member, command.dm);
+      return null;
+    case "resumeMondayQuests":
+      await resumeMondayQuests(ctx, workspace, member, command.dm);
       return null;
     case "pickPrimaryGroup": {
       const group = ctx.db.normalizeId("userGroups", command.group);

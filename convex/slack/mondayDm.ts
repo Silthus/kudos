@@ -2,11 +2,13 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
+import type { Id } from "../_generated/dataModel";
 import type { MondayDm, MondayQuests } from "../mondayDm/mondayDm";
 import type { ChecklistItem } from "../mondayDm/questsCopy";
+import type { MondayDmContent, PostedMessage } from "../mondayDm/records";
 import type { HugsSection } from "../hugs/recap";
-import { mrkdwn, plainText, urlButtonOf } from "./blocks";
-import { attemptCall, isRateLimited, retryAfter, type Attempt } from "./delivery";
+import { buttonOf, mrkdwn, urlButtonOf } from "./blocks";
+import { attemptArgs, attemptCall, isRateLimited, retryAfter, sendOnce, tryAtMostThreeTimes, type Attempt } from "./delivery";
 import { emojiLineBlockOf, footerOf, lineTextOf, postRecap } from "./hugsRecap";
 
 const triesAtMost = 3;
@@ -26,14 +28,53 @@ export const sendMondayDm = observedAction({
       await ctx.runMutation(internal.mondayDm.mondayDm.mondayDmLater, { dm, attempt, retry: retryAfter(sent, attempt)! });
       return;
     }
-    await ctx.runMutation(internal.mondayDm.mondayDm.mondayDmEnded, { dm, attempt, outcome: outcomeOf(sent) });
+    await ctx.runMutation(internal.mondayDm.mondayDm.mondayDmEnded, { dm, attempt, outcome: outcomeOf(sent), posted: postedOf(sent) });
+  },
+});
+
+export const showMondayDm = observedAction({
+  args: { dm: v.id("mondayDms"), ...attemptArgs },
+  handler: async (ctx, { dm, attempt = 1 }) => {
+    await tryAtMostThreeTimes(
+      attempt,
+      async (attempt) => {
+        const shown = await ctx.runQuery(internal.mondayDm.stop.shownMondayDm, { dm });
+        if (shown?.content.quests == null) return null;
+        const message = shown.stopped ? stoppedMessageOf(dm, shown.workspace, shown.content) : messageOf({ dm, workspace: shown.workspace, ...shown.content }, shown.content.quests);
+        return sendOnce(ctx, shown.workspace, "chat.update", { channel: shown.posted.channel, ts: shown.posted.ts, ...message }, attempt);
+      },
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.mondayDm.showMondayDm, { dm, attempt: retry.attempt }),
+    );
   },
 });
 
 function postMondayDm(ctx: ActionCtx, dm: MondayDm): Promise<Attempt> {
   const { workspace, user, hugs, quests, footer } = dm;
   if (quests === null) return postRecap(ctx, { workspace, user, lines: [...hugs!.lines, ...hugs!.closing], emojiLine: hugs!.emojiLine, footer });
-  return attemptCall(ctx, workspace, "chat.postMessage", { channel: user, text: textOf(hugs, quests), blocks: blocksOf(dm, quests) });
+  return attemptCall(ctx, workspace, "chat.postMessage", { channel: user, ...messageOf(dm, quests) });
+}
+
+function postedOf(sent: Attempt): PostedMessage | undefined {
+  if (sent.kind !== "delivered" || !sent.answer.ok) return undefined;
+  const { channel, ts } = sent.answer as { channel?: unknown; ts?: unknown };
+  return typeof channel === "string" && typeof ts === "string" ? { channel, ts } : undefined;
+}
+
+function messageOf(dm: Omit<MondayDm, "user">, quests: MondayQuests) {
+  return { text: textOf(dm.hugs, quests), blocks: blocksOf(dm, quests) };
+}
+
+function stoppedMessageOf(dm: Id<"mondayDms">, workspace: string, { hugs, footer }: MondayDmContent) {
+  const note = `🔕 *Done, no more Monday quests from me.*${hugs === null ? "" : " Your hugs recap still comes on Mondays."} Changed your mind? One press brings them back.`;
+  return {
+    text: [...(hugs?.lines.map(lineTextOf) ?? []), note].join("\n"),
+    blocks: [
+      ...(hugs === null ? [] : hugsBlocksOf(hugs)),
+      { type: "section", text: mrkdwn(note) },
+      { type: "actions", elements: [buttonOf({ label: "Turn Monday quests back on", command: { type: "resumeMondayQuests", dm } })] },
+      ...footerBlocksOf(workspace, footer),
+    ],
+  };
 }
 
 function outcomeOf(sent: Attempt): "delivered" | "gone" | "failed" {
@@ -44,14 +85,18 @@ function textOf(hugs: HugsSection | null, quests: MondayQuests) {
   return [...(hugs?.lines.map(lineTextOf) ?? []), quests.heading].join("\n");
 }
 
-function blocksOf({ workspace, hugs, footer }: MondayDm, quests: MondayQuests) {
+function blocksOf({ dm, workspace, hugs, footer }: Omit<MondayDm, "user">, quests: MondayQuests) {
   return [
     ...(hugs === null ? [] : hugsBlocksOf(hugs)),
     { type: "section", text: mrkdwn(quests.heading) },
     checklistBlockOf(quests.checklist),
-    { type: "actions", elements: buttonsOf(quests) },
-    ...footerOf({ workspace, footer }).map((text) => ({ type: "context", elements: [mrkdwn(text)] })),
+    { type: "actions", elements: buttonsOf(dm, quests) },
+    ...footerBlocksOf(workspace, footer),
   ];
+}
+
+function footerBlocksOf(workspace: string, footer: MondayDmContent["footer"]) {
+  return footerOf({ workspace, footer }).map((text) => ({ type: "context", elements: [mrkdwn(text)] }));
 }
 
 function hugsBlocksOf({ lines, emojiLine }: HugsSection) {
@@ -68,8 +113,8 @@ function checklistItemOf({ goal, mark, progress }: ChecklistItem) {
   return { type: "rich_text_section", elements: [marks[mark], goalText, ...progressText] };
 }
 
-function buttonsOf({ waiting, links }: MondayQuests) {
+function buttonsOf(dm: Id<"mondayDms">, { waiting, links }: MondayQuests) {
   const identify = waiting && links !== null ? [{ ...urlButtonOf({ label: "Identify them on the website", url: links.book, actionId: "dm-link:monday:book" }), style: "primary" }] : [];
   const seeQuests = links === null ? [] : [urlButtonOf({ label: "See your quests", url: links.quests, actionId: "dm-link:monday:quests" })];
-  return [...identify, ...seeQuests, { type: "button", text: plainText("Stop Monday quests"), action_id: "monday-dm:stop" }];
+  return [...identify, ...seeQuests, buttonOf({ label: "Stop Monday quests", command: { type: "stopMondayQuests", dm } })];
 }

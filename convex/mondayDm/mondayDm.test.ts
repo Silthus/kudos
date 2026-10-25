@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, networkFailure, rateLimitedFor, type SlackArgs } from "../../testing/fakeSlack";
 import { post, react, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
-import { readBlocks, type Block } from "../../testing/slackInteractions";
+import { signedRequest } from "../../testing/signedSlack";
+import { blockActions, buttonIn, readBlocks, type Block } from "../../testing/slackInteractions";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, switchWebsite } from "../../testing/website";
 import { internal } from "../_generated/api";
@@ -237,6 +238,109 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
   });
 });
 
+describe("MQ29 MQ30: one press on Stop Monday quests stops them, replacing the DM in place with a one-press undo", { timeout: 60_000 }, () => {
+  test("in a DM with hugs the recap stays, the quests give way to the stopped note, and next Monday's DM is today's recap", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    const hugged = await hug(bob, alice);
+    await mondayArrives();
+
+    await press(alice, "Stop Monday quests");
+
+    expect(dmsTo(alice).map(seen)).toEqual([
+      [
+        `section: :taco: Your week in hugs\nTeammates reacted :taco: on your messages and gave you 1 hug (+1 XP).\n1 teammate reacted :taco: on your most-hugged message: <${permalinkOf(hugged)}|open it in Slack>`,
+        "divider",
+        "section: 🔕 *Done, no more Monday quests from me.* Your hugs recap still comes on Mondays. Changed your mind? One press brings them back.",
+        "actions: Turn Monday quests back on",
+        `context: ${footer}`,
+      ],
+    ]);
+    expect(settingChanges(), "the setting changes recorded").toEqual([{ kind: "quests", on: false, via: "dm-button" }]);
+
+    vi.setSystemTime(mondayNine + 2 * dayMs);
+    await hug(bob, alice);
+    await mondayArrives(mondayNine + 7 * dayMs + hourMs);
+
+    expect(dmsTo(alice).slice(1).map(({ text, blocks }) => ({ opening: String(text).split("\n")[0], blocks }))).toEqual([{ opening: ":taco: Your week in hugs", blocks: undefined }]);
+  });
+
+  test("in a quests-only DM the stopped note stands alone, and the undo brings back the DM as it was sent and next Monday's quests", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await mondayArrives();
+    const [asSent] = dmsTo(alice);
+
+    await press(alice, "Stop Monday quests");
+    expect(dmsTo(alice).map(seen)).toEqual([["section: 🔕 *Done, no more Monday quests from me.* Changed your mind? One press brings them back.", "actions: Turn Monday quests back on"]]);
+
+    await press(alice, "Turn Monday quests back on");
+    expect(dmsTo(alice)).toEqual([asSent]);
+    expect(settingChanges(), "the setting changes recorded").toEqual([
+      { kind: "quests", on: false, via: "dm-button" },
+      { kind: "quests", on: true, via: "dm-button" },
+    ]);
+
+    await mondayArrives(mondayNine + 7 * dayMs + hourMs);
+    expect(dmsTo(alice).map(seen).map((dm) => dm[0]?.split("\n")[0])).toEqual(["section: *Your onboarding journey* · 1 of 3 done", "section: *Your onboarding journey* · 1 of 3 done"]);
+  });
+
+  test("Stop works without message-settings, since only the Monday path gates it", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath.filter((flag) => flag !== "message-settings"));
+    await thanks(alice, saysWhy, bob);
+    await mondayArrives();
+
+    await press(alice, "Stop Monday quests");
+
+    expect(settingChanges(), "the setting changes recorded").toEqual([{ kind: "quests", on: false, via: "dm-button" }]);
+    await mondayArrives(mondayNine + 7 * dayMs + hourMs);
+    expect(dmsTo(alice), "the DMs after next Monday").toHaveLength(1);
+  });
+
+  test("a replayed press changes nothing more", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await mondayArrives();
+    const stop = pressBody(alice, "Stop Monday quests");
+
+    await deliver(stop);
+    await press(alice, "Turn Monday quests back on");
+    await deliver(stop);
+
+    expect(settingChanges(), "the setting changes recorded").toEqual([
+      { kind: "quests", on: false, via: "dm-button" },
+      { kind: "quests", on: true, via: "dm-button" },
+    ]);
+    expect(seen(dmsTo(alice)[0]!)[0]).toMatch(/^section: \*Your onboarding journey\*/);
+  });
+
+  test("off the Monday path a press on Stop does nothing", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await mondayArrives();
+    const [asSent] = dmsTo(alice);
+
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+    await press(alice, "Stop Monday quests");
+
+    expect(dmsTo(alice)).toEqual([asSent]);
+    expect(settingChanges()).toEqual([]);
+  });
+
+  test("a Stop button that carries another member's DM changes nothing for either of them", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await thanks(bob, saysWhy, alice);
+    await mondayArrives();
+    const [alicesDm] = dmsTo(alice);
+
+    await deliver(pressBody(bob, "Stop Monday quests", alice));
+
+    expect(dmsTo(alice)).toEqual([alicesDm]);
+    expect(settingChanges()).toEqual([]);
+  });
+});
+
 async function finishOnboarding(person: Person) {
   await thanks(person, saysWhy, bob);
   await thanks(person, "thanks", carol);
@@ -298,10 +402,10 @@ function postsTo(person: Person) {
 }
 
 function dmsTo(person: Person) {
-  const mondayTexts = new Set(postsTo(person).map(({ text }) => String(text)));
+  const postedBeforeTheWeekend = slack.timesOf("chat.postMessage", (args: SlackArgs) => args.channel === person.user).filter((at) => at < weekendBeforeMonday).length;
   return slack
     .messagesShownIn(person.user)
-    .filter(({ text }) => mondayTexts.has(text))
+    .slice(postedBeforeTheWeekend)
     .map(({ text, blocks }) => ({ text, blocks }));
 }
 
@@ -333,6 +437,24 @@ function buttonsOf(block: Block) {
   return `actions: ${buttons.map(({ text, style, action_id, url }) => (url === undefined ? text.text : `${text.text} (${style === "primary" ? "primary, " : ""}${action_id} → ${url})`)).join(" | ")}`;
 }
 
+
+function pressBody(person: Person, label: string, inDmOf: Person = person) {
+  const { channel, ts, blocks } = slack.messagesShownIn(inDmOf.user).at(-1)!;
+  return blockActions(person.user, buttonIn(blocks as Block[], label), { inMessage: { channel, ts } });
+}
+
+async function press(person: Person, label: string) {
+  await deliver(pressBody(person, label));
+}
+
+async function deliver(body: string) {
+  await t.fetch("/slack/interactivity", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
+  await settleUpTo(t, Date.now() + minuteMs);
+}
+
+function settingChanges() {
+  return productEvents("message setting changed").map(({ properties: { kind, on, via } }) => ({ kind, on, via }));
+}
 
 function productEvents(event: string) {
   return postHog.productEvents().filter((captured) => captured.event === event);
