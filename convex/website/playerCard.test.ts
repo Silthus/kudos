@@ -4,7 +4,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -186,6 +186,18 @@ describe("LP94: getPlayerCardEmojis counts a person's emojis unlocked in a read 
 
     expect(earned.map(({ name }) => name)).toEqual(expect.arrayContaining(["alice-marchetti-hype", "carol-lindqvist-hype"]));
     expect(emojis).toEqual({ kind: "emojis", count: earned.length, shown: expect.arrayContaining([expect.objectContaining({ name: "alice-marchetti-hype", picture: expect.any(String) })]) });
+  });
+
+  test("an emoji with a second name shows on the stack under its first name", async () => {
+    await thanks(bob, why, alice);
+    await opensAndPutsInEveryPack(bob);
+    expect(await t.mutation(internal.album.emojiNames.giveEmojiASecondName, { workspace: "T1", emoji: `hype:${await memberOf(alice)}`, name: "alice-heart" })).toBe(true);
+
+    const emojis = await (await signedIn(dana)).query(api.website.playerCard.getPlayerCardEmojis, { person: await memberOf(bob) });
+
+    const names = "shown" in emojis ? emojis.shown.map(({ name }) => name) : [];
+    expect(names).toContain("alice-marchetti-hype");
+    expect(names).not.toContain("alice-heart");
   });
 
   test("a quiet member has no emojis", async () => {

@@ -37,7 +37,6 @@ import {
   emojiClassValidator,
   randomEmojiDropValidator,
   emojiNameValidator,
-  secondEmojiNameValidator,
   grantRecordValidator,
   grantToldValidator,
   milestoneTierRecordValidator,
@@ -590,9 +589,8 @@ export default defineSchema({
   emojiNames: defineTable(emojiNameValidator)
     .index("by_workspace_emoji", ["workspace", "emoji", "person"])
     .index("by_workspace_name", ["workspace", "name"])
+    .index("by_workspace_second_name", ["workspace", "secondName"])
     .index("by_emoji", ["emoji", "person", "workspace"]),
-
-  secondEmojiNames: defineTable(secondEmojiNameValidator).index("by_workspace_name", ["workspace", "name"]),
 
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
 

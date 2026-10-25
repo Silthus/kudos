@@ -66,9 +66,7 @@ export const emojiMapperValidator = v.object({ member: v.id("members"), as: v.un
 
 export type EmojiMapper = Infer<typeof emojiMapperValidator>;
 
-export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string(), mappedBy: v.optional(emojiMapperValidator) });
-
-export const secondEmojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), name: v.string() });
+export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string(), secondName: v.optional(v.string()), mappedBy: v.optional(emojiMapperValidator) });
 
 export const seenEmojiValidator = v.object({ member: v.id("members"), emoji: v.string(), at: v.number() });
 

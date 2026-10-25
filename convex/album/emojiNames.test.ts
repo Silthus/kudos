@@ -206,7 +206,7 @@ describe("an earned emoji's second name", () => {
     await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
     await giveASecondName("milestone:thoughtful:bronze", "heart-hog");
     await t.run((ctx) => ctx.db.insert("emojiClasses", { workspace: "T1", name: "party-parrot", class: "random" }));
-    const before = await t.run((ctx) => ctx.db.query("secondEmojiNames").collect());
+    const before = await t.run((ctx) => ctx.db.query("emojiNames").collect());
 
     for (const [emoji, name] of [
       ["milestone:thoughtful:bronze", "level-5"],
@@ -215,7 +215,7 @@ describe("an earned emoji's second name", () => {
       ["team:nobody", "nobodys-heart"],
     ] as const) expect(await giveASecondName(emoji, name), `${emoji} as ${name}`).toBe(false);
 
-    expect(await t.run((ctx) => ctx.db.query("secondEmojiNames").collect())).toEqual(before);
+    expect(await t.run((ctx) => ctx.db.query("emojiNames").collect())).toEqual(before);
   });
 });
 

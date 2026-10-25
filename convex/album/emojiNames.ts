@@ -43,23 +43,20 @@ export async function namesHeldIn(ctx: QueryCtx, workspace: string): Promise<Map
     .query("emojiNames")
     .withIndex("by_workspace_name", (q) => q.eq("workspace", workspace))
     .collect();
-  return new Map([...(await secondNamesIn(ctx, workspace)), ...rows.map((row): [string, EarnedEmojiId] => [row.name, emojiIdOf(row)])]);
+  return new Map(rows.flatMap((row) => bothNamesOf(row).map((name): [string, EarnedEmojiId] => [name, emojiIdOf(row)])));
 }
 
-async function secondNamesIn(ctx: QueryCtx, workspace: string): Promise<[string, EarnedEmojiId][]> {
-  const rows = await ctx.db
-    .query("secondEmojiNames")
-    .withIndex("by_workspace_name", (q) => q.eq("workspace", workspace))
-    .collect();
-  return rows.map(({ name, emoji }) => [name, emoji as EarnedEmojiId]);
+function bothNamesOf({ name, secondName }: { name: string; secondName?: string }): string[] {
+  return secondName === undefined ? [name] : [name, secondName];
 }
 
 export const giveEmojiASecondName = internalMutation({
   args: { workspace: v.string(), emoji: v.string(), name: v.string() },
   returns: v.boolean(),
   handler: async (ctx, { workspace, emoji, name }) => {
-    if ((await registeredAs(ctx, workspace, emoji as EarnedEmojiId)) === null || (await isTakenOrClassed(ctx, workspace, name))) return false;
-    await ctx.db.insert("secondEmojiNames", { workspace, emoji, name });
+    const named = await registeredAs(ctx, workspace, emoji as EarnedEmojiId);
+    if (named === null || (await isTakenOrClassed(ctx, workspace, name))) return false;
+    await ctx.db.patch(named._id, { secondName: name });
     return true;
   },
 });
@@ -81,7 +78,7 @@ export async function giveEmojiTheName(ctx: MutationCtx, workspace: string, emoj
 
 export async function freeTheName(ctx: MutationCtx, workspace: string, name: string): Promise<void> {
   const secondHolder = await secondHolderOf(ctx, workspace, name);
-  if (secondHolder !== null) await ctx.db.delete(secondHolder._id);
+  if (secondHolder !== null) await ctx.db.patch(secondHolder._id, { secondName: undefined });
   const holder = await holderOf(ctx, workspace, name);
   if (holder === null) return;
   const shape = await naturalShapeOf(ctx, emojiIdOf(holder));
@@ -99,9 +96,8 @@ export async function registeredEmojisIn(ctx: QueryCtx, workspace: string): Prom
 }
 
 export async function emojiNamed(ctx: QueryCtx, workspace: string, name: string): Promise<EarnedEmojiId | null> {
-  const holder = await holderOf(ctx, workspace, name);
-  if (holder !== null) return emojiIdOf(holder);
-  return ((await secondHolderOf(ctx, workspace, name))?.emoji as EarnedEmojiId | undefined) ?? null;
+  const holder = (await holderOf(ctx, workspace, name)) ?? (await secondHolderOf(ctx, workspace, name));
+  return holder === null ? null : emojiIdOf(holder);
 }
 
 export async function mapperOf(ctx: QueryCtx, workspace: string, emoji: EarnedEmojiId): Promise<EmojiMapper | null> {
@@ -299,8 +295,8 @@ function holderOf(ctx: QueryCtx, workspace: string, name: string) {
 
 function secondHolderOf(ctx: QueryCtx, workspace: string, name: string) {
   return ctx.db
-    .query("secondEmojiNames")
-    .withIndex("by_workspace_name", (q) => q.eq("workspace", workspace).eq("name", name))
+    .query("emojiNames")
+    .withIndex("by_workspace_second_name", (q) => q.eq("workspace", workspace).eq("secondName", name))
     .unique();
 }
 
