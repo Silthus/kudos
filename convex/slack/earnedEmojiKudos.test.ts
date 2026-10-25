@@ -13,6 +13,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const messageTs = `${Math.floor(now.getTime() / 1000) - 3600}.000100`;
 const carolsMessageTs = `${Math.floor(now.getTime() / 1000) - 1800}.000100`;
 const teamEmoji = "team-workflows";
+const secondTeamEmoji = "workflows-heart";
 const levelEmoji = "level-5";
 const randomEmoji = "party-parrot";
 const levelTwoEmoji = "raised_hands";
@@ -82,6 +83,36 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
 
     expect(await xpOf(t, "U_ALICE")).toBe(0);
     expect(await xpOf(t, "U_BOB")).toBe(0);
+  });
+
+  test.each([
+    ["alone", []],
+    ["beside 60 other emoji", Array.from({ length: 60 }, (_, index) => emoji(`other-${index}`))],
+  ])("their team emoji's second name gives kudos %s and is a hug", async (_, others) => {
+    const t = await workspaceWithEmojiNames();
+    await secondNameOf(t, "team:workflows", secondTeamEmoji);
+    await unlockedTeamEmoji(t, "U_ALICE");
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), ...others, emoji(secondTeamEmoji))], { user: "U_ALICE", ts: messageTs });
+    await react(t, { user: "U_ALICE", itemUser: "U_CAROL", reaction: secondTeamEmoji, ts: carolsMessageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB"), "kudos from the second name").toBe(1);
+    expect(await xpOf(t, "U_CAROL"), "a hug from the second name").toBe(1);
+  });
+
+  test("the second name of an emoji only someone else unlocked gives nothing and is no hug", async () => {
+    const t = await workspaceWithEmojiNames();
+    await secondNameOf(t, "team:workflows", secondTeamEmoji);
+    await memberOf(t, "U_ALICE");
+    await unlockedTeamEmoji(t, "U_CAROL");
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), emoji(secondTeamEmoji))], { user: "U_ALICE", ts: messageTs });
+    await react(t, { user: "U_ALICE", itemUser: "U_CAROL", reaction: secondTeamEmoji, ts: carolsMessageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+    expect(await xpOf(t, "U_CAROL")).toBe(0);
   });
 
   test("with random-emojis off, a held random emoji still gives kudos and a hug", async () => {
@@ -234,6 +265,10 @@ async function workspaceWithReservedNames() {
   const t = await workspaceWithEmojiNames();
   await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, {});
   return t;
+}
+
+async function secondNameOf(t: Backend, emoji: string, name: string) {
+  expect(await t.mutation(internal.album.emojiNames.giveEmojiASecondName, { workspace: "T1", emoji, name })).toBe(true);
 }
 
 async function reachedLevelTwo(t: Backend, user: string) {
