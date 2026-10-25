@@ -2,7 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
 import { earliestAwardFrom, givenBetween } from "../engine/awards";
-import { gateDecisionOf } from "../progression/gate";
+import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf } from "./crates";
@@ -75,7 +75,7 @@ async function twoDaysFactsOf(ctx: QueryCtx, member: MemberId, at: number): Prom
 async function daysSayingWhyOf(ctx: QueryCtx, member: MemberId, at: number): Promise<number> {
   const start = await questStartOf(ctx, member);
   if (start === null) return 0;
-  const sayingWhy = (await givenBetween(ctx, member, start, at)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
+  const sayingWhy = (await givenBetween(ctx, member, start, at)).filter(({ annotations }) => saysWhy(annotations));
   return Math.min(new Set(sayingWhy.map(({ day }) => day)).size, daysSayingWhyToFinishTwoDays);
 }
 
@@ -123,11 +123,11 @@ export async function finishSomeoneNewOnceEveryoneIsThanked(ctx: MutationCtx, wo
 async function firstThanksCameBefore(ctx: QueryCtx, member: MemberId, start: number, at: number): Promise<boolean> {
   const firstThanks = await finishOf(ctx, member, "first-thanks");
   if (firstThanks !== null) return firstThanks.at < at;
-  return (await givenBetween(ctx, member, start, at - 1)).some(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
+  return (await givenBetween(ctx, member, start, at - 1)).some(({ annotations }) => saysWhy(annotations));
 }
 
 async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, firstThanks: RewardRecord | null): Promise<FinishedOnboardingQuest | null> {
-  return firstThanks === null && saysWhy(event) ? finishedBy(ctx, event, "first-thanks") : null;
+  return firstThanks === null && saysWhy(event.annotations) ? finishedBy(ctx, event, "first-thanks") : null;
 }
 
 async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent, firstThanks: RewardRecord | null): Promise<FinishedOnboardingQuest | null> {
@@ -142,8 +142,8 @@ async function thanksSomeoneNew(ctx: QueryCtx, { giver, awards }: KudosGivenEven
 }
 
 async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<FinishedOnboardingQuest | null> {
-  if (!saysWhy(event) || (await finishOf(ctx, event.giver, "two-days")) !== null) return null;
-  const sayingWhy = (await givenBetween(ctx, event.giver, start, event.at)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
+  if (!saysWhy(event.annotations) || (await finishOf(ctx, event.giver, "two-days")) !== null) return null;
+  const sayingWhy = (await givenBetween(ctx, event.giver, start, event.at)).filter(({ annotations }) => saysWhy(annotations));
   const days = new Set([event.day, ...sayingWhy.map(({ day }) => day)]);
   return days.size >= daysSayingWhyToFinishTwoDays ? finishedBy(ctx, event, "two-days") : null;
 }
@@ -155,10 +155,6 @@ function finishedBy(ctx: MutationCtx, { workspace, giver, at, message }: KudosGi
 async function finished(ctx: MutationCtx, workspace: string, member: MemberId, step: OnboardingStep, at: number, cause?: MessageRef): Promise<FinishedOnboardingQuest | null> {
   const paid = await finishMondayQuest(ctx, workspace, member, { kind: "journey", step }, { reward: onboardingReward, catalogueVersion: mondayCatalogueVersion }, at, cause);
   return paid ? { step, reward: onboardingReward } : null;
-}
-
-function saysWhy({ annotations }: KudosGivenEvent): boolean {
-  return gateDecisionOf(annotations)?.thoughtful === true;
 }
 
 function finishOf(ctx: QueryCtx, member: MemberId, step: OnboardingStep) {
