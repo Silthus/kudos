@@ -6,7 +6,7 @@ import type { JourneyStep } from "./step";
 
 export type JourneyStepCopy = { goal: string; hint: string | null };
 
-const saysWhyCounts = "It counts when your message has 5 or more words besides mentions and emoji.";
+export const saysWhyCounts = "It counts when your message has 5 or more words besides mentions and emoji.";
 
 const journeyCopy: Record<JourneyStep, JourneyStepCopy> = {
   "first-thanks": { goal: "Give a kudos that says why.", hint: saysWhyCounts },

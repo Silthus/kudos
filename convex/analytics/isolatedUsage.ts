@@ -155,3 +155,23 @@ export const recordHowItWorksClosed = internalMutation({
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "howItWorksClosed", ...close }));
   },
 });
+
+const questsViewValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  surface: v.union(v.literal("panel"), v.literal("profile")),
+  at: v.number(),
+});
+
+export type QuestsView = Infer<typeof questsViewValidator>;
+
+export async function reportQuestsViewed(ctx: MutationCtx, view: QuestsView) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordQuestsViewed, view);
+}
+
+export const recordQuestsViewed = internalMutation({
+  args: questsViewValidator,
+  handler: async (ctx, view): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "questsViewed", ...view }));
+  },
+});

@@ -15,7 +15,7 @@ export const onboardingSteps = ["first-thanks", "someone-new", "two-days"] as co
 
 export type OnboardingStep = (typeof onboardingSteps)[number];
 
-const onboardingReward: Reward = { xp: 50, coins: 0, item: null };
+export const onboardingReward: Reward = { xp: 50, coins: 0, item: null };
 
 const daysSayingWhyToFinishTwoDays = 2;
 
