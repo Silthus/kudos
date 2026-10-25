@@ -379,6 +379,7 @@
   border-radius: 1rem;
   background: var(--card);
   padding: 1rem 1.125rem;
+  scroll-margin-top: var(--al-quests-top);
 }
 
 .al-quests-profile .al-quests-journey,

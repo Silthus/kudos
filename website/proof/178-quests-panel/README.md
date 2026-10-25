@@ -49,3 +49,7 @@ Prototype screenshots: [profile](https://github.com/Silthus/kudos/blob/aabbc54f2
 - [x] Light and dark from the album tokens: `07-panel-journey-1536-dark.png`, `08-own-page-d-dark.png`, `11-phone-opened-dark.png`, `14-panel-week-1536-dark.png`
 - [x] Phones start folded and open over the page (MQ39 makes this `build`): `09-phone-starts-folded.png`, `10-phone-opened-over-the-page.png`, `16-phone-week-opened.png`
 - [x] Off the path, no panel: `17-off-the-path-no-panel.png`. Loading and a failed read are covered in Seam 2.
+
+**After review round 1**
+- [x] The welcome's links `/book#me/quests` and `/book#me/quests/<step>` (MQ22) land at the own page D's quests section, below the top bar, with the next quest and its how-to in view: `18-welcome-link-lands-at-the-section-1280.png`, `19-welcome-link-lands-at-the-section-phone.png`. Seam 2 covers the scroll and the focus.
+- [x] A finished onboarding step whose hoggie waits offers "Turn it on your board →", and `quests viewed` waits until the item board or another moment is put away: Seam 2.
