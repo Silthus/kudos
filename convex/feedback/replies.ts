@@ -15,6 +15,7 @@ import { journeyStepNamedTo, questsHoldTheReplyOf } from "../quests/flag";
 import { isOnboardingStep, onboardingGoalOf } from "../quests/onboarding";
 import { rewardWaits } from "../quests/crates";
 import { journeyGoalOf } from "../quests/journeyCopy";
+import { withoutFullStop } from "../quests/pool";
 import { journeyStepValidator } from "../quests/step";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
@@ -23,6 +24,7 @@ import { coinsPartOf } from "./coins";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import type { Line, Segment } from "./segments";
 import { settingsFooterFor } from "./settingsFooter";
+import { hoggieRewardOf } from "./waitingHoggies";
 
 export const questDoneValidator = v.union(
   v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()), hoggie: v.optional(v.literal(true)) }),
@@ -214,7 +216,7 @@ function questsDoneParts(questsDone: QuestDoneShown[]): Line[] {
 }
 
 function hoggieQuestLinesOf(questsDone: QuestDoneShown[]): Line[] {
-  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} · +${done.xp} XP and an unidentified Hoggie for your collection` }]);
+  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} · ${hoggieRewardOf(done.xp)}` }]);
 }
 
 function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
@@ -225,10 +227,6 @@ function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
 function goalOf(done: QuestDoneShown) {
   if (done.kind === "weekly") return done.goal;
   return done.hoggie === true && isOnboardingStep(done.step) ? onboardingGoalOf(done.step) : journeyGoalOf(done.step);
-}
-
-function withoutFullStop(goal: string) {
-  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
 }
 
 export function renderReply(reply: Exclude<Reply, { kind: "given" }>): Line[] {

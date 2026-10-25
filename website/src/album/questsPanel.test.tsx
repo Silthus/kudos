@@ -14,7 +14,8 @@ import { fixtureWeeks } from "./weekFixtures";
 
 const arrival = { timeout: 10_000 };
 const aTeamPage = "/book#teams/lanterns";
-const withPageD: Album = { ...albumFixtures.midway, personPageD: true, linkPreviews: true };
+const onTheMondayPath: Album = { ...albumFixtures.midway, gettingStarted: null };
+const withPageD: Album = { ...onTheMondayPath, personPageD: true, linkPreviews: true };
 
 beforeAll(async () => {
   await import("./AlbumApp");
@@ -28,7 +29,7 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
-function visit(address: string, { quests = fixedQuests(questsFixtures.newcomer), album = albumFixtures.midway }: { quests?: QuestsRead; album?: Album } = {}) {
+function visit(address: string, { quests = fixedQuests(questsFixtures.newcomer), album = onTheMondayPath }: { quests?: QuestsRead; album?: Album } = {}) {
   window.history.replaceState(null, "", address);
   return renderAlbum(shellFixtures.member, fixedAlbum(album), {
     quests,
@@ -64,7 +65,7 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     expect(panel.getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual([
       "Give your first hug: done",
       "Thank someone and say why: next, +50 XP and an unidentified hoggie",
-      "Turn the hoggie it left on your board: not yet",
+      "Identify the hoggie it left on your board: not yet",
       "Thank someone you haven't thanked before: not yet, +50 XP and an unidentified hoggie",
       "Say why on 2 different days: not yet, +50 XP and an unidentified hoggie",
     ]);
@@ -126,7 +127,7 @@ describe("MQ41 MQ36: a view counts only once the quests are in sight", { timeout
 
   it("MQ22: a welcome link that arrives under the item board lands at the section once the board is put away", async () => {
     const scrolled = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
-    const { user } = visit("/book#me/quests/someone-new", { album: { ...albumFixtures.withItems, personPageD: true, linkPreviews: true } });
+    const { user } = visit("/book#me/quests/someone-new", { album: { ...albumFixtures.withItems, gettingStarted: null, personPageD: true, linkPreviews: true } });
     const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
     const section = screen.getByRole("region", { name: "Your quests", hidden: true });
 
@@ -292,8 +293,18 @@ describe("MQ42 MQ43: no panel off the path, while loading or when the read fails
     expect(screen.queryByRole("region", { name: "Your quests" })).not.toBeInTheDocument();
   });
 
+  it.each<[string, QuestsShown | undefined]>([
+    ["while the read is loading", undefined],
+    ["when the read fails", { kind: "broken" }],
+  ])("on the Monday path, %s the old profile shows no Getting started strip", async (_, answer) => {
+    visit("/book#me", { quests: () => answer });
+
+    expect(await screen.findByRole("heading", { level: 1 }, arrival)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
+  });
+
   it("off the Monday path the old profile keeps its Getting started strip", async () => {
-    visit("/book#me", { quests: noQuests });
+    visit("/book#me", { quests: noQuests, album: albumFixtures.midway });
 
     expect(await screen.findByRole("region", { name: "Getting started" }, arrival)).toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Quests" })).not.toBeInTheDocument();

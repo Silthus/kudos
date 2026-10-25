@@ -1,7 +1,9 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { DmLinks } from "../feedback/dmLinks";
 import type { MemberId } from "../workspace/directory";
 import { achievementHoggiesShownTo, isAnAchievement } from "./achievementFlag";
+import { hiddenItemsShownTo } from "./flag";
 import type { Earning, ItemReason, ItemSource } from "./records";
 
 export const mostItemsShown = 100;
@@ -32,7 +34,12 @@ export async function waitingCountOf(ctx: QueryCtx, member: MemberId): Promise<W
   return length > mostWaitingCounted ? `${mostWaitingCounted}+` : length;
 }
 
-export async function waitingHoggieCountOf(ctx: QueryCtx, member: MemberId): Promise<WaitingCount> {
+export async function shownWaitingHoggiesOf(ctx: QueryCtx, member: MemberId, links: DmLinks | null): Promise<WaitingCount> {
+  if (links === null || !(await hiddenItemsShownTo(ctx, member))) return 0;
+  return waitingHoggieCountOf(ctx, member);
+}
+
+async function waitingHoggieCountOf(ctx: QueryCtx, member: MemberId): Promise<WaitingCount> {
   const hoggies = (await waitingOf(ctx, member, mostItemsShown + 1)).filter(({ source }) => source === "hoggie").length;
   return hoggies > mostWaitingCounted ? `${mostWaitingCounted}+` : hoggies;
 }

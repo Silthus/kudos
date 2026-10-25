@@ -63,7 +63,7 @@ describe("MQ37 MQ38: on the Monday path the quests read answers the Getting star
     expect(journeyOf(quests).map(({ goal, reward }) => [goal, reward?.xp ?? null])).toEqual([
       ["Give your first hug", null],
       ["Thank someone and say why", 50],
-      ["Turn the hoggie it left on your board", null],
+      ["Identify the hoggie it left on your board", null],
       ["Thank someone you haven't thanked before", 50],
       ["Say why on 2 different days", 50],
     ]);

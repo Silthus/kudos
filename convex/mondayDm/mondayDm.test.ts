@@ -69,7 +69,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
       [
         `section: :taco: Your week in hugs\nTeammates reacted :taco: on your messages and gave you 1 hug (+1 XP).\n1 teammate reacted :taco: on your most-hugged message: <${permalinkOf(hugged)}|open it in Slack>`,
         "divider",
-        `section: *Your onboarding journey* · 1 of 3 done\nTwo quests left this week. Each one pays +50 XP and an unidentified Hoggie for your collection.\n\nFive unidentified Hoggies for your collection are waiting for you.`,
+        `section: *Your onboarding journey* · 1 of 3 done\nTwo quests left. Each one pays +50 XP and an unidentified Hoggie for your collection.\n\nFive unidentified Hoggies for your collection are waiting for you.`,
         "✅ ~Thank someone and say why~",
         "👉 *Thank someone you haven't thanked before*",
         "⚪ Say why on 2 different days _1 of 2 days_",
@@ -92,6 +92,28 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     expect(dm?.slice(1, 4)).toHaveLength(3);
     for (const quest of dm!.slice(1, 4)) expect(quest).toMatch(/^⚪ /);
     expect(dm?.slice(4)).toEqual([`actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests) | Stop Monday quests`]);
+  });
+
+  test("with the website closed to the member, the DM counts no waiting hoggies it can't link to", async () => {
+    await switchWebsite(t, postHog, false, ...mondayPath);
+    await finishOnboarding(alice);
+
+    await mondayArrives();
+
+    const [dm] = dmsTo(alice).map(seen);
+    expect(dm?.[0]).toBe("section: Happy Monday :sun_with_face: Here are three quests for your week. Each one pays +20 XP and an unidentified Hoggie for your collection.");
+    expect(dm?.at(-1)).toBe("actions: Stop Monday quests");
+  });
+
+  test("a member whose week was drawn on the unlock path gets no drawn quests from it", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding(alice);
+    const member = await memberOf(alice);
+    await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-19", drawnAt: weekendBeforeMonday, slots: [{ slot: 0, quest: "say-why", reward: { xp: 20, coins: 10, item: null }, catalogueVersion: "2", feasibleBecause: { peopleLeft: 2, recognitionsLeft: 10 } }] }));
+
+    await mondayArrives();
+
+    expect(dmsTo(alice)).toEqual([]);
   });
 
   test("a member taken out of monday-quest before 9:00 gets the hugs recap alone, byte for byte as today's recap", async () => {
@@ -836,15 +858,22 @@ function productEvents(event: string) {
   return postHog.productEvents().filter((captured) => captured.event === event);
 }
 
-async function mondayDmsSentTo(person: Person) {
-  const analyticsId = await t.run(async (ctx) => {
-    const member = await ctx.db
+async function memberOf(person: Person) {
+  const member = await t.run((ctx) =>
+    ctx.db
       .query("members")
       .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", person.user))
-      .unique();
+      .unique(),
+  );
+  return member!._id;
+}
+
+async function mondayDmsSentTo(person: Person) {
+  const member = await memberOf(person);
+  const analyticsId = await t.run(async (ctx) => {
     const identity = await ctx.db
       .query("analyticsIds")
-      .withIndex("by_member", (q) => q.eq("member", member!._id))
+      .withIndex("by_member", (q) => q.eq("member", member))
       .unique();
     return identity?.analyticsId;
   });

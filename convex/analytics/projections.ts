@@ -33,6 +33,7 @@ import { crateKindOf } from "../hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
 import type { WelcomePath } from "../welcome/welcomedAs";
+import type { MondayDmSection } from "../mondayDm/records";
 
 export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.number(), v.boolean()));
 
@@ -100,11 +101,15 @@ export type UsageFact =
 
 export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: MondayDmSection[] };
 
-export type MondayDmSection = "hugs" | "quests" | "catch-up";
+export const dmKindValidator = v.union(v.literal("welcome"), v.literal("monday"));
 
-export type DmLinkDestination = "book" | "quests" | "quests-how";
+export const dmLinkDestinationValidator = v.union(v.literal("book"), v.literal("quests"), v.literal("quests-how"));
 
-export type QuestsSurface = "panel" | "profile";
+export type DmLinkDestination = Infer<typeof dmLinkDestinationValidator>;
+
+export const questsSurfaceValidator = v.union(v.literal("panel"), v.literal("profile"));
+
+export type QuestsSurface = Infer<typeof questsSurfaceValidator>;
 
 export type PickSurface = "welcome" | "settings" | "website";
 

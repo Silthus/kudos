@@ -253,6 +253,32 @@ describe("MQ5: someone-new is judged across a leave and a rejoin as on the unloc
     expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
   });
 
+  test("a giver who had thanked every teammate before the quests started finishes someone-new on the next kudos after first-thanks", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, "thanks", bob, carol);
+    await thanks(alice, saysWhy, bob);
+    expect(await nextQuestOf(alice), "the next onboarding quest after first-thanks").toBe("someone-new");
+
+    await thanks(alice, "thanks", bob);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([{ xp: 50, at: expect.any(Number) }]);
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("two-days");
+  });
+
+  test("a long history of kudos past the finish pays each onboarding quest once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+
+    for (let day = 0; day < 4; day += 1) {
+      vi.setSystemTime(Date.now() + dayMs);
+      await thanks(alice, saysWhy, bob, carol);
+      await thanks(alice, "thanks", carol);
+    }
+
+    expect(await onboardingRecordsOf(alice), "the onboarding quests' rewards").toEqual(["journey:first-thanks", "journey:someone-new", "journey:two-days"]);
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBeNull();
+  });
+
   test("before first-thanks is done, a leave finishes nothing", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);
@@ -517,6 +543,15 @@ async function someoneNewRecordsOf(person: Person) {
   const member = await memberOf(person);
   const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
   return records.filter((record) => record.member === member && record.key === "journey:someone-new").map(({ xp, at }) => ({ xp, at }));
+}
+
+async function onboardingRecordsOf(person: Person) {
+  const member = await memberOf(person);
+  const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
+  return records
+    .filter((record) => record.member === member && record.key.startsWith("journey:"))
+    .map(({ key }) => key)
+    .toSorted();
 }
 
 function holdingKudosGiven() {

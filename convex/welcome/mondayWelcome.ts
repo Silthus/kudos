@@ -1,17 +1,14 @@
 import { v, type Infer } from "convex/values";
-import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
-import { reportWelcomeDmSent } from "../analytics/isolatedUsage";
+import { internalQuery, type QueryCtx } from "../_generated/server";
 import { awardsOfMessage } from "../engine/awards";
 import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
 import { publicQuoteOf } from "../feedback/welcomeNudge";
 import { hugOf } from "../hugs/records";
-import { waitingHoggieCountOf, type WaitingCount } from "../items/ledger";
-import { dmLinksFor } from "../feedback/dmLinks";
+import { shownWaitingHoggiesOf, type WaitingCount } from "../items/ledger";
+import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-
-const mondayWelcomePathValidator = v.union(v.literal("hug"), v.literal("thoughtful-given"), v.literal("thoughtful-received"), v.literal("catch-up"));
 
 export const mondayWelcomeCauseValidator = v.union(
   v.object({ path: v.literal("hug"), hugged: messageRefValidator }),
@@ -42,7 +39,7 @@ export type MondayWelcome = {
   journey: OnboardingQuest[];
   next: OnboardingStep | null;
   waiting: WaitingCount;
-  links: { book: string; quests: string } | null;
+  links: DmLinks | null;
 };
 
 export const mondayWelcomeOf = internalQuery({
@@ -58,25 +55,14 @@ export async function mondayWelcomeFor(ctx: QueryCtx, workspace: string, member:
     opening: await openingOf(ctx, member, cause),
     journey,
     next,
-    waiting: await waitingHoggieCountOf(ctx, member),
-    links: links === null ? null : { book: links.book, quests: links.quests },
+    waiting: await shownWaitingHoggiesOf(ctx, member, links),
+    links,
   };
 }
 
 export const howToOf = internalQuery({
   args: { workspace: v.string() },
   handler: async (ctx, { workspace }) => ({ kudosEmoji: (await settingsOf(ctx, workspace)).kudosEmoji }),
-});
-
-export const welcomeOutcomeValidator = v.union(v.literal("delivered"), v.literal("gone"), v.literal("failed"));
-
-export type WelcomeOutcome = Infer<typeof welcomeOutcomeValidator>;
-
-export const welcomeEnded = internalMutation({
-  args: { workspace: v.string(), member: v.id("members"), path: mondayWelcomePathValidator, outcome: welcomeOutcomeValidator },
-  handler: async (ctx, { workspace, member, path, outcome }): Promise<void> => {
-    if (outcome === "delivered") await reportWelcomeDmSent(ctx, { workspace, member, path, at: Date.now() });
-  },
 });
 
 async function openingOf(ctx: QueryCtx, member: MemberId, cause: MondayWelcomeCause): Promise<MondayWelcomeOpening> {

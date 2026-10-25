@@ -6,9 +6,8 @@ import { reportMondayDmSent } from "../analytics/isolatedUsage";
 import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowance";
 import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import { settingsFooterFor } from "../feedback/settingsFooter";
-import { hugsSectionFor, hugsSentInTheMondayDm, type HugsSection } from "../hugs/recap";
-import { hiddenItemsShownTo } from "../items/flag";
-import { waitingHoggieCountOf } from "../items/ledger";
+import { hugsSectionFor, hugsSentInTheMondayDm, mondayAfter, type HugsSection } from "../hugs/recap";
+import { shownWaitingHoggiesOf } from "../items/ledger";
 import { onTheMondayPath } from "../quests/flag";
 import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
@@ -31,7 +30,6 @@ const startsPerSweep = 100;
 const membersPerSweep = 100;
 const strandedPerSweep = 100;
 const dueHour = 9;
-const dayMs = 24 * 60 * 60 * 1000;
 
 export const ensureMondayDms = internalMutation({
   args: { cursor: v.optional(v.string()) },
@@ -157,8 +155,9 @@ async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { h
 
 async function mondayQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, quests: QuestsSection | null): Promise<MondayQuests | null> {
   if (quests === null) return null;
-  const waiting = (await hiddenItemsShownTo(ctx, member)) ? await waitingHoggieCountOf(ctx, member) : 0;
-  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links: await dmLinksFor(ctx, workspace, member) };
+  const links = await dmLinksFor(ctx, workspace, member);
+  const waiting = await shownWaitingHoggiesOf(ctx, member, links);
+  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links };
 }
 
 async function scheduleTry(ctx: MutationCtx, dm: Id<"mondayDms">, dueAt: number, attempt: number): Promise<null> {
@@ -187,8 +186,4 @@ async function awaitingTry(ctx: QueryCtx, dm: Id<"mondayDms">, tries: number): P
 
 async function dueAtOf(ctx: QueryCtx, member: MemberId, monday: DayKey) {
   return wallClockAt(monday, dueHour, (await timeZoneOf(ctx, member)) ?? undefined);
-}
-
-function mondayAfter(monday: DayKey): DayKey {
-  return new Date(Date.parse(`${monday}T00:00:00Z`) + 7 * dayMs).toISOString().slice(0, 10);
 }

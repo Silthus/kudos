@@ -2,13 +2,15 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from "../feedback/welcome";
-import { waitingHoggiesLineOf } from "../feedback/waitingHoggies";
-import { onboardingGoalOf, type OnboardingQuest, type OnboardingStep } from "../quests/onboarding";
-import { mondayWelcomeCauseValidator, onboardingJourneyValidator, onboardingStepValidator, type HuggedPeople, type MondayWelcome, type MondayWelcomeOpening, type WelcomeOutcome } from "../welcome/mondayWelcome";
+import { hoggieRewardOf, waitingHoggiesLineOf } from "../feedback/waitingHoggies";
+import { onboardingChecklistOf, onboardingHeadingOf } from "../mondayDm/questsCopy";
+import { onboardingGoalOf, onboardingReward, type OnboardingStep } from "../quests/onboarding";
+import { mondayWelcomeCauseValidator, onboardingJourneyValidator, onboardingStepValidator, type HuggedPeople, type MondayWelcome, type MondayWelcomeOpening } from "../welcome/mondayWelcome";
 import { welcomedAsValidator } from "../welcome/welcomedAs";
 import { appHomeLink, appHomeUrl } from "./appHomeLinks";
 import { escaped, mrkdwn, plainText, urlButtonOf } from "./blocks";
-import { attemptArgs, attemptCall, retryAfter, sendAtMostOnce, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes, type Attempt } from "./delivery";
+import { checklistBlockOf } from "./checklist";
+import { attemptArgs, attemptCall, retryAfter, sendAtMostOnce, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { groupSelectOf } from "./groupPicker";
 import { encodeHomeAction, showMeHowAction } from "./interactivity";
 
@@ -48,28 +50,21 @@ export const updateWelcome = observedAction({
 export const deliverMondayWelcome = observedAction({
   args: { workspace: v.string(), user: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...welcome }) => {
-    const ended: { outcome?: WelcomeOutcome } = {};
+    let delivered = false;
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
         const message = await ctx.runQuery(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: welcome.workspace, member: welcome.member, cause: welcome.cause, journey: welcome.journey });
         const sent = await attemptCall(ctx, welcome.workspace, "chat.postMessage", { channel: welcome.user, ...mondayWelcomeMessageOf(message, welcome.user) });
         if (sent.kind === "held" || sent.kind === "failed") return retryAfter(sent, attempt);
-        ended.outcome = outcomeOf(sent);
+        delivered = sent.kind === "delivered";
         return null;
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.welcome.deliverMondayWelcome, { ...welcome, attempt: retry.attempt }),
-      async () => {
-        ended.outcome = "failed";
-      },
     );
-    if (ended.outcome !== undefined) await ctx.runMutation(internal.welcome.mondayWelcome.welcomeEnded, { workspace: welcome.workspace, member: welcome.member, path: welcome.cause.path, outcome: ended.outcome });
+    if (delivered) await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordWelcomeDmSent, { workspace: welcome.workspace, member: welcome.member, path: welcome.cause.path, at: Date.now() });
   },
 });
-
-function outcomeOf(sent: Extract<Attempt, { kind: "delivered" | "gone" | "unknown" }>): WelcomeOutcome {
-  return sent.kind === "unknown" ? "failed" : sent.kind;
-}
 
 const recipientsNamedAtMost = 3;
 
@@ -79,7 +74,7 @@ const howTos: Record<OnboardingStep, (kudosEmoji: string) => string> = {
   "two-days": () => "Two kudos that say why, on two different days.",
 };
 
-const onboardingReward = "🎁 +50 XP and an unidentified Hoggie for your collection";
+const rewardLine = `🎁 ${hoggieRewardOf(onboardingReward.xp)}`;
 
 export const howToAskedValidator = v.object({ conversation: v.string(), welcome: v.string(), step: onboardingStepValidator });
 
@@ -155,19 +150,12 @@ function recipientsOf(recipients: string[]) {
 
 function cardOf({ journey, next, kudosEmoji }: MondayWelcome) {
   const done = journey.filter(({ finished }) => finished).length;
-  const title = { type: "section", text: mrkdwn(`*Your onboarding journey* · ${done} of ${journey.length} done`) };
-  const checklist = { type: "rich_text", elements: [{ type: "rich_text_list", style: "bullet", indent: 0, elements: journey.map((quest) => checklistItemOf(quest, next)) }] };
+  const title = { type: "section", text: mrkdwn(onboardingHeadingOf(done, journey.length)) };
+  const checklist = checklistBlockOf(onboardingChecklistOf(journey));
   if (next === null) return [title, checklist];
   const showMeHow = { type: "button", text: plainText("Show me how"), action_id: showMeHowAction, value: next };
   const upNext = { type: "section", text: mrkdwn(`*Up next: ${onboardingGoalOf(next).toLowerCase()}.*\n${howTos[next](kudosEmoji)}`), accessory: showMeHow };
-  return [title, checklist, upNext, { type: "context", elements: [mrkdwn(onboardingReward)] }];
-}
-
-function checklistItemOf({ step, goal, finished, progress }: OnboardingQuest, next: OnboardingStep | null) {
-  const isNext = step === next;
-  const mark = finished ? { type: "emoji", name: "white_check_mark" } : isNext ? { type: "emoji", name: "point_right", skin_tone: 2 } : { type: "emoji", name: "white_circle" };
-  const progressShown = progress === null ? [] : [{ type: "text", text: `  ${progress.done} of ${progress.of} ${progress.unit}`, style: { italic: true } }];
-  return { type: "rich_text_section", elements: [mark, { type: "text", text: ` ${goal}`, style: { bold: isNext, strike: finished } }, ...progressShown] };
+  return [title, checklist, upNext, { type: "context", elements: [mrkdwn(rewardLine)] }];
 }
 
 function welcomeButtonsOf({ links, waiting }: MondayWelcome) {

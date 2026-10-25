@@ -9,7 +9,7 @@ import { requestWelcome } from "../feedback/welcome";
 import { hugOf } from "../hugs/records";
 import { earnWelcomeItem } from "../items/welcome";
 import { onboardingShownTo } from "../items/onboardingFlag";
-import { gateDecisionOf } from "../progression/gate";
+import { saysWhy } from "../progression/gate";
 import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { mondayPathShownTo, onTheMondayPath } from "../quests/flag";
@@ -78,11 +78,7 @@ async function welcome(ctx: MutationCtx, event: KudosGivenEvent, { member, as }:
 }
 
 async function welcomeTheThoughtfullyThanked(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
-  if (as === "recipient" && isThoughtful(event)) await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-received", giver: event.giver, kudos: event.message }, event.at);
-}
-
-export function isThoughtful({ annotations }: KudosGivenEvent): boolean {
-  return gateDecisionOf(annotations)?.thoughtful === true;
+  if (as === "recipient" && saysWhy(event.annotations)) await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-received", giver: event.giver, kudos: event.message }, event.at);
 }
 
 async function replyToTheFirstHug(ctx: MutationCtx, event: HugGivenEvent) {

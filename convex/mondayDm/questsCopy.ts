@@ -1,6 +1,8 @@
-import { waitingHoggiesLineOf } from "../feedback/waitingHoggies";
+import { hoggieRewardOf, waitingHoggiesLineOf } from "../feedback/waitingHoggies";
 import type { WaitingCount } from "../items/ledger";
 import type { QuestsSection, SectionQuest } from "../quests/mondaySection";
+import { onboardingReward } from "../quests/onboarding";
+import { mondayReward } from "../quests/pool";
 
 export type ChecklistItem = { goal: string; mark: "done" | "next" | "open"; progress: string | null };
 
@@ -9,8 +11,8 @@ export type QuestsCopy = { heading: string; checklist: ChecklistItem[] };
 const countWords = ["no", "one", "two", "three"];
 
 const rewardOf: Record<QuestsSection["kind"], string> = {
-  onboarding: "+50 XP and an unidentified Hoggie for your collection",
-  drawn: "+20 XP and an unidentified Hoggie for your collection",
+  onboarding: hoggieRewardOf(onboardingReward.xp),
+  drawn: hoggieRewardOf(mondayReward.xp),
 };
 
 export function questsCopyOf(section: QuestsSection, waiting: WaitingCount): QuestsCopy {
@@ -26,12 +28,24 @@ function headingLinesOf(section: QuestsSection): string[] {
     return [`Happy Monday :sun_with_face: Here ${count === 1 ? "is one quest" : `are ${countWordOf(count)} quests`} for your week. ${eachPays(count, reward)}`];
   }
   const left = section.quests.length - section.done;
-  return [`*Your onboarding journey* · ${section.done} of ${section.quests.length} done`, `${capitalized(countWordOf(left))} ${left === 1 ? "quest" : "quests"} left this week. ${eachPays(left, reward)}`];
+  return [onboardingHeadingOf(section.done, section.quests.length), `${capitalized(countWordOf(left))} ${left === 1 ? "quest" : "quests"} left. ${eachPays(left, reward)}`];
+}
+
+export function onboardingHeadingOf(done: number, of: number): string {
+  return `*Your onboarding journey* · ${done} of ${of} done`;
+}
+
+export function onboardingChecklistOf(quests: SectionQuest[]): ChecklistItem[] {
+  const next = quests.findIndex(({ finished }) => !finished);
+  return quests.map((quest, index) => checklistItemOf(quest, index === next));
 }
 
 function checklistOf(section: QuestsSection): ChecklistItem[] {
-  const next = section.kind === "onboarding" ? section.quests.findIndex(({ finished }) => !finished) : -1;
-  return section.quests.map((quest, index) => ({ goal: quest.goal, mark: quest.finished ? "done" : index === next ? "next" : "open", progress: progressOf(quest) }));
+  return section.kind === "onboarding" ? onboardingChecklistOf(section.quests) : section.quests.map((quest) => checklistItemOf(quest, false));
+}
+
+function checklistItemOf(quest: SectionQuest, isNext: boolean): ChecklistItem {
+  return { goal: quest.goal, mark: quest.finished ? "done" : isNext ? "next" : "open", progress: progressOf(quest) };
 }
 
 function progressOf({ finished, progress }: SectionQuest): string | null {

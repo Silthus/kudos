@@ -36,7 +36,7 @@ export type QuestPool = { version: string; quests: readonly PoolQuest[] };
 
 const personalReward = { xp: 20, coins: 10, item: null };
 
-const mondayReward = { xp: 20, coins: 0, item: null };
+export const mondayReward = { xp: 20, coins: 0, item: null };
 
 export const questPool = {
   version: "2",
@@ -56,6 +56,10 @@ export const mondayQuestPool = {
   version: mondayCatalogueVersion,
   quests: questPool.quests.map((quest) => ({ ...quest, reward: mondayReward })),
 } as const satisfies QuestPool;
+
+export function withoutFullStop(goal: string): string {
+  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
+}
 
 export function questOf(quest: QuestId): PoolQuest {
   return questPool.quests.find((entry) => entry.quest === quest)!;

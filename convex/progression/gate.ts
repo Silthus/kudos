@@ -23,6 +23,10 @@ export function gateDecisionOf(annotations: Annotations): GateDecision | null {
   return { version: gate.version, thoughtful: gate.thoughtful };
 }
 
+export function saysWhy(annotations: Annotations): boolean {
+  return gateDecisionOf(annotations)?.thoughtful === true;
+}
+
 export function wordCountOf(annotations: Annotations): number | null {
   const gate = annotations.gate;
   if (typeof gate !== "object" || typeof gate.words !== "number") return null;

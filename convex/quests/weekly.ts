@@ -256,7 +256,7 @@ async function finishDrawnQuest(ctx: MutationCtx, { workspace, at, message }: Ku
   return true;
 }
 
-function isMondayDraw({ slots }: Draw): boolean {
+export function isMondayDraw({ slots }: { slots: Array<{ catalogueVersion: string }> }): boolean {
   return slots.some(isPaidOnTheMondayPath);
 }
 

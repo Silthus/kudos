@@ -4,21 +4,16 @@ import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import type { Id } from "../_generated/dataModel";
 import type { MondayDm, MondayQuests } from "../mondayDm/mondayDm";
-import type { ChecklistItem } from "../mondayDm/questsCopy";
 import type { MondayDmContent } from "../mondayDm/records";
 import type { HugsSection } from "../hugs/recap";
 import type { MondayWelcome } from "../welcome/mondayWelcome";
 import { buttonOf, mrkdwn, urlButtonOf } from "./blocks";
+import { checklistBlockOf } from "./checklist";
 import { attemptArgs, attemptCall, isRateLimited, retryAfter, sendOnce, tryAtMostThreeTimes, type Attempt } from "./delivery";
 import { emojiLineBlockOf, footerOf, lineTextOf, postRecap } from "./hugsRecap";
 import { mondayWelcomeMessageOf } from "./welcome";
 
 const triesAtMost = 3;
-const marks: Record<ChecklistItem["mark"], { type: "emoji"; name: string; skin_tone?: number }> = {
-  done: { type: "emoji", name: "white_check_mark" },
-  next: { type: "emoji", name: "point_right", skin_tone: 2 },
-  open: { type: "emoji", name: "white_circle" },
-};
 
 export const sendMondayDm = observedAction({
   args: { dm: v.id("mondayDms"), attempt: v.number() },
@@ -107,16 +102,6 @@ function footerBlocksOf(workspace: string, footer: MondayDmContent["footer"]) {
 
 function hugsBlocksOf({ lines, emojiLine }: HugsSection) {
   return [{ type: "section", text: mrkdwn(lines.map(lineTextOf).join("\n")) }, ...(emojiLine === null ? [] : [emojiLineBlockOf(emojiLine)]), { type: "divider" }];
-}
-
-function checklistBlockOf(checklist: ChecklistItem[]) {
-  return { type: "rich_text", elements: [{ type: "rich_text_list", style: "bullet", indent: 0, elements: checklist.map(checklistItemOf) }] };
-}
-
-function checklistItemOf({ goal, mark, progress }: ChecklistItem) {
-  const goalText = { type: "text", text: ` ${goal}`, style: { bold: mark === "next", strike: mark === "done" } };
-  const progressText = progress === null ? [] : [{ type: "text", text: `  ${progress}`, style: { italic: true } }];
-  return { type: "rich_text_section", elements: [marks[mark], goalText, ...progressText] };
 }
 
 function buttonsOf(dm: Id<"mondayDms">, { waiting, links }: MondayQuests) {

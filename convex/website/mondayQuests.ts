@@ -1,19 +1,14 @@
 import type { QueryCtx } from "../_generated/server";
-import { givenBetween } from "../engine/awards";
 import { hasHuggedBefore } from "../hugs/records";
 import { earnedItemOf, newestTurnOf } from "../items/ledger";
-import { gateDecisionOf } from "../progression/gate";
-import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { questItemKeyOf } from "../quests/finish";
 import { saysWhyCounts } from "../quests/journeyCopy";
-import { isPaidOnTheMondayPath } from "../quests/mondayCatalogue";
-import { nextOnboardingQuestOf, onboardingFinishedBy, onboardingGoalOf, onboardingReward, type OnboardingStep } from "../quests/onboarding";
-import type { QuestId } from "../quests/pool";
-import { questStartOf } from "../quests/start";
+import { nextOnboardingQuestOf, onboardingFinishedBy, onboardingGoalOf, onboardingQuestFactsOf, onboardingReward, onboardingTargetOf, type OnboardingQuestFacts, type OnboardingStep } from "../quests/onboarding";
+import { withoutFullStop, type QuestId } from "../quests/pool";
 import type { Quest } from "../quests/step";
 import { daysLeftInWeek } from "../quests/week";
-import { drawnWeekOf, type DrawnWeek } from "../quests/weekly";
+import { drawnWeekOf, isMondayDraw, type DrawnWeek } from "../quests/weekly";
 import type { MemberId } from "../workspace/directory";
 import { followTheClock } from "./clock";
 import type { VerifiedMember } from "./memberQuery";
@@ -32,13 +27,9 @@ export type MondayQuestList = { kind: "journey"; steps: GettingStartedStep[] } |
 
 export type MondayQuests = { kind: "monday"; firstName: string | null; next: OnboardingStep | null; daysLeft: number; quests: MondayQuestList };
 
-const daysSayingWhyForTwoDays = 2;
-
-const once: QuestProgress = { done: 0, target: 1 };
-
 const guidance: Record<"hug" | "turn", { goal: string; hint: string | null }> = {
   hug: { goal: "Give your first hug", hint: "React with your kudos emoji on any message in Slack." },
-  turn: { goal: "Turn the hoggie it left on your board", hint: null },
+  turn: { goal: "Identify the hoggie it left on your board", hint: null },
 };
 
 const questHints: Record<OnboardingStep, string> = {
@@ -62,21 +53,18 @@ export async function mondayQuestsOf(ctx: QueryCtx, me: VerifiedMember): Promise
 
 async function questListOf(ctx: QueryCtx, member: MemberId, at: number): Promise<MondayQuestList> {
   const week = (await onboardingFinishedBy(ctx, member)) ? await drawnWeekOf(ctx, member, at) : null;
-  if (week === null || !isMondayWeek(week)) return { kind: "journey", steps: await gettingStartedOf(ctx, member, at) };
+  if (week === null || !isMondayDraw(week)) return { kind: "journey", steps: await gettingStartedOf(ctx, member, at) };
   return { kind: "drawn", quests: await Promise.all(week.slots.map((slot) => drawnQuestOf(ctx, member, slot))) };
 }
 
-function isMondayWeek({ slots }: DrawnWeek): boolean {
-  return slots.some(isPaidOnTheMondayPath);
-}
-
 async function gettingStartedOf(ctx: QueryCtx, member: MemberId, at: number): Promise<GettingStartedStep[]> {
+  const quests = await onboardingQuestFactsOf(ctx, member, at);
   return [
     guidanceStep("hug", await hasHuggedBefore(ctx, member)),
-    await questStepOf(ctx, member, "first-thanks", once),
+    await questStepOf(ctx, member, quests["first-thanks"]),
     guidanceStep("turn", (await newestTurnOf(ctx, member)) !== null),
-    await questStepOf(ctx, member, "someone-new", once),
-    await questStepOf(ctx, member, "two-days", { done: await daysSayingWhySinceTheStart(ctx, member, at), target: daysSayingWhyForTwoDays }),
+    await questStepOf(ctx, member, quests["someone-new"]),
+    await questStepOf(ctx, member, quests["two-days"]),
   ];
 }
 
@@ -84,37 +72,29 @@ function guidanceStep(step: "hug" | "turn", done: boolean): GettingStartedStep {
   return { step, ...guidance[step], progress: { done: done ? 1 : 0, target: 1 }, done, reward: null, item: null };
 }
 
-async function questStepOf(ctx: QueryCtx, member: MemberId, step: OnboardingStep, unfinished: QuestProgress): Promise<GettingStartedStep> {
-  const quest: Quest = { kind: "journey", step };
-  const finish = await rewardOf(ctx, member, rewardKeyOf(quest));
+async function questStepOf(ctx: QueryCtx, member: MemberId, { step, finish, progress }: OnboardingQuestFacts): Promise<GettingStartedStep> {
+  const target = onboardingTargetOf(step);
   const done = finish !== null;
   return {
     step,
     goal: onboardingGoalOf(step),
     hint: questHints[step],
-    progress: done ? { done: unfinished.target, target: unfinished.target } : unfinished,
+    progress: { done: done ? target : (progress?.done ?? 0), target },
     done,
     reward: { xp: finish?.xp ?? onboardingReward.xp },
-    item: done ? await itemStateOf(ctx, member, quest) : null,
+    item: done ? await itemStateOf(ctx, member, { kind: "journey", step }) : null,
   };
 }
 
 async function drawnQuestOf(ctx: QueryCtx, member: MemberId, { quest, goal, progress, target, finishedAt, reward, crate }: DrawnWeek["slots"][number]): Promise<DrawnQuest> {
   const done = finishedAt !== null;
-  return { quest, goal: goal.replace(/\.$/, ""), progress: { done: progress, target }, done, reward: { xp: reward.xp }, item: done ? await itemStateOf(ctx, member, crate) : null };
+  return { quest, goal: withoutFullStop(goal), progress: { done: progress, target }, done, reward: { xp: reward.xp }, item: done ? await itemStateOf(ctx, member, crate) : null };
 }
 
 async function itemStateOf(ctx: QueryCtx, member: MemberId, quest: Quest): Promise<QuestItemState> {
   const item = await earnedItemOf(ctx, member, "hoggie", questItemKeyOf(rewardKeyOf(quest)));
   if (item === null) return null;
   return item.turnedAt === undefined ? "waiting" : "turned";
-}
-
-async function daysSayingWhySinceTheStart(ctx: QueryCtx, member: MemberId, at: number): Promise<number> {
-  const start = await questStartOf(ctx, member);
-  if (start === null) return 0;
-  const sayingWhy = (await givenBetween(ctx, member, start, at)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
-  return Math.min(daysSayingWhyForTwoDays, new Set(sayingWhy.map(({ day }) => day)).size);
 }
 
 function firstNameOf({ givenName, name }: VerifiedMember): string | null {

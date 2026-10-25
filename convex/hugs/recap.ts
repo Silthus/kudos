@@ -189,7 +189,7 @@ function hugsOf(count: number) {
   return count === 1 ? "1 hug" : `${count} hugs`;
 }
 
-function mondayAfter(week: DayKey): DayKey {
+export function mondayAfter(week: DayKey): DayKey {
   return mondayShiftedBy(week, 7);
 }
 
