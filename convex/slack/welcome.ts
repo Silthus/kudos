@@ -5,12 +5,12 @@ import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from ".
 import { hoggieRewardOf, waitingHoggiesLineOf } from "../feedback/waitingHoggies";
 import { onboardingChecklistOf, onboardingHeadingOf } from "../mondayDm/questsCopy";
 import { onboardingGoalOf, onboardingReward, type OnboardingStep } from "../quests/onboarding";
-import { mondayWelcomeCauseValidator, onboardingJourneyValidator, onboardingStepValidator, type HuggedPeople, type MondayWelcome, type MondayWelcomeOpening, type WelcomeOutcome } from "../welcome/mondayWelcome";
+import { mondayWelcomeCauseValidator, onboardingJourneyValidator, onboardingStepValidator, type HuggedPeople, type MondayWelcome, type MondayWelcomeOpening } from "../welcome/mondayWelcome";
 import { welcomedAsValidator } from "../welcome/welcomedAs";
 import { appHomeLink, appHomeUrl } from "./appHomeLinks";
 import { escaped, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { checklistBlockOf } from "./checklist";
-import { attemptArgs, attemptCall, retryAfter, sendAtMostOnce, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes, type Attempt } from "./delivery";
+import { attemptArgs, attemptCall, retryAfter, sendAtMostOnce, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { groupSelectOf } from "./groupPicker";
 import { encodeHomeAction, showMeHowAction } from "./interactivity";
 
@@ -50,28 +50,21 @@ export const updateWelcome = observedAction({
 export const deliverMondayWelcome = observedAction({
   args: { workspace: v.string(), user: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...welcome }) => {
-    const ended: { outcome?: WelcomeOutcome } = {};
+    let delivered = false;
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
         const message = await ctx.runQuery(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: welcome.workspace, member: welcome.member, cause: welcome.cause, journey: welcome.journey });
         const sent = await attemptCall(ctx, welcome.workspace, "chat.postMessage", { channel: welcome.user, ...mondayWelcomeMessageOf(message, welcome.user) });
         if (sent.kind === "held" || sent.kind === "failed") return retryAfter(sent, attempt);
-        ended.outcome = outcomeOf(sent);
+        delivered = sent.kind === "delivered";
         return null;
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.welcome.deliverMondayWelcome, { ...welcome, attempt: retry.attempt }),
-      async () => {
-        ended.outcome = "failed";
-      },
     );
-    if (ended.outcome !== undefined) await ctx.runMutation(internal.welcome.mondayWelcome.welcomeEnded, { workspace: welcome.workspace, member: welcome.member, path: welcome.cause.path, outcome: ended.outcome });
+    if (delivered) await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordWelcomeDmSent, { workspace: welcome.workspace, member: welcome.member, path: welcome.cause.path, at: Date.now() });
   },
 });
-
-function outcomeOf(sent: Extract<Attempt, { kind: "delivered" | "gone" | "unknown" }>): WelcomeOutcome {
-  return sent.kind === "unknown" ? "failed" : sent.kind;
-}
 
 const recipientsNamedAtMost = 3;
 

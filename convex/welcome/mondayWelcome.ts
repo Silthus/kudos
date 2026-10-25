@@ -1,6 +1,5 @@
 import { v, type Infer } from "convex/values";
-import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
-import { reportWelcomeDmSent } from "../analytics/isolatedUsage";
+import { internalQuery, type QueryCtx } from "../_generated/server";
 import { awardsOfMessage } from "../engine/awards";
 import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
 import { publicQuoteOf } from "../feedback/welcomeNudge";
@@ -10,7 +9,6 @@ import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { welcomePathValidator } from "./welcomedAs";
 
 export const mondayWelcomeCauseValidator = v.union(
   v.object({ path: v.literal("hug"), hugged: messageRefValidator }),
@@ -63,17 +61,6 @@ export const mondayWelcomeOf = internalQuery({
 export const howToOf = internalQuery({
   args: { workspace: v.string() },
   handler: async (ctx, { workspace }) => ({ kudosEmoji: (await settingsOf(ctx, workspace)).kudosEmoji }),
-});
-
-export const welcomeOutcomeValidator = v.union(v.literal("delivered"), v.literal("gone"), v.literal("failed"));
-
-export type WelcomeOutcome = Infer<typeof welcomeOutcomeValidator>;
-
-export const welcomeEnded = internalMutation({
-  args: { workspace: v.string(), member: v.id("members"), path: welcomePathValidator, outcome: welcomeOutcomeValidator },
-  handler: async (ctx, { workspace, member, path, outcome }): Promise<void> => {
-    if (outcome === "delivered") await reportWelcomeDmSent(ctx, { workspace, member, path, at: Date.now() });
-  },
 });
 
 async function openingOf(ctx: QueryCtx, member: MemberId, cause: MondayWelcomeCause): Promise<MondayWelcomeOpening> {

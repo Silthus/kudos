@@ -162,12 +162,6 @@ const welcomeDmSentValidator = v.object({
   at: v.number(),
 });
 
-export type WelcomeDmSent = Infer<typeof welcomeDmSentValidator>;
-
-export async function reportWelcomeDmSent(ctx: MutationCtx, sent: WelcomeDmSent) {
-  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordWelcomeDmSent, sent);
-}
-
 export const recordWelcomeDmSent = internalMutation({
   args: welcomeDmSentValidator,
   handler: async (ctx, { path, ...sent }): Promise<void> => {
