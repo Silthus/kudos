@@ -1,6 +1,7 @@
 import { internal } from "../_generated/api";
 import { observedHttpAction } from "../analytics/boundary";
 import type { DmLink } from "../analytics/isolatedUsage";
+import { dmKindValidator, dmLinkDestinationValidator } from "../analytics/projections";
 import { commandOf, isWebsiteOnly, type Command } from "../commands/commands";
 import { onboardingSteps } from "../quests/onboarding";
 import type { ActionCtx } from "../_generated/server";
@@ -16,9 +17,9 @@ type Action = {
   selected_options?: Array<{ value: string }>;
 };
 
-const dmKinds = ["welcome", "monday"] as const satisfies readonly DmLink["dm"][];
+const dmKinds: readonly DmLink["dm"][] = dmKindValidator.members.map(({ value }) => value);
 
-const dmLinkDestinations = ["book", "quests", "quests-how"] as const satisfies readonly DmLink["destination"][];
+const dmLinkDestinations: readonly DmLink["destination"][] = dmLinkDestinationValidator.members.map(({ value }) => value);
 
 export const showMeHowAction = "dm-link:welcome:quests-how";
 

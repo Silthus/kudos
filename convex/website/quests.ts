@@ -1,6 +1,6 @@
-import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import { reportQuestsViewed } from "../analytics/isolatedUsage";
+import { questsSurfaceValidator } from "../analytics/projections";
 import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { onTheMondayPath, questsApplyTo, questsFor } from "../quests/flag";
@@ -104,7 +104,7 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
 });
 
 export const viewQuests = memberMutation({
-  args: { surface: v.union(v.literal("panel"), v.literal("profile")) },
+  args: { surface: questsSurfaceValidator },
   handler: async (ctx, me, _person, { surface }): Promise<QuestsViewAnswer> => {
     if (!(await onTheMondayPath(ctx, me.member))) return { kind: "refused" };
     await reportQuestsViewed(ctx, { workspace: me.workspace, member: me.member, surface, at: Date.now() });

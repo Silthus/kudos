@@ -6,6 +6,7 @@ import { messageKindValidator, messagePlaceValidator } from "../messageSettings/
 import { mondayDmSectionValidator } from "../mondayDm/records";
 import { welcomePathValidator } from "../welcome/welcomedAs";
 import { failuresLogged } from "./failures";
+import { dmKindValidator, dmLinkDestinationValidator, questsSurfaceValidator } from "./projections";
 import { recordUsage, usageNotRecorded } from "./usage";
 
 const leaderboardViewValidator = v.object({
@@ -137,10 +138,7 @@ export const recordMondayDmSent = internalMutation({
   },
 });
 
-export const dmLinkValidator = v.object({
-  dm: v.union(v.literal("welcome"), v.literal("monday")),
-  destination: v.union(v.literal("book"), v.literal("quests"), v.literal("quests-how")),
-});
+export const dmLinkValidator = v.object({ dm: dmKindValidator, destination: dmLinkDestinationValidator });
 
 export type DmLink = Infer<typeof dmLinkValidator>;
 
@@ -222,7 +220,7 @@ export const recordHowItWorksClosed = internalMutation({
 const questsViewValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
-  surface: v.union(v.literal("panel"), v.literal("profile")),
+  surface: questsSurfaceValidator,
   at: v.number(),
 });
 
