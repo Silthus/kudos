@@ -160,7 +160,7 @@ function Note({ note }: { note: KindNote }) {
         Someone wrote to you
       </p>
       <blockquote>
-        <KudosMessage message={note.message} clamped={false} />
+        <KudosMessage message={note.message} />
       </blockquote>
       <figcaption>
         <AppLink href={hrefOf({ kind: "person", person: note.giver.person })} className="al-profile-note-by">

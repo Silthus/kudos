@@ -5,7 +5,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import type { AlbumLevel } from "./answer";
 import type { XpMomentAhead } from "./visitArrival";
 
-export const xpMomentTiming = { settleMs: 600, staggerMs: 170, readBeatMs: 550, holdMs: 2000, holdPerCardMs: 700, dissolveStaggerMs: 140, sweepMs: 720, beatMs: 550, streamMs: 700, streamSteps: 10, landedMs: 380, caughtUpMs: 2600 } as const;
+export const xpMomentTiming = { settleMs: 600, staggerMs: 170, readBeatMs: 550, dissolveStaggerMs: 140, sweepMs: 720, beatMs: 550, streamMs: 700, streamSteps: 10, landedMs: 380, caughtUpMs: 2600 } as const;
 
 export type XpMomentPhase = "settle" | "arrive" | "hold" | "collect" | "stream" | "takeover" | "caughtUp" | "done";
 
@@ -53,9 +53,9 @@ export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: 
   const afterTheBar = moment !== null && crossesALevel(moment.climb) ? "takeover" : landed;
   useEffect(() => {
     if (phase === null) return;
-    const timers = stepsOf(phase, cards.length, { setPhase, advance, collect, afterTheBar }).map(([ms, step]) => window.setTimeout(step, ms));
+    const timers = stepsOf(phase, cards.length, { setPhase, advance, afterTheBar }).map(([ms, step]) => window.setTimeout(step, ms));
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [phase, cards.length, advance, collect, afterTheBar]);
+  }, [phase, cards.length, advance, afterTheBar]);
   useEndedOnceItLands(phase, onEnd);
   useEscapeLandsIt(phase, skip, () => setPhase("done"));
   if (moment === null || phase === null) return { play: null, waits: ahead === "reading", covers: false, heldLevel: null, climbing: null, ended: null };
@@ -63,18 +63,16 @@ export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: 
   return { play: onTheCanvas.has(phase) ? play : null, waits: phase !== "done", covers: onTheCanvas.has(phase), heldLevel: playing.has(phase) ? barLevelOf(moment, progress.filled) : null, climbing: playing.has(phase) ? moment.climb : null, ended: playing.has(phase) ? null : moment };
 }
 
-type Setters = { setPhase: (phase: XpMomentPhase) => void; advance: (patch: Partial<Progress>) => void; collect: () => void; afterTheBar: XpMomentPhase };
+type Setters = { setPhase: (phase: XpMomentPhase) => void; advance: (patch: Partial<Progress>) => void; afterTheBar: XpMomentPhase };
 
-function stepsOf(phase: XpMomentPhase, count: number, { setPhase, advance, collect, afterTheBar }: Setters): Step[] {
-  const { settleMs, staggerMs, readBeatMs, holdMs, holdPerCardMs, dissolveStaggerMs, sweepMs, beatMs, streamMs, streamSteps, landedMs, caughtUpMs } = xpMomentTiming;
+function stepsOf(phase: XpMomentPhase, count: number, { setPhase, advance, afterTheBar }: Setters): Step[] {
+  const { settleMs, staggerMs, readBeatMs, dissolveStaggerMs, sweepMs, beatMs, streamMs, streamSteps, landedMs, caughtUpMs } = xpMomentTiming;
   const each = (from: number, step: (index: number) => Step) => Array.from({ length: Math.max(0, count - from) }, (_, index) => step(index + from));
   switch (phase) {
     case "settle":
       return [[settleMs, () => (setPhase("arrive"), advance({ out: Math.min(1, count) }))]];
     case "arrive":
       return [...each(1, (index): Step => [index * staggerMs, () => advance({ out: index + 1 })]), [count * staggerMs + readBeatMs, () => setPhase("hold")]];
-    case "hold":
-      return [[holdMs + holdPerCardMs * count, collect]];
     case "collect":
       return [...each(1, (index): Step => [index * dissolveStaggerMs, () => advance({ dissolving: index + 1 })]), ...each(0, (index): Step => [index * dissolveStaggerMs + sweepMs, () => advance({ dissolved: index + 1 })]), [Math.max(0, count - 1) * dissolveStaggerMs + sweepMs + beatMs, () => setPhase("stream")]];
     case "stream":

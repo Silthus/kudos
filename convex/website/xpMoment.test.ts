@@ -90,6 +90,15 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect(moment.excerpts[0]!.entry).toMatchObject({ kind: "kudosReceived", giver: { name: bob.name } });
   });
 
+  test("each mention in an excerpt names the member it means, so the reader's own mention tells apart from a namesake's", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+
+    const { entry } = (await theMomentOf(asAlice)).excerpts[0]!;
+
+    expect(entry).toMatchObject({ kind: "kudosReceived", message: { segments: expect.arrayContaining([{ kind: "person", name: alice.name, person: await memberOf(alice) }]) } });
+  });
+
   test("past five, the newest five show oldest first and the rest fold into one line with their XP", async () => {
     const asAlice = await aReturningMember(alice);
     const received: number[] = [];
