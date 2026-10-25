@@ -2,7 +2,7 @@
 base=$1
 for width in 1024 1280 1440 1536; do
   agent-browser set viewport $width 900 >/dev/null
-  for path in "/book#me" "/book#hoggies" "/book#milestones" "/book#packs" "/activity" "/leaderboard" "/settings"; do
+  for path in "/book#me" "/book#hoggies" "/book#milestones" "/book#packs" "/activity" "/leaderboard" "/settings" "/book#teams/kettle-works"; do
     agent-browser open "$base$path" >/dev/null
     agent-browser eval 'localStorage.setItem("hedgehug:quests-panel","folded")' >/dev/null
     agent-browser open "$base$path" >/dev/null

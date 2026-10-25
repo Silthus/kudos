@@ -29,7 +29,7 @@
 
 @media (min-width: 64rem) {
   .al-shell:has(.al-quests-tab) .al-main {
-    padding-right: calc(var(--al-quests-tab-width) + 1rem);
+    padding-right: calc(var(--al-quests-tab-width) + 2rem);
   }
 }
 
