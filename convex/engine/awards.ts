@@ -224,16 +224,9 @@ export async function earliestAwardFrom(ctx: QueryCtx, giver: MemberId, recipien
   return earliest === null ? null : { award: earliest._id, at: earliest.at, created: earliest._creationTime };
 }
 
-export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
-  const awards = await ctx.db
-    .query("awards")
-    .withIndex("by_giver", (q) => q.eq("giver", giver))
-    .collect();
-  const lastThanked = new Map<MemberId, number>();
-  for (const { recipient, at } of awards) {
-    if (at <= atOrBefore && at > (lastThanked.get(recipient) ?? -Infinity)) lastThanked.set(recipient, at);
-  }
-  return lastThanked;
+export async function thankedAtOrBefore(ctx: QueryCtx, giver: MemberId, recipient: MemberId, atOrBefore: number): Promise<boolean> {
+  for await (const { at } of ctx.db.query("awards").withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))) if (at <= atOrBefore) return true;
+  return false;
 }
 
 const thankedBeforeSince = -Infinity;

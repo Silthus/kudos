@@ -12,7 +12,7 @@ import {
 } from "../bus/events";
 import type { DayKey } from "../engine/allowance";
 import type { MessageRef } from "../engine/messageEvent";
-import { firstThanksOf, givenBetween, lastThankedBefore, lastThankedBy, type DatedAward } from "../engine/awards";
+import { firstThanksOf, givenBetween, lastThankedBefore, thankedAtOrBefore, type DatedAward } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
@@ -236,10 +236,9 @@ async function finishOnceEveryoneIsThanked(ctx: MutationCtx, workspace: string, 
   if (!(await isFinished(ctx, someoneNew)) && (await hasThankedEveryone(ctx, workspace, someoneNew.member, at))) await finish(ctx, workspace, someoneNew, at);
 }
 
-async function hasThankedEveryone(ctx: QueryCtx, workspace: string, member: MemberId, at: number) {
-  const thanked = await lastThankedBy(ctx, member, at);
-  const teammates = await teammatesOf(ctx, workspace, member);
-  return teammates.every((teammate) => thanked.has(teammate));
+export async function hasThankedEveryone(ctx: QueryCtx, workspace: string, member: MemberId, at: number): Promise<boolean> {
+  for (const teammate of await teammatesOf(ctx, workspace, member)) if (!(await thankedAtOrBefore(ctx, member, teammate, at))) return false;
+  return true;
 }
 
 async function isFinished(ctx: QueryCtx, { member, step }: JourneyActivation) {
