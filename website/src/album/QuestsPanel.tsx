@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type KeyboardEvent, type RefObject } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { IconCheck, IconChevronRight } from "@posthog/icons";
 import type { DrawnQuest, GettingStartedStep, MondayQuests } from "../../../convex/website/quests";
 import type { QuestsSurface } from "../shell";
@@ -9,7 +9,7 @@ import "./quests.css";
 
 export type ShellQuests = { quests: MondayQuests; inSight: boolean; openBoard: () => void; landing: QuestsLanding; view: (surface: QuestsSurface) => void };
 
-type Row = { goal: string; hint: string | null; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
+type Row = { goal: string; hint: string | null; howToOpen: boolean; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
 
 const QuestsContext = createContext<ShellQuests | null>(null);
 
@@ -73,12 +73,12 @@ function focus(button: RefObject<HTMLButtonElement | null>) {
 export function ProfileQuests() {
   const shown = useContext(QuestsContext);
   useViewedOnEachOpen(shown !== null, shown?.inSight ?? false, () => shown?.view("profile"));
-  const section = useLandedAt(shown?.landing);
+  const { section, howTo } = useLandedAt(shown?.landing);
   if (shown === null) return null;
   return (
     <section ref={section} id="quests" className="al-quests al-quests-profile" aria-label="Your quests" tabIndex={-1} data-panel-target="quests">
       <Greeting quests={shown.quests} />
-      <QuestList quests={shown.quests} openBoard={shown.openBoard} />
+      <QuestList quests={shown.quests} openBoard={shown.openBoard} howTo={howTo} />
       <Footer quests={shown.quests} />
     </section>
   );
@@ -86,13 +86,15 @@ export function ProfileQuests() {
 
 function useLandedAt(landing: QuestsLanding | undefined) {
   const section = useRef<HTMLElement>(null);
+  const [howTo, setHowTo] = useState<string | null>(null);
   useEffect(() => {
     if (!landing?.asked || section.current === null) return;
     section.current.scrollIntoView({ block: "start" });
     section.current.focus({ preventScroll: true });
+    setHowTo(landing.asked.howTo);
     landing.landed();
   }, [landing]);
-  return section;
+  return { section, howTo };
 }
 
 function Greeting({ quests }: { quests: MondayQuests }) {
@@ -114,9 +116,9 @@ function Footer({ quests }: { quests: MondayQuests }) {
   return <footer className="al-quests-foot">{quests.quests.kind === "drawn" ? `${daysLeftWords(quests.daysLeft)} · new quests Monday at 9:00` : "Once these are done, three new quests arrive every Monday."}</footer>;
 }
 
-function QuestList({ quests: { quests }, openBoard }: { quests: MondayQuests; openBoard: () => void }) {
+function QuestList({ quests: { quests }, openBoard, howTo = null }: { quests: MondayQuests; openBoard: () => void; howTo?: string | null }) {
   if (quests.kind === "drawn") return <Checklist rows={quests.quests.map(drawnRowOf)} openBoard={openBoard} />;
-  return <Journey rows={quests.steps.map(journeyRowOf)} openBoard={openBoard} />;
+  return <Journey rows={quests.steps.map((step) => journeyRowOf(step, step.step === howTo))} openBoard={openBoard} />;
 }
 
 function Journey({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) {
@@ -131,7 +133,7 @@ function Journey({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) {
           <div className="al-quests-words">
             {row === next && <span className="al-quests-next">Next</span>}
             <span className="al-quests-goal">{row.goal}</span>
-            {row === next && row.hint !== null && <span className="al-quests-hint">{row.hint}</span>}
+            {(row === next || row.howToOpen) && row.hint !== null && <span className="al-quests-hint">{row.hint}</span>}
             {row.progress.target > 1 && !row.done && <Progress row={row} />}
             {row.boardLink && <BoardLink openBoard={openBoard} />}
           </div>
@@ -211,12 +213,12 @@ function DoneRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-function journeyRowOf({ goal, hint, progress, done, reward, item }: GettingStartedStep): Row {
-  return { goal, hint, progress, done, reward, boardLink: item === "waiting" };
+function journeyRowOf({ goal, hint, progress, done, reward, item }: GettingStartedStep, howToOpen: boolean): Row {
+  return { goal, hint, howToOpen, progress, done, reward, boardLink: item === "waiting" };
 }
 
 function drawnRowOf({ goal, progress, done, reward, item }: DrawnQuest): Row {
-  return { goal, hint: null, progress, done, reward, boardLink: item === "waiting" };
+  return { goal, hint: null, howToOpen: false, progress, done, reward, boardLink: item === "waiting" };
 }
 
 function rowLabelOf({ goal, done, reward }: Row, next: boolean) {

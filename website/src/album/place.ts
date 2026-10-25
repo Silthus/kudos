@@ -60,8 +60,11 @@ function withoutItsView(place: Place): Place {
 
 const pageSections = new Set(["teams", "people", "me", "hoggies", "milestones", "packs", "level-up"]);
 
-export function asksForTheQuests(hash: string) {
-  return /^#me\/quests(\/|$)/.test(hash);
+export type QuestsAsked = { howTo: string | null };
+
+export function questsAskedIn(hash: string): QuestsAsked | null {
+  const asked = /^#me\/quests(?:\/([^/]+))?\/?$/.exec(hash);
+  return asked === null ? null : { howTo: asked[1] === undefined ? null : decoded(asked[1]) };
 }
 
 export function isAnAlbumHash(hash: string) {
