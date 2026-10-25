@@ -137,6 +137,26 @@ export const recordMondayDmSent = internalMutation({
   },
 });
 
+export const dmLinkValidator = v.object({
+  dm: v.union(v.literal("welcome"), v.literal("monday")),
+  destination: v.union(v.literal("book"), v.literal("quests"), v.literal("quests-how")),
+});
+
+export type DmLink = Infer<typeof dmLinkValidator>;
+
+const dmLinkClickValidator = v.object({ workspace: v.string(), member: v.id("members"), ...dmLinkValidator.fields, at: v.number() });
+
+export async function reportDmLinkClicked(ctx: MutationCtx, click: Infer<typeof dmLinkClickValidator>) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordDmLinkClicked, click);
+}
+
+export const recordDmLinkClicked = internalMutation({
+  args: dmLinkClickValidator,
+  handler: async (ctx, click): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "dmLinkClicked", ...click }));
+  },
+});
+
 const welcomeDmSentValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),

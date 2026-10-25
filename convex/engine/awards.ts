@@ -350,6 +350,14 @@ export async function hasGivenAnAward(ctx: QueryCtx, giver: MemberId): Promise<b
   return any !== null;
 }
 
+export async function hasReceivedAnAward(ctx: QueryCtx, recipient: MemberId): Promise<boolean> {
+  const any = await ctx.db
+    .query("awards")
+    .withIndex("by_recipient_decided", (q) => q.eq("recipient", recipient))
+    .first();
+  return any !== null;
+}
+
 export async function firstThanksOf(ctx: QueryCtx, giver: MemberId): Promise<number[]> {
   const awards = await ctx.db
     .query("awards")

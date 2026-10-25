@@ -341,6 +341,57 @@ describe("MQ29 MQ30: one press on Stop Monday quests stops them, replacing the D
   });
 });
 
+describe("MQ35: a link button's dm-link action records dm link clicked, on the welcome's links and the Monday DM's alike", { timeout: 60_000 }, () => {
+  test("each Monday DM link pressed records its destination", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await mondayArrives();
+
+    await press(alice, "Identify them on the website");
+    await press(alice, "See your quests");
+
+    expect(linkClicks()).toEqual([
+      { kind: "monday", destination: "book" },
+      { kind: "monday", destination: "quests" },
+    ]);
+  });
+
+  test("each welcome link pressed records its destination", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    const welcome = slack.messagesShownIn(alice.user).find(({ blocks }) => welcomeLinksIn((blocks ?? []) as Block[]).length > 0);
+
+    for (const label of welcomeLinksIn(welcome!.blocks as Block[])) await deliver(blockActions(alice.user, buttonIn(welcome!.blocks as Block[], label), { inMessage: welcome! }));
+
+    expect(linkClicks()).toEqual(welcomeDestinations);
+  });
+
+  test("a replayed click is recorded once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await mondayArrives();
+    const click = pressBody(alice, "See your quests");
+
+    await deliver(click);
+    await deliver(click);
+
+    expect(linkClicks()).toEqual([{ kind: "monday", destination: "quests" }]);
+  });
+
+  test("off the Monday path, and for a link no DM carries, nothing is recorded", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await mondayArrives();
+    const [dm] = slack.messagesShownIn(alice.user).slice(-1);
+    await deliver(blockActions(alice.user, { type: "button", action_id: "dm-link:monday:elsewhere" }, { inMessage: dm! }));
+
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+    await press(alice, "See your quests");
+
+    expect(linkClicks()).toEqual([]);
+  });
+});
+
 async function finishOnboarding(person: Person) {
   await thanks(person, saysWhy, bob);
   await thanks(person, "thanks", carol);
@@ -448,8 +499,24 @@ async function press(person: Person, label: string) {
 }
 
 async function deliver(body: string) {
-  await t.fetch("/slack/interactivity", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
+  const response = await t.fetch("/slack/interactivity", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
+  expect(response.status, "Slack's acknowledgement").toBe(200);
   await settleUpTo(t, Date.now() + minuteMs);
+}
+
+const welcomeDestinations = [
+  { kind: "welcome", destination: "quests-how" },
+  { kind: "welcome", destination: "book" },
+  { kind: "welcome", destination: "quests" },
+];
+
+function welcomeLinksIn(blocks: Block[]) {
+  const buttons = blocks.flatMap((block) => [block.accessory, ...(block.elements ?? [])]) as Array<{ action_id?: string; text?: { text: string } } | undefined>;
+  return buttons.flatMap((button) => (button?.action_id?.startsWith("dm-link:welcome:") ? [button.text!.text] : []));
+}
+
+function linkClicks() {
+  return productEvents("dm link clicked").map(({ properties: { kind, destination } }) => ({ kind, destination }));
 }
 
 function settingChanges() {
