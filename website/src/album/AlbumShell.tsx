@@ -31,7 +31,7 @@ import { useXpMomentSequence } from "./useXpMoment";
 import type { MissedXpMoment, XpMomentAhead } from "./visitArrival";
 import { XpMomentCanvas, XpMomentSummary } from "./XpMoment";
 import "./album.css";
-import { PrototypeEveryPage } from "./questsPrototype/QuestsPrototype";
+import { PrototypeEveryPage, PrototypeGettingStarted } from "./questsPrototype/QuestsPrototype";
 
 export type AlbumShellProps = {
   album: Album;
@@ -132,7 +132,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       <div className="al-body" inert={playing || covered}>
         {wide && <Sidebar album={landed} place={place} />}
         <main className="al-main" aria-busy={busy || undefined}>
-          {place.kind === "profile" && <GettingStarted facts={album.gettingStarted} />}
+          {place.kind === "profile" && <PrototypeGettingStarted><GettingStarted facts={album.gettingStarted} /></PrototypeGettingStarted>}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
             <LandingProvider value={turns.landing}>
               <ItemTurningProvider value={itemTurningOf(turns)}>
@@ -142,7 +142,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
           </ErrorBoundary>
         </main>
       </div>
-      <PrototypeEveryPage />
+      <PrototypeEveryPage name={album.me.name} onOwnProfile={place.kind === "profile"} />
     </div>
   );
 }

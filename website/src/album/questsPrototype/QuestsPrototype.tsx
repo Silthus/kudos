@@ -1,69 +1,67 @@
-// PROTOTYPE (Silthus/personal#172): where each quests variant mounts in the album, plus the floating switcher. Never merge.
-// Round 1: three variants of quests on the website, switchable via ?variant=A|B|C and ?phase=onboarding|weekly, on page D and every album page.
+// PROTOTYPE (Silthus/personal#172): where the quests prototype mounts in the album, plus the floating switcher. Never merge.
+// Round 2: B's panel and profile checklist with C's journey and A's copy; the switcher compares how Getting started and the first quests relate (?gs=merge|replace|coexist).
 import { IconChevronLeft, IconChevronRight } from "@posthog/icons";
-import { useEffect } from "react";
-import { prototypeOn, setPrototypeState, usePrototypeState, variantKeys, type VariantKey } from "./prototypeState";
-import { questsShownIn, type QuestPhase } from "./questsFixture";
-import { ProfileQuestsA, TopBarQuestsLink } from "./VariantA";
-import { FloatingQuestsPanel, ProfileQuestsB } from "./VariantB";
-import { ProfileQuestsC, SidebarQuestsDock } from "./VariantC";
+import { useEffect, useState, type ReactNode } from "react";
+import { forgetTheFold, modeKeys, prototypeOn, setPrototypeState, usePrototypeState } from "./prototypeState";
+import { questsShownIn, type QuestPhase, type StartedMode } from "./questsFixture";
+import { ProfileQuests, QuestsPanel } from "./QuestsPanel";
 import "./questsPrototype.css";
 
-const variantLabels: Record<VariantKey, { name: string; flags: string }> = {
-  A: { name: "Top-bar link + modal", flags: "muscle memory: top bar · channel shift: Slack DM" },
-  B: { name: "Floating panel", flags: "muscle memory: page content under the panel · channel shift: Slack DM" },
-  C: { name: "Sidebar dock", flags: "muscle memory: sidebar team list · channel shift: Slack DM" },
+const modeLabels: Record<StartedMode, string> = {
+  merge: "Merge: Getting started becomes the journey (recommended)",
+  replace: "Replace: first quests replace Getting started",
+  coexist: "Coexist: Getting started strip beside first quests",
 };
 
+const usageFlags = "muscle memory: page content under the panel · channel shift: Slack DM";
+
 function useQuests() {
-  const { variant, phase } = usePrototypeState();
-  return { variant, quests: questsShownIn(phase) };
+  const { mode, phase, folded } = usePrototypeState();
+  return { mode, folded, quests: questsShownIn(phase, mode) };
 }
 
-export function PrototypeProfileQuests() {
-  const { variant, quests } = useQuests();
+function firstNameOf(name: string) {
+  return name.split(" ")[0] ?? name;
+}
+
+export function PrototypeProfileQuests({ name }: { name: string }) {
+  const { mode, quests } = useQuests();
+  return prototypeOn ? <ProfileQuests quests={quests} mode={mode} firstName={firstNameOf(name)} /> : null;
+}
+
+export function PrototypeGettingStarted({ children }: { children: ReactNode }) {
+  const { mode, quests } = useQuests();
+  if (!prototypeOn) return children;
+  return mode === "coexist" && quests.phase === "onboarding" ? children : null;
+}
+
+export function PrototypeEveryPage({ name, onOwnProfile }: { name: string; onOwnProfile: boolean }) {
+  const { mode, folded, quests } = useQuests();
+  const [peekOnProfile, setPeekOnProfile] = useState(false);
   if (!prototypeOn) return null;
-  if (variant === "A") return <ProfileQuestsA quests={quests} />;
-  if (variant === "B") return <ProfileQuestsB quests={quests} />;
-  return <ProfileQuestsC quests={quests} />;
-}
-
-export function PrototypeTopBarQuests() {
-  const { variant, quests } = useQuests();
-  return prototypeOn && variant === "A" ? <TopBarQuestsLink quests={quests} /> : null;
-}
-
-export function PrototypeSidebarQuests() {
-  const { variant, quests } = useQuests();
-  return prototypeOn && variant === "C" ? <SidebarQuestsDock quests={quests} /> : null;
-}
-
-export function PrototypeEveryPage() {
-  const { variant, quests } = useQuests();
-  if (!prototypeOn) return null;
+  const shownFolded = onOwnProfile ? !peekOnProfile : folded;
+  const unfold = () => (onOwnProfile ? setPeekOnProfile(true) : setPrototypeState({ folded: false }));
+  const fold = () => (onOwnProfile ? setPeekOnProfile(false) : setPrototypeState({ folded: true }));
   return (
     <>
-      {variant === "B" && <FloatingQuestsPanel quests={quests} />}
+      <QuestsPanel quests={quests} mode={mode} firstName={firstNameOf(name)} folded={shownFolded} onUnfold={unfold} onFold={fold} />
       <PrototypeSwitcher />
     </>
   );
 }
 
 function PrototypeSwitcher() {
-  const { variant, phase } = usePrototypeState();
-  const step = (by: number) => setPrototypeState({ variant: variantKeys[(variantKeys.indexOf(variant) + by + variantKeys.length) % variantKeys.length] });
+  const { mode, phase } = usePrototypeState();
+  const step = (by: number) => setPrototypeState({ mode: modeKeys[(modeKeys.indexOf(mode) + by + modeKeys.length) % modeKeys.length] });
   useArrowKeys(step);
-  const label = variantLabels[variant];
   return (
     <div className="qp-switcher" role="toolbar" aria-label="Prototype variants">
       <button type="button" className="qp-switch-arrow" aria-label="Previous variant" onClick={() => step(-1)}>
         <IconChevronLeft />
       </button>
       <span className="qp-switch-label">
-        <strong>
-          {variant} ({label.name})
-        </strong>
-        <span>{label.flags}</span>
+        <strong>B · {modeLabels[mode]}</strong>
+        <span>{usageFlags}</span>
       </span>
       <button type="button" className="qp-switch-arrow" aria-label="Next variant" onClick={() => step(1)}>
         <IconChevronRight />
@@ -74,6 +72,9 @@ function PrototypeSwitcher() {
           {shown === "onboarding" ? "Newcomer" : "Weekly"}
         </button>
       ))}
+      <button type="button" className="qp-switch-phase" onClick={forgetTheFold} title="Forget the remembered fold, as for a first visit">
+        First visit
+      </button>
     </div>
   );
 }

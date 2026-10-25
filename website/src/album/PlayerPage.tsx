@@ -87,7 +87,7 @@ function PlayerPage({ album, page, picker }: { album: Album; page: Page; picker:
       </section>
       {page.card.hoggies !== null && <RarestFind page={page} />}
       {page.together !== null && <Together name={page.card.name} together={page.together} />}
-      {page.own && <PrototypeProfileQuests />}
+      {page.own && <PrototypeProfileQuests name={page.card.name} />}
       <Week page={page} />
       {page.hypePick !== null && <YourHypeEmoji person={page.hypePick} emojiPage={album.emojiPage} picker={picker} />}
     </article>

@@ -16,7 +16,6 @@ import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
 import { PagesBurger } from "./PagesBurger";
 import { TrayPanel } from "./TrayPanel";
 import type { Popover } from "./usePopover";
-import { PrototypeTopBarQuests } from "./questsPrototype/QuestsPrototype";
 
 export type TrayActions = { busy: boolean; trouble: string | null; putIn: (item: string) => void; putAllIn: () => void };
 
@@ -42,7 +41,6 @@ export function TopBar({ album, place, wide, popover, justUnlocked, opensOnJustU
       <div className="al-top-end">
         {album.board === null && (album.packs.length > 0 || moving) && <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} focusAfter={emojiButton} />}
         {trayShown && <TrayButton album={album} items={trayItems} popover={popover} button={trayButton} tray={tray} focusAfter={emojiButton} />}
-        <PrototypeTopBarQuests />
         {wide && <PageLinks place={place} />}
         <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} />
         <FeedbackButton />
