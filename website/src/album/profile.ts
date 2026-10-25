@@ -41,20 +41,20 @@ export function highestEarnedOf({ tiers }: AlbumMilestone) {
 }
 
 export function closestNextOf(album: Album): NextMedal | null {
-  return medalsInReachOf(album, [])[0] ?? null;
+  return medalsInReachOf(album, null)[0] ?? null;
 }
 
-export function medalsInReachOf(album: Album, justReached: readonly ReachedTier[]): NextMedal[] {
+export function medalsInReachOf(album: Album, inPlace: ReachedTier | null): NextMedal[] {
   return album.milestones
     .flatMap((milestone) => {
-      const tier = justReachedTierOf(milestone, justReached) ?? milestone.tiers.find(({ earnedAt }) => earnedAt === null);
+      const tier = tierInPlaceOf(milestone, inPlace) ?? milestone.tiers.find(({ earnedAt }) => earnedAt === null);
       return tier === undefined ? [] : [{ milestone, tier }];
     })
     .toSorted((one, other) => shareOf(other) - shareOf(one));
 }
 
-function justReachedTierOf(milestone: AlbumMilestone, justReached: readonly ReachedTier[]) {
-  return milestone.tiers.findLast((tier) => tier.earnedAt !== null && justReached.some((reached) => reached.milestone === milestone.id && reached.tier === tier.tier));
+function tierInPlaceOf(milestone: AlbumMilestone, inPlace: ReachedTier | null) {
+  return inPlace?.milestone === milestone.id ? milestone.tiers.find(({ tier }) => tier === inPlace.tier) : undefined;
 }
 
 export function earnedMedalsOf(album: Album): BestMedal[] {

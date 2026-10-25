@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Unlocked } from "../../../convex/items/turn";
 import type { AppliedReward } from "../../../convex/progression/rewards";
+import type { ReachedTier } from "../../../convex/album/milestones";
 import type { ItemBoard, LoopLesson, TurnedFaceShown } from "../../../convex/website/album";
 import { useNavigate } from "../AppLink";
 import { prefersReducedMotion } from "../reducedMotion";
@@ -12,7 +13,7 @@ import { useTurnFlight, type Flight, type FlightBoxes } from "./useTurnFlight";
 
 export type LandingPhase = "arriving" | "landed" | "done";
 
-export type Landing = { item: string; face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number; phase: LandingPhase; flown: boolean; teamsShown: number; medalsShown: number };
+export type Landing = { item: string; face: TurnedFaceShown; applied: AppliedReward | null; unlocked: Unlocked; teaches: LoopLesson | null; turn: number; phase: LandingPhase; flown: boolean; teamsShown: number; medalsShown: number; medalInPlace: ReachedTier | null };
 
 type Shown = "board" | "later" | "landed";
 
@@ -94,15 +95,17 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       setTurnedOver((turned) => new Map(turned).set(item, face));
       setLandingDue(false);
       landings.current += 1;
-      setLanding({ item, face, applied, unlocked, teaches: teachesTheLoop ? (teaches ?? null) : null, turn: landings.current, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length });
+      setLanding({ item, face, applied, unlocked, teaches: teachesTheLoop ? (teaches ?? null) : null, turn: landings.current, phase: flown ? "arriving" : "done", flown, teamsShown: flown ? 0 : unlocked.teamStickers.length, medalsShown: flown ? 0 : unlocked.milestones.length, medalInPlace: null });
       navigate(hrefOf(placeOf(page)));
     },
     [navigate, teachesTheLoop],
   );
   const phase = useCallback((next: LandingPhase) => setLanding((last) => (last === null ? null : { ...last, phase: next })), []);
-  const medalShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, medalsShown: shown(last) })), []);
+  const medalShown = useCallback(() => setLanding((last) => (last === null ? null : { ...last, medalsShown: last.medalsShown + 1, medalInPlace: last.unlocked.milestones[last.medalsShown] ?? null })), []);
+  const medalSettled = useCallback(() => setLanding((last) => (last === null ? null : { ...last, medalInPlace: null })), []);
+  const everyMedalShown = useCallback(() => setLanding((last) => (last === null ? null : { ...last, medalsShown: last.unlocked.milestones.length, medalInPlace: null })), []);
   const landedWithoutTheFlight = useCallback(() => {
-    setLanding((last) => (last === null ? null : { ...last, phase: "done", flown: false, teamsShown: last.unlocked.teamStickers.length, medalsShown: last.unlocked.milestones.length }));
+    setLanding((last) => (last === null ? null : { ...last, phase: "done", flown: false, teamsShown: last.unlocked.teamStickers.length, medalsShown: last.unlocked.milestones.length, medalInPlace: null }));
     setShown("landed");
   }, []);
   const teamShown = useCallback((shown: (last: Landing) => number) => setLanding((last) => (last === null ? null : { ...last, phase: "done", teamsShown: shown(last) })), []);
@@ -122,7 +125,8 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
         teamUnlocked: () => teamShown(({ teamsShown }) => teamsShown + 1),
         toTheTeam: (team: string) => navigate(hrefOf({ kind: "team", team })),
         toTheMilestones: () => navigate(hrefOf({ kind: "milestones" })),
-        medalShown: () => medalShown(({ medalsShown }) => medalsShown + 1),
+        medalShown,
+        medalSettled,
         paid: () => setHeldLevel(null),
         nothingWaits: () => remaining.current === 0,
         emojiOf,
@@ -132,10 +136,10 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
       turnEmojis.current.back(away);
       setHeldLevel(null);
       if (turned !== null) teamShown(({ unlocked }) => unlocked.teamStickers.length);
-      if (turned !== null) medalShown(({ unlocked }) => unlocked.milestones.length);
+      if (turned !== null) everyMedalShown();
       if (turned !== null && remaining.current === 0) setShown("landed");
     },
-    [fly, land, phase, landedWithoutTheFlight, teamShown, medalShown, navigate, level],
+    [fly, land, phase, landedWithoutTheFlight, teamShown, medalShown, medalSettled, everyMedalShown, navigate, level],
   );
   const turn = useCallback(
     async (item: string, from: HTMLElement | null) => {

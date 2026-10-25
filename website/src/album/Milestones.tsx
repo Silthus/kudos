@@ -101,7 +101,7 @@ function DoThisNext({ album }: { album: Album }) {
 }
 
 function Medals({ album }: { album: Album }) {
-  const inReach = medalsInReachOf(album, useLanding()?.unlocked.milestones ?? []);
+  const inReach = medalsInReachOf(album, useLanding()?.medalInPlace ?? null);
   const earned = earnedMedalsOf(album).filter(({ milestone, tier }) => !inReach.some((shown) => shown.milestone === milestone && shown.tier === tier));
   return (
     <>
