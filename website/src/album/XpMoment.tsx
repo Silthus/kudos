@@ -5,6 +5,7 @@ import { KudosMessage } from "../activity/KudosMessage";
 import { NamedEmoji } from "../Emoji";
 import { HedgehogSitting } from "../hoggies";
 import type { AlbumMe } from "./answer";
+import type { EmojisOnTheirWay } from "./emojisOnTheirWay";
 import type { LevelUnlocks } from "./levelUnlocks";
 import { LevelUpTakeover } from "./LevelUpTakeover";
 import { xpMomentTiming, type XpMomentCard, type XpMomentPhase, type XpMomentPlay } from "./useXpMoment";
@@ -22,7 +23,7 @@ const collecting: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold"]);
 
 const orbShown: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold", "collect", "stream"]);
 
-export function XpMomentCanvas({ play, me, levelUnlocks }: { play: XpMomentPlay; me: AlbumMe; levelUnlocks: LevelUnlocks | null }) {
+export function XpMomentCanvas({ play, me, levelUnlocks, onTheirWay }: { play: XpMomentPlay; me: AlbumMe; levelUnlocks: LevelUnlocks | null; onTheirWay: EmojisOnTheirWay }) {
   const { moment, phase, collect, skip, tookOver } = play;
   const viewport = useViewport();
   const orb = useRef<HTMLButtonElement>(null);
@@ -37,7 +38,7 @@ export function XpMomentCanvas({ play, me, levelUnlocks }: { play: XpMomentPlay;
           Skip
         </button>
       )}
-      {phase === "takeover" && levelUnlocks !== null && <LevelUpTakeover climb={moment.climb} unlocks={levelUnlocks} onDone={tookOver} />}
+      {phase === "takeover" && levelUnlocks !== null && <LevelUpTakeover climb={moment.climb} unlocks={levelUnlocks} onTheirWay={onTheirWay} onDone={tookOver} />}
       {phase === "caughtUp" && <CaughtUp moment={moment} />}
     </div>
   );
