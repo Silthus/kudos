@@ -22,6 +22,7 @@ import { holdsNothingButEmojis, isAQuietCard, isAQuietWeek, ownWeekOf, teammateW
 import { ShareLink } from "./ShareLink";
 import { dateOf, firstNameOf, howToCollectWords } from "./teamPage";
 import "./playerPage.css";
+import { PrototypeProfileQuests } from "./questsPrototype/QuestsPrototype";
 
 type Answers = { onSignIn: () => void; onSignOut: () => void };
 
@@ -86,6 +87,7 @@ function PlayerPage({ album, page, picker }: { album: Album; page: Page; picker:
       </section>
       {page.card.hoggies !== null && <RarestFind page={page} />}
       {page.together !== null && <Together name={page.card.name} together={page.together} />}
+      {page.own && <PrototypeProfileQuests />}
       <Week page={page} />
       {page.hypePick !== null && <YourHypeEmoji person={page.hypePick} emojiPage={album.emojiPage} picker={picker} />}
     </article>

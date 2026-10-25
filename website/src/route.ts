@@ -1,3 +1,4 @@
+import { keepingPrototypeParams } from "./album/questsPrototype/prototypeState";
 import { useCallback, useEffect, useState } from "react";
 import { perkValidator, type PerkId } from "../../convex/progression/tree";
 import { crateParamOf, crateTargetIn, settingsSections, signInEntry, type CrateTarget, type HomePanel, type SettingsSection } from "../../convex/website/routes";
@@ -150,6 +151,10 @@ export function currentAddress() {
 }
 
 export function keepingSignInCode(href: string) {
+  return keepingPrototypeParams(keepingCode(href));
+}
+
+function keepingCode(href: string) {
   const code = new URLSearchParams(window.location.search).get("code");
   if (code === null) return href;
   const address = new URL(href, window.location.origin);

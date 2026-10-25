@@ -31,6 +31,7 @@ import { useXpMomentSequence } from "./useXpMoment";
 import type { MissedXpMoment, XpMomentAhead } from "./visitArrival";
 import { XpMomentCanvas, XpMomentSummary } from "./XpMoment";
 import "./album.css";
+import { PrototypeEveryPage } from "./questsPrototype/QuestsPrototype";
 
 export type AlbumShellProps = {
   album: Album;
@@ -141,6 +142,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
           </ErrorBoundary>
         </main>
       </div>
+      <PrototypeEveryPage />
     </div>
   );
 }

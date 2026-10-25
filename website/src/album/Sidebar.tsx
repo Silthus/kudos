@@ -1,3 +1,4 @@
+import { PrototypeSidebarQuests } from "./questsPrototype/QuestsPrototype";
 import { IconCheck, IconRibbon, IconSearch } from "@posthog/icons";
 import { useId, useState } from "react";
 import { AppLink } from "../AppLink";
@@ -30,6 +31,7 @@ export function TeamsAndPages({ album, place, onFollow }: { album: Album; place:
         <IconSearch className="al-search-icon" />
         <input type="search" placeholder="Search teams and people" aria-label="Search teams and people" value={search} onChange={(event) => setSearch(event.target.value)} />
       </label>
+      <PrototypeSidebarQuests />
       {words === "" ? <Browse album={album} place={place} onFollow={onFollow} /> : <Found album={album} words={words} place={place} onFollow={onFollow} />}
       <DeepPages album={album} place={place} onFollow={onFollow} />
     </>
