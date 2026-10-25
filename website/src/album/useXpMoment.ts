@@ -15,7 +15,7 @@ type Progress = { out: number; dissolving: number; dissolved: number; filled: nu
 
 export type XpMomentPlay = { moment: XpMoment; cards: XpMomentCard[]; phase: XpMomentPhase; orbXp: number; collect: () => void; skip: () => void; tookOver: () => void } & Progress;
 
-export type XpMomentSequence = { play: XpMomentPlay | null; waits: boolean; covers: boolean; heldLevel: AlbumLevel | null; ended: XpMoment | null };
+export type XpMomentSequence = { play: XpMomentPlay | null; waits: boolean; covers: boolean; heldLevel: AlbumLevel | null; climbing: Climb | null; ended: XpMoment | null };
 
 type Step = [ms: number, step: () => void];
 
@@ -58,9 +58,9 @@ export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: 
   }, [phase, cards.length, advance, afterTheBar]);
   useEndedOnceItLands(phase, onEnd);
   useEscapeLandsIt(phase, skip, () => setPhase("done"));
-  if (moment === null || phase === null) return { play: null, waits: ahead === "reading", covers: false, heldLevel: null, ended: null };
+  if (moment === null || phase === null) return { play: null, waits: ahead === "reading", covers: false, heldLevel: null, climbing: null, ended: null };
   const play = { moment, cards, phase, orbXp: orbXpOf(cards, progress, phase), collect, skip, tookOver, ...progress };
-  return { play: onTheCanvas.has(phase) ? play : null, waits: phase !== "done", covers: onTheCanvas.has(phase), heldLevel: playing.has(phase) ? barLevelOf(moment, progress.filled) : null, ended: playing.has(phase) ? null : moment };
+  return { play: onTheCanvas.has(phase) ? play : null, waits: phase !== "done", covers: onTheCanvas.has(phase), heldLevel: playing.has(phase) ? barLevelOf(moment, progress.filled) : null, climbing: playing.has(phase) ? moment.climb : null, ended: playing.has(phase) ? null : moment };
 }
 
 type Setters = { setPhase: (phase: XpMomentPhase) => void; advance: (patch: Partial<Progress>) => void; afterTheBar: XpMomentPhase };
