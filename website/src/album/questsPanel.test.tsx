@@ -60,13 +60,13 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     const panel = await openPanel();
     expect(panel.getByText("Getting started · 1 of 5")).toBeInTheDocument();
     expect(panel.getByRole("heading", { name: "Welcome in, Sam" })).toBeInTheDocument();
-    expect(panel.getByText("A few small ways to make someone's day. Every quest leaves a face-down hoggie on your board.")).toBeInTheDocument();
+    expect(panel.getByText("A few small ways to make someone's day. Every quest leaves an unidentified hoggie on your board.")).toBeInTheDocument();
     expect(panel.getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual([
       "Give your first hug: done",
-      "Thank someone and say why: next, +50 XP and a face-down hoggie",
+      "Thank someone and say why: next, +50 XP and an unidentified hoggie",
       "Turn the hoggie it left on your board: not yet",
-      "Thank someone you haven't thanked before: not yet, +50 XP and a face-down hoggie",
-      "Say why on 2 different days: not yet, +50 XP and a face-down hoggie",
+      "Thank someone you haven't thanked before: not yet, +50 XP and an unidentified hoggie",
+      "Say why on 2 different days: not yet, +50 XP and an unidentified hoggie",
     ]);
     expect(panel.getByText("Once these are done, three new quests arrive every Monday.")).toBeInTheDocument();
   });
@@ -87,8 +87,8 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
 
     const panel = await openPanel();
     const finished = within(panel.getByRole("listitem", { name: /^Thank someone and say why: done/ }));
-    expect(finished.getByRole("button", { name: "Turn it on your board →" })).toBeInTheDocument();
-    expect(panel.getAllByRole("button", { name: "Turn it on your board →" })).toHaveLength(1);
+    expect(finished.getByRole("button", { name: "Identify it on your board →" })).toBeInTheDocument();
+    expect(panel.getAllByRole("button", { name: "Identify it on your board →" })).toHaveLength(1);
   });
 
   it("MQ41: records one panel view for the first-visit open", async () => {
@@ -192,12 +192,12 @@ describe("MQ37 MQ39: after onboarding the panel lists this week's drawn quests",
     expect(panel.getByText("This week · 1 of 3")).toBeInTheDocument();
     expect(panel.getByRole("heading", { name: "Your quests this week, Sam" })).toBeInTheDocument();
     expect(panel.getAllByRole("listitem").map((row) => row.getAttribute("aria-label"))).toEqual([
-      "Thank someone and say why, 3 times: not yet, +20 XP and a face-down hoggie",
-      "Thank 2 people you haven't thanked before: not yet, +20 XP and a face-down hoggie",
+      "Thank someone and say why, 3 times: not yet, +20 XP and an unidentified hoggie",
+      "Thank 2 people you haven't thanked before: not yet, +20 XP and an unidentified hoggie",
       "Thank someone you haven't thanked in the last 30 days: done, won 20 XP and a hoggie",
     ]);
     expect(panel.getByRole("img", { name: "2 of 3" })).toBeInTheDocument();
-    expect(panel.getByRole("button", { name: "Turn it on your board →" })).toBeInTheDocument();
+    expect(panel.getByRole("button", { name: "Identify it on your board →" })).toBeInTheDocument();
     expect(panel.getByText("3 days left · new quests Monday at 9:00")).toBeInTheDocument();
   });
 });

@@ -107,7 +107,7 @@ function Greeting({ quests }: { quests: MondayQuests }) {
         {drawn ? "This week" : "Getting started"} · {done} of {total}
       </p>
       <h2 className="al-quests-title">{drawn ? `Your quests this week${name}` : `Welcome in${name}`}</h2>
-      <p className="al-quests-note">A few small ways to make someone's day. Every quest leaves a face-down hoggie on your board.</p>
+      <p className="al-quests-note">A few small ways to make someone's day. Every quest leaves an unidentified hoggie on your board.</p>
     </div>
   );
 }
@@ -167,7 +167,7 @@ function Checklist({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) 
 function BoardLink({ openBoard }: { openBoard: () => void }) {
   return (
     <button type="button" className="al-quests-board" onClick={openBoard}>
-      Turn it on your board →
+      Identify it on your board →
     </button>
   );
 }
@@ -224,7 +224,7 @@ function drawnRowOf({ goal, progress, done, reward, item }: DrawnQuest): Row {
 function rowLabelOf({ goal, done, reward }: Row, next: boolean) {
   const state = done ? "done" : next ? "next" : "not yet";
   if (reward === null) return `${goal}: ${state}`;
-  return `${goal}: ${state}, ${done ? `won ${reward.xp} XP and a hoggie` : `+${reward.xp} XP and a face-down hoggie`}`;
+  return `${goal}: ${state}, ${done ? `won ${reward.xp} XP and a hoggie` : `+${reward.xp} XP and an unidentified hoggie`}`;
 }
 
 function doneOf({ quests }: MondayQuests) {
