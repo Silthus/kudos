@@ -2,6 +2,8 @@ import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { withholdingWords } from "../analytics/exceptions";
+import { dmLinkValidator, reportDmLinkClicked } from "../analytics/isolatedUsage";
+import { onTheMondayPath } from "../quests/flag";
 import { commandsOfferedTo, commandValidator, runCommand } from "../commands/commands";
 import { welcomePickOf } from "../feedback/welcome";
 import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
@@ -94,6 +96,16 @@ export const receiveHomeClick = internalMutation({
       }
     }
     await republish(ctx, person.member, refused);
+  },
+});
+
+export const receiveDmLinkClick = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), link: dmLinkValidator },
+  handler: async (ctx, { user, link, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    const person = await lookup(ctx, receipt.workspace, user);
+    if (person?.kind === "member" && (await onTheMondayPath(ctx, person.member))) await reportDmLinkClicked(ctx, { workspace: receipt.workspace, member: person.member, ...link, at: Date.now() });
   },
 });
 
