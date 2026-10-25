@@ -73,7 +73,7 @@ function focus(button: RefObject<HTMLButtonElement | null>) {
 export function ProfileQuests() {
   const shown = useContext(QuestsContext);
   useViewedOnEachOpen(shown !== null, shown?.inSight ?? false, () => shown?.view("profile"));
-  const { section, howTo } = useLandedAt(shown?.landing);
+  const { section, howTo } = useLandedAt(shown?.landing, shown?.inSight ?? false);
   if (shown === null) return null;
   return (
     <section ref={section} id="quests" className="al-quests al-quests-profile" aria-label="Your quests" tabIndex={-1} data-panel-target="quests">
@@ -84,16 +84,16 @@ export function ProfileQuests() {
   );
 }
 
-function useLandedAt(landing: QuestsLanding | undefined) {
+function useLandedAt(landing: QuestsLanding | undefined, inSight: boolean) {
   const section = useRef<HTMLElement>(null);
   const [howTo, setHowTo] = useState<string | null>(null);
   useEffect(() => {
-    if (!landing?.asked || section.current === null) return;
+    if (!inSight || !landing?.asked || section.current === null) return;
     section.current.scrollIntoView({ block: "start" });
     section.current.focus({ preventScroll: true });
     setHowTo(landing.asked.howTo);
     landing.landed();
-  }, [landing]);
+  }, [landing, inSight]);
   return { section, howTo };
 }
 

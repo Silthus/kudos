@@ -113,6 +113,29 @@ describe("MQ41 MQ36: a view counts only once the quests are in sight", { timeout
 
     await waitFor(() => expect(views(actions)).toEqual([surface]));
   });
+
+  it("the panel records no view while a hoggie's entry is open over the page, and one once it closes", async () => {
+    const { actions, user } = visit("/book#hoggies/angel");
+    await screen.findByRole("dialog", {}, arrival);
+
+    expect(views(actions)).toEqual([]);
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(views(actions)).toEqual(["panel"]));
+  });
+
+  it("MQ22: a welcome link that arrives under the item board lands at the section once the board is put away", async () => {
+    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    const { user } = visit("/book#me/quests/someone-new", { album: { ...albumFixtures.withItems, personPageD: true, linkPreviews: true } });
+    const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
+    const section = screen.getByRole("region", { name: "Your quests", hidden: true });
+
+    expect(scrolled.mock.contexts).not.toContain(section);
+    await user.click(board.getByRole("button", { name: "Later" }));
+
+    await waitFor(() => expect(section).toHaveFocus());
+    expect(scrolled.mock.contexts).toContain(section);
+  });
 });
 
 describe("MQ39: the panel folds to a tab, and the fold is remembered", { timeout: 30_000 }, () => {
