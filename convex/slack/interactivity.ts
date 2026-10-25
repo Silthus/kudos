@@ -2,6 +2,7 @@ import { internal } from "../_generated/api";
 import { observedHttpAction } from "../analytics/boundary";
 import type { DmLink } from "../analytics/isolatedUsage";
 import { commandOf, isWebsiteOnly, type Command } from "../commands/commands";
+import { onboardingSteps } from "../quests/onboarding";
 import type { ActionCtx } from "../_generated/server";
 import { customEmojiOptionOf, customEmojiPickerAction } from "./customEmojiPicker";
 import { readSignedBody } from "./signature";
@@ -18,6 +19,8 @@ type Action = {
 const dmKinds = ["welcome", "monday"] as const satisfies readonly DmLink["dm"][];
 
 const dmLinkDestinations = ["book", "quests", "quests-how"] as const satisfies readonly DmLink["destination"][];
+
+export const showMeHowAction = "dm-link:welcome:quests-how";
 
 type OptionsRequest = { type: "block_suggestion"; team: { id: string }; user: { id: string }; action_id: string; value: string };
 
@@ -45,6 +48,8 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   if (!isMemberClick(payload)) return new Response(null, { status: 200 });
   const link = payload.actions.map(dmLinkOf).find((candidate) => candidate !== null);
   if (link !== undefined) await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveDmLinkClick, { workspace: payload.team.id, eventId: payload.trigger_id, user: payload.user.id, link });
+  const howTo = howToAskedIn(payload);
+  if (howTo !== null) await ctx.scheduler.runAfter(0, internal.slack.welcome.replyWithHowTo, { workspace: payload.team.id, ...howTo });
   const selections = selectionsIn(payload.state);
   const commands = payload.actions.flatMap((action) => commandsOf(action, selections));
   if (commands.length === 0) return new Response(null, { status: 200 });
@@ -67,6 +72,12 @@ function dmLinkOf({ action_id }: Action): DmLink | null {
   const [prefix, dm, destination, ...rest] = action_id.split(":");
   if (prefix !== "dm-link" || rest.length > 0 || !isOneOf(dmKinds, dm) || !isOneOf(dmLinkDestinations, destination)) return null;
   return { dm, destination };
+}
+
+function howToAskedIn({ actions, container }: MemberClick) {
+  const step = actions.find(({ action_id }) => action_id === showMeHowAction)?.value;
+  if (!isOneOf(onboardingSteps, step) || container.type !== "message" || container.message_ts === undefined) return null;
+  return { conversation: container.channel_id, welcome: container.message_ts, step };
 }
 
 function isOneOf<T extends string>(values: readonly T[], candidate: string | undefined): candidate is T {
