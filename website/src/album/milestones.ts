@@ -12,7 +12,7 @@ type MilestoneWords = { name: string; counted: Counted; emblem: LadderCard["ladd
 
 const milestoneWords: Record<MilestoneId, MilestoneWords> = {
   people: { name: "Faces in the album", counted: { one: "person in your album", many: "people in your album" }, emblem: "connections", hint: "Thank someone new in Slack and say why, then turn over their sticker" },
-  teams: { name: "Full pages", counted: { one: "full team unlocked", many: "full teams unlocked" }, emblem: "team-spirit", hint: "Collect everyone on a team, then unlock the team on its page" },
+  teams: { name: "Full pages", counted: { one: "full team unlocked", many: "full teams unlocked" }, emblem: "team-spirit", hint: "Collect everyone on a team. The team unlocks with the last sticker you turn over" },
   reach: { name: "Across the company", counted: { one: "team in your album", many: "teams in your album" }, emblem: "old-friends", hint: "Thank someone from a team not yet in your album, then turn over their sticker" },
   hoggies: { name: "Hoggie hunter", counted: { one: "different hoggie found", many: "different hoggies found" }, emblem: "recognition", hint: "Turn over your items to find hoggies you don't have yet. Repeats don't count" },
   thoughtful: { name: "Kind words", counted: { one: "thoughtful kudos given", many: "thoughtful kudos given" }, emblem: "generosity", hint: "Thank anyone in Slack and say why. Thanking the same person again counts too" },
