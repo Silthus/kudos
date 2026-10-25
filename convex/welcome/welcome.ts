@@ -13,7 +13,7 @@ import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { mondayPathShownTo, onTheMondayPath } from "../quests/flag";
 import { isPaidOnTheMondayPath } from "../quests/mondayCatalogue";
-import { onboardingJourneyOf } from "../quests/onboarding";
+import { onboardingQuestsOf } from "../quests/onboarding";
 import { startQuests } from "../quests/start";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
 import { isTheFirstThanks } from "./firstThanks";
@@ -59,7 +59,7 @@ export async function welcomeOnTheMondayPath(ctx: MutationCtx, member: MemberId,
   await earnWelcomeItem(ctx, workspace, member, at);
   if (await mondayPathShownTo(ctx, member)) await startQuests(ctx, member, at);
   await analyticsIdOf(ctx, member);
-  const journey = await onboardingJourneyOf(ctx, member, at);
+  const journey = await onboardingQuestsOf(ctx, member, at);
   await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverMondayWelcome, { workspace, user, member, cause, journey });
 }
 

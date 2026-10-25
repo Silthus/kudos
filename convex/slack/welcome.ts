@@ -2,8 +2,8 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from "../feedback/welcome";
-import { waitingLineOf } from "../feedback/waitingHoggies";
-import { onboardingGoalOf, type OnboardingQuestState, type OnboardingStep } from "../quests/onboarding";
+import { waitingHoggiesLineOf } from "../feedback/waitingHoggies";
+import { onboardingGoalOf, type OnboardingQuest, type OnboardingStep } from "../quests/onboarding";
 import { mondayWelcomeCauseValidator, onboardingJourneyValidator, type HuggedPeople, type MondayWelcome, type MondayWelcomeOpening, type WelcomeOutcome } from "../welcome/mondayWelcome";
 import { welcomedAsValidator } from "../welcome/welcomedAs";
 import { appHomeLink, appHomeUrl } from "./appHomeLinks";
@@ -105,7 +105,7 @@ function fallbackOf(opening: MondayWelcomeOpening) {
 
 function noteOf({ opening, kudosEmoji, waiting }: MondayWelcome, user: string) {
   const greeting = `Hey <@${user}> :wave::skin-tone-2:`;
-  const waits = waitingLineOf(waiting);
+  const waits = waitingHoggiesLineOf(waiting);
   const after = (separator: string) => (waits === null ? "" : `${separator}${waits}`);
   switch (opening.path) {
     case "hug":
@@ -141,11 +141,11 @@ function cardOf({ journey, next, kudosEmoji, links }: MondayWelcome) {
   return [title, checklist, upNext, { type: "context", elements: [mrkdwn(onboardingReward)] }];
 }
 
-function checklistItemOf({ step, finished, progress }: OnboardingQuestState, next: OnboardingStep | null) {
+function checklistItemOf({ step, goal, finished, progress }: OnboardingQuest, next: OnboardingStep | null) {
   const isNext = step === next;
   const mark = finished ? { type: "emoji", name: "white_check_mark" } : isNext ? { type: "emoji", name: "point_right", skin_tone: 2 } : { type: "emoji", name: "white_circle" };
-  const progressShown = progress === null ? [] : [{ type: "text", text: `  ${progress.done} of ${progress.of} days`, style: { italic: true } }];
-  return { type: "rich_text_section", elements: [mark, { type: "text", text: ` ${onboardingGoalOf(step)}`, style: { bold: isNext, strike: finished } }, ...progressShown] };
+  const progressShown = progress === null ? [] : [{ type: "text", text: `  ${progress.done} of ${progress.of} ${progress.unit}`, style: { italic: true } }];
+  return { type: "rich_text_section", elements: [mark, { type: "text", text: ` ${goal}`, style: { bold: isNext, strike: finished } }, ...progressShown] };
 }
 
 function welcomeButtonsOf({ links, waiting }: MondayWelcome) {

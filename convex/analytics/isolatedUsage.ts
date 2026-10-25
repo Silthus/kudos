@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { periodValidator } from "../leaderboard/periods";
 import { messageKindValidator, messagePlaceValidator } from "../messageSettings/kinds";
+import { mondayDmSectionValidator } from "../mondayDm/records";
 import { welcomePathValidator } from "../welcome/welcomedAs";
 import { failuresLogged } from "./failures";
 import { recordUsage, usageNotRecorded } from "./usage";
@@ -115,28 +116,43 @@ export const recordHugsRecapSent = internalMutation({
   },
 });
 
-const sentDmValidator = v.union(
-  v.object({ kind: v.literal("welcome"), path: welcomePathValidator }),
-  v.object({ kind: v.literal("monday"), sections: v.array(v.union(v.literal("hugs"), v.literal("quests"))) }),
-);
-
-const dmSentValidator = v.object({
+const mondayDmSentValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
-  dm: sentDmValidator,
+  sections: v.array(mondayDmSectionValidator),
   at: v.number(),
 });
 
-export type DmSent = Infer<typeof dmSentValidator>;
+export type MondayDmSent = Infer<typeof mondayDmSentValidator>;
 
-export async function reportDmSent(ctx: MutationCtx, sent: DmSent) {
-  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordDmSent, sent);
+export async function reportMondayDmSent(ctx: MutationCtx, sent: MondayDmSent) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordMondayDmSent, sent);
 }
 
-export const recordDmSent = internalMutation({
-  args: dmSentValidator,
-  handler: async (ctx, sent): Promise<void> => {
-    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "dmSent", ...sent }));
+export const recordMondayDmSent = internalMutation({
+  args: mondayDmSentValidator,
+  handler: async (ctx, { sections, ...sent }): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "dmSent", ...sent, dm: { kind: "monday", sections } }));
+  },
+});
+
+const welcomeDmSentValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  path: welcomePathValidator,
+  at: v.number(),
+});
+
+export type WelcomeDmSent = Infer<typeof welcomeDmSentValidator>;
+
+export async function reportWelcomeDmSent(ctx: MutationCtx, sent: WelcomeDmSent) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordWelcomeDmSent, sent);
+}
+
+export const recordWelcomeDmSent = internalMutation({
+  args: welcomeDmSentValidator,
+  handler: async (ctx, { path, ...sent }): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "dmSent", ...sent, dm: { kind: "welcome", path } }));
   },
 });
 
@@ -179,5 +195,25 @@ export const recordHowItWorksClosed = internalMutation({
   args: howItWorksCloseValidator,
   handler: async (ctx, close): Promise<void> => {
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "howItWorksClosed", ...close }));
+  },
+});
+
+const questsViewValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  surface: v.union(v.literal("panel"), v.literal("profile")),
+  at: v.number(),
+});
+
+export type QuestsView = Infer<typeof questsViewValidator>;
+
+export async function reportQuestsViewed(ctx: MutationCtx, view: QuestsView) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordQuestsViewed, view);
+}
+
+export const recordQuestsViewed = internalMutation({
+  args: questsViewValidator,
+  handler: async (ctx, view): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "questsViewed", ...view }));
   },
 });

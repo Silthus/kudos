@@ -1,13 +1,13 @@
 import { v, type Infer } from "convex/values";
 import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
-import { reportDmSent } from "../analytics/isolatedUsage";
+import { reportWelcomeDmSent } from "../analytics/isolatedUsage";
 import { awardsOfMessage } from "../engine/awards";
 import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
 import { publicQuoteOf } from "../feedback/welcomeNudge";
 import { hugOf } from "../hugs/records";
 import { waitingHoggieCountOf, type WaitingCount } from "../items/ledger";
-import type { OnboardingQuestState, OnboardingStep } from "../quests/onboarding";
-import { dmLinksFor } from "../website/dmLinks";
+import { welcomeLinksFor } from "../feedback/dmLinks";
+import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 
@@ -25,7 +25,7 @@ export type MondayWelcomeCause = Infer<typeof mondayWelcomeCauseValidator>;
 const onboardingStepValidator = v.union(v.literal("first-thanks"), v.literal("someone-new"), v.literal("two-days"));
 
 export const onboardingJourneyValidator = v.array(
-  v.object({ step: onboardingStepValidator, finished: v.boolean(), progress: v.union(v.object({ done: v.number(), of: v.number() }), v.null()) }),
+  v.object({ step: onboardingStepValidator, goal: v.string(), finished: v.boolean(), progress: v.union(v.object({ done: v.number(), of: v.number(), unit: v.union(v.literal("kudos"), v.literal("days"), v.literal("people")) }), v.null()) }),
 );
 
 export type HuggedPeople = { kind: "author"; name?: string } | { kind: "peopleThanked" };
@@ -39,7 +39,7 @@ export type MondayWelcomeOpening =
 export type MondayWelcome = {
   kudosEmoji: string;
   opening: MondayWelcomeOpening;
-  journey: OnboardingQuestState[];
+  journey: OnboardingQuest[];
   next: OnboardingStep | null;
   waiting: WaitingCount;
   links: { book: string; quests: string; questsHow: string | null } | null;
@@ -49,7 +49,7 @@ export const mondayWelcomeOf = internalQuery({
   args: { workspace: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator },
   handler: async (ctx, { workspace, member, cause, journey }): Promise<MondayWelcome> => {
     const next = journey.find(({ finished }) => !finished)?.step ?? null;
-    const links = await dmLinksFor(ctx, workspace, member);
+    const links = await welcomeLinksFor(ctx, workspace, member);
     return {
       kudosEmoji: (await settingsOf(ctx, workspace)).kudosEmoji,
       opening: await openingOf(ctx, member, cause),
@@ -68,7 +68,7 @@ export type WelcomeOutcome = Infer<typeof welcomeOutcomeValidator>;
 export const welcomeEnded = internalMutation({
   args: { workspace: v.string(), member: v.id("members"), path: mondayWelcomePathValidator, outcome: welcomeOutcomeValidator },
   handler: async (ctx, { workspace, member, path, outcome }): Promise<void> => {
-    if (outcome === "delivered") await reportDmSent(ctx, { workspace, member, dm: { kind: "welcome", path }, at: Date.now() });
+    if (outcome === "delivered") await reportWelcomeDmSent(ctx, { workspace, member, path, at: Date.now() });
   },
 });
 

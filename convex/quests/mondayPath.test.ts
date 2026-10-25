@@ -183,6 +183,94 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
   });
 });
 
+describe("MQ5: someone-new is judged across a leave and a rejoin as on the unlock path", { timeout: 60_000 }, () => {
+  test("someone-new finishes when the last member the giver hadn't thanked leaves, without a reply", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await joins(carol);
+    await thanks(alice, saysWhy, bob);
+
+    const leftAt = await leaves(carol);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([{ xp: 50, at: leftAt }]);
+    expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(2);
+    expect(finishDmsTo(alice), "a finish DM").toEqual([]);
+  });
+
+  test("a member who left, and comes back after the last member they hadn't thanked left too, finishes someone-new on their return", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await joins(carol);
+    await thanks(alice, saysWhy, bob);
+    await leaves(alice);
+    await leaves(carol);
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards while away").toEqual([]);
+
+    const backAt = await rejoins(alice);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([{ xp: 50, at: backAt }]);
+  });
+
+  test("a leave delivered twice pays someone-new once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await joins(carol);
+    await thanks(alice, saysWhy, bob);
+    const left = { type: "memberLeft", workspace: "T1", member: await memberOf(carol), at: await leaves(carol) } as const;
+
+    for (const delivery of [1, 2]) await t.mutation(internal.quests.journey.recheckSomeoneNew, { event: left });
+    await settle(t);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toHaveLength(1);
+    expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(2);
+  });
+
+  test("a leave that comes in before the kudos that finishes first-thanks is counted still finishes someone-new", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    await joins(carol);
+    const held = holdingKudosGiven();
+    await thanks(alice, saysWhy, bob);
+
+    const leftAt = await leaves(carol);
+    await deliverInOrder(held[0]!, []);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([{ xp: 50, at: leftAt }]);
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("two-days");
+  });
+
+  test("a teammate thanked before who left and rejoined is no one new", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await joins(carol);
+    await thanks(alice, saysWhy, bob);
+    await leaves(bob);
+    await rejoins(bob);
+
+    await thanks(alice, "thanks", bob);
+
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
+  });
+
+  test("before first-thanks is done, a leave finishes nothing", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    await joins(carol);
+    await thanks(alice, "thanks", bob);
+
+    await leaves(carol);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([]);
+  });
+
+  test("MQ43: with monday-quest turned off after the start, a leave finishes nothing", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await joins(carol);
+    await thanks(alice, saysWhy, bob);
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+
+    await leaves(carol);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([]);
+  });
+});
+
 describe("MQ4: the quests message kind applies on the Monday path", { timeout: 60_000 }, () => {
   test.each([
     ["on", mondayPath, true],
@@ -367,6 +455,33 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
   await post(t, [section(text(`${words} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settleInTimeOrder(t);
   return ts;
+}
+
+async function joins(person: Person) {
+  await memberChanged(t, "team_join", { id: person.user, profile: { real_name: person.name } });
+  await settle(t);
+}
+
+async function leaves(person: Person) {
+  return membershipChanged({ id: person.user, deleted: true });
+}
+
+async function rejoins(person: Person) {
+  return membershipChanged({ id: person.user });
+}
+
+async function membershipChanged(user: { id: string; deleted?: boolean }) {
+  vi.setSystemTime(Date.now() + minuteMs);
+  const at = Date.now();
+  await memberChanged(t, "user_change", user);
+  await settle(t);
+  return at;
+}
+
+async function someoneNewRecordsOf(person: Person) {
+  const member = await memberOf(person);
+  const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
+  return records.filter((record) => record.member === member && record.key === "journey:someone-new").map(({ xp, at }) => ({ xp, at }));
 }
 
 function holdingKudosGiven() {

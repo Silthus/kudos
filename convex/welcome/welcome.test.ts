@@ -10,7 +10,7 @@ import { aSignedInSession } from "../../testing/website";
 import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 import { questStartOf } from "../quests/start";
-import { waitingLineOf } from "../feedback/waitingHoggies";
+import { waitingHoggiesLineOf } from "../feedback/waitingHoggies";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const hourMs = 60 * 60 * 1000;
@@ -345,7 +345,7 @@ describe("MQ20: the waiting line counts hoggie items, spelled out to ten", () =>
     [11, "11 unidentified Hoggies for your collection are waiting for you."],
     ["50+", "50+ unidentified Hoggies for your collection are waiting for you."],
   ])("%s waiting reads %s", (count, line) => {
-    expect(waitingLineOf(count)).toBe(line);
+    expect(waitingHoggiesLineOf(count)).toBe(line);
   });
 });
 
