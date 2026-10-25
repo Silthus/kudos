@@ -94,6 +94,17 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     expect(dm?.slice(4)).toEqual([`actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests) | Stop Monday quests`]);
   });
 
+  test("a member whose week was drawn on the unlock path gets no drawn quests from it", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding(alice);
+    const member = await memberOf(alice);
+    await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-19", drawnAt: weekendBeforeMonday, slots: [{ slot: 0, quest: "say-why", reward: { xp: 20, coins: 10, item: null }, catalogueVersion: "2", feasibleBecause: { peopleLeft: 2, recognitionsLeft: 10 } }] }));
+
+    await mondayArrives();
+
+    expect(dmsTo(alice)).toEqual([]);
+  });
+
   test("a member taken out of monday-quest before 9:00 gets the hugs recap alone, byte for byte as today's recap", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
@@ -618,15 +629,22 @@ function productEvents(event: string) {
   return postHog.productEvents().filter((captured) => captured.event === event);
 }
 
-async function mondayDmsSentTo(person: Person) {
-  const analyticsId = await t.run(async (ctx) => {
-    const member = await ctx.db
+async function memberOf(person: Person) {
+  const member = await t.run((ctx) =>
+    ctx.db
       .query("members")
       .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", person.user))
-      .unique();
+      .unique(),
+  );
+  return member!._id;
+}
+
+async function mondayDmsSentTo(person: Person) {
+  const member = await memberOf(person);
+  const analyticsId = await t.run(async (ctx) => {
     const identity = await ctx.db
       .query("analyticsIds")
-      .withIndex("by_member", (q) => q.eq("member", member!._id))
+      .withIndex("by_member", (q) => q.eq("member", member))
       .unique();
     return identity?.analyticsId;
   });
