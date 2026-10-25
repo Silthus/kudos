@@ -109,7 +109,24 @@
   border: 3px solid var(--card);
   border-radius: 0.875rem;
   box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--foreground) 35%, transparent);
-  transition: rotate 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    rotate 600ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    translate 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    scale 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 250ms ease-out;
+}
+
+.al-photo-link:hover .al-photo-sticker,
+.al-photo-link:focus-visible .al-photo-sticker {
+  rotate: 0deg;
+  translate: 0 -0.25rem;
+  scale: 1.06;
+  box-shadow: 0 10px 18px -6px color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+.al-photo-link:hover [data-picture="grey"] > img,
+.al-photo-link:focus-visible [data-picture="grey"] > img {
+  opacity: 0.8;
 }
 
 .al-photo[data-size="many"] .al-photo-sticker {
