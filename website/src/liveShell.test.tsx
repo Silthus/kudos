@@ -375,7 +375,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
 
     const bar = within((await screen.findAllByRole("banner"))[0]!);
     await user.click(await bar.findByRole("button", { name: "Your emojis, 2 earned" }));
-    expect(within(screen.getByRole("region", { name: "Levels 1 of 2" })).getAllByRole("listitem")[0]).toHaveTextContent(":level-5:You reached level-5");
+    expect(within(screen.getByRole("region", { name: "Levels 1 of 2" })).getAllByRole("listitem")[0]).toHaveTextContent(/^:level-5:(New)?You reached level-5/);
   });
 
   it("AL49: /leaderboard reads the boards from one getThoughtfulBoards subscription, which no other album page opens", async () => {

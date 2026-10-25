@@ -89,6 +89,15 @@ describe("AL45: the team page is the team's class photo", () => {
     expect(screen.queryByText(/Left to right/)).not.toBeInTheDocument();
   });
 
+  it("leaves whether someone is in your album to their picture, and says it in words only to a screen reader", async () => {
+    visit("/book#teams/lanterns");
+
+    const shown = await photo();
+    expect(shown.getByText("Not in your album yet")).toHaveClass("sr-only");
+    expect(shown.getAllByText("In your album").every((words) => words.classList.contains("sr-only"))).toBe(true);
+    expect(shown.getByText("Not in Slack yet")).not.toHaveClass("sr-only");
+  });
+
   it("someone not in your album yet shows their own picture greyed out, as a locked sticker is, while the collected show theirs in colour and someone not in Slack yet stays a named silhouette", async () => {
     visit("/book#teams/lanterns", { album: withFaces(midway, { "juno-park": junoFace, "ines-okafor": inesFace }) });
 

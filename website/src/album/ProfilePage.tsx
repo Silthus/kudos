@@ -242,7 +242,7 @@ function Glance({ album, team, hoggies }: { album: Album; team: AlbumTeam | unde
   return (
     <Section title="Your album at a glance">
       <ul className="al-profile-glance">
-        <Tile href={hrefOf({ kind: "milestones" })} label="People in your album" held={people.held} total={people.total} footnote={`${people.unlocked} of ${people.teams} team stickers unlocked`} />
+        <Tile href={hrefOf({ kind: "milestones" })} label="People in your album" held={people.held} total={people.total} footnote={`${people.unlocked} of ${people.teams} full teams unlocked`} />
         {team !== undefined && <Tile href={hrefOf({ kind: "team", team: team.team })} label={`Your team, ${team.name}`} held={team.held} total={team.total} footnote={teamFootnoteOf(team)} art={<TeamCrest art={team.art} size={44} name={team.name} collected={team.held > 0} />} />}
         {hoggies !== null && <Tile href={hrefOf({ kind: "hoggies", hoggie: null })} label="Hoggies found" held={hoggies.found} total={hoggies.total} footnote={`${hoggies.total - hoggies.found} still hiding in packs`} />}
       </ul>

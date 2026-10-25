@@ -68,7 +68,7 @@ The prototype's seventeen loops that VA25 bounds, at `0ac9e96d` under `round-5/`
 - **VA43. A team page is a class photo**: the team's faces as tiles on one warm sheet of photo paper, uncollected people as silhouettes, and the team's seal pinned to its corner, ringed by one segment per person; every face carries its name, so no caption repeats them. *Follows:* the prototype's [`ClassPhoto.tsx`][proto-class-photo]; shot [`ready-to-unlock`][shot-ready]; AL45, ticket 17.
 - **VA44. A hoggie is a field-guide plate**: found ones in full art with their name, rarity word and edge, spares with "×n", and hidden ones as grey silhouettes saying "Not found yet". *Follows:* the prototype's [`Collection.tsx`][proto-collection]; shot [`hoggies-sticky`][shot-hoggies]; AL50, ticket 21.
 - **VA45. `Hoggies` leads with a lit shelf of your rarest finds, then "The collection" bar sticks under the top bar** with All, Found, Still hidden and Spares and the rarity strip, each rarity found of its total and the one you're in marked; a hoggie's detail is a centred card with previous and next. *Follows:* the prototype's [`Showcase.tsx`][proto-showcase], [`RarityStrip.tsx`][proto-rarity-strip], [`HoggieDetail.tsx`][proto-hoggie-detail]; shots [`hoggies-sticky`][shot-hoggies], [`hoggies-detail`][shot-hoggie-detail]; AL50, ticket 21.
-- **VA46. A milestone is a row of four medals from bronze to diamond**: earned ones in metal with their dates, the next lit with a progress ring and a "Next" tag, later ones faint, each with its tier's word; gold and diamond carry a still sparkle. *Follows:* the prototype's [`MilestoneRow.tsx`][proto-milestone-row]; shot [`milestones`][shot-milestones]; AL51, ticket 21.
+- **VA46. Milestones leads with the next steps, then the medals earned**: a tally of the medals earned per metal, each tile topped in its metal; `Closest medals` as one bordered list, the closest row warm, each with its tier emblem, a metal dot, the hint in bold, a slim amber-to-accent bar and the count to go in accent ink; `Earned` as cards with the emoji and its Slack state under the words. *Follows:* [`Milestones.tsx`](../../website/src/album/Milestones.tsx) and [`milestones.css`](../../website/src/album/milestones.css), from variant A of the round-1 prototype on `prototype/milestones-overview`; AL51.
 - **VA47. The album shows how far you are toward what isn't yours yet**: a team's "4 of 5", the next medal's ring and count, and each locked emoji in grey with how to unlock it and your progress. *Follows:* `TeamState` in [`Sidebar.tsx`][sidebar]; the prototype's [`EmojiShelf.tsx`][proto-emoji-shelf]; shots [`emoji-popup`][shot-emoji-popup], [`milestones`][shot-milestones].
 
 ## People, weeks and boards
@@ -119,7 +119,7 @@ The old shell follows `V1` to `V24` as they were written at [`6ffc01b9`][old-rul
 | V13 Crates | Replaced by packs (VA33–VA38). |
 | V14 Kudos received is quiet | Holds: being thanked plays no moment; Activity and the profile show it (VA49, VA51). |
 | V15 Nothing interrupts a visit | Replaced: pack, put-in and unlock moments wait for the member's act, and only unseen emojis play on a visit, once the page settles and one at a time (VA26, VA28). |
-| V16 Medals | Replaced by the milestone row (VA46). |
+| V16 Medals | Replaced by the next-steps-first Milestones page (VA46). |
 | V17 Hedgehogs carry meaning | Replaced: a different mark and list (VA52). |
 | V18 Max | Narrowed: Max writes only error and not-found pages, with no insight line and no empty states (VA53). |
 | V19 Faces | Holds (VA54). |

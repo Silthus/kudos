@@ -65,7 +65,7 @@ function visit(items: BoardItem[], teaches: LoopLesson = tacoLesson) {
 
 async function turnTheFirstItem(user: ReturnType<typeof visit>["user"]) {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }));
-  await user.click(board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+  await user.click(board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!);
   await screen.findByRole("heading", { level: 1, name: "Hoggies" });
 }
 
@@ -120,7 +120,7 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
     await turnTheFirstItem(user);
     expect(theLesson()).not.toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "1 item waits" }));
+    await user.click(screen.getByRole("button", { name: "1 unidentified item waits" }));
     await turnTheFirstItem(user);
 
     expect(theLesson()).toBeNull();
@@ -128,7 +128,7 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
 });
 
 function theFaceDownItemsNow() {
-  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "A face-down item. Turn it over" });
+  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "An unidentified item. Identify it" });
 }
 
 async function turnOnFakeTime(item: HTMLElement) {

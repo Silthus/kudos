@@ -108,7 +108,7 @@ function ItemsUnlocked({ count }: { count: number }) {
       </span>
       <span>
         <strong>{words}</strong>
-        <small>waiting face down</small>
+        <small>waiting to be identified</small>
       </span>
     </li>
   );

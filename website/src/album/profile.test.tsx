@@ -114,7 +114,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     expect(glance.getByRole("link", { name: "People in your album: 18 of 38" })).toHaveAttribute("href", "/book#milestones");
     expect(glance.getByRole("link", { name: "Your team, Lanterns: 4 of 5" })).toHaveAttribute("href", "/book#teams/lanterns");
     expect(glance.getByRole("link", { name: "Hoggies found: 18 of 151" })).toHaveAttribute("href", "/book#hoggies");
-    expect(glance.getByText("1 of 13 team stickers unlocked")).toBeInTheDocument();
+    expect(glance.getByText("1 of 13 full teams unlocked")).toBeInTheDocument();
     expect(glance.getByText("1 to go for the seal")).toBeInTheDocument();
     expect(glance.getByText("133 still hiding in packs")).toBeInTheDocument();
   });
@@ -185,12 +185,12 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     const best = await section("Best milestones");
     expect(within(best.getByRole("list", { name: "Your best medals" })).getAllByRole("listitem").map((medal) => medal.textContent)).toEqual([
       "SilverFamiliar facesFaces in the album · 10 people in your albumEarned 16 Oct 2026",
-      "BronzeFirst full pageFull pages · 1 team sticker unlockedEarned 15 Oct 2026",
-      "BronzeCuriousHoggie hunter · 10 hoggies foundEarned 13 Oct 2026",
+      "BronzeFirst full pageFull pages · 1 full team unlockedEarned 15 Oct 2026",
+      "BronzeCuriousHoggie hunter · 10 different hoggies foundEarned 13 Oct 2026",
     ]);
     const next = within(best.getByRole("group", { name: "Closest next" }));
     expect(next.getByText("Bridge builder")).toBeInTheDocument();
-    expect(next.getByRole("progressbar", { name: "6 of 10 teams with someone in your album for Bridge builder" })).toHaveAttribute("aria-valuenow", "6");
+    expect(next.getByRole("progressbar", { name: "6 of 10 teams in your album for Bridge builder" })).toHaveAttribute("aria-valuenow", "6");
     expect(next.getByText("4 to go")).toBeInTheDocument();
     expect(best.getByRole("link", { name: "All milestones" })).toHaveAttribute("href", "/book#milestones");
   });

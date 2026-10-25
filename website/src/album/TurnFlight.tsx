@@ -24,7 +24,7 @@ export function TurnFlight({ flight, boxes }: { flight: Flight; boxes: FlightBox
         {flight.emoji !== null && <EmojiSpring up={flight.emoji} picture={boxes.emoji} />}
         {flight.stage !== "back" && <p className="ib-skip">Click to skip</p>}
       </div>
-      <p role="status" aria-label="Turning over" className="al-sr ph-no-capture">
+      <p role="status" aria-label="Identifying" className="al-sr ph-no-capture">
         {saidOf(flight)}
       </p>
     </>

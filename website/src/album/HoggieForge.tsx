@@ -75,7 +75,7 @@ export function ForgeReveal({ forged, into, onTurn, onLater }: RevealProps) {
           </button>
         )}
       </div>
-      <p className="al-forge-caption">{phase === "down" ? `Forged into ${aRarityWordOf(into)}. Turn it over.` : ""}</p>
+      <p className="al-forge-caption">{phase === "down" ? `Forged into ${aRarityWordOf(into)}. Identify it.` : ""}</p>
     </div>
   );
 }

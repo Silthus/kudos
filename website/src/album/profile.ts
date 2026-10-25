@@ -1,3 +1,4 @@
+import type { ReachedTier } from "../../../convex/album/milestones";
 import type { Album, AlbumMilestone, AlbumTeam, BoardPerson, BoardTeam, ThoughtfulBoards } from "./answer";
 import { metalOrder } from "./milestones";
 import { dateOf } from "./teamPage";
@@ -40,12 +41,26 @@ export function highestEarnedOf({ tiers }: AlbumMilestone) {
 }
 
 export function closestNextOf(album: Album): NextMedal | null {
-  return album.milestones.reduce<NextMedal | null>((closest, milestone) => {
-    const tier = milestone.tiers.find(({ earnedAt }) => earnedAt === null);
-    if (tier === undefined) return closest;
-    const next = { milestone, tier };
-    return closest === null || shareOf(next) > shareOf(closest) ? next : closest;
-  }, null);
+  return medalsInReachOf(album, null)[0] ?? null;
+}
+
+export function medalsInReachOf(album: Album, inPlace: ReachedTier | null): NextMedal[] {
+  return album.milestones
+    .flatMap((milestone) => {
+      const tier = tierInPlaceOf(milestone, inPlace) ?? milestone.tiers.find(({ earnedAt }) => earnedAt === null);
+      return tier === undefined ? [] : [{ milestone, tier }];
+    })
+    .toSorted((one, other) => shareOf(other) - shareOf(one));
+}
+
+function tierInPlaceOf(milestone: AlbumMilestone, inPlace: ReachedTier | null) {
+  return inPlace?.milestone === milestone.id ? milestone.tiers.find(({ tier }) => tier === inPlace.tier) : undefined;
+}
+
+export function earnedMedalsOf(album: Album): BestMedal[] {
+  return album.milestones
+    .flatMap((milestone) => milestone.tiers.filter((tier): tier is BestMedal["tier"] => tier.earnedAt !== null).map((tier) => ({ milestone, tier })))
+    .toSorted((one, other) => other.tier.earnedAt - one.tier.earnedAt);
 }
 
 export function shareOf({ milestone, tier }: NextMedal) {

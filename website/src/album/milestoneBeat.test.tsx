@@ -95,7 +95,7 @@ const arrival = { timeout: 10_000 };
 
 async function theFirstItem() {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
-  return board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!;
+  return board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!;
 }
 
 let clicked = 0;
@@ -173,7 +173,7 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(theBurst()!.style.getPropertyValue("--burst")).toBe("var(--medal-silver)");
     expect(within(theBurst()!).queryByTestId("confetti")).toBeNull();
     expect(screen.getByText("Familiar faces · Silver", { selector: ".ib-medal-caption" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Turning over" })).toHaveTextContent("Familiar faces · Silver medal unlocked");
+    expect(screen.getByRole("status", { name: "Identifying" })).toHaveTextContent("Familiar faces · Silver medal unlocked");
     expect(newLabelsOn(theMedal(familiarFaces))).toHaveLength(2);
 
     await at(8.2);
@@ -213,7 +213,7 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(stage()).toBe("idle");
     await act(async () => fireEvent.click(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("button", { name: "Later" })));
 
-    expect(screen.getByRole("status", { name: "Turned over" }), "the strip after Later").not.toBeEmptyDOMElement();
+    expect(screen.getByRole("status", { name: "Identified" }), "the strip after Later").not.toBeEmptyDOMElement();
     expect(screen.queryByRole("note", { name: "Medals unlocked" }), "the line for a beat that played").toBeNull();
   });
 
@@ -229,6 +229,34 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(stage()).toBe("medal");
     expect(screen.getByText("Five teams strong · Silver", { selector: ".ib-medal-caption" })).toBeInTheDocument();
     expect(theMedal(fiveTeams)).toHaveAttribute("data-step", "earned");
+  });
+
+  it("plays two tiers of one milestone on their own medals, the second in the row the first leaves", async () => {
+    const fullOfFriends: ReachedTier = { milestone: "people", tier: "gold" };
+    visit(familiarFaces, fullOfFriends);
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(5.5);
+    expect(theMedal(familiarFaces)).toHaveAttribute("data-step", "earned");
+    await at(9.0);
+    expect(theMedal(fullOfFriends), "waiting for its beat").toHaveAttribute("data-step", "next");
+    await at(10.1);
+    expect(stage()).toBe("medal");
+    expect(screen.getByText("Full of friends · Gold", { selector: ".ib-medal-caption" })).toBeInTheDocument();
+    expect(theMedal(fullOfFriends)).toHaveAttribute("data-step", "earned");
+    expect(theMedal(fullOfFriends)).toHaveClass("al-ms-next");
+  });
+
+  it("once the beat ends, moves the medal to Earned and shows its milestone's next tier in Closest medals", async () => {
+    visit(familiarFaces);
+    await clickOnFakeTime(await theFirstItem());
+
+    await at(5.5);
+    expect(theMedal(familiarFaces)).toHaveClass("al-ms-next");
+    await at(9.85);
+    expect(stage()).toBe("idle");
+    expect(theMedal(familiarFaces)).toHaveClass("al-ms-earned");
+    expect(theMedal({ milestone: "people", tier: "gold" })).toHaveAttribute("data-step", "next");
   });
 
   it("adds the gold confetti for a diamond tier", async () => {
