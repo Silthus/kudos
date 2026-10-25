@@ -217,7 +217,7 @@
       "name": "welcome message",
       "definition": "The one DM a member gets, ever, welcoming them to HedgeHug (MQ13). Off the Monday path it goes the first time they give or receive a Given award, in two versions: a first recipient's, headed by who thanked them, and a first giver's, headed by whom their first kudos landed with, with a neutral header for a welcome queued without either. Both say what HedgeHug is, what XP and the unlocks shown to the member bring, one next step toward giving three kudos, the daily allowance and, while the website opens to them, why to visit it; once groups exist, the pick of their primary group. On the Monday path it answers the member's first act and ends on their next onboarding quest (MQ14, MQ19).",
       "properties": {
-        "welcome path": "How the welcomed member started, recorded on their one welcomes row: hug, thoughtful-given, thoughtful-received or catch-up on the Monday path, and giver or recipient for a welcome from before it (MQ1, MQ13)."
+        "welcome path": "How the welcomed member started on the Monday path, recorded on their one welcomes row: hug, thoughtful-given, thoughtful-received or catch-up. A welcome from before it records no path; its welcomed field says giver or recipient (MQ1, MQ13)."
       }
     },
     {

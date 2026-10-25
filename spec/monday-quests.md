@@ -96,7 +96,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
   - **Monday DM**: the one DM a member gets on Monday at 9:00 local, built from a hugs section and a quests section.
   - **catch-up welcome**: the one-off welcome for a member who used HedgeHug before any welcome reached them.
   - **quests panel**: the panel on the right of every album page that lists the member's quests.
-  - **welcome** widens: one DM per member, ever, whose **welcome path** says how the member started: `hug`, `thoughtful-given`, `thoughtful-received`, `catch-up`, or today's `giver` and `recipient`.
+  - **welcome** widens: one DM per member, ever, whose **welcome path** says how the member started: `hug`, `thoughtful-given`, `thoughtful-received` or `catch-up`.
 
 ### The quests gate
 

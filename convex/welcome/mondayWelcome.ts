@@ -10,8 +10,7 @@ import { dmLinksFor } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-
-const mondayWelcomePathValidator = v.union(v.literal("hug"), v.literal("thoughtful-given"), v.literal("thoughtful-received"), v.literal("catch-up"));
+import { welcomePathValidator } from "./welcomedAs";
 
 export const mondayWelcomeCauseValidator = v.union(
   v.object({ path: v.literal("hug"), hugged: messageRefValidator }),
@@ -71,7 +70,7 @@ export const welcomeOutcomeValidator = v.union(v.literal("delivered"), v.literal
 export type WelcomeOutcome = Infer<typeof welcomeOutcomeValidator>;
 
 export const welcomeEnded = internalMutation({
-  args: { workspace: v.string(), member: v.id("members"), path: mondayWelcomePathValidator, outcome: welcomeOutcomeValidator },
+  args: { workspace: v.string(), member: v.id("members"), path: welcomePathValidator, outcome: welcomeOutcomeValidator },
   handler: async (ctx, { workspace, member, path, outcome }): Promise<void> => {
     if (outcome === "delivered") await reportWelcomeDmSent(ctx, { workspace, member, path, at: Date.now() });
   },
