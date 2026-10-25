@@ -31,7 +31,11 @@ export const feasibleBecauseValidator = v.object({ peopleLeft: v.number(), recog
 
 export type FeasibleBecause = Infer<typeof feasibleBecauseValidator>;
 
+export type QuestPool = { version: string; quests: readonly PoolQuest[] };
+
 const personalReward = { xp: 20, coins: 10, item: null };
+
+const mondayReward = { xp: 20, coins: 0, item: null };
 
 export const questPool = {
   version: "2",
@@ -45,7 +49,16 @@ export const questPool = {
     thanking("two-new", "Thank 2 people you haven't thanked before.", "someone-new", 2),
     thanking("not-in-30-days", "Thank someone you haven't thanked in the last 30 days.", "someone-not-thanked-in-30-days", 1),
   ],
-} as const satisfies { version: string; quests: readonly PoolQuest[] };
+} as const satisfies QuestPool;
+
+export const mondayQuestPool = {
+  version: "monday-1",
+  quests: questPool.quests.map((quest) => ({ ...quest, reward: mondayReward })),
+} as const satisfies QuestPool;
+
+export function isDrawnOnTheMondayPath({ catalogueVersion }: { catalogueVersion: string }): boolean {
+  return catalogueVersion === mondayQuestPool.version;
+}
 
 export function questOf(quest: QuestId): PoolQuest {
   return questPool.quests.find((entry) => entry.quest === quest)!;

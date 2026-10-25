@@ -5,7 +5,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
 import { publish, subscribers } from "../bus/publish";
 import { messageSettingsOf } from "../messageSettings/messageSettings";
@@ -13,6 +13,9 @@ import { standingOf } from "../progression/progression";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 import { nextOnboardingQuestOf } from "./onboarding";
+import { questStartOf } from "./start";
+import { weekStartOf } from "./week";
+import { rerollQuest, weeklyQuestsOf } from "./weekly";
 
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
@@ -21,12 +24,15 @@ vi.mock("../bus/publish", async (importOriginal) => {
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
+const dayMs = 24 * 60 * minuteMs;
 const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
 const saysWhy = "thanks for untangling the flaky migration today";
 const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items", "onboarding"];
 const mondayPath = [...todaysFlags, "monday-quest"];
+const drawnReward = { xp: 20, coins: 0, item: null };
+const drawnPaid = { xp: 20, coins: 0 };
 const firstThanksDone = "Quest done: Thank someone and say why · +50 XP and an unidentified Hoggie for your collection";
 
 const deliverForReal = vi.mocked(publish).getMockImplementation()!;
@@ -157,6 +163,121 @@ describe("MQ4: the quests message kind applies on the Monday path", { timeout: 6
     expect(settings.find(({ kind }) => kind === "quests")?.applies).toBe(applies);
   });
 });
+
+describe("MQ9: drawn quests come once the three onboarding quests are finished", { timeout: 60_000 }, () => {
+  test("nothing is drawn before the third onboarding quest, nor by the kudos that finishes it; the next sweep draws three", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await thanks(alice, "thanks", carol);
+    await sweepForANewWeek();
+    expect(await weekOf(alice), "the draw with 2 of 3 onboarding quests done").toBeNull();
+
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, saysWhy, bob);
+    expect(await weekOf(alice), "the draw after the kudos that finishes onboarding").toBeNull();
+    await sweepForANewWeek();
+
+    expect((await weekOf(alice))?.slots, "this week's drawn quests").toHaveLength(3);
+  });
+
+  test("the next kudos after onboarding draws this week's quests and counts toward them", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+    const onboarded = Date.now();
+
+    await thanks(alice, saysWhy, bob);
+
+    const week = await weekOf(alice);
+    expect(week?.drawnAt, "when the quests were drawn").toBeGreaterThan(onboarded);
+    expect(week?.slots.map(({ progress }) => progress), "each quest's progress").toEqual([1, 1, 1]);
+  });
+
+  test("the next week's quests are drawn at Monday 0:00 in the member's zone", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+    await sweepForANewWeek();
+
+    vi.setSystemTime(new Date("2026-10-19T09:00:00Z"));
+    await sweepForANewWeek();
+
+    const member = await memberOf(alice);
+    const timeZone = await t.run(async (ctx) => (await ctx.db.get(member))?.timeZone);
+    const week = await weekOf(alice);
+    expect(week?.week, "the week drawn").toBe("2026-10-19");
+    expect(week?.drawnAt, "when the week's quests were drawn").toBe(weekStartOf("2026-10-19", timeZone));
+  });
+});
+
+describe("MQ8 MQ10 MQ12: a drawn quest on the Monday path pays 20 XP and a Hoggie, never coins, with no swap", { timeout: 60_000 }, () => {
+  test("each drawn quest promises 20 XP and no coins, and none can be swapped", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+    await sweepForANewWeek();
+
+    const week = (await weekOf(alice))!;
+    const member = await memberOf(alice);
+    const swapped = await t.run((ctx) => rerollQuest(ctx, member, { kind: "weekly", week: week.week, slot: 0 }));
+
+    expect(week.slots.map(({ reward }) => reward), "each drawn quest's reward").toEqual([drawnReward, drawnReward, drawnReward]);
+    expect(week.swapAvailable, "a swap offered").toBe(false);
+    expect(swapped, "a swap asked for").toBe("refused");
+  });
+
+  test("finishing drawn quests records 20 XP and no coins each, lays a Hoggie each, and the reply says so with no finish DM", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+
+    for (let day = 0; day < 3; day += 1) {
+      if (day > 0) vi.setSystemTime(Date.now() + dayMs);
+      await thanks(alice, saysWhy, bob);
+    }
+
+    expect(await weeklyRewardsOf(alice), "the drawn quests' reward records").toEqual([drawnPaid, drawnPaid, drawnPaid]);
+    expect((await questItemsOf(alice)).filter(({ quest }) => quest.kind === "weekly"), "the drawn quests' items").toHaveLength(3);
+    expect(replyTo(alice).filter((line) => line.startsWith("Quest done:")), "the last reply's finish lines").toEqual([expect.stringMatching(/^Quest done: Thank someone and say why[^.]* · \+20 XP and an unidentified Hoggie for your collection$/)]);
+    expect(finishDmsTo(alice), "a finish DM").toEqual([]);
+  });
+});
+
+describe("MQ3: the weekly sweep starts quests for a member welcomed before the Monday path", { timeout: 60_000 }, () => {
+  test.each([
+    ["a welcome and monday-quest on", true, mondayPath, true],
+    ["no welcome", false, mondayPath, false],
+    ["a welcome and monday-quest off", true, todaysFlags, false],
+  ])("with %s, the sweep starts the member's quests: %s", async (_, welcomed, flags, starts) => {
+    await switchWebsite(t, postHog, true, ...flags);
+    await memberChanged(t, "team_join", { id: alice.user, profile: { real_name: alice.name } });
+    const member = await memberOf(alice);
+    if (welcomed) await t.run((ctx) => ctx.db.insert("welcomes", { member }));
+
+    await sweepForANewWeek();
+
+    expect((await t.run((ctx) => questStartOf(ctx, member))) !== null, "the member's quests started").toBe(starts);
+  });
+});
+
+async function finishOnboarding() {
+  await thanks(alice, saysWhy, bob);
+  await thanks(alice, "thanks", carol);
+  vi.setSystemTime(Date.now() + dayMs);
+  await thanks(alice, saysWhy, bob);
+}
+
+async function sweepForANewWeek() {
+  await t.mutation(internal.quests.newWeek.sweep, {});
+  await settle(t);
+}
+
+async function weekOf(person: Person) {
+  const member = await memberOf(person);
+  return t.run((ctx) => weeklyQuestsOf(ctx, member, Date.now()));
+}
+
+async function weeklyRewardsOf(person: Person) {
+  const member = await memberOf(person);
+  const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
+  return records.filter((record) => record.member === member && record.key.startsWith("weekly:")).map(({ xp, coins }) => ({ xp, coins }));
+}
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
   messages += 1;

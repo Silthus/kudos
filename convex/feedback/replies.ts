@@ -214,7 +214,7 @@ function questsDoneParts(questsDone: QuestDoneShown[]): Line[] {
 }
 
 function hoggieQuestLinesOf(questsDone: QuestDoneShown[]): Line[] {
-  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${goalOf(done)} · +${done.xp} XP and an unidentified Hoggie for your collection` }]);
+  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} · +${done.xp} XP and an unidentified Hoggie for your collection` }]);
 }
 
 function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {

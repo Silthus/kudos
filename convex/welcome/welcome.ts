@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, type MutationCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent, type MemberWelcomedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { requestWelcome } from "../feedback/welcome";
@@ -45,7 +45,7 @@ async function userOf(ctx: MutationCtx, member: MemberId) {
   return (await chatUserOf(ctx, member)).user;
 }
 
-async function isWelcomed(ctx: MutationCtx, member: MemberId) {
+export async function isWelcomed(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   const welcome = await ctx.db
     .query("welcomes")
     .withIndex("by_member", (q) => q.eq("member", member))

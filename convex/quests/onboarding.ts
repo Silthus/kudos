@@ -43,7 +43,17 @@ export async function nextOnboardingQuestOf(ctx: QueryCtx, member: MemberId): Pr
 }
 
 export async function onboardingFinishedBy(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return (await nextOnboardingQuestOf(ctx, member)) === null;
+  return (await onboardingFinishedAt(ctx, member)) !== null;
+}
+
+export async function onboardingFinishedAt(ctx: QueryCtx, member: MemberId): Promise<number | null> {
+  let finishedAt = 0;
+  for (const step of onboardingSteps) {
+    const finish = await finishOf(ctx, member, step);
+    if (finish === null) return null;
+    finishedAt = Math.max(finishedAt, finish.at);
+  }
+  return finishedAt;
 }
 
 export async function onboardingQuestXpOf(ctx: QueryCtx, member: MemberId): Promise<number> {
