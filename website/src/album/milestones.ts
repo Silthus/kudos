@@ -11,11 +11,11 @@ type Counted = { one: string; many: string };
 type MilestoneWords = { name: string; counted: Counted; emblem: LadderCard["ladder"]; hint: string };
 
 const milestoneWords: Record<MilestoneId, MilestoneWords> = {
-  people: { name: "Faces in the album", counted: { one: "person in your album", many: "people in your album" }, emblem: "connections", hint: "Say why when you thank someone, then turn over the items it earns" },
-  teams: { name: "Full pages", counted: { one: "team sticker unlocked", many: "team stickers unlocked" }, emblem: "team-spirit", hint: "Get everyone on a team into your album, then unlock its sticker" },
-  reach: { name: "Across the company", counted: { one: "team with someone in your album", many: "teams with someone in your album" }, emblem: "old-friends", hint: "Turn over items until someone from a new team lands" },
-  hoggies: { name: "Hoggie hunter", counted: { one: "hoggie found", many: "hoggies found" }, emblem: "recognition", hint: "Turn over items: some of them are hoggies" },
-  thoughtful: { name: "Kind words", counted: { one: "thoughtful kudos given", many: "thoughtful kudos given" }, emblem: "generosity", hint: "Thank someone in Slack and say why" },
+  people: { name: "Faces in the album", counted: { one: "person in your album", many: "people in your album" }, emblem: "connections", hint: "Thank someone new in Slack and say why, then turn over their sticker" },
+  teams: { name: "Full pages", counted: { one: "full team unlocked", many: "full teams unlocked" }, emblem: "team-spirit", hint: "Collect everyone on a team, then unlock the team on its page" },
+  reach: { name: "Across the company", counted: { one: "team in your album", many: "teams in your album" }, emblem: "old-friends", hint: "Thank someone from a team not yet in your album, then turn over their sticker" },
+  hoggies: { name: "Hoggie hunter", counted: { one: "different hoggie found", many: "different hoggies found" }, emblem: "recognition", hint: "Turn over your items to find hoggies you don't have yet. Repeats don't count" },
+  thoughtful: { name: "Kind words", counted: { one: "thoughtful kudos given", many: "thoughtful kudos given" }, emblem: "generosity", hint: "Thank anyone in Slack and say why. Thanking the same person again counts too" },
 };
 
 const tierWords: Record<MilestoneTierId, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };

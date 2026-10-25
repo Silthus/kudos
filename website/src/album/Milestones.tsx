@@ -1,5 +1,4 @@
 import { useId, type ReactNode } from "react";
-import { AppLink } from "../AppLink";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { PageTitle } from "../PageTitle";
 import { MapInPlace, NotInSlack, useMapsInPlace } from "./findInSlack";
@@ -8,7 +7,6 @@ import { medalsOf } from "./facts";
 import { NewLabel } from "./ItemBoard";
 import { emblemOf, hintOf, isEarned, medalKeyOf, medalsInAll, metalOrder, milestoneNameOf, progressWords, tierEmojiOf, tierWordOf, type TierEmoji } from "./milestones";
 import { useNewSinceTheLastVisit } from "./newLabels";
-import { hrefOf } from "./place";
 import { earnedMedalsOf, medalsInReachOf, shareOf, type BestMedal, type NextMedal } from "./profile";
 import { dateOf } from "./teamPage";
 import { useLanding } from "./useItemBoard";
@@ -30,12 +28,7 @@ export function MilestonesPage({ album }: { album: Album }) {
         </div>
         {started && <Tally album={album} />}
       </header>
-      {started && (
-        <>
-          <DoThisNext album={album} />
-          <Medals album={album} />
-        </>
-      )}
+      {started && <Medals album={album} />}
     </div>
   );
 }
@@ -71,32 +64,6 @@ function Section({ title, aside, children }: { title: string; aside?: ReactNode;
       </h2>
       {children}
     </section>
-  );
-}
-
-function DoThisNext({ album }: { album: Album }) {
-  const ready = album.teams.filter(({ state }) => state === "ready");
-  return (
-    <Section title="Do this next">
-      <ul className="al-ms-todo">
-        {ready.map((team) => (
-          <li key={team.team}>
-            <AppLink href={hrefOf({ kind: "team", team: team.team })} className="al-ms-todo-card">
-              <strong>{`Unlock ${team.name}`}</strong>
-              <span>Everyone on it is in your album.</span>
-              <span className="al-ms-todo-feeds">{milestoneNameOf("teams")}</span>
-            </AppLink>
-          </li>
-        ))}
-        <li>
-          <div className="al-ms-todo-card" data-in-slack="">
-            <strong>{hintOf("thoughtful")}</strong>
-            <span>Each one earns an item to turn over.</span>
-            <span className="al-ms-todo-feeds">{[milestoneNameOf("thoughtful"), milestoneNameOf("people"), milestoneNameOf("hoggies")].join(" · ")}</span>
-          </div>
-        </li>
-      </ul>
-    </Section>
   );
 }
 
