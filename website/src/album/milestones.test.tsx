@@ -81,7 +81,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
 
     expect(await screen.findByRole("heading", { level: 1, name: "Milestones" }, { timeout: arrival })).toBeInTheDocument();
     const rows = within(screen.getByRole("list", { name: "Your milestones" })).getAllByRole("listitem", { name: /./ });
-    expect(rows.map((row) => row.querySelector("h3")?.textContent)).toEqual(["Faces in the album", "Full pages", "Across the company", "Hoggie hunter", "Kind words"]);
+    expect(rows.map((row) => within(row).getByRole("heading", { level: 2 }).textContent)).toEqual(["Faces in the album", "Full pages", "Across the company", "Hoggie hunter", "Kind words"]);
 
     const faces = await rowOf("Faces in the album");
     expect(faces.getByText("people in your album").parentElement).toHaveTextContent("12 people in your album");

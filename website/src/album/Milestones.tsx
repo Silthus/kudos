@@ -56,9 +56,9 @@ function MilestoneRow({ album, milestone }: { album: Album; milestone: AlbumMile
       <div className="al-ms-plaque">
         <LadderEmblem ladder={ladder} best={highestEarnedOf(milestone)?.tier ?? null} size={64} />
         <div className="al-ms-plaque-words">
-          <h3 id={nameId} className="al-ms-name">
+          <h2 id={nameId} className="al-ms-name">
             {name}
-          </h3>
+          </h2>
           <p className="al-ms-count">
             <strong>{milestone.count}</strong> <span>{unitOf(milestone.id, milestone.count)}</span>
           </p>

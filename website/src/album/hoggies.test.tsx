@@ -170,7 +170,7 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
     visit("/book#hoggies");
 
     expect(await screen.findByRole("heading", { level: 1, name: "Hoggies" }, { timeout: arrival })).toBeInTheDocument();
-    expect(screen.getByText(/You've found 52 of 151/)).toHaveTextContent("Every thoughtful kudos you give earns a hoggie. You've found 52 of 151, from the everyday commons to the 6 legendaries.");
+    expect(screen.getByText(/You've found 52 of 151/)).toHaveTextContent("Every thoughtful kudos you give earns a hoggie, one per person you thank each week. You've found 52 of 151, from the everyday commons to the 6 legendaries.");
     const shelf = within(screen.getByRole("region", { name: "Rarest finds" }));
     expect(shelf.getAllByRole("button").map((find) => find.getAttribute("aria-label"))).toEqual([
       "Final Evolution, Legendary, one copy",
@@ -186,7 +186,7 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
 
     const shelf = within(await screen.findByRole("region", { name: "Rarest finds" }, { timeout: arrival }));
     expect(shelf.queryAllByRole("button")).toEqual([]);
-    expect(shelf.getByText("Every thoughtful kudos you give earns a hoggie. Your rarest finds stand here.")).toBeInTheDocument();
+    expect(shelf.getByText("Every thoughtful kudos you give earns a hoggie, one per person you thank each week. Your rarest finds stand here.")).toBeInTheDocument();
   });
 
   it("the plates are a field guide grouped by rarity in catalogue order: a found hoggie by name with its number and ×n for copies, a hidden one as a silhouette", async () => {
@@ -498,7 +498,7 @@ describe("AL50: Hoggies is a field guide of the member's hoggies, each with a ce
     const shown = await entry();
     expect(screen.getByRole("dialog")).toHaveAccessibleName("Not found yet");
     expect(shown.queryByText("Ball")).not.toBeInTheDocument();
-    expect(shown.getByText("Still out there. Every thoughtful kudos you give earns a hoggie.")).toBeInTheDocument();
+    expect(shown.getByText("Still out there. Every thoughtful kudos you give earns a hoggie, one per person you thank each week.")).toBeInTheDocument();
     expect(shown.queryByText("First found")).not.toBeInTheDocument();
   });
 
