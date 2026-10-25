@@ -5,15 +5,14 @@ import { MapInPlace, NotInSlack, useMapsInPlace } from "./findInSlack";
 import type { Album, AlbumMilestone } from "./answer";
 import { medalsOf } from "./facts";
 import { NewLabel } from "./ItemBoard";
-import { climbedShareOf, emblemOf, goalOf, isEarned, medalKeyOf, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
+import { climbedShareOf, emblemOf, isEarned, medalKeyOf, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
 import { useNewSinceTheLastVisit } from "./newLabels";
-import { closestNextOf, highestEarnedOf, type NextMedal } from "./profile";
+import { highestEarnedOf } from "./profile";
 import { dateOf } from "./teamPage";
 import { useLanding } from "./useItemBoard";
 import "./milestones.css";
 
 export function MilestonesPage({ album }: { album: Album }) {
-  const rowsTitle = useId();
   const { milestones } = album;
   return (
     <div className="al-page-body al-ms">
@@ -23,53 +22,26 @@ export function MilestonesPage({ album }: { album: Album }) {
           <PageTitle tab="Milestones" size="hero">
             Milestones
           </PageTitle>
-          <p className="al-lede">Medals your album earns as it fills. Every milestone has four, from bronze to diamond, and each one is yours for good.</p>
         </div>
         {milestones.length > 0 && <Tally album={album} />}
       </header>
       {milestones.length === 0 ? (
         <p className="al-lede">Your milestones show here once your album starts filling.</p>
       ) : (
-        <section aria-labelledby={rowsTitle}>
-          <div className="al-ms-section-head">
-            <h2 id={rowsTitle} className="al-ms-section-title">
-              Your milestones
-            </h2>
-            <p className="al-ms-direction">
-              Bronze
-              <span className="al-ms-direction-arrow" aria-hidden="true" />
-              Diamond · the lit medal is your next goal
-            </p>
-          </div>
-          <ol className="al-ms-rows" aria-labelledby={rowsTitle}>
-            {milestones.map((milestone) => (
-              <MilestoneRow key={milestone.id} album={album} milestone={milestone} />
-            ))}
-          </ol>
-        </section>
+        <ol className="al-ms-rows" aria-label="Your milestones">
+          {milestones.map((milestone) => (
+            <MilestoneRow key={milestone.id} album={album} milestone={milestone} />
+          ))}
+        </ol>
       )}
     </div>
   );
 }
 
 function Tally({ album }: { album: Album }) {
-  const closest = closestNextOf(album);
   return (
-    <div className="al-ms-tally">
-      <p className="al-ms-tally-count">
-        <strong>{medalsOf(album)}</strong> <span>{`of ${medalsInAll(album.milestones)} medals`}</span>
-      </p>
-      {closest !== null && <ClosestNext closest={closest} />}
-    </div>
-  );
-}
-
-function ClosestNext({ closest: { milestone, tier } }: { closest: NextMedal }) {
-  return (
-    <p className="al-ms-closest">
-      {"Closest: "}
-      <strong>{`${tier.name}, ${goalOf(milestone, tier).toGo} to go`}</strong>
-      <span className="al-ms-quiet">{` · ${tierWordOf(tier.tier)} · ${milestoneNameOf(milestone.id)}`}</span>
+    <p className="al-ms-tally">
+      <strong>{medalsOf(album)}</strong> <span>{`of ${medalsInAll(album.milestones)} medals`}</span>
     </p>
   );
 }

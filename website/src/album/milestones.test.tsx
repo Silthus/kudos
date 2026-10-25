@@ -116,12 +116,15 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
     expect(medalsIn(kind).map((medal) => medal.getAttribute("data-step"))).toEqual(["earned", "earned", "earned", "earned"]);
     expect(kind.queryByRole("progressbar")).not.toBeInTheDocument();
   });
-  it("heads the page with the medals earned of all twenty and the closest next medal, with no Collected strip and no just-earned band", async () => {
+  it("heads the page with only its title and the medals earned of all twenty: no blurb, no closest medal, no section heading, no Collected strip and no just-earned band", async () => {
     visit();
 
     expect(await screen.findByText("of 20 medals", undefined, { timeout: arrival })).toBeInTheDocument();
     expect(screen.getByText("of 20 medals").parentElement).toHaveTextContent("6 of 20 medals");
-    expect(screen.getByText(/^Closest:/)).toHaveTextContent("Closest: Bridge builder, 4 to go · Silver · Across the company");
+    expect(screen.queryByText(/Closest/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/next goal/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Medals your album earns/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "Your milestones" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Collected/)).not.toBeInTheDocument();
     expect(screen.queryByText(/just earned/i)).not.toBeInTheDocument();
   });
