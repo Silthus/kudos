@@ -7,7 +7,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import type { TurnReply } from "../shell";
 import type { Album, AlbumEmoji, AlbumLevel } from "./answer";
 import { hrefOf, type Place } from "./place";
-import { emojiIdOf, emojiSourcesOf, type Turned } from "./turnSequence";
+import { emojiSourcesOf, isTheEmojiOf, type EmojiSource, type Turned } from "./turnSequence";
 import { useTurnFlight, type Flight, type FlightBoxes } from "./useTurnFlight";
 
 export type LandingPhase = "arriving" | "landed" | "done";
@@ -109,11 +109,11 @@ export function useItemBoard(answered: ItemBoard | null, turnItem: (item: string
   const flyIn = useCallback(
     async (item: string, from: HTMLElement, answer: Promise<Turned | null>) => {
       setHeldLevel(level);
-      const emojiOf = (id: string) => turnEmojis.current.answered.find((emoji) => emoji.id === id && emoji.earned);
+      const emojiOf = (source: EmojiSource) => turnEmojis.current.answered.find((emoji) => emoji.earned && isTheEmojiOf(source, emoji));
       let away: string[] = [];
       const arrival = {
         land(turned: Turned) {
-          away = emojiSourcesOf(turned).map(emojiIdOf).filter((id) => emojiOf(id) !== undefined);
+          away = emojiSourcesOf(turned).flatMap((source) => emojiOf(source)?.id ?? []);
           turnEmojis.current.leave(away);
           land(item, turned, true);
         },

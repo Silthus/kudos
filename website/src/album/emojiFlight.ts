@@ -25,16 +25,18 @@ export function bumpTheEmojiButton(button: HTMLElement | null) {
   button?.animate?.([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: emojiFlightTiming.bumpMs, easing: "ease-out" });
 }
 
-export async function flyIntoTheEmojiButton(element: HTMLElement, button: HTMLElement | null) {
-  if (button === null || typeof element.animate !== "function") return pause(emojiFlightTiming.flightMs);
+export async function flyIntoTheEmojiButton(element: HTMLElement, button: HTMLElement | null, signal?: AbortSignal) {
+  if (button === null || typeof element.animate !== "function") return pause(emojiFlightTiming.flightMs, signal);
   const flight = element.animate(flightFrames(element.getBoundingClientRect(), button.getBoundingClientRect()), { duration: emojiFlightTiming.flightMs, easing: flightEasing, fill: "forwards" });
+  signal?.addEventListener("abort", () => flight.cancel(), { once: true });
   await flight.finished.catch(() => undefined);
-  bumpTheEmojiButton(button);
+  if (signal?.aborted !== true) bumpTheEmojiButton(button);
 }
 
-export async function flyACopyIntoTheEmojiButton(picture: HTMLElement) {
+export async function flyACopyIntoTheEmojiButton(picture: HTMLElement, signal: AbortSignal) {
   const copy = copyOver(picture);
-  await flyIntoTheEmojiButton(copy, theEmojiButton());
+  signal.addEventListener("abort", () => copy.remove(), { once: true });
+  await flyIntoTheEmojiButton(copy, theEmojiButton(), signal);
   copy.remove();
 }
 
@@ -47,6 +49,9 @@ function copyOver(picture: HTMLElement) {
   return copy;
 }
 
-function pause(ms: number) {
-  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+function pause(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const timer = window.setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => (window.clearTimeout(timer), resolve()), { once: true });
+  });
 }

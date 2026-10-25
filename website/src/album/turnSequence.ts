@@ -1,10 +1,11 @@
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { TurnAnswer } from "../../../convex/website/album";
 import { medalKeyOf } from "./milestones";
+import type { AlbumEmoji } from "./answer";
 
 export type Turned = Extract<TurnAnswer, { kind: "turned" }>;
 
-export type EmojiSource = { kind: "hype"; person: string } | { kind: "team"; team: string } | { kind: "medal"; tier: ReachedTier };
+export type EmojiSource = { kind: "hype"; name: string } | { kind: "team"; team: string } | { kind: "medal"; tier: ReachedTier };
 
 export type FlightStage = "lift" | "turn" | "hold" | "land" | "unlock" | "medal" | "rest" | "back";
 
@@ -51,6 +52,7 @@ export type TurnClock = {
   skip: () => void;
   timeAgain: () => void;
   stop: () => void;
+  isStopped: () => boolean;
 };
 
 export function turnClock(): TurnClock {
@@ -99,6 +101,7 @@ export function turnClock(): TurnClock {
       stopped = true;
       skip();
     },
+    isStopped: () => stopped,
   };
 }
 
@@ -212,19 +215,19 @@ export function emojiSourcesOf(turned: Turned): EmojiSource[] {
   return [...hypeOf(turned), ...unlocked.teamStickers.map(({ team }): EmojiSource => ({ kind: "team", team })), ...unlocked.milestones.map((tier): EmojiSource => ({ kind: "medal", tier }))];
 }
 
-export function emojiIdOf(source: EmojiSource) {
+export function isTheEmojiOf(source: EmojiSource, emoji: AlbumEmoji) {
   switch (source.kind) {
     case "hype":
-      return `hype:${source.person}`;
+      return emoji.kind === "hype" && emoji.name === source.name;
     case "team":
-      return `team:${source.team}`;
+      return emoji.id === `team:${source.team}`;
     case "medal":
-      return `milestone:${medalKeyOf(source.tier)}`;
+      return emoji.id === `milestone:${medalKeyOf(source.tier)}`;
   }
 }
 
-function hypeOf({ face, unlocked }: Turned): EmojiSource[] {
-  return unlocked.hype !== null && face.kind === "sticker" ? [{ kind: "hype", person: face.person }] : [];
+function hypeOf({ unlocked: { hype } }: Turned): EmojiSource[] {
+  return hype === null ? [] : [{ kind: "hype", name: hype.name }];
 }
 
 function hypeBeatOf(turned: Turned): FollowUp[] {

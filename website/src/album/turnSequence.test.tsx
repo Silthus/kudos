@@ -396,6 +396,27 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(earnedInTheTopBar(), "once the team emoji lands").toBe(before + 2);
   });
 
+  it("springs the hype emoji a hoggie's turn unlocks, when the person's sticker is already in the album, and counts it as it lands", async () => {
+    const hype = { name: "cass-vey-hype", picture: "/emoji/hype-cass.png", inSlack: false, from: "Cass Vey" };
+    const hypeEmoji = { ...tinOrchardEmoji, id: "hype:cass-vey", kind: "hype" as const, name: hype.name, from: hype.from, picture: hype.picture };
+    const aHoggieTurnWithHype = async (item: string): Promise<TurnReply> => {
+      const turned = await fixtureTurnOf(item);
+      return turned.kind === "turned" ? { ...turned, unlocked: { teamStickers: [], hype, milestones: [] } } : turned;
+    };
+    visit({ reply: aHoggieTurnWithHype, after: (album, item) => ({ ...withTheHoggieTurned(album, item), emojis: [...album.emojis, hypeEmoji] }) });
+    const item = await theFirstItem();
+    const before = earnedInTheTopBar();
+    await clickOnFakeTime(item);
+
+    await at(4.0);
+    expect(theEmojiInTheAir(), "while the hoggie lands").toBeNull();
+    await at(4.6);
+    expect(theEmojiInTheAir(), "the hype springs out").toHaveTextContent(":cass-vey-hype:");
+    expect(earnedInTheTopBar(), "while the hype is out").toBe(before);
+    await at(6.0);
+    expect(earnedInTheTopBar(), "once the hype lands").toBe(before + 1);
+  });
+
   it("keeps New off a sticker's spot on its page until the sticker lands", async () => {
     const lastVisit = Date.parse("2026-10-19T10:00:00Z");
     const putIn = (album: Album, item: string) => {
@@ -529,6 +550,20 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     await act(() => Promise.resolve());
 
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("marks no emoji seen when the album goes before the emoji reached the emoji button, so its moment still waits", async () => {
+    placeTheSealInView();
+    const { unmount, actions } = visit({ reply: async () => aStickerTurnOfCassVey({ teamStickers: [tinOrchard], hype: null, milestones: [] }), after: (album, item) => ({ ...withTinOrchardFilled(album, item), emojis: [...album.emojis, tinOrchardEmoji] }) });
+    await clickOnFakeTime(await theFirstItem());
+    await at(4.8);
+    expect(stage()).toBe("unlock");
+
+    unmount();
+    await act(() => Promise.resolve());
+    await act(() => Promise.resolve());
+
+    expect(actions.markEmojisSeen).not.toHaveBeenCalled();
   });
 
   it("brings the board back with the trouble said when the turn is refused mid-flight", async () => {

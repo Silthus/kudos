@@ -643,11 +643,35 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theTakeover(), "the takeover still waits for a click").toBeInTheDocument();
   });
 
+  it("keeps the level's emoji out of the top bar's count from the return through the XP filling the bar, so the count never runs ahead of its flight", async () => {
+    await returnTo({ moment: toLevelTen, album: atLevelTen });
+    const all = earnedOf(levelTenEarned);
+    expect(earnedInTheTopBar(), "on arrival").toBe(all - 1);
+
+    await collectAt(arrivedAndRead);
+    expect(earnedInTheTopBar(), "as the XP is collected").toBe(all - 1);
+    await at(collectedAndStreamed - 0.1);
+    expect(earnedInTheTopBar(), "as the bar crosses the level").toBe(all - 1);
+    await at(collectedAndStreamed + 0.02);
+    expect(earnedInTheTopBar(), "as the takeover drops in").toBe(all - 1);
+  });
+
   it("counts the level's emoji at once when Continue comes before it lands", async () => {
     await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
 
     await act(async () => fireEvent.click(within(theTakeover()!).getByRole("button", { name: "Continue" })));
 
+    expect(earnedInTheTopBar()).toBe(earnedOf(levelTenEarned));
+  });
+
+  it("takes the emoji on its way up along with the takeover when Continue comes mid-flight", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+    await inAnother(2.6);
+    expect(theEmojiOnItsWay(), "on its way up").not.toBeNull();
+
+    await act(async () => fireEvent.click(within(theTakeover()!).getByRole("button", { name: "Continue" })));
+
+    expect(theEmojiOnItsWay()).toBeNull();
     expect(earnedInTheTopBar()).toBe(earnedOf(levelTenEarned));
   });
 

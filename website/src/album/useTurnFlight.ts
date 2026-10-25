@@ -5,7 +5,7 @@ import type { TurnedFaceShown } from "../../../convex/website/album";
 import type { AlbumEmoji } from "./answer";
 import { bumpTheEmojiButton, emojiFlightTiming, flightEasing, flightFrames, springEasing, springFrames, theEmojiButton } from "./emojiFlight";
 import { medalKeyOf } from "./milestones";
-import { emojiIdOf, playTurn, turnClock, turnTiming, type EmojiSource, type FlightStage, type TurnClock, type Turned, type TurnSteps } from "./turnSequence";
+import { playTurn, turnClock, turnTiming, type EmojiSource, type FlightStage, type TurnClock, type Turned, type TurnSteps } from "./turnSequence";
 
 export type Point = { x: number; y: number };
 
@@ -19,7 +19,7 @@ export type Chip = { xp: number; from: Point; to: Point };
 
 export type FlightBoxes = { flyer: RefObject<HTMLDivElement | null>; flip: RefObject<HTMLDivElement | null>; disc: RefObject<HTMLSpanElement | null>; emoji: RefObject<HTMLSpanElement | null> };
 
-export type Arrival = { land: (turned: Turned) => void; landed: () => void; landedWithoutTheFlight: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean; emojiOf: (id: string) => AlbumEmoji | undefined; emojiHome: (id: string) => void };
+export type Arrival = { land: (turned: Turned) => void; landed: () => void; landedWithoutTheFlight: () => void; teamUnlocked: () => void; toTheTeam: (team: string) => void; toTheMilestones: () => void; medalShown: () => void; paid: () => void; nothingWaits: () => boolean; emojiOf: (source: EmojiSource) => AlbumEmoji | undefined; emojiHome: (id: string) => void };
 
 type FaceKind = TurnedFaceShown["kind"];
 
@@ -140,7 +140,7 @@ async function popTheMedal(clock: TurnClock, change: Change, arrival: Arrival, t
 }
 
 async function sendTheEmojiUp(clock: TurnClock, boxes: FlightBoxes, change: Change, arrival: Arrival, source: EmojiSource) {
-  const emoji = arrival.emojiOf(emojiIdOf(source));
+  const emoji = arrival.emojiOf(source);
   if (emoji === undefined) return;
   const up: EmojiUp = { emoji, at: centreOf(rectOf(emojiSpotOf(source))), flying: false };
   flushSync(() => change({ emoji: up }));
@@ -151,6 +151,7 @@ async function sendTheEmojiUp(clock: TurnClock, boxes: FlightBoxes, change: Chan
   change({ emoji: { ...up, flying: true } });
   await clock.animate(picture, picture === null || button === null ? [] : flightFrames(picture.getBoundingClientRect(), button.getBoundingClientRect()), { duration: emojiFlightTiming.flightMs, easing: flightEasing });
   change({ emoji: null });
+  if (clock.isStopped()) return;
   arrival.emojiHome(emoji.id);
   bumpTheEmojiButton(button);
 }

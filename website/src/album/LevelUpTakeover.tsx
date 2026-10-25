@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import type { LoopLesson } from "../../../convex/website/album";
 import type { Climb } from "../../../convex/website/xpMoment";
 import { NamedEmoji } from "../Emoji";
@@ -65,20 +65,26 @@ function Unlocks({ unlocks: { items, emojis, howTo }, onTheirWay }: { unlocks: L
 
 function useSentUpToTheEmojis(list: RefObject<HTMLUListElement | null>, emojis: AlbumEmoji[], firstOrder: number, { leave, home }: EmojisOnTheirWay) {
   const ids = emojis.map(({ id }) => id).join(" ");
-  useEffect(() => {
+  useLayoutEffect(() => {
     const sent = ids === "" ? [] : ids.split(" ");
+    const takenAway = new AbortController();
+    const sendUpAndHome = async (id: string) => {
+      await sendUp(list.current, id, takenAway.signal);
+      if (!takenAway.signal.aborted) home([id]);
+    };
     leave(sent);
-    const timers = sent.map((id, index) => window.setTimeout(() => void sendUp(list.current, id).then(() => home([id])), sentUpAtOf(firstOrder + index)));
+    const timers = sent.map((id, index) => window.setTimeout(() => void sendUpAndHome(id), sentUpAtOf(firstOrder + index)));
     return () => {
+      takenAway.abort();
       timers.forEach((timer) => window.clearTimeout(timer));
       home(sent);
     };
   }, [list, ids, firstOrder, leave, home]);
 }
 
-async function sendUp(list: HTMLElement | null, id: string) {
+async function sendUp(list: HTMLElement | null, id: string, signal: AbortSignal) {
   const picture = list?.querySelector<HTMLElement>(`[data-emoji="${CSS.escape(id)}"] .al-emoji-art`);
-  if (picture !== null && picture !== undefined) await flyACopyIntoTheEmojiButton(picture);
+  if (picture !== null && picture !== undefined) await flyACopyIntoTheEmojiButton(picture, signal);
 }
 
 function risesAtOf(order: number) {

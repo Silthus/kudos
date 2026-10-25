@@ -10,7 +10,7 @@ import { useEmojisOnTheirWay, withTheEmojisAway } from "./emojisOnTheirWay";
 import { GettingStarted } from "./GettingStarted";
 import { HowItWorks } from "./HowItWorks";
 import { AfterTheLanding, ItemBoard, ItemsWait } from "./ItemBoard";
-import { useLevelUnlocks } from "./levelUnlocks";
+import { levelEmojisClimbedTo, useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
@@ -99,6 +99,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const anotherMoment = opening || moment !== null || unlocking.sending !== null || puttingIn.busy || place.kind === "levelUp" || flying || sinceTheLastVisit.waits || howItWorks.holds;
   const emojiMoments = useEmojiMoments(album, anotherMoment, emojisShown, showTheEmojis);
   const levelUnlocks = useLevelUnlocks(album, sinceTheLastVisit, emojiMoments.shownElsewhere);
+  const notInTheTopBarYet = new Set([...onTheirWay.away, ...levelEmojisClimbedTo(album, sinceTheLastVisit.climbing)]);
   const playing = opening || moment !== null || emojiMoments.playing.length > 0;
   const finishUnlocking = (team: string) => {
     emojiMoments.shownElsewhere([`team:${team}`]);
@@ -119,7 +120,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell" data-xp-moment={sinceTheLastVisit.covers ? "" : undefined} data-emojis-arriving={onTheirWay.away.size > 0 ? "" : undefined}>
-      <TopBar album={withTheEmojisAway(landed, onTheirWay.away)} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={withTheEmojisAway(landed, notInTheTopBarYet)} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
