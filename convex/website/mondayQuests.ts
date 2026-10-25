@@ -7,6 +7,7 @@ import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { questItemKeyOf } from "../quests/finish";
 import { saysWhyCounts } from "../quests/journeyCopy";
+import { isPaidOnTheMondayPath } from "../quests/mondayCatalogue";
 import { nextOnboardingQuestOf, onboardingFinishedBy, onboardingGoalOf, onboardingReward, type OnboardingStep } from "../quests/onboarding";
 import type { QuestId } from "../quests/pool";
 import { questStartOf } from "../quests/start";
@@ -61,8 +62,12 @@ export async function mondayQuestsOf(ctx: QueryCtx, me: VerifiedMember): Promise
 
 async function questListOf(ctx: QueryCtx, member: MemberId, at: number): Promise<MondayQuestList> {
   const week = (await onboardingFinishedBy(ctx, member)) ? await drawnWeekOf(ctx, member, at) : null;
-  if (week === null) return { kind: "journey", steps: await gettingStartedOf(ctx, member, at) };
+  if (week === null || !isMondayWeek(week)) return { kind: "journey", steps: await gettingStartedOf(ctx, member, at) };
   return { kind: "drawn", quests: await Promise.all(week.slots.map((slot) => drawnQuestOf(ctx, member, slot))) };
+}
+
+function isMondayWeek({ slots }: DrawnWeek): boolean {
+  return slots.some(isPaidOnTheMondayPath);
 }
 
 async function gettingStartedOf(ctx: QueryCtx, member: MemberId, at: number): Promise<GettingStartedStep[]> {

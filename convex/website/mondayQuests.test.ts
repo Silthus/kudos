@@ -122,7 +122,28 @@ describe("MQ37 MQ9: once the three quests are finished, the read answers this we
     expect(drawn.every(({ reward, done, item }) => reward.xp === 20 && !done && item === null)).toBe(true);
     expect(drawn.every(({ goal, progress }) => goal.length > 0 && progress.target >= 1)).toBe(true);
   });
+
+  test("MQ4: a week drawn from the unlock path's pool is not shown as the Monday week", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+    await theHourlySweep();
+
+    await drawnFromTheUnlockPool(alice);
+
+    expect((await mondayQuestsOf(alice)).quests.kind).toBe("journey");
+  });
 });
+
+async function drawnFromTheUnlockPool(person: Person) {
+  const member = await memberOf(person);
+  await t.run(async (ctx) => {
+    const draws = await ctx.db
+      .query("questDraws")
+      .withIndex("by_member_week", (q) => q.eq("member", member))
+      .take(10);
+    for (const draw of draws) await ctx.db.patch(draw._id, { slots: draw.slots.map((slot) => ({ ...slot, catalogueVersion: "1" })) });
+  });
+}
 
 describe("MQ37 MQ43: off the Monday path the quests read answers as today", () => {
   test("with monday-quest off, a member with neither path gets no quests", async () => {
