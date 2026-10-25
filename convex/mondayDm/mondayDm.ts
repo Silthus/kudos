@@ -132,7 +132,7 @@ async function sectionsOf(ctx: MutationCtx, row: MondayDmRow): Promise<Sections>
   const hugs = await hugsSectionFor(ctx, member, monday);
   const begun = await caughtUpByThisRow(ctx, row);
   if (!begun && (await welcomeOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined)) !== null) return { ...noSections, hugs };
-  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun });
+  const catchUp = isAroundMonday(Date.now(), monday) ? await catchUpWelcomeIn(ctx, member, Date.now(), { begun }) : null;
   return { hugs, quests: catchUp === null ? await questsSectionFor(ctx, member, Date.now()) : null, catchUp };
 }
 

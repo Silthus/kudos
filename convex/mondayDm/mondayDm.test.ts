@@ -627,6 +627,20 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
     expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true, false]);
   });
 
+  test("a row whose first start Convex lost and the sweep recovers days later sends no catch-up then, and the next Monday's does", async () => {
+    await usedBeforeTheMondayPath();
+    await sweepsAt(mondayNine - 2 * hourMs);
+    await t.run(async (ctx) => {
+      for (const job of await ctx.db.system.query("_scheduled_functions").collect()) if (job.name === sendMondayDm && job.state.kind === "pending") await ctx.scheduler.cancel(job._id);
+    });
+
+    await sweepsAt(mondayNine + 2 * dayMs + hourMs);
+    await mondayArrives(nextMondayNine + hourMs);
+
+    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true]);
+    expect(dmTimesTo(carol)).toEqual([nextMondayNine]);
+  });
+
   test("a member welcomed on Monday before 9:00, whose row the catch-up already ensured, gets no Monday DM that day", async () => {
     await usedBeforeTheMondayPath();
     await sweepsAt(mondayNine - 2 * hourMs);
