@@ -285,6 +285,22 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
 
     expect([...postsTo(alice), ...postsTo(bob)], "Alice's DM and Bob's, whom her kudos welcomed").toEqual([]);
   });
+
+  test("first tries that Convex lost before they started still go out, once each", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await sweepsAt(Date.now() + hourMs);
+    await settleUpTo(t, mondayNine - 1);
+
+    await cancelled(sendMondayDm);
+    await cancelled(sendMondayDm);
+    await sweepsAt(mondayNine + hourMs);
+    await sweepsAt(mondayNine + 2 * hourMs);
+
+    expect(dmsTo(alice), "Alice's Monday DMs").toHaveLength(1);
+    expect(dmsTo(bob), "the Monday DMs of Bob, whom her kudos welcomed").toHaveLength(1);
+    expect([...(await mondayDmsSentTo(alice)), ...(await mondayDmsSentTo(bob))], "the dm sent records").toHaveLength(2);
+  });
 });
 
 describe("MQ29 MQ30: one press on Stop Monday quests stops them, replacing the DM in place with a one-press undo", { timeout: 60_000 }, () => {

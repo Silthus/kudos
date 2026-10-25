@@ -12,7 +12,7 @@ import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { crateOpeningOf, rewardKeyOf, waitsUnopened, weeklyQuestOfRewardKey } from "./crates";
+import { crateOpenedAt, crateOpeningOf, rewardKeyOf, waitsUnopened, weeklyQuestOfRewardKey } from "./crates";
 import { finishMondayQuest, finishQuest } from "./finish";
 import { onTheMondayPath, questsLiveFor, type QuestPath } from "./flag";
 import { rewardValidator, type Reward } from "./journey";
@@ -222,7 +222,7 @@ async function weeklySlotOf(ctx: QueryCtx, { member, week }: Draw, slot: Slot): 
   const finish = await rewardOf(ctx, member, key);
   const opening = await crateOpeningOf(ctx, member, key);
   const progress = questProgress(pooled, await countedFor(ctx, member, week, slot));
-  return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null, waiting: waitsUnopened(finish, opening) };
+  return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: crateOpenedAt(finish, opening), waiting: waitsUnopened(finish, opening) };
 }
 
 async function unfinishedSlotsOf(ctx: QueryCtx, draw: Draw, slots: Slot[]): Promise<Slot[]> {

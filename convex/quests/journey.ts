@@ -20,7 +20,7 @@ import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
 import { storeVisibleTo } from "../store/visibility";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
-import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, waitsUnopened } from "./crates";
+import { crateOpenedAt, crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, waitsUnopened } from "./crates";
 import { finishQuest } from "./finish";
 import { journeyStartedFor, journeyStepAppliesTo, onTheMondayPath, questsLiveFor } from "./flag";
 import { finishSomeoneNewOnceEveryoneIsThanked, someoneNewWaitsOnTheMondayPath } from "./onboarding";
@@ -258,7 +258,7 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
     const key = rewardKeyOf({ kind: "journey", step });
     const finish = await rewardOf(ctx, member, key);
     const opening = await crateOpeningOf(ctx, member, key);
-    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null, waiting: waitsUnopened(finish, opening) });
+    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null, openedAt: crateOpenedAt(finish, opening), waiting: waitsUnopened(finish, opening) });
   }
   return facts;
 }

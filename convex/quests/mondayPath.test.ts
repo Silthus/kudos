@@ -2,8 +2,12 @@ import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { bookShippedBeforeAnyoneJoined, journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { signedRequest } from "../../testing/signedSlack";
 import { memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { publishedHomeBlocks } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
+import { opens } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
@@ -34,6 +38,7 @@ const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items"
 const mondayPath = [...todaysFlags, "monday-quest"];
 const drawnReward = { xp: 20, coins: 0, item: null };
 const drawnPaid = { xp: 20, coins: 0 };
+const saysWhyGoal = "Thank someone and say why";
 const firstThanksDone = "Quest done: Thank someone and say why · +50 XP and an unidentified Hoggie for your collection";
 
 const deliverForReal = vi.mocked(publish).getMockImplementation()!;
@@ -388,6 +393,36 @@ describe("MQ4 MQ10: with the unlock path on too, the Monday path's quests pay on
     expect(await xpOf(alice), "the giver's XP").toBe(70);
   });
 
+  test("a Monday quest's reward waits as no pack in the collection and as no Journey Open on App Home", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "unlocks", "quests", "achievements");
+    await journeyShippedBeforeAnyoneJoined(t);
+    await bookShippedBeforeAnyoneJoined(t);
+    await thanks(alice, saysWhy, bob);
+    await opens(t, await memberOf(alice), "book");
+
+    await openHome(alice);
+
+    expect.soft(await packsWaitingFor(alice), "the packs waiting in the collection").toEqual([]);
+    expect(journeyOpensInHome(alice), "the Journey lines with an Open on App Home").toEqual([]);
+  });
+
+  test("a finished drawn quest waits as no pack in the collection and as no Open on App Home", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "unlocks", "quests", "achievements");
+    await journeyShippedBeforeAnyoneJoined(t);
+    await bookShippedBeforeAnyoneJoined(t);
+    await finishOnboarding();
+    await opens(t, await memberOf(alice), "book");
+    await opens(t, await memberOf(alice), "quests");
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, saysWhy, bob);
+
+    await openHome(alice);
+
+    expect(await weeklyRewardsOf(alice), "the drawn quests' reward records").toContainEqual(drawnPaid);
+    expect(await packsWaitingFor(alice), "the packs waiting in the collection").not.toContainEqual(expect.stringMatching(/^weekly:/));
+    expect(opensInHome(alice).filter((line) => line?.includes(saysWhyGoal)), "the drawn quest's line with an Open on App Home").toEqual([]);
+  });
+
   test("a week drawn on the unlock path is left as it is on the Monday path, paying no coins", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await memberChanged(t, "team_join", { id: alice.user, profile: { real_name: alice.name } });
@@ -529,6 +564,28 @@ async function questItemsOf(person: Person) {
   if (album.kind !== "album") throw new Error(`expected an album, got ${JSON.stringify(album)}`);
   const { board } = album as AlbumAnswer;
   return (board?.items ?? []).map(({ reason }) => reason).filter((reason) => reason.kind === "quest");
+}
+
+async function openHome(person: Person) {
+  await t.fetch("/slack/events", await signedRequest(appHomeOpened(person.user)));
+  await settle(t);
+}
+
+function journeyOpensInHome(person: Person) {
+  return opensInHome(person).filter((line) => line?.startsWith("*Journey:*"));
+}
+
+function opensInHome(person: Person) {
+  return publishedHomeBlocks(slack, person.user)
+    .filter((block) => block.accessory?.text?.text === "Open")
+    .map((block) => block.text?.text);
+}
+
+async function packsWaitingFor(person: Person) {
+  const { asSignedIn } = await aSignedInSession(t, { user: person.user, name: person.name });
+  const collection = await asSignedIn.query(api.website.collection.getCollection, {});
+  if (collection.kind !== "collection") throw new Error(`expected a collection, got ${JSON.stringify(collection)}`);
+  return collection.packs?.map(({ crate }) => crate) ?? [];
 }
 
 async function memberOf(person: Person): Promise<MemberId> {

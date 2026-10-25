@@ -101,7 +101,7 @@ async function reportDelivered(ctx: MutationCtx, { member, monday, sections = []
 }
 
 async function beginSweep(ctx: MutationCtx) {
-  await failStrandedStarts(ctx);
+  await settleStrandedStarts(ctx);
   await ctx.scheduler.runAfter(0, internal.mondayDm.mondayDm.ensureCatchUpMondayDms, {});
 }
 
@@ -154,12 +154,17 @@ async function scheduleTry(ctx: MutationCtx, dm: Id<"mondayDms">, dueAt: number,
   return null;
 }
 
-async function failStrandedStarts(ctx: MutationCtx) {
+async function settleStrandedStarts(ctx: MutationCtx) {
   const stranded = await ctx.db
     .query("mondayDms")
     .withIndex("by_state_due", (q) => q.eq("state", "scheduled").lt("dueAt", Date.now() - convexActionTimeLimitMs))
     .take(strandedPerSweep);
-  for (const row of stranded) if (row.tries > 0) await ctx.db.patch(row._id, { state: "failed" });
+  for (const row of stranded) await settleStrandedStart(ctx, row);
+}
+
+async function settleStrandedStart(ctx: MutationCtx, row: MondayDmRow) {
+  if (row.tries > 0) return ctx.db.patch(row._id, { state: "failed" });
+  await scheduleTry(ctx, row._id, Date.now(), 1);
 }
 
 async function awaitingTry(ctx: QueryCtx, dm: Id<"mondayDms">, tries: number): Promise<MondayDmRow | null> {
