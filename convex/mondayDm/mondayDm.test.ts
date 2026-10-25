@@ -646,15 +646,25 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
   test("a row whose first start Convex lost and the sweep recovers days later sends no catch-up then, and the next Monday's does", async () => {
     await usedBeforeTheMondayPath();
     await sweepsAt(mondayNine - 2 * hourMs);
-    await t.run(async (ctx) => {
-      for (const job of await ctx.db.system.query("_scheduled_functions").collect()) if (job.name === sendMondayDm && job.state.kind === "pending") await ctx.scheduler.cancel(job._id);
-    });
+    await convexLosesTheFirstStarts();
 
     await sweepsAt(mondayNine + 2 * dayMs + hourMs);
     await mondayArrives(nextMondayNine + hourMs);
 
     expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true]);
     expect(dmTimesTo(carol)).toEqual([nextMondayNine]);
+  });
+
+  test("a recovered catch-up whose rate-limited retry falls after its Monday's window still goes out, once", async () => {
+    await usedBeforeTheMondayPath();
+    await sweepsAt(mondayNine - 2 * hourMs);
+    await convexLosesTheFirstStarts();
+    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60));
+
+    await sweepsAt(mondaysWindowEnds - 10 * minuteMs);
+    await mondayArrives(nextMondayNine + hourMs);
+
+    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true, false]);
   });
 
   test("a member welcomed on Monday before 9:00, whose row the catch-up already ensured, gets no Monday DM that day", async () => {
@@ -711,6 +721,7 @@ describe("MQ23 MQ24: the sweep ensures a Monday DM row only for a member the Mon
 
 const stuckInThePipe = "A hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now :sweat_smile:";
 const nextMondayNine = mondayNine + 7 * dayMs;
+const mondaysWindowEnds = Date.parse("2026-10-21T00:00:00Z");
 
 async function usedBeforeTheMondayPath({ catchUpOn = true } = {}) {
   await switchWebsite(t, postHog, true, ...todaysFlags);
@@ -768,6 +779,12 @@ async function hug(giver: Person, author: Person, message = `${Math.floor(Date.n
   await react(t, { user: giver.user, itemUser: author.user, ts: message });
   await settleUpTo(t, Date.now() + minuteMs);
   return message;
+}
+
+async function convexLosesTheFirstStarts() {
+  await t.run(async (ctx) => {
+    for (const job of await ctx.db.system.query("_scheduled_functions").collect()) if (job.name === sendMondayDm && job.state.kind === "pending") await ctx.scheduler.cancel(job._id);
+  });
 }
 
 async function mondayArrives(until = mondayNine + hourMs) {
