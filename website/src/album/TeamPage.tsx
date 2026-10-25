@@ -83,7 +83,7 @@ function PersonOnThePhoto({ person: { person, name, face, held, at }, pet }: { p
       <AppLink href={hrefOf({ kind: "person", person })} className="al-photo-link">
         <PersonPicture face={face} name={name} collected={held} frame="al-photo-sticker" className="al-photo-face" />
         <span className="al-photo-name ph-no-capture">{name}</span>{" "}
-        <span className="al-photo-role">{held ? "In your album" : "Not in your album yet"}</span>
+        <span className="sr-only">{held ? "In your album" : "Not in your album yet"}</span>
       </AppLink>
       <NewSinceTheLastVisit at={at} />
       <LandedHype landing={landing} />
