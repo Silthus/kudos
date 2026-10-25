@@ -142,8 +142,23 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     await mondayArrives();
 
     expect(seen(dmsTo(alice).at(-1)!).at(-1)).toBe(
-      `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/sign-in) | See your quests (dm-link:monday:quests → ${siteUrl}/sign-in) | Stop Monday quests`,
+      `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/sign-in/book) | See your quests (dm-link:monday:quests → ${siteUrl}/sign-in/book#me/quests) | Stop Monday quests`,
     );
+  });
+
+  test("for a member previewing the website, the welcome's links keep their destinations through the sign-in entry too", async () => {
+    slack.withMember(alice.user, { real_name: alice.name, profile: { real_name: alice.name, email: alicesEmail } });
+    await flagsFromPostHog(t, postHog, onForEmails("website", alicesEmail), ...mondayPath.map(onForEveryone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+
+    await thanks(alice, saysWhy, bob);
+
+    const welcome = slack.messagesShownIn(alice.user).find(({ blocks }) => welcomeLinksIn((blocks ?? []) as Block[]).length > 0);
+    expect(linkUrlsIn(welcome!.blocks as Block[])).toEqual({
+      "dm-link:welcome:quests-how": `${siteUrl}/sign-in/book#me/quests/someone-new`,
+      "dm-link:welcome:book": `${siteUrl}/sign-in/book`,
+      "dm-link:welcome:quests": `${siteUrl}/sign-in/book#me/quests`,
+    });
   });
 
   test("a member in a time zone ahead of UTC gets the DM at 9:00 there", async () => {
@@ -569,6 +584,11 @@ const welcomeDestinations = [
 function welcomeLinksIn(blocks: Block[]) {
   const buttons = blocks.flatMap((block) => [block.accessory, ...(block.elements ?? [])]) as Array<{ action_id?: string; text?: { text: string } } | undefined>;
   return buttons.flatMap((button) => (button?.action_id?.startsWith("dm-link:welcome:") ? [button.text!.text] : []));
+}
+
+function linkUrlsIn(blocks: Block[]) {
+  const buttons = blocks.flatMap((block) => [block.accessory, ...(block.elements ?? [])]) as Array<{ action_id?: string; url?: string } | undefined>;
+  return Object.fromEntries(buttons.flatMap((button) => (button?.url === undefined ? [] : [[button.action_id, button.url]])));
 }
 
 function linkClicks() {
