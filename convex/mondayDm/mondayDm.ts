@@ -5,7 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { reportMondayDmSent } from "../analytics/isolatedUsage";
 import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowance";
 import { dmLinksOf, type DmLinks } from "../feedback/dmLinks";
-import { settingsFooterFor, type SettingsFooter } from "../feedback/settingsFooter";
+import { settingsFooterFor } from "../feedback/settingsFooter";
 import { hugsSectionFor, hugsSentInTheMondayDm, type HugsSection } from "../hugs/recap";
 import { hiddenItemsShownTo } from "../items/flag";
 import { waitingHoggieCountOf } from "../items/ledger";
@@ -13,12 +13,12 @@ import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
 import { questsCopyOf, type QuestsCopy } from "./questsCopy";
-import type { MondayDmSection } from "./records";
+import { postedMessageValidator, type MondayDmContent, type MondayDmSection } from "./records";
 import { mondayDmOf, type MondayDmRow } from "./rows";
 
 export type MondayQuests = QuestsCopy & { waiting: boolean; links: DmLinks | null };
 
-export type MondayDm = { workspace: string; user: string; hugs: HugsSection | null; quests: MondayQuests | null; footer: SettingsFooter | null };
+export type MondayDm = { dm: Id<"mondayDms">; workspace: string; user: string } & MondayDmContent;
 
 const startsPerSweep = 100;
 const strandedPerSweep = 100;
@@ -50,9 +50,10 @@ export const startMondayDm = internalMutation({
       await ctx.db.patch(dm, { state: "skipped" });
       return null;
     }
-    await ctx.db.patch(dm, { tries: attempt, dueAt: Date.now(), sections: sent });
     const { workspace, user } = await chatUserOf(ctx, row.member);
-    return { workspace, user, hugs: sections.hugs, quests: await mondayQuestsOf(ctx, workspace, row.member, sections.quests), footer: sections.hugs === null ? null : await settingsFooterFor(ctx, row.member) };
+    const content = await contentOf(ctx, workspace, row.member, sections);
+    await ctx.db.patch(dm, { tries: attempt, dueAt: Date.now(), sections: sent, content });
+    return { dm, workspace, user, ...content };
   },
 });
 
@@ -66,12 +67,12 @@ export const mondayDmLater = internalMutation({
 });
 
 export const mondayDmEnded = internalMutation({
-  args: { ...tryArgs, outcome: v.union(v.literal("delivered"), v.literal("gone"), v.literal("failed")) },
-  handler: async (ctx, { dm, attempt, outcome }) => {
+  args: { ...tryArgs, outcome: v.union(v.literal("delivered"), v.literal("gone"), v.literal("failed")), posted: v.optional(postedMessageValidator) },
+  handler: async (ctx, { dm, attempt, outcome, posted }) => {
     const row = await awaitingTry(ctx, dm, attempt);
     if (row === null) return;
     const delivered = outcome === "delivered";
-    await ctx.db.patch(dm, { state: delivered ? "sent" : "failed" });
+    await ctx.db.patch(dm, delivered ? { state: "sent", posted } : { state: "failed" });
     if (delivered) await reportDelivered(ctx, row);
   },
 });
@@ -98,6 +99,10 @@ async function sectionsOf(ctx: MutationCtx, { member, monday }: MondayDmRow) {
 
 function sectionNamesOf({ hugs, quests }: { hugs: HugsSection | null; quests: QuestsSection | null }): MondayDmSection[] {
   return [...(hugs === null ? [] : ["hugs" as const]), ...(quests === null ? [] : ["quests" as const])];
+}
+
+async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { hugs, quests }: { hugs: HugsSection | null; quests: QuestsSection | null }): Promise<MondayDmContent> {
+  return { hugs, quests: await mondayQuestsOf(ctx, workspace, member, quests), footer: hugs === null ? null : await settingsFooterFor(ctx, member) };
 }
 
 async function mondayQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, quests: QuestsSection | null): Promise<MondayQuests | null> {

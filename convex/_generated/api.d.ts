@@ -201,6 +201,7 @@ import type * as mondayDm_mondayDm from "../mondayDm/mondayDm.js";
 import type * as mondayDm_questsCopy from "../mondayDm/questsCopy.js";
 import type * as mondayDm_records from "../mondayDm/records.js";
 import type * as mondayDm_rows from "../mondayDm/rows.js";
+import type * as mondayDm_stop from "../mondayDm/stop.js";
 import type * as parser_parser from "../parser/parser.js";
 import type * as profileCard_flag from "../profileCard/flag.js";
 import type * as profileCard_profileCard from "../profileCard/profileCard.js";
@@ -577,6 +578,7 @@ declare const fullApi: ApiFromModules<{
   "mondayDm/questsCopy": typeof mondayDm_questsCopy;
   "mondayDm/records": typeof mondayDm_records;
   "mondayDm/rows": typeof mondayDm_rows;
+  "mondayDm/stop": typeof mondayDm_stop;
   "parser/parser": typeof parser_parser;
   "profileCard/flag": typeof profileCard_flag;
   "profileCard/profileCard": typeof profileCard_profileCard;
