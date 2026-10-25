@@ -1,13 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Album } from "./answer";
 
 type Opened = { key: string; ids: ReadonlySet<string> };
 
-export function useNewEmojis(album: Album, open: boolean): boolean {
+export type NewEmojis = { marked: boolean; inThePanel: ReadonlySet<string> };
+
+const noneNew: ReadonlySet<string> = new Set();
+
+const NewInThePanel = createContext<ReadonlySet<string>>(noneNew);
+
+export const NewInThePanelProvider = NewInThePanel.Provider;
+
+export function useNewInThePanel(id: string): boolean {
+  return useContext(NewInThePanel).has(id);
+}
+
+export function useNewEmojis(album: Album, open: boolean): NewEmojis {
   const key = storageKeyOf(album.me.person);
   const [kept, setKept] = useState(() => openedIn(key));
   const opened = kept.key === key ? kept : openedIn(key);
   if (kept !== opened) setKept(opened);
+  const [openedBeforeThePanel, setOpenedBeforeThePanel] = useState<ReadonlySet<string> | null>(null);
+  if (open && openedBeforeThePanel === null) setOpenedBeforeThePanel(opened.ids);
+  if (!open && openedBeforeThePanel !== null) setOpenedBeforeThePanel(null);
   const earnedNow = JSON.stringify(album.emojis.filter(({ earned }) => earned).map(({ id }) => id));
   const earned = useMemo(() => JSON.parse(earnedNow) as string[], [earnedNow]);
   useEffect(() => {
@@ -20,7 +35,8 @@ export function useNewEmojis(album: Album, open: boolean): boolean {
       return after;
     });
   }, [open, earned, key]);
-  return earned.some((id) => !opened.ids.has(id));
+  const inThePanel = useMemo(() => (openedBeforeThePanel === null ? noneNew : new Set(earned.filter((id) => !openedBeforeThePanel.has(id)))), [openedBeforeThePanel, earned]);
+  return { marked: earned.some((id) => !opened.ids.has(id)), inThePanel };
 }
 
 function storageKeyOf(person: string) {

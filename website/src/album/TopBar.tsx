@@ -11,7 +11,7 @@ import type { Album, AlbumLevel } from "./answer";
 import { EmojiPanel } from "./EmojiPanel";
 import { usableCountOf } from "./emojiShelf";
 import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
-import { useNewEmojis } from "./newEmojis";
+import { NewInThePanelProvider, useNewEmojis } from "./newEmojis";
 import type { Held } from "./PackOpening";
 import { addressOf, home, hrefOf, myPageOf, type Place } from "./place";
 import { PagesBurger } from "./PagesBurger";
@@ -174,10 +174,14 @@ type EmojiButtonProps = { album: Album; popover: TopBarPopover; button: RefObjec
 
 function EmojiButton({ album, popover, button, justUnlocked, opensOnJustUnlocked }: EmojiButtonProps) {
   const { count, label } = emojiCountOf(album);
-  const fresh = useNewEmojis(album, popover.open === "emojis");
+  const { marked: fresh, inThePanel } = useNewEmojis(album, popover.open === "emojis");
   const newLabel = useId();
   return (
-    <PopoverButton name="emojis" popover={popover} button={button} label={label} describedBy={fresh ? newLabel : undefined} labelled panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} onFollow={popover.close} />}>
+    <PopoverButton name="emojis" popover={popover} button={button} label={label} describedBy={fresh ? newLabel : undefined} labelled panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={
+        <NewInThePanelProvider value={inThePanel}>
+          <EmojiPanel album={album} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} onFollow={popover.close} />
+        </NewInThePanelProvider>
+      }>
       <IconEmoji />
       <span className="al-emojis-count" aria-hidden="true">
         {count}
