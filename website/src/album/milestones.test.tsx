@@ -81,7 +81,7 @@ function withEveryMedal(album: Album, id: AlbumMilestone["id"]): Album {
   return withMilestone(album, { ...listed, count: listed.tiers.at(-1)!.at, tiers: listed.tiers.map((tier) => ({ ...tier, earnedAt: tier.earnedAt ?? now - day })) });
 }
 
-describe("AL51: Milestones puts the next steps first: what to do, the closest medal of every milestone, then the medals earned", { timeout: 60_000 }, () => {
+describe("AL51: Milestones puts the next steps first: the closest medal of every milestone with how to earn it, then the medals earned", { timeout: 60_000 }, () => {
   it("says what the page collects and what every medal unlocks, then counts the medals earned of all twenty and per metal", async () => {
     visit();
 
@@ -90,24 +90,6 @@ describe("AL51: Milestones puts the next steps first: what to do, the closest me
     expect(screen.getByText("of 20 medals").parentElement).toHaveTextContent("6 of 20 medals");
     const metals = within(screen.getByRole("list", { name: "Medals by metal" })).getAllByRole("listitem");
     expect(metals.map((metal) => metal.textContent)).toEqual(["Bronze 5 of 5", "Silver 1 of 5", "Gold 0 of 5", "Diamond 0 of 5"]);
-  });
-
-  it("offers each team ready to unlock, linking to its page, and thanking someone with a reason as what to do next", async () => {
-    visit();
-
-    const next = await sectionOf("Do this next");
-    expect(next.getAllByRole("listitem")).toHaveLength(2);
-    expect(next.getByRole("link", { name: /^Unlock Kettle Works/ })).toHaveAttribute("href", "/book#teams/kettle-works");
-    expect(next.getByText("Thank someone in Slack and say why")).toBeInTheDocument();
-    expect(next.getByText("Each one earns an item to identify.")).toBeInTheDocument();
-  });
-
-  it("without a team ready to unlock, only thanking someone is left to do", async () => {
-    visit(albumFixtures.newcomer);
-
-    const next = await sectionOf("Do this next");
-    expect(next.getAllByRole("listitem")).toHaveLength(1);
-    expect(next.queryByRole("link", { name: /^Unlock/ })).not.toBeInTheDocument();
   });
 
   it("lists the next medal of every milestone, the closest first, each with its progress, what is still to go, how to get there and the emoji it unlocks", async () => {
@@ -119,16 +101,26 @@ describe("AL51: Milestones puts the next steps first: what to do, the closest me
     expect(bridge.getByRole("progressbar", { name: "Bridge builder" })).toHaveAttribute("aria-valuenow", "6");
     expect(bridge.getByRole("progressbar", { name: "Bridge builder" })).toHaveAttribute("aria-valuemax", "10");
     expect(bridge.getByText("4 to go")).toBeInTheDocument();
-    expect(bridge.getByText("6 of 10 teams with someone in your album")).toBeInTheDocument();
-    expect(bridge.getByText("Identify items until someone from a new team lands")).toBeInTheDocument();
+    expect(bridge.getByText("6 of 10 teams in your album")).toBeInTheDocument();
     expect(emojiIn(bridge)).toEqual({ picture: "/emoji/milestone-reach-silver.png", name: ":bridge-builder:", earned: false, says: "Unlocks at 10" });
   });
 
-  it("says how to move every milestone", async () => {
+  it("says how to earn every milestone's next medal and what counts toward it", async () => {
     visit();
 
-    const hints = await Promise.all(["Full of friends", "Collector", "Generous soul", "Five teams strong"].map(async (name) => (await medalNamed("Closest medals", name)).getByText(/^[A-Z].+[a-z]$/, { selector: ".al-ms-hint" }).textContent));
-    expect(hints).toEqual(["Say why when you thank someone, then identify the items it earns", "Identify items: some of them are hoggies", "Thank someone in Slack and say why", "Get everyone on a team into your album, then unlock its sticker"]);
+    const guidance = await Promise.all(
+      ["Full of friends", "Generous soul", "Bridge builder", "Collector", "Five teams strong"].map(async (name) => {
+        const medal = await medalNamed("Closest medals", name);
+        return [medal.getByText(/./, { selector: ".al-ms-hint" }).textContent, medal.getByText(/./, { selector: ".al-ms-count" }).textContent];
+      }),
+    );
+    expect(guidance).toEqual([
+      ["Thank someone new in Slack and say why, then identify the items it earns", "12 of 25 people in your album"],
+      ["Thank anyone in Slack and say why. Thanking the same person again counts too", "9 of 25 thoughtful kudos given"],
+      ["Thank someone from a team not yet in your album, then identify the items it earns", "6 of 10 teams in your album"],
+      ["Identify your items to find hoggies you don't have yet. Repeats don't count", "18 of 40 different hoggies found"],
+      ["Collect everyone on a team to unlock it", "1 of 5 full teams unlocked"],
+    ]);
   });
 
   it("a newcomer sees every milestone's bronze in the catalogue's order and nothing earned yet", async () => {
