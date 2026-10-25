@@ -50,7 +50,7 @@ export function HowItWorks({ card: { slack, toLevelTwo, kudos }, onClose }: HowI
           </SlackMessage>
         </ol>
         <p className="hw-note hw-beat" style={beatOf(5)}>
-          {toLevelTwo && "Your first kudos takes you to level 2. "}Items wait here for you to turn.
+          {toLevelTwo && "Your first kudos takes you to level 2. "}Items wait here for you to identify.
         </p>
         {toLevelTwo && (
           <p className="hw-unlocks hw-beat" style={beatOf(5)}>

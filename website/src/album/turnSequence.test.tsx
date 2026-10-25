@@ -118,7 +118,7 @@ const arrival = { timeout: 10_000 };
 
 async function theFirstItem() {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
-  return board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!;
+  return board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!;
 }
 
 let clicked = 0;
@@ -233,7 +233,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(stage()).toBe("back");
     await at(5.9);
     expect(stage()).toBe("idle");
-    expect(screen.getByRole("heading", { name: "2 items wait" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "2 unidentified items wait" })).toBeVisible();
     expect(turnItem).toHaveBeenCalledTimes(1);
   });
 
@@ -315,7 +315,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(theEmojiInTheAir(), "while the seal pops").toBeNull();
     await at(5.9);
     expect(theEmojiInTheAir()).toHaveTextContent(":team-tin-orchard:");
-    expect(screen.getByRole("status", { name: "Turning over" })).toHaveTextContent(":team-tin-orchard: emoji unlocked");
+    expect(screen.getByRole("status", { name: "Identifying" })).toHaveTextContent(":team-tin-orchard: emoji unlocked");
     expect(earnedInTheTopBar(), "while the emoji is out").toBe(before);
     expect(actions.markEmojisSeen).not.toHaveBeenCalled();
 
@@ -508,8 +508,8 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
 
     await at(4.8);
     expect(ground()).toBeNull();
-    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("70's Dance: Rare hoggie · New");
-    expect(screen.getByRole("button", { name: "2 items wait" })).toBeVisible();
+    expect(screen.getByRole("status", { name: "Identified" })).toHaveTextContent("70's Dance: Rare hoggie · New");
+    expect(screen.getByRole("button", { name: "2 unidentified items wait" })).toBeVisible();
 
     await act(async () => page.answers());
     await at(5.0);
@@ -531,7 +531,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(stage()).toBe(skippedStage);
     await act(async () => fireEvent.pointerDown(document.body));
     expect(ground()).toBeNull();
-    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("70's Dance: Rare hoggie · New");
+    expect(screen.getByRole("status", { name: "Identified" })).toHaveTextContent("70's Dance: Rare hoggie · New");
 
     await act(async () => page.answers());
     await at(skippedAt + 0.2);
@@ -573,7 +573,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     await at(0.5);
     expect(stage()).toBe("idle");
     expect(window.location.hash).toBe("#me");
-    expect(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("alert")).toHaveTextContent("That item couldn't be turned over. Try again.");
+    expect(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("alert")).toHaveTextContent("That item couldn't be identified. Try again.");
   });
 
   it("closes the board after the rest when the last item has turned", async () => {
@@ -590,10 +590,10 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
 
     await at(4.1);
     expect(stage()).toBe("land");
-    expect(screen.getByRole("status", { name: "Turned over" })).not.toHaveTextContent("70's Dance");
+    expect(screen.getByRole("status", { name: "Identified" })).not.toHaveTextContent("70's Dance");
     await at(5.4);
     expect(ground()).toBeNull();
-    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("70's Dance: Rare hoggie · New");
+    expect(screen.getByRole("status", { name: "Identified" })).toHaveTextContent("70's Dance: Rare hoggie · New");
   });
 
   it("never changes the page or says where an item goes on hover, and the pointer that taps the first item goes once the member hovers", async () => {
@@ -634,7 +634,7 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(ground()).toBeNull();
     expect(document.querySelector(".ib-flyer")).toBeNull();
     expect(window.location.hash).toBe("#hoggies");
-    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("70's Dance: Rare hoggie · New+15 XP");
+    expect(screen.getByRole("status", { name: "Identified" })).toHaveTextContent("70's Dance: Rare hoggie · New+15 XP");
     expect(xpWords()).toBe("275 XP to level 7");
   });
 

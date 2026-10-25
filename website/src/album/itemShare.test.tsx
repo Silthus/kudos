@@ -54,7 +54,7 @@ function visit({ offeredAfterTheTurn, shareItem = async () => ({ kind: "shared" 
 
 async function turnTheFirstItem(user: ReturnType<typeof visit>["user"]) {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }, { timeout: arrival }));
-  await user.click(board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+  await user.click(board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!);
   await screen.findByRole("heading", { level: 1, name: "Hoggies" }, { timeout: arrival });
 }
 
@@ -97,7 +97,7 @@ describe("LP51 LP52: Share shows after a turn the album offers it for, and is go
 
     await user.click(within(screen.getByRole("navigation", { name: "Album" })).getByRole("link", { name: /Milestones/ }));
     await screen.findByRole("heading", { level: 1, name: "Milestones" });
-    expect(screen.getByRole("status", { name: "Turned over" })).toBeEmptyDOMElement();
+    expect(screen.getByRole("status", { name: "Identified" })).toBeEmptyDOMElement();
     await user.click(theShareButton()!);
 
     expect(actions.shareItem).toHaveBeenCalledWith(win!.item);
@@ -149,7 +149,7 @@ async function theFaceDownItems() {
 }
 
 function theFaceDownItemsNow() {
-  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "A face-down item. Turn it over" });
+  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "An unidentified item. Identify it" });
 }
 
 let clicked = 0;

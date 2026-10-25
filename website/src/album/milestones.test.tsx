@@ -99,6 +99,7 @@ describe("AL51: Milestones puts the next steps first: what to do, the closest me
     expect(next.getAllByRole("listitem")).toHaveLength(2);
     expect(next.getByRole("link", { name: /^Unlock Kettle Works/ })).toHaveAttribute("href", "/book#teams/kettle-works");
     expect(next.getByText("Thank someone in Slack and say why")).toBeInTheDocument();
+    expect(next.getByText("Each one earns an item to identify.")).toBeInTheDocument();
   });
 
   it("without a team ready to unlock, only thanking someone is left to do", async () => {
@@ -119,7 +120,7 @@ describe("AL51: Milestones puts the next steps first: what to do, the closest me
     expect(bridge.getByRole("progressbar", { name: "Bridge builder" })).toHaveAttribute("aria-valuemax", "10");
     expect(bridge.getByText("4 to go")).toBeInTheDocument();
     expect(bridge.getByText("6 of 10 teams with someone in your album")).toBeInTheDocument();
-    expect(bridge.getByText("Turn over items until someone from a new team lands")).toBeInTheDocument();
+    expect(bridge.getByText("Identify items until someone from a new team lands")).toBeInTheDocument();
     expect(emojiIn(bridge)).toEqual({ picture: "/emoji/milestone-reach-silver.png", name: ":bridge-builder:", earned: false, says: "Unlocks at 10" });
   });
 
@@ -127,7 +128,7 @@ describe("AL51: Milestones puts the next steps first: what to do, the closest me
     visit();
 
     const hints = await Promise.all(["Full of friends", "Collector", "Generous soul", "Five teams strong"].map(async (name) => (await medalNamed("Closest medals", name)).getByText(/^[A-Z].+[a-z]$/, { selector: ".al-ms-hint" }).textContent));
-    expect(hints).toEqual(["Say why when you thank someone, then turn over the items it earns", "Turn over items: some of them are hoggies", "Thank someone in Slack and say why", "Get everyone on a team into your album, then unlock its sticker"]);
+    expect(hints).toEqual(["Say why when you thank someone, then identify the items it earns", "Identify items: some of them are hoggies", "Thank someone in Slack and say why", "Get everyone on a team into your album, then unlock its sticker"]);
   });
 
   it("a newcomer sees every milestone's bronze in the catalogue's order and nothing earned yet", async () => {

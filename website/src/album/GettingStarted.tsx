@@ -8,7 +8,7 @@ type Step = { step: keyof GettingStartedSteps; goal: string; how: (kudosEmoji: R
 const steps: Step[] = [
   { step: "hugged", goal: "Give a hug", how: (kudosEmoji) => <>react with {kudosEmoji} on any message in Slack</> },
   { step: "thoughtful", goal: "Give a thoughtful kudos", how: (kudosEmoji) => <>thank a teammate with {kudosEmoji} in a message and say why</> },
-  { step: "turned", goal: "Turn an item", how: () => "turn a waiting item on your board" },
+  { step: "turned", goal: "Identify an item", how: () => "identify a waiting item on your board" },
   { step: "levelTwo", goal: "Reach level 2", how: () => "your first kudos takes you there" },
 ];
 

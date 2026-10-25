@@ -11,10 +11,10 @@ type Counted = { one: string; many: string };
 type MilestoneWords = { name: string; counted: Counted; emblem: LadderCard["ladder"]; hint: string };
 
 const milestoneWords: Record<MilestoneId, MilestoneWords> = {
-  people: { name: "Faces in the album", counted: { one: "person in your album", many: "people in your album" }, emblem: "connections", hint: "Say why when you thank someone, then turn over the items it earns" },
+  people: { name: "Faces in the album", counted: { one: "person in your album", many: "people in your album" }, emblem: "connections", hint: "Say why when you thank someone, then identify the items it earns" },
   teams: { name: "Full pages", counted: { one: "team sticker unlocked", many: "team stickers unlocked" }, emblem: "team-spirit", hint: "Get everyone on a team into your album, then unlock its sticker" },
-  reach: { name: "Across the company", counted: { one: "team with someone in your album", many: "teams with someone in your album" }, emblem: "old-friends", hint: "Turn over items until someone from a new team lands" },
-  hoggies: { name: "Hoggie hunter", counted: { one: "hoggie found", many: "hoggies found" }, emblem: "recognition", hint: "Turn over items: some of them are hoggies" },
+  reach: { name: "Across the company", counted: { one: "team with someone in your album", many: "teams with someone in your album" }, emblem: "old-friends", hint: "Identify items until someone from a new team lands" },
+  hoggies: { name: "Hoggie hunter", counted: { one: "hoggie found", many: "hoggies found" }, emblem: "recognition", hint: "Identify items: some of them are hoggies" },
   thoughtful: { name: "Kind words", counted: { one: "thoughtful kudos given", many: "thoughtful kudos given" }, emblem: "generosity", hint: "Thank someone in Slack and say why" },
 };
 
