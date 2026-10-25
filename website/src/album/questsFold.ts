@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { asksForTheQuests } from "./place";
+import { questsAskedIn, type QuestsAsked } from "./place";
 
 const storageKey = "hedgehug:quests-panel";
 
@@ -25,11 +25,11 @@ export function useQuestsFold({ key, asTab, wide }: FoldPlace): QuestsFold {
   return { open, fold, unfold };
 }
 
-export type QuestsLanding = { asked: boolean; landed: () => void };
+export type QuestsLanding = { asked: QuestsAsked | null; landed: () => void };
 
 export function useQuestsLanding(): QuestsLanding {
-  const [asked, setAsked] = useState(() => asksForTheQuests(window.location.hash));
-  const landed = useCallback(() => setAsked(false), []);
+  const [asked, setAsked] = useState(() => questsAskedIn(window.location.hash));
+  const landed = useCallback(() => setAsked(null), []);
   return { asked, landed };
 }
 

@@ -217,6 +217,20 @@ describe("MQ38 MQ40: the member's own page D carries the quests section, and the
     expect(section).toHaveFocus();
   });
 
+  it.each<[string, boolean]>([
+    ["/book#me/quests/someone-new", true],
+    ["/book#me/quests", false],
+  ])("MQ22: the welcome's link %s opens the named step's how-to: %s", async (address, opened) => {
+    vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    visit(address, { album: withPageD });
+
+    const section = within(await screen.findByRole("region", { name: "Your quests" }, arrival));
+    const step = within(section.getByRole("listitem", { name: /^Thank someone you haven't thanked before:/ }));
+
+    if (opened) expect(await step.findByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
+    else expect(step.queryByText("Someone from another team counts, and so does a new joiner.")).not.toBeInTheDocument();
+  });
+
   it("the plain profile address does not scroll to the section", async () => {
     const scrolled = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
     visit("/book#me", { album: withPageD });
