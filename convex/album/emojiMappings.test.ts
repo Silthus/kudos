@@ -192,6 +192,28 @@ describe("the maintainer maps Slack emojis to earned emojis", { timeout: 90_000 
     ]);
   });
 
+  test.each([
+    ["mapping it to another team", { kind: "team", team: "lanterns" }, { kind: "team", team: "lanterns" }],
+    ["clearing it", { kind: "unmapped" }, null],
+  ] as const)("an earned emoji's second name is listed in its place, and %s takes it from the emoji, which keeps its first name", async (_, to, mapping) => {
+    await aliceCollects(otters[0]!);
+    await slackHas("team-otters", "otter-heart");
+    await t.mutation(internal.album.emojiNames.giveEmojiASecondName, { workspace: "T1", emoji: "team:otters", name: "otter-heart" });
+    const asOwner = await signedIn(owner);
+    const placesOf = async () => (await mappingsOf(asOwner)).emoji.map(({ name, mapping }) => [name, mapping]);
+    expect(await placesOf(), "before the mapping").toEqual([
+      ["otter-heart", { kind: "team", team: "otters" }],
+      ["team-otters", { kind: "team", team: "otters" }],
+    ]);
+
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "otter-heart", to })).toEqual({ kind: "mapped" });
+
+    expect(await placesOf(), "after the mapping").toEqual([
+      ["otter-heart", mapping],
+      ["team-otters", { kind: "team", team: "otters" }],
+    ]);
+  });
+
   test("clearing a mapping leaves the Slack emoji unmapped for good, and its earned emoji reads not in Slack under a free name", async () => {
     await aliceCollects(otters[0]!);
     await slackHas("team-otters");

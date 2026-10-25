@@ -7,7 +7,7 @@ import { levelFirstReachedAt } from "../unlocks/levelUps";
 import { nameAndPictureOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { slackEmojiImageOf, withoutSkinTone } from "../workspace/slackEmoji";
 import { emojiArtPictureOf, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojiOf, milestoneTierEmojis, teamEmblemPicture } from "./emojiCatalogue";
-import { emojiNamed, emojiNameOf, namesHeldIn, type EarnedEmojiId } from "./emojiNames";
+import { emojiNamed, emojiNameOf, namesHeldIn, registeredEmojisIn, type EarnedEmojiId } from "./emojiNames";
 import { emojiLevelsOf, isEmojiLevelOf, levelEmojiPictureOf } from "./levelEmojis";
 import type { MilestoneAnswer } from "./milestones";
 import { isFirstPackFor, packsEarnedBetween, type Instants } from "./packs";
@@ -74,7 +74,7 @@ export async function earnedEmojiCountOf(ctx: QueryCtx, workspace: string, membe
 
 export async function emojiStackOf(ctx: QueryCtx, workspace: string, member: MemberId, most: number): Promise<EmojiStack> {
   const turned = await turnedOf(ctx, member);
-  const names = new Map([...(await namesHeldIn(ctx, workspace))].map(([name, id]) => [id as string, name]));
+  const names = new Map((await registeredEmojisIn(ctx, workspace)).map(({ emoji, name }) => [emoji as string, name]));
   const earned = [...(await teamsUnlockedBy(ctx, member)), ...(await hypesShownEarnedBy(ctx, { workspace, member }, turned)), ...(await tierEmojisTurnedBy(ctx, member, turned)), ...(await levelEmojisReachedBy(ctx, member))].filter(({ id }) => names.has(id));
   const drops = await randomEmojisHeldBy(ctx, workspace, member);
   const shown: ShownEmoji[] = [];
