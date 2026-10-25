@@ -1,11 +1,21 @@
+.al-shell {
+  --al-quests-top: calc(var(--al-top-height) + 1rem);
+}
+
+@media (max-width: 63.999rem) {
+  .al-shell {
+    --al-quests-top: 6.25rem;
+  }
+}
+
 .al-quests-panel {
   position: fixed;
-  top: calc(var(--al-top-height) + 1rem);
+  top: var(--al-quests-top);
   right: 1rem;
   z-index: 40;
   display: flex;
   width: 21rem;
-  max-height: calc(100dvh - var(--al-top-height) - 2rem);
+  max-height: calc(100dvh - var(--al-quests-top) - 1rem);
   flex-direction: column;
   gap: 0.75rem;
   overflow: auto;
@@ -60,7 +70,7 @@
 
 .al-quests-tab {
   position: fixed;
-  top: calc(var(--al-top-height) + 1rem);
+  top: var(--al-quests-top);
   right: 0;
   z-index: 40;
   display: grid;
