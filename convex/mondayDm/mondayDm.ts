@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { reportMondayDmSent } from "../analytics/isolatedUsage";
 import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowance";
@@ -13,7 +13,7 @@ import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { catchesUp, catchUpWelcomeIn } from "../welcome/catchUp";
 import type { MondayWelcome } from "../welcome/mondayWelcome";
-import { welcomedAt } from "../welcome/welcome";
+import { welcomeOf } from "../welcome/welcome";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
 import { questsCopyOf, type QuestsCopy } from "./questsCopy";
 import type { MondayDmContent, MondayDmSection } from "./records";
@@ -118,19 +118,19 @@ async function ensureMondayDm(ctx: MutationCtx, member: MemberId, at: number) {
 
 async function comingMondayOf(ctx: QueryCtx, member: MemberId, today: DayKey, timeZone: string | undefined): Promise<DayKey> {
   const { monday } = weekOf(today);
-  return monday === today && !(await welcomedOn(ctx, member, today, timeZone)) ? today : mondayAfter(monday);
+  return monday === today && (await welcomeOn(ctx, member, today, timeZone)) === null ? today : mondayAfter(monday);
 }
 
-async function welcomedOn(ctx: QueryCtx, member: MemberId, day: DayKey, timeZone: string | undefined) {
-  const at = await welcomedAt(ctx, member);
-  return at !== null && allowanceDay(at, timeZone) === day;
+async function welcomeOn(ctx: QueryCtx, member: MemberId, day: DayKey, timeZone: string | undefined): Promise<Doc<"welcomes"> | null> {
+  const welcome = await welcomeOf(ctx, member);
+  return welcome !== null && allowanceDay(welcome._creationTime, timeZone) === day ? welcome : null;
 }
 
-async function sectionsOf(ctx: MutationCtx, { member, monday, sections = [] }: MondayDmRow): Promise<Sections> {
+async function sectionsOf(ctx: MutationCtx, { member, monday }: MondayDmRow): Promise<Sections> {
   const hugs = await hugsSectionFor(ctx, member, monday);
-  const begun = sections.includes("catch-up");
-  if (!begun && (await welcomedOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined))) return { ...noSections, hugs };
-  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun });
+  const welcomedThatMonday = await welcomeOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined);
+  if (welcomedThatMonday !== null && welcomedThatMonday.path !== "catch-up") return { ...noSections, hugs };
+  const catchUp = await catchUpWelcomeIn(ctx, member, Date.now(), { begun: welcomedThatMonday !== null });
   return { hugs, quests: catchUp === null ? await questsSectionFor(ctx, member, Date.now()) : null, catchUp };
 }
 

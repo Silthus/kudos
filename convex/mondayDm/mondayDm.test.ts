@@ -589,6 +589,18 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
     expect(seen(dmsTo(carol)[0]!)[0]).toMatch(/^section: \*Your onboarding journey\* · 0 of 3 done/);
   });
 
+  test("with catch-up-welcome turned off between two rate-limited tries, the last try still sends the regular Monday DM", async () => {
+    await usedBeforeTheMondayPath();
+    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60), rateLimitedFor(30 * 60));
+    await mondayArrives(mondayNine + 10 * minuteMs);
+
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await settleUpTo(t, mondayNine + 3 * hourMs);
+
+    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([false]);
+    expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["quests"]);
+  });
+
   test("a member welcomed on Monday before 9:00, whose row the catch-up already ensured, gets no Monday DM that day", async () => {
     await usedBeforeTheMondayPath();
     await sweepsAt(mondayNine - 2 * hourMs);

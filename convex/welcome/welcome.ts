@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { analyticsIdOf } from "../analytics/person";
 import { hugGivenEventValidator, kudosGivenEventValidator, questFinishedEventValidator, type HugGivenEvent, type KudosGivenEvent, type MemberWelcomedEvent } from "../bus/events";
@@ -111,13 +112,12 @@ async function userOf(ctx: MutationCtx, member: MemberId) {
 }
 
 export async function isWelcomed(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return (await welcomedAt(ctx, member)) !== null;
+  return (await welcomeOf(ctx, member)) !== null;
 }
 
-export async function welcomedAt(ctx: QueryCtx, member: MemberId): Promise<number | null> {
-  const welcome = await ctx.db
+export function welcomeOf(ctx: QueryCtx, member: MemberId): Promise<Doc<"welcomes"> | null> {
+  return ctx.db
     .query("welcomes")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
-  return welcome?._creationTime ?? null;
 }
