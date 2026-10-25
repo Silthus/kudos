@@ -11,7 +11,8 @@ import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { xpLevelsShownTo } from "../progression/xpLevels";
-import { journeyStepNamedTo, questsExposedTo } from "../quests/flag";
+import { journeyStepNamedTo, questsHoldTheReplyOf } from "../quests/flag";
+import { isOnboardingStep, onboardingGoalOf } from "../quests/onboarding";
 import { rewardWaits } from "../quests/crates";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
@@ -24,8 +25,8 @@ import type { Line, Segment } from "./segments";
 import { settingsFooterFor } from "./settingsFooter";
 
 export const questDoneValidator = v.union(
-  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()) }),
-  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()) }),
+  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()), hoggie: v.optional(v.literal(true)) }),
+  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()), hoggie: v.optional(v.literal(true)) }),
 );
 
 export type QuestDone = Infer<typeof questDoneValidator>;
@@ -78,7 +79,7 @@ async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefine
   const lines = skippedLines(reply.outcome.skipped);
   if (member !== undefined && !(await wantsMessage(ctx, member, "kudos-reply"))) return { lines };
   const gains = await gainsWritten(ctx, member, ref, reply);
-  const waitsForQuests = member !== undefined && (await questsExposedTo(ctx, member));
+  const waitsForQuests = member !== undefined && (await questsHoldTheReplyOf(ctx, member));
   const asksWhy = member !== undefined && (await couldEarnMoreBySayingWhy(ctx, member, reply.annotations)) && (await wantsMessage(ctx, member, "tips"));
   return { given: givenLine(reply.outcome, reply.base), lines, gains, ...(asksWhy && { hint: hintLine }), ...(waitsForQuests && { held: true as const }) };
 }
@@ -119,8 +120,9 @@ export const privateReply = internalQuery({
     const member = await memberOf(ctx, row.workspace, row.to);
     const place = member === null ? "channel" : await placeOf(ctx, member, "kudos-reply");
     if (place === "none") return row.lines.length === 0 ? null : { ...stored, footer: null, asDirectMessage: false };
-    const extrasLine = extrasLineOf(await gainsShownTo(ctx, row.workspace, member, gains), await hintShownTo(ctx, row.workspace, member, hint), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
-    const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine])];
+    const shown = await gainsShownTo(ctx, row.workspace, member, gains);
+    const extrasLine = extrasLineOf(shown, await hintShownTo(ctx, row.workspace, member, hint), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine]), ...hoggieQuestLinesOf(shown.questsDone)];
     return { ...stored, lines, footer: await settingsFooterFor(ctx, member), asDirectMessage: place === "dm" };
   },
 });
@@ -208,7 +210,11 @@ function withoutCoins({ coins: _, ...done }: QuestDoneShown): QuestDoneShown {
 }
 
 function questsDoneParts(questsDone: QuestDoneShown[]): Line[] {
-  return questsDone.map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (${questRewardOf(done)})` }]);
+  return questsDone.filter(({ hoggie }) => hoggie !== true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (${questRewardOf(done)})` }]);
+}
+
+function hoggieQuestLinesOf(questsDone: QuestDoneShown[]): Line[] {
+  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${goalOf(done)} · +${done.xp} XP and an unidentified Hoggie for your collection` }]);
 }
 
 function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
@@ -217,7 +223,8 @@ function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
 }
 
 function goalOf(done: QuestDoneShown) {
-  return done.kind === "journey" ? journeyGoalOf(done.step) : done.goal;
+  if (done.kind === "weekly") return done.goal;
+  return done.hoggie === true && isOnboardingStep(done.step) ? onboardingGoalOf(done.step) : journeyGoalOf(done.step);
 }
 
 function withoutFullStop(goal: string) {

@@ -1,0 +1,332 @@
+{
+  "rows": [
+    {
+      "modules": [
+        {
+          "id": "operator",
+          "name": "Operator",
+          "external": true,
+          "seam": [],
+          "note": "runs the catch-up welcome"
+        },
+        {
+          "id": "slackMember",
+          "name": "Member in Slack",
+          "external": true,
+          "seam": [],
+          "note": "hugs, thanks, reads DMs, presses Stop"
+        },
+        {
+          "id": "webMember",
+          "name": "Member on the website",
+          "external": true,
+          "seam": [],
+          "note": "views quests, turns items"
+        },
+        {
+          "id": "posthog",
+          "name": "PostHog",
+          "external": true,
+          "seam": [],
+          "note": "flags, events"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "id": "slack",
+          "name": "Slack adapter",
+          "note": "convex/slack",
+          "used": 14,
+          "change": "changed",
+          "flex": 1.4,
+          "seam": [
+            "slackInteractivity",
+            "deliverWelcome",
+            {
+              "name": "deliverFirstHugReply",
+              "change": "removed"
+            },
+            "sendHugsRecap",
+            {
+              "name": "deliverMondayQuests",
+              "change": "added"
+            }
+          ]
+        },
+        {
+          "id": "web",
+          "name": "Website reads",
+          "note": "convex/website",
+          "used": 103,
+          "change": "changed",
+          "seam": [
+            "getMyProfile",
+            {
+              "name": "getQuests",
+              "change": "changed"
+            },
+            {
+              "name": "viewQuests",
+              "change": "added"
+            }
+          ]
+        },
+        {
+          "id": "analytics",
+          "name": "Analytics",
+          "note": "convex/analytics",
+          "used": 35,
+          "change": "changed",
+          "seam": [
+            "memberDecision",
+            "exposed",
+            "recordUsage",
+            {
+              "name": "dm sent",
+              "change": "added"
+            },
+            {
+              "name": "dm link clicked",
+              "change": "added"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "id": "welcome",
+          "name": "Welcome",
+          "note": "convex/welcome",
+          "used": 2,
+          "change": "changed",
+          "seam": [
+            "welcomeNewMembers",
+            {
+              "name": "welcomeFirstAct",
+              "change": "added"
+            },
+            {
+              "name": "catchUpWelcomes",
+              "change": "added"
+            }
+          ]
+        },
+        {
+          "id": "feedback",
+          "name": "Feedback",
+          "note": "convex/feedback",
+          "used": 89,
+          "change": "changed",
+          "seam": [
+            {
+              "name": "welcomeMessage",
+              "change": "changed"
+            },
+            "welcomeNudge",
+            "settingsFooterFor",
+            "deepLinkOf"
+          ]
+        },
+        {
+          "id": "hugs",
+          "name": "Hugs",
+          "note": "convex/hugs",
+          "used": 23,
+          "change": "changed",
+          "seam": [
+            {
+              "name": "giveHug",
+              "change": "changed"
+            },
+            {
+              "name": "startRecap",
+              "change": "changed"
+            }
+          ]
+        },
+        {
+          "id": "settings",
+          "name": "Message settings",
+          "note": "convex/messageSettings",
+          "used": 18,
+          "seam": [
+            "placeOf",
+            "wantsMessage",
+            "setMessageSetting"
+          ]
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "id": "quests",
+          "name": "Quests",
+          "note": "convex/quests",
+          "used": 65,
+          "change": "changed",
+          "flex": 1.4,
+          "seam": [
+            {
+              "name": "questsApplyTo",
+              "change": "changed"
+            },
+            "journeyOf",
+            "weeklyQuestsOf",
+            "finishQuest",
+            {
+              "name": "mondayQuestsOf",
+              "change": "added"
+            }
+          ]
+        },
+        {
+          "id": "items",
+          "name": "Items",
+          "note": "convex/items",
+          "used": 41,
+          "seam": [
+            "earnItem",
+            "boardOf",
+            "turn"
+          ]
+        },
+        {
+          "id": "progression",
+          "name": "Progression",
+          "note": "convex/progression",
+          "used": 62,
+          "seam": [
+            "recordReward",
+            "rewardOf",
+            "xpLevelsOnFor"
+          ]
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "id": "unlocks",
+          "name": "Unlocks",
+          "note": "convex/unlocks, off in production",
+          "used": 38,
+          "seam": [
+            "unlockPathShownTo",
+            "openUnlock"
+          ]
+        },
+        {
+          "id": "hoggies",
+          "name": "Hoggies",
+          "note": "convex/hoggies",
+          "used": 68,
+          "seam": [
+            "dropFor"
+          ]
+        },
+        {
+          "id": "bus",
+          "name": "Bus",
+          "note": "convex/bus",
+          "used": 54,
+          "seam": [
+            "publish"
+          ]
+        }
+      ]
+    }
+  ],
+  "wires": [
+    {
+      "from": "slackMember",
+      "to": "slack-seam",
+      "label": "reacts, thanks, presses",
+      "toAt": 0.2
+    },
+    {
+      "from": "webMember",
+      "to": "web-seam",
+      "label": "opens quests",
+      "toAt": 0.4
+    },
+    {
+      "from": "operator",
+      "fromSide": "left",
+      "fromAt": 0.5,
+      "to": "welcome",
+      "toSide": "left",
+      "toAt": 0.3,
+      "bend": 24,
+      "change": "added",
+      "label": "npx convex run",
+      "labelAt": 0.2,
+      "labelAlign": "start",
+      "labelOffset": [
+        10,
+        0
+      ]
+    },
+    {
+      "from": "quests",
+      "fromSide": "bottom",
+      "fromAt": 0.2,
+      "to": "unlocks-seam",
+      "toAt": 0.3,
+      "label": "unlockPathShownTo",
+      "labelAt": 0.55
+    },
+    {
+      "from": "quests",
+      "fromSide": "right",
+      "fromAt": 0.85,
+      "to": "items-seam",
+      "toSide": "left",
+      "toAt": 0.85,
+      "change": "added"
+    }
+  ],
+  "untouched": [
+    {
+      "name": "Wallet",
+      "seam": [
+        "coinsApplyTo",
+        "coinsVisibleTo"
+      ],
+      "note": "coins stay dark"
+    },
+    {
+      "name": "Store",
+      "seam": [
+        "storeVisibleTo"
+      ],
+      "note": "stays dark"
+    },
+    {
+      "name": "Groups",
+      "seam": [
+        "groupsApplyTo"
+      ],
+      "note": "group quests stay dark"
+    },
+    {
+      "name": "Achievements",
+      "seam": [
+        "achievementsApplyIn"
+      ],
+      "note": "the Book"
+    },
+    {
+      "name": "Album",
+      "seam": [
+        "thoughtfulBoardsOf",
+        "hasGivenAThoughtfulAward"
+      ],
+      "note": "hoggies land here at the turn"
+    }
+  ]
+}

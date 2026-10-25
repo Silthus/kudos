@@ -4,7 +4,10 @@ import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { releaseSuccessReply, type QuestDone } from "../feedback/replies";
 import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf, rewardWaits } from "./crates";
-import { questsApplyTo, questsShownTo } from "./flag";
+import { mondayPathShownTo, onTheMondayPath, questsApplyTo, questsShownTo } from "./flag";
+import { gateDecisionOf } from "../progression/gate";
+import { advanceOnboarding } from "./onboarding";
+import { questStartOf, startQuests } from "./start";
 import { advanceJourney, finishFirstQuestOnWeeklyFinished, journey, journeyOf, type JourneyStepFacts, type Reward } from "./journey";
 import type { Quest } from "./step";
 import { advanceWeeklyQuests, weeklyQuestsOf, type WeeklyQuests } from "./weekly";
@@ -22,10 +25,15 @@ export const questsOf = internalQuery({
 export const followKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }) => {
-    const questsDone = (await questsShownTo(ctx, event.giver)) ? await questsFinishedBy(ctx, event) : [];
+    const questsDone = (await onTheMondayPath(ctx, event.giver)) ? await mondayQuestsFinishedBy(ctx, event) : (await questsShownTo(ctx, event.giver)) ? await questsFinishedBy(ctx, event) : [];
     await releaseSuccessReply(ctx, event.message, questsDone);
   },
 });
+
+async function mondayQuestsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestDone[]> {
+  if ((await questStartOf(ctx, event.giver)) === null && gateDecisionOf(event.annotations)?.thoughtful === true && (await mondayPathShownTo(ctx, event.giver))) await startQuests(ctx, event.giver, event.at);
+  return (await advanceOnboarding(ctx, event)).map(({ step, reward: { xp } }) => ({ kind: "journey", step, xp, hoggie: true }));
+}
 
 async function questsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestDone[]> {
   const weekly = await advanceWeeklyQuests(ctx, event);

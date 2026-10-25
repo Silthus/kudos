@@ -1,0 +1,225 @@
+import { getFunctionName, type FunctionReference } from "convex/server";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
+import { api } from "../_generated/api";
+import type { KudosGivenEvent } from "../bus/events";
+import { publish, subscribers } from "../bus/publish";
+import { messageSettingsOf } from "../messageSettings/messageSettings";
+import { standingOf } from "../progression/progression";
+import type { AlbumAnswer, AlbumRead } from "../website/album";
+import type { MemberId } from "../workspace/directory";
+import { nextOnboardingQuestOf } from "./onboarding";
+
+vi.mock("../bus/publish", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../bus/publish")>();
+  return { ...actual, publish: vi.fn(actual.publish) };
+});
+
+const tuesday = new Date("2026-10-13T10:00:00Z");
+const minuteMs = 60_000;
+const alice = { user: "U_ALICE", name: "Alice Marchetti" };
+const bob = { user: "U_BOB", name: "Bob Okonkwo" };
+const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
+const saysWhy = "thanks for untangling the flaky migration today";
+const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items", "onboarding"];
+const mondayPath = [...todaysFlags, "monday-quest"];
+const firstThanksDone = "Quest done: Thank someone and say why · +50 XP and an unidentified Hoggie for your collection";
+
+const deliverForReal = vi.mocked(publish).getMockImplementation()!;
+
+type Person = { user: string; name: string };
+
+let postHog: FakePostHog;
+let slack: FakeSlack;
+let t: Backend;
+let messages = 0;
+
+beforeEach(async () => {
+  vi.useFakeTimers({ now: tuesday });
+  vi.mocked(publish).mockClear();
+  vi.mocked(publish).mockImplementation(deliverForReal);
+  aDeploymentForWorkspace();
+  postHog = new FakePostHog();
+  slack = new FakeSlack();
+  for (const person of [alice, bob, carol]) slack.withMember(person.user, { real_name: person.name });
+  vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  t = testBackend();
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 200 }));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+describe("MQ5 MQ7 MQ10 MQ12: a first thoughtful kudos on the Monday path finishes the first onboarding quest", { timeout: 60_000 }, () => {
+  test("the giver lands at 70 XP, 1 of 3 done, with the quest's Hoggie waiting and the reply's finish line", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+
+    await thanks(alice, saysWhy, bob);
+
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
+    expect(await questItemsOf(alice), "the quest items on the board").toEqual([{ kind: "quest", quest: { kind: "journey", step: "first-thanks" } }]);
+    expect(replyTo(alice), "the after-kudos reply").toContain(firstThanksDone);
+    expect(finishDmsTo(alice), "a finish DM").toEqual([]);
+  });
+
+  test.each([
+    ["Quests before Progression", ["quests/quests:followKudosGiven", "progression/progression:recordEffects"]],
+    ["Progression before Quests", ["progression/progression:recordEffects", "quests/quests:followKudosGiven"]],
+  ])("with %s, the giver still lands at 70 XP", async (_, order) => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    const held = holdingKudosGiven();
+
+    await thanks(alice, saysWhy, bob);
+    await deliverInOrder(held[0]!, order);
+
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+    expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(1);
+  });
+
+  test("a replayed finish pays the quest once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    const held = holdingKudosGiven();
+
+    await thanks(alice, saysWhy, bob);
+    for (let delivery = 0; delivery < 3; delivery += 1) await deliverInOrder(held[0]!, ["progression/progression:recordEffects", "quests/quests:followKudosGiven"]);
+
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+    expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(1);
+  });
+
+  test("MQ43: with monday-quest off, a first thoughtful kudos is as before: 20 XP, no quest, no finish line", async () => {
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+
+    await thanks(alice, saysWhy, bob);
+
+    expect(await xpOf(alice), "the giver's XP").toBe(20);
+    expect(await questItemsOf(alice), "the quest items on the board").toEqual([]);
+    expect(replyTo(alice).join("\n"), "the after-kudos reply").not.toContain("Quest done");
+  });
+});
+
+describe("MQ3 MQ5 MQ6: the three onboarding quests are active at once", { timeout: 60_000 }, () => {
+  test("the first kudos to someone new finishes only the first quest, and a later one to someone new finishes the second", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+
+    await thanks(alice, saysWhy, bob);
+    await thanks(alice, "thanks", carol);
+
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("two-days");
+    expect(replyTo(alice), "the second kudos' reply").toContain("Quest done: Thank someone you haven't thanked before · +50 XP and an unidentified Hoggie for your collection");
+    expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(2);
+  });
+
+  test("kudos that say why on 2 different days finish the third quest, whatever order the steps come in", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await memberChanged(t, "team_join", { id: carol.user, profile: { real_name: carol.name } });
+
+    await thanks(alice, saysWhy, bob);
+    vi.setSystemTime(Date.now() + 24 * 60 * minuteMs);
+    await thanks(alice, saysWhy, bob);
+
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
+    expect(replyTo(alice), "the second day's reply").toContain("Quest done: Say why on 2 different days · +50 XP and an unidentified Hoggie for your collection");
+  });
+
+  test("a kudos that doesn't say why starts nothing, and the giver's first kudos that says why starts the quests and finishes the first", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+
+    await thanks(alice, "thanks", bob);
+    const plain = replyTo(alice);
+    await thanks(alice, saysWhy, carol);
+
+    expect(plain.join("\n"), "the plain kudos' reply").not.toContain("Quest done");
+    expect(replyTo(alice), "the kudos that says why's reply").toEqual(expect.arrayContaining([firstThanksDone]));
+    expect(replyTo(alice).join("\n"), "the kudos that says why's reply").not.toContain("haven't thanked before");
+  });
+});
+
+describe("MQ4: the quests message kind applies on the Monday path", { timeout: 60_000 }, () => {
+  test.each([
+    ["on", mondayPath, true],
+    ["off", todaysFlags, false],
+  ])("with monday-quest %s, the Quests and Journey setting applies only on the Monday path", async (_, flags, applies) => {
+    await switchWebsite(t, postHog, true, ...flags);
+    await thanks(alice, saysWhy, bob);
+
+    const member = await memberOf(alice);
+    const settings = await t.run((ctx) => messageSettingsOf(ctx, member));
+
+    expect(settings.find(({ kind }) => kind === "quests")?.applies).toBe(applies);
+  });
+});
+
+async function thanks(giver: Person, words: string, ...recipients: Person[]) {
+  messages += 1;
+  vi.setSystemTime(Date.now() + minuteMs);
+  const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
+  await post(t, [section(text(`${words} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
+  await settleInTimeOrder(t);
+  return ts;
+}
+
+function holdingKudosGiven() {
+  const held: KudosGivenEvent[] = [];
+  vi.mocked(publish).mockImplementation(async (ctx, event) => {
+    if (event.type === "kudosGiven") held.push(event);
+    else await deliverForReal(ctx, event);
+  });
+  return held;
+}
+
+async function deliverInOrder(event: KudosGivenEvent, first: string[]) {
+  vi.mocked(publish).mockImplementation(deliverForReal);
+  const named = new Map(subscribers.kudosGiven.map((subscription) => ("subscriber" in subscription ? subscription.subscriber : subscription)).map((subscriber) => [getFunctionName(subscriber), subscriber] as const));
+  for (const name of [...first, ...[...named.keys()].filter((name) => !first.includes(name))]) {
+    await t.mutation(named.get(name)! as FunctionReference<"mutation", "internal", { event: KudosGivenEvent }>, { event });
+    await settle(t);
+  }
+}
+
+function replyTo(person: Person): string[] {
+  return String(slack.ephemeralsTo(person.user).findLast(({ text }) => String(text).includes("kudos from you"))?.text ?? "").split("\n");
+}
+
+function finishDmsTo(person: Person) {
+  return slack
+    .callsTo("chat.postMessage")
+    .filter(({ channel, text }) => channel === person.user && String(text).startsWith("✅ You finished"))
+    .map(({ text }) => String(text));
+}
+
+async function xpOf(person: Person) {
+  const member = await memberOf(person);
+  return t.run(async (ctx) => (await standingOf(ctx, member)).xp);
+}
+
+async function nextQuestOf(person: Person) {
+  const member = await memberOf(person);
+  return t.run((ctx) => nextOnboardingQuestOf(ctx, member));
+}
+
+async function questItemsOf(person: Person) {
+  const { asSignedIn } = await aSignedInSession(t, { user: person.user, name: person.name });
+  const album: AlbumRead | { kind: string } = await asSignedIn.query(api.website.album.getAlbum, {});
+  if (album.kind !== "album") throw new Error(`expected an album, got ${JSON.stringify(album)}`);
+  const { board } = album as AlbumAnswer;
+  return (board?.items ?? []).map(({ reason }) => reason).filter((reason) => reason.kind === "quest");
+}
+
+async function memberOf(person: Person): Promise<MemberId> {
+  const row = await t.run((ctx) =>
+    ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", person.user))
+      .unique(),
+  );
+  return row!._id;
+}

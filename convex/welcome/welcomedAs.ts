@@ -6,3 +6,7 @@ export const welcomedAsValidator = v.union(
 );
 
 export type WelcomedAs = Infer<typeof welcomedAsValidator>;
+
+export const welcomePathValidator = v.union(v.literal("hug"), v.literal("thoughtful-given"), v.literal("thoughtful-received"), v.literal("catch-up"), v.literal("giver"), v.literal("recipient"));
+
+export type WelcomePath = Infer<typeof welcomePathValidator>;

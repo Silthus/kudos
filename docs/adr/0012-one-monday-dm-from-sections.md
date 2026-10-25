@@ -1,0 +1,9 @@
+# One Monday DM per member and week, built from sections
+
+The weekly hugs recap and the Monday quests share one DM. A `convex/mondayDm` module owns one row per member and Monday, ensured by its own hourly sweep for each member whose quests started on the Monday path, and the 9:00-local send in the member's zone, with its retries. At its start it draws the week when it is not drawn yet, then asks each source for its section, `hugsSectionOf` and `questsSectionOf`, and each section honours its own message kind. It sends one DM through `attemptCall`, or skips the week when every section is empty. Only a rate limit is retried; an unknown answer and a stranded start end `failed` and are never resent.
+
+We chose one owner over two schedulers that hand off. "Inside the recap when one goes out, otherwise standalone" needs both sources' answers at the same moment. Two sweeps firing at 9:00 would have to read each other's state. A member who turned the recap off would silently lose the quests too, because the recap's skip path never sends. The Monday DM is sent at most once, so a doubled DM never counts against the opt-out bar.
+
+The cutover is per member, not deploy-wide. Today's recap keeps sending for every member with no Monday DM row, so `monday-quest` off stays byte for byte. A member's week of hugs belongs to exactly one sender, claimed on its `hugWeeks` row: today's recap claims it when its start begins a try, the Monday DM claims it at its own start only while no try started, and a claimed row never changes hands. Today's recap stands down for a member who has a Monday DM row for that Monday.
+
+Shaped in [docs/architecture/monday-quests.md](../architecture/monday-quests.md), amended by MQ23, MQ26 and MQ27 in [spec/monday-quests.md](../../spec/monday-quests.md). Coherence journal decision: `d-6171a97c`.

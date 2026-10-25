@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant B as Bus
+  participant Q as Quests
+  participant P as Progression
+  participant I as Items
+  participant W as Website reads
+  B->>Q: followKudosGiven (thoughtful kudos)
+  Q->>Q: questsFor(member).path === monday
+  Q->>Q: advance onboarding step or drawn slot
+  Q->>P: recordReward(rewardKey, {xp, coins: 0}) idempotent
+  Q->>I: earnItem(hoggie, quest:rewardKey, reason quest) idempotent
+  Q->>B: publish questFinished
+  Note over Q: onboarding finished → next draw on the next sweep or read
+  W->>Q: questsFor + journey + week slots
+  W->>I: isWaiting / isTurned(quest:rewardKey)

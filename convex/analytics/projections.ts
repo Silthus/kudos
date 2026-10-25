@@ -32,6 +32,7 @@ import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { crateKindOf } from "../hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
+import type { WelcomePath } from "../welcome/welcomedAs";
 
 export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.number(), v.boolean()));
 
@@ -73,6 +74,9 @@ export type ProductEvent = {
     | "primary group picked"
     | "message setting changed"
     | "profile card viewed"
+    | "dm sent"
+    | "dm link clicked"
+    | "quests viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
@@ -89,7 +93,18 @@ export type UsageFact =
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
   | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number }
   | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number }
-  | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number };
+  | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number }
+  | { kind: "dmSent"; workspace: string; member: MemberId; dm: SentDm; at: number }
+  | { kind: "dmLinkClicked"; workspace: string; member: MemberId; dm: SentDm["kind"]; destination: DmLinkDestination; at: number }
+  | { kind: "questsViewed"; workspace: string; member: MemberId; surface: QuestsSurface; at: number };
+
+export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: MondayDmSection[] };
+
+export type MondayDmSection = "hugs" | "quests";
+
+export type DmLinkDestination = "book" | "quests" | "quests-how";
+
+export type QuestsSurface = "panel" | "profile";
 
 export type PickSurface = "welcome" | "settings" | "website";
 
@@ -297,5 +312,15 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "xp moment ended", subject, at: fact.at, properties: { skipped: fact.skipped, excerpts_shown: fact.excerptsShown, folded: fact.folded } };
     case "howItWorksClosed":
       return { event: "onboarding card closed", subject, at: fact.at, properties: { tried_slack: fact.triedSlack } };
+    case "dmSent":
+      return { event: "dm sent", subject, at: fact.at, properties: sentDmProperties(fact.dm) };
+    case "dmLinkClicked":
+      return { event: "dm link clicked", subject, at: fact.at, properties: { kind: fact.dm, destination: fact.destination } };
+    case "questsViewed":
+      return { event: "quests viewed", subject, at: fact.at, properties: { surface: fact.surface } };
   }
+}
+
+function sentDmProperties(dm: SentDm): Properties {
+  return dm.kind === "welcome" ? { kind: dm.kind, path: dm.path } : { kind: dm.kind, sections: dm.sections.join(",") };
 }

@@ -458,6 +458,8 @@ export default defineSchema({
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
+  questStarts: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
+
   journeyLaunches: defineTable({
     workspace: v.string(),
     at: v.number(),
