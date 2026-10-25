@@ -26,7 +26,7 @@ const asleepForged: BoardItem = { item: forgedItem as BoardItem["item"], earnedA
 
 const withAsleepForged: Album = { ...withNoItems, board: { items: [asleepForged], more: false } };
 
-const asleepCard = "A face-down item forged from Asleep. Turn it over";
+const asleepCard = "An unidentified item forged from Asleep. Identify it";
 
 const everyUncommonHeld = Object.fromEntries(catalogue.hoggies.filter(({ rarity }) => rarity === "uncommon").map(({ hoggie }) => [hoggie, 1]));
 
@@ -134,12 +134,12 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     const card = await theFaceDownItem();
 
     expect(actions.forgeHoggie).toHaveBeenCalledExactlyOnceWith("asleep", expect.any(String));
-    expect(screen.getByRole("group", { name: "Forged" })).toHaveTextContent("Forged into an Uncommon. Turn it over.");
+    expect(screen.getByRole("group", { name: "Forged" })).toHaveTextContent("Forged into an Uncommon. Identify it.");
     expect(actions.turnItem).not.toHaveBeenCalled();
     await user.click(card);
 
     expect(actions.turnItem).toHaveBeenCalledExactlyOnceWith(forgedItem);
-    expect(await screen.findByRole("status", { name: "Turning over" })).toBeInTheDocument();
+    expect(await screen.findByRole("status", { name: "Identifying" })).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument();
   });
 
@@ -154,7 +154,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
 
     expect(actions.turnItem).toHaveBeenCalledExactlyOnceWith(forgedItem);
     await waitFor(() => expect(window.location.hash).toBe("#hoggies"));
-    expect(await screen.findByRole("status", { name: "Turned over" })).toHaveTextContent("Cake: Uncommon hoggie · New");
+    expect(await screen.findByRole("status", { name: "Identified" })).toHaveTextContent("Cake: Uncommon hoggie · New");
   });
 
   it("Escape sets the forged item aside, keeps the entry open to use, and the item board opens with it once the entry closes", async () => {
@@ -213,7 +213,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
     await user.click(screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!);
 
-    expect(await screen.findByRole("button", { name: /4 items wait/ }, { timeout: arrival })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /4 unidentified items wait/ }, { timeout: arrival })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
   });
 
@@ -226,7 +226,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
 
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await user.click(await theFaceDownItem());
-    await screen.findByRole("status", { name: "Turned over" });
+    await screen.findByRole("status", { name: "Identified" });
     goTo("/book#hoggies/asleep");
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await theFaceDownItem();
@@ -235,7 +235,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
     await user.click(screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!);
 
-    expect(await screen.findByRole("button", { name: /4 items wait/ }, { timeout: arrival })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /4 unidentified items wait/ }, { timeout: arrival })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
   });
 
@@ -460,7 +460,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     goTo("/book#hoggies/ball");
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await act(async () => answers[1]!(forgedBall));
-    expect(await theFaceDownItem("A face-down item forged from Ball. Turn it over"), "Ball's own face-down item").toBeInTheDocument();
+    expect(await theFaceDownItem("An unidentified item forged from Ball. Identify it"), "Ball's own face-down item").toBeInTheDocument();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
 

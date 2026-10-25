@@ -91,7 +91,7 @@ function DoThisNext({ album }: { album: Album }) {
         <li>
           <div className="al-ms-todo-card" data-in-slack="">
             <strong>{hintOf("thoughtful")}</strong>
-            <span>Each one earns an item to turn over.</span>
+            <span>Each one earns an item to identify.</span>
             <span className="al-ms-todo-feeds">{[milestoneNameOf("thoughtful"), milestoneNameOf("people"), milestoneNameOf("hoggies")].join(" · ")}</span>
           </div>
         </li>
