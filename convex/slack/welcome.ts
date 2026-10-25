@@ -8,7 +8,7 @@ import { mondayWelcomeCauseValidator, onboardingJourneyValidator, onboardingStep
 import { welcomedAsValidator } from "../welcome/welcomedAs";
 import { appHomeLink, appHomeUrl } from "./appHomeLinks";
 import { escaped, mrkdwn, plainText, urlButtonOf } from "./blocks";
-import { attemptArgs, attemptCall, retryAfter, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes, type Attempt } from "./delivery";
+import { attemptArgs, attemptCall, retryAfter, sendAtMostOnce, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes, type Attempt } from "./delivery";
 import { groupSelectOf } from "./groupPicker";
 import { encodeHomeAction, showMeHowAction } from "./interactivity";
 
@@ -81,16 +81,18 @@ const howTos: Record<OnboardingStep, (kudosEmoji: string) => string> = {
 
 const onboardingReward = "🎁 +50 XP and an unidentified Hoggie for your collection";
 
+export const howToAskedValidator = v.object({ conversation: v.string(), welcome: v.string(), step: onboardingStepValidator });
+
 const exampleKudos = "@Ana thanks for untangling the deploy, it saved my afternoon";
 
 export const replyWithHowTo = observedAction({
-  args: { workspace: v.string(), conversation: v.string(), welcome: v.string(), step: onboardingStepValidator, ...attemptArgs },
+  args: { workspace: v.string(), ...howToAskedValidator.fields, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...reply }) => {
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
         const { kudosEmoji } = await ctx.runQuery(internal.welcome.mondayWelcome.howToOf, { workspace: reply.workspace });
-        return sendOnce(ctx, reply.workspace, "chat.postMessage", { channel: reply.conversation, thread_ts: reply.welcome, text: howToReplyOf(reply.step, kudosEmoji), unfurl_links: false, unfurl_media: false }, attempt);
+        return sendAtMostOnce(ctx, reply.workspace, "chat.postMessage", { channel: reply.conversation, thread_ts: reply.welcome, text: howToReplyOf(reply.step, kudosEmoji), unfurl_links: false, unfurl_media: false }, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.welcome.replyWithHowTo, { ...reply, attempt: retry.attempt }),
     );
