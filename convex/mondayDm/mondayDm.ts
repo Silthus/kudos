@@ -28,7 +28,7 @@ const dayMs = 24 * 60 * 60 * 1000;
 export const ensureMondayDms = internalMutation({
   args: { cursor: v.optional(v.string()) },
   handler: async (ctx, { cursor }): Promise<void> => {
-    if (cursor === undefined) await failStrandedStarts(ctx);
+    if (cursor === undefined) await settleStrandedStarts(ctx);
     const starts = await ctx.db.query("questStarts").paginate({ numItems: startsPerSweep, cursor: cursor ?? null });
     for (const { member } of starts.page) await ensureMondayDm(ctx, member, Date.now());
     if (!starts.isDone) await ctx.scheduler.runAfter(0, internal.mondayDm.mondayDm.ensureMondayDms, { cursor: starts.continueCursor });
@@ -117,12 +117,17 @@ async function scheduleTry(ctx: MutationCtx, dm: Id<"mondayDms">, dueAt: number,
   return null;
 }
 
-async function failStrandedStarts(ctx: MutationCtx) {
+async function settleStrandedStarts(ctx: MutationCtx) {
   const stranded = await ctx.db
     .query("mondayDms")
     .withIndex("by_state_due", (q) => q.eq("state", "scheduled").lt("dueAt", Date.now() - convexActionTimeLimitMs))
     .take(strandedPerSweep);
-  for (const row of stranded) if (row.tries > 0) await ctx.db.patch(row._id, { state: "failed" });
+  for (const row of stranded) await settleStrandedStart(ctx, row);
+}
+
+async function settleStrandedStart(ctx: MutationCtx, row: MondayDmRow) {
+  if (row.tries > 0) return ctx.db.patch(row._id, { state: "failed" });
+  await scheduleTry(ctx, row._id, Date.now(), 1);
 }
 
 async function awaitingTry(ctx: QueryCtx, dm: Id<"mondayDms">, tries: number): Promise<MondayDmRow | null> {
