@@ -27,6 +27,8 @@ const onboardingGoals: Record<OnboardingStep, string> = {
 
 export type FinishedOnboardingQuest = { step: OnboardingStep; reward: Reward };
 
+export type OnboardingQuestState = { step: OnboardingStep; finished: boolean; progress: { done: number; of: number } | null };
+
 export function onboardingGoalOf(step: OnboardingStep): string {
   return onboardingGoals[step];
 }
@@ -38,6 +40,22 @@ export function isOnboardingStep(step: JourneyStep): step is OnboardingStep {
 export async function nextOnboardingQuestOf(ctx: QueryCtx, member: MemberId): Promise<OnboardingStep | null> {
   for (const step of onboardingSteps) if ((await finishOf(ctx, member, step)) === null) return step;
   return null;
+}
+
+export async function onboardingJourneyOf(ctx: QueryCtx, member: MemberId, at: number): Promise<OnboardingQuestState[]> {
+  const journey: OnboardingQuestState[] = [];
+  for (const step of onboardingSteps) {
+    const finished = (await finishOf(ctx, member, step)) !== null;
+    journey.push({ step, finished, progress: step === "two-days" && !finished ? { done: await daysSayingWhyOf(ctx, member, at), of: daysSayingWhyToFinishTwoDays } : null });
+  }
+  return journey;
+}
+
+async function daysSayingWhyOf(ctx: QueryCtx, member: MemberId, at: number): Promise<number> {
+  const start = await questStartOf(ctx, member);
+  if (start === null) return 0;
+  const sayingWhy = (await givenBetween(ctx, member, start, at)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
+  return Math.min(new Set(sayingWhy.map(({ day }) => day)).size, daysSayingWhyToFinishTwoDays);
 }
 
 export async function onboardingFinishedBy(ctx: QueryCtx, member: MemberId): Promise<boolean> {

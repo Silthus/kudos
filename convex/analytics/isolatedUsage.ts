@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { periodValidator } from "../leaderboard/periods";
 import { messageKindValidator, messagePlaceValidator } from "../messageSettings/kinds";
+import { welcomePathValidator } from "../welcome/welcomedAs";
 import { failuresLogged } from "./failures";
 import { recordUsage, usageNotRecorded } from "./usage";
 
@@ -111,6 +112,31 @@ export const recordHugsRecapSent = internalMutation({
   args: hugsRecapValidator,
   handler: async (ctx, recap): Promise<void> => {
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "hugsRecapSent", ...recap }));
+  },
+});
+
+const sentDmValidator = v.union(
+  v.object({ kind: v.literal("welcome"), path: welcomePathValidator }),
+  v.object({ kind: v.literal("monday"), sections: v.array(v.union(v.literal("hugs"), v.literal("quests"))) }),
+);
+
+const dmSentValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  dm: sentDmValidator,
+  at: v.number(),
+});
+
+export type DmSent = Infer<typeof dmSentValidator>;
+
+export async function reportDmSent(ctx: MutationCtx, sent: DmSent) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordDmSent, sent);
+}
+
+export const recordDmSent = internalMutation({
+  args: dmSentValidator,
+  handler: async (ctx, sent): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "dmSent", ...sent }));
   },
 });
 
