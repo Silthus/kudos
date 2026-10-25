@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { asksForTheQuests } from "./place";
 
 const storageKey = "hedgehug:quests-panel";
 
@@ -22,6 +23,14 @@ export function useQuestsFold({ key, asTab, wide }: FoldPlace): QuestsFold {
     else setOpenedAt(key);
   }, [remembers, key]);
   return { open, fold, unfold };
+}
+
+export type QuestsLanding = { asked: boolean; landed: () => void };
+
+export function useQuestsLanding(): QuestsLanding {
+  const [asked, setAsked] = useState(() => asksForTheQuests(window.location.hash));
+  const landed = useCallback(() => setAsked(false), []);
+  return { asked, landed };
 }
 
 export function useViewedOnEachOpen(open: boolean, record: () => void) {

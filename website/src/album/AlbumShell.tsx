@@ -14,6 +14,7 @@ import { levelEmojisClimbedTo, useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
 import { playerAskedAt } from "./PlayerPage";
 import { mondayQuestsIn, QuestsPanel, QuestsProvider, type ShellQuests } from "./QuestsPanel";
+import type { QuestsLanding } from "./questsFold";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
 import { PutInFlights } from "./PutInFlights";
@@ -57,10 +58,11 @@ export type AlbumShellProps = {
   closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
   anEntryIsOpen: boolean;
   quests: QuestsShown | undefined;
+  questsLanding: QuestsLanding;
   viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, viewQuests }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, questsLanding, viewQuests }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -119,7 +121,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     missedXpMoment.start();
     turns.show();
   };
-  const shellQuests = shellQuestsOf(quests, turns.show, viewQuests);
+  const shellQuests = shellQuestsOf(quests, { openBoard: turns.show, landing: questsLanding, viewQuests });
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
@@ -158,9 +160,11 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   );
 }
 
-function shellQuestsOf(quests: QuestsShown | undefined, openBoard: () => void, viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply>): ShellQuests | null {
+type QuestsWiring = { openBoard: () => void; landing: QuestsLanding; viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply> };
+
+function shellQuestsOf(quests: QuestsShown | undefined, { openBoard, landing, viewQuests }: QuestsWiring): ShellQuests | null {
   const monday = mondayQuestsIn(quests);
-  return monday === null ? null : { quests: monday, openBoard, view: (surface) => void viewQuests(surface) };
+  return monday === null ? null : { quests: monday, openBoard, landing, view: (surface) => void viewQuests(surface) };
 }
 
 function isOwnPageD(album: Album, place: Place) {

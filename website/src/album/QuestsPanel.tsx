@@ -4,10 +4,10 @@ import type { DrawnQuest, GettingStartedStep, MondayQuests } from "../../../conv
 import type { QuestsSurface } from "../shell";
 import type { QuestsShown } from "./answer";
 import { CardBack } from "./PackCards";
-import { useQuestsFold, useViewedOnEachOpen, type FoldPlace } from "./questsFold";
+import { useQuestsFold, useViewedOnEachOpen, type FoldPlace, type QuestsLanding } from "./questsFold";
 import "./quests.css";
 
-export type ShellQuests = { quests: MondayQuests; openBoard: () => void; view: (surface: QuestsSurface) => void };
+export type ShellQuests = { quests: MondayQuests; openBoard: () => void; landing: QuestsLanding; view: (surface: QuestsSurface) => void };
 
 type Row = { goal: string; hint: string | null; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
 
@@ -73,14 +73,26 @@ function focus(button: RefObject<HTMLButtonElement | null>) {
 export function ProfileQuests() {
   const shown = useContext(QuestsContext);
   useViewedOnEachOpen(shown !== null, () => shown?.view("profile"));
+  const section = useLandedAt(shown?.landing);
   if (shown === null) return null;
   return (
-    <section id="quests" className="al-quests al-quests-profile" aria-label="Your quests">
+    <section ref={section} id="quests" className="al-quests al-quests-profile" aria-label="Your quests" tabIndex={-1} data-panel-target="quests">
       <Greeting quests={shown.quests} />
       <QuestList quests={shown.quests} openBoard={shown.openBoard} />
       <Footer quests={shown.quests} />
     </section>
   );
+}
+
+function useLandedAt(landing: QuestsLanding | undefined) {
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!landing?.asked || section.current === null) return;
+    section.current.scrollIntoView({ block: "start" });
+    section.current.focus({ preventScroll: true });
+    landing.landed();
+  }, [landing]);
+  return section;
 }
 
 function Greeting({ quests }: { quests: MondayQuests }) {
