@@ -3,7 +3,7 @@
 // and C's onboarding journey sits inside the card, crossing off what's done.
 // Fitted to #170: one Monday DM from a hugs and a quests section, the quests section carries Stop and
 // the link buttons (dm-link:<kind>:<destination>), Stop replaces the DM in place with a resume button,
-// and a quest pays XP and a face-down hoggie to turn on the website.
+// and a quest pays XP and an unidentified Hoggie (face down) for the member to identify on the website.
 import type { Variant } from "./variants.mts";
 
 type Block = Record<string, unknown>;
@@ -15,7 +15,17 @@ const appHome = "slack://app?team=T0C3US298SH&id=A0C8RU12822&tab=home";
 const me = `<@${process.env.PROTOTYPE_SLACK_USER ?? "U0000000000"}>`;
 const kudos = ":hedgehug:";
 const settingsTabFlag = "low use: Settings tab message settings";
-const reward = "🎁 +20 XP and a hoggie to turn on the website";
+const reward = "🎁 +20 XP and an unidentified Hoggie for your collection";
+const numberWords = ["", "An", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+
+function waitingLine(count: number) {
+  if (count === 1) return "An unidentified Hoggie for your collection is waiting for you.";
+  return `${numberWords[count] ?? count} unidentified Hoggies for your collection are waiting for you.`;
+}
+
+function identifyNow(kind: DmKind, count: number, label = count === 1 ? "Identify it now" : "Identify them now") {
+  return link(kind, "book", label, book, true);
+}
 const combined = "B card + A copy + C journey";
 
 const md = (text: string) => ({ type: "mrkdwn", text });
@@ -86,10 +96,10 @@ const firstHug: Variant = {
   flags: [],
   fallback: "Nice, that was your first hug!",
   blocks: [
-    section(`Hey ${me} :wave::skin-tone-2: Nice, that was your first hug!\n\nA ${kudos} reaction is a quick thanks, and it just gave you and Niko Pratt +1 XP. Want to really make someone's day? Thank them in a message and say why.`),
+    section(`Hey ${me} :wave::skin-tone-2: Nice, that was your first hug!\n\nA ${kudos} reaction is a quick thanks, and it just gave you and Niko Pratt +1 XP. Want to really make someone's day? Thank them in a message and say why.\n\n${waitingLine(1)}`),
     divider,
     ...onboardingCard(0, sayWhy),
-    actions(link("welcome", "quests", "Start your onboarding", quests, true)),
+    actions(identifyNow("welcome", 1), link("welcome", "quests", "See your quests", quests)),
   ],
 };
 
@@ -100,10 +110,10 @@ const firstKudos: Variant = {
   flags: [],
   fallback: "You just completed the first step of your onboarding journey",
   blocks: [
-    section(`Hey ${me} :wave::skin-tone-2: Your first kudos just landed with Juno Vale, and you said why. That's the one that counts! :tada:\n\nYou just completed the first step of your onboarding journey. Your hoggie is waiting for you face down on the website.`),
+    section(`Hey ${me} :wave::skin-tone-2: Your first kudos just landed with Juno Vale, and you said why. That's the one that counts! :tada:\n\nYou just completed the first step of your onboarding journey. ${waitingLine(2)}`),
     divider,
     ...onboardingCard(1, someoneNew),
-    actions(link("welcome", "book", "Turn your new hoggie", book, true), link("welcome", "quests", "See your quests", quests)),
+    actions(identifyNow("welcome", 2), link("welcome", "quests", "See your quests", quests)),
   ],
 };
 
@@ -114,10 +124,10 @@ const kudosReceived: Variant = {
   flags: [],
   fallback: "Juno Vale just thanked you with a kudos!",
   blocks: [
-    section(`Hey ${me} :wave::skin-tone-2: Juno Vale just thanked you with a kudos!\n> _Thanks for jumping on the flaky deploy and pairing with me for an hour, you saved my afternoon_\n\nFeels good, right? :slightly_smiling_face: Your first quest is to pass it on.`),
+    section(`Hey ${me} :wave::skin-tone-2: Juno Vale just thanked you with a kudos!\n> _Thanks for jumping on the flaky deploy and pairing with me for an hour, you saved my afternoon_\n\nFeels good, right? :slightly_smiling_face: ${waitingLine(1)} Your first quest is to pass it on.`),
     divider,
     ...onboardingCard(0, sayWhy),
-    actions(link("welcome", "book", "See your kudos", book, true), link("welcome", "quests", "See your quests", quests)),
+    actions(identifyNow("welcome", 1), link("welcome", "quests", "See your quests", quests)),
   ],
 };
 
@@ -128,10 +138,10 @@ const catchUp: Variant = {
   flags: [],
   fallback: "A hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now.",
   blocks: [
-    section(`Hey ${me} :wave::skin-tone-2:\n\nA hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now :sweat_smile:\n\nHedgeHug is how we thank each other here. A ${kudos} reaction is a quick hug, and a kudos that says why is the big thanks.`),
+    section(`Hey ${me} :wave::skin-tone-2:\n\nA hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now :sweat_smile:\n\nHedgeHug is how we thank each other here. A ${kudos} reaction is a quick hug, and a kudos that says why is the big thanks.\n\n${waitingLine(1)}`),
     divider,
     ...onboardingCard(0, sayWhy),
-    actions(link("welcome", "quests", "Start your onboarding", quests, true)),
+    actions(identifyNow("welcome", 1), link("welcome", "quests", "See your quests", quests)),
   ],
 };
 
@@ -142,7 +152,7 @@ const drawn: Quest[] = [
 ];
 
 const stopButton = press("Stop Monday quests", "prototype-171:stop-monday-quests");
-const mondayButtons = actions(link("monday", "quests", "See your quests", quests, true), stopButton);
+const mondayButtonsWith = (waiting: number) => actions(identifyNow("monday", waiting, "Identify them on the website"), link("monday", "quests", "See your quests", quests), stopButton);
 
 const mondayStandalone: Variant = {
   message: "Monday DM, quests section only (drawn quests)",
@@ -151,9 +161,9 @@ const mondayStandalone: Variant = {
   flags: [],
   fallback: "Happy Monday! Three quests for your week",
   blocks: [
-    section(`Happy Monday :sun_with_face: Here are three quests for your week. Each one pays +20 XP and a hoggie to turn on the website.`),
+    section(`Happy Monday :sun_with_face: Here are three quests for your week. Each one pays +20 XP and an unidentified Hoggie for your collection.\n\n${waitingLine(3)}`),
     journey(drawn, ["open", "open", "open"]),
-    mondayButtons,
+    mondayButtonsWith(3),
   ],
 };
 
@@ -174,9 +184,9 @@ const mondayInRecap: Variant = {
   blocks: [
     section(recapLines),
     divider,
-    section(`*Your onboarding journey* · 1 of 3 done\nTwo quests left this week. Each one pays +20 XP and a hoggie to turn on the website.`),
+    section(`*Your onboarding journey* · 1 of 3 done\nTwo quests left this week. Each one pays +20 XP and an unidentified Hoggie for your collection.\n\n${waitingLine(2)}`),
     journey(onboarding, ["done", "next", "open"]),
-    mondayButtons,
+    mondayButtonsWith(2),
     recapFooter,
   ],
 };

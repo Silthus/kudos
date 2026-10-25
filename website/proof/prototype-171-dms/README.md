@@ -37,3 +37,5 @@ Michael's pick: B's quest card is the core, with A's warm, personal copy and C's
 - Link buttons use `dm-link:<kind>:<destination>` action ids, as `dm link clicked` will read them.
 
 `ROUND=1` selects round 1 in `post.mts` and `render.mts`; round 2 is the default. Stills: `shots/round2/<message>.png`, rendered from `render-round2.html`.
+
+Round 2 update: the waiting Hoggies read "An / Two / Three … unidentified Hoggie(s) for your collection is / are waiting for you", with "Identify it now" / "Identify them now" in the welcomes and "Identify them on the website" in the Monday DM. Every welcome counts its welcome hoggie, and the welcome after a first thoughtful kudos also counts the first quest's hoggie.
