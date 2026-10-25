@@ -11,7 +11,11 @@ type Unavailable = Extract<Message, { kind: "unavailable" }>;
 
 export type MessageLook = "album" | "slack";
 
-type Looks = { look: MessageLook; me: string | undefined };
+type Me = { person: string; name: string };
+
+type Looks = { look: MessageLook; me: Me | undefined };
+
+type PersonSegment = Extract<Segment, { kind: "person" }>;
 
 const unavailableLines: Record<Unavailable["reason"], string> = {
   deleted: "This message was deleted in Slack.",
@@ -19,7 +23,7 @@ const unavailableLines: Record<Unavailable["reason"], string> = {
   "not-captured": "The words of this kudos are from before HedgeHug kept them.",
 };
 
-export function KudosMessage({ message, look = "album", me }: { message: Message; look?: MessageLook; me?: string }) {
+export function KudosMessage({ message, look = "album", me }: { message: Message; look?: MessageLook; me?: Me }) {
   if (message.kind === "unavailable") return <p className="text-muted-foreground italic">{unavailableLines[message.reason]}</p>;
   return <WordsOf message={message} looks={{ look, me }} />;
 }
@@ -46,7 +50,7 @@ function SegmentOf({ segment, looks }: { segment: Segment; looks: Looks }): Reac
     case "text":
       return <StyledText segment={segment} />;
     case "person":
-      return <PersonMention segment={segment} linked={linked} loud={segment.person !== undefined && segment.person === looks.me} />;
+      return <PersonMention segment={segment} linked={linked} loud={looks.me !== undefined && mentionsMe(segment, looks.me)} />;
     case "group":
       return <Mention>{`@${segment.handle}`}</Mention>;
     case "broadcast":
@@ -95,7 +99,11 @@ function Mention({ children, loud = false }: { children: string; loud?: boolean 
   );
 }
 
-function PersonMention({ segment, linked, loud }: { segment: Extract<Segment, { kind: "person" }>; linked: boolean; loud: boolean }) {
+function mentionsMe({ person, name }: PersonSegment, me: Me) {
+  return person === undefined ? name === me.name : person === me.person;
+}
+
+function PersonMention({ segment, linked, loud }: { segment: PersonSegment; linked: boolean; loud: boolean }) {
   const name = `@${segment.name}`;
   if (!linked || segment.person === undefined) return <Mention loud={loud}>{name}</Mention>;
   return (

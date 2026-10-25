@@ -226,7 +226,7 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
   });
 
   it("shows a sender's Slack picture in place of their initials, and every message in full with its Slack marks", async () => {
-    const thanks = { kind: "text" as const, segments: [{ kind: "person" as const, name: "Sam Example", person: "sam-example" }, { kind: "text" as const, text: ` ${"thank you for pairing on the flaky deploy, ".repeat(8)}the end` }], edited: true };
+    const thanks = { kind: "text" as const, segments: [{ kind: "person" as const, name: "Sam Example" }, { kind: "text" as const, text: ` ${"thank you for pairing on the flaky deploy, ".repeat(8)}the end` }], edited: true };
     const [fromInes] = busyReturn.excerpts as [XpMoment["excerpts"][number]];
     const pictured = { ...fromInes, entry: { ...fromInes.entry, giver: { name: "Ines Okafor", face: { kind: "slack" as const, image: "https://avatars.example/ines.png", initials: "IO" } }, message: thanks } } as XpMoment["excerpts"][number];
     await returnTo({ moment: { ...busyReturn, excerpts: [pictured, ...busyReturn.excerpts.slice(1)] } });

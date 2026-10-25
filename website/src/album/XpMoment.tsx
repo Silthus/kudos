@@ -140,7 +140,7 @@ function ExcerptWords({ entry, me }: { entry: Entry; me: AlbumMe }): ReactNode {
   if (message === null) return null;
   return (
     <SlackText>
-      <KudosMessage message={message} look="slack" me={me.person} />
+      <KudosMessage message={message} look="slack" me={me} />
     </SlackText>
   );
 }
