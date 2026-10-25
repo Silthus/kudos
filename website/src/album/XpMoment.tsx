@@ -7,7 +7,7 @@ import type { LevelUnlocks } from "./levelUnlocks";
 import { LevelUpTakeover } from "./LevelUpTakeover";
 import { SlackMessage, SlackReaction, SlackText } from "./SlackMessage";
 import { xpMomentTiming, type XpMomentPhase, type XpMomentPlay } from "./useXpMoment";
-import { columnsOf, isPhone, tiltOf, type Viewport } from "./xpMomentLayout";
+import { columnsOf, isNarrow, type Viewport } from "./xpMomentLayout";
 import { barEnd, centreOf, clearParticles, dustInto, streamInto } from "./xpMomentParticles";
 import "./xpMoment.css";
 
@@ -28,9 +28,9 @@ export function XpMomentCanvas({ play, me, levelUnlocks }: { play: XpMomentPlay;
   const cards = useRef(new Map<string, HTMLElement>());
   useParticles(play, cards, orb);
   return (
-    <div className="xpm-canvas" role="dialog" aria-modal="true" aria-label="Since your last visit" style={{ "--xpm-top": `${viewport.top}px` } as CSSProperties} data-phase={phase} data-narrow={isPhone(viewport) ? "" : undefined}>
-      {orbShown.has(phase) && <Cards play={play} me={me} viewport={viewport} cards={cards} orb={orb} />}
+    <div className="xpm-canvas" role="dialog" aria-modal="true" aria-label="Since your last visit" style={{ "--xpm-top": `${viewport.top}px` } as CSSProperties} data-phase={phase} data-narrow={isNarrow(viewport) ? "" : undefined}>
       {orbShown.has(phase) && <Orb play={play} orb={orb} />}
+      {orbShown.has(phase) && <Cards play={play} me={me} viewport={viewport} cards={cards} orb={orb} />}
       {orbShown.has(phase) && (
         <button type="button" className="xpm-skip" onClick={skip}>
           Skip
@@ -73,7 +73,7 @@ function Cards({ play: { cards, out, dissolving, dissolved, moment }, me, viewpo
       {columnsOf(cards, viewport).map((column, side) => (
         <div key={side} className="xpm-column">
           {column.map(({ item: card, index }) => (
-            <Card key={card.key} shown={index < out && index >= dissolved} dissolving={index < dissolving} tilt={tiltOf(index)} orb={orb} keep={keep(card.key)}>
+            <Card key={card.key} shown={index < out && index >= dissolved} dissolving={index < dissolving} orb={orb} keep={keep(card.key)}>
               {card.kind === "fold" ? <FoldLine count={card.count} xp={card.xp} /> : <ExcerptCard excerpt={card.excerpt} me={me} timeZone={moment.timeZone} />}
             </Card>
           ))}
@@ -83,9 +83,9 @@ function Cards({ play: { cards, out, dissolving, dissolved, moment }, me, viewpo
   );
 }
 
-type CardProps = { shown: boolean; dissolving: boolean; tilt: number; orb: RefObject<HTMLButtonElement | null>; keep: (element: HTMLElement | null) => void; children: ReactNode };
+type CardProps = { shown: boolean; dissolving: boolean; orb: RefObject<HTMLButtonElement | null>; keep: (element: HTMLElement | null) => void; children: ReactNode };
 
-function Card({ shown, dissolving, tilt, orb, keep, children }: CardProps) {
+function Card({ shown, dissolving, orb, keep, children }: CardProps) {
   const card = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (shown && card.current !== null && orb.current !== null) flyFrom(card.current, centreOf(orb.current));
@@ -95,7 +95,7 @@ function Card({ shown, dissolving, tilt, orb, keep, children }: CardProps) {
     keep(element);
   };
   return (
-    <div ref={holdBoth} className="xpm-card" style={{ "--rot": `${tilt}deg` } as CSSProperties} data-shown={shown ? "" : undefined} data-dissolving={dissolving ? "" : undefined} aria-hidden={!shown} inert={!shown}>
+    <div ref={holdBoth} className="xpm-card" data-shown={shown ? "" : undefined} data-dissolving={dissolving ? "" : undefined} aria-hidden={!shown} inert={!shown}>
       {children}
     </div>
   );

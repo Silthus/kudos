@@ -16,6 +16,7 @@
   --slack-tone-2: #b4572d;
   --slack-tone-3: #3a64b8;
   display: flex;
+  min-width: 0;
   gap: 0.5rem;
   border-radius: 0.5rem;
   padding: 0.5rem 1.25rem 0.625rem;
@@ -94,6 +95,7 @@
   align-items: baseline;
   column-gap: 0.25rem;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .xpm-slack-name {
@@ -177,7 +179,9 @@
 
 .xpm-slack-reaction {
   display: inline-flex;
-  height: 24px;
+  max-width: 100%;
+  min-height: 24px;
+  overflow-wrap: anywhere;
   align-items: center;
   gap: 4px;
   border-radius: 12px;

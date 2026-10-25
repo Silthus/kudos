@@ -176,10 +176,6 @@ function theItemBoard() {
   return screen.queryByRole("dialog", { name: "Your items" });
 }
 
-function degreesOf(card: HTMLElement) {
-  return Number.parseFloat(card.style.getPropertyValue("--rot"));
-}
-
 const canvasArrival = 0.6;
 
 const arrivedAndRead = canvasArrival + 6 * 0.17 + 0.55;
@@ -240,7 +236,7 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
     expect(fromInesNow.queryAllByRole("link")).toEqual([]);
   });
 
-  it("on a desktop stacks the excerpts in two columns either side of the orb, in the order they happened, each tilted up to 2°", async () => {
+  it("on a desktop stacks the excerpts in two columns either side of the orb, in the order they happened", async () => {
     await returnTo();
     await at(arrivedAndRead);
 
@@ -248,7 +244,13 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
       ["Kudos for you", "3 hugs on your message", "Kudos you gave"],
       ["Kudos for you", "Level up", "+12 more kudos and hugs+140 XP"],
     ]);
-    expect(theCards().every((card) => Math.abs(degreesOf(card)) <= 2)).toBe(true);
+  });
+
+  it("flies every excerpt out from the orb, the first one too", async () => {
+    await returnTo();
+    await at(arrivedAndRead);
+
+    expect(theCards().map((card) => card.style.getPropertyValue("--from-x"))).toEqual(["0px", "0px", "0px", "0px", "0px", "0px"]);
   });
 
   it("on a phone stacks the excerpts in one column over the orb", async () => {
