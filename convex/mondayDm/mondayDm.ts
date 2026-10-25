@@ -137,9 +137,14 @@ async function sectionsOf(ctx: MutationCtx, row: MondayDmRow): Promise<Sections>
   return { hugs, quests: catchUp === null ? await questsSectionFor(ctx, member, Date.now()) : null, catchUp };
 }
 
-async function caughtUpByThisRow(ctx: QueryCtx, { member, _creationTime: ensuredAt }: MondayDmRow) {
+async function caughtUpByThisRow(ctx: QueryCtx, { member, monday }: MondayDmRow) {
   const welcome = await welcomeOf(ctx, member);
-  return welcome?.path === "catch-up" && welcome._creationTime > ensuredAt;
+  return welcome?.path === "catch-up" && isAroundMonday(welcome._creationTime, monday);
+}
+
+function isAroundMonday(at: number, monday: DayKey) {
+  const mondayStartsInUtc = Date.parse(`${monday}T00:00:00Z`);
+  return at >= mondayStartsInUtc - dayMs && at < mondayStartsInUtc + 2 * dayMs;
 }
 
 function sectionNamesOf({ hugs, quests, catchUp }: Sections): MondayDmSection[] {
