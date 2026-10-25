@@ -20,8 +20,8 @@ export function useNewEmojis(album: Album, open: boolean): NewEmojis {
   const [kept, setKept] = useState(() => openedIn(key));
   const opened = kept.key === key ? kept : openedIn(key);
   if (kept !== opened) setKept(opened);
-  const [openedBeforeThePanel, setOpenedBeforeThePanel] = useState<ReadonlySet<string> | null>(null);
-  if (open && openedBeforeThePanel === null) setOpenedBeforeThePanel(opened.ids);
+  const [openedBeforeThePanel, setOpenedBeforeThePanel] = useState<Opened | null>(null);
+  if (open && openedBeforeThePanel?.key !== key) setOpenedBeforeThePanel(opened);
   if (!open && openedBeforeThePanel !== null) setOpenedBeforeThePanel(null);
   const earnedNow = JSON.stringify(album.emojis.filter(({ earned }) => earned).map(({ id }) => id));
   const earned = useMemo(() => JSON.parse(earnedNow) as string[], [earnedNow]);
@@ -35,7 +35,7 @@ export function useNewEmojis(album: Album, open: boolean): NewEmojis {
       return after;
     });
   }, [open, earned, key]);
-  const inThePanel = useMemo(() => (openedBeforeThePanel === null ? noneNew : new Set(earned.filter((id) => !openedBeforeThePanel.has(id)))), [openedBeforeThePanel, earned]);
+  const inThePanel = useMemo(() => (openedBeforeThePanel === null ? noneNew : new Set(earned.filter((id) => !openedBeforeThePanel.ids.has(id)))), [openedBeforeThePanel, earned]);
   return { marked: earned.some((id) => !opened.ids.has(id)), inThePanel };
 }
 

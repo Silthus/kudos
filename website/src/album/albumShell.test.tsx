@@ -271,6 +271,31 @@ describe("the emoji button marks New what the member has not opened yet", () => 
     expect(theRowOf(`:${locked.name}:`), "once opened before").not.toHaveTextContent("New");
   });
 
+  it("marks New for another member's album that arrives while the popup is open, as what they never opened", async () => {
+    const album = albumFixtures.midway;
+    let answer = album;
+    const listeners = new Set<() => void>();
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore(
+        (listener) => (listeners.add(listener), () => void listeners.delete(listener)),
+        () => answer,
+      );
+      return asking ? shown : undefined;
+    };
+    window.history.replaceState(null, "", "/");
+    renderAlbum(memberWithTheAlbum, read, { people: fixedPeople(album), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway) });
+    await topBar();
+    await act(async () => fireEvent.click(theEmojiButton()));
+    await act(async () => fireEvent.click(theEmojiButton()));
+    await act(async () => fireEvent.click(theEmojiButton()));
+    expect(theRowOf(":team-quiet-harbour:")).not.toHaveTextContent("New");
+
+    answer = { ...album, me: { ...album.me, person: "another-member" } };
+    await act(async () => listeners.forEach((listener) => listener()));
+
+    expect(theRowOf(":team-quiet-harbour:"), "for the other member").toHaveTextContent("New");
+  });
+
   it("reads what each member opened on their own, so another member's album in the same tab marks New until they open it", async () => {
     const album = albumFixtures.midway;
     let answer = album;
