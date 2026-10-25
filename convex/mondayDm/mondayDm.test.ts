@@ -69,7 +69,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
       [
         `section: :taco: Your week in hugs\nTeammates reacted :taco: on your messages and gave you 1 hug (+1 XP).\n1 teammate reacted :taco: on your most-hugged message: <${permalinkOf(hugged)}|open it in Slack>`,
         "divider",
-        `section: *Your onboarding journey* · 1 of 3 done\nTwo quests left this week. Each one pays +50 XP and an unidentified Hoggie for your collection.\n\nFive unidentified Hoggies for your collection are waiting for you.`,
+        `section: *Your onboarding journey* · 1 of 3 done\nTwo quests left. Each one pays +50 XP and an unidentified Hoggie for your collection.\n\nFive unidentified Hoggies for your collection are waiting for you.`,
         "✅ ~Thank someone and say why~",
         "👉 *Thank someone you haven't thanked before*",
         "⚪ Say why on 2 different days _1 of 2 days_",

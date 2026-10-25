@@ -26,7 +26,7 @@ function headingLinesOf(section: QuestsSection): string[] {
     return [`Happy Monday :sun_with_face: Here ${count === 1 ? "is one quest" : `are ${countWordOf(count)} quests`} for your week. ${eachPays(count, reward)}`];
   }
   const left = section.quests.length - section.done;
-  return [`*Your onboarding journey* · ${section.done} of ${section.quests.length} done`, `${capitalized(countWordOf(left))} ${left === 1 ? "quest" : "quests"} left this week. ${eachPays(left, reward)}`];
+  return [`*Your onboarding journey* · ${section.done} of ${section.quests.length} done`, `${capitalized(countWordOf(left))} ${left === 1 ? "quest" : "quests"} left. ${eachPays(left, reward)}`];
 }
 
 function checklistOf(section: QuestsSection): ChecklistItem[] {
