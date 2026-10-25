@@ -16,7 +16,7 @@ import { questsCopyOf, type QuestsCopy } from "./questsCopy";
 import type { MondayDmContent, MondayDmSection } from "./records";
 import { mondayDmOf, type MondayDmRow } from "./rows";
 
-export type MondayQuests = QuestsCopy & { waiting: boolean; links: Pick<DmLinks, "book" | "quests"> | null };
+export type MondayQuests = QuestsCopy & { waiting: boolean; links: DmLinks | null };
 
 export type MondayDm = { dm: Id<"mondayDms">; workspace: string; user: string } & MondayDmContent;
 
@@ -108,8 +108,7 @@ async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { h
 async function mondayQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, quests: QuestsSection | null): Promise<MondayQuests | null> {
   if (quests === null) return null;
   const waiting = (await hiddenItemsShownTo(ctx, member)) ? await waitingHoggieCountOf(ctx, member) : 0;
-  const links = await dmLinksFor(ctx, workspace, member);
-  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links: links === null ? null : { book: links.book, quests: links.quests } };
+  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links: await dmLinksFor(ctx, workspace, member) };
 }
 
 async function scheduleTry(ctx: MutationCtx, dm: Id<"mondayDms">, dueAt: number, attempt: number): Promise<null> {
