@@ -57,6 +57,10 @@ export const mondayQuestPool = {
   quests: questPool.quests.map((quest) => ({ ...quest, reward: mondayReward })),
 } as const satisfies QuestPool;
 
+export function withoutFullStop(goal: string): string {
+  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
+}
+
 export function questOf(quest: QuestId): PoolQuest {
   return questPool.quests.find((entry) => entry.quest === quest)!;
 }

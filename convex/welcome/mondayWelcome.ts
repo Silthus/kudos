@@ -6,7 +6,7 @@ import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine
 import { publicQuoteOf } from "../feedback/welcomeNudge";
 import { hugOf } from "../hugs/records";
 import { shownWaitingHoggiesOf, type WaitingCount } from "../items/ledger";
-import { dmLinksFor } from "../feedback/dmLinks";
+import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
@@ -41,7 +41,7 @@ export type MondayWelcome = {
   journey: OnboardingQuest[];
   next: OnboardingStep | null;
   waiting: WaitingCount;
-  links: { book: string; quests: string } | null;
+  links: DmLinks | null;
 };
 
 export const mondayWelcomeOf = internalQuery({
@@ -55,7 +55,7 @@ export const mondayWelcomeOf = internalQuery({
       journey,
       next,
       waiting: await shownWaitingHoggiesOf(ctx, member, links),
-      links: links === null ? null : { book: links.book, quests: links.quests },
+      links,
     };
   },
 });

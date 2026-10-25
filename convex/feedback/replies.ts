@@ -15,6 +15,7 @@ import { journeyStepNamedTo, questsHoldTheReplyOf } from "../quests/flag";
 import { isOnboardingStep, onboardingGoalOf } from "../quests/onboarding";
 import { rewardWaits } from "../quests/crates";
 import { journeyGoalOf } from "../quests/journeyCopy";
+import { withoutFullStop } from "../quests/pool";
 import { journeyStepValidator } from "../quests/step";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
@@ -226,10 +227,6 @@ function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
 function goalOf(done: QuestDoneShown) {
   if (done.kind === "weekly") return done.goal;
   return done.hoggie === true && isOnboardingStep(done.step) ? onboardingGoalOf(done.step) : journeyGoalOf(done.step);
-}
-
-function withoutFullStop(goal: string) {
-  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
 }
 
 export function renderReply(reply: Exclude<Reply, { kind: "given" }>): Line[] {

@@ -3,7 +3,7 @@ import { placeOf } from "../messageSettings/messageSettings";
 import type { MemberId } from "../workspace/directory";
 import { onTheMondayPath } from "./flag";
 import { onboardingQuestsOf } from "./onboarding";
-import { questOf, type PoolQuest } from "./pool";
+import { questOf, withoutFullStop, type PoolQuest } from "./pool";
 import type { QuestProgress } from "./progress";
 import { questStartOf } from "./start";
 import { isMondayDraw, thisWeeksQuestsOf, type WeeklySlot } from "./weekly";
@@ -30,5 +30,5 @@ async function mondayQuestsWantedBy(ctx: MutationCtx, member: MemberId) {
 
 function drawnQuestOf({ quest, goal, progress, target, finishedAt }: WeeklySlot): SectionQuest {
   const counted = target > 1 ? { done: progress, of: target, unit: progressUnits[questOf(quest).progress.counts] } : null;
-  return { goal: goal.replace(/\.$/, ""), finished: finishedAt !== null, progress: counted };
+  return { goal: withoutFullStop(goal), finished: finishedAt !== null, progress: counted };
 }

@@ -5,7 +5,7 @@ import { rewardKeyOf } from "../quests/crates";
 import { questItemKeyOf } from "../quests/finish";
 import { saysWhyCounts } from "../quests/journeyCopy";
 import { nextOnboardingQuestOf, onboardingFinishedBy, onboardingGoalOf, onboardingQuestFactsOf, onboardingReward, onboardingTargetOf, type OnboardingQuestFacts, type OnboardingStep } from "../quests/onboarding";
-import type { QuestId } from "../quests/pool";
+import { withoutFullStop, type QuestId } from "../quests/pool";
 import type { Quest } from "../quests/step";
 import { daysLeftInWeek } from "../quests/week";
 import { drawnWeekOf, isMondayDraw, type DrawnWeek } from "../quests/weekly";
@@ -88,7 +88,7 @@ async function questStepOf(ctx: QueryCtx, member: MemberId, { step, finish, prog
 
 async function drawnQuestOf(ctx: QueryCtx, member: MemberId, { quest, goal, progress, target, finishedAt, reward, crate }: DrawnWeek["slots"][number]): Promise<DrawnQuest> {
   const done = finishedAt !== null;
-  return { quest, goal: goal.replace(/\.$/, ""), progress: { done: progress, target }, done, reward: { xp: reward.xp }, item: done ? await itemStateOf(ctx, member, crate) : null };
+  return { quest, goal: withoutFullStop(goal), progress: { done: progress, target }, done, reward: { xp: reward.xp }, item: done ? await itemStateOf(ctx, member, crate) : null };
 }
 
 async function itemStateOf(ctx: QueryCtx, member: MemberId, quest: Quest): Promise<QuestItemState> {
