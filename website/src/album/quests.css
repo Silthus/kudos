@@ -1,5 +1,6 @@
 .al-shell {
   --al-quests-top: calc(var(--al-top-height) + 1rem);
+  --al-quests-tab-width: 3.5rem;
 }
 
 @media (max-width: 63.999rem) {
@@ -24,6 +25,12 @@
   background: var(--card);
   padding: 1rem;
   box-shadow: 0 20px 50px rgb(0 0 0 / 0.16);
+}
+
+@media (min-width: 64rem) {
+  .al-shell:has(.al-quests-tab) .al-main {
+    padding-right: calc(var(--al-quests-tab-width) + 1rem);
+  }
 }
 
 @media (min-width: 90rem) {
@@ -74,6 +81,7 @@
   right: 0;
   z-index: 40;
   display: grid;
+  width: var(--al-quests-tab-width);
   justify-items: center;
   gap: 0.375rem;
   border: 1px solid var(--border);
