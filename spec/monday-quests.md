@@ -19,7 +19,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
 **A member's first act is answered with one warm welcome that hands them a short onboarding journey, and from then on one quiet Monday DM shows them the week's quests, with one press to stop it.**
 
 - **Three welcomes.** A member's first hug, first thoughtful kudos given, or a thoughtful kudos received sends one welcome DM, written for how they started. It says what just happened, says when a step is already done, shows the onboarding journey with the next quest, and pulls the member onto the website to identify the hoggie items waiting for them.
-- **A catch-up welcome.** Every member who already uses HedgeHug and never got a welcome gets one once ("a hoggie was stuck in the pipe"), the product owner first.
+- **A catch-up welcome.** Every member who already uses HedgeHug and never got a welcome gets one once ("a hoggie was stuck in the pipe"), inside their first Monday DM.
 - **Onboarding quests, then drawn quests.** Three onboarding quests (thank someone and say why, thank someone new, say why on two days), then three quests drawn each week. Each onboarding quest pays 50 XP and an unidentified Hoggie, each drawn quest 20 XP and an unidentified Hoggie. No coins, no crates, no unlocks.
 - **One Monday DM.** At 9:00 on Monday in the member's time zone: last week's hugs recap when there is one, then this week's quests. A "Stop Monday quests" button turns the quests off in one press, and the reply turns them back on in one press.
 - **Quests on the website.** A quests panel on the right of every album page, open on a first visit and foldable to a tab, and the same list on the member's own profile. `Getting started` becomes this one journey.
@@ -44,7 +44,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
 
 10. As a member who used HedgeHug before welcomes worked for me, I want one late welcome that owns up to being late, so that I still get the journey and my Hoggie.
 11. As a member who already finished some steps, I want the late welcome to show them done, so that it doesn't ask me to do them again.
-12. As the product owner, I want the catch-up to reach me first and everyone else only after I confirm, so that I see it before the workspace does.
+12. As the product owner, I want the catch-up to go out once, on one Monday, inside each member's Monday DM, so that nobody gets it twice or as a DM of its own.
 13. As the product owner, I want to stop the catch-up at once, between any two members, without a deploy, so that a mistake reaches as few people as possible.
 
 **Quests**
@@ -148,7 +148,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
 
 ### The Monday DM
 
-- **MQ23 One row per member and Monday.** A new Monday DM module keeps one `mondayDms` row per member and Monday, unique by both, with its state (`waiting`, `scheduled`, `sent`, `skipped` or `failed`), its due time and its tries (ADR-0012). Its own hourly sweep pages through members, as the weekly quests sweep does, and ensures the coming Monday's row for each member whose quests started on the Monday path. Ensuring is idempotent. It is the module's own so the Monday DM and Quests share no file beyond the reads Quests exports.
+- **MQ23 One row per member and Monday.** A new Monday DM module keeps one `mondayDms` row per member and Monday, unique by both, with its state (`waiting`, `scheduled`, `sent`, `skipped` or `failed`), its due time and its tries (ADR-0012). Its own hourly sweep pages through members, as the weekly quests sweep does, and ensures the coming Monday's row for each member whose quests started on the Monday path, while `isMember` and `onTheMondayPath` answer true for them, so a member `monday-quest` is off for keeps today's recap byte for byte (MQ43). On a Monday the coming Monday is that day, unless the member was welcomed that day, so a row first ensured after 9:00 goes at once and a member welcomed on a Monday gets their first Monday DM the next one. Ensuring is idempotent. It is the module's own so the Monday DM and Quests share no file beyond the reads Quests exports.
 - **MQ24 When it goes.** A row is due on its Monday at 9:00 in the member's time zone, with today's recap fallback when the zone is unknown. A zone move moves the due time, as the recap's does. The row's start mutation, fenced on its tries, draws the week first when it is due and not drawn yet, so the DM never lists last week's quests, then builds both sections. When both are empty the row is `skipped` and nothing is sent.
 - **MQ25 The two sections.**
   - **Hugs:** last week's hugs recap lines, as today's recap builds them, when the member had hugs that week and wants the recap (`hugs-recap` placed `dm`, as `recapWantedBy` decides today).
@@ -167,9 +167,9 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
 
 ### The catch-up welcome
 
-- **MQ31 The job.** `catchUpWelcomes`, an internal mutation the operator runs by hand, walks a workspace's members one per transaction, each scheduling the next, and welcomes each member who is opted in (has given a hug, or given or received a kudos), is on the Monday path, has no `welcomes` row, and for whom `catch-up-welcome` answers true. A member it answers false for is skipped, and the walk goes on, so the order of members never decides who is reached. A failed read answers false. A rerun starts over safely, because the `welcomes` row is the once-marker (MQ13).
-- **MQ32 What it sends.** The catch-up is a welcome with path `catch-up` (MQ17, MQ21): the welcome item, the start, and the journey as it stands, with `dm sent` on `delivered`.
-- **MQ33 One member first.** The operator runs it first with `catch-up-welcome` on only for the product owner, waits for his confirmation in Slack, then widens the flag and runs it again. It runs again each time `monday-quest` widens, to reach the members the new stage brings in. Turning the flag off stops new welcomes from the first member whose transaction reads the refreshed flag definitions; each transaction reads them afresh, since a transaction reads them once.
+- **MQ31 It rides the first Monday DM.** No job runs it. The Monday DM's sweep (MQ23) also pages through members and ensures the coming Monday's row for each member `catchesUp` answers true for: opted in (has given a hug, or given or received a kudos), on the Monday path, no `welcomes` row, and `catch-up-welcome` true. A failed read answers false. The row's start mutation asks `catchesUp` again; when it answers true, that mutation writes the `welcomes` row (path `catch-up`), earns the welcome item and calls `startQuests`, as MQ17 does, and the DM's quests section is the catch-up welcome. The `welcomes` row is the once-marker (MQ13): the next Monday the member gets the regular Monday DM, and a member welcomed by any path never sees the catch-up. A retried try of that DM keeps the catch-up, since the row records the `catch-up` section on its first try. The welcome's own delivery is not scheduled.
+- **MQ32 What it sends.** The welcome of MQ21's catch-up path, "A hoggie was stuck in the pipe …" with the journey as it stands, its card and its buttons, under the hugs recap's lines and a divider when the member had hugs (MQ28), with today's recap footer at the end. The member gets no recap of their own that Monday (MQ26). On `delivered` it records `dm sent` with `kind: monday` and `sections` that include `catch-up`.
+- **MQ33 Once, on one Monday.** `catch-up-welcome` is on for the Monday it goes out, Monday 2026-10-26 at 9:00 member-local, and the cleanup after that Monday removes it (Silthus/personal#186). Turning the flag off stops the catch-up at each member's next start mutation; a member it is off for gets their Monday DM as before. With the flag off, everything is as before, byte for byte.
 ### Measurement
 
 - **MQ34 Three usage facts.** Analytics gains three usage facts, recorded through the existing usage path, never reading a flag, never blocking a DM or a click when recording fails (Analytics' spec):
@@ -204,8 +204,8 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
   1. Production: the product owner and the people who reacted to the launch announcement, by email.
   2. Production: everyone at 100%. Members enter the Monday path only by a first act or the catch-up, so this is also "on by default for new members", and no third stage is needed.
 
-  Every stage stays inside the stages of `collection`, `hidden-items` and `welcome-item`, so every quest hoggie and welcome item can be turned, and of `person-page-d`, so the profile carries its quests section. The catch-up runs after each widening (MQ33).
-- **MQ45 `catch-up-welcome`.** A new flag in project 662840, created sandbox-only like `monday-quest`, then given the product owner's email in production for the first run, then widened to 100% after his confirmation. It is read for each member before the catch-up welcomes them, and only there. It is the kill switch: turning it off stops the job at the next member.
+  Every stage stays inside the stages of `collection`, `hidden-items` and `welcome-item`, so every quest hoggie and welcome item can be turned, and of `person-page-d`, so the profile carries its quests section. A member the catch-up has not reached by then is reached by the next Monday DM while `catch-up-welcome` is on (MQ31).
+- **MQ45 `catch-up-welcome`.** A new flag in project 662840, created sandbox-only like `monday-quest`, then turned on at 100% in production for Monday 2026-10-26 (MQ33). It is read for each member by the Monday DM's sweep and again by the row's start mutation, and only there. It is the kill switch: turning it off stops the catch-up at each member's next start.
 
 ## Testing Decisions
 
@@ -214,7 +214,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
 - **Seam 2: the website shell with fixture reads.** The album shell rendered with fixture reads under `@testing-library/react` and jsdom, asserting the panel, its fold and its memory, the tab on the own profile, the profile section and the `viewQuests` calls. Prior art: `website/src/album/home.test.tsx`, `website/src/album/hoggies.test.tsx`.
 - **No new seam.** Both seams exist. A ticket that cannot test through them names why in its pull request.
 - **Once-only facts.** The welcome's first-act race (a hug and a thoughtful kudos in one moment), a replayed `hugGiven` and `kudosGiven`, the catch-up's rerun, a replayed finish, and the recap hand-over in both orders and with delivery paused between a start and its end, run through Seam 1. A first thoughtful kudos ends at 1 of 3 and 70 XP whichever subscriber runs first.
-- **The flags' two directions.** A test with `monday-quest` off shows today's welcome, first-hug reply, recap and `Getting started` unchanged. A test with `catch-up-welcome` on only for a member who comes after several it is off for reaches that member, and a test that turns it off between two members' transactions welcomes no one after.
+- **The flags' two directions.** A test with `monday-quest` off shows today's welcome, first-hug reply, recap and `Getting started` unchanged. A test with `catch-up-welcome` off or undefined shows the Monday DM and the recap as before, and a test that turns it off after the rows are ensured and before 9:00 sends no catch-up.
 - **Look and phones are proofs, not tests.** Each Slack message is checked in the sandbox Slack on desktop and on a phone against the element checklists of Silthus/personal#171 and Silthus/personal#172: on a phone the rich-text checklist, the "Show me how" accessory and the three-button row must read without breaking; where one breaks, the slice moves "Show me how" into the button row. The panel is checked at 1280 px, 1536 px and a phone width, light and dark.
 
 ## Out of Scope

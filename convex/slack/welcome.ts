@@ -103,7 +103,7 @@ function howToReplyOf(step: OnboardingStep, kudosEmoji: string) {
   return `*How to ${onboardingGoalOf(step).toLowerCase()}*\n${howTos[step](kudosEmoji)}\n\nA kudos that says why looks like this, in any channel I'm in:\n> ${exampleKudos} :${kudosEmoji}:`;
 }
 
-function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string) {
+export function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string) {
   return {
     text: fallbackOf(welcome.opening),
     blocks: [{ type: "section", text: mrkdwn(noteOf(welcome, user)) }, { type: "divider" }, ...cardOf(welcome), ...welcomeButtonsOf(welcome)],

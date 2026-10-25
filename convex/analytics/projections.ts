@@ -100,7 +100,7 @@ export type UsageFact =
 
 export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: MondayDmSection[] };
 
-export type MondayDmSection = "hugs" | "quests";
+export type MondayDmSection = "hugs" | "quests" | "catch-up";
 
 export type DmLinkDestination = "book" | "quests" | "quests-how";
 

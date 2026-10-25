@@ -54,13 +54,17 @@ export const welcomeOnFirstThanks = internalMutation({
 
 export async function welcomeOnTheMondayPath(ctx: MutationCtx, member: MemberId, cause: MondayWelcomeCause, at: number): Promise<void> {
   if (await isWelcomed(ctx, member)) return;
+  const { workspace, user, journey } = await recordWelcome(ctx, member, cause, at);
+  await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverMondayWelcome, { workspace, user, member, cause, journey });
+}
+
+export async function recordWelcome(ctx: MutationCtx, member: MemberId, cause: MondayWelcomeCause, at: number) {
   await ctx.db.insert("welcomes", { member, path: cause.path });
   const { workspace, user } = await chatUserOf(ctx, member);
   await earnWelcomeItem(ctx, workspace, member, at);
   if (await mondayPathShownTo(ctx, member)) await startQuests(ctx, member, at);
   await analyticsIdOf(ctx, member);
-  const journey = await onboardingQuestsOf(ctx, member, at);
-  await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverMondayWelcome, { workspace, user, member, cause, journey });
+  return { workspace, user, journey: await onboardingQuestsOf(ctx, member, at) };
 }
 
 async function welcome(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
@@ -111,9 +115,13 @@ async function userOf(ctx: MutationCtx, member: MemberId) {
 }
 
 export async function isWelcomed(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await welcomedAt(ctx, member)) !== null;
+}
+
+export async function welcomedAt(ctx: QueryCtx, member: MemberId): Promise<number | null> {
   const welcome = await ctx.db
     .query("welcomes")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
-  return welcome !== null;
+  return welcome?._creationTime ?? null;
 }

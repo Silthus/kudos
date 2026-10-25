@@ -452,6 +452,153 @@ describe("MQ35: a link button's dm-link action records dm link clicked, on the w
   });
 });
 
+describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets the catch-up welcome once, inside their first Monday DM", { timeout: 60_000 }, () => {
+  test("with hugs, the DM is the recap's lines, then the catch-up welcome, then today's footer, and no recap goes on its own", async () => {
+    await usedBeforeTheMondayPath();
+
+    await mondayArrives();
+
+    expect(dmsTo(bob).map(seen)).toEqual([
+      [
+        "section: :taco: Your week in hugs\nYou reacted :taco: and gave 1 hug (+1 XP).",
+        "divider",
+        `section: Hey <@U_BOB> :wave::skin-tone-2:\n\n${stuckInThePipe}\n\nHedgeHug is how we thank each other here. A :taco: reaction is a quick hug, and a kudos that says why is the big thanks.`,
+        "divider",
+        "section: *Your onboarding journey* · 0 of 3 done",
+        "👉 *Thank someone and say why*",
+        "⚪ Thank someone you haven't thanked before",
+        "⚪ Say why on 2 different days _0 of 2 days_",
+        "section: *Up next: thank someone and say why.*\nMention them, add :taco: and write a sentence about what they did. [button: Show me how]",
+        "context: 🎁 +50 XP and an unidentified Hoggie for your collection",
+        `actions: See your quests (primary, dm-link:welcome:quests → ${siteUrl}/book#me/quests)`,
+        `context: ${footer}`,
+      ],
+    ]);
+    expect(dmTimesTo(bob)).toEqual([mondayNine]);
+    expect((await mondayDmsSentTo(bob)).map(({ properties }) => properties.sections)).toEqual(["hugs,catch-up"]);
+    expect(productEvents("dm sent").filter(({ properties }) => properties.kind === "welcome")).toEqual([]);
+  });
+
+  test("without hugs, the DM is the catch-up welcome alone", async () => {
+    await usedBeforeTheMondayPath();
+
+    await mondayArrives();
+
+    const [dm, ...more] = dmsTo(carol).map(seen);
+    expect(more).toEqual([]);
+    expect(dm?.[0]).toBe(
+      `section: Hey <@U_CAROL> :wave::skin-tone-2:\n\n${stuckInThePipe}\n\nHedgeHug is how we thank each other here. A :taco: reaction is a quick hug, and a kudos that says why is the big thanks.\n\nThree unidentified Hoggies for your collection are waiting for you.`,
+    );
+    expect(dm?.at(-1)).toBe(`actions: Identify them now (primary, dm-link:welcome:book → ${siteUrl}/book) | See your quests (dm-link:welcome:quests → ${siteUrl}/book#me/quests)`);
+    expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["catch-up"]);
+  });
+
+  test("the next Monday each gets the regular Monday DM, and a member welcomed before never sees the pipe line", async () => {
+    await usedBeforeTheMondayPath();
+    await mondayArrives();
+
+    await mondayArrives(nextMondayNine + hourMs);
+
+    expect([bob, carol].map((person) => dmsTo(person).map(saysStuckInThePipe))).toEqual([
+      [true, false],
+      [true, false],
+    ]);
+    expect(seen(dmsTo(bob)[1]!)[0]).toMatch(/^section: \*Your onboarding journey\* · 0 of 3 done/);
+    expect(dmsTo(alice).filter(saysStuckInThePipe)).toEqual([]);
+  });
+
+  test("a row first ensured on Monday after 9:00 goes at once, as the only DM that day", async () => {
+    await usedBeforeTheMondayPath({ catchUpOn: false });
+    await settleUpTo(t, mondayNine + hourMs);
+    await switchWebsite(t, postHog, true, ...mondayPath, "catch-up-welcome");
+
+    await sweepsAt(mondayNine + hourMs);
+
+    expect(dmsTo(bob).map(saysStuckInThePipe)).toEqual([true]);
+    expect(dmTimesTo(bob)).toEqual([mondayNine + hourMs]);
+  });
+
+  test("catch-up-welcome turned off before 9:00 sends no catch-up, and today's recap goes as today", async () => {
+    await usedBeforeTheMondayPath();
+    await sweepsAt(Date.now() + hourMs);
+
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await mondayArrives();
+
+    expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
+    expect(dmsTo(carol)).toEqual([]);
+  });
+
+  test.each([
+    ["monday-quest is off", [...todaysFlags, "catch-up-welcome"]],
+    ["catch-up-welcome is not defined, so its read answers false", mondayPath],
+  ])("while %s, everything is as before: today's recap and no welcome", async (_, flags) => {
+    await usedBeforeTheMondayPath({ catchUpOn: false });
+    await switchWebsite(t, postHog, true, ...flags);
+
+    await mondayArrives();
+
+    expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
+    expect(dmsTo(carol)).toEqual([]);
+    expect(productEvents("dm sent").filter(({ properties }) => properties.kind === "monday")).toEqual([]);
+  });
+});
+
+describe("MQ23 MQ24: the sweep ensures a Monday DM row only for a member the Monday DM is for", { timeout: 60_000 }, () => {
+  test("a member welcomed on a Monday after 9:00 gets their first Monday DM the next Monday", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await settleUpTo(t, mondayNine + hourMs);
+    await thanks(alice, saysWhy, bob);
+
+    await sweepsAt(mondayNine + 2 * hourMs);
+    expect(await mondayDmsSentTo(alice)).toEqual([]);
+
+    await mondayArrives(nextMondayNine + hourMs);
+    expect(dmTimesTo(alice).filter((at) => at >= nextMondayNine)).toEqual([nextMondayNine]);
+  });
+
+  test("a started member taken out of monday-quest before their row is ensured gets today's recap from the recap itself", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await hug(bob, alice);
+
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+    await mondayArrives();
+
+    expect(dmsTo(alice).map(({ text, blocks }) => ({ opening: String(text).split("\n")[0], blocks }))).toEqual([{ opening: ":taco: Your week in hugs", blocks: undefined }]);
+    expect(await mondayDmsSentTo(alice)).toEqual([]);
+  });
+});
+
+const stuckInThePipe = "A hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now :sweat_smile:";
+const nextMondayNine = mondayNine + 7 * dayMs;
+
+async function usedBeforeTheMondayPath({ catchUpOn = true } = {}) {
+  await switchWebsite(t, postHog, true, ...todaysFlags);
+  const carolsMessage = await thanks(carol, "thanks", alice);
+  await hug(bob, carol, carolsMessage);
+  await welcomeLost(carol);
+  await switchWebsite(t, postHog, true, ...mondayPath, ...(catchUpOn ? ["catch-up-welcome"] : []));
+}
+
+async function welcomeLost(person: Person) {
+  await t.run(async (ctx) => {
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", person.user))
+      .unique();
+    const welcome = await ctx.db
+      .query("welcomes")
+      .withIndex("by_member", (q) => q.eq("member", member!._id))
+      .unique();
+    await ctx.db.delete(welcome!._id);
+  });
+}
+
+function saysStuckInThePipe(dm: { blocks?: unknown }) {
+  return JSON.stringify(dm.blocks ?? []).includes("stuck in the pipe");
+}
+
 async function finishOnboarding(person: Person) {
   await thanks(person, saysWhy, bob);
   await thanks(person, "thanks", carol);
