@@ -50,7 +50,7 @@ export const nudgeTheHugged = internalMutation({
 export const welcomeNudgeMessage = internalQuery({
   args: { workspace: v.string(), member: v.id("members"), cause: welcomeNudgeCauseValidator },
   handler: async (ctx, { workspace, member, cause }): Promise<WelcomeNudgeMessage | null> => {
-    if (!(await welcomeItemShownTo(ctx, member)) || !(await welcomeNudgeOn(ctx, workspace))) return null;
+    if (!(await welcomeItemShownTo(ctx, member)) || !(await welcomeNudgeOn(ctx, workspace)) || (await isWelcomedOnTheMondayPath(ctx, member, false))) return null;
     const album = await albumLinkFor(ctx, workspace, member);
     if (album === null) return null;
     const { kudosEmoji } = await settingsOf(ctx, workspace);
