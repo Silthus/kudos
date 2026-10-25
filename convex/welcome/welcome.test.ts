@@ -423,6 +423,21 @@ describe("MQ20: the waiting line counts hoggie items, spelled out to ten", () =>
   });
 });
 
+describe("MQ20: the welcome counts waiting hoggies only where the member can identify them", { timeout: 60_000 }, () => {
+  test.each([
+    ["hidden-items is off", mondayPath.filter((flag) => flag !== "hidden-items")],
+    ["the website is closed to the member", mondayPath.filter((flag) => flag !== "website")],
+  ])("where %s, the giver's welcome has no waiting line and no Identify button", async (_, flags) => {
+    t = await workspace(flags);
+
+    await thanks(alice, saysWhy, bob);
+
+    expect(welcomesTo(alice), "Alice's welcomes").toHaveLength(1);
+    expect(noteTo(alice), "the welcome's note").not.toContain("waiting for you");
+    expect(readWelcome(welcomesTo(alice)[0]).join("\n"), "the welcome").not.toContain("Identify");
+  });
+});
+
 describe("MQ31 MQ32 MQ33: the catch-up welcomes each member who used HedgeHug before the Monday path and was never welcomed", { timeout: 60_000 }, () => {
   test("it welcomes a hug giver and a kudos recipient with no welcome, and skips the welcomed and the never active", async () => {
     await usedBeforeTheMondayPath({ welcomeLost: [alice] });

@@ -7,8 +7,7 @@ import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowa
 import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import { settingsFooterFor } from "../feedback/settingsFooter";
 import { hugsSectionFor, hugsSentInTheMondayDm, type HugsSection } from "../hugs/recap";
-import { hiddenItemsShownTo } from "../items/flag";
-import { waitingHoggieCountOf } from "../items/ledger";
+import { shownWaitingHoggiesOf } from "../items/ledger";
 import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
@@ -107,8 +106,9 @@ async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { h
 
 async function mondayQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, quests: QuestsSection | null): Promise<MondayQuests | null> {
   if (quests === null) return null;
-  const waiting = (await hiddenItemsShownTo(ctx, member)) ? await waitingHoggieCountOf(ctx, member) : 0;
-  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links: await dmLinksFor(ctx, workspace, member) };
+  const links = await dmLinksFor(ctx, workspace, member);
+  const waiting = await shownWaitingHoggiesOf(ctx, member, links);
+  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links };
 }
 
 async function scheduleTry(ctx: MutationCtx, dm: Id<"mondayDms">, dueAt: number, attempt: number): Promise<null> {

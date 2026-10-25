@@ -5,7 +5,7 @@ import { awardsOfMessage } from "../engine/awards";
 import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
 import { publicQuoteOf } from "../feedback/welcomeNudge";
 import { hugOf } from "../hugs/records";
-import { waitingHoggieCountOf, type WaitingCount } from "../items/ledger";
+import { shownWaitingHoggiesOf, type WaitingCount } from "../items/ledger";
 import { dmLinksFor } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
@@ -55,7 +55,7 @@ export const mondayWelcomeOf = internalQuery({
       opening: await openingOf(ctx, member, cause),
       journey,
       next,
-      waiting: await waitingHoggieCountOf(ctx, member),
+      waiting: await shownWaitingHoggiesOf(ctx, member, links),
       links: links === null ? null : { book: links.book, quests: links.quests },
     };
   },
