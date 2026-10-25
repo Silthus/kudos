@@ -78,6 +78,7 @@ const messageSettingChangeValidator = v.object({
   setting: messageKindValidator,
   on: v.boolean(),
   place: v.optional(messagePlaceValidator),
+  via: v.optional(v.literal("dm-button")),
   at: v.number(),
 });
 

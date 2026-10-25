@@ -351,6 +351,15 @@ describe("MQ34: the DM and quests usage facts", () => {
     });
   });
 
+  test("MQ29: a message setting changed by a DM button says so in via", () => {
+    expect(projectUsage({ kind: "messageSettingChanged", workspace: "T1", member: bob, setting: "quests", on: false, place: "none", via: "dm-button", at })).toEqual({
+      event: "message setting changed",
+      subject: { member: bob },
+      at,
+      properties: { kind: "quests", on: false, place: "none", via: "dm-button" },
+    });
+  });
+
   test.each(["panel", "profile"] as const)("quests viewed on the %s carries its surface", (surface) => {
     expect(projectUsage({ kind: "questsViewed", workspace: "T1", member: bob, surface, at })).toEqual({ event: "quests viewed", subject: { member: bob }, at, properties: { surface } });
   });
