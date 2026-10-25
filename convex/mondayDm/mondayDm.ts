@@ -4,7 +4,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { reportMondayDmSent } from "../analytics/isolatedUsage";
 import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowance";
-import { dmLinksOf, type DmLinks } from "../feedback/dmLinks";
+import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import { settingsFooterFor } from "../feedback/settingsFooter";
 import { hugsSectionFor, hugsSentInTheMondayDm, type HugsSection } from "../hugs/recap";
 import { hiddenItemsShownTo } from "../items/flag";
@@ -13,10 +13,10 @@ import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
 import { questsCopyOf, type QuestsCopy } from "./questsCopy";
-import { postedMessageValidator, type MondayDmContent, type MondayDmSection } from "./records";
+import type { MondayDmContent, MondayDmSection } from "./records";
 import { mondayDmOf, type MondayDmRow } from "./rows";
 
-export type MondayQuests = QuestsCopy & { waiting: boolean; links: DmLinks | null };
+export type MondayQuests = QuestsCopy & { waiting: boolean; links: Pick<DmLinks, "book" | "quests"> | null };
 
 export type MondayDm = { dm: Id<"mondayDms">; workspace: string; user: string } & MondayDmContent;
 
@@ -67,12 +67,12 @@ export const mondayDmLater = internalMutation({
 });
 
 export const mondayDmEnded = internalMutation({
-  args: { ...tryArgs, outcome: v.union(v.literal("delivered"), v.literal("gone"), v.literal("failed")), posted: v.optional(postedMessageValidator) },
-  handler: async (ctx, { dm, attempt, outcome, posted }) => {
+  args: { ...tryArgs, outcome: v.union(v.literal("delivered"), v.literal("gone"), v.literal("failed")) },
+  handler: async (ctx, { dm, attempt, outcome }) => {
     const row = await awaitingTry(ctx, dm, attempt);
     if (row === null) return;
     const delivered = outcome === "delivered";
-    await ctx.db.patch(dm, delivered ? { state: "sent", posted } : { state: "failed" });
+    await ctx.db.patch(dm, { state: delivered ? "sent" : "failed" });
     if (delivered) await reportDelivered(ctx, row);
   },
 });
@@ -108,7 +108,8 @@ async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { h
 async function mondayQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, quests: QuestsSection | null): Promise<MondayQuests | null> {
   if (quests === null) return null;
   const waiting = (await hiddenItemsShownTo(ctx, member)) ? await waitingHoggieCountOf(ctx, member) : 0;
-  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links: await dmLinksOf(ctx, workspace) };
+  const links = await dmLinksFor(ctx, workspace, member);
+  return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links: links === null ? null : { book: links.book, quests: links.quests } };
 }
 
 async function scheduleTry(ctx: MutationCtx, dm: Id<"mondayDms">, dueAt: number, attempt: number): Promise<null> {

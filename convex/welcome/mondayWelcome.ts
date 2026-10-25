@@ -6,7 +6,7 @@ import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine
 import { publicQuoteOf } from "../feedback/welcomeNudge";
 import { hugOf } from "../hugs/records";
 import { waitingHoggieCountOf, type WaitingCount } from "../items/ledger";
-import { welcomeLinksFor } from "../feedback/dmLinks";
+import { dmLinksFor } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
@@ -49,7 +49,7 @@ export const mondayWelcomeOf = internalQuery({
   args: { workspace: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator },
   handler: async (ctx, { workspace, member, cause, journey }): Promise<MondayWelcome> => {
     const next = journey.find(({ finished }) => !finished)?.step ?? null;
-    const links = await welcomeLinksFor(ctx, workspace, member);
+    const links = await dmLinksFor(ctx, workspace, member);
     return {
       kudosEmoji: (await settingsOf(ctx, workspace)).kudosEmoji,
       opening: await openingOf(ctx, member, cause),

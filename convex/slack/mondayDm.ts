@@ -5,7 +5,7 @@ import { observedAction } from "../analytics/boundary";
 import type { Id } from "../_generated/dataModel";
 import type { MondayDm, MondayQuests } from "../mondayDm/mondayDm";
 import type { ChecklistItem } from "../mondayDm/questsCopy";
-import type { MondayDmContent, PostedMessage } from "../mondayDm/records";
+import type { MondayDmContent } from "../mondayDm/records";
 import type { HugsSection } from "../hugs/recap";
 import { buttonOf, mrkdwn, urlButtonOf } from "./blocks";
 import { attemptArgs, attemptCall, isRateLimited, retryAfter, sendOnce, tryAtMostThreeTimes, type Attempt } from "./delivery";
@@ -28,22 +28,22 @@ export const sendMondayDm = observedAction({
       await ctx.runMutation(internal.mondayDm.mondayDm.mondayDmLater, { dm, attempt, retry: retryAfter(sent, attempt)! });
       return;
     }
-    await ctx.runMutation(internal.mondayDm.mondayDm.mondayDmEnded, { dm, attempt, outcome: outcomeOf(sent), posted: postedOf(sent) });
+    await ctx.runMutation(internal.mondayDm.mondayDm.mondayDmEnded, { dm, attempt, outcome: outcomeOf(sent) });
   },
 });
 
 export const showMondayDm = observedAction({
-  args: { dm: v.id("mondayDms"), ...attemptArgs },
-  handler: async (ctx, { dm, attempt = 1 }) => {
+  args: { dm: v.id("mondayDms"), channel: v.string(), ts: v.string(), ...attemptArgs },
+  handler: async (ctx, { dm, channel, ts, attempt = 1 }) => {
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
         const shown = await ctx.runQuery(internal.mondayDm.stop.shownMondayDm, { dm });
         if (shown?.content.quests == null) return null;
         const message = shown.stopped ? stoppedMessageOf(dm, shown.workspace, shown.content) : messageOf({ dm, workspace: shown.workspace, ...shown.content }, shown.content.quests);
-        return sendOnce(ctx, shown.workspace, "chat.update", { channel: shown.posted.channel, ts: shown.posted.ts, ...message }, attempt);
+        return sendOnce(ctx, shown.workspace, "chat.update", { channel, ts, ...message }, attempt);
       },
-      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.mondayDm.showMondayDm, { dm, attempt: retry.attempt }),
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.mondayDm.showMondayDm, { dm, channel, ts, attempt: retry.attempt }),
     );
   },
 });
@@ -52,12 +52,6 @@ function postMondayDm(ctx: ActionCtx, dm: MondayDm): Promise<Attempt> {
   const { workspace, user, hugs, quests, footer } = dm;
   if (quests === null) return postRecap(ctx, { workspace, user, lines: [...hugs!.lines, ...hugs!.closing], emojiLine: hugs!.emojiLine, footer });
   return attemptCall(ctx, workspace, "chat.postMessage", { channel: user, ...messageOf(dm, quests) });
-}
-
-function postedOf(sent: Attempt): PostedMessage | undefined {
-  if (sent.kind !== "delivered" || !sent.answer.ok) return undefined;
-  const { channel, ts } = sent.answer as { channel?: unknown; ts?: unknown };
-  return typeof channel === "string" && typeof ts === "string" ? { channel, ts } : undefined;
 }
 
 function messageOf(dm: Omit<MondayDm, "user">, quests: MondayQuests) {

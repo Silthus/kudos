@@ -33,7 +33,7 @@ import type { CratePurchaseOutcome } from "../hoggies/records";
 import { buyItem } from "../store/buying";
 import { setCustomKudosEmoji } from "../store/customKudosEmoji";
 import type { ItemPurchaseOutcome } from "../store/rows";
-import { resumeMondayQuests, stopMondayQuests } from "../mondayDm/stop";
+import { resumeMondayQuests, stopMondayQuests, type PressedIn } from "../mondayDm/stop";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import type { Surface } from "./surface";
 import { featureValidator } from "../unlocks/feature";
@@ -74,7 +74,7 @@ export const commandValidator = v.union(
 
 export type Command = Infer<typeof commandValidator>;
 
-export type CommandOrigin = { surface: Surface; idempotencyKey: string };
+export type CommandOrigin = { surface: Surface; idempotencyKey: string; pressedIn?: PressedIn };
 
 export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | WorkspaceSettingsOutcome | ChannelPickOutcome | null;
 
@@ -94,7 +94,7 @@ export async function commandsOfferedTo(ctx: QueryCtx, member: MemberId, command
   return commands.filter((command) => !setsAvatar(command));
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, { surface, idempotencyKey }: CommandOrigin): Promise<CommandOutcome> {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, { surface, idempotencyKey, pressedIn }: CommandOrigin): Promise<CommandOutcome> {
   const { member } = person;
   switch (command.type) {
     case "showHomeTab": {
@@ -179,10 +179,10 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       if (await setCustomKudosEmoji(ctx, workspace, person, command.emoji)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;
     case "stopMondayQuests":
-      await stopMondayQuests(ctx, workspace, member, command.dm);
+      await stopMondayQuests(ctx, workspace, member, command.dm, pressedIn);
       return null;
     case "resumeMondayQuests":
-      await resumeMondayQuests(ctx, workspace, member, command.dm);
+      await resumeMondayQuests(ctx, workspace, member, command.dm, pressedIn);
       return null;
     case "pickPrimaryGroup": {
       const group = ctx.db.normalizeId("userGroups", command.group);

@@ -83,8 +83,9 @@ export const receiveHomeClick = internalMutation({
     await ctx.db.insert("slackReceipts", receipt);
     if (person?.kind !== "member") return;
     let refused: HomeRefusal | undefined;
+    const pressedIn = conversation !== undefined && message !== undefined && ephemeral === undefined ? { channel: conversation, ts: message } : undefined;
     for (const command of offered) {
-      const outcome = await runCommand(ctx, receipt.workspace, person, command, { surface: "slack", idempotencyKey: `slack:${receipt.eventId}` });
+      const outcome = await runCommand(ctx, receipt.workspace, person, command, { surface: "slack", idempotencyKey: `slack:${receipt.eventId}`, pressedIn });
       if (outcome !== null && "perk" in outcome && conversation !== undefined) {
         const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };
         await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, ...answeredIn, outcome });

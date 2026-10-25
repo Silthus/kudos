@@ -27,8 +27,6 @@ export const mondayDmContentValidator = v.object({
   footer: v.union(v.object({ appHome: v.string(), rest: v.string() }), v.null()),
 });
 
-export const postedMessageValidator = v.object({ channel: v.string(), ts: v.string() });
-
 export const mondayDmValidator = v.object({
   member: v.id("members"),
   monday: v.string(),
@@ -37,11 +35,8 @@ export const mondayDmValidator = v.object({
   tries: v.number(),
   sections: v.optional(v.array(mondayDmSectionValidator)),
   content: v.optional(mondayDmContentValidator),
-  posted: v.optional(postedMessageValidator),
 });
 
 export type MondayDmSection = Infer<typeof mondayDmSectionValidator>;
 
 export type MondayDmContent = Infer<typeof mondayDmContentValidator>;
-
-export type PostedMessage = Infer<typeof postedMessageValidator>;

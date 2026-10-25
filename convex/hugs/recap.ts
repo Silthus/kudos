@@ -60,7 +60,7 @@ export const startRecap = internalMutation({
       await scheduleTry(ctx, row, dueAt, attempt);
       return null;
     }
-    if (await hasMondayDm(ctx, row.member, mondayAfter(row.week))) {
+    if (attempt === 1 && (await hasMondayDm(ctx, row.member, mondayAfter(row.week)))) {
       await ctx.db.patch(week, { recap: "monday-dm" });
       return null;
     }
