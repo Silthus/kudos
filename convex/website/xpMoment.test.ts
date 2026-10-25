@@ -94,9 +94,9 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     const asAlice = await aReturningMember(alice);
     await thanks(bob, alice);
 
-    const [received] = (await theMomentOf(asAlice)).excerpts;
+    const { entry } = (await theMomentOf(asAlice)).excerpts[0]!;
 
-    expect(received.entry.kind === "kudosReceived" && received.entry.message.kind === "text" && received.entry.message.segments).toContainEqual({ kind: "person", name: alice.name, person: await memberOf(alice) });
+    expect(entry).toMatchObject({ kind: "kudosReceived", message: { segments: expect.arrayContaining([{ kind: "person", name: alice.name, person: await memberOf(alice) }]) } });
   });
 
   test("past five, the newest five show oldest first and the rest fold into one line with their XP", async () => {
