@@ -2,7 +2,11 @@
 // Real Slack is the truth (the DMs in the sandbox); this page is an approximation for the ticket's stills.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { labelled, messages, type Variant } from "./variants.mts";
+import { round2 } from "./round2.mts";
+import { labelled, messages as round1, type Variant } from "./variants.mts";
+
+const round = process.env.ROUND ?? "2";
+const messages = round === "1" ? round1 : round2;
 
 type Block = Record<string, any>;
 
@@ -52,7 +56,8 @@ function richText(block: Block) {
         const parts = row.elements.map((part: Block) => {
           if (part.type === "emoji") return `${emoji[part.name] ?? ""}${part.skin_tone ? "🏻" : ""}`;
           const text = escape(part.text);
-          const bold = part.style?.bold ? `<b>${text}</b>` : text;
+          const italic = part.style?.italic ? `<i class="soft">${text}</i>` : text;
+          const bold = part.style?.bold ? `<b>${italic}</b>` : italic;
           return part.style?.strike ? `<s>${bold}</s>` : bold;
         });
         return `<li>${parts.join("")}</li>`;
@@ -109,8 +114,9 @@ a { color: #1264a3; text-decoration: none; }
 blockquote { margin: 4px 0; padding-left: 12px; border-left: 4px solid #ddd; }
 ul { margin: 4px 0; padding-left: 22px; }
 .rich { margin: 6px 0; }
+.soft { color: #616061; font-size: 13px; }
 `;
 
 const page = `<!doctype html><meta charset="utf-8"><title>Prototype #171</title><style>${style}</style>${messages.flat().map(messageHtml).join("\n")}<script>const only = location.hash.slice(1); if (only) for (const node of document.querySelectorAll(".message")) if (node.id !== "v" + only) node.style.display = "none";</script>`;
-writeFileSync(join(new URL(".", import.meta.url).pathname, "render.html"), page);
+writeFileSync(join(new URL(".", import.meta.url).pathname, round === "1" ? "render.html" : "render-round2.html"), page);
 console.log(messages.flat().map(slugOf).join(" "));

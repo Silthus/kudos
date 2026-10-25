@@ -4,7 +4,7 @@
 // C = Journey checklist (every onboarding quest with its state).
 
 type Block = Record<string, unknown>;
-export type Variant = { message: string; key: "A" | "B" | "C"; name: string; flags: string[]; fallback: string; blocks: Block[] };
+export type Variant = { message: string; key: string; name: string; flags: string[]; fallback: string; blocks: Block[] };
 
 const site = "https://different-dog-467.convex.site";
 const quests = `${site}/quests`;

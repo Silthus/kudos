@@ -4,7 +4,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { labelled, labelOf, messages, type Variant } from "./variants.mts";
+import { round2 } from "./round2.mts";
+import { labelled, labelOf, messages as round1, type Variant } from "./variants.mts";
+
+const round = process.env.ROUND ?? "2";
+const messages = round === "1" ? round1 : round2;
 
 const team = "T0C3US298SH";
 const michael = process.env.PROTOTYPE_SLACK_USER ?? "";
@@ -30,7 +34,7 @@ async function slack(method: string, body: Record<string, unknown>) {
 
 const manifest: { message: string; key: string; name: string; label: string; builder: string; permalink?: string }[] = [];
 const dm = michael;
-if (mode === "post") await slack("chat.postMessage", { channel: dm, text: "🧪 Prototype #171, round 1: the new welcome, catch-up and Monday DMs. Three variants (A, B, C) of each message follow, labelled at the top. Buttons are dead in this round. (Ignore the one or two copies of the intro and 1A just above: they came from failed runs.)" });
+if (mode === "post") await slack("chat.postMessage", { channel: dm, text: round === "1" ? "🧪 Prototype #171, round 1: the new welcome, catch-up and Monday DMs. Three variants (A, B, C) of each message follow, labelled at the top. Buttons are dead in this round." : "🧪 Prototype #171, round 2: one combined version of each message follows. B's quest card is the core, A's warm copy opens it, and C's onboarding journey crosses off what's done. Buttons are dead in this round." });
 
 for (const variants of messages) {
   for (const variant of variants) {
@@ -49,5 +53,5 @@ for (const variants of messages) {
   }
 }
 
-writeFileSync(join(homedir(), ".cache/proto171/manifest.json"), JSON.stringify(manifest, null, 2));
+writeFileSync(join(homedir(), `.cache/proto171/manifest-round${round}.json`), JSON.stringify(manifest, null, 2));
 console.log(`${manifest.length} variants → manifest.json`);
