@@ -508,7 +508,7 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
         "⚪ Say why on 2 different days _0 of 2 days_",
         "section: *Up next: thank someone and say why.*\nMention them, add :taco: and write a sentence about what they did. [button: Show me how]",
         "context: 🎁 +50 XP and an unidentified Hoggie for your collection",
-        `actions: See your quests (primary, dm-link:welcome:quests → ${siteUrl}/book#me/quests)`,
+        `actions: See your quests (primary, dm-link:monday:quests → ${siteUrl}/book#me/quests)`,
         `context: ${footer}`,
       ],
     ]);
@@ -527,7 +527,7 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
     expect(dm?.[0]).toBe(
       `section: Hey <@U_CAROL> :wave::skin-tone-2:\n\n${stuckInThePipe}\n\nHedgeHug is how we thank each other here. A :taco: reaction is a quick hug, and a kudos that says why is the big thanks.\n\nThree unidentified Hoggies for your collection are waiting for you.`,
     );
-    expect(dm?.at(-1)).toBe(`actions: Identify them now (primary, dm-link:welcome:book → ${siteUrl}/book) | See your quests (dm-link:welcome:quests → ${siteUrl}/book#me/quests)`);
+    expect(dm?.at(-1)).toBe(`actions: Identify them now (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests)`);
     expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["catch-up"]);
   });
 
@@ -565,6 +565,22 @@ describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets
 
     expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
     expect(dmsTo(carol)).toEqual([]);
+  });
+
+  test("its link clicks record the Monday DM, and Show me how still answers in its thread", async () => {
+    await usedBeforeTheMondayPath();
+    await mondayArrives();
+
+    await press(carol, "Identify them now");
+    await press(carol, "See your quests");
+    await press(carol, "Show me how");
+
+    expect(linkClicks()).toEqual([
+      { kind: "monday", destination: "book" },
+      { kind: "monday", destination: "quests" },
+      { kind: "welcome", destination: "quests-how" },
+    ]);
+    expect(slack.callsTo("chat.postMessage").filter(({ channel, thread_ts }) => channel === carol.user && thread_ts !== undefined)).toHaveLength(1);
   });
 
   test("a rate-limited catch-up goes out on its retry, once", async () => {

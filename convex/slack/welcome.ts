@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
+import type { DmLink } from "../analytics/isolatedUsage";
 import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from "../feedback/welcome";
 import { hoggieRewardOf, waitingHoggiesLineOf } from "../feedback/waitingHoggies";
 import { onboardingChecklistOf, onboardingHeadingOf } from "../mondayDm/questsCopy";
@@ -98,10 +99,10 @@ function howToReplyOf(step: OnboardingStep, kudosEmoji: string) {
   return `*How to ${onboardingGoalOf(step).toLowerCase()}*\n${howTos[step](kudosEmoji)}\n\nA kudos that says why looks like this, in any channel I'm in:\n> ${exampleKudos} :${kudosEmoji}:`;
 }
 
-export function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string) {
+export function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string, linksIn: DmLink["dm"] = "welcome") {
   return {
     text: fallbackOf(welcome.opening),
-    blocks: [{ type: "section", text: mrkdwn(noteOf(welcome, user)) }, { type: "divider" }, ...cardOf(welcome), ...welcomeButtonsOf(welcome)],
+    blocks: [{ type: "section", text: mrkdwn(noteOf(welcome, user)) }, { type: "divider" }, ...cardOf(welcome), ...welcomeButtonsOf(welcome, linksIn)],
     unfurl_links: false,
     unfurl_media: false,
   };
@@ -158,11 +159,11 @@ function cardOf({ journey, next, kudosEmoji }: MondayWelcome) {
   return [title, checklist, upNext, { type: "context", elements: [mrkdwn(rewardLine)] }];
 }
 
-function welcomeButtonsOf({ links, waiting }: MondayWelcome) {
+function welcomeButtonsOf({ links, waiting }: MondayWelcome, linksIn: DmLink["dm"]) {
   if (links === null) return [];
-  const seeYourQuests = urlButtonOf({ label: "See your quests", url: links.quests, actionId: "dm-link:welcome:quests" });
+  const seeYourQuests = urlButtonOf({ label: "See your quests", url: links.quests, actionId: `dm-link:${linksIn}:quests` });
   if (waiting === 0) return [{ type: "actions", elements: [{ ...seeYourQuests, style: "primary" }] }];
-  const identify = { ...urlButtonOf({ label: waiting === 1 ? "Identify it now" : "Identify them now", url: links.book, actionId: "dm-link:welcome:book" }), style: "primary" };
+  const identify = { ...urlButtonOf({ label: waiting === 1 ? "Identify it now" : "Identify them now", url: links.book, actionId: `dm-link:${linksIn}:book` }), style: "primary" };
   return [{ type: "actions", elements: [identify, seeYourQuests] }];
 }
 

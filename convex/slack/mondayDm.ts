@@ -57,7 +57,7 @@ function messageOf(dm: Omit<MondayDm, "user" | "catchUp">, quests: MondayQuests)
 }
 
 function catchUpMessageOf({ workspace, user, hugs, footer }: MondayDm, catchUp: MondayWelcome) {
-  const welcome = mondayWelcomeMessageOf(catchUp, user);
+  const welcome = mondayWelcomeMessageOf(catchUp, user, "monday");
   return {
     ...welcome,
     text: [...(hugs?.lines.map(lineTextOf) ?? []), welcome.text].join("\n"),
