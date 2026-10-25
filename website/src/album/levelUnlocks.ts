@@ -17,6 +17,10 @@ export function useLevelUnlocks(album: Album, { ended, play }: XpMomentSequence,
   return ended !== null && kept?.moment === ended ? asAnsweredNow(kept.unlocks, album) : null;
 }
 
+export function levelEmojisClimbedTo(album: Album, climb: Climb | null): string[] {
+  return climb === null ? [] : levelUnlocksOf(album, climb).emojis.map(({ id }) => id);
+}
+
 function asAnsweredNow(unlocks: LevelUnlocks, { emojis }: Album): LevelUnlocks {
   const answered = new Map(emojis.map((emoji) => [emoji.id, emoji]));
   return { ...unlocks, emojis: unlocks.emojis.map((emoji) => answered.get(emoji.id) ?? emoji) };

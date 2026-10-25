@@ -431,7 +431,7 @@ function KudosOfWeek({ kudos }: { kudos: KudosOfTheWeek }) {
         Kudos of the week
       </span>
       <blockquote>
-        <KudosMessage message={kudos.message} clamped={false} />
+        <KudosMessage message={kudos.message} />
       </blockquote>
       <figcaption className="al-pp-byline">
         <MemberFace face={kudos.giver.face} className="al-pp-face-xs" />
@@ -472,7 +472,7 @@ function Said({ line: { kudos, toSubject } }: { line: SaidLine }) {
           <span className="al-pp-quiet"> · {shortDay(kudos.at)}</span>
         </p>
         <blockquote className="al-pp-said-words">
-          <KudosMessage message={kudos.message} clamped={false} />
+          <KudosMessage message={kudos.message} />
         </blockquote>
       </div>
     </li>

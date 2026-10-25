@@ -2,13 +2,14 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
+import { flyIntoTheEmojiButton } from "./emojiFlight";
 import { bundleSize, earnedFromWords, momentsOwedOf, whyWords } from "./emojiShelf";
 import { FindInSlackWhileOn, useLiveEmoji } from "./findInSlack";
 import { keepFocusIn } from "./focusTrap";
 import { MomentSlackLine } from "./MomentSlackLine";
 import "./emoji.css";
 
-export const emojiMomentTiming = { settleMs: 700, flightMs: 850, flightStaggerMs: 90, cardsRiseAfterMs: 700, cardStaggerMs: 110, cardRiseMs: 560 };
+export const emojiMomentTiming = { settleMs: 700, flightStaggerMs: 90, cardsRiseAfterMs: 700, cardStaggerMs: 110, cardRiseMs: 560 };
 
 const momentPictureSize = 128;
 
@@ -16,15 +17,10 @@ const bundlePictureSize = 72;
 
 export type EmojiMoments = { playing: AlbumEmoji[]; more: number; take: () => void; seeThemAll: () => void; shownElsewhere: (ids: string[]) => void };
 
-export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (ids: string[]) => Promise<SeenReply>, showTheEmojis: (ids: string[]) => void): EmojiMoments {
+export type EmojisShown = { shown: ReadonlySet<string>; shownElsewhere: (ids: string[]) => void };
+
+export function useEmojisShown(markEmojisSeen: (ids: string[]) => Promise<SeenReply>): EmojisShown {
   const [shown, setShown] = useState<ReadonlySet<string>>(() => new Set());
-  const [playing, setPlaying] = useState<AlbumEmoji[]>([]);
-  const owed = useMemo(() => momentsOwedOf(album, shown), [album, shown]);
-  useEffect(() => {
-    if (waits || playing.length > 0 || owed.length === 0) return;
-    const timer = window.setTimeout(() => setPlaying(owed.slice(0, bundleSize)), emojiMomentTiming.settleMs);
-    return () => window.clearTimeout(timer);
-  }, [waits, playing, owed]);
   const shownElsewhere = useCallback(
     (ids: string[]) => {
       setShown((before) => new Set([...before, ...ids]));
@@ -32,6 +28,17 @@ export function useEmojiMoments(album: Album, waits: boolean, markEmojisSeen: (i
     },
     [markEmojisSeen],
   );
+  return { shown, shownElsewhere };
+}
+
+export function useEmojiMoments(album: Album, waits: boolean, { shown, shownElsewhere }: EmojisShown, showTheEmojis: (ids: string[]) => void): EmojiMoments {
+  const [playing, setPlaying] = useState<AlbumEmoji[]>([]);
+  const owed = useMemo(() => momentsOwedOf(album, shown), [album, shown]);
+  useEffect(() => {
+    if (waits || playing.length > 0 || owed.length === 0) return;
+    const timer = window.setTimeout(() => setPlaying(owed.slice(0, bundleSize)), emojiMomentTiming.settleMs);
+    return () => window.clearTimeout(timer);
+  }, [waits, playing, owed]);
   const markShown = useCallback(
     (ids: string[]) => {
       shownElsewhere(ids);
@@ -208,19 +215,7 @@ function useEscapeTo(then: () => void) {
 
 async function flyAllInto(dialog: HTMLElement | null, target: HTMLElement | null) {
   const pictures = [...(dialog?.querySelectorAll<HTMLElement>("[data-flies]") ?? [])];
-  await Promise.all(pictures.map((picture, index) => pause(index * emojiMomentTiming.flightStaggerMs).then(() => flyInto(picture, target))));
-}
-
-async function flyInto(element: HTMLElement, target: HTMLElement | null) {
-  if (target === null || typeof element.animate !== "function") return pause(emojiMomentTiming.flightMs);
-  const from = element.getBoundingClientRect();
-  const to = target.getBoundingClientRect();
-  const scale = from.width === 0 ? 0.2 : Math.max(0.12, to.height / from.width);
-  const x = to.left + to.width / 2 - (from.left + from.width / 2);
-  const y = to.top + to.height / 2 - (from.top + from.height / 2);
-  const flight = element.animate([{ transform: "none" }, { transform: `translate(${x * 0.35}px, ${y * 0.35 - 60}px) scale(${(1 + scale) / 2}) rotate(-8deg)`, offset: 0.4 }, { transform: `translate(${x}px, ${y}px) scale(${scale})`, opacity: 0.4 }], { duration: emojiMomentTiming.flightMs, easing: "cubic-bezier(0.45, 0, 0.25, 1)", fill: "forwards" });
-  await flight.finished.catch(() => undefined);
-  target.animate?.([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 320, easing: "ease-out" });
+  await Promise.all(pictures.map((picture, index) => pause(index * emojiMomentTiming.flightStaggerMs).then(() => flyIntoTheEmojiButton(picture, target))));
 }
 
 function pause(ms: number) {

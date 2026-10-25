@@ -137,7 +137,7 @@ async function inAnother(seconds: number) {
 async function collectAt(seconds: number) {
   await at(seconds);
   started = Date.now();
-  await act(async () => fireEvent.click(theCanvas()!));
+  await act(async () => fireEvent.click(theOrb()));
 }
 
 function theCanvas() {
@@ -145,7 +145,11 @@ function theCanvas() {
 }
 
 function theCards() {
-  return [...(theCanvas()?.querySelectorAll<HTMLElement>(".xpm-card") ?? [])];
+  return [...(theCanvas()?.querySelectorAll<HTMLElement>(".xpm-card[data-shown]") ?? [])];
+}
+
+function theColumns() {
+  return [...theCanvas()!.querySelectorAll<HTMLElement>(".xpm-column")].map((column) => [...column.querySelectorAll<HTMLElement>(".xpm-card")].map((card) => within(card).queryByRole("article")?.getAttribute("aria-label") ?? card.textContent));
 }
 
 function theOrb() {
@@ -168,16 +172,21 @@ function theLevelPill() {
   return theTopBar().getByText(/^Level \d+$/, { selector: ".al-level" });
 }
 
+function earnedInTheTopBar() {
+  const label = theTopBar().getByRole("button", { name: /^Your emojis, \d+ earned/, hidden: true }).getAttribute("aria-label")!;
+  return Number(/(\d+) earned/.exec(label)![1]);
+}
+
+function earnedOf(emojis: Album["emojis"]) {
+  return emojis.filter(({ earned }) => earned).length;
+}
+
+function theEmojiOnItsWay() {
+  return document.querySelector<HTMLElement>("body > .al-emoji-copy");
+}
+
 function theItemBoard() {
   return screen.queryByRole("dialog", { name: "Your items" });
-}
-
-function px(card: HTMLElement, property: "left" | "top") {
-  return Number.parseFloat(card.style[property]);
-}
-
-function degreesOf(card: HTMLElement) {
-  return Number.parseFloat(card.style.getPropertyValue("--rot"));
 }
 
 const canvasArrival = 0.6;
@@ -205,13 +214,13 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
     expect(xpWords(), "the bar holds the standing before the moment's XP").toBe("38 XP to level 7");
   });
 
-  it("shows each kind as a Slack-style excerpt with its own XP chip, senders as initials on a colour, HedgeHug's own message with the sitting hedgehog, and the fold line with its XP", async () => {
+  it("shows each kind as a Slack message under its own label and XP chip, senders as initials on a colour, HedgeHug's own message with the sitting hedgehog, and the fold line with its XP", async () => {
     await returnTo();
     await at(arrivedAndRead);
 
     const [fromInes, hugs, given, fromBram, level] = theCards().map((card) => within(card));
     expect(fromInes!.getByRole("article", { name: "Kudos for you" })).toHaveTextContent("Ines Okafor");
-    expect(fromInes!.getByText("IO", { selector: ".xpm-avatar" })).toHaveAttribute("data-tone");
+    expect(fromInes!.getByText("IO", { selector: ".xpm-slack-avatar" })).toHaveAttribute("data-tone");
     expect(fromInes!.getByText("thank you for pairing on the flaky deploy")).toBeInTheDocument();
     expect(fromInes!.getByText("+10 XP")).toBeInTheDocument();
     expect(hugs!.getByRole("article", { name: "3 hugs on your message" })).toHaveTextContent("+3 XP");
@@ -219,32 +228,50 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
     expect(given!.getByText("+15 XP")).toBeInTheDocument();
     expect(fromBram!.getByRole("article", { name: "Kudos for you" })).toHaveTextContent("Bram Teller");
     expect(level!.getByRole("article", { name: "Level up" })).toHaveTextContent("You reached level 7!");
-    expect(level!.getByRole("article", { name: "Level up" }).querySelector(".xpm-avatar-app img")).not.toBeNull();
+    expect(level!.getByRole("article", { name: "Level up" }).querySelector(".xpm-slack-avatar-app img")).not.toBeNull();
     expect(level!.queryByText(/XP$/)).toBeNull();
     expect(theCards()[5]).toHaveTextContent("+12 more kudos and hugs+140 XP");
     expect(theCards()[0]).toHaveTextContent("Mon 09:22");
   });
 
-  it("rings the orb on a desktop: 370 by 196 px around its centre, each excerpt tilted up to 7°", async () => {
+  it("shows a sender's Slack picture in place of their initials, and every message in full with its Slack marks", async () => {
+    const thanks = { kind: "text" as const, segments: [{ kind: "person" as const, name: "Sam Example", person: "sam-example" }, { kind: "text" as const, text: ` ${"thank you for pairing on the flaky deploy, ".repeat(8)}the end` }], edited: true };
+    const [fromInes] = busyReturn.excerpts as [XpMoment["excerpts"][number]];
+    const pictured = { ...fromInes, entry: { ...fromInes.entry, giver: { name: "Ines Okafor", face: { kind: "slack" as const, image: "https://avatars.example/ines.png", initials: "IO" } }, message: thanks } } as XpMoment["excerpts"][number];
+    await returnTo({ moment: { ...busyReturn, excerpts: [pictured, ...busyReturn.excerpts.slice(1)] } });
+    await at(arrivedAndRead);
+
+    const fromInesNow = within(theCards()[0]!);
+    expect(fromInesNow.queryByText("IO")).toBeNull();
+    expect(theCards()[0]!.querySelector(".xpm-slack-avatar img")).toHaveAttribute("src", "https://avatars.example/ines.png");
+    expect(fromInesNow.getByText("@Sam Example")).toHaveAttribute("data-mention", "loud");
+    expect(fromInesNow.getByTestId("kudos-message-words")).toHaveTextContent(/the end \(edited\)$/);
+    expect(fromInesNow.queryAllByRole("link")).toEqual([]);
+  });
+
+  it("on a desktop stacks the excerpts in two columns either side of the orb, in the order they happened", async () => {
     await returnTo();
     await at(arrivedAndRead);
 
-    const orb = { x: px(theOrb(), "left"), y: px(theOrb(), "top") };
-    const reaches = theCards().map((card) => Math.hypot((px(card, "left") - orb.x) / 370, (px(card, "top") - orb.y) / 196));
-    expect(Math.min(...reaches)).toBeGreaterThan(0.9);
-    expect(Math.max(...reaches)).toBeLessThan(1.1);
-    expect(theCards().every((card) => Math.abs(degreesOf(card)) <= 7)).toBe(true);
-    expect(new Set(theCards().map((card) => Math.sign(px(card, "left") - orb.x))).size).toBeGreaterThan(1);
+    expect(theColumns()).toEqual([
+      ["Kudos for you", "3 hugs on your message", "Kudos you gave"],
+      ["Kudos for you", "Level up", "+12 more kudos and hugs+140 XP"],
+    ]);
   });
 
-  it("on a phone the orb sits under the excerpts", async () => {
+  it("flies every excerpt out from the orb, the first one too", async () => {
+    await returnTo();
+    await at(arrivedAndRead);
+
+    expect(theCards().map((card) => card.style.getPropertyValue("--from-x"))).toEqual(["0px", "0px", "0px", "0px", "0px", "0px"]);
+  });
+
+  it("on a phone stacks the excerpts in one column over the orb", async () => {
     await returnTo({ screenSize: phone });
     await at(arrivedAndRead);
 
     expect(theCanvas()).toHaveAttribute("data-narrow");
-    const lowestCard = Math.max(...theCards().map((card) => px(card, "top")));
-    expect(px(theOrb(), "top")).toBeGreaterThan(lowestCard);
-    expect(px(theOrb(), "left")).toBe(phone.width / 2);
+    expect(theColumns()).toEqual([["Kudos for you", "3 hugs on your message", "Kudos you gave", "Kudos for you", "Level up", "+12 more kudos and hugs+140 XP"]]);
   });
 });
 
@@ -303,18 +330,20 @@ describe("LP29 LP33: the canvas covers the page in both themes and on a phone", 
 });
 
 describe("LP31 LP32: collecting streams the XP into the bar and the canvas becomes the item board", { timeout: 30_000 }, () => {
-  it("collects on its own after 2 s plus 0.7 s per excerpt once they are out: 6.2 s for six", async () => {
+  it("waits for the member with no countdown: nothing collects on its own, nor on a click beside the orb", async () => {
     await returnTo();
+    await at(arrivedAndRead);
 
-    await at(arrivedAndRead + 6.2 - 0.1);
+    expect(theOrb().querySelector("svg")).toBeNull();
+    await act(async () => fireEvent.click(theCards()[0]!));
+    await act(async () => fireEvent.click(theCanvas()!));
+    await at(arrivedAndRead + 120);
     expect(theOrbSays()).toBe("?");
+    expect(theCards()).toHaveLength(6);
     expect(theCards().some((card) => card.hasAttribute("data-dissolving"))).toBe(false);
-    await at(arrivedAndRead + 6.2 + 0.05);
-    expect(theOrbSays()).toBe("+0");
-    expect(theCards()[0]).toHaveAttribute("data-dissolving");
   });
 
-  it("a click anywhere collects: the excerpts dissolve 140 ms apart over 720 ms while the orb counts up from +0 to the total", async () => {
+  it("a click on the orb collects: the excerpts dissolve 140 ms apart over 720 ms while the orb counts up from +0 to the total", async () => {
     await returnTo();
     await collectAt(arrivedAndRead);
 
@@ -613,6 +642,53 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theItemBoard()).toBeInTheDocument();
     expect(theEmojiPopUp()).toBeNull();
     expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it("springs the level's emoji in, then sends it up into the emoji button, which counts it only once it lands", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+    const all = earnedOf(levelTenEarned);
+
+    expect(earnedInTheTopBar(), "while it springs in").toBe(all - 1);
+    expect(theEmojiOnItsWay()).toBeNull();
+    await inAnother(2.6);
+    expect(theEmojiOnItsWay(), "on its way up").toHaveAttribute("data-kind", "level");
+    expect(earnedInTheTopBar(), "while on its way").toBe(all - 1);
+    await inAnother(0.8);
+    expect(theEmojiOnItsWay()).toBeNull();
+    expect(earnedInTheTopBar(), "once it lands").toBe(all);
+    expect(theTakeover(), "the takeover still waits for a click").toBeInTheDocument();
+  });
+
+  it("keeps the level's emoji out of the top bar's count from the return through the XP filling the bar, so the count never runs ahead of its flight", async () => {
+    await returnTo({ moment: toLevelTen, album: atLevelTen });
+    const all = earnedOf(levelTenEarned);
+    expect(earnedInTheTopBar(), "on arrival").toBe(all - 1);
+
+    await collectAt(arrivedAndRead);
+    expect(earnedInTheTopBar(), "as the XP is collected").toBe(all - 1);
+    await at(collectedAndStreamed - 0.1);
+    expect(earnedInTheTopBar(), "as the bar crosses the level").toBe(all - 1);
+    await at(collectedAndStreamed + 0.02);
+    expect(earnedInTheTopBar(), "as the takeover drops in").toBe(all - 1);
+  });
+
+  it("counts the level's emoji at once when Continue comes before it lands", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+
+    await act(async () => fireEvent.click(within(theTakeover()!).getByRole("button", { name: "Continue" })));
+
+    expect(earnedInTheTopBar()).toBe(earnedOf(levelTenEarned));
+  });
+
+  it("takes the emoji on its way up along with the takeover when Continue comes mid-flight", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+    await inAnother(2.6);
+    expect(theEmojiOnItsWay(), "on its way up").not.toBeNull();
+
+    await act(async () => fireEvent.click(within(theTakeover()!).getByRole("button", { name: "Continue" })));
+
+    expect(theEmojiOnItsWay()).toBeNull();
+    expect(earnedInTheTopBar()).toBe(earnedOf(levelTenEarned));
   });
 
   it("LP72: while onboarding is on, shows the level's emoji Slack has as :name: unlocked with how to use it, naming the workspace's kudos emoji", async () => {

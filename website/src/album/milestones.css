@@ -17,13 +17,8 @@
 }
 
 .al-ms h2,
-.al-ms h3,
 .al-ms p {
   margin: 0;
-}
-
-.al-ms-quiet {
-  color: var(--al-quiet);
 }
 
 .al-ms-head {
@@ -41,73 +36,20 @@
 }
 
 .al-ms-tally {
-  display: flex;
   flex-shrink: 0;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.125rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-.al-ms-tally-count strong {
+.al-ms-tally strong {
   font-size: 2.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.al-ms-tally-count span {
+.al-ms-tally span {
   color: var(--al-quiet);
-}
-
-.al-ms-closest {
-  font-size: 0.8125rem;
-}
-
-.al-ms-closest strong {
-  color: var(--al-accent-ink);
-}
-
-.al-ms-section-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 1rem;
-  margin-bottom: 0.75rem;
-}
-
-.al-ms-section-title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.al-ms-direction {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--al-quiet);
-  font-size: 0.8125rem;
-}
-
-.al-ms-direction-arrow {
-  position: relative;
-  display: inline-block;
-  width: 2.75rem;
-  height: 2px;
-  background: currentColor;
-}
-
-.al-ms-direction-arrow::after {
-  position: absolute;
-  top: -4px;
-  right: -1px;
-  border: 5px solid transparent;
-  border-right: 0;
-  border-left: 7px solid currentColor;
-  content: "";
 }
 
 .al-ms-rows {
@@ -436,7 +378,6 @@
   }
 
   .al-ms-tally {
-    align-items: flex-start;
     text-align: left;
   }
 }

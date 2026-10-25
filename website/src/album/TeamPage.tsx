@@ -1,4 +1,4 @@
-import { Fragment, useId, useRef } from "react";
+import { useRef } from "react";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
@@ -24,7 +24,6 @@ const sealSize = 128;
 export function TeamPage({ album, team, unlocking }: { album: Album; team: AlbumTeam; unlocking: TeamUnlocking }) {
   const onThePhoto = onThePhotoOf(album, team);
   const emoji = teamEmojiOf(album, team.team);
-  const caption = useId();
   const mapsInPlace = useMapsInPlace();
   const unlocked = team.state === "unlocked";
   const emojiShown = unlocked || mapsInPlace;
@@ -38,15 +37,12 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
         <p className="al-lede">{plural(onThePhoto.length, "person", "people")}</p>
         <ShareLink album={album} page={{ kind: "team", team: team.team }} cardOf={`the ${team.name}`} />
       </header>
-      <figure className="al-mount" aria-labelledby={caption}>
+      <figure className="al-team-photo" aria-label={`${team.name} team photo`}>
         <ul className="al-photo" data-size={onThePhoto.length > 5 ? "many" : "few"}>
           {onThePhoto.map((shown) => (
             <PhotoPerson key={shown.kind === "person" ? shown.person.person : `unmatched:${shown.name}`} shown={shown} pet={petShownWith(album, shown)} />
           ))}
         </ul>
-        <figcaption id={caption} className="al-photo-caption">
-          <span className="al-photo-caption-label">Left to right</span> <Caption onThePhoto={onThePhoto} />
-        </figcaption>
         <Seal team={team} emoji={emoji} unlocking={unlocking} />
       </figure>
       <p role="status" aria-label="Unlocking the sticker" className="al-unlock-problem">
@@ -93,19 +89,6 @@ function PersonOnThePhoto({ person: { person, name, face, held, at }, pet }: { p
       <LandedHype landing={landing} />
       {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
     </li>
-  );
-}
-
-function Caption({ onThePhoto }: { onThePhoto: OnThePhoto[] }) {
-  return (
-    <span className="ph-no-capture">
-      {onThePhoto.map((shown, index) => (
-        <Fragment key={index}>
-          <span data-out={shown.kind === "person" && shown.person.held ? undefined : ""}>{nameOnThePhoto(shown)}</span>
-          {index < onThePhoto.length - 1 ? ", " : ""}
-        </Fragment>
-      ))}
-    </span>
   );
 }
 

@@ -45,6 +45,11 @@
   box-shadow: 0 10px 30px -18px color-mix(in oklab, var(--foreground) 40%, transparent);
 }
 
+.al-team-photo {
+  position: relative;
+  margin: 0;
+}
+
 .al-photo {
   display: flex;
   flex-wrap: wrap;
@@ -196,12 +201,6 @@
 
 .al-photo-caption [data-out] {
   opacity: 0.85;
-}
-
-.al-photo-caption-label {
-  color: var(--foreground);
-  font-style: normal;
-  font-weight: 700;
 }
 
 .al-seal-spot {

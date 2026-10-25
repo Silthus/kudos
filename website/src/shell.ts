@@ -105,6 +105,7 @@ const fixturesByName: Record<string, ShellState> = {
   "album-with-new-emojis": shellFixtures.member,
   "album-as-an-admin": shellFixtures.member,
   "album-emoji-wizard": shellFixtures.member,
+  "album-xp-moment": shellFixtures.member,
   "album-with-items": shellFixtures.member,
   "album-person-page-d": shellFixtures.member,
   error: shellFixtures.error,

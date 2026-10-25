@@ -188,16 +188,21 @@ describe("LP19a: a milestone tier unlocks with its own beat on Milestones", { ti
     expect(screen.getByRole("dialog", { name: "Your items" })).toBeInTheDocument();
   });
 
-  it("counts the medal's emoji in the top bar only once its beat pops it", async () => {
+  it("springs the medal's emoji out as the medal stamps in, and counts it in the top bar only once it lands in the emoji button", async () => {
     visit(familiarFaces);
     const item = await theFirstItem();
     const before = earnedInTheTopBar();
     await clickOnFakeTime(item);
 
-    await at(4.8);
-    expect(earnedInTheTopBar(), "before the medal's beat").toBe(before);
-    await at(5.5);
-    expect(earnedInTheTopBar(), "once the medal pops").toBe(before + 1);
+    await at(5.6);
+    expect(stage()).toBe("medal");
+    expect(earnedInTheTopBar(), "while the medal pops").toBe(before);
+    await at(6.6);
+    expect(document.querySelector(".ib-emoji"), "the emoji out of the medal").toHaveTextContent("New emoji");
+    expect(earnedInTheTopBar(), "while the emoji is out").toBe(before);
+    await at(8.1);
+    expect(document.querySelector(".ib-emoji")).toBeNull();
+    expect(earnedInTheTopBar(), "once it lands").toBe(before + 1);
   });
 
   it("keeps the reduced-motion line off the strip once the beat has played", async () => {

@@ -16,7 +16,7 @@ import { levelUpsByDecision } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
 import type { MessageRef } from "../engine/messageEvent";
 import type { Activity, ActivityEntry, BonusEarned, Found, KudosGiven, KudosReceived, LevelUp, Message, RecentKudos, HugGiven, HugReceived } from "./entries";
-import { kudosFactsOf, kudosWordsOf, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
+import { kudosFactsOf, kudosWordsOf, mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
 import { belowFor, decodeCursor, encodeCursor, keyOf, newestFirst, ranks, type Cursor, type Position, type Rank } from "./position";
 
 export type Filter = "all" | "received" | "given";
@@ -163,7 +163,7 @@ export type Since = { above?: number; upTo?: number };
 
 export async function activitySince(ctx: QueryCtx, member: MemberId, since: Since): Promise<ReadSince[]> {
   const page = await pendingSince(ctx, member, since, mostReadSince);
-  const mentions = mentionsOfOnePage(ctx);
+  const mentions = mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked");
   return Promise.all(page.map(async ({ position, entry, xp }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp()) })));
 }
 

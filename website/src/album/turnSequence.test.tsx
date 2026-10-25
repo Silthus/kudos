@@ -19,6 +19,8 @@ const unlockedAt = Date.parse("2026-10-20T10:00:00Z");
 
 const tinOrchard = { team: "tin-orchard", name: "Tin Orchard", art: { kind: "crest" as const, slug: "replay" }, emoji: "team-tin-orchard", at: unlockedAt };
 
+const tinOrchardEmoji = { id: "team:tin-orchard", kind: "team" as const, name: tinOrchard.emoji, from: tinOrchard.name, picture: "/emoji/team-tin-orchard.png", earned: true, earnedAt: unlockedAt, seen: false, inSlack: false, progress: null };
+
 const itemBoardCss = readFileSync(join(__dirname, "itemBoard.css"), "utf8");
 
 const hoggiesCss = readFileSync(join(__dirname, "hoggies.css"), "utf8");
@@ -172,6 +174,10 @@ function earnedInTheTopBar() {
   return Number(/(\d+) earned/.exec(label)![1]);
 }
 
+function theEmojiInTheAir() {
+  return document.querySelector<HTMLElement>(".ib-emoji");
+}
+
 function theSpotOfCassVey() {
   return screen.getByText("Cass Vey", { selector: ".al-photo-name" }).closest("li");
 }
@@ -297,6 +303,32 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(stage()).toBe("idle");
   });
 
+  it("springs the team emoji out of the seal as it stamps in, holds it, then flies it into the emoji button, which counts it and marks it seen only as it lands", async () => {
+    placeTheSealInView();
+    const { actions } = visit({ reply: async () => aStickerTurnOfCassVey({ teamStickers: [tinOrchard], hype: null, milestones: [] }), after: (album, item) => ({ ...withTinOrchardFilled(album, item), emojis: [...album.emojis, tinOrchardEmoji] }) });
+    const item = await theFirstItem();
+    const before = earnedInTheTopBar();
+    await clickOnFakeTime(item);
+
+    await at(4.8);
+    expect(stage()).toBe("unlock");
+    expect(theEmojiInTheAir(), "while the seal pops").toBeNull();
+    await at(5.9);
+    expect(theEmojiInTheAir()).toHaveTextContent(":team-tin-orchard:");
+    expect(screen.getByRole("status", { name: "Turning over" })).toHaveTextContent(":team-tin-orchard: emoji unlocked");
+    expect(earnedInTheTopBar(), "while the emoji is out").toBe(before);
+    expect(actions.markEmojisSeen).not.toHaveBeenCalled();
+
+    await at(7.3);
+    expect(theEmojiInTheAir()).toBeNull();
+    expect(earnedInTheTopBar(), "once it lands in the emoji button").toBe(before + 1);
+    expect(actions.markEmojisSeen).toHaveBeenCalledWith(["team:tin-orchard"]);
+    await at(10);
+    expect(stage()).toBe("idle");
+    expect(screen.queryByRole("dialog", { name: /emoji/i }), "the flight was its moment").toBeNull();
+    expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
+  });
+
   it("unlocks each team a sticker filled on its own page: the first team's beat leaves the second still locked, then the sequence fades to the second team's page for its own beat", async () => {
     placeTheSealInView();
     const sableQuay = { team: "sable-quay", name: "Sable Quay", art: { kind: "crest" as const, slug: "growth" }, mine: false, people: ["sable-ford", "cass-vey"], unmatched: [], held: 1, total: 2, state: "progress" as const, unlockedAt: null };
@@ -333,28 +365,56 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(screen.getByRole("img", { name: ":cass-vey-hype: hype emoji unlocked" })).toBeInTheDocument();
   });
 
-  it("counts each emoji the turn brings in the top bar only as its beat lands: the hype with the sticker, the team emoji with the seal", async () => {
+  it("counts each emoji the turn brings in the top bar only as it lands in the emoji button: the hype out of the sticker first, then the team emoji out of the seal", async () => {
     placeTheSealInView();
     const hype = { name: "cass-vey-hype", picture: "/emoji/hype-cass.png", inSlack: false, from: "Cass Vey" };
-    const earnedNow = { earned: true, earnedAt: unlockedAt, seen: false, inSlack: false, progress: null };
     const withTheirEmojis = (album: Album, item: string): Album => ({
       ...withTinOrchardFilled(album, item),
-      emojis: [...album.emojis, { id: "hype:cass-vey", kind: "hype", name: hype.name, from: hype.from, picture: hype.picture, ...earnedNow }, { id: "team:tin-orchard", kind: "team", name: tinOrchard.emoji, from: tinOrchard.name, picture: "/emoji/team-tin-orchard.png", ...earnedNow }],
+      emojis: [...album.emojis, { ...tinOrchardEmoji, id: "hype:cass-vey", kind: "hype", name: hype.name, from: hype.from, picture: hype.picture }, tinOrchardEmoji],
     });
     visit({ reply: async () => aStickerTurnOfCassVey({ teamStickers: [tinOrchard], hype, milestones: [] }), after: withTheirEmojis });
     const item = await theFirstItem();
     const before = earnedInTheTopBar();
     await clickOnFakeTime(item);
 
-    expect(earnedInTheTopBar(), "as the answer comes").toBe(before);
-    await at(0.1);
-    expect(earnedInTheTopBar(), "before the turn lands anywhere").toBe(before);
     await at(1.8);
     expect(earnedInTheTopBar(), "while the sticker holds").toBe(before);
     await at(4.1);
-    expect(earnedInTheTopBar(), "once the sticker lands with its hype").toBe(before + 1);
-    await at(4.8);
-    expect(earnedInTheTopBar(), "once the seal unlocks").toBe(before + 2);
+    expect(earnedInTheTopBar(), "as the sticker lands").toBe(before);
+    await at(4.6);
+    expect(theEmojiInTheAir(), "the hype springs out").toHaveTextContent(":cass-vey-hype:");
+    expect(earnedInTheTopBar(), "while the hype is out").toBe(before);
+    await at(6.0);
+    expect(earnedInTheTopBar(), "once the hype lands").toBe(before + 1);
+    await at(6.6);
+    expect(stage()).toBe("unlock");
+    expect(earnedInTheTopBar(), "while the seal pops").toBe(before + 1);
+    await at(8.0);
+    expect(theEmojiInTheAir(), "the team emoji springs out").toHaveTextContent(":team-tin-orchard:");
+    expect(earnedInTheTopBar(), "while the team emoji is out").toBe(before + 1);
+    await at(9.0);
+    expect(earnedInTheTopBar(), "once the team emoji lands").toBe(before + 2);
+  });
+
+  it("springs the hype emoji a hoggie's turn unlocks, when the person's sticker is already in the album, and counts it as it lands", async () => {
+    const hype = { name: "cass-vey-hype", picture: "/emoji/hype-cass.png", inSlack: false, from: "Cass Vey" };
+    const hypeEmoji = { ...tinOrchardEmoji, id: "hype:cass-vey", kind: "hype" as const, name: hype.name, from: hype.from, picture: hype.picture };
+    const aHoggieTurnWithHype = async (item: string): Promise<TurnReply> => {
+      const turned = await fixtureTurnOf(item);
+      return turned.kind === "turned" ? { ...turned, unlocked: { teamStickers: [], hype, milestones: [] } } : turned;
+    };
+    visit({ reply: aHoggieTurnWithHype, after: (album, item) => ({ ...withTheHoggieTurned(album, item), emojis: [...album.emojis, hypeEmoji] }) });
+    const item = await theFirstItem();
+    const before = earnedInTheTopBar();
+    await clickOnFakeTime(item);
+
+    await at(4.0);
+    expect(theEmojiInTheAir(), "while the hoggie lands").toBeNull();
+    await at(4.6);
+    expect(theEmojiInTheAir(), "the hype springs out").toHaveTextContent(":cass-vey-hype:");
+    expect(earnedInTheTopBar(), "while the hype is out").toBe(before);
+    await at(6.0);
+    expect(earnedInTheTopBar(), "once the hype lands").toBe(before + 1);
   });
 
   it("keeps New off a sticker's spot on its page until the sticker lands", async () => {
@@ -490,6 +550,20 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     await act(() => Promise.resolve());
 
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("marks no emoji seen when the album goes before the emoji reached the emoji button, so its moment still waits", async () => {
+    placeTheSealInView();
+    const { unmount, actions } = visit({ reply: async () => aStickerTurnOfCassVey({ teamStickers: [tinOrchard], hype: null, milestones: [] }), after: (album, item) => ({ ...withTinOrchardFilled(album, item), emojis: [...album.emojis, tinOrchardEmoji] }) });
+    await clickOnFakeTime(await theFirstItem());
+    await at(4.8);
+    expect(stage()).toBe("unlock");
+
+    unmount();
+    await act(() => Promise.resolve());
+    await act(() => Promise.resolve());
+
+    expect(actions.markEmojisSeen).not.toHaveBeenCalled();
   });
 
   it("brings the board back with the trouble said when the turn is refused mid-flight", async () => {
