@@ -222,6 +222,20 @@ describe("MQ5: someone-new is judged across a leave and a rejoin as on the unloc
     expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(2);
   });
 
+  test("a leave that comes in before the kudos that finishes first-thanks is counted still finishes someone-new", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    await joins(carol);
+    const held = holdingKudosGiven();
+    await thanks(alice, saysWhy, bob);
+
+    const leftAt = await leaves(carol);
+    await deliverInOrder(held[0]!, []);
+
+    expect(await someoneNewRecordsOf(alice), "the someone-new rewards").toEqual([{ xp: 50, at: leftAt }]);
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("two-days");
+  });
+
   test("a teammate thanked before who left and rejoined is no one new", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await joins(carol);

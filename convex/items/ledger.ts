@@ -32,6 +32,11 @@ export async function waitingCountOf(ctx: QueryCtx, member: MemberId): Promise<W
   return length > mostWaitingCounted ? `${mostWaitingCounted}+` : length;
 }
 
+export async function waitingHoggieCountOf(ctx: QueryCtx, member: MemberId): Promise<WaitingCount> {
+  const hoggies = (await waitingOf(ctx, member, mostItemsShown + 1)).filter(({ source }) => source === "hoggie").length;
+  return hoggies > mostWaitingCounted ? `${mostWaitingCounted}+` : hoggies;
+}
+
 export async function stickerWaitsFor(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
   const waiting = await waitingOf(ctx, member, mostItemsShown + 1);
   return waiting.some(({ source, reason }) => source === "sticker" && reason.kind === "thanks" && reason.person === person);
