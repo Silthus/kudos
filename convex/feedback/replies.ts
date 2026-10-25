@@ -23,6 +23,7 @@ import { coinsPartOf } from "./coins";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import type { Line, Segment } from "./segments";
 import { settingsFooterFor } from "./settingsFooter";
+import { hoggieRewardOf } from "./waitingHoggies";
 
 export const questDoneValidator = v.union(
   v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()), hoggie: v.optional(v.literal(true)) }),
@@ -214,7 +215,7 @@ function questsDoneParts(questsDone: QuestDoneShown[]): Line[] {
 }
 
 function hoggieQuestLinesOf(questsDone: QuestDoneShown[]): Line[] {
-  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} · +${done.xp} XP and an unidentified Hoggie for your collection` }]);
+  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} · ${hoggieRewardOf(done.xp)}` }]);
 }
 
 function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {

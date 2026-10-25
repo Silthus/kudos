@@ -36,7 +36,7 @@ export type QuestPool = { version: string; quests: readonly PoolQuest[] };
 
 const personalReward = { xp: 20, coins: 10, item: null };
 
-const mondayReward = { xp: 20, coins: 0, item: null };
+export const mondayReward = { xp: 20, coins: 0, item: null };
 
 export const questPool = {
   version: "2",
