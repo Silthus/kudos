@@ -17,6 +17,11 @@ function newcomerJourney(): GettingStartedStep[] {
   ];
 }
 
+function firstThanksJourney(): GettingStartedStep[] {
+  const [hug, firstThanks, ...rest] = newcomerJourney();
+  return [hug!, { ...firstThanks!, progress: finishedOnce, done: true, item: "waiting" }, ...rest];
+}
+
 function halfwayJourney(): GettingStartedStep[] {
   const [hug, firstThanks, turn, someoneNew, twoDays] = newcomerJourney();
   return [hug!, { ...firstThanks!, progress: finishedOnce, done: true, item: "turned" }, { ...turn!, progress: finishedOnce, done: true }, someoneNew!, { ...twoDays!, progress: { done: 1, target: 2 } }];
@@ -32,6 +37,7 @@ function drawnWeek(): DrawnQuest[] {
 
 export const questsFixtures = {
   newcomer: { kind: "monday", firstName: "Sam", next: "first-thanks", daysLeft: 5, quests: { kind: "journey", steps: newcomerJourney() } },
+  firstThanks: { kind: "monday", firstName: "Sam", next: "someone-new", daysLeft: 5, quests: { kind: "journey", steps: firstThanksJourney() } },
   halfway: { kind: "monday", firstName: "Sam", next: "someone-new", daysLeft: 5, quests: { kind: "journey", steps: halfwayJourney() } },
   week: { kind: "monday", firstName: "Sam", next: null, daysLeft: 3, quests: { kind: "drawn", quests: drawnWeek() } },
 } as const satisfies Record<string, MondayQuests>;

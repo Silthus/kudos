@@ -4,10 +4,10 @@ import type { DrawnQuest, GettingStartedStep, MondayQuests } from "../../../conv
 import type { QuestsSurface } from "../shell";
 import type { QuestsShown } from "./answer";
 import { CardBack } from "./PackCards";
-import { useQuestsFold, useViewedOnEachOpen, type FoldPlace } from "./questsFold";
+import { useQuestsFold, useViewedOnEachOpen, type FoldPlace, type QuestsLanding } from "./questsFold";
 import "./quests.css";
 
-export type ShellQuests = { quests: MondayQuests; openBoard: () => void; view: (surface: QuestsSurface) => void };
+export type ShellQuests = { quests: MondayQuests; inSight: boolean; openBoard: () => void; landing: QuestsLanding; view: (surface: QuestsSurface) => void };
 
 type Row = { goal: string; hint: string | null; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
 
@@ -22,7 +22,7 @@ export function mondayQuestsIn(shown: QuestsShown | undefined): MondayQuests | n
 export function QuestsPanel({ shown, place }: { shown: ShellQuests; place: FoldPlace }) {
   const { open, fold, unfold } = useQuestsFold(place);
   const { tab, foldButton, toggled } = useFocusAcrossTheFold(open);
-  useViewedOnEachOpen(open, () => shown.view("panel"));
+  useViewedOnEachOpen(open, shown.inSight, () => shown.view("panel"));
   const { done, total } = doneOf(shown.quests);
   if (!open)
     return (
@@ -72,15 +72,27 @@ function focus(button: RefObject<HTMLButtonElement | null>) {
 
 export function ProfileQuests() {
   const shown = useContext(QuestsContext);
-  useViewedOnEachOpen(shown !== null, () => shown?.view("profile"));
+  useViewedOnEachOpen(shown !== null, shown?.inSight ?? false, () => shown?.view("profile"));
+  const section = useLandedAt(shown?.landing);
   if (shown === null) return null;
   return (
-    <section id="quests" className="al-quests al-quests-profile" aria-label="Your quests">
+    <section ref={section} id="quests" className="al-quests al-quests-profile" aria-label="Your quests" tabIndex={-1} data-panel-target="quests">
       <Greeting quests={shown.quests} />
       <QuestList quests={shown.quests} openBoard={shown.openBoard} />
       <Footer quests={shown.quests} />
     </section>
   );
+}
+
+function useLandedAt(landing: QuestsLanding | undefined) {
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!landing?.asked || section.current === null) return;
+    section.current.scrollIntoView({ block: "start" });
+    section.current.focus({ preventScroll: true });
+    landing.landed();
+  }, [landing]);
+  return section;
 }
 
 function Greeting({ quests }: { quests: MondayQuests }) {
@@ -104,10 +116,10 @@ function Footer({ quests }: { quests: MondayQuests }) {
 
 function QuestList({ quests: { quests }, openBoard }: { quests: MondayQuests; openBoard: () => void }) {
   if (quests.kind === "drawn") return <Checklist rows={quests.quests.map(drawnRowOf)} openBoard={openBoard} />;
-  return <Journey rows={quests.steps.map(journeyRowOf)} />;
+  return <Journey rows={quests.steps.map(journeyRowOf)} openBoard={openBoard} />;
 }
 
-function Journey({ rows }: { rows: Row[] }) {
+function Journey({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) {
   const next = rows.find(({ done }) => !done);
   return (
     <ol className="al-quests-journey">
@@ -121,6 +133,7 @@ function Journey({ rows }: { rows: Row[] }) {
             <span className="al-quests-goal">{row.goal}</span>
             {row === next && row.hint !== null && <span className="al-quests-hint">{row.hint}</span>}
             {row.progress.target > 1 && !row.done && <Progress row={row} />}
+            {row.boardLink && <BoardLink openBoard={openBoard} />}
           </div>
           {row.reward !== null && <Reward xp={row.reward.xp} won={row.done} />}
         </li>
@@ -140,16 +153,20 @@ function Checklist({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) 
           <div className="al-quests-words">
             <span className="al-quests-goal">{row.goal}</span>
             <Progress row={row} />
-            {row.boardLink && (
-              <button type="button" className="al-quests-board" onClick={openBoard}>
-                Turn it on your board →
-              </button>
-            )}
+            {row.boardLink && <BoardLink openBoard={openBoard} />}
           </div>
           {row.reward !== null && <Reward xp={row.reward.xp} won={row.done} />}
         </li>
       ))}
     </ul>
+  );
+}
+
+function BoardLink({ openBoard }: { openBoard: () => void }) {
+  return (
+    <button type="button" className="al-quests-board" onClick={openBoard}>
+      Turn it on your board →
+    </button>
   );
 }
 
@@ -194,8 +211,8 @@ function DoneRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-function journeyRowOf({ goal, hint, progress, done, reward }: GettingStartedStep): Row {
-  return { goal, hint, progress, done, reward, boardLink: false };
+function journeyRowOf({ goal, hint, progress, done, reward, item }: GettingStartedStep): Row {
+  return { goal, hint, progress, done, reward, boardLink: item === "waiting" };
 }
 
 function drawnRowOf({ goal, progress, done, reward, item }: DrawnQuest): Row {
