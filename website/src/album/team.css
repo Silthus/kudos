@@ -116,19 +116,6 @@
     box-shadow 250ms ease-out;
 }
 
-.al-photo-link:hover .al-photo-sticker,
-.al-photo-link:focus-visible .al-photo-sticker {
-  rotate: 0deg;
-  translate: 0 -0.25rem;
-  scale: 1.06;
-  box-shadow: 0 10px 18px -6px color-mix(in oklab, var(--foreground) 45%, transparent);
-}
-
-.al-photo-link:hover [data-picture="grey"] > img,
-.al-photo-link:focus-visible [data-picture="grey"] > img {
-  opacity: 0.8;
-}
-
 .al-photo[data-size="many"] .al-photo-sticker {
   width: 5.5rem;
   height: 5.5rem;
@@ -160,6 +147,19 @@
 [data-picture="grey"] > img {
   filter: grayscale(1);
   opacity: 0.5;
+}
+
+.al-photo-link:hover .al-photo-sticker,
+.al-photo-link:focus-visible .al-photo-sticker {
+  rotate: 0deg;
+  translate: 0 -0.25rem;
+  scale: 1.06;
+  box-shadow: 0 10px 18px -6px color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+.al-photo-link:hover [data-picture="grey"] > img,
+.al-photo-link:focus-visible [data-picture="grey"] > img {
+  opacity: 0.8;
 }
 
 .al-photo-face {
