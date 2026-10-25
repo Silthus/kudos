@@ -1,0 +1,24 @@
+sequenceDiagram
+  participant S as Slack adapter
+  participant H as Hugs
+  participant B as Bus
+  participant W as Welcome
+  participant Q as Quests
+  participant I as Items
+  participant A as Analytics
+  S->>H: giveHug (reaction)
+  H->>H: isFirstHug = !hasHuggedBefore
+  H->>B: publish hugGiven{first}
+  B->>W: welcomeOnHug (own transaction)
+  W->>Q: questsFor(member)
+  alt not on the Monday path
+    W-->>W: legacy: ephemeral first-hug reply stays
+  else Monday path, no welcomes row yet
+    W->>W: insert welcomes{member, path: hug}
+    W->>Q: startQuests(member, "monday-quest")
+    W->>Q: nextOnboardingQuestOf(member)
+    W->>I: earnWelcomeItem (idempotent)
+    W->>S: schedule deliverWelcome(path, nextQuest, finishedSteps)
+    S-->>W: welcomeDelivered(delivered | gone)
+    W->>A: dm sent{kind: welcome-hug}
+  end
