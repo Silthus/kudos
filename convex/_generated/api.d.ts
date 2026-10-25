@@ -360,6 +360,8 @@ import type * as website_teammateKeys from "../website/teammateKeys.js";
 import type * as website_unlockPath from "../website/unlockPath.js";
 import type * as website_xpMoment from "../website/xpMoment.js";
 import type * as website_xpMomentsFlag from "../website/xpMomentsFlag.js";
+import type * as welcome_firstThanks from "../welcome/firstThanks.js";
+import type * as welcome_mondayWelcome from "../welcome/mondayWelcome.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as welcome_welcomedAs from "../welcome/welcomedAs.js";
 import type * as workspace_celebrationsSwitch from "../workspace/celebrationsSwitch.js";
@@ -737,6 +739,8 @@ declare const fullApi: ApiFromModules<{
   "website/unlockPath": typeof website_unlockPath;
   "website/xpMoment": typeof website_xpMoment;
   "website/xpMomentsFlag": typeof website_xpMomentsFlag;
+  "welcome/firstThanks": typeof welcome_firstThanks;
+  "welcome/mondayWelcome": typeof welcome_mondayWelcome;
   "welcome/welcome": typeof welcome_welcome;
   "welcome/welcomedAs": typeof welcome_welcomedAs;
   "workspace/celebrationsSwitch": typeof workspace_celebrationsSwitch;

@@ -120,10 +120,10 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
   });
 
   test("a member whose quests never started keeps today's recap and gets no Monday DM", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await thanks(alice, saysWhy, bob);
+    await switchWebsite(t, postHog, true, ...todaysFlags);
     const carolsMessage = await thanks(carol, "thanks", alice);
     await hug(bob, carol, carolsMessage);
+    await switchWebsite(t, postHog, true, ...mondayPath);
 
     await mondayArrives();
 
@@ -184,43 +184,43 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
 
     await mondayArrives();
 
-    expect(productEvents("dm sent").map(({ properties }) => ({ kind: properties.kind, sections: properties.sections }))).toEqual([{ kind: "monday", sections: "hugs,quests" }]);
+    expect((await mondayDmsSentTo(alice)).map(({ properties }) => ({ kind: properties.kind, sections: properties.sections }))).toEqual([{ kind: "monday", sections: "hugs,quests" }]);
     expect(productEvents("hugs recap sent").map(({ properties }) => properties.hugs_received).toSorted(), "the hugs received in Bob's recap and in Alice's Monday DM").toEqual([0, 1]);
   });
 
   test("a rate limit is retried, at most three tries in all", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
-    slack.answering("chat.postMessage", rateLimitedFor(30), rateLimitedFor(30), rateLimitedFor(30), rateLimitedFor(30));
+    slack.answeringIn("chat.postMessage", alice.user, rateLimitedFor(30), rateLimitedFor(30), rateLimitedFor(30), rateLimitedFor(30));
 
     await mondayArrives();
 
     expect(postsTo(alice)).toHaveLength(3);
     expect(dmsTo(alice)).toEqual([]);
-    expect(productEvents("dm sent")).toEqual([]);
+    expect(await mondayDmsSentTo(alice)).toEqual([]);
   });
 
   test("a rate-limited DM goes out on a later try and is recorded once", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
-    slack.answering("chat.postMessage", rateLimitedFor(30));
+    slack.answeringIn("chat.postMessage", alice.user, rateLimitedFor(30));
 
     await mondayArrives();
 
     expect(dmsTo(alice)).toHaveLength(1);
-    expect(productEvents("dm sent")).toHaveLength(1);
+    expect(await mondayDmsSentTo(alice)).toHaveLength(1);
   });
 
   test("an unknown answer is never sent again", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
-    slack.answering("chat.postMessage", networkFailure);
+    slack.answeringIn("chat.postMessage", alice.user, networkFailure);
 
     await mondayArrives();
     await mondayArrives(mondayNine + 2 * dayMs);
 
     expect(postsTo(alice)).toHaveLength(1);
-    expect(productEvents("dm sent")).toEqual([]);
+    expect(await mondayDmsSentTo(alice)).toEqual([]);
   });
 
   test("a start that Convex stranded is never sent again", async () => {
@@ -230,10 +230,11 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
     await settleUpTo(t, mondayNine - 1);
 
     await startsFirst(sendMondayDm);
+    await startsFirst(sendMondayDm);
     await sweepsAt(mondayNine + hourMs);
     await sweepsAt(mondayNine + 2 * hourMs);
 
-    expect(postsTo(alice)).toEqual([]);
+    expect([...postsTo(alice), ...postsTo(bob)], "Alice's DM and Bob's, whom her kudos welcomed").toEqual([]);
   });
 });
 
@@ -457,6 +458,21 @@ function settingChanges() {
 
 function productEvents(event: string) {
   return postHog.productEvents().filter((captured) => captured.event === event);
+}
+
+async function mondayDmsSentTo(person: Person) {
+  const analyticsId = await t.run(async (ctx) => {
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", person.user))
+      .unique();
+    const identity = await ctx.db
+      .query("analyticsIds")
+      .withIndex("by_member", (q) => q.eq("member", member!._id))
+      .unique();
+    return identity?.analyticsId;
+  });
+  return productEvents("dm sent").filter(({ distinct_id, properties }) => distinct_id === analyticsId && properties.kind === "monday");
 }
 
 function permalinkOf(message: string) {

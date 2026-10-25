@@ -127,6 +127,10 @@ export class FakeSlack {
     return this;
   }
 
+  answeringIn(method: string, channel: string, ...answers: ScriptedAnswer[]) {
+    return this.answering(`${method} ${channel}`, ...answers);
+  }
+
   holdingBack(method: string, about: string, meanwhile: () => Promise<void>) {
     this.holds.push({ method, about, meanwhile });
     return this;
@@ -186,7 +190,7 @@ export class FakeSlack {
     this.calls.push(call);
     this.callTimes.set(call, Date.now());
     const answerAsSlackWould = () => Response.json(this.answer(method, args));
-    const scripted = this.scripted.get(method)?.shift();
+    const scripted = this.scripted.get(`${method} ${String(args.channel ?? "")}`)?.shift() ?? this.scripted.get(method)?.shift();
     return scripted ? scripted(answerAsSlackWould) : answerAsSlackWould();
   };
 

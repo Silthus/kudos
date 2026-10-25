@@ -290,6 +290,7 @@ export const hugGivenEventValidator = v.object({
   onKudos: v.boolean(),
   at: v.number(),
   day: v.string(),
+  first: v.optional(v.boolean()),
 });
 
 export type HugGivenEvent = Infer<typeof hugGivenEventValidator>;

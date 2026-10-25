@@ -60,7 +60,7 @@ import { journeyActivationValidator, rewardValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
-import { welcomedAsValidator } from "./welcome/welcomedAs";
+import { welcomedAsValidator, welcomePathValidator } from "./welcome/welcomedAs";
 import { directoryEntryValidator } from "./workspace/directoryEntry";
 import { memberProfileFields } from "./workspace/memberProfile";
 import { coinSpendValidator } from "./wallet/wallet";
@@ -391,6 +391,7 @@ export default defineSchema({
   welcomes: defineTable({
     member: v.id("members"),
     welcomed: v.optional(welcomedAsValidator),
+    path: v.optional(welcomePathValidator),
   }).index("by_member", ["member"]),
 
   welcomeNudges: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
