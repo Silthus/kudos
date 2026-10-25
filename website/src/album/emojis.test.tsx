@@ -28,8 +28,13 @@ afterEach(() => {
 
 type Visit = { album?: Album; markEmojisSeen?: (ids: string[]) => Promise<SeenReply> };
 
+function asAMemberWhoOpenedTheEmojisBefore(album: Album) {
+  localStorage.setItem(`hedgehug:emojis-opened:${album.me.person}`, JSON.stringify(album.emojis.filter(({ earned }) => earned).map(({ id }) => id)));
+}
+
 function visit(path: string, { album = midway, markEmojisSeen = async (ids) => ({ kind: "seen", ids }) }: Visit = {}) {
   window.history.replaceState(null, "", path);
+  asAMemberWhoOpenedTheEmojisBefore(album);
   const marked = vi.fn(markEmojisSeen);
   const view = renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), commands: { markEmojisSeen: marked, openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack) } });
   return { ...view, marked };

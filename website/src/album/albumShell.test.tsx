@@ -188,6 +188,10 @@ describe("the emoji button marks New what the member has not opened yet", () => 
     return within(screen.getAllByRole("banner")[0]!).getByRole("button", { name: /^Your emojis/ });
   }
 
+  function theRowOf(code: string) {
+    return within(screen.getByRole("region", { name: "Your emojis" })).getByText(code).closest("li")!;
+  }
+
   it("marks the button New while it holds an earned emoji the member has not opened the popup on, and clears it once they open it, on the next visit too", async () => {
     const first = visit("/");
     await topBar();
@@ -234,6 +238,62 @@ describe("the emoji button marks New what the member has not opened yet", () => 
     await act(async () => listeners.forEach((listener) => listener()));
 
     expect(theEmojiButton()).toHaveAccessibleDescription("New");
+  });
+
+  it("marks New on each emoji earned since the member last opened the popup, until they close it", async () => {
+    const album = albumFixtures.midway;
+    let answer = album;
+    const listeners = new Set<() => void>();
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore(
+        (listener) => (listeners.add(listener), () => void listeners.delete(listener)),
+        () => answer,
+      );
+      return asking ? shown : undefined;
+    };
+    window.history.replaceState(null, "", "/");
+    renderAlbum(memberWithTheAlbum, read, { people: fixedPeople(album), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway) });
+    await topBar();
+    await act(async () => fireEvent.click(theEmojiButton()));
+    expect(theRowOf(":team-quiet-harbour:"), "the first time, every earned emoji is new").toHaveTextContent("New");
+    await act(async () => fireEvent.click(theEmojiButton()));
+
+    const locked = album.emojis.find(({ earned }) => !earned)!;
+    answer = { ...album, emojis: album.emojis.map((emoji) => (emoji.id === locked.id ? { ...emoji, earned: true, earnedAt: Date.now(), seen: true, progress: null } : emoji)) };
+    await act(async () => listeners.forEach((listener) => listener()));
+    await act(async () => fireEvent.click(theEmojiButton()));
+
+    expect(theRowOf(`:${locked.name}:`)).toHaveTextContent("New");
+    expect(theRowOf(":team-quiet-harbour:")).not.toHaveTextContent("New");
+
+    await act(async () => fireEvent.click(theEmojiButton()));
+    await act(async () => fireEvent.click(theEmojiButton()));
+    expect(theRowOf(`:${locked.name}:`), "once opened before").not.toHaveTextContent("New");
+  });
+
+  it("marks New for another member's album that arrives while the popup is open, as what they never opened", async () => {
+    const album = albumFixtures.midway;
+    let answer = album;
+    const listeners = new Set<() => void>();
+    const read = (asking: boolean) => {
+      const shown = useSyncExternalStore(
+        (listener) => (listeners.add(listener), () => void listeners.delete(listener)),
+        () => answer,
+      );
+      return asking ? shown : undefined;
+    };
+    window.history.replaceState(null, "", "/");
+    renderAlbum(memberWithTheAlbum, read, { people: fixedPeople(album), profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.midway) });
+    await topBar();
+    await act(async () => fireEvent.click(theEmojiButton()));
+    await act(async () => fireEvent.click(theEmojiButton()));
+    await act(async () => fireEvent.click(theEmojiButton()));
+    expect(theRowOf(":team-quiet-harbour:")).not.toHaveTextContent("New");
+
+    answer = { ...album, me: { ...album.me, person: "another-member" } };
+    await act(async () => listeners.forEach((listener) => listener()));
+
+    expect(theRowOf(":team-quiet-harbour:"), "for the other member").toHaveTextContent("New");
   });
 
   it("reads what each member opened on their own, so another member's album in the same tab marks New until they open it", async () => {

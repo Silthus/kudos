@@ -8,6 +8,8 @@ import type { Album, AlbumEmoji } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { NotInSlack, SetItUp } from "./findInSlack";
 import { howToUnlockWords, isReadyToUnlock, matchesSearch, milestoneGroupsOf, milestonesShown, shareOf, shelvesOf, shownCountOf, teamOf, tierWords, unlockNextOf, usableNowOf, useItInSlackWords, whyWords, type MilestoneGroup, type NextEmoji, type Shelf } from "./emojiShelf";
+import { NewLabel } from "./ItemBoard";
+import { useNewInThePanel } from "./newEmojis";
 import { hrefOf } from "./place";
 import "./emoji.css";
 
@@ -245,7 +247,7 @@ function TierEmoji({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: string 
     <>
       <EmojiPicture emoji={emoji} size={36} locked={!emoji.earned} />
       <span className="al-emoji-words">
-        <code className="al-emoji-code ph-no-capture">:{emoji.name}:</code>
+        {emoji.earned ? <EarnedEmojiName emoji={emoji} /> : <code className="al-emoji-code ph-no-capture">:{emoji.name}:</code>}
         <span className="al-emoji-why">{tierWords(emoji)}</span>
         {!emoji.earned && <ProgressBar emoji={emoji} />}
       </span>
@@ -294,11 +296,21 @@ function EarnedEmoji({ emoji, status }: { emoji: AlbumEmoji; status: ReactNode }
     <>
       <EmojiPicture emoji={emoji} size={36} />
       <span className="al-emoji-words">
-        <code className="al-emoji-code ph-no-capture">:{emoji.name}:</code>
+        <EarnedEmojiName emoji={emoji} />
         <span className="al-emoji-why ph-no-capture">{whyWords(emoji)}</span>
       </span>
       {status}
     </>
+  );
+}
+
+function EarnedEmojiName({ emoji }: { emoji: AlbumEmoji }) {
+  const isNew = useNewInThePanel(emoji.id);
+  return (
+    <span>
+      <code className="al-emoji-code ph-no-capture">:{emoji.name}:</code>
+      {isNew && <NewLabel />}
+    </span>
   );
 }
 
