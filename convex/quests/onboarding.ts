@@ -17,7 +17,7 @@ export const onboardingSteps = ["first-thanks", "someone-new", "two-days"] as co
 
 export type OnboardingStep = (typeof onboardingSteps)[number];
 
-const onboardingReward: Reward = { xp: 50, coins: 0, item: null };
+export const onboardingReward: Reward = { xp: 50, coins: 0, item: null };
 
 const daysSayingWhyToFinishTwoDays = 2;
 
@@ -98,9 +98,14 @@ export async function someoneNewWaitsOnTheMondayPath(ctx: QueryCtx, member: Memb
 
 export async function finishSomeoneNewOnceEveryoneIsThanked(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<void> {
   const start = await questStartOf(ctx, member);
-  const firstThanks = await finishOf(ctx, member, "first-thanks");
-  if (start === null || at < start || firstThanks === null || at <= firstThanks.at) return;
+  if (start === null || at < start || !(await firstThanksCameBefore(ctx, member, start, at))) return;
   if (await hasThankedEveryone(ctx, workspace, member, at)) await finished(ctx, workspace, member, "someone-new", at);
+}
+
+async function firstThanksCameBefore(ctx: QueryCtx, member: MemberId, start: number, at: number): Promise<boolean> {
+  const firstThanks = await finishOf(ctx, member, "first-thanks");
+  if (firstThanks !== null) return firstThanks.at < at;
+  return (await givenBetween(ctx, member, start, at - 1)).some(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
 }
 
 async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent): Promise<FinishedOnboardingQuest | null> {
