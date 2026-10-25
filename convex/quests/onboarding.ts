@@ -31,8 +31,14 @@ export type FinishedOnboardingQuest = { step: OnboardingStep; reward: Reward };
 
 export type OnboardingQuest = { step: OnboardingStep; goal: string; finished: boolean; progress: QuestProgress | null };
 
+export type OnboardingQuestFacts = { step: OnboardingStep; finish: RewardRecord | null; progress: QuestProgress | null };
+
 export function onboardingGoalOf(step: OnboardingStep): string {
   return onboardingGoals[step];
+}
+
+export function onboardingTargetOf(step: OnboardingStep): number {
+  return step === "two-days" ? daysSayingWhyToFinishTwoDays : 1;
 }
 
 export function isOnboardingStep(step: JourneyStep): step is OnboardingStep {
@@ -45,13 +51,25 @@ export async function nextOnboardingQuestOf(ctx: QueryCtx, member: MemberId): Pr
 }
 
 export async function onboardingQuestsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<OnboardingQuest[]> {
-  const quests: OnboardingQuest[] = [];
-  for (const step of onboardingSteps) {
-    const finished = (await finishOf(ctx, member, step)) !== null;
-    const progress = step === "two-days" && !finished ? { done: await daysSayingWhyOf(ctx, member, at), of: daysSayingWhyToFinishTwoDays, unit: "days" as const } : null;
-    quests.push({ step, goal: onboardingGoalOf(step), finished, progress });
-  }
-  return quests;
+  const facts = await onboardingQuestFactsOf(ctx, member, at);
+  return onboardingSteps.map((step) => {
+    const { finish, progress } = facts[step];
+    return { step, goal: onboardingGoalOf(step), finished: finish !== null, progress };
+  });
+}
+
+export async function onboardingQuestFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<Record<OnboardingStep, OnboardingQuestFacts>> {
+  return {
+    "first-thanks": { step: "first-thanks", finish: await finishOf(ctx, member, "first-thanks"), progress: null },
+    "someone-new": { step: "someone-new", finish: await finishOf(ctx, member, "someone-new"), progress: null },
+    "two-days": await twoDaysFactsOf(ctx, member, at),
+  };
+}
+
+async function twoDaysFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<OnboardingQuestFacts> {
+  const finish = await finishOf(ctx, member, "two-days");
+  const progress = finish === null ? { done: await daysSayingWhyOf(ctx, member, at), of: daysSayingWhyToFinishTwoDays, unit: "days" as const } : null;
+  return { step: "two-days", finish, progress };
 }
 
 async function daysSayingWhyOf(ctx: QueryCtx, member: MemberId, at: number): Promise<number> {
