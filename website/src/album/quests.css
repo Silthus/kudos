@@ -385,3 +385,7 @@
 .al-quests-profile .al-quests-list {
   max-width: 40rem;
 }
+
+.al-quests-profile:focus {
+  outline: none;
+}

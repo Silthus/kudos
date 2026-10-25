@@ -2,7 +2,7 @@ import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsOnForEveryone, onForEveryone } from "../../testing/flags";
+import { flagsFromPostHog, flagsOnForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
 import { post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
@@ -22,6 +22,7 @@ const mondayPath = [...todaysFlags, "monday-quest"];
 const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
+const dan = { user: "U_DAN", name: "Dan Halvorsen" };
 const quests = `${siteUrl}/book#me/quests`;
 const book = `${siteUrl}/book`;
 const oneWaits = "An unidentified Hoggie for your collection is waiting for you.";
@@ -42,7 +43,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
   vi.stubEnv("SITE_URL", siteUrl);
   slack = new FakeSlack();
-  for (const person of [alice, bob, carol]) slack.withMember(person.user, { profile: { real_name: person.name, email: `${person.user.toLowerCase()}@example.com` } });
+  for (const person of [alice, bob, carol, dan]) slack.withMember(person.user, { profile: { real_name: person.name, email: `${person.user.toLowerCase()}@example.com` } });
   postHog = flagsOnForEveryone(slack.fetch);
 });
 
@@ -348,6 +349,88 @@ describe("MQ20: the waiting line counts hoggie items, spelled out to ten", () =>
     expect(waitingHoggiesLineOf(count)).toBe(line);
   });
 });
+
+describe("MQ31 MQ32 MQ33: the catch-up welcomes each member who used HedgeHug before the Monday path and was never welcomed", { timeout: 60_000 }, () => {
+  test("it welcomes a hug giver and a kudos recipient with no welcome, and skips the welcomed and the never active", async () => {
+    await usedBeforeTheMondayPath({ welcomeLost: [alice] });
+    await flagsFromPostHog(t, postHog, ...[...mondayPath, "catch-up-welcome"].map(onForEveryone));
+
+    await catchUp();
+
+    expect([alice, bob, carol, dan].map((person) => welcomesTo(person).length)).toEqual([1, 1, 0, 0]);
+    expect(readWelcome(welcomesTo(bob)[0])[0]).toBe(
+      `section: Hey <@U_BOB> :wave::skin-tone-2:\n\nA hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now :sweat_smile:\n\nHedgeHug is how we thank each other here. A :taco: reaction is a quick hug, and a kudos that says why is the big thanks.\n\n${oneWaits}`,
+    );
+    expect(dmsSent()).toEqual([
+      { kind: "welcome", path: "catch-up" },
+      { kind: "welcome", path: "catch-up" },
+    ]);
+    expect(await questStartOfPerson(bob)).not.toBeNull();
+  });
+
+  test("a rerun welcomes nobody twice", async () => {
+    await usedBeforeTheMondayPath({ welcomeLost: [alice, carol] });
+    await flagsFromPostHog(t, postHog, ...[...mondayPath, "catch-up-welcome"].map(onForEveryone));
+
+    await catchUp();
+    await catchUp();
+
+    expect([alice, bob, carol].map((person) => welcomesTo(person).length)).toEqual([1, 1, 1]);
+  });
+
+  test("with catch-up-welcome on only for a member after others it is off for, the walk goes on and reaches that member alone", async () => {
+    await usedBeforeTheMondayPath({ welcomeLost: [alice, carol] });
+    await flagsFromPostHog(t, postHog, ...mondayPath.map(onForEveryone), onForEmails("catch-up-welcome", "u_carol@example.com"));
+
+    await catchUp();
+
+    expect([alice, bob, carol].map((person) => welcomesTo(person).length)).toEqual([0, 0, 1]);
+  });
+
+  test("turning catch-up-welcome off between two members' transactions welcomes no one after", async () => {
+    await usedBeforeTheMondayPath({ welcomeLost: [alice, carol] });
+    await flagsFromPostHog(t, postHog, ...[...mondayPath, "catch-up-welcome"].map(onForEveryone));
+
+    await t.mutation(internal.welcome.catchUp.catchUpWelcomes, { workspace: "T1" });
+    await flagsFromPostHog(t, postHog, ...mondayPath.map(onForEveryone));
+    await settle(t);
+
+    expect([alice, bob, carol].map((person) => welcomesTo(person).length)).toEqual([1, 0, 0]);
+  });
+
+  test.each([
+    ["monday-quest is off", [...todaysFlags, "catch-up-welcome"]],
+    ["catch-up-welcome is not defined, so its read answers false", mondayPath],
+  ])("nobody is welcomed while %s", async (_, flags) => {
+    await usedBeforeTheMondayPath({ welcomeLost: [alice, carol] });
+    await flagsFromPostHog(t, postHog, ...flags.map(onForEveryone));
+
+    await catchUp();
+
+    expect([alice, bob, carol].flatMap(welcomesTo)).toEqual([]);
+  });
+});
+
+async function usedBeforeTheMondayPath({ welcomeLost }: { welcomeLost: Person[] }) {
+  t = await workspace(todaysFlags);
+  await hug(bob, dan);
+  await thanks(carol, "thanks", alice);
+  for (const person of welcomeLost) {
+    const member = await memberOf(person);
+    await t.run(async (ctx) => {
+      const welcome = await ctx.db
+        .query("welcomes")
+        .withIndex("by_member", (q) => q.eq("member", member))
+        .unique();
+      await ctx.db.delete(welcome!._id);
+    });
+  }
+}
+
+async function catchUp() {
+  await t.mutation(internal.welcome.catchUp.catchUpWelcomes, { workspace: "T1" });
+  await settle(t);
+}
 
 async function workspace(flags: string[]) {
   const backend = await flagsFromPostHog(testBackend(), postHog, ...flags.map(onForEveryone));

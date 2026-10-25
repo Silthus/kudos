@@ -60,6 +60,10 @@ function withoutItsView(place: Place): Place {
 
 const pageSections = new Set(["teams", "people", "me", "hoggies", "milestones", "packs", "level-up"]);
 
+export function asksForTheQuests(hash: string) {
+  return /^#me\/quests(\/|$)/.test(hash);
+}
+
 export function isAnAlbumHash(hash: string) {
   return pageSections.has(hash.replace(/^#/, "").split("/", 1)[0]!);
 }
