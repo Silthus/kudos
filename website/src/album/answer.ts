@@ -8,6 +8,7 @@ import type { ForgeAnswer, ItemBoard, LoopLesson, PetAnswer } from "../../../con
 import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
+import type { QuestsAnswer } from "../../../convex/website/quests";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
@@ -217,6 +218,10 @@ export type LevelUpRead = (level: number | null) => LevelUpShown | undefined;
 export type XpMomentShown = XpMomentAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type XpMomentRead = (asking: boolean) => XpMomentShown | undefined;
+
+export type QuestsShown = QuestsAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type QuestsRead = (asking: boolean) => QuestsShown | undefined;
 
 export type { CardWeek, PlayerCard, PlayerCardAnswer };
 
