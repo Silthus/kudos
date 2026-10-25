@@ -26,6 +26,7 @@ import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, petHoggieValidator, trayDropValidator } from "./hoggies/records";
 import { itemValidator } from "./items/records";
+import { mondayDmValidator } from "./mondayDm/records";
 import { itemShareValidator } from "./items/shareRecords";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
@@ -325,12 +326,14 @@ export default defineSchema({
     received: v.number(),
     receivedXp: v.number(),
     mostHugged: v.optional(v.object({ conversation: v.string(), message: v.string(), hugs: v.number(), lastAt: v.number() })),
-    recap: v.union(v.literal("waiting"), v.literal("scheduled"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
+    recap: v.union(v.literal("waiting"), v.literal("scheduled"), v.literal("sent"), v.literal("skipped"), v.literal("failed"), v.literal("monday-dm")),
     dueAt: v.optional(v.number()),
     tries: v.number(),
   })
     .index("by_member_week", ["member", "week"])
     .index("by_recap_due", ["recap", "dueAt"]),
+
+  mondayDms: defineTable(mondayDmValidator).index("by_member_monday", ["member", "monday"]).index("by_state_due", ["state", "dueAt"]),
 
   hugWeekMessages: defineTable({ member: v.id("members"), week: v.string(), conversation: v.string(), message: v.string(), hugs: v.number(), lastAt: v.number() }).index("by_member_week_message", [
     "member",

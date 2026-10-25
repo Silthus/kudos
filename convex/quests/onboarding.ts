@@ -8,6 +8,7 @@ import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
 import type { Reward } from "./journey";
 import { isPaidOnTheMondayPath, mondayCatalogueVersion } from "./mondayCatalogue";
+import type { QuestProgress } from "./progress";
 import { questStartOf } from "./start";
 import type { JourneyStep } from "./step";
 
@@ -27,6 +28,8 @@ const onboardingGoals: Record<OnboardingStep, string> = {
 
 export type FinishedOnboardingQuest = { step: OnboardingStep; reward: Reward };
 
+export type OnboardingQuest = { step: OnboardingStep; goal: string; finished: boolean; progress: QuestProgress | null };
+
 export function onboardingGoalOf(step: OnboardingStep): string {
   return onboardingGoals[step];
 }
@@ -38,6 +41,23 @@ export function isOnboardingStep(step: JourneyStep): step is OnboardingStep {
 export async function nextOnboardingQuestOf(ctx: QueryCtx, member: MemberId): Promise<OnboardingStep | null> {
   for (const step of onboardingSteps) if ((await finishOf(ctx, member, step)) === null) return step;
   return null;
+}
+
+export async function onboardingQuestsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<OnboardingQuest[]> {
+  const quests: OnboardingQuest[] = [];
+  for (const step of onboardingSteps) {
+    const finished = (await finishOf(ctx, member, step)) !== null;
+    const progress = step === "two-days" && !finished ? { done: await daysSayingWhyOf(ctx, member, at), of: daysSayingWhyToFinishTwoDays, unit: "days" as const } : null;
+    quests.push({ step, goal: onboardingGoalOf(step), finished, progress });
+  }
+  return quests;
+}
+
+async function daysSayingWhyOf(ctx: QueryCtx, member: MemberId, at: number): Promise<number> {
+  const start = await questStartOf(ctx, member);
+  if (start === null) return 0;
+  const sayingWhy = (await givenBetween(ctx, member, start, at)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
+  return Math.min(new Set(sayingWhy.map(({ day }) => day)).size, daysSayingWhyToFinishTwoDays);
 }
 
 export async function onboardingFinishedBy(ctx: QueryCtx, member: MemberId): Promise<boolean> {
