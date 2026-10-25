@@ -22,3 +22,14 @@ The rendered album shell at `/book#milestones`:
 - `4-phone-390-full.png`: 390 px, with no horizontal overflow (`scrollWidth` 390). The progress count wraps under its bar.
 - `5-newcomer-desktop-full.png`: a newcomer with nothing earned and no team ready. Do this next keeps only the Slack card, Closest medals shows every bronze, and there is no Earned section. A temporary local swap of the fixture album produced this build. The swap was not committed.
 - `live-run-page-text.txt`: the rendered text of the midway page.
+
+## The unlock beat, two tiers of one milestone (at `be291bf9`)
+
+The same production build, with a temporary local fixture that was not committed. The album has items waiting, and turning one reaches Familiar faces (silver) and Full of friends (gold), both on the people milestone.
+
+- `6-two-tier-beat.webm`: the whole turn, from the click to the settled page.
+- `6a-silver-pops.png`: Familiar faces pops in its Closest medals row.
+- `6b-gold-waits-in-the-row.png`: the first beat has ended. Familiar faces has moved to Earned, and the same row now shows Full of friends, still as next, waiting for its beat. This is the target the second beat pops.
+- `6c-gold-pops.png`: Full of friends pops in that row.
+- `6d-settled.png`: the turn is over and the item board is back. The people row shows its next tier, Everyone's album (diamond).
+- `6e-settled-after-later-full.png`: after Later. Earned lists Familiar faces and Full of friends, and neither one is still pinned under Closest medals.
