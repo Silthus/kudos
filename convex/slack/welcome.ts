@@ -4,13 +4,13 @@ import { observedAction } from "../analytics/boundary";
 import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from "../feedback/welcome";
 import { waitingHoggiesLineOf } from "../feedback/waitingHoggies";
 import { onboardingGoalOf, type OnboardingQuest, type OnboardingStep } from "../quests/onboarding";
-import { mondayWelcomeCauseValidator, onboardingJourneyValidator, type HuggedPeople, type MondayWelcome, type MondayWelcomeOpening, type WelcomeOutcome } from "../welcome/mondayWelcome";
+import { mondayWelcomeCauseValidator, onboardingJourneyValidator, onboardingStepValidator, type HuggedPeople, type MondayWelcome, type MondayWelcomeOpening, type WelcomeOutcome } from "../welcome/mondayWelcome";
 import { welcomedAsValidator } from "../welcome/welcomedAs";
 import { appHomeLink, appHomeUrl } from "./appHomeLinks";
 import { escaped, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { attemptArgs, attemptCall, retryAfter, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes, type Attempt } from "./delivery";
 import { groupSelectOf } from "./groupPicker";
-import { encodeHomeAction } from "./interactivity";
+import { encodeHomeAction, showMeHowAction } from "./interactivity";
 
 const pickedGroupField = "group";
 
@@ -81,6 +81,26 @@ const howTos: Record<OnboardingStep, (kudosEmoji: string) => string> = {
 
 const onboardingReward = "🎁 +50 XP and an unidentified Hoggie for your collection";
 
+const exampleKudos = "@Ana thanks for untangling the deploy, it saved my afternoon";
+
+export const replyWithHowTo = observedAction({
+  args: { workspace: v.string(), conversation: v.string(), welcome: v.string(), step: onboardingStepValidator, ...attemptArgs },
+  handler: async (ctx, { attempt = 1, ...reply }) => {
+    await tryAtMostThreeTimes(
+      attempt,
+      async (attempt) => {
+        const { kudosEmoji } = await ctx.runQuery(internal.welcome.mondayWelcome.howToOf, { workspace: reply.workspace });
+        return sendOnce(ctx, reply.workspace, "chat.postMessage", { channel: reply.conversation, thread_ts: reply.welcome, text: howToReplyOf(reply.step, kudosEmoji), unfurl_links: false, unfurl_media: false }, attempt);
+      },
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.welcome.replyWithHowTo, { ...reply, attempt: retry.attempt }),
+    );
+  },
+});
+
+function howToReplyOf(step: OnboardingStep, kudosEmoji: string) {
+  return `*How to ${onboardingGoalOf(step).toLowerCase()}*\n${howTos[step](kudosEmoji)}\n\nA kudos that says why looks like this, in any channel I'm in:\n> ${exampleKudos} :${kudosEmoji}:`;
+}
+
 function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string) {
   return {
     text: fallbackOf(welcome.opening),
@@ -131,13 +151,13 @@ function recipientsOf(recipients: string[]) {
   return ` with ${named.map((name, index) => (index === 0 ? name : `${index === named.length - 1 ? " and " : ", "}${name}`)).join("")}`;
 }
 
-function cardOf({ journey, next, kudosEmoji, links }: MondayWelcome) {
+function cardOf({ journey, next, kudosEmoji }: MondayWelcome) {
   const done = journey.filter(({ finished }) => finished).length;
   const title = { type: "section", text: mrkdwn(`*Your onboarding journey* · ${done} of ${journey.length} done`) };
   const checklist = { type: "rich_text", elements: [{ type: "rich_text_list", style: "bullet", indent: 0, elements: journey.map((quest) => checklistItemOf(quest, next)) }] };
   if (next === null) return [title, checklist];
-  const howTo = links?.questsHow == null ? {} : { accessory: urlButtonOf({ label: "Show me how", url: links.questsHow, actionId: "dm-link:welcome:quests-how" }) };
-  const upNext = { type: "section", text: mrkdwn(`*Up next: ${onboardingGoalOf(next).toLowerCase()}.*\n${howTos[next](kudosEmoji)}`), ...howTo };
+  const showMeHow = { type: "button", text: plainText("Show me how"), action_id: showMeHowAction, value: next };
+  const upNext = { type: "section", text: mrkdwn(`*Up next: ${onboardingGoalOf(next).toLowerCase()}.*\n${howTos[next](kudosEmoji)}`), accessory: showMeHow };
   return [title, checklist, upNext, { type: "context", elements: [mrkdwn(onboardingReward)] }];
 }
 

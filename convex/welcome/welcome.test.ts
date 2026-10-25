@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsOnForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
-import { signingSecret } from "../../testing/signedSlack";
+import { signedRequest, signingSecret } from "../../testing/signedSlack";
+import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
 import { post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aSignedInSession } from "../../testing/website";
@@ -93,7 +94,7 @@ describe("MQ14 MQ15 MQ19 MQ21 MQ22: a first hug on the Monday path is answered w
           },
           {
             ...sectionOf("*Up next: thank someone and say why.*\nMention them, add :taco: and write a sentence about what they did."),
-            accessory: { type: "button", text: { type: "plain_text", text: "Show me how" }, url: `${quests}/first-thanks`, action_id: "dm-link:welcome:quests-how" },
+            accessory: { type: "button", text: { type: "plain_text", text: "Show me how" }, action_id: "dm-link:welcome:quests-how", value: "first-thanks" },
           },
           { type: "context", elements: [{ type: "mrkdwn", text: "🎁 +50 XP and an unidentified Hoggie for your collection" }] },
           {
@@ -151,7 +152,7 @@ describe("MQ14 MQ21: a first thoughtful kudos on the Monday path welcomes the gi
       "divider",
       "section: *Your onboarding journey* · 1 of 3 done",
       "rich_text: :white_check_mark: ~Thank someone and say why~ | :point_right: *Thank someone you haven't thanked before* | :white_circle: Say why on 2 different days _1 of 2 days_",
-      `section: *Up next: thank someone you haven't thanked before.*\nSomeone from another team counts too. [link: Show me how ${quests}/someone-new]`,
+      `section: *Up next: thank someone you haven't thanked before.*\nSomeone from another team counts too. [button: Show me how → someone-new]`,
       "context: 🎁 +50 XP and an unidentified Hoggie for your collection",
       "actions: [Identify them now] | See your quests",
     ]);
@@ -170,7 +171,7 @@ describe("MQ14 MQ21: a first thoughtful kudos on the Monday path welcomes the gi
         "divider",
         "section: *Your onboarding journey* · 0 of 3 done",
         "rich_text: :point_right: *Thank someone and say why* | :white_circle: Thank someone you haven't thanked before | :white_circle: Say why on 2 different days _0 of 2 days_",
-        `${firstThanksUpNext} [link: Show me how ${quests}/first-thanks]`,
+        `${firstThanksUpNext} [button: Show me how → first-thanks]`,
         "context: 🎁 +50 XP and an unidentified Hoggie for your collection",
         "actions: [Identify it now] | See your quests",
       ]);
@@ -183,6 +184,45 @@ describe("MQ14 MQ21: a first thoughtful kudos on the Monday path welcomes the gi
     await thanks(alice, "thanks", bob);
 
     expect(slack.callsTo("chat.postMessage").filter(isAMondayWelcome)).toEqual([]);
+  });
+});
+
+describe("MQ22: Show me how answers in the welcome's thread", { timeout: 60_000 }, () => {
+  test("Bob pressing Show me how on his hug welcome gets the first quest's how-to and an example kudos as a reply under the welcome", async () => {
+    t = await workspace(mondayPath);
+    await hug(bob, alice);
+
+    await showMeHow(bob);
+
+    expect(howToRepliesTo(bob)).toEqual([
+      {
+        channel: "U_BOB",
+        thread_ts: welcomeShownTo(bob).ts,
+        text: "*How to thank someone and say why*\nMention them, add :taco: and write a sentence about what they did.\n\nA kudos that says why looks like this, in any channel I'm in:\n> @Ana thanks for untangling the deploy, it saved my afternoon :taco:",
+        unfurl_links: false,
+        unfurl_media: false,
+      },
+    ]);
+  });
+
+  test("Alice, at 1 of 3, gets the how-to of the quest her welcome points at", async () => {
+    t = await workspace(mondayPath);
+    await thanks(alice, saysWhy, bob);
+
+    await showMeHow(alice);
+
+    expect(howToRepliesTo(alice).map(({ text }) => text)).toEqual([
+      "*How to thank someone you haven't thanked before*\nSomeone from another team counts too.\n\nA kudos that says why looks like this, in any channel I'm in:\n> @Ana thanks for untangling the deploy, it saved my afternoon :taco:",
+    ]);
+  });
+
+  test("a welcome sent without the website still shows Show me how, and it still answers", async () => {
+    t = await workspace(mondayPath.filter((flag) => flag !== "website"));
+    await hug(bob, alice);
+
+    await showMeHow(bob);
+
+    expect(howToRepliesTo(bob)).toHaveLength(1);
   });
 });
 
@@ -479,6 +519,24 @@ function welcomesTo(person: Person) {
   return slack.callsTo("chat.postMessage").filter((call) => call.channel === person.user && isAMondayWelcome(call));
 }
 
+function welcomeShownTo(person: Person) {
+  const welcome = slack.messagesShownIn(person.user).find(isAMondayWelcome);
+  if (welcome === undefined) throw new Error(`no welcome shown to ${person.user}`);
+  return welcome;
+}
+
+async function showMeHow(person: Person) {
+  const welcome = welcomeShownTo(person);
+  const click = blockActions(person.user, buttonIn(welcome.blocks as Block[], "Show me how"), { inMessage: welcome });
+  const response = await t.fetch("/slack/interactivity", await signedRequest(click, { contentType: "application/x-www-form-urlencoded" }));
+  expect(response.status, "Slack's acknowledgement").toBe(200);
+  await settle(t);
+}
+
+function howToRepliesTo(person: Person) {
+  return slack.callsTo("chat.postMessage").filter(({ channel, thread_ts }) => channel === person.user && thread_ts !== undefined);
+}
+
 function noteTo(person: Person) {
   return String(readWelcome(welcomesTo(person)[0])[0] ?? "");
 }
@@ -491,7 +549,7 @@ function nudgesTo(person: Person) {
   return slack.callsTo("chat.postMessage").filter(({ channel, blocks }) => channel === person.user && JSON.stringify(blocks ?? []).includes("welcome-nudge-open-album"));
 }
 
-type WelcomeBlock = { type: string; text?: { text: string }; accessory?: { text: { text: string }; url: string }; elements?: Array<Record<string, unknown>> };
+type WelcomeBlock = { type: string; text?: { text: string }; accessory?: { text: { text: string }; value: string }; elements?: Array<Record<string, unknown>> };
 
 function readWelcome(welcome: Posted | undefined): string[] {
   return ((welcome?.blocks ?? []) as WelcomeBlock[]).map(readWelcomeBlock);
@@ -502,7 +560,7 @@ function readWelcomeBlock(block: WelcomeBlock): string {
   if (block.type === "context") return `context: ${(block.elements as Array<{ text: string }>).map(({ text }) => text).join(" ")}`;
   if (block.type === "actions") return `actions: ${(block.elements as Array<{ text: { text: string }; style?: string }>).map(({ text, style }) => (style === "primary" ? `[${text.text}]` : text.text)).join(" | ")}`;
   if (block.type === "rich_text") return `rich_text: ${checklistOf(block).join(" | ")}`;
-  const accessory = block.accessory === undefined ? "" : ` [link: ${block.accessory.text.text} ${block.accessory.url}]`;
+  const accessory = block.accessory === undefined ? "" : ` [button: ${block.accessory.text.text} → ${block.accessory.value}]`;
   return `${block.type}: ${block.text?.text}${accessory}`;
 }
 
