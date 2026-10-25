@@ -104,10 +104,10 @@ function Footer({ quests }: { quests: MondayQuests }) {
 
 function QuestList({ quests: { quests }, openBoard }: { quests: MondayQuests; openBoard: () => void }) {
   if (quests.kind === "drawn") return <Checklist rows={quests.quests.map(drawnRowOf)} openBoard={openBoard} />;
-  return <Journey rows={quests.steps.map(journeyRowOf)} />;
+  return <Journey rows={quests.steps.map(journeyRowOf)} openBoard={openBoard} />;
 }
 
-function Journey({ rows }: { rows: Row[] }) {
+function Journey({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) {
   const next = rows.find(({ done }) => !done);
   return (
     <ol className="al-quests-journey">
@@ -121,6 +121,7 @@ function Journey({ rows }: { rows: Row[] }) {
             <span className="al-quests-goal">{row.goal}</span>
             {row === next && row.hint !== null && <span className="al-quests-hint">{row.hint}</span>}
             {row.progress.target > 1 && !row.done && <Progress row={row} />}
+            {row.boardLink && <BoardLink openBoard={openBoard} />}
           </div>
           {row.reward !== null && <Reward xp={row.reward.xp} won={row.done} />}
         </li>
@@ -140,16 +141,20 @@ function Checklist({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) 
           <div className="al-quests-words">
             <span className="al-quests-goal">{row.goal}</span>
             <Progress row={row} />
-            {row.boardLink && (
-              <button type="button" className="al-quests-board" onClick={openBoard}>
-                Turn it on your board →
-              </button>
-            )}
+            {row.boardLink && <BoardLink openBoard={openBoard} />}
           </div>
           {row.reward !== null && <Reward xp={row.reward.xp} won={row.done} />}
         </li>
       ))}
     </ul>
+  );
+}
+
+function BoardLink({ openBoard }: { openBoard: () => void }) {
+  return (
+    <button type="button" className="al-quests-board" onClick={openBoard}>
+      Turn it on your board →
+    </button>
   );
 }
 
@@ -194,8 +199,8 @@ function DoneRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-function journeyRowOf({ goal, hint, progress, done, reward }: GettingStartedStep): Row {
-  return { goal, hint, progress, done, reward, boardLink: false };
+function journeyRowOf({ goal, hint, progress, done, reward, item }: GettingStartedStep): Row {
+  return { goal, hint, progress, done, reward, boardLink: item === "waiting" };
 }
 
 function drawnRowOf({ goal, progress, done, reward, item }: DrawnQuest): Row {

@@ -82,6 +82,15 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     expect(panel.getByText("Getting started · 3 of 5")).toBeInTheDocument();
   });
 
+  it("MQ37: a finished step whose hoggie waits offers the board, and one already turned does not", async () => {
+    visit(aTeamPage, { quests: fixedQuests(questsFixtures.firstThanks) });
+
+    const panel = await openPanel();
+    const finished = within(panel.getByRole("listitem", { name: /^Thank someone and say why: done/ }));
+    expect(finished.getByRole("button", { name: "Turn it on your board →" })).toBeInTheDocument();
+    expect(panel.getAllByRole("button", { name: "Turn it on your board →" })).toHaveLength(1);
+  });
+
   it("MQ41: records one panel view for the first-visit open", async () => {
     const { actions } = visit(aTeamPage);
 
