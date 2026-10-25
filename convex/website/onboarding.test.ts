@@ -167,6 +167,15 @@ describe("LP76: getAlbum answers the onboarding steps, each done from one read",
 
     expect(await albumOf(await signedIn(juno))).not.toHaveProperty("gettingStarted");
   });
+
+  test("MQ38: on the Monday path, getAlbum answers no Getting started, since the quests panel's journey replaces it", async () => {
+    await switchWebsite(t, postHog, true, ...onboardingOn, "xp-levels", "monday-quest");
+
+    const album = await albumOf(await signedIn(juno));
+
+    expect(album, "the Monday-path member's album").not.toHaveProperty("gettingStarted");
+    expect(album.howItWorks, "the newcomer's card, kept").toEqual({ slack, toLevelTwo: true, kudos: taco });
+  });
 });
 
 function closesRecorded() {
