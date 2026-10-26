@@ -104,7 +104,7 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
 describe("MQ41 MQ36: a view counts only once the quests are in sight", { timeout: 30_000 }, () => {
   it.each<[string, string, Album, string]>([
     ["panel", aTeamPage, albumFixtures.withItems, "panel"],
-    ["profile section", "/book#me", { ...albumFixtures.withItems, personPageD: true, linkPreviews: true }, "profile"],
+    ["panel on the own page D", "/book#me", { ...albumFixtures.withItems, personPageD: true, linkPreviews: true }, "panel"],
   ])("the %s records no view while the item board covers the page, and one once it is put away", async (_, address, album, surface) => {
     const { actions, user } = visit(address, { album });
     const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
@@ -123,19 +123,6 @@ describe("MQ41 MQ36: a view counts only once the quests are in sight", { timeout
     await user.keyboard("{Escape}");
 
     await waitFor(() => expect(views(actions)).toEqual(["panel"]));
-  });
-
-  it("MQ22: a welcome link that arrives under the item board lands at the section once the board is put away", async () => {
-    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
-    const { user } = visit("/book#me/quests/someone-new", { album: { ...albumFixtures.withItems, gettingStarted: null, personPageD: true, linkPreviews: true } });
-    const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
-    const section = screen.getByRole("region", { name: "Your quests", hidden: true });
-
-    expect(scrolled.mock.contexts).not.toContain(section);
-    await user.click(board.getByRole("button", { name: "Later" }));
-
-    await waitFor(() => expect(section).toHaveFocus());
-    expect(scrolled.mock.contexts).toContain(section);
   });
 });
 
@@ -203,79 +190,45 @@ describe("MQ37 MQ39: after onboarding the panel lists this week's drawn quests",
   });
 });
 
-describe("MQ38 MQ40: the member's own page D carries the quests section, and the panel steps aside", { timeout: 30_000 }, () => {
-  it("shows the section between the card and This week, records a profile view, and the panel shows as its tab", async () => {
+describe("MQ40: the member's own page D leaves the quests to the panel", { timeout: 30_000 }, () => {
+  it("shows no quests section, and the panel opens beside the page and records its view", async () => {
     const { actions } = visit("/book#me", { album: withPageD });
 
-    const section = await screen.findByRole("region", { name: "Your quests" }, arrival);
-    expect(within(section).getByRole("heading", { name: "Welcome in, Sam" })).toBeInTheDocument();
-    expect(within(section).getByText("Once these are done, three new quests arrive every Monday.")).toBeInTheDocument();
-    const order = [screen.getByRole("region", { name: "Your card" }), section, screen.getByRole("region", { name: "This week" })];
-    expect(order.every((region, index) => index === 0 || order[index - 1]!.compareDocumentPosition(region) === Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
-    expect(tab()).toBeInTheDocument();
-    await waitFor(() => expect(views(actions)).toEqual(["profile"]));
+    expect((await openPanel()).getByRole("heading", { name: "Welcome in, Sam" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Your card" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Your quests" })).not.toBeInTheDocument();
+    await waitFor(() => expect(views(actions)).toEqual(["panel"]));
   });
 
-  it("opening the tab on the own page leaves the remembered fold as it was", async () => {
+  it("MQ22: the welcome's link opens the folded panel, and leaves the remembered fold as it was", async () => {
     const first = visit(aTeamPage);
     await first.user.click((await openPanel()).getByRole("button", { name: "Fold the quests away" }));
     first.unmount();
-    const own = visit("/book#me", { album: withPageD });
-    await screen.findByRole("region", { name: "Your quests" }, arrival);
-    await own.user.click(tab());
+    const landed = visit("/book#me/quests", { album: withPageD });
     expect(await openPanel()).toBeTruthy();
-    own.unmount();
+    landed.unmount();
 
     visit(aTeamPage);
 
     expect(await screen.findByRole("button", { name: /^Quests,/ }, arrival)).toBeInTheDocument();
   });
 
-  it.each(["/book#me/quests", "/book#me/quests/someone-new"])("MQ22: the welcome's link %s lands at the section", async (address) => {
-    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
-    visit(address, { album: withPageD });
-
-    const section = await screen.findByRole("region", { name: "Your quests" }, arrival);
-
-    await waitFor(() => expect(scrolled.mock.contexts).toContain(section));
-    expect(section).toHaveFocus();
-  });
-
   it.each<[string, boolean]>([
     ["/book#me/quests/someone-new", true],
     ["/book#me/quests", false],
   ])("MQ22: the welcome's link %s opens the named step's how-to: %s", async (address, opened) => {
-    vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
     visit(address, { album: withPageD });
 
-    const section = within(await screen.findByRole("region", { name: "Your quests" }, arrival));
-    const step = within(section.getByRole("listitem", { name: /^Thank someone you haven't thanked before:/ }));
+    const step = within((await openPanel()).getByRole("listitem", { name: /^Thank someone you haven't thanked before:/ }));
 
     if (opened) expect(await step.findByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
     else expect(step.queryByText("Someone from another team counts, and so does a new joiner.")).not.toBeInTheDocument();
   });
 
-  it("the plain profile address does not scroll to the section", async () => {
-    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
-    visit("/book#me", { album: withPageD });
-
-    const section = await screen.findByRole("region", { name: "Your quests" }, arrival);
-
-    expect(scrolled.mock.contexts).not.toContain(section);
-  });
-
-  it("no section on a teammate's page D", async () => {
-    visit("/book#people/milo-strand", { album: withPageD });
-
-    await screen.findByRole("region", { name: /card$/ }, arrival);
-    expect(screen.queryByRole("region", { name: "Your quests" })).not.toBeInTheDocument();
-  });
-
-  it("the old profile, with page D off, gets no section and no Getting started strip, and the panel opens as on any page", async () => {
+  it("the old profile, with page D off, gets no Getting started strip, and the panel opens as on any page", async () => {
     visit("/book#me");
 
     expect(await openPanel()).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Your quests" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
   });
 });
@@ -285,12 +238,12 @@ describe("MQ42 MQ43: no panel off the path, while loading or when the read fails
     ["off the Monday path", { kind: "not-found" }],
     ["while the read is loading", undefined],
     ["when the read fails", { kind: "broken" }],
-  ])("%s there is no panel, no tab and no section, and the page works", async (_, answer) => {
+  ])("%s there is no panel and no tab, and the page works", async (_, answer) => {
     visit("/book#me", { quests: () => answer, album: withPageD });
 
     expect(await screen.findByRole("region", { name: "Your card" }, arrival)).toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Quests" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Your quests" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Quests,/ })).not.toBeInTheDocument();
   });
 
   it.each<[string, QuestsShown | undefined]>([
