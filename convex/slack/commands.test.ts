@@ -40,7 +40,8 @@ describe("POST /slack/commands", () => {
 
     await runCommand(t, hedgehugCommand(publicChannel));
 
-    expect(slack.calls).toEqual([
+    expect(slack.calls.filter(({ url }) => !url.includes("/users.info?"))).toEqual([
+      { url: "https://slack.com/api/conversations.info?channel=C1", authorization: `Bearer ${botToken}`, body: null },
       { url: "https://slack.com/api/conversations.join", authorization: `Bearer ${botToken}`, body: { channel: "C1" } },
       {
         url: responseUrl,
@@ -101,6 +102,22 @@ describe("POST /slack/commands", () => {
     expect(slack.privateReplies()).toEqual(["I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on."]);
   });
 
+  describe("the app stays out of shared and customer channels", () => {
+    test.each([
+      ["shared with another organization", { name: "partners", is_ext_shared: true }],
+      ["being shared with another organization", { name: "partners", is_pending_ext_shared: true }],
+      ["for a customer", { name: "customer-example-internal" }],
+    ])("in a channel %s, it stays out and says why", async (_, channel) => {
+      const t = testBackend();
+      slack.answerInfo({ ok: true, channel: { id: "C1", ...channel } });
+
+      await runCommand(t, hedgehugCommand(publicChannel));
+
+      expect(slack.calls.filter(({ url }) => url.endsWith("/conversations.join"))).toEqual([]);
+      expect(slack.privateReplies()).toEqual(["I stay out of customer channels and channels shared with another organization, since I quote kudos."]);
+    });
+  });
+
   describe("R48: a command Slack did not sign gets 401 and does nothing", () => {
     test.each([
       ["signed with another secret", () => signedRequest(hedgehugCommand(publicChannel), { secret: "someone-elses-secret" })],
@@ -149,10 +166,14 @@ type FakeSlack = ReturnType<typeof fakeSlack>;
 function fakeSlack() {
   const calls: SlackCall[] = [];
   let joinAnswer: unknown = { ok: false, error: "not_stubbed" };
+  let infoAnswer: unknown = { ok: true, channel: { id: "C1", name: "general" } };
   return {
     calls,
     answerJoin(answer: unknown) {
       joinAnswer = answer;
+    },
+    answerInfo(answer: unknown) {
+      infoAnswer = answer;
     },
     privateReplies() {
       return calls.filter((call) => call.url === responseUrl && call.body.response_type === "ephemeral").map((call) => call.body.text);
@@ -160,7 +181,8 @@ function fakeSlack() {
     fetch: vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = input.toString();
       const headers = new Headers(init?.headers);
-      calls.push({ url, authorization: headers.get("authorization"), body: JSON.parse(String(init?.body)) });
+      calls.push({ url, authorization: headers.get("authorization"), body: init?.body === undefined ? null : JSON.parse(String(init.body)) });
+      if (url.startsWith("https://slack.com/api/conversations.info?")) return Response.json(infoAnswer);
       if (url === "https://slack.com/api/conversations.join") return Response.json(joinAnswer);
       if (url === responseUrl) return new Response("ok");
       return new Response("unexpected Slack call", { status: 404 });

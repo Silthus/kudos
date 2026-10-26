@@ -9,7 +9,8 @@ import { escaped, mrkdwn } from "./blocks";
 import type { ActionCtx } from "../_generated/server";
 import { attemptCall, isRefusedForItsBlocks, slackTextOf, type Attempt } from "./delivery";
 import { cardBlocksOf, emojisUnlockedOn } from "./linkPreviews";
-import { callSlack, type SlackAnswer } from "./webApi";
+import { isOffLimits, joinUnlessOffLimits, type OffLimits } from "./offLimitsChannels";
+import type { SlackAnswer } from "./webApi";
 
 const attemptsAtMost = 3;
 const teamRowsShown = 10;
@@ -20,11 +21,9 @@ type FoundChannel = Infer<typeof foundChannelValidator>;
 
 type CardedMessage = TopKudosMessage & { card: ReturnType<typeof cardBlocksOf> | null };
 
-type JoinedChannel = { channel?: { name?: string; is_private?: boolean; is_ext_shared?: boolean } };
+type JoinedChannel = { channel?: { name?: string; is_private?: boolean } };
 
 const privateChannel: FoundChannel = { kind: "refused", reason: "private" };
-
-const sharedChannel: FoundChannel = { kind: "refused", reason: "shared" };
 
 const joinRefusals: Record<string, FoundChannel> = {
   method_not_supported_for_channel_type: privateChannel,
@@ -43,17 +42,17 @@ export const checkPickedChannel = observedAction({
 
 async function joined(channel: string): Promise<FoundChannel> {
   try {
-    return foundChannelOf(await callSlack<JoinedChannel>("conversations.join", { channel }));
+    return foundChannelOf(await joinUnlessOffLimits<JoinedChannel>(channel));
   } catch (error) {
     console.warn(`conversations.join has no known result: ${String(error)}`);
     return uncheckable;
   }
 }
 
-function foundChannelOf(answer: SlackAnswer<JoinedChannel>): FoundChannel {
+function foundChannelOf(answer: SlackAnswer<JoinedChannel> | OffLimits): FoundChannel {
+  if (isOffLimits(answer)) return { kind: "refused", reason: answer.offLimits };
   if (!answer.ok) return joinRefusals[answer.error] ?? uncheckable;
   if (answer.channel?.is_private === true) return privateChannel;
-  if (answer.channel?.is_ext_shared === true) return sharedChannel;
   const name = answer.channel?.name;
   return name === undefined ? uncheckable : { kind: "public", name };
 }
