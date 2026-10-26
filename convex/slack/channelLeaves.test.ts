@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi, type MockInstance } from "vitest";
-import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { channelRenameEvent, channelSharedEvent, kudosAppBotUser, memberJoinedChannelEvent } from "../../testing/slackMessages";
@@ -56,6 +56,34 @@ describe("the app leaves shared and customer channels", () => {
     const [limited, retried] = slack.timesOf("conversations.leave");
     expect(retried! - limited!).toBeGreaterThanOrEqual(20_000);
     expect(slack.hasJoined("C_CUSTOMER")).toBe(false);
+  });
+
+  test("a channel renamed out of customer- between the listing and its leave keeps the app", async () => {
+    const t = testBackend();
+    slack.withChannel("G_RENAMED", { name: "customer-example-internal", kind: "private", joined: true }).answering("conversations.info", () => Response.json({ ok: true, channel: { id: "G_RENAMED", name: "team-private", is_private: true } }));
+
+    await leaveOffLimitsChannels(t);
+
+    expect(slack.callsTo("conversations.leave")).toEqual([]);
+    expect(logged).toHaveBeenLastCalledWith("channel leaves finished: left 0, missed 0");
+  });
+
+  test("a channel the app already left by the time of its leave counts as left", async () => {
+    const t = testBackend();
+    slack.withChannel("C_CUSTOMER", { name: "customer-example-internal", joined: true }).answering("conversations.leave", () => Response.json({ ok: false, not_in_channel: true }));
+
+    await leaveOffLimitsChannels(t);
+
+    expect(logged).toHaveBeenLastCalledWith("channel leaves finished: left 1, missed 0");
+  });
+
+  test("an archived channel Slack won't let the app leave counts as missed", async () => {
+    const t = testBackend();
+    slack.withChannel("C_CUSTOMER", { name: "customer-example-internal", joined: true }).answering("conversations.leave", slackError("is_archived"));
+
+    await leaveOffLimitsChannels(t);
+
+    expect(logged).toHaveBeenLastCalledWith("channel leaves finished: left 0, missed 1");
   });
 
   test("a channel shared with another organization while the app is in it is left at once, once even when Slack delivers the event again", async () => {

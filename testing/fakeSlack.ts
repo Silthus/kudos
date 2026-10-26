@@ -287,7 +287,7 @@ export class FakeSlack {
   private leave(id: string) {
     const channel = this.channels.get(id);
     if (channel === undefined) return { ok: false, error: "channel_not_found" };
-    if (channel.joined !== true) return { ok: false, error: "not_in_channel" };
+    if (channel.joined !== true) return { ok: false, not_in_channel: true };
     channel.joined = false;
     return { ok: true };
   }
