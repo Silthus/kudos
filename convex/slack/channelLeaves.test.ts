@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi, type MockInstance } from "vitest";
-import { FakeSlack, rateLimitedFor, slackError } from "../../testing/fakeSlack";
+import { FakeSlack, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { channelRenameEvent, channelSharedEvent, kudosAppBotUser, memberJoinedChannelEvent } from "../../testing/slackMessages";
@@ -75,6 +75,16 @@ describe("the app leaves shared and customer channels", () => {
     await leaveOffLimitsChannels(t);
 
     expect(logged).toHaveBeenLastCalledWith("channel leaves finished: left 1, missed 0");
+  });
+
+  test("a channel Slack gives no answer about counts as missed, and the sweep goes on to the next", async () => {
+    const t = testBackend();
+    slack.withChannel("C_FIRST", { name: "customer-first-internal", joined: true }).withChannel("C_SECOND", { name: "customer-second-internal", joined: true }).answering("conversations.info", networkFailure);
+
+    await leaveOffLimitsChannels(t);
+
+    expect(slack.callsTo("conversations.leave")).toEqual([{ channel: "C_SECOND" }]);
+    expect(logged).toHaveBeenLastCalledWith("channel leaves finished: left 1, missed 1");
   });
 
   test("an archived channel Slack won't let the app leave counts as missed", async () => {

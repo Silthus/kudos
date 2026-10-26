@@ -82,10 +82,20 @@ function appBotUserOf(authorizations: ChannelEventEnvelope["authorizations"]) {
 }
 
 async function leaveIfStillOffLimits(channel: string): Promise<Leave> {
-  const info = await readSlack<ChannelInfo>("conversations.info", { channel });
+  const info = await channelInfoOrNothing(channel);
+  if (info === null) return { kind: "missed" };
   if (!info.ok && info.error === "ratelimited") return { kind: "held", forMs: retryDelayOf(info) };
   if (!info.ok) return missedAfter("conversations.info", info.error);
   return offLimitsReasonOf(info.channel) === null ? { kind: "kept" } : leaveOf(channel);
+}
+
+async function channelInfoOrNothing(channel: string) {
+  try {
+    return await readSlack<ChannelInfo>("conversations.info", { channel });
+  } catch (error) {
+    console.warn(`channel leaves: conversations.info has no answer: ${typeOf(error)}`);
+    return null;
+  }
 }
 
 async function leaveOf(channel: string): Promise<Leave> {
