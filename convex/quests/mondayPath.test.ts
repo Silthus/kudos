@@ -208,10 +208,12 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     const dayOne = tsOf(Date.now());
     vi.setSystemTime(Date.now() + dayMs);
 
-    await thanksPostedAt(tsOf(Date.now()), alice, saysWhy, bob);
+    const dayTwoAt = Date.now();
+    await thanksPostedAt(tsOf(dayTwoAt), alice, saysWhy, bob);
     await thanksPostedAt(dayOne, alice, saysWhy, bob);
 
     expect(await causesOf(alice, "journey:two-days"), "the kudos two-days is paid for").toEqual([dayOne]);
+    expect(await finishTimesOf(alice, "journey:two-days"), "when two-days finished: on the second day").toEqual([dayTwoAt]);
     expect(replyTo(alice), "the reply still to be sent").toContain("Quest done: Say why on 2 different days · +50 XP and an unidentified Hoggie for your collection");
   });
 
@@ -392,6 +394,42 @@ describe("MQ9: drawn quests come once the three onboarding quests are finished",
     expect((await weekOf(alice))?.slots.map(({ progress }) => progress) ?? [], "each drawn quest's progress").not.toContain(1);
   });
 
+  test("a replay of the later day's kudos that Slack sent first counts toward no drawn quest once the earlier day's finishes two-days", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    await finishedOnTheUnlockPath(alice, "first-thanks", "someone-new");
+    vi.setSystemTime(Date.now() + 2 * minuteMs);
+    const dayOne = tsOf(Date.now());
+    vi.setSystemTime(Date.now() + dayMs);
+    const dayTwo = holdingKudosGiven();
+    await thanksPostedAt(tsOf(Date.now()), alice, saysWhy, bob);
+    await deliverInOrder(dayTwo[0]!, []);
+    await thanksPostedAt(dayOne, alice, saysWhy, bob);
+
+    await deliverInOrder(dayTwo[0]!, []);
+
+    expect(await causesOf(alice, "journey:two-days"), "the kudos two-days is paid for").toEqual([dayOne]);
+    expect((await weekOf(alice))?.slots.map(({ progress }) => progress) ?? [], "each drawn quest's progress").not.toContain(1);
+  });
+
+  test("a replay of Sunday's kudos draws no week once it finishes two-days with Monday's, which Slack sent first", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    await finishedOnTheUnlockPath(alice, "first-thanks", "someone-new");
+    vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
+    const sunday = tsOf(Date.now());
+    vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
+    await thanksPostedAt(tsOf(Date.now()), alice, saysWhy, bob);
+    const sundays = holdingKudosGiven();
+    await thanksPostedAt(sunday, alice, saysWhy, bob);
+    await deliverInOrder(sundays[0]!, []);
+
+    await deliverInOrder(sundays[0]!, []);
+
+    expect(await causesOf(alice, "journey:two-days"), "the kudos two-days is paid for").toEqual([sunday]);
+    expect(await drawnWeeksOf(alice), "the weeks drawn").toEqual([]);
+  });
+
   test("the next kudos after onboarding draws this week's quests and counts toward them", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await finishOnboarding();
@@ -531,6 +569,11 @@ async function finishOnboarding() {
   await thanks(alice, saysWhy, bob);
 }
 
+async function finishedOnTheUnlockPath(person: Person, ...steps: string[]) {
+  const member = await memberOf(person);
+  for (const step of steps) await t.run((ctx) => ctx.db.insert("rewardRecords", { member, key: `journey:${step}`, xp: 20, coins: 10, item: null, catalogueVersion: "1", at: Date.now() }));
+}
+
 async function startedByTheSweep(person: Person) {
   await memberChanged(t, "team_join", { id: person.user, profile: { real_name: person.name } });
   const member = await memberOf(person);
@@ -546,6 +589,12 @@ async function sweepForANewWeek() {
 async function weekOf(person: Person) {
   const member = await memberOf(person);
   return t.run((ctx) => weeklyQuestsOf(ctx, member, Date.now()));
+}
+
+async function drawnWeeksOf(person: Person) {
+  const member = await memberOf(person);
+  const draws = await t.run((ctx) => ctx.db.query("questDraws").collect());
+  return draws.filter((draw) => draw.member === member).map(({ week }) => week);
 }
 
 async function weeklyRewardsOf(person: Person) {
@@ -595,6 +644,12 @@ async function causesOf(person: Person, key: string) {
   const member = await memberOf(person);
   const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
   return records.filter((record) => record.member === member && record.key === key).map(({ cause }) => cause?.message);
+}
+
+async function finishTimesOf(person: Person, key: string) {
+  const member = await memberOf(person);
+  const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
+  return records.filter((record) => record.member === member && record.key === key).map(({ at }) => at);
 }
 
 async function someoneNewRecordsOf(person: Person) {
