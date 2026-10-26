@@ -3,6 +3,7 @@ import type { ActionCtx } from "../_generated/server";
 import { observedHttpAction } from "../analytics/boundary";
 import { isHomeTabOpened } from "./appHome";
 import { channelCreationOf, isChannelCreated } from "./channelJoins";
+import { channelCheckOf, isChannelEvent } from "./channelLeaves";
 import { emojiChangeOf, isEmojiChanged } from "./customEmoji";
 import { directoryRecordOfEvent, isMemberChanged } from "./directory";
 import { isUserGroupChanged, userGroupChangeOf } from "./userGroups";
@@ -40,6 +41,9 @@ async function receiveSlackEvent(ctx: ActionCtx, request: Request) {
   } else if (envelope.type === "event_callback" && isChannelCreated(envelope.event)) {
     const channelCreated = channelCreationOf(envelope.team_id, envelope.event_id, envelope.event);
     if (channelCreated !== null) await ctx.runMutation(internal.slack.receipts.receiveChannelCreated, channelCreated);
+  } else if (envelope.type === "event_callback" && isChannelEvent(envelope)) {
+    const channelCheck = channelCheckOf(envelope);
+    if (channelCheck !== null) await ctx.runMutation(internal.slack.receipts.receiveChannelToCheck, channelCheck);
   } else if (envelope.type === "event_callback" && isLinkShared(envelope.event)) {
     const linkSharing = linkSharingOf({ ...envelope, event: envelope.event });
     if (linkSharing !== null) await ctx.runMutation(internal.slack.receipts.receiveLinkShared, linkSharing);
