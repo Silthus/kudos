@@ -204,7 +204,7 @@ And nobody can tell whether a DM helps. No event records a DM sent, a link in it
   1. Production: the product owner and the people who reacted to the launch announcement, by email.
   2. Production: everyone at 100%. Members enter the Monday path only by a first act or the catch-up, so this is also "on by default for new members", and no third stage is needed.
 
-  Every stage stays inside the stages of `collection`, `hidden-items` and `welcome-item`, so every quest hoggie and welcome item can be turned, and of `person-page-d`, so the profile carries its quests section. A member the catch-up has not reached by then is reached by the next Monday DM while `catch-up-welcome` is on (MQ31).
+  Every stage stays inside the stages of `collection`, `hidden-items` and `welcome-item`, so every quest hoggie and welcome item can be turned. It no longer depends on `person-page-d`, since the profile carries no quests section (MQ40). A member the catch-up has not reached by then is reached by the next Monday DM while `catch-up-welcome` is on (MQ31).
 - **MQ45 `catch-up-welcome`.** A new flag in project 662840, created sandbox-only like `monday-quest`, then turned on at 100% in production for Monday 2026-10-26 (MQ33). It is read for each member by the Monday DM's sweep and again by the row's start mutation, and only there. It is the kill switch: turning it off stops the catch-up at each member's next start.
 
 ## Testing Decisions
