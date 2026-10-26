@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
-import type { DmLink } from "../analytics/isolatedUsage";
 import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from "../feedback/welcome";
 import { hoggieRewardOf, waitingHoggiesLineOf } from "../feedback/waitingHoggies";
 import { onboardingChecklistOf, onboardingHeadingOf } from "../mondayDm/questsCopy";
@@ -99,10 +98,10 @@ function howToReplyOf(step: OnboardingStep, kudosEmoji: string) {
   return `*How to ${onboardingGoalOf(step).toLowerCase()}*\n${howTos[step](kudosEmoji)}\n\nA kudos that says why looks like this, in any channel I'm in:\n> ${exampleKudos} :${kudosEmoji}:`;
 }
 
-export function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string, linksIn: DmLink["dm"] = "welcome") {
+function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string) {
   return {
     text: fallbackOf(welcome.opening),
-    blocks: [{ type: "section", text: mrkdwn(noteOf(welcome, user)) }, { type: "divider" }, ...cardOf(welcome), ...welcomeButtonsOf(welcome, linksIn)],
+    blocks: [{ type: "section", text: mrkdwn(noteOf(welcome, user)) }, { type: "divider" }, ...cardOf(welcome), ...welcomeButtonsOf(welcome)],
     unfurl_links: false,
     unfurl_media: false,
   };
@@ -116,12 +115,10 @@ function fallbackOf(opening: MondayWelcomeOpening) {
       return "You just completed the first step of your onboarding journey.";
     case "thoughtful-received":
       return `<@${opening.giver}> just thanked you with a kudos!`;
-    case "catch-up":
-      return "A hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now.";
   }
 }
 
-function noteOf({ opening, kudosEmoji, waiting }: MondayWelcome, user: string) {
+function noteOf({ opening, waiting }: MondayWelcome, user: string) {
   const greeting = `Hey <@${user}> :wave::skin-tone-2:`;
   const waits = waitingHoggiesLineOf(waiting);
   const after = (separator: string) => (waits === null ? "" : `${separator}${waits}`);
@@ -132,8 +129,6 @@ function noteOf({ opening, kudosEmoji, waiting }: MondayWelcome, user: string) {
       return `${greeting} Your first kudos just landed${recipientsOf(opening.recipients)}, and you said why. That's the one that counts! :tada:\n\nYou just completed the first step of your onboarding journey.${after(" ")}`;
     case "thoughtful-received":
       return `${greeting} <@${opening.giver}> just thanked you with a kudos!${opening.quote === null ? "" : `\n> _${escaped(opening.quote)}_`}\n\nFeels good, right? :slightly_smiling_face:${after(" ")} Your first quest is to pass it on.`;
-    case "catch-up":
-      return `${greeting}\n\nA hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now :sweat_smile:\n\nHedgeHug is how we thank each other here. A :${kudosEmoji}: reaction is a quick hug, and a kudos that says why is the big thanks.${after("\n\n")}`;
   }
 }
 
@@ -159,11 +154,11 @@ function cardOf({ journey, next, kudosEmoji }: MondayWelcome) {
   return [title, checklist, upNext, { type: "context", elements: [mrkdwn(rewardLine)] }];
 }
 
-function welcomeButtonsOf({ links, waiting }: MondayWelcome, linksIn: DmLink["dm"]) {
+function welcomeButtonsOf({ links, waiting }: MondayWelcome) {
   if (links === null) return [];
-  const seeYourQuests = urlButtonOf({ label: "See your quests", url: links.quests, actionId: `dm-link:${linksIn}:quests` });
+  const seeYourQuests = urlButtonOf({ label: "See your quests", url: links.quests, actionId: "dm-link:welcome:quests" });
   if (waiting === 0) return [{ type: "actions", elements: [{ ...seeYourQuests, style: "primary" }] }];
-  const identify = { ...urlButtonOf({ label: waiting === 1 ? "Identify it now" : "Identify them now", url: links.book, actionId: `dm-link:${linksIn}:book` }), style: "primary" };
+  const identify = { ...urlButtonOf({ label: waiting === 1 ? "Identify it now" : "Identify them now", url: links.book, actionId: "dm-link:welcome:book" }), style: "primary" };
   return [{ type: "actions", elements: [identify, seeYourQuests] }];
 }
 

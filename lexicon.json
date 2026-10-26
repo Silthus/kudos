@@ -217,7 +217,7 @@
       "name": "welcome message",
       "definition": "The one DM a member gets, ever, welcoming them to HedgeHug (MQ13). Off the Monday path it goes the first time they give or receive a Given award, in two versions: a first recipient's, headed by who thanked them, and a first giver's, headed by whom their first kudos landed with, with a neutral header for a welcome queued without either. Both say what HedgeHug is, what XP and the unlocks shown to the member bring, one next step toward giving three kudos, the daily allowance and, while the website opens to them, why to visit it; once groups exist, the pick of their primary group. On the Monday path it answers the member's first act and ends on their next onboarding quest (MQ14, MQ19).",
       "properties": {
-        "welcome path": "How the welcomed member started on the Monday path, recorded on their one welcomes row: hug, thoughtful-given, thoughtful-received or catch-up. A welcome from before it records no path; its welcomed field says giver or recipient (MQ1, MQ13)."
+        "welcome path": "How the welcomed member started on the Monday path, recorded on their one welcomes row: hug, thoughtful-given or thoughtful-received, or catch-up on a row the retired catch-up welcome wrote. A welcome from before it records no path; its welcomed field says giver or recipient (MQ1, MQ13)."
       }
     },
     {
@@ -817,7 +817,7 @@
     },
     {
       "name": "Monday path",
-      "definition": "How a member's quests run while monday-quest is on for them: started by a welcome, a first kudos that says why, the catch-up welcome or the weekly sweep, never by an unlock, and paid in XP and face-down hoggies, never in coins or crates (MQ1, MQ2, MQ3). Its counterpart is the unlock path."
+      "definition": "How a member's quests run while monday-quest is on for them: started by a welcome, a first kudos that says why, the weekly sweep, or the catch-up welcome while it ran, never by an unlock, and paid in XP and face-down hoggies, never in coins or crates (MQ1, MQ2, MQ3). Its counterpart is the unlock path."
     },
     {
       "name": "unlock path",
@@ -837,7 +837,7 @@
     },
     {
       "name": "catch-up welcome",
-      "definition": "The one-off welcome message, with welcome path catch-up, for a member who used HedgeHug before any welcome reached them, sent by an operator-run job behind the catch-up-welcome kill switch (MQ31-MQ33)."
+      "definition": "The one-off welcome message, with welcome path catch-up, for a member who used HedgeHug before any welcome reached them. It went out once, inside the Monday DMs of Monday 2026-10-26, behind the catch-up-welcome kill switch; it is retired, and only stored welcomes and mondayDms rows still carry it (MQ31-MQ33)."
     },
     {
       "name": "quests panel",

@@ -59,7 +59,7 @@ export async function welcomeOnTheMondayPath(ctx: MutationCtx, member: MemberId,
   await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverMondayWelcome, { workspace, user, member, cause, journey });
 }
 
-export async function recordWelcome(ctx: MutationCtx, member: MemberId, cause: MondayWelcomeCause, at: number) {
+async function recordWelcome(ctx: MutationCtx, member: MemberId, cause: MondayWelcomeCause, at: number) {
   await ctx.db.insert("welcomes", { member, path: cause.path });
   const { workspace, user } = await chatUserOf(ctx, member);
   await earnWelcomeItem(ctx, workspace, member, at);
