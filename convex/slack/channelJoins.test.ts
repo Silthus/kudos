@@ -206,6 +206,15 @@ describe("the app stays out of shared and customer channels", () => {
     expect(logged).toHaveBeenLastCalledWith("channel joins finished: joined 2, missed 0");
   });
 
+  test("a channel Slack won't describe is never joined", async () => {
+    const t = testBackend();
+    slack.withChannel("C_FIRST", { name: "first" }).answering("conversations.info", slackError("missing_scope"));
+
+    await joinPublicChannels(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([]);
+  });
+
   test("a new customer channel is left without the app, and nothing is tried again", async () => {
     const t = testBackend();
     slack.withChannel("C_NEW", { name: "customer-example-internal" });

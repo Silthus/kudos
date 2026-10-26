@@ -116,6 +116,15 @@ describe("POST /slack/commands", () => {
       expect(slack.calls.filter(({ url }) => url.endsWith("/conversations.join"))).toEqual([]);
       expect(slack.privateReplies()).toEqual(["I stay out of customer channels and channels shared with another organization, since I quote kudos."]);
     });
+
+    test("when Slack won't say what the channel is, it doesn't join", async () => {
+      const t = testBackend();
+      slack.answerInfo({ ok: false, error: "missing_scope" });
+
+      await runCommand(t, hedgehugCommand(publicChannel));
+
+      expect(slack.calls.filter(({ url }) => url.endsWith("/conversations.join"))).toEqual([]);
+    });
   });
 
   describe("R48: a command Slack did not sign gets 401 and does nothing", () => {

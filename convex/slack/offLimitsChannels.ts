@@ -7,7 +7,7 @@ export type OffLimits = { ok: false; offLimits: OffLimitsReason };
 type ChannelInfo = { channel: ChannelTraits };
 
 const customerChannelPrefix = "customer-";
-const unreadableNonPublicChannel = new Set(["channel_not_found", "missing_scope", "method_not_supported_for_channel_type"]);
+const invisibleToPublicChannelRead = "channel_not_found";
 
 export function offLimitsReasonOf(channel: ChannelTraits): OffLimitsReason | null {
   if (channel.is_ext_shared === true || channel.is_pending_ext_shared === true) return "shared";
@@ -23,6 +23,6 @@ export async function joinUnlessOffLimits<Data = object>(channel: string): Promi
   if (info.ok) {
     const offLimits = offLimitsReasonOf(info.channel);
     if (offLimits !== null) return { ok: false, offLimits };
-  } else if (!unreadableNonPublicChannel.has(info.error)) return info;
+  } else if (info.error !== invisibleToPublicChannelRead) return info;
   return callSlack<Data>("conversations.join", { channel });
 }
