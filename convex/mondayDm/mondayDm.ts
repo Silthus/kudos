@@ -110,7 +110,9 @@ async function welcomeOn(ctx: QueryCtx, member: MemberId, day: DayKey, timeZone:
 }
 
 async function sectionsOf(ctx: MutationCtx, { member, monday }: MondayDmRow): Promise<Sections> {
-  return { hugs: await hugsSectionFor(ctx, member, monday), quests: await questsSectionFor(ctx, member, Date.now()) };
+  const hugs = await hugsSectionFor(ctx, member, monday);
+  if ((await welcomeOn(ctx, member, monday, (await timeZoneOf(ctx, member)) ?? undefined)) !== null) return { ...noSections, hugs };
+  return { hugs, quests: await questsSectionFor(ctx, member, Date.now()) };
 }
 
 function sectionNamesOf({ hugs, quests }: Sections): MondayDmSection[] {

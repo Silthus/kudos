@@ -30,6 +30,7 @@ const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you>
 const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
 const sendMondayDm = "slack/mondayDm:sendMondayDm";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
+const welcomeOnFirstThanks = "welcome/welcome:welcomeOnFirstThanks";
 
 type Person = { user: string; name: string };
 
@@ -526,6 +527,20 @@ describe("MQ23 MQ24: the sweep ensures a Monday DM row only for a member the Mon
     expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["quests"]);
   });
 
+  test("a member whose first thanks starts their quests on a Monday before 9:00, with the sweep landing before their welcome, gets no Monday DM that day, since the welcome carries their quests", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    vi.setSystemTime(mondayNine - 2 * hourMs);
+
+    await postThanks(alice, saysWhy, [bob]);
+    const welcome = await stopped(welcomeOnFirstThanks);
+    await t.mutation(cronNamed("ensure each member's coming Monday DM"), {});
+    await t.mutation(makeFunctionReference<"mutation">(welcomeOnFirstThanks), welcome);
+    await mondayArrives();
+
+    expect(dmTimesTo(alice).filter((at) => at >= mondayNine)).toEqual([]);
+    expect(await mondayDmsSentTo(alice)).toEqual([]);
+  });
+
   test("a started member taken out of monday-quest before their row is ensured gets today's recap from the recap itself", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
@@ -618,6 +633,23 @@ function cronNamed(name: string) {
 async function startsFirst(functionName: typeof sendMondayDm | typeof sendHugsRecap) {
   const args = await cancelled(functionName);
   await t.mutation(functionName === sendMondayDm ? internal.mondayDm.mondayDm.startMondayDm : internal.hugs.recap.startRecap, args);
+}
+
+async function stopped(functionName: string) {
+  for (let step = 0; step < 50; step += 1) {
+    const job = await pendingJobOf(functionName);
+    if (job !== null) {
+      await t.run((ctx) => ctx.scheduler.cancel(job._id));
+      return job.args[0];
+    }
+    vi.advanceTimersToNextTimer();
+    await t.finishInProgressScheduledFunctions();
+  }
+  throw new Error(`${functionName} was never scheduled`);
+}
+
+function pendingJobOf(functionName: string) {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).find(({ name, state }) => name === functionName && state.kind === "pending") ?? null);
 }
 
 async function cancelled(functionName: string) {
