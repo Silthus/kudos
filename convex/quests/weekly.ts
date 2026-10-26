@@ -324,7 +324,8 @@ async function drawWhenDue(ctx: MutationCtx, member: MemberId, at: number): Prom
   const { opensAt, pool } = schedule;
   const timeZone = await timeZoneOf(ctx, member);
   const week = weekKeyOf(at, timeZone);
-  return weekKeyOf(opensAt, timeZone) === week ? drawFor(ctx, member, Math.max(at, opensAt), pool) : drawFor(ctx, member, weekStartOf(week, timeZone), pool, factsAtTheStartOf);
+  if (weekKeyOf(opensAt, timeZone) === week) return drawFor(ctx, member, Math.max(at, opensAt), pool);
+  return at < opensAt ? "nothing to draw" : drawFor(ctx, member, weekStartOf(week, timeZone), pool, factsAtTheStartOf);
 }
 
 async function drawScheduleOf(ctx: QueryCtx, member: MemberId): Promise<DrawSchedule | null> {
