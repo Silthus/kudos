@@ -226,12 +226,11 @@ describe("F28: a link from Slack that asks to sign in", () => {
   });
 });
 
-describe("MQ22 MQ28: a DM link keeps its section through sign-in", { timeout: 30_000 }, () => {
+describe("MQ22 MQ28: a DM link keeps its quests through sign-in", { timeout: 30_000 }, () => {
   const arrival = { timeout: 10_000 };
 
   function openAsAMember(address: string) {
     window.history.replaceState(null, "", address);
-    vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
     const album: Album = { ...albumFixtures.midway, personPageD: true, linkPreviews: true };
     return renderAlbum(shellFixtures.member, fixedAlbum(album), {
       quests: fixedQuests(questsFixtures.newcomer),
@@ -262,10 +261,10 @@ describe("MQ22 MQ28: a DM link keeps its section through sign-in", { timeout: 30
     { address: "/sign-in/book#me/quests", page: "/book" },
     { address: "/book#me/quests", page: "/book" },
     { address: "/book?code=12345678#me/quests", page: "/book?code=12345678" },
-  ])("a member opening $address lands on the quests section, at $page", async ({ address, page }) => {
+  ])("a member opening $address lands with the quests panel open, at $page", async ({ address, page }) => {
     const { actions } = openAsAMember(address);
 
-    expect(await screen.findByRole("region", { name: "Your quests" }, arrival)).toHaveFocus();
+    expect(await screen.findByRole("complementary", { name: "Quests" }, arrival)).toBeInTheDocument();
     expect(window.location.pathname + window.location.search).toBe(page);
     expect(actions.signIn).not.toHaveBeenCalled();
   });
@@ -273,8 +272,8 @@ describe("MQ22 MQ28: a DM link keeps its section through sign-in", { timeout: 30
   it("a member back from Slack with /book#me/quests/someone-new lands with the step's how-to open", async () => {
     openAsAMember("/book?code=12345678#me/quests/someone-new");
 
-    const section = within(await screen.findByRole("region", { name: "Your quests" }, arrival));
-    const step = within(section.getByRole("listitem", { name: /^Thank someone you haven't thanked before:/ }));
+    const panel = within(await screen.findByRole("complementary", { name: "Quests" }, arrival));
+    const step = within(panel.getByRole("listitem", { name: /^Thank someone you haven't thanked before:/ }));
     expect(await step.findByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
   });
 });
