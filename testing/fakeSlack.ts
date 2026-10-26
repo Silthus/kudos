@@ -57,6 +57,7 @@ export class FakeSlack {
   private readonly joinTimes = new Map<string, number>();
   private readonly reactionsByMessage = new Map<string, string[]>();
   private readonly posted: PostedMessage[] = [];
+  private readonly postedBlocks = new Map<PostedMessage, unknown>();
   private readonly homes = new Map<string, unknown>();
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
@@ -126,6 +127,10 @@ export class FakeSlack {
     return this;
   }
 
+  answeringIn(method: string, channel: string, ...answers: ScriptedAnswer[]) {
+    return this.answering(`${method} ${channel}`, ...answers);
+  }
+
   holdingBack(method: string, about: string, meanwhile: () => Promise<void>) {
     this.holds.push({ method, about, meanwhile });
     return this;
@@ -156,6 +161,10 @@ export class FakeSlack {
     return this.posted.filter((message) => message.channel === channel);
   }
 
+  messagesShownIn(channel: string) {
+    return this.messagesIn(channel).map((message) => ({ ...message, blocks: this.postedBlocks.get(message) }));
+  }
+
   homeShownTo(user: string) {
     return this.homes.get(user);
   }
@@ -181,7 +190,7 @@ export class FakeSlack {
     this.calls.push(call);
     this.callTimes.set(call, Date.now());
     const answerAsSlackWould = () => Response.json(this.answer(method, args));
-    const scripted = this.scripted.get(method)?.shift();
+    const scripted = this.scripted.get(`${method} ${String(args.channel ?? "")}`)?.shift() ?? this.scripted.get(method)?.shift();
     return scripted ? scripted(answerAsSlackWould) : answerAsSlackWould();
   };
 
@@ -284,7 +293,9 @@ export class FakeSlack {
   private postMessage(args: SlackArgs) {
     const channel = String(args.channel);
     const ts = `1760349700.${String(100 + this.posted.length).padStart(6, "0")}`;
-    this.posted.push({ channel, ts, ...(args.thread_ts !== undefined && { threadTs: String(args.thread_ts) }), text: String(args.text) });
+    const message = { channel, ts, ...(args.thread_ts !== undefined && { threadTs: String(args.thread_ts) }), text: String(args.text) };
+    this.posted.push(message);
+    this.postedBlocks.set(message, args.blocks);
     return { ok: true, channel, ts };
   }
 
@@ -292,6 +303,7 @@ export class FakeSlack {
     const message = this.posted.find(({ channel, ts }) => channel === args.channel && ts === args.ts);
     if (message === undefined) return { ok: false, error: "message_not_found" };
     message.text = String(args.text);
+    this.postedBlocks.set(message, args.blocks);
     return { ok: true, channel: message.channel, ts: message.ts };
   }
 

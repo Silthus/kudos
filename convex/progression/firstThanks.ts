@@ -2,6 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { firstDecidedOf, oldestAwardGivenBy, type AwardWithId } from "../engine/awards";
 import { onboardingShownTo } from "../items/onboardingFlag";
+import { onboardingQuestXpOf } from "../quests/onboarding";
 import type { MemberId } from "../workspace/directory";
 import { isRecorded, progressionWaitedFor } from "./effects";
 import { xpToReach } from "./levels";
@@ -15,7 +16,7 @@ export type FirstThanksTopUp = { xp: number; decided: number };
 
 export async function firstThanksTopUpFor(ctx: QueryCtx, { giver, message, at }: KudosGivenEvent, recorded: AwardWithId[], xpAfter: number): Promise<RewardRecord | null> {
   if (!(await recordsTheFirstAwardOf(ctx, giver, recorded))) return null;
-  const xp = xpToReach(levelTheFirstThanksReaches) - xpAfter;
+  const xp = xpToReach(levelTheFirstThanksReaches) - (xpAfter - (await onboardingQuestXpOf(ctx, giver)));
   if (xp <= 0 || !(await onboardingShownTo(ctx, giver))) return null;
   return { member: giver, key: firstThanksKey, xp, coins: 0, item: null, catalogueVersion: firstThanksCatalogueVersion, at, cause: message };
 }

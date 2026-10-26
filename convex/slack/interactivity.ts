@@ -1,6 +1,9 @@
 import { internal } from "../_generated/api";
 import { observedHttpAction } from "../analytics/boundary";
+import type { DmLink } from "../analytics/isolatedUsage";
+import { dmKindValidator, dmLinkDestinationValidator } from "../analytics/projections";
 import { commandOf, isWebsiteOnly, type Command } from "../commands/commands";
+import { onboardingSteps } from "../quests/onboarding";
 import type { ActionCtx } from "../_generated/server";
 import { customEmojiOptionOf, customEmojiPickerAction } from "./customEmojiPicker";
 import { readSignedBody } from "./signature";
@@ -13,6 +16,12 @@ type Action = {
   selected_option?: { value?: string } | null;
   selected_options?: Array<{ value: string }>;
 };
+
+const dmKinds: readonly DmLink["dm"][] = dmKindValidator.members.map(({ value }) => value);
+
+const dmLinkDestinations: readonly DmLink["destination"][] = dmLinkDestinationValidator.members.map(({ value }) => value);
+
+export const showMeHowAction = "dm-link:welcome:quests-how";
 
 type OptionsRequest = { type: "block_suggestion"; team: { id: string }; user: { id: string }; action_id: string; value: string };
 
@@ -38,6 +47,9 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   const payload = payloadOf(body);
   if (isOptionsRequest(payload)) return Response.json({ options: await customEmojiOptionsFor(ctx, payload) });
   if (!isMemberClick(payload)) return new Response(null, { status: 200 });
+  const link = payload.actions.map(dmLinkOf).find((candidate) => candidate !== null);
+  const howTo = howToAskedIn(payload);
+  if (link !== undefined) await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveDmLinkClick, { workspace: payload.team.id, eventId: payload.trigger_id, user: payload.user.id, link, ...(howTo !== null && { howTo }) });
   const selections = selectionsIn(payload.state);
   const commands = payload.actions.flatMap((action) => commandsOf(action, selections));
   if (commands.length === 0) return new Response(null, { status: 200 });
@@ -54,6 +66,22 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
 function conversationOf({ channel_id, message_ts, is_ephemeral, thread_ts }: Extract<MemberClick["container"], { type: "message" }>) {
   if (is_ephemeral !== true) return { conversation: channel_id, ...(message_ts !== undefined && { message: message_ts }) };
   return { conversation: channel_id, ephemeral: thread_ts === undefined ? {} : { threadRoot: thread_ts } };
+}
+
+function dmLinkOf({ action_id }: Action): DmLink | null {
+  const [prefix, dm, destination, ...rest] = action_id.split(":");
+  if (prefix !== "dm-link" || rest.length > 0 || !isOneOf(dmKinds, dm) || !isOneOf(dmLinkDestinations, destination)) return null;
+  return { dm, destination };
+}
+
+function howToAskedIn({ actions, container }: MemberClick) {
+  const step = actions.find(({ action_id }) => action_id === showMeHowAction)?.value;
+  if (!isOneOf(onboardingSteps, step) || container.type !== "message" || container.message_ts === undefined) return null;
+  return { conversation: container.channel_id, welcome: container.message_ts, step };
+}
+
+function isOneOf<T extends string>(values: readonly T[], candidate: string | undefined): candidate is T {
+  return values.includes(candidate as T);
 }
 
 export function encodeHomeAction(command: Command) {

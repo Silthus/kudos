@@ -6,14 +6,17 @@ import type { Award } from "../engine/awards";
 import { type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
 import { couldEarnMoreBySayingWhy, sayingWhyEarnsMore } from "../progression/perks";
 import { perkOf } from "../progression/tree";
+import { heldReplyOf } from "./heldReplies";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { xpLevelsShownTo } from "../progression/xpLevels";
-import { journeyStepNamedTo, questsExposedTo } from "../quests/flag";
+import { journeyStepNamedTo, questsHoldTheReplyOf } from "../quests/flag";
+import { isOnboardingStep, onboardingGoalOf } from "../quests/onboarding";
 import { rewardWaits } from "../quests/crates";
 import { journeyGoalOf } from "../quests/journeyCopy";
+import { withoutFullStop } from "../quests/pool";
 import { journeyStepValidator } from "../quests/step";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
@@ -22,10 +25,11 @@ import { coinsPartOf } from "./coins";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import type { Line, Segment } from "./segments";
 import { settingsFooterFor } from "./settingsFooter";
+import { hoggieRewardOf } from "./waitingHoggies";
 
 export const questDoneValidator = v.union(
-  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()) }),
-  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()) }),
+  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()), hoggie: v.optional(v.literal(true)) }),
+  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()), hoggie: v.optional(v.literal(true)) }),
 );
 
 export type QuestDone = Infer<typeof questDoneValidator>;
@@ -78,7 +82,7 @@ async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefine
   const lines = skippedLines(reply.outcome.skipped);
   if (member !== undefined && !(await wantsMessage(ctx, member, "kudos-reply"))) return { lines };
   const gains = await gainsWritten(ctx, member, ref, reply);
-  const waitsForQuests = member !== undefined && (await questsExposedTo(ctx, member));
+  const waitsForQuests = member !== undefined && (await questsHoldTheReplyOf(ctx, member));
   const asksWhy = member !== undefined && (await couldEarnMoreBySayingWhy(ctx, member, reply.annotations)) && (await wantsMessage(ctx, member, "tips"));
   return { given: givenLine(reply.outcome, reply.base), lines, gains, ...(asksWhy && { hint: hintLine }), ...(waitsForQuests && { held: true as const }) };
 }
@@ -119,8 +123,9 @@ export const privateReply = internalQuery({
     const member = await memberOf(ctx, row.workspace, row.to);
     const place = member === null ? "channel" : await placeOf(ctx, member, "kudos-reply");
     if (place === "none") return row.lines.length === 0 ? null : { ...stored, footer: null, asDirectMessage: false };
-    const extrasLine = extrasLineOf(await gainsShownTo(ctx, row.workspace, member, gains), await hintShownTo(ctx, row.workspace, member, hint), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
-    const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine])];
+    const shown = await gainsShownTo(ctx, row.workspace, member, gains);
+    const extrasLine = extrasLineOf(shown, await hintShownTo(ctx, row.workspace, member, hint), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine]), ...hoggieQuestLinesOf(shown.questsDone)];
     return { ...stored, lines, footer: await settingsFooterFor(ctx, member), asDirectMessage: place === "dm" };
   },
 });
@@ -144,13 +149,6 @@ export async function givenReplyOf(ctx: QueryCtx, { workspace, conversation, mes
 
 export async function gainsLineWithoutQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, { questsDone: _, ...gains }: Gains): Promise<Line | null> {
   return extrasLineOf(await gainsShownTo(ctx, workspace, member, gains), null, null);
-}
-
-function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
-  return ctx.db
-    .query("privateReplies")
-    .withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message).eq("held", true))
-    .first();
 }
 
 async function release(ctx: MutationCtx, { _id, gains }: Doc<"privateReplies">, questsDone: QuestDone[]) {
@@ -208,7 +206,11 @@ function withoutCoins({ coins: _, ...done }: QuestDoneShown): QuestDoneShown {
 }
 
 function questsDoneParts(questsDone: QuestDoneShown[]): Line[] {
-  return questsDone.map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (${questRewardOf(done)})` }]);
+  return questsDone.filter(({ hoggie }) => hoggie !== true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (${questRewardOf(done)})` }]);
+}
+
+function hoggieQuestLinesOf(questsDone: QuestDoneShown[]): Line[] {
+  return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} · ${hoggieRewardOf(done.xp)}` }]);
 }
 
 function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
@@ -217,11 +219,8 @@ function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
 }
 
 function goalOf(done: QuestDoneShown) {
-  return done.kind === "journey" ? journeyGoalOf(done.step) : done.goal;
-}
-
-function withoutFullStop(goal: string) {
-  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
+  if (done.kind === "weekly") return done.goal;
+  return done.hoggie === true && isOnboardingStep(done.step) ? onboardingGoalOf(done.step) : journeyGoalOf(done.step);
 }
 
 export function renderReply(reply: Exclude<Reply, { kind: "given" }>): Line[] {

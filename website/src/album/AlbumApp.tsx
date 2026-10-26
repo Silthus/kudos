@@ -27,15 +27,18 @@ import { AppEmojiSection } from "../settings/AppEmojiList";
 import { EmojiWizardHost } from "./findInSlack";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { addressOf, home, landingStateOf, myPageOf, placeOf, placeShownAt, type MyPage, type Place } from "./place";
+import { useQuestsLanding } from "./questsFold";
 import { useForge } from "./useForge";
 import { useVisitArrival } from "./visitArrival";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp, useXpMoment, usePlayerCard }: AppProps & { arrivals: number }) {
+export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies, useLevelUp, useXpMoment, usePlayerCard, useQuests }: AppProps & { arrivals: number }) {
   const { route, navigate, replaceAddress } = useRoute();
   const album = useAlbum(true);
   const myPage = myPageOf(album?.kind === "album" ? album : undefined);
   const place = placeShownAt(placeOf(route, window.location.hash, window.history.state), myPage);
+  const quests = useQuests(album?.kind === "album");
+  const questsLanding = useQuestsLanding();
   const visit = useVisitArrival(album, useXpMoment(album?.kind === "album"), actions);
   const newLabelsSince = newLabelsSinceOf(album, visit.arrivedAt);
   useCanonicalAddressOnceShown(place, myPage, album?.kind === "album", replaceAddress);
@@ -105,6 +108,9 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         missedXpMoment={visit.missed}
         shareItem={actions.shareItem}
         closeHowItWorks={actions.closeHowItWorks}
+        quests={quests}
+        questsLanding={questsLanding}
+        viewQuests={actions.viewQuests}
         anEntryIsOpen={anEntryIsOpenAt(place, hoggies)}
       />
       </NewLabelsProvider>

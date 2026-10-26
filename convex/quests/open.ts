@@ -7,6 +7,7 @@ import { applyGain } from "../progression/progression";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { journeyStepAppliesTo, questsLiveFor } from "./flag";
 import { groupQuestAppliesTo, groupQuestIdOf } from "./groupQuest";
 import { crateOpened } from "./pendingCrates";
@@ -16,7 +17,7 @@ import { poolQuestOf } from "./weekly";
 export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: Quest, surface: Surface): Promise<"done" | "refused"> {
   const key = rewardKeyOf(quest);
   const reward = await rewardOf(ctx, member, key);
-  if (reward === null || !(await questsLiveFor(ctx, member))) return "refused";
+  if (reward === null || isPaidOnTheMondayPath(reward) || !(await questsLiveFor(ctx, member))) return "refused";
   const { workspace } = await chatUserOf(ctx, member);
   if (quest.kind === "journey" && !(await journeyStepAppliesTo(ctx, workspace, member, quest.step))) return "refused";
   if (quest.kind === "group" && !(await groupQuestAppliesTo(ctx, member))) return "refused";

@@ -203,6 +203,15 @@ describe("WS5: a sign-in started on a deep link comes back to it", () => {
 
     expect(authActions.signIn).toHaveBeenCalledWith("slack", { redirectTo: address });
   });
+
+  it("MQ22 MQ28: asks Convex Auth to bring a member who opened a DM link at /sign-in/book#me/quests back to /book#me/quests", async () => {
+    window.history.replaceState(null, "", "/sign-in/book#me/quests");
+    profileRead.mockReturnValue(shellFixtures.signedOut);
+    authActions.signIn.mockResolvedValue({ signingIn: false });
+    renderLiveSite();
+
+    await waitFor(() => expect(authActions.signIn).toHaveBeenCalledWith("slack", { redirectTo: "/book#me/quests" }));
+  });
 });
 
 describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait", () => {

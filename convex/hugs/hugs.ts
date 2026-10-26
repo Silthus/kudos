@@ -1,13 +1,11 @@
-import { internal } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { holdsEarnedEmojiNamed } from "../album/earnedEmojis";
 import { publish } from "../bus/publish";
 import { allowanceDay } from "../engine/allowance";
 import { authorOfGiven, receivedOn } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
-import { onboardingShownTo } from "../items/onboardingFlag";
 import { recordReward } from "../progression/progression";
-import { lookup, profileNameOf, type MemberFacts, type MemberId } from "../workspace/directory";
+import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { hugBudgetOf, settingsOf } from "../workspace/settings";
 import { hugsOnAndExposedFor } from "./flag";
 import type { HugReaction } from "./reaction";
@@ -39,9 +37,8 @@ export async function giveHug(ctx: MutationCtx, reaction: HugReaction, emoji: st
   const day = allowanceDay(reaction.at, giver.timeZone);
   if ((await hugsLeftOf(ctx, giver.member, reaction.workspace, day)) === 0) return nothing;
   if (!(await hugsOnAndExposedFor(ctx, giver.member))) return nothing;
-  const isFirstHug = !(await hasHuggedBefore(ctx, giver.member));
-  await recordHug(ctx, { ...ref, ...hugFor, giver: giver.member, emoji: reaction.emoji, at: reaction.at, day });
-  if (isFirstHug && (await onboardingShownTo(ctx, giver.member))) await replyToTheFirstHug(ctx, reaction, hugFor);
+  const first = !(await hasHuggedBefore(ctx, giver.member));
+  await recordHug(ctx, { ...ref, ...hugFor, giver: giver.member, emoji: reaction.emoji, at: reaction.at, day }, first);
   return { kind: "given" };
 }
 
@@ -73,21 +70,11 @@ async function hugsLeftOf(ctx: MutationCtx, giver: MemberId, workspace: string, 
   return budget - (await hugsGivenOn(ctx, giver, day, budget));
 }
 
-async function recordHug(ctx: MutationCtx, hug: NewHug) {
+async function recordHug(ctx: MutationCtx, hug: NewHug, first: boolean) {
   const { workspace, conversation, message, giver, onKudos, at, day } = hug;
   await insertHug(ctx, hug);
   await countHugGiven(ctx, hug);
   const key = `hug-given:${conversation}:${message}`;
   await recordReward(ctx, workspace, { member: giver, key, xp: hugXp, coins: 0, item: null, catalogueVersion: hugsCatalogueVersion, at });
-  await publish(ctx, { type: "hugGiven", workspace, giver, message: { workspace, conversation, message }, onKudos, at, day });
-}
-
-async function replyToTheFirstHug(ctx: MutationCtx, { workspace, giver, conversation }: HugReaction, hugFor: HugFor) {
-  const hugged = hugFor.onKudos ? { kind: "peopleThanked" as const } : await authorHuggedOf(ctx, hugFor.author);
-  await ctx.scheduler.runAfter(0, internal.slack.firstHugReply.deliverFirstHugReply, { workspace, user: giver, conversation, hugged });
-}
-
-async function authorHuggedOf(ctx: MutationCtx, author: MemberId) {
-  const name = await profileNameOf(ctx, author);
-  return { kind: "author" as const, ...(name !== undefined && { name }) };
+  await publish(ctx, { type: "hugGiven", workspace, giver, message: { workspace, conversation, message }, onKudos, at, day, first });
 }

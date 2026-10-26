@@ -215,7 +215,10 @@
     },
     {
       "name": "welcome message",
-      "definition": "The one DM the app sends a member the first time they give or receive a Given award, in two versions: a first recipient's, headed by who thanked them, and a first giver's, headed by whom their first kudos landed with, with a neutral header for a welcome queued without either. Both say what HedgeHug is, what XP and the unlocks shown to the member bring, one next step toward giving three kudos, the daily allowance and, while the website opens to them, why to visit it; once groups exist, the pick of their primary group."
+      "definition": "The one DM a member gets, ever, welcoming them to HedgeHug (MQ13). Off the Monday path it goes the first time they give or receive a Given award, in two versions: a first recipient's, headed by who thanked them, and a first giver's, headed by whom their first kudos landed with, with a neutral header for a welcome queued without either. Both say what HedgeHug is, what XP and the unlocks shown to the member bring, one next step toward giving three kudos, the daily allowance and, while the website opens to them, why to visit it; once groups exist, the pick of their primary group. On the Monday path it answers the member's first act and ends on their next onboarding quest (MQ14, MQ19).",
+      "properties": {
+        "welcome path": "How the welcomed member started on the Monday path, recorded on their one welcomes row: hug, thoughtful-given, thoughtful-received or catch-up. A welcome from before it records no path; its welcomed field says giver or recipient (MQ1, MQ13)."
+      }
     },
     {
       "name": "profile card",
@@ -397,7 +400,7 @@
     },
     {
       "name": "quest",
-      "definition": "A goal a member pursues for a reward: one of the 3 personal quests drawn for their week, the group quest, or a step of the Journey. Finishing it records its reward at once in a reward record; its crate only reveals it. A quest counts only once its feature is open, because quests are goals, not earnings."
+      "definition": "A goal a member pursues for a reward: one of the 3 personal quests drawn for their week, the group quest, a step of the Journey, or on the Monday path an onboarding quest. Finishing it records its reward at once in a reward record; on the unlock path its crate only reveals it, and on the Monday path it pays XP and lays one face-down hoggie on the item board (MQ10). On the unlock path a quest counts only once its feature is open, because quests are goals, not earnings; on the Monday path once the member's quests have started (MQ3)."
     },
     {
       "name": "Journey",
@@ -811,6 +814,34 @@
     {
       "name": "first-hug reply",
       "definition": "The one ephemeral reply to a member's first hug ever, visible only to them, tried once and never as a DM (LP66, LP73). Not the welcome nudge."
+    },
+    {
+      "name": "Monday path",
+      "definition": "How a member's quests run while monday-quest is on for them: started by a welcome, a first kudos that says why, the catch-up welcome or the weekly sweep, never by an unlock, and paid in XP and face-down hoggies, never in coins or crates (MQ1, MQ2, MQ3). Its counterpart is the unlock path."
+    },
+    {
+      "name": "unlock path",
+      "definition": "How a member's quests ran before the Monday path and still do where questsApplyTo holds: started when the quests unlock opens, each Journey step when its feature opens, and paid through crates and coins (MQ2, MQ4). Its counterpart is the Monday path."
+    },
+    {
+      "name": "onboarding quest",
+      "definition": "One of the three Journey steps a Monday-path member starts with, all active at once: first-thanks (thank someone and say why), someone-new (thank someone you haven't thanked before, counted only after first-thanks finished) and two-days (say why on 2 different days). Each pays 50 XP and one unidentified Hoggie once (MQ5, MQ7)."
+    },
+    {
+      "name": "drawn quest",
+      "definition": "One of the three quests drawn from the pool for a member's week on the Monday path, once their three onboarding quests are finished. Each pays 20 XP and one unidentified Hoggie, never coins, and has no swap (MQ8, MQ9)."
+    },
+    {
+      "name": "Monday DM",
+      "definition": "The one DM a member gets on Monday at 9:00 in their time zone, built from a hugs section and a quests section, and sent at most once (MQ23-MQ28). Not the hugs recap, which it carries as its hugs section."
+    },
+    {
+      "name": "catch-up welcome",
+      "definition": "The one-off welcome message, with welcome path catch-up, for a member who used HedgeHug before any welcome reached them, sent by an operator-run job behind the catch-up-welcome kill switch (MQ31-MQ33)."
+    },
+    {
+      "name": "quests panel",
+      "definition": "The panel on the right of every album page that lists a Monday-path member's quests, open on a first visit and foldable to a tab (MQ39)."
     }
   ],
   "retired": [

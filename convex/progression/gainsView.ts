@@ -1,5 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
-import { questsApplyIn, questsApplyTo } from "../quests/flag";
+import { questsApplyIn, questsFor } from "../quests/flag";
 import type { MemberId } from "../workspace/directory";
 import { skillTreeAppliesIn } from "./skillTree";
 import { xpLevelsOnFor, xpLevelsShownIn } from "./xpLevels";
@@ -9,7 +9,7 @@ export function xpGainsShownTo(ctx: QueryCtx, workspace: string, member: MemberI
 }
 
 export function questGainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null): Promise<boolean> {
-  return member === null ? questsApplyIn(ctx, workspace) : questsApplyTo(ctx, member);
+  return member === null ? questsApplyIn(ctx, workspace) : questsFor(ctx, member).then((path) => path !== null);
 }
 
 export async function bonusGainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null): Promise<boolean> {

@@ -1,0 +1,204 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;font-family:var(--font-sans,system-ui,-apple-system,"Segoe UI",sans-serif)}
+.panel{position:relative;background:#fff;color:#0f172a;border-radius:var(--radius,10px);padding:16px;font-size:12px}
+svg.wires{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:2}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.views{display:flex;gap:3px;background:#e2e8f0;border-radius:7px;padding:3px}
+.views button,.toggle{border:0;background:transparent;font:inherit;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:5px;color:#334155;cursor:pointer}
+.toggle{background:#e2e8f0}
+.views button[aria-pressed=true],.toggle[aria-pressed=true]{background:#0f172a;color:#fff}
+.row{display:flex;gap:14px;align-items:flex-start;position:relative;z-index:1}
+.mod{flex:1;border:2px solid #334155;border-radius:8px;background:#f8fafc;min-width:0}
+.mod.new{border-color:#16a34a;background:#f0fdf4}
+.mod.changed{border-color:#ca8a04;background:#fefce8}
+.mod.external{border-color:#2563eb;background:#eff6ff}
+.mod.follow{border:2px dashed #ea580c;background:#fff7ed}
+.seam{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:center;background:#0f172a;color:#fff;font-family:var(--font-mono,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:10.5px;padding:5px 8px;border-radius:6px 6px 0 0;line-height:1.35}
+.mod.new .seam{background:#14532d}
+.mod.follow .seam{background:#7c2d12}
+.mod.external .seam{background:#1e3a8a}
+.seam .tag{background:#fff;color:#0f172a;border-radius:3px;padding:0 4px;font-family:var(--font-sans,system-ui,sans-serif);font-weight:700;font-size:9.5px}
+.fn.new::after{content:" +";color:#86efac;font-weight:700}
+.fn.changed{color:#fde047}
+.name{font-weight:700;font-size:13px;padding:6px 8px 2px}
+.name small{font-weight:500;color:#64748b;font-size:11px}
+.mod:not(:has(.chips)) .name{padding-bottom:8px}
+.used{display:inline-block;font-size:9.5px;font-weight:700;color:#b91c1c;background:#fee2e2;border-radius:3px;padding:0 4px;vertical-align:1px}
+.chips{padding:4px 8px 8px;display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid #94a3b8;background:#f1f5f9;border-radius:5px;padding:3px 7px;line-height:1.3}
+.chip.wide{flex-basis:100%;text-align:center}
+.chip.new{background:#dcfce7;border-color:#16a34a}
+.chip.changed{background:#fef9c3;border-color:#ca8a04}
+.chip.follow{border:2px dashed #ea580c}
+.chip.cycle,.rail .cycle{border:2px dashed #dc2626;background:#fef2f2;color:#b91c1c;font-weight:600}
+.cycle::before{content:"↺ "}
+.ask{outline:2px dashed #7c3aed;outline-offset:1px}
+.ask.fork{outline-style:dotted}
+.q,.f{display:inline-block;font-family:var(--font-sans,system-ui,sans-serif);font-size:9px;font-weight:700;color:#fff;border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px}
+.q{background:#7c3aed}
+.f{background:#ea580c}
+.f::before{content:"follow-up"}
+.rail{position:relative;z-index:1;background:#1e293b;color:#e2e8f0;border-radius:6px;padding:6px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rail b{color:#fff;font-size:12px}
+.rail .cycle{border-radius:4px;padding:1px 6px}
+.untouched{margin-top:18px;border-top:1px dashed #94a3b8;padding-top:10px}
+.untouched h4{margin:0 0 8px;font-size:12px;color:#334155}
+.untouched .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mini{border:1.5px solid #94a3b8;border-radius:6px;background:#f8fafc;font-size:10.5px}
+.mini .seam{font-size:9.5px;padding:3px 6px;border-radius:4px 4px 0 0;background:#334155}
+.mini b{display:block;padding:4px 6px 0;font-size:11.5px}
+.mini p{margin:0;padding:2px 6px 5px;color:#475569}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#334155;align-items:center}
+.legend .key{font-weight:700}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid;vertical-align:middle;margin-right:4px}
+.legend .swatch{display:inline-block;padding:0 5px;margin-right:4px;border-radius:3px}
+.legend .seamkey{background:#0f172a;color:#fff;font-weight:600}
+.panel[data-view=today] .v-added{display:none}
+.panel[data-view=target] .v-removed{display:none}
+.panel:not([data-view=today]) .v-today{display:none}
+.panel[data-view=removed] .v-removed{color:#94a3b8;text-decoration:line-through}
+.panel[data-view=removed] .chip.v-removed{background:#f8fafc;border:1px dashed #94a3b8}
+.panel[data-view=removed] .v-removed :is(.q,.f,.used){text-decoration:none}
+.panel[data-view=today] .ask{outline:none}
+.panel[data-view=today] .q{display:none}
+.panel[data-untouched=off] .untouched{display:none}
+</style></head><body>
+<div class="panel" id="modules" data-view="target" data-untouched="off">
+<svg class="wires"></svg>
+<div class="controls"><div class="views" role="group" aria-label="View"><button data-view-to="target" aria-pressed="true">Target</button><button data-view-to="removed" aria-pressed="false">Target + what it removes</button><button data-view-to="today" aria-pressed="false">Today</button></div><button class="toggle" data-untouched-toggle aria-pressed="false">Untouched modules and their seams</button></div><div class="row"><div id="web" class="mod changed" style="flex:0.9"><div class="seam" id="web-seam"><span class="tag">seam</span><span class="fn">getMyProfile</span><span class="fn changed">getQuests</span><span class="fn v-added new">viewQuests</span></div><div class="name">Website reads <small>convex/website</small> <span class="used">103 used outside</span></div><div class="chips"><span id="web-quests" class="chip changed">quests: Monday shape</span><span class="chip v-removed">own copy of the gate</span></div></div><div id="slack" class="mod changed" style="flex:1.3"><div class="seam" id="slack-seam"><span class="tag">seam</span><span class="fn">slackInteractivity</span><span class="fn">deliverWelcome</span><span class="fn v-added new ask">deliverMondayDm<span class="q">Q4</span></span><span class="fn v-removed">sendHugsRecap</span><span class="fn v-removed">deliverFirstHugReply</span></div><div class="name">Slack adapter <small>convex/slack</small> <span class="used">14 used outside</span></div><div class="chips"><span id="slack-buttons" class="chip v-added new ask">link + Stop buttons<span class="q">Q6</span></span><span id="slack-welcome" class="chip changed">welcome blocks</span><span id="slack-monday" class="chip v-added new ask">Monday DM blocks<span class="q">Q4</span></span><span id="slack-firsthug" class="chip v-removed">first-hug ephemeral</span><span id="slack-permalink" class="chip">permalink, stranded jobs</span></div></div><div id="commands" class="mod" style="flex:0.9"><div class="seam" id="commands-seam"><span class="tag">seam</span><span class="fn">runCommand</span><span class="fn v-added new ask">stopMondayQuests<span class="q">Q6</span></span></div><div class="name">Commands <small>convex/commands</small></div><div class="chips"><span class="chip">setMessageSetting, flag-gated</span></div></div></div>
+<div style="height:56px"></div><div class="row"><div id="welcome" class="mod changed ask" style="flex:1.2"><div class="seam" id="welcome-seam"><span class="tag">seam</span><span class="fn">welcomeNewMembers</span><span class="fn v-added new">welcomeOnHug</span><span class="fn v-added new">catchUpWelcomes</span></div><div class="name">Welcome <small>convex/welcome, every first moment</small><span class="q">Q3</span> <span class="used">2 used outside</span></div><div class="chips"><span id="welcome-row" class="chip changed wide">one welcomes row, with its path</span><span class="chip v-added new">catch-up job + kill switch</span><span id="welcome-nudge" class="chip v-added new follow ask">welcome nudge<span class="f"></span><span class="q">Q7</span></span></div></div><div id="hugs" class="mod changed" style="flex:1"><div class="seam" id="hugs-seam"><span class="tag">seam</span><span class="fn changed">giveHug</span><span class="fn v-added new ask">hugsSectionOf<span class="q">Q4</span></span><span class="fn v-removed">startRecap</span></div><div class="name">Hugs <small>convex/hugs</small> <span class="used">23 used outside</span></div><div class="chips"><span id="hugs-weeks" class="chip">hugWeeks counts</span><span id="hugs-recap" class="chip v-removed">recap scheduler</span><span id="hugs-first" class="chip v-removed">first-hug reply</span></div></div><div id="monday" class="mod v-added new ask" style="flex:1.1"><div class="seam" id="monday-seam"><span class="tag">seam</span><span class="fn">scheduleMondayDms</span><span class="fn">mondayDmOf</span><span class="fn">mondayDmEnded</span></div><div class="name">Monday DM <small>convex/mondayDm</small><span class="q">Q4</span></div><div class="chips"><span id="monday-rows" class="chip">one row per member-week</span><span id="monday-sweep" class="chip">9:00 local sweep, retries</span><span id="monday-sections" class="chip">sections: hugs, quests</span></div></div></div>
+<div style="height:46px"></div><div class="rail" id="bus"><b>Bus</b><span>publish(event) → every subscriber, in its own transaction</span></div>
+<div style="height:46px"></div><div class="row"><div id="quests" class="mod changed" style="flex:1.6"><div class="seam" id="quests-seam"><span class="tag">seam</span><span class="fn v-added new ask">questsFor<span class="q">Q1</span></span><span class="fn v-added new ask">startQuests<span class="q">Q1</span></span><span class="fn changed">questsApplyTo</span><span class="fn v-added new">nextOnboardingQuestOf</span><span class="fn v-added new ask">questsSectionOf<span class="q">Q4</span></span></div><div class="name">Quests <small>convex/quests</small> <span class="used">65 used outside</span></div><div class="chips"><span id="quests-gate" class="chip changed ask">gate: monday or unlock path<span class="q">Q1</span></span><span id="quests-onboarding" class="chip changed">onboarding: 3 Journey steps</span><span id="quests-draw" class="chip changed">weekly draw</span><span id="quests-finish" class="chip changed ask">finish: XP + hoggie item<span class="q">Q2</span></span><span id="quests-crates" class="chip">crates, coins, swaps (dark)</span></div></div><div id="items" class="mod"><div class="seam" id="items-seam"><span class="tag">seam</span><span class="fn">earnItem</span><span class="fn">boardOf</span><span class="fn">turn</span></div><div class="name">Items <small>convex/items</small> <span class="used">41 used outside</span></div><div class="chips"><span class="chip changed ask">ledger, reason quest<span class="q">Q2</span></span></div></div><div id="settings" class="mod"><div class="seam" id="settings-seam"><span class="tag">seam</span><span class="fn">placeOf</span><span class="fn">wantsMessage</span><span class="fn">setMessageSetting</span></div><div class="name">Message settings <small>convex/messageSettings</small> <span class="used">18 used outside</span></div><div class="chips"><span class="chip">quests kind</span></div></div></div>
+<div style="height:56px"></div><div class="row"><div id="unlocks" class="mod"><div class="seam" id="unlocks-seam"><span class="tag">seam</span><span class="fn">unlockPathShownTo</span><span class="fn">openUnlock</span></div><div class="name">Unlocks <small>off in production</small> <span class="used">38 used outside</span></div></div><div id="analytics" class="mod changed" style="flex:1.3"><div class="seam" id="analytics-seam"><span class="tag">seam</span><span class="fn">memberDecision</span><span class="fn">recordUsage</span><span class="fn v-added new">dm sent</span><span class="fn v-added new">dm link clicked</span><span class="fn v-added new">quests viewed</span></div><div class="name">Analytics <small>convex/analytics</small> <span class="used">35 used outside</span></div></div><div id="hoggies" class="mod"><div class="seam" id="hoggies-seam"><span class="tag">seam</span><span class="fn">dropFor</span></div><div class="name">Hoggies <small>convex/hoggies</small> <span class="used">68 used outside</span></div><div class="chips"><span class="chip changed ask">packBands: quest key pays nothing<span class="q">Q2</span></span></div></div><div id="progression" class="mod"><div class="seam" id="progression-seam"><span class="tag">seam</span><span class="fn">recordReward</span><span class="fn">rewardOf</span></div><div class="name">Progression <span class="used">62 used outside</span></div></div></div><div class="untouched"><h4>Untouched by this change. The top bar is the seam, with its most used functions.</h4><div class="grid"><div class="mini"><div class="seam"><span class="tag">seam</span><span class="fn">coinsApplyTo</span><span class="fn">coinsVisibleTo</span></div><b>Wallet</b><p>coins stay dark</p></div><div class="mini"><div class="seam"><span class="tag">seam</span><span class="fn">storeVisibleTo</span></div><b>Store</b><p>stays dark</p></div><div class="mini"><div class="seam"><span class="tag">seam</span><span class="fn">groupsApplyTo</span></div><b>Groups</b><p>group quests stay dark</p></div><div class="mini"><div class="seam"><span class="tag">seam</span><span class="fn">achievementsApplyIn</span></div><b>Achievements</b><p>the Book</p></div><div class="mini"><div class="seam"><span class="tag">seam</span><span class="fn">welcomeMessage</span><span class="fn">settingsFooterFor</span><span class="fn">deepLinkOf</span></div><b>Feedback</b><p>89 used outside · copy for the welcomes and the Monday DM</p></div></div></div><div class="legend"><span><b class="swatch seamkey">fn</b><span class="key">seam</span> a module's interface; parts sit below it</span><span><i style="border-color:#334155;border-top-style:solid"></i><span class="key">call</span> through a seam</span><span><i style="border-color:#15803d;border-top-style:solid"></i><span class="key">added</span> by this change, green</span><span><i style="border-color:#ca8a04;border-top-style:solid"></i><span class="swatch chip changed">part</span><span class="key">changed</span> by this change</span><span><i style="border-color:#94a3b8;border-top-style:dashed"></i><span class="key">removed</span> ✕ by this change, struck through</span><span><i style="border-color:#dc2626;border-top-style:solid"></i><span class="key">leak</span> reaches past a seam, with measured counts</span><span><i style="border-color:#475569;border-top-style:solid"></i><span class="key">bus</span> pub and sub on the rail</span><span><i style="border-color:#ea580c;border-top-style:dashed"></i><span class="key">follow-up</span> the target needs it; a later refactor builds it</span><span><i style="border-color:#7c3aed;border-top-style:dashed"></i><span class="key">Qn</span> a suggestion, open in question n</span><span><span class="used">n</span><span class="key">used outside</span> exports other modules use</span></div>
+</div>
+<script>const strokes = {
+  call: { color: "#334155", width: 1.7 },
+  bus: { color: "#475569", width: 1.5 },
+  leak: { color: "#dc2626", width: 2.2 },
+  added: { color: "#15803d", width: 2.2 },
+  changed: { color: "#ca8a04", width: 2.2 },
+  followUp: { color: "#ea580c", dash: "6 4", width: 2 },
+  ask: { color: "#7c3aed", dash: "6 4", width: 2 },
+  fork: { color: "#7c3aed", dash: "2 3", width: 2 },
+  removed: { color: "#94a3b8", dash: "4 4", width: 1.6, cross: true, strike: true },
+};
+
+function strokeOf(wire, view) {
+  if (wire.change === "removed" && view === "removed") return "removed";
+  if (wire.q && view !== "today") return wire.fork ? "fork" : "ask";
+  if (wire.followUp) return "followUp";
+  if (wire.kind === "leak") return "leak";
+  if (wire.change === "added" || wire.change === "changed") return wire.change;
+  return wire.kind ?? "call";
+}
+
+function shownIn(wire, view) {
+  if (wire.change === "added") return view !== "today";
+  if (wire.change === "removed") return view !== "target";
+  if (wire.change === "todayOnly") return view === "today";
+  return true;
+}
+
+function anchorOf(element, side, at, root) {
+  const box = element.getBoundingClientRect(), origin = root.getBoundingClientRect();
+  const x = box.left - origin.left, y = box.top - origin.top, along = at ?? 0.5;
+  if (side === "top") return { x: x + box.width * along, y, nx: 0, ny: -1 };
+  if (side === "bottom") return { x: x + box.width * along, y: y + box.height, nx: 0, ny: 1 };
+  if (side === "left") return { x, y: y + box.height * along, nx: -1, ny: 0 };
+  return { x: x + box.width, y: y + box.height * along, nx: 1, ny: 0 };
+}
+
+function svgElement(name, attributes) {
+  const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+  return element;
+}
+
+function drawLabel(svg, point, text, stroke, align) {
+  const label = svgElement("text", { x: point.x, y: point.y, "text-anchor": align ?? "middle", "dominant-baseline": "middle", "font-size": "10", "font-weight": "600", fill: stroke.color });
+  if (stroke.strike) label.setAttribute("text-decoration", "line-through");
+  label.textContent = text;
+  svg.appendChild(label);
+  const box = label.getBBox();
+  svg.insertBefore(svgElement("rect", { x: box.x - 3, y: box.y - 1, width: box.width + 6, height: box.height + 2, rx: 3, fill: "#ffffff", opacity: "0.95" }), label);
+  return { text, box };
+}
+
+function drawCross(svg, at, name) {
+  const radius = 7.5;
+  svg.appendChild(svgElement("circle", { cx: at.x, cy: at.y, r: radius, fill: "#ffffff", stroke: "#64748b", "stroke-width": 1.5 }));
+  svg.appendChild(svgElement("path", { d: `M${at.x - 3.5},${at.y - 3.5}L${at.x + 3.5},${at.y + 3.5}M${at.x + 3.5},${at.y - 3.5}L${at.x - 3.5},${at.y + 3.5}`, stroke: "#475569", "stroke-width": 2 }));
+  return { text: `✕ on ${name}`, box: { x: at.x - radius, y: at.y - radius, width: radius * 2, height: radius * 2 } };
+}
+
+function apart(a, b) {
+  return a.x + a.width < b.x || b.x + b.width < a.x || a.y + a.height < b.y || b.y + b.height < a.y;
+}
+
+function textBoxes(root) {
+  const origin = root.getBoundingClientRect();
+  return [...root.querySelectorAll(".seam, .name, .chip, .rail")].filter((element) => element.getClientRects().length).map((element) => {
+    const box = element.getBoundingClientRect();
+    return { text: element.innerText.replace(/\s+/g, " ").trim().slice(0, 40), box: { x: box.left - origin.left, y: box.top - origin.top, width: box.width, height: box.height } };
+  });
+}
+
+function collisions(root, labels) {
+  const hits = [];
+  labels.forEach((a, i) => labels.slice(i + 1).forEach((b) => { if (!apart(a.box, b.box)) hits.push(`"${a.text}" overlaps "${b.text}"`); }));
+  const boxes = textBoxes(root);
+  for (const label of labels) for (const text of boxes) if (!apart(label.box, text.box)) hits.push(`"${label.text}" covers "${text.text}"`);
+  const page = root.getBoundingClientRect();
+  for (const { text, box } of labels) if (box.x < 0 || box.x + box.width > page.width) hits.push(`"${text}" runs off the page`);
+  return hits;
+}
+
+function drawWire(svg, root, wire, view) {
+  const from = root.querySelector(`[id="${wire.from}"]`), to = root.querySelector(`[id="${wire.to}"]`);
+  if (!from?.getClientRects().length || !to?.getClientRects().length) return;
+  const strokeName = strokeOf(wire, view), stroke = strokes[strokeName];
+  const a = anchorOf(from, wire.fromSide ?? "bottom", wire.fromAt, root), z = anchorOf(to, wire.toSide ?? "top", wire.toAt, root), bend = wire.bend ?? 40;
+  if (wire.straight === "from") z.x = a.x;
+  if (wire.straight === "to") a.x = z.x;
+  const c1 = { x: a.x + a.nx * bend, y: a.y + a.ny * bend }, c2 = { x: z.x + z.nx * bend, y: z.y + z.ny * bend };
+  const path = svgElement("path", { d: `M${a.x},${a.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${z.x},${z.y}`, fill: "none", stroke: stroke.color, "stroke-width": stroke.width, "marker-end": `url(#arrow-${strokeName})` });
+  if (stroke.dash) path.setAttribute("stroke-dasharray", stroke.dash);
+  svg.appendChild(path);
+  const pointAt = (t) => { const u = 1 - t; return { x: u * u * u * a.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * z.x, y: u * u * u * a.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * z.y }; };
+  const labelAt = wire.labelAt ?? 0.5, [dx, dy] = wire.labelOffset ?? [0, 0];
+  const marks = stroke.cross ? [drawCross(svg, pointAt(wire.crossAt ?? Math.min(labelAt + 0.25, 0.85)), wire.label ?? `${wire.from} → ${wire.to}`)] : [];
+  const text = [view !== "today" && wire.q, (view === "today" && wire.todayLabel) || wire.label].filter(Boolean).join(": ");
+  if (!text) return marks;
+  const at = pointAt(labelAt);
+  return [...marks, drawLabel(svg, { x: at.x + dx, y: at.y + dy }, text, stroke, wire.labelAlign)];
+}
+
+function drawWires(root, wires) {
+  const svg = root.querySelector("svg.wires"), box = root.getBoundingClientRect(), view = root.dataset.view;
+  svg.setAttribute("width", box.width);
+  svg.setAttribute("height", box.height);
+  svg.innerHTML = "<defs>" + Object.entries(strokes).map(([name, { color }]) => `<marker id="arrow-${name}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="${color}"/></marker>`).join("") + "</defs>";
+  const labels = wires.filter((wire) => shownIn(wire, view)).flatMap((wire) => drawWire(svg, root, wire, view) ?? []);
+  root.dataset.collisions = JSON.stringify(collisions(root, labels));
+}
+
+function connect(root, wires) {
+  const redraw = () => drawWires(root, wires);
+  redraw();
+  new ResizeObserver(redraw).observe(root);
+  for (const button of root.querySelectorAll("[data-view-to]")) button.addEventListener("click", () => {
+    root.dataset.view = button.dataset.viewTo;
+    for (const other of root.querySelectorAll("[data-view-to]")) other.setAttribute("aria-pressed", String(other === button));
+    redraw();
+  });
+  const toggle = root.querySelector("[data-untouched-toggle]");
+  toggle?.addEventListener("click", () => {
+    const on = root.dataset.untouched !== "on";
+    root.dataset.untouched = on ? "on" : "off";
+    toggle.setAttribute("aria-pressed", String(on));
+    redraw();
+  });
+}
+
+connect(document.getElementById("modules"), [{"from":"hugs-recap","to":"slack-permalink","kind":"leak","change":"removed","label":"2 symbols, 1 file","fromSide":"top","toSide":"bottom","bend":40,"labelAt":0.8,"labelAlign":"end","labelOffset":[-8,0],"crossAt":0.65},{"from":"hugs-first","to":"slack-firsthug","kind":"leak","change":"removed","label":"fn ref","fromSide":"top","toSide":"bottom","bend":40,"labelAt":0.8,"labelAlign":"start","labelOffset":[8,0],"crossAt":0.65},{"from":"monday","to":"hugs","fromSide":"left","toSide":"right","toAt":0.25,"change":"added","q":"Q4","bend":30,"fromAt":0.25},{"from":"monday-sections","to":"quests-seam","toAt":0.9,"change":"added","q":"Q4","bend":60,"labelAt":0.88},{"from":"welcome-row","to":"quests-seam","toAt":0.55,"change":"added","label":"nextOnboardingQuestOf","bend":60,"labelAt":0.82,"labelAlign":"start","labelOffset":[6,0]},{"from":"quests-finish","fromSide":"right","to":"items","toSide":"left","toAt":0.7,"change":"added","q":"Q2","bend":30,"labelAt":0.9,"labelAlign":"start","labelOffset":[4,14]},{"from":"quests-gate","to":"unlocks-seam","toAt":0.4,"label":"unlock path only","bend":30,"labelAt":0.85,"labelAlign":"start","labelOffset":[6,0]},{"from":"commands","to":"settings","toAt":0.3,"change":"added","q":"Q6","bend":30,"fromAt":0.6,"fromSide":"right","toSide":"right","labelAt":0.5,"labelAlign":"end","labelOffset":[-14,0]},{"from":"hugs","fromSide":"bottom","fromAt":0.5,"to":"bus","straight":"from","kind":"bus","label":"pub hugGiven{first}","bend":15,"labelAlign":"start","labelOffset":[5,0],"change":"changed"},{"from":"bus","fromSide":"top","to":"welcome","toSide":"bottom","toAt":0.85,"straight":"to","kind":"bus","change":"added","label":"sub hugGiven, kudosGiven","bend":15,"labelAlign":"end","labelOffset":[-5,0]}]);
+</script>
+</body></html>

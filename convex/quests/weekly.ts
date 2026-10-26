@@ -12,14 +12,17 @@ import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { crateOpeningOf, rewardKeyOf, waitsUnopened, weeklyQuestOfRewardKey } from "./crates";
-import { finishQuest } from "./finish";
-import { questsLiveFor } from "./flag";
+import { crateOpenedAt, crateOpeningOf, rewardKeyOf, waitsUnopened, weeklyQuestOfRewardKey } from "./crates";
+import { finishMondayQuest, finishQuest } from "./finish";
+import { onTheMondayPath, questsLiveFor, type QuestPath } from "./flag";
 import { rewardValidator, type Reward } from "./journey";
+import { isPaidOnTheMondayPath } from "./mondayCatalogue";
+import { onboardingFinishedAt } from "./onboarding";
 import { pendingWeeklyCratesBefore } from "./pendingCrates";
-import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type Recipient } from "./pool";
+import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type QuestPool, type Recipient } from "./pool";
 import { counts, isRecipient, notThankedForMs, questProgress, type CountedAward, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
+import { questStartOf } from "./start";
 import type { WeeklyQuest } from "./step";
 import { daysLeftInWeek, weekKeyOf, weekKeyOfDay, weekStartOf, type WeekKey } from "./week";
 
@@ -56,6 +59,8 @@ type Swap = Infer<typeof questSwapValidator>;
 
 type FeasibleQuest = { quest: PoolQuest; feasibleBecause: FeasibleBecause };
 
+type DrawSchedule = { opensAt: number; pool: QuestPool };
+
 export type WeeklySlot = Slot & { goal: string; progress: number; target: number; finishedAt: number | null; openedAt: number | null; waiting: boolean };
 
 export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swappedAt: number };
@@ -69,18 +74,18 @@ export type WeeklyQuests = { week: WeekKey; drawnAt: number; slots: WeeklySlot[]
 export const drawWeeklyQuests = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (event.feature !== "quests" || !(await questsLiveFor(ctx, event.member))) return;
-    if ((await drawFor(ctx, event.member, Date.now())) === "drawn") await republish(ctx, event.member);
+    if (event.feature !== "quests" || (await onTheMondayPath(ctx, event.member)) || !(await questsLiveFor(ctx, event.member))) return;
+    if ((await drawFor(ctx, event.member, Date.now(), questPool)) === "drawn") await republish(ctx, event.member);
   },
 });
 
 export type FinishedWeeklyQuest = { crate: WeeklyQuest; goal: string; reward: Slot["reward"] };
 
-export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent): Promise<FinishedWeeklyQuest[]> {
+export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent, path: QuestPath): Promise<FinishedWeeklyQuest[]> {
   let shownChanged = (await drawWhenDue(ctx, event.giver, event.at)) === "drawn";
   const finished: FinishedWeeklyQuest[] = [];
   const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
-  if (draw !== null) {
+  if (draw !== null && isMondayDraw(draw) === (path === "monday")) {
     const swap = await swapOf(ctx, draw.member, draw.week);
     const open = (await unfinishedSlotsOf(ctx, draw, slotsOf(draw, swap))).filter((slot) => event.at >= countsFrom(draw, swap, slot));
     const awards = open.length === 0 ? [] : await questAwardsOf(ctx, event);
@@ -97,7 +102,7 @@ export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEve
 export const drawNewWeek = internalMutation({
   args: { member: v.id("members") },
   handler: async (ctx, { member }): Promise<void> => {
-    if (!(await questsLiveFor(ctx, member))) return;
+    if (!(await onTheMondayPath(ctx, member)) && !(await questsLiveFor(ctx, member))) return;
     if ((await drawWhenDue(ctx, member, Date.now())) === "drawn") await republish(ctx, member);
   },
 });
@@ -108,7 +113,7 @@ export async function thisWeeksQuestsOf(ctx: MutationCtx, member: MemberId, at: 
 }
 
 export async function awaitsThisWeeksDraw(ctx: QueryCtx, { _id: member, timeZone }: Doc<"members">, at: number): Promise<boolean> {
-  return (await openedAtOf(ctx, member, "quests")) !== null && (await drawOf(ctx, member, weekKeyOf(at, timeZone))) === null;
+  return (await drawScheduleOf(ctx, member)) !== null && (await drawOf(ctx, member, weekKeyOf(at, timeZone))) === null;
 }
 
 export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WeeklyQuests | null> {
@@ -135,7 +140,7 @@ export async function swappedSlotIn(ctx: QueryCtx, member: MemberId, week: WeekK
 }
 
 async function swapAvailableIn(ctx: QueryCtx, draw: Draw, swap: Swap | null, slots: WeeklySlot[], at: number): Promise<boolean> {
-  if (swap !== null || slots.every(({ finishedAt }) => finishedAt !== null)) return false;
+  if (isMondayDraw(draw) || swap !== null || slots.every(({ finishedAt }) => finishedAt !== null)) return false;
   return (await replacementForAnyoneIn(ctx, draw, at)) || (await replacementFor(ctx, draw, at)) !== null;
 }
 
@@ -178,12 +183,12 @@ export async function rerollQuest(ctx: MutationCtx, member: MemberId, { week, sl
   await drawWhenDue(ctx, member, at);
   if (week !== weekKeyOf(at, await timeZoneOf(ctx, member))) return "refused";
   const draw = await drawOf(ctx, member, week);
-  if (draw === null || (await swapOf(ctx, member, week)) !== null) return "refused";
+  if (draw === null || isMondayDraw(draw) || (await swapOf(ctx, member, week)) !== null) return "refused";
   const replaced = draw.slots.find((drawn) => drawn.slot === slot);
   if (replaced === undefined || (await isFinished(ctx, draw, replaced))) return "refused";
   const replacement = await replacementFor(ctx, draw, at);
   if (replacement === null) return "refused";
-  await ctx.db.insert("questSwaps", { member, week, swappedAt: at, replaced: replaced.quest, swappedIn: slotOf(slot, replacement) });
+  await ctx.db.insert("questSwaps", { member, week, swappedAt: at, replaced: replaced.quest, swappedIn: slotOf(slot, questPool, replacement) });
   await publish(ctx, { type: "questSwapped", workspace, member, week, replaced: replaced.quest, swappedIn: replacement.quest.quest, at });
   return "swapped";
 }
@@ -196,7 +201,7 @@ export async function poolQuestOf(ctx: QueryCtx, member: MemberId, { week, slot 
 
 async function replacementFor(ctx: QueryCtx, { member, week, slots }: Draw, at: number): Promise<FeasibleQuest | null> {
   const drawn = (candidate: FeasibleQuest) => slots.some(({ quest }) => quest === candidate.quest.quest);
-  return rankedFeasible(member, week, await drawFactsOf(ctx, member, at)).find((candidate) => !drawn(candidate)) ?? null;
+  return rankedFeasible(member, week, questPool, await drawFactsOf(ctx, member, at)).find((candidate) => !drawn(candidate)) ?? null;
 }
 
 function slotsOf({ slots }: Draw, swap: Swap | null): Slot[] {
@@ -217,7 +222,7 @@ async function weeklySlotOf(ctx: QueryCtx, { member, week }: Draw, slot: Slot): 
   const finish = await rewardOf(ctx, member, key);
   const opening = await crateOpeningOf(ctx, member, key);
   const progress = questProgress(pooled, await countedFor(ctx, member, week, slot));
-  return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null, waiting: waitsUnopened(finish, opening) };
+  return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: crateOpenedAt(finish, opening), waiting: waitsUnopened(finish, opening) };
 }
 
 async function unfinishedSlotsOf(ctx: QueryCtx, draw: Draw, slots: Slot[]): Promise<Slot[]> {
@@ -239,11 +244,20 @@ async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, w
   for (const { award, recipient, day, at } of fresh) await ctx.db.insert("questProgress", { member, week, slot: slot.slot, quest: slot.quest, award, recipient, day, at });
   const before = questProgress(pooled, counted);
   const after = questProgress(pooled, [...counted, ...fresh]);
-  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, { ...slot, poolQuest: slot.quest }, event.at, event.message))) {
-    await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp, event.message);
-    return "finished";
-  }
+  if (after === pooled.progress.target && (await finishDrawnQuest(ctx, event, member, quest, slot))) return "finished";
   return after === before ? "unchanged" : "advanced";
+}
+
+async function finishDrawnQuest(ctx: MutationCtx, { workspace, at, message }: KudosGivenEvent, member: MemberId, quest: WeeklyQuest, slot: Slot): Promise<boolean> {
+  const promised = { ...slot, poolQuest: slot.quest };
+  if (isPaidOnTheMondayPath(slot)) return finishMondayQuest(ctx, workspace, member, quest, promised, at, message);
+  if (!(await finishQuest(ctx, workspace, member, quest, promised, at, message))) return false;
+  await notifyWeeklyQuestFinished(ctx, member, quest, questOf(slot.quest).goal, slot.reward.xp, message);
+  return true;
+}
+
+export function isMondayDraw({ slots }: { slots: Array<{ catalogueVersion: string }> }): boolean {
+  return slots.some(isPaidOnTheMondayPath);
 }
 
 async function questAwardsOf(ctx: QueryCtx, { awards, annotations, day, at }: KudosGivenEvent): Promise<QuestAward[]> {
@@ -305,17 +319,33 @@ async function factsWithTheDayUnspent(ctx: QueryCtx, member: MemberId, at: numbe
 }
 
 async function drawWhenDue(ctx: MutationCtx, member: MemberId, at: number): Promise<"drawn" | "nothing to draw"> {
-  const openedAt = await openedAtOf(ctx, member, "quests");
-  if (openedAt === null) return "nothing to draw";
+  const schedule = await drawScheduleOf(ctx, member);
+  if (schedule === null) return "nothing to draw";
+  const { opensAt, pool } = schedule;
   const timeZone = await timeZoneOf(ctx, member);
   const week = weekKeyOf(at, timeZone);
-  return weekKeyOf(openedAt, timeZone) === week ? drawFor(ctx, member, Math.max(at, openedAt)) : drawFor(ctx, member, weekStartOf(week, timeZone), factsAtTheStartOf);
+  return weekKeyOf(opensAt, timeZone) === week ? drawFor(ctx, member, Math.max(at, opensAt), pool) : drawFor(ctx, member, weekStartOf(week, timeZone), pool, factsAtTheStartOf);
 }
 
-async function drawFor(ctx: MutationCtx, member: MemberId, at: number, factsOf = drawFactsOf): Promise<"drawn" | "nothing to draw"> {
+async function drawScheduleOf(ctx: QueryCtx, member: MemberId): Promise<DrawSchedule | null> {
+  if (await onTheMondayPath(ctx, member)) {
+    const opensAt = await mondayDrawsOpenAt(ctx, member);
+    return opensAt === null ? null : { opensAt, pool: mondayQuestPool };
+  }
+  const openedAt = await openedAtOf(ctx, member, "quests");
+  return openedAt === null ? null : { opensAt: openedAt, pool: questPool };
+}
+
+async function mondayDrawsOpenAt(ctx: QueryCtx, member: MemberId): Promise<number | null> {
+  const start = await questStartOf(ctx, member);
+  const onboardingFinished = start === null ? null : await onboardingFinishedAt(ctx, member);
+  return start === null || onboardingFinished === null ? null : Math.max(start, onboardingFinished + 1);
+}
+
+async function drawFor(ctx: MutationCtx, member: MemberId, at: number, pool: QuestPool, factsOf = drawFactsOf): Promise<"drawn" | "nothing to draw"> {
   const week = weekKeyOf(at, await timeZoneOf(ctx, member));
   if ((await drawOf(ctx, member, week)) !== null) return "nothing to draw";
-  const slots = drawFrom(member, week, await factsOf(ctx, member, at));
+  const slots = drawFrom(member, week, pool, await factsOf(ctx, member, at));
   if (slots.length === 0) return "nothing to draw";
   await ctx.db.insert("questDraws", { member, week, drawnAt: at, slots });
   const { workspace } = await chatUserOf(ctx, member);
@@ -323,22 +353,22 @@ async function drawFor(ctx: MutationCtx, member: MemberId, at: number, factsOf =
   return "drawn";
 }
 
-function drawFrom(member: MemberId, week: WeekKey, facts: DrawFacts): Slot[] {
-  return rankedFeasible(member, week, facts)
+function drawFrom(member: MemberId, week: WeekKey, pool: QuestPool, facts: DrawFacts): Slot[] {
+  return rankedFeasible(member, week, pool, facts)
     .slice(0, questsPerWeek)
-    .map((feasible, slot) => slotOf(slot, feasible));
+    .map((feasible, slot) => slotOf(slot, pool, feasible));
 }
 
-function rankedFeasible(member: MemberId, week: WeekKey, facts: DrawFacts): FeasibleQuest[] {
-  const ranked = [...questPool.quests].sort((one, other) => rankOf(member, week, one) - rankOf(member, week, other));
+function rankedFeasible(member: MemberId, week: WeekKey, pool: QuestPool, facts: DrawFacts): FeasibleQuest[] {
+  const ranked = [...pool.quests].sort((one, other) => rankOf(member, week, one) - rankOf(member, week, other));
   return ranked.flatMap((quest) => {
     const feasibleBecause = feasibility(quest, facts);
     return feasibleBecause === null ? [] : [{ quest, feasibleBecause }];
   });
 }
 
-function slotOf(slot: number, { quest: { quest, reward }, feasibleBecause }: FeasibleQuest): Slot {
-  return { slot, quest, reward, catalogueVersion: questPool.version, feasibleBecause };
+function slotOf(slot: number, { version }: QuestPool, { quest: { quest, reward }, feasibleBecause }: FeasibleQuest): Slot {
+  return { slot, quest, reward, catalogueVersion: version, feasibleBecause };
 }
 
 function rankOf(member: MemberId, week: WeekKey, { quest }: PoolQuest) {

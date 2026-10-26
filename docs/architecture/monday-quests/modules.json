@@ -1,0 +1,579 @@
+{
+  "rows": [
+    {
+      "modules": [
+        {
+          "id": "web",
+          "name": "Website reads",
+          "note": "convex/website",
+          "used": 103,
+          "change": "changed",
+          "seam": [
+            "getMyProfile",
+            {
+              "name": "getQuests",
+              "change": "changed"
+            },
+            {
+              "name": "viewQuests",
+              "change": "added"
+            }
+          ],
+          "chips": [
+            {
+              "id": "web-quests",
+              "text": "quests: Monday shape",
+              "change": "changed"
+            },
+            {
+              "text": "own copy of the gate",
+              "change": "removed"
+            }
+          ],
+          "flex": 0.9
+        },
+        {
+          "id": "slack",
+          "name": "Slack adapter",
+          "note": "convex/slack",
+          "used": 14,
+          "change": "changed",
+          "flex": 1.3,
+          "seam": [
+            "slackInteractivity",
+            "deliverWelcome",
+            {
+              "name": "deliverMondayDm",
+              "change": "added",
+              "q": "Q4"
+            },
+            {
+              "name": "sendHugsRecap",
+              "change": "removed"
+            },
+            {
+              "name": "deliverFirstHugReply",
+              "change": "removed"
+            }
+          ],
+          "chips": [
+            {
+              "id": "slack-buttons",
+              "text": "link + Stop buttons",
+              "change": "added",
+              "q": "Q6"
+            },
+            {
+              "id": "slack-welcome",
+              "text": "welcome blocks",
+              "change": "changed"
+            },
+            {
+              "id": "slack-monday",
+              "text": "Monday DM blocks",
+              "change": "added",
+              "q": "Q4"
+            },
+            {
+              "id": "slack-firsthug",
+              "text": "first-hug ephemeral",
+              "change": "removed"
+            },
+            {
+              "id": "slack-permalink",
+              "text": "permalink, stranded jobs"
+            }
+          ]
+        },
+        {
+          "id": "commands",
+          "name": "Commands",
+          "note": "convex/commands",
+          "seam": [
+            "runCommand",
+            {
+              "name": "stopMondayQuests",
+              "change": "added",
+              "q": "Q6"
+            }
+          ],
+          "chips": [
+            {
+              "text": "setMessageSetting, flag-gated"
+            }
+          ],
+          "flex": 0.9
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "id": "welcome",
+          "name": "Welcome",
+          "note": "convex/welcome, every first moment",
+          "used": 2,
+          "change": "changed",
+          "q": "Q3",
+          "flex": 1.2,
+          "seam": [
+            "welcomeNewMembers",
+            {
+              "name": "welcomeOnHug",
+              "change": "added"
+            },
+            {
+              "name": "catchUpWelcomes",
+              "change": "added"
+            }
+          ],
+          "chips": [
+            {
+              "id": "welcome-row",
+              "text": "one welcomes row, with its path",
+              "change": "changed",
+              "wide": true
+            },
+            {
+              "text": "catch-up job + kill switch",
+              "change": "added"
+            },
+            {
+              "id": "welcome-nudge",
+              "text": "welcome nudge",
+              "change": "added",
+              "followUp": true,
+              "q": "Q7"
+            }
+          ]
+        },
+        {
+          "id": "hugs",
+          "name": "Hugs",
+          "note": "convex/hugs",
+          "used": 23,
+          "change": "changed",
+          "seam": [
+            {
+              "name": "giveHug",
+              "change": "changed"
+            },
+            {
+              "name": "hugsSectionOf",
+              "change": "added",
+              "q": "Q4"
+            },
+            {
+              "name": "startRecap",
+              "change": "removed"
+            }
+          ],
+          "chips": [
+            {
+              "id": "hugs-weeks",
+              "text": "hugWeeks counts"
+            },
+            {
+              "id": "hugs-recap",
+              "text": "recap scheduler",
+              "change": "removed"
+            },
+            {
+              "id": "hugs-first",
+              "text": "first-hug reply",
+              "change": "removed"
+            }
+          ],
+          "flex": 1
+        },
+        {
+          "id": "monday",
+          "name": "Monday DM",
+          "note": "convex/mondayDm",
+          "change": "added",
+          "q": "Q4",
+          "flex": 1.1,
+          "seam": [
+            "scheduleMondayDms",
+            "mondayDmOf",
+            "mondayDmEnded"
+          ],
+          "chips": [
+            {
+              "id": "monday-rows",
+              "text": "one row per member-week"
+            },
+            {
+              "id": "monday-sweep",
+              "text": "9:00 local sweep, retries"
+            },
+            {
+              "id": "monday-sections",
+              "text": "sections: hugs, quests"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gap": 46,
+      "bus": {
+        "name": "Bus",
+        "note": "publish(event) \u2192 every subscriber, in its own transaction"
+      }
+    },
+    {
+      "gap": 46,
+      "modules": [
+        {
+          "id": "quests",
+          "name": "Quests",
+          "note": "convex/quests",
+          "used": 65,
+          "change": "changed",
+          "flex": 1.6,
+          "seam": [
+            {
+              "name": "questsFor",
+              "change": "added",
+              "q": "Q1"
+            },
+            {
+              "name": "startQuests",
+              "change": "added",
+              "q": "Q1"
+            },
+            {
+              "name": "questsApplyTo",
+              "change": "changed"
+            },
+            {
+              "name": "nextOnboardingQuestOf",
+              "change": "added"
+            },
+            {
+              "name": "questsSectionOf",
+              "change": "added",
+              "q": "Q4"
+            }
+          ],
+          "chips": [
+            {
+              "id": "quests-gate",
+              "text": "gate: monday or unlock path",
+              "change": "changed",
+              "q": "Q1"
+            },
+            {
+              "id": "quests-onboarding",
+              "text": "onboarding: 3 Journey steps",
+              "change": "changed"
+            },
+            {
+              "id": "quests-draw",
+              "text": "weekly draw",
+              "change": "changed"
+            },
+            {
+              "id": "quests-finish",
+              "text": "finish: XP + hoggie item",
+              "change": "changed",
+              "q": "Q2"
+            },
+            {
+              "id": "quests-crates",
+              "text": "crates, coins, swaps (dark)"
+            }
+          ]
+        },
+        {
+          "id": "items",
+          "name": "Items",
+          "note": "convex/items",
+          "used": 41,
+          "seam": [
+            "earnItem",
+            "boardOf",
+            "turn"
+          ],
+          "chips": [
+            {
+              "text": "ledger, reason quest",
+              "change": "changed",
+              "q": "Q2"
+            }
+          ]
+        },
+        {
+          "id": "settings",
+          "name": "Message settings",
+          "note": "convex/messageSettings",
+          "used": 18,
+          "seam": [
+            "placeOf",
+            "wantsMessage",
+            "setMessageSetting"
+          ],
+          "chips": [
+            {
+              "text": "quests kind"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "id": "unlocks",
+          "name": "Unlocks",
+          "note": "off in production",
+          "used": 38,
+          "seam": [
+            "unlockPathShownTo",
+            "openUnlock"
+          ]
+        },
+        {
+          "id": "analytics",
+          "name": "Analytics",
+          "note": "convex/analytics",
+          "used": 35,
+          "change": "changed",
+          "flex": 1.3,
+          "seam": [
+            "memberDecision",
+            "recordUsage",
+            {
+              "name": "dm sent",
+              "change": "added"
+            },
+            {
+              "name": "dm link clicked",
+              "change": "added"
+            },
+            {
+              "name": "quests viewed",
+              "change": "added"
+            }
+          ]
+        },
+        {
+          "id": "hoggies",
+          "name": "Hoggies",
+          "note": "convex/hoggies",
+          "used": 68,
+          "seam": [
+            "dropFor"
+          ],
+          "chips": [
+            {
+              "text": "packBands: quest key pays nothing",
+              "change": "changed",
+              "q": "Q2"
+            }
+          ]
+        },
+        {
+          "id": "progression",
+          "name": "Progression",
+          "used": 62,
+          "seam": [
+            "recordReward",
+            "rewardOf"
+          ]
+        }
+      ]
+    }
+  ],
+  "wires": [
+    {
+      "from": "hugs-recap",
+      "to": "slack-permalink",
+      "kind": "leak",
+      "change": "removed",
+      "label": "2 symbols, 1 file",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "bend": 40,
+      "labelAt": 0.8,
+      "labelAlign": "end",
+      "labelOffset": [
+        -8,
+        0
+      ],
+      "crossAt": 0.65
+    },
+    {
+      "from": "hugs-first",
+      "to": "slack-firsthug",
+      "kind": "leak",
+      "change": "removed",
+      "label": "fn ref",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "bend": 40,
+      "labelAt": 0.8,
+      "labelAlign": "start",
+      "labelOffset": [
+        8,
+        0
+      ],
+      "crossAt": 0.65
+    },
+    {
+      "from": "monday",
+      "to": "hugs",
+      "fromSide": "left",
+      "toSide": "right",
+      "toAt": 0.25,
+      "change": "added",
+      "q": "Q4",
+      "bend": 30,
+      "fromAt": 0.25
+    },
+    {
+      "from": "monday-sections",
+      "to": "quests-seam",
+      "toAt": 0.9,
+      "change": "added",
+      "q": "Q4",
+      "bend": 60,
+      "labelAt": 0.88
+    },
+    {
+      "from": "welcome-row",
+      "to": "quests-seam",
+      "toAt": 0.55,
+      "change": "added",
+      "label": "nextOnboardingQuestOf",
+      "bend": 60,
+      "labelAt": 0.82,
+      "labelAlign": "start",
+      "labelOffset": [
+        6,
+        0
+      ]
+    },
+    {
+      "from": "quests-finish",
+      "fromSide": "right",
+      "to": "items",
+      "toSide": "left",
+      "toAt": 0.7,
+      "change": "added",
+      "q": "Q2",
+      "bend": 30,
+      "labelAt": 0.9,
+      "labelAlign": "start",
+      "labelOffset": [
+        4,
+        14
+      ]
+    },
+    {
+      "from": "quests-gate",
+      "to": "unlocks-seam",
+      "toAt": 0.4,
+      "label": "unlock path only",
+      "bend": 30,
+      "labelAt": 0.85,
+      "labelAlign": "start",
+      "labelOffset": [
+        6,
+        0
+      ]
+    },
+    {
+      "from": "commands",
+      "to": "settings",
+      "toAt": 0.3,
+      "change": "added",
+      "q": "Q6",
+      "bend": 30,
+      "fromAt": 0.6,
+      "fromSide": "right",
+      "toSide": "right",
+      "labelAt": 0.5,
+      "labelAlign": "end",
+      "labelOffset": [
+        -14,
+        0
+      ]
+    },
+    {
+      "from": "hugs",
+      "fromSide": "bottom",
+      "fromAt": 0.5,
+      "to": "bus",
+      "straight": "from",
+      "kind": "bus",
+      "label": "pub hugGiven{first}",
+      "bend": 15,
+      "labelAlign": "start",
+      "labelOffset": [
+        5,
+        0
+      ],
+      "change": "changed"
+    },
+    {
+      "from": "bus",
+      "fromSide": "top",
+      "to": "welcome",
+      "toSide": "bottom",
+      "toAt": 0.85,
+      "straight": "to",
+      "kind": "bus",
+      "change": "added",
+      "label": "sub hugGiven, kudosGiven",
+      "bend": 15,
+      "labelAlign": "end",
+      "labelOffset": [
+        -5,
+        0
+      ]
+    }
+  ],
+  "untouched": [
+    {
+      "name": "Wallet",
+      "seam": [
+        "coinsApplyTo",
+        "coinsVisibleTo"
+      ],
+      "note": "coins stay dark"
+    },
+    {
+      "name": "Store",
+      "seam": [
+        "storeVisibleTo"
+      ],
+      "note": "stays dark"
+    },
+    {
+      "name": "Groups",
+      "seam": [
+        "groupsApplyTo"
+      ],
+      "note": "group quests stay dark"
+    },
+    {
+      "name": "Achievements",
+      "seam": [
+        "achievementsApplyIn"
+      ],
+      "note": "the Book"
+    },
+    {
+      "name": "Feedback",
+      "seam": [
+        "welcomeMessage",
+        "settingsFooterFor",
+        "deepLinkOf"
+      ],
+      "used": 89,
+      "note": "copy for the welcomes and the Monday DM"
+    }
+  ]
+}

@@ -32,6 +32,8 @@ import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { crateKindOf } from "../hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
+import type { WelcomePath } from "../welcome/welcomedAs";
+import type { MondayDmSection } from "../mondayDm/records";
 
 export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.number(), v.boolean()));
 
@@ -73,6 +75,9 @@ export type ProductEvent = {
     | "primary group picked"
     | "message setting changed"
     | "profile card viewed"
+    | "dm sent"
+    | "dm link clicked"
+    | "quests viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
@@ -85,11 +90,26 @@ export type UsageFact =
   | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: Period; surface: LeaderboardSurface; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
-  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
+  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; via?: "dm-button"; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
   | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number }
   | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number }
-  | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number };
+  | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number }
+  | { kind: "dmSent"; workspace: string; member: MemberId; dm: SentDm; at: number }
+  | { kind: "dmLinkClicked"; workspace: string; member: MemberId; dm: SentDm["kind"]; destination: DmLinkDestination; at: number }
+  | { kind: "questsViewed"; workspace: string; member: MemberId; surface: QuestsSurface; at: number };
+
+export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: MondayDmSection[] };
+
+export const dmKindValidator = v.union(v.literal("welcome"), v.literal("monday"));
+
+export const dmLinkDestinationValidator = v.union(v.literal("book"), v.literal("quests"), v.literal("quests-how"));
+
+export type DmLinkDestination = Infer<typeof dmLinkDestinationValidator>;
+
+export const questsSurfaceValidator = v.union(v.literal("panel"), v.literal("profile"));
+
+export type QuestsSurface = Infer<typeof questsSurfaceValidator>;
 
 export type PickSurface = "welcome" | "settings" | "website";
 
@@ -288,7 +308,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
     case "primaryGroupPicked":
       return { event: "primary group picked", subject, at: fact.at, properties: { surface: fact.surface } };
     case "messageSettingChanged":
-      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }) } };
+      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }), ...(fact.via !== undefined && { via: fact.via }) } };
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
     case "hugsRecapSent":
@@ -297,5 +317,15 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "xp moment ended", subject, at: fact.at, properties: { skipped: fact.skipped, excerpts_shown: fact.excerptsShown, folded: fact.folded } };
     case "howItWorksClosed":
       return { event: "onboarding card closed", subject, at: fact.at, properties: { tried_slack: fact.triedSlack } };
+    case "dmSent":
+      return { event: "dm sent", subject, at: fact.at, properties: sentDmProperties(fact.dm) };
+    case "dmLinkClicked":
+      return { event: "dm link clicked", subject, at: fact.at, properties: { kind: fact.dm, destination: fact.destination } };
+    case "questsViewed":
+      return { event: "quests viewed", subject, at: fact.at, properties: { surface: fact.surface } };
   }
+}
+
+function sentDmProperties(dm: SentDm): Properties {
+  return dm.kind === "welcome" ? { kind: dm.kind, path: dm.path } : { kind: dm.kind, sections: dm.sections.join(",") };
 }

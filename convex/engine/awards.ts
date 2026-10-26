@@ -25,7 +25,7 @@ export type GivenMessagesPage = { messages: GivenMessage[]; cursor: string; isDo
 
 type AwardRow = Doc<"awards">;
 
-export type DatedAward = { award: AwardId; day: DayKey; at: number; annotations: Annotations };
+export type DatedAward = { award: AwardId; day: DayKey; at: number; created: number; annotations: Annotations };
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -224,16 +224,19 @@ export async function earliestAwardFrom(ctx: QueryCtx, giver: MemberId, recipien
   return earliest === null ? null : { award: earliest._id, at: earliest.at, created: earliest._creationTime };
 }
 
-export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
-  const awards = await ctx.db
-    .query("awards")
-    .withIndex("by_giver", (q) => q.eq("giver", giver))
-    .collect();
-  const lastThanked = new Map<MemberId, number>();
-  for (const { recipient, at } of awards) {
-    if (at <= atOrBefore && at > (lastThanked.get(recipient) ?? -Infinity)) lastThanked.set(recipient, at);
+export type FirstAward = { message: MessageRef; at: number };
+
+export async function firstAwardsGivenAfter(ctx: QueryCtx, giver: MemberId, after: number): Promise<FirstAward[]> {
+  const firsts: FirstAward[] = [];
+  for await (const row of ctx.db.query("awards").withIndex("by_giver_at", (q) => q.eq("giver", giver).gt("at", after))) {
+    if ((await earliestAwardFrom(ctx, giver, row.recipient))?.award === row._id) firsts.push({ message: refOf(row), at: row.at });
   }
-  return lastThanked;
+  return firsts;
+}
+
+export async function thankedAtOrBefore(ctx: QueryCtx, giver: MemberId, recipient: MemberId, atOrBefore: number): Promise<boolean> {
+  for await (const { at } of ctx.db.query("awards").withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))) if (at <= atOrBefore) return true;
+  return false;
 }
 
 const thankedBeforeSince = -Infinity;
@@ -288,7 +291,7 @@ export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number
     })
     .collect();
   const between = awards.filter(({ at }) => at >= since && at <= until).sort((one, other) => one.at - other.at);
-  return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at }, annotations }) => ({ award: _id, day, at, annotations }));
+  return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at, _creationTime }, annotations }) => ({ award: _id, day, at, created: _creationTime, annotations }));
 }
 
 function earliestDayAt(at: number): DayKey {
@@ -346,6 +349,14 @@ export async function hasGivenAnAward(ctx: QueryCtx, giver: MemberId): Promise<b
   const any = await ctx.db
     .query("awards")
     .withIndex("by_giver_decided", (q) => q.eq("giver", giver))
+    .first();
+  return any !== null;
+}
+
+export async function hasReceivedAnAward(ctx: QueryCtx, recipient: MemberId): Promise<boolean> {
+  const any = await ctx.db
+    .query("awards")
+    .withIndex("by_recipient_decided", (q) => q.eq("recipient", recipient))
     .first();
   return any !== null;
 }

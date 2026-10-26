@@ -85,6 +85,7 @@ async function whoWonOf(ctx: QueryCtx, member: MemberId, reason: ItemReason): Pr
   if (reason.kind === "team") return [winner, { text: ` filled the ${reason.name} page` }];
   if (reason.kind === "milestone") return [winner, { text: ` earned the ${medalWordsOf(reason)} medal` }];
   if (reason.kind === "forge") return [winner, { text: ` forged three copies of ${hoggieNamed(reason.hoggie)?.name ?? reason.hoggie}` }];
+  if (reason.kind === "quest") return [winner, { text: " finished a quest" }];
   const quote = await thanksQuoteOf(ctx, reason.message);
   return [winner, { text: " thanked " }, { text: await nameOf(ctx, reason.person), strong: true }, ...(quote === null ? [] : [{ text: `: '${quote}'` }])];
 }

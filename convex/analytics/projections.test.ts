@@ -322,3 +322,45 @@ describe("E2: leaderboard left and leaderboard joined", () => {
     expect(projectUsage({ kind: "leaderboardVisibilityChanged", workspace: "T1", member: bob, visible, at })).toEqual({ event, subject: { member: bob }, at, properties: {} });
   });
 });
+
+describe("MQ34: the DM and quests usage facts", () => {
+  test("a welcome sent carries its kind and path", () => {
+    expect(projectUsage({ kind: "dmSent", workspace: "T1", member: bob, dm: { kind: "welcome", path: "thoughtful-given" }, at })).toEqual({
+      event: "dm sent",
+      subject: { member: bob },
+      at,
+      properties: { kind: "welcome", path: "thoughtful-given" },
+    });
+  });
+
+  test("a Monday DM sent carries its kind and the sections it carried", () => {
+    expect(projectUsage({ kind: "dmSent", workspace: "T1", member: bob, dm: { kind: "monday", sections: ["hugs", "quests"] }, at })).toEqual({
+      event: "dm sent",
+      subject: { member: bob },
+      at,
+      properties: { kind: "monday", sections: "hugs,quests" },
+    });
+  });
+
+  test.each(["book", "quests", "quests-how"] as const)("a DM link to %s clicked carries the DM's kind and the destination", (destination) => {
+    expect(projectUsage({ kind: "dmLinkClicked", workspace: "T1", member: bob, dm: "monday", destination, at })).toEqual({
+      event: "dm link clicked",
+      subject: { member: bob },
+      at,
+      properties: { kind: "monday", destination },
+    });
+  });
+
+  test("MQ29: a message setting changed by a DM button says so in via", () => {
+    expect(projectUsage({ kind: "messageSettingChanged", workspace: "T1", member: bob, setting: "quests", on: false, place: "none", via: "dm-button", at })).toEqual({
+      event: "message setting changed",
+      subject: { member: bob },
+      at,
+      properties: { kind: "quests", on: false, place: "none", via: "dm-button" },
+    });
+  });
+
+  test.each(["panel", "profile"] as const)("quests viewed on the %s carries its surface", (surface) => {
+    expect(projectUsage({ kind: "questsViewed", workspace: "T1", member: bob, surface, at })).toEqual({ event: "quests viewed", subject: { member: bob }, at, properties: { surface } });
+  });
+});

@@ -77,6 +77,6 @@ function signInAskedInTheAddress() {
 }
 
 function dropTheSignInAsk() {
-  const { pathname, search } = window.location;
-  window.history.replaceState(null, "", withoutTheSignInEntry(pathname) + search);
+  const { pathname, search, hash } = window.location;
+  window.history.replaceState(null, "", withoutTheSignInEntry(pathname) + search + hash);
 }

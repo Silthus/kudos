@@ -3,8 +3,8 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
-import type { HowItWorksCloseReply, ShareReply, TurnReply } from "../shell";
-import type { Album, AlbumLevel, PackOpenReply, SeenReply, UnlockReply } from "./answer";
+import type { HowItWorksCloseReply, QuestsSurface, QuestsViewReply, ShareReply, TurnReply } from "../shell";
+import type { Album, AlbumLevel, PackOpenReply, QuestsShown, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments, useEmojisShown } from "./EmojiMoment";
 import { useEmojisOnTheirWay, withTheEmojisAway } from "./emojisOnTheirWay";
 import { GettingStarted } from "./GettingStarted";
@@ -12,6 +12,9 @@ import { HowItWorks } from "./HowItWorks";
 import { AfterTheLanding, ItemBoard, ItemsWait } from "./ItemBoard";
 import { levelEmojisClimbedTo, useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
+import { playerAskedAt } from "./PlayerPage";
+import { mondayQuestsIn, QuestsPanel, QuestsProvider, type ShellQuests } from "./QuestsPanel";
+import type { QuestsLanding } from "./questsFold";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
 import { PutInFlights } from "./PutInFlights";
@@ -54,9 +57,12 @@ export type AlbumShellProps = {
   shareItem: (item: string) => Promise<ShareReply>;
   closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
   anEntryIsOpen: boolean;
+  quests: QuestsShown | undefined;
+  questsLanding: QuestsLanding;
+  viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, questsLanding, viewQuests }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -115,6 +121,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     missedXpMoment.start();
     turns.show();
   };
+  const shellQuests = shellQuestsOf(quests, { inSight: !(playing || covered || anEntryIsOpen), openBoard: turns.show, landing: questsLanding, viewQuests });
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
@@ -140,14 +147,28 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
             <LandingProvider value={turns.landing}>
               <ItemTurningProvider value={itemTurningOf(turns)}>
-                <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+                <QuestsProvider value={shellQuests}>
+                  <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+                </QuestsProvider>
               </ItemTurningProvider>
             </LandingProvider>
           </ErrorBoundary>
         </main>
+        {shellQuests !== null && <QuestsPanel shown={shellQuests} place={{ key: keyOf(place), asTab: isOwnPageD(album, place), wide }} />}
       </div>
     </div>
   );
+}
+
+type QuestsWiring = { inSight: boolean; openBoard: () => void; landing: QuestsLanding; viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply> };
+
+function shellQuestsOf(quests: QuestsShown | undefined, { viewQuests, ...wiring }: QuestsWiring): ShellQuests | null {
+  const monday = mondayQuestsIn(quests);
+  return monday === null ? null : { quests: monday, ...wiring, view: (surface) => void viewQuests(surface) };
+}
+
+function isOwnPageD(album: Album, place: Place) {
+  return playerAskedAt(place, album) === album.me.person;
 }
 
 function firstShown(buttons: RefObject<HTMLElement | null>[]) {

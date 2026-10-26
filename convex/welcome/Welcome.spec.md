@@ -1,6 +1,6 @@
 # Welcome
 
-Welcome: the first kudosGiven subscriber. It records each member it welcomes with that counterpart and asks feedback for the welcome message the first time a Given award names them, as giver or recipient, with the counterpart by Slack user (the giver for a recipient, the recipients for a giver), and publishes memberWelcomed for each member it welcomes. It welcomes at most 100 members per mutation, each with its welcome row, its delivery and its memberWelcomed, and schedules itself with the event and a cursor over the event's members for the rest (QM10).
+Welcome: the first kudosGiven subscriber, the first hugGiven subscriber, and questFinished's subscriber for the Journey's `first-thanks`. Off the Monday path it records each member it welcomes with that counterpart and asks feedback for the welcome message the first time a Given award names them, as giver or recipient, with the counterpart by Slack user (the giver for a recipient, the recipients for a giver), and publishes memberWelcomed for each member it welcomes; and, while `onboarding` and `hidden-items` are on for the giver, read without an exposure, it answers the hug hugGiven marks as the giver's first with the first-hug reply the Slack adapter posts (core-loop LP73). It welcomes at most 100 members per mutation, each with its welcome row, its delivery and its memberWelcomed, and schedules itself with the event and a cursor over the event's members for the rest (QM10). On the Monday path (`monday-quest` on for the member, read without an exposure) a member is welcomed by their first act and by nothing else: their first hug, the kudos that finishes their `first-thanks` and is paid on the Monday path, or a thoughtful kudos they receive (MQ14). In that act's subscriber, one mutation writes the member's one welcomes row with its path, earns the welcome item, starts their quests where the Monday path is shown to them (read with exposure), and schedules the welcome DM with their onboarding journey at that moment (MQ13, MQ17); it sends no first-hug reply, asks for no welcome message and publishes no memberWelcomed (MQ15), and feedback's welcome nudge stands down for a member it welcomed or that the same thoughtful kudos welcomes (MQ16). The Slack adapter posts the DM, tried at most 3 times, a rate-limit hold or refusal sent again and an unknown answer never; the module reports dm sent with the welcome's path only for a delivered DM, never for one gone or failed (MQ18). The catch-up welcome, catchUpWelcomes, which an operator runs by hand for a workspace, walks its members one per transaction, each scheduling the next, and welcomes with path `catch-up`, as any Monday-path welcome, each member who has given a hug or given or received a kudos, is on the Monday path, has no welcomes row and for whom `catch-up-welcome` answers true, read last and only there, a failed read answering false; a member it answers false for is skipped and the walk goes on, and since each transaction reads the flag definitions afresh, turning the flag off stops the walk at the next member (MQ31–MQ33, MQ45).
 
 ## invariants
 - welcomed at most once: A member gets the welcome message at most once, ever, whatever Slack redelivers and whichever Given awards name them later.
@@ -36,3 +36,59 @@ Welcome: the first kudosGiven subscriber. It records each member it welcomes wit
   checklist: memory-budget dismissed: no evaluator allocates against a memory budget
   checklist: execution-budget declared as a welcome never schedules past Convex's limit
   checklist: circuit-breaker-policy dismissed: no dependency failures open or close anything here
+- a giver's first hug ever gets one first-hug reply at most: While `onboarding` and `hidden-items` are on for a giver, the first hug they ever give sends them one ephemeral first-hug reply in the hugged message's conversation, and no later hug, redelivered reaction or re-added reaction sends another; Slack refusing it or answering unknown ends it with no retry and no DM, and a giver who hugged before `onboarding` was on for them gets none.
+  over: a first hug on an ordinary message and on a Given kudos message, a second hug, a redelivered reaction, a removed and re-added reaction, Slack refusing it, the channel gone, an unknown answer, a rate-limit hold, a giver who hugged while `onboarding` was off, each of the two flags off, and a giver on the Monday path, who gets the welcome DM instead
+  via: LP73: a member's first hug ever gets one first-hug reply
+  refuted: giveHug marked every hug as the giver's first instead of reading the hugs' giver index -> 5 of 16 tests failed: a second hug, a hug after a refused first reply and a giver who hugged while onboarding was off each got another ephemeral (2026-10-25)
+  because: the reply teaches the next step once, from the member's own action (LP73); a second one would repeat a lesson already learned on every hug, and a DM would reach the member away from the message they hugged
+  kinds: message
+  checklist: destination-confinement dismissed: the reply goes only to the giver as an ephemeral in the hugged message's conversation, both taken from the signed reaction
+  checklist: message-authenticity dismissed: the reaction reaches giveHug only through the Slack adapter's signature check, and the reply answers that reaction
+  checklist: input-validation dismissed: the scheduled action's arguments are checked by its validator, the workspace, the giver, the conversation and who was hugged
+  checklist: retry-recognition dismissed: a redelivered or re-added reaction finds the giver's hug on the message and records nothing, so it publishes no hugGiven, and a later hug's hugGiven is not marked first
+  checklist: duplicate-suppression declared as a giver's first hug ever gets one first-hug reply at most
+  checklist: keyed-ordering dismissed: one reply is sent per giver, so no two replies need an order
+  checklist: acknowledgment-barrier dismissed: the reply is scheduled from welcomeOnHug, which hugGiven schedules from the hug's mutation, so it runs only after the hug's record commits
+  checklist: retry-classification dismissed: only a rate-limit hold sends it again; sendAtMostOnce ends it on any refusal or unknown answer
+- a member on the Monday path is welcomed once: On the Monday path a member gets one welcomes row and one welcome DM, ever, whichever of their first hug, their first thoughtful kudos given and a thoughtful kudos received comes first, whether two of them arrive at once, a later act follows, any of the three subscribers runs again, or the member was welcomed before the Monday path applied to them.
+  over: a hug and a thoughtful kudos in the same moment, a hug welcome followed by a first thoughtful kudos, a replay of welcomeOnHug, welcomeNewMembers and welcomeOnFirstThanks, and a member welcomed off the Monday path before `monday-quest` turned on
+  via: MQ13: one welcome per member, ever
+  refuted: removed the isWelcomed check in welcomeOnTheMondayPath -> 5 of 6 tests failed: the hug and kudos race, a later first thoughtful kudos and each replayed subscriber welcomed the member again (2026-10-25)
+  because: the welcome is the one introduction to the Monday path (MQ13); a second one would start the journey again in the member's DMs and pay the welcome item twice
+  kinds: message, state
+  checklist: revalidated-permission dismissed: the welcome needs no permission beyond the bot's chat:write scope, which Slack checks when the DM is sent
+  checklist: destination-confinement dismissed: the DM goes only to the welcomed member's own Slack user id
+  checklist: message-authenticity dismissed: hugGiven, kudosGiven and questFinished come from the hugs, engine and quests transactions, never from outside
+  checklist: input-validation dismissed: each subscriber's argument is checked by its event's validator
+  checklist: separation-of-duties dismissed: no approval policy applies to welcoming a member
+  checklist: legal-state-succession declared as a member on the Monday path is welcomed once
+  checklist: supersession-safety dismissed: a welcome is never replaced; the first row stands and every later act only reads it
+  checklist: retry-recognition dismissed: each subscriber reads the member's welcomes row before writing it, in the same mutation, so a rerun finds it and returns
+  checklist: duplicate-suppression declared as a member on the Monday path is welcomed once
+  checklist: keyed-ordering dismissed: whichever act's mutation commits first welcomes; the others read its row
+  checklist: worker-fencing dismissed: no lease or ownership change applies; each subscriber run is one serialized mutation
+  checklist: acknowledgment-barrier dismissed: nothing acknowledges the welcome; the Slack event is acknowledged after the mutation that records the act commits
+  checklist: commit-ordered-effects dismissed: the DM is scheduled from the mutation that writes the welcomes row, and runs only after it commits
+  checklist: resumption-coverage dismissed: welcomeNewMembers' pages walk the event's fixed list of members, and a page run again finds each member's welcomes row and skips them
+  checklist: retry-classification dismissed: the Slack adapter's delivery classifies the DM's answers, sending a rate-limit hold or refusal again and never an unknown answer
+- the catch-up stops at its kill switch between any two members: The catch-up welcome reads `catch-up-welcome` afresh for each member, in that member's own transaction, so it welcomes no member after the flag turns off, reaches a member it is on for however many members before them it is off for, and a rerun welcomes nobody twice.
+  over: the flag on for everyone, on only for a member after two it is off for, turned off between the first member's transaction and the next, monday-quest off, the flag undefined, a rerun, and members already welcomed, never active, or who only gave a hug or only received a kudos
+  via: MQ31 MQ32 MQ33: the catch-up welcomes each member who used HedgeHug before the Monday path and was never welcomed
+  refuted: catchUpWelcomes walked 100 members per transaction instead of one -> 1 of 6 tests failed: with the flag turned off after the first member's transaction, the next two members were still welcomed, since one transaction read the flag definitions once (2026-10-25)
+  because: the catch-up is the one send that reaches members who never asked for a welcome (MQ33); a walk that read the flag once per page would keep sending after the operator turned it off, and one that stopped at the first member it is off for would let the order of members decide who is reached
+  kinds: message, state
+  checklist: revalidated-permission declared as the catch-up stops at its kill switch between any two members
+  checklist: destination-confinement dismissed: each DM goes only to the welcomed member's own Slack user id
+  checklist: message-authenticity dismissed: only an operator runs the internal mutation; nothing outside reaches it
+  checklist: input-validation dismissed: the workspace and cursor are checked by the mutation's validator, and the cursor is Convex's own
+  checklist: separation-of-duties dismissed: the product owner's confirmation between the first run and the widening is a rollout step on the flag, not a code path
+  checklist: legal-state-succession dismissed: the catch-up writes the welcomes row through the one Monday-path welcome, which reads it first
+  checklist: supersession-safety dismissed: a welcome is never replaced; a rerun only reads the rows the first run wrote
+  checklist: retry-recognition dismissed: each member's transaction reads their welcomes row before writing it, so a rerun or a redelivered page finds it and skips them
+  checklist: duplicate-suppression declared as a member on the Monday path is welcomed once
+  checklist: keyed-ordering dismissed: members are walked in the directory's index order, and no member's welcome depends on another's
+  checklist: worker-fencing dismissed: no lease applies; two runs at once each read the welcomes row in a serialized mutation, so one welcomes and the other skips
+  checklist: acknowledgment-barrier dismissed: nothing acknowledges the walk; each member's transaction commits on its own
+  checklist: commit-ordered-effects dismissed: each DM is scheduled from the mutation that writes the member's welcomes row, and runs only after it commits
+  checklist: resumption-coverage dismissed: each transaction schedules the next with Convex's continue cursor over the workspace's members, so the walk visits every member once in index order and a rerun starts over from the first
+  checklist: retry-classification dismissed: the Slack adapter's delivery classifies the DM's answers, sending a rate-limit hold or refusal again and never an unknown answer

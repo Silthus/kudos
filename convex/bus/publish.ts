@@ -4,6 +4,7 @@ import type { MutationCtx } from "../_generated/server";
 import { journeyStepOpenedBy } from "../quests/step";
 import { earnsPacks } from "../album/earns";
 import { crateKindOf } from "../hoggies/crateKey";
+import { isTheFirstThanks } from "../welcome/firstThanks";
 import type { DomainEvent } from "./events";
 
 type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
@@ -39,6 +40,7 @@ export const subscribers: Registry = {
   unlocksLaunched: [internal.analytics.subscribers.recordUnlocksLaunched],
   questFinished: [
     { subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" },
+    { subscriber: internal.welcome.welcome.welcomeOnFirstThanks, only: ({ quest }) => isTheFirstThanks(quest) },
     internal.analytics.subscribers.recordQuestFinished,
   ],
   questOpened: [internal.analytics.subscribers.recordQuestOpened],
@@ -55,7 +57,13 @@ export const subscribers: Registry = {
   awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
   hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped, { subscriber: internal.album.milestones.recordMilestonesAfterAHoggieDrop, only: ({ crate }) => crateKindOf(crate) !== "thoughtful" }],
   crateBought: [],
-  hugGiven: [internal.hugs.people.payHugPeople, internal.feedback.welcomeNudge.nudgeTheHugged, internal.album.tallies.tallyHugGiven, internal.analytics.subscribers.recordHugGiven],
+  hugGiven: [
+    { subscriber: internal.welcome.welcome.welcomeOnHug, only: ({ first }) => first === true },
+    internal.hugs.people.payHugPeople,
+    internal.feedback.welcomeNudge.nudgeTheHugged,
+    internal.album.tallies.tallyHugGiven,
+    internal.analytics.subscribers.recordHugGiven,
+  ],
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
   thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned, internal.feedback.albumReplies.replyAfterTheGrant],
