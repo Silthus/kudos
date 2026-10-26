@@ -153,9 +153,15 @@ async function thanksSomeoneNew(ctx: QueryCtx, { giver, awards }: KudosGivenEven
 
 async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<FinishedOnboardingQuest | null> {
   if (!saysWhy(event.annotations) || (await finishOf(ctx, event.giver, "two-days")) !== null) return null;
-  const sayingWhy = (await givenBetween(ctx, event.giver, start, event.at)).filter(({ annotations }) => saysWhy(annotations));
+  const recorded = await recordedAtOf(ctx, event);
+  const sayingWhy = (await givenBetween(ctx, event.giver, start, Infinity)).filter(({ annotations, at, created }) => saysWhy(annotations) && (at <= event.at || created < recorded));
   const days = new Set([event.day, ...sayingWhy.map(({ day }) => day)]);
   return days.size >= daysSayingWhyToFinishTwoDays ? finishedBy(ctx, event, "two-days") : null;
+}
+
+async function recordedAtOf(ctx: QueryCtx, { awards }: KudosGivenEvent): Promise<number> {
+  const first = awards[0] === undefined ? null : await ctx.db.get(awards[0].award);
+  return first?._creationTime ?? 0;
 }
 
 function finishedBy(ctx: MutationCtx, { workspace, giver, at, message }: KudosGivenEvent, step: OnboardingStep): Promise<FinishedOnboardingQuest | null> {

@@ -201,6 +201,20 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     expect(replyTo(alice).filter((line) => line.startsWith("Quest done:")), "the reply still to be sent tells both finishes").toEqual([firstThanksDone, someoneNewDone]);
   });
 
+  test("kudos that say why on 2 different days finish two-days, even when Slack sends the later day's first", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    vi.setSystemTime(Date.now() + 2 * minuteMs);
+    const dayOne = tsOf(Date.now());
+    vi.setSystemTime(Date.now() + dayMs);
+
+    await thanksPostedAt(tsOf(Date.now()), alice, saysWhy, bob);
+    await thanksPostedAt(dayOne, alice, saysWhy, bob);
+
+    expect(await causesOf(alice, "journey:two-days"), "the kudos two-days is paid for").toEqual([dayOne]);
+    expect(replyTo(alice), "the reply still to be sent").toContain("Quest done: Say why on 2 different days · +50 XP and an unidentified Hoggie for your collection");
+  });
+
   test("a kudos that says why counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await memberChanged(t, "team_join", { id: carol.user, profile: { real_name: carol.name } });

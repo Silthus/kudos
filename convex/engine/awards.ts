@@ -25,7 +25,7 @@ export type GivenMessagesPage = { messages: GivenMessage[]; cursor: string; isDo
 
 type AwardRow = Doc<"awards">;
 
-export type DatedAward = { award: AwardId; day: DayKey; at: number; annotations: Annotations };
+export type DatedAward = { award: AwardId; day: DayKey; at: number; created: number; annotations: Annotations };
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -291,7 +291,7 @@ export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number
     })
     .collect();
   const between = awards.filter(({ at }) => at >= since && at <= until).sort((one, other) => one.at - other.at);
-  return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at }, annotations }) => ({ award: _id, day, at, annotations }));
+  return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at, _creationTime }, annotations }) => ({ award: _id, day, at, created: _creationTime, annotations }));
 }
 
 function earliestDayAt(at: number): DayKey {
