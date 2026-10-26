@@ -155,8 +155,14 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent, start: n
   if (!saysWhy(event.annotations) || (await finishOf(ctx, event.giver, "two-days")) !== null) return null;
   const recorded = await recordedAtOf(ctx, event);
   const sayingWhy = (await givenBetween(ctx, event.giver, start, Infinity)).filter(({ annotations, at, created }) => saysWhy(annotations) && (at <= event.at || created < recorded));
-  const days = new Set([event.day, ...sayingWhy.map(({ day }) => day)]);
-  return days.size >= daysSayingWhyToFinishTwoDays ? finishedBy(ctx, event, "two-days") : null;
+  const reachedAt = whenTheSecondDaySayingWhyCame([...sayingWhy, event]);
+  return reachedAt === null ? null : finished(ctx, event.workspace, event.giver, "two-days", Math.max(reachedAt, event.at), event.message);
+}
+
+function whenTheSecondDaySayingWhyCame(sayingWhy: { day: string; at: number }[]): number | null {
+  const days = new Set<string>();
+  for (const { day, at } of sayingWhy.toSorted((one, other) => one.at - other.at)) if (days.add(day).size === daysSayingWhyToFinishTwoDays) return at;
+  return null;
 }
 
 async function recordedAtOf(ctx: QueryCtx, { awards }: KudosGivenEvent): Promise<number> {
