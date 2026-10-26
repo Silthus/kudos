@@ -30,6 +30,7 @@ const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you>
 const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
 const sendMondayDm = "slack/mondayDm:sendMondayDm";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
+const welcomeOnFirstThanks = "welcome/welcome:welcomeOnFirstThanks";
 
 type Person = { user: string; name: string };
 
@@ -490,206 +491,16 @@ describe("MQ35: a link button's dm-link action records dm link clicked, on the w
   });
 });
 
-describe("MQ31 MQ32 MQ33: a member who used HedgeHug and was never welcomed gets the catch-up welcome once, inside their first Monday DM", { timeout: 60_000 }, () => {
-  test("with hugs, the DM is the recap's lines, then the catch-up welcome, then today's footer, and no recap goes on its own", async () => {
+describe("MQ31 MQ32 MQ33 retired: the catch-up went out once, and no Monday DM carries it again", { timeout: 60_000 }, () => {
+  test("a member who used HedgeHug and was never welcomed gets no catch-up and no Monday DM row of their own, even with catch-up-welcome on", async () => {
     await usedBeforeTheMondayPath();
-
-    await mondayArrives();
-
-    expect(dmsTo(bob).map(seen)).toEqual([
-      [
-        "section: :taco: Your week in hugs\nYou reacted :taco: and gave 1 hug (+1 XP).",
-        "divider",
-        `section: Hey <@U_BOB> :wave::skin-tone-2:\n\n${stuckInThePipe}\n\nHedgeHug is how we thank each other here. A :taco: reaction is a quick hug, and a kudos that says why is the big thanks.`,
-        "divider",
-        "section: *Your onboarding journey* · 0 of 3 done",
-        "👉 *Thank someone and say why*",
-        "⚪ Thank someone you haven't thanked before",
-        "⚪ Say why on 2 different days _0 of 2 days_",
-        "section: *Up next: thank someone and say why.*\nMention them, add :taco: and write a sentence about what they did. [button: Show me how]",
-        "context: 🎁 +50 XP and an unidentified Hoggie for your collection",
-        `actions: See your quests (primary, dm-link:monday:quests → ${siteUrl}/book#me/quests)`,
-        `context: ${footer}`,
-      ],
-    ]);
-    expect(dmTimesTo(bob)).toEqual([mondayNine]);
-    expect((await mondayDmsSentTo(bob)).map(({ properties }) => properties.sections)).toEqual(["hugs,catch-up"]);
-    expect(productEvents("dm sent").filter(({ properties }) => properties.kind === "welcome")).toEqual([]);
-  });
-
-  test("without hugs, the DM is the catch-up welcome alone", async () => {
-    await usedBeforeTheMondayPath();
-
-    await mondayArrives();
-
-    const [dm, ...more] = dmsTo(carol).map(seen);
-    expect(more).toEqual([]);
-    expect(dm?.[0]).toBe(
-      `section: Hey <@U_CAROL> :wave::skin-tone-2:\n\n${stuckInThePipe}\n\nHedgeHug is how we thank each other here. A :taco: reaction is a quick hug, and a kudos that says why is the big thanks.\n\nThree unidentified Hoggies for your collection are waiting for you.`,
-    );
-    expect(dm?.at(-1)).toBe(`actions: Identify them now (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests)`);
-    expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["catch-up"]);
-  });
-
-  test("the next Monday each gets the regular Monday DM, and a member welcomed before never sees the pipe line", async () => {
-    await usedBeforeTheMondayPath();
-    await mondayArrives();
-
-    await mondayArrives(nextMondayNine + hourMs);
-
-    expect([bob, carol].map((person) => dmsTo(person).map(saysStuckInThePipe))).toEqual([
-      [true, false],
-      [true, false],
-    ]);
-    expect(seen(dmsTo(bob)[1]!)[0]).toMatch(/^section: \*Your onboarding journey\* · 0 of 3 done/);
-    expect(dmsTo(alice).filter(saysStuckInThePipe)).toEqual([]);
-  });
-
-  test("a row first ensured on Monday after 9:00 goes at once, as the only DM that day", async () => {
-    await usedBeforeTheMondayPath({ catchUpOn: false });
-    await settleUpTo(t, mondayNine + hourMs);
-    await switchWebsite(t, postHog, true, ...mondayPath, "catch-up-welcome");
-
-    await sweepsAt(mondayNine + hourMs);
-
-    expect(dmsTo(bob).map(saysStuckInThePipe)).toEqual([true]);
-    expect(dmTimesTo(bob)).toEqual([mondayNine + hourMs]);
-  });
-
-  test("catch-up-welcome turned off before 9:00 sends no catch-up, and today's recap goes as today", async () => {
-    await usedBeforeTheMondayPath();
-    await sweepsAt(Date.now() + hourMs);
-
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await mondayArrives();
-
-    expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
-    expect(dmsTo(carol)).toEqual([]);
-  });
-
-  test("its link clicks record the Monday DM, and Show me how still answers in its thread", async () => {
-    await usedBeforeTheMondayPath();
-    await mondayArrives();
-
-    await press(carol, "Identify them now");
-    await press(carol, "See your quests");
-    await press(carol, "Show me how");
-
-    expect(linkClicks()).toEqual([
-      { kind: "monday", destination: "book" },
-      { kind: "monday", destination: "quests" },
-      { kind: "welcome", destination: "quests-how" },
-    ]);
-    expect(slack.callsTo("chat.postMessage").filter(({ channel, thread_ts }) => channel === carol.user && thread_ts !== undefined)).toHaveLength(1);
-  });
-
-  test("a rate-limited catch-up goes out on its retry, once", async () => {
-    await usedBeforeTheMondayPath();
-    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30));
-
-    await mondayArrives();
-
-    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true]);
-    expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["catch-up"]);
-  });
-
-  test("catch-up-welcome turned off while a rate-limited catch-up waits for its retry sends the regular Monday DM instead", async () => {
-    await usedBeforeTheMondayPath();
-    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60));
-    await mondayArrives(mondayNine + 10 * minuteMs);
-
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await settleUpTo(t, mondayNine + hourMs);
-
-    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([false]);
-    expect(seen(dmsTo(carol)[0]!)[0]).toMatch(/^section: \*Your onboarding journey\* · 0 of 3 done/);
-  });
-
-  test("with catch-up-welcome turned off between two rate-limited tries, the last try still sends the regular Monday DM", async () => {
-    await usedBeforeTheMondayPath();
-    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60), rateLimitedFor(30 * 60));
-    await mondayArrives(mondayNine + 10 * minuteMs);
-
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await settleUpTo(t, mondayNine + 3 * hourMs);
-
-    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([false]);
-    expect((await mondayDmsSentTo(carol)).map(({ properties }) => properties.sections)).toEqual(["quests"]);
-  });
-
-  test("a member who moves time zone while a rate-limited catch-up waits for its retry still gets the catch-up", async () => {
-    await usedBeforeTheMondayPath();
-    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60));
-    await mondayArrives(mondayNine + 10 * minuteMs);
-
-    slack.withMember(carol.user, { real_name: carol.name, tz: "Pacific/Honolulu" });
-    await memberChanged(t, "user_change", { id: carol.user, team_id: "T1", real_name: carol.name, tz: "Pacific/Honolulu" });
-    await settleUpTo(t, honoluluMondayNine + hourMs);
-
-    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true]);
-  });
-
-  test("a member who moves a whole day east on that Monday gets the catch-up once, then next Monday's regular DM", async () => {
-    slack.withMember(carol.user, { real_name: carol.name, tz: "Pacific/Honolulu" });
-    await usedBeforeTheMondayPath();
-    await sweepsAt(mondayNine - 2 * hourMs);
-    await settleUpTo(t, mondayNine + hourMs);
-
-    slack.withMember(carol.user, { real_name: carol.name, tz: "Pacific/Kiritimati" });
-    await memberChanged(t, "user_change", { id: carol.user, team_id: "T1", real_name: carol.name, tz: "Pacific/Kiritimati" });
-    await sweepsAt(mondayNine + 2 * hourMs);
-    await mondayArrives(nextMondayNine + hourMs);
-
-    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true, false]);
-  });
-
-  test("a row whose first start Convex lost and the sweep recovers days later sends no catch-up then, and the next Monday's does", async () => {
-    await usedBeforeTheMondayPath();
-    await sweepsAt(mondayNine - 2 * hourMs);
-    await convexLosesTheFirstStarts();
-
-    await sweepsAt(mondayNine + 2 * dayMs + hourMs);
-    await mondayArrives(nextMondayNine + hourMs);
-
-    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true]);
-    expect(dmTimesTo(carol)).toEqual([nextMondayNine]);
-  });
-
-  test("a recovered catch-up whose rate-limited retry falls after its Monday's window still goes out, once", async () => {
-    await usedBeforeTheMondayPath();
-    await sweepsAt(mondayNine - 2 * hourMs);
-    await convexLosesTheFirstStarts();
-    slack.answeringIn("chat.postMessage", carol.user, rateLimitedFor(30 * 60));
-
-    await sweepsAt(mondaysWindowEnds - 10 * minuteMs);
-    await mondayArrives(nextMondayNine + hourMs);
-
-    expect(dmsTo(carol).map(saysStuckInThePipe)).toEqual([true, false]);
-  });
-
-  test("a member welcomed on Monday before 9:00, whose row the catch-up already ensured, gets no Monday DM that day", async () => {
-    await usedBeforeTheMondayPath();
-    await sweepsAt(mondayNine - 2 * hourMs);
-
-    await thanks(carol, saysWhy, alice);
-    await mondayArrives();
-
-    expect(dmsTo(carol).filter(saysStuckInThePipe)).toEqual([]);
-    expect(await mondayDmsSentTo(carol)).toEqual([]);
-  });
-
-  test.each([
-    ["monday-quest is off", [...todaysFlags, "catch-up-welcome"]],
-    ["catch-up-welcome is not defined, so its read answers false", mondayPath],
-  ])("while %s, everything is as before: today's recap and no welcome", async (_, flags) => {
-    await usedBeforeTheMondayPath({ catchUpOn: false });
-    await switchWebsite(t, postHog, true, ...flags);
 
     await mondayArrives();
 
     expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
     expect(dmsTo(carol)).toEqual([]);
-    expect(productEvents("dm sent").filter(({ properties }) => properties.kind === "monday")).toEqual([]);
+    expect(await mondayDmRowsOf(bob, carol)).toEqual([]);
+    expect(await welcomePathsOf(bob, carol)).toEqual([]);
   });
 });
 
@@ -706,6 +517,30 @@ describe("MQ23 MQ24: the sweep ensures a Monday DM row only for a member the Mon
     expect(dmTimesTo(alice).filter((at) => at >= nextMondayNine)).toEqual([nextMondayNine]);
   });
 
+  test("a started member whose row is first ensured on a Monday after 9:00 gets that Monday's DM at once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+
+    await sweepsAt(mondayNine + hourMs);
+
+    expect(dmTimesTo(alice)).toEqual([mondayNine + hourMs]);
+    expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["quests"]);
+  });
+
+  test("a member whose first thanks starts their quests on a Monday before 9:00, with the sweep landing before their welcome, gets no Monday DM that day, since the welcome carries their quests", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    vi.setSystemTime(mondayNine - 2 * hourMs);
+
+    await postThanks(alice, saysWhy, [bob]);
+    const welcome = await stopped(welcomeOnFirstThanks);
+    await t.mutation(cronNamed("ensure each member's coming Monday DM"), {});
+    await t.mutation(makeFunctionReference<"mutation">(welcomeOnFirstThanks), welcome);
+    await mondayArrives();
+
+    expect(dmTimesTo(alice).filter((at) => at >= mondayNine)).toEqual([]);
+    expect(await mondayDmsSentTo(alice)).toEqual([]);
+  });
+
   test("a started member taken out of monday-quest before their row is ensured gets today's recap from the recap itself", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
@@ -719,16 +554,14 @@ describe("MQ23 MQ24: the sweep ensures a Monday DM row only for a member the Mon
   });
 });
 
-const stuckInThePipe = "A hoggie was stuck in the pipe, which kept this welcome from coming out. Here it is now :sweat_smile:";
 const nextMondayNine = mondayNine + 7 * dayMs;
-const mondaysWindowEnds = Date.parse("2026-10-21T00:00:00Z");
 
-async function usedBeforeTheMondayPath({ catchUpOn = true } = {}) {
+async function usedBeforeTheMondayPath() {
   await switchWebsite(t, postHog, true, ...todaysFlags);
   const carolsMessage = await thanks(carol, "thanks", alice);
   await hug(bob, carol, carolsMessage);
   await welcomeLost(carol);
-  await switchWebsite(t, postHog, true, ...mondayPath, ...(catchUpOn ? ["catch-up-welcome"] : []));
+  await switchWebsite(t, postHog, true, ...mondayPath, "catch-up-welcome");
 }
 
 async function welcomeLost(person: Person) {
@@ -743,10 +576,6 @@ async function welcomeLost(person: Person) {
       .unique();
     await ctx.db.delete(welcome!._id);
   });
-}
-
-function saysStuckInThePipe(dm: { blocks?: unknown }) {
-  return JSON.stringify(dm.blocks ?? []).includes("stuck in the pipe");
 }
 
 async function finishOnboarding(person: Person) {
@@ -781,12 +610,6 @@ async function hug(giver: Person, author: Person, message = `${Math.floor(Date.n
   return message;
 }
 
-async function convexLosesTheFirstStarts() {
-  await t.run(async (ctx) => {
-    for (const job of await ctx.db.system.query("_scheduled_functions").collect()) if (job.name === sendMondayDm && job.state.kind === "pending") await ctx.scheduler.cancel(job._id);
-  });
-}
-
 async function mondayArrives(until = mondayNine + hourMs) {
   await sweepsAt(Math.min(Date.now() + hourMs, until));
   await settleUpTo(t, until);
@@ -810,6 +633,23 @@ function cronNamed(name: string) {
 async function startsFirst(functionName: typeof sendMondayDm | typeof sendHugsRecap) {
   const args = await cancelled(functionName);
   await t.mutation(functionName === sendMondayDm ? internal.mondayDm.mondayDm.startMondayDm : internal.hugs.recap.startRecap, args);
+}
+
+async function stopped(functionName: string) {
+  for (let step = 0; step < 50; step += 1) {
+    const job = await pendingJobOf(functionName);
+    if (job !== null) {
+      await t.run((ctx) => ctx.scheduler.cancel(job._id));
+      return job.args[0];
+    }
+    vi.advanceTimersToNextTimer();
+    await t.finishInProgressScheduledFunctions();
+  }
+  throw new Error(`${functionName} was never scheduled`);
+}
+
+function pendingJobOf(functionName: string) {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).find(({ name, state }) => name === functionName && state.kind === "pending") ?? null);
 }
 
 async function cancelled(functionName: string) {
@@ -929,4 +769,14 @@ async function mondayDmsSentTo(person: Person) {
 
 function permalinkOf(message: string) {
   return `https://t1.slack.com/archives/C1/p${message.replace(".", "")}`;
+}
+
+async function mondayDmRowsOf(...people: Person[]) {
+  const members = await Promise.all(people.map(memberOf));
+  return t.run(async (ctx) => (await ctx.db.query("mondayDms").collect()).filter(({ member }) => members.includes(member)));
+}
+
+async function welcomePathsOf(...people: Person[]) {
+  const members = await Promise.all(people.map(memberOf));
+  return t.run(async (ctx) => (await ctx.db.query("welcomes").collect()).filter(({ member }) => members.includes(member)).map(({ path }) => path));
 }

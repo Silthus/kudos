@@ -172,7 +172,7 @@ export async function welcomePathOf(ctx: QueryCtx, member: MemberId): Promise<We
 - **The welcome.**
   - It lays the welcome item (`earnWelcomeItem`, idempotent), calls `startQuests`, and schedules `deliverWelcome` with the path, the next onboarding quest and the finished steps.
   - The delivery ends in `welcomeDelivered(outcome: "delivered" | "gone" | "failed")`, which records `dm sent { kind: "welcome", path }` only on `delivered`.
-- **The catch-up.**
+- **The catch-up** (retired: it went out once, inside the Monday DMs of 2026-10-26, and its code is deleted; spec MQ31–MQ33).
   - It works through pages of 100 opted-in members with no row. Opted in means the member gave a hug or gave or received a kudos.
   - Before each member it checks `catch-up-welcome` for that member, and stops the page on false.
   - It schedules its next page itself. A re-run starts over safely.

@@ -14,7 +14,6 @@ export const mondayWelcomeCauseValidator = v.union(
   v.object({ path: v.literal("hug"), hugged: messageRefValidator }),
   v.object({ path: v.literal("thoughtful-given"), kudos: v.optional(messageRefValidator) }),
   v.object({ path: v.literal("thoughtful-received"), giver: v.id("members"), kudos: messageRefValidator }),
-  v.object({ path: v.literal("catch-up") }),
 );
 
 export type MondayWelcomeCause = Infer<typeof mondayWelcomeCauseValidator>;
@@ -30,8 +29,7 @@ export type HuggedPeople = { kind: "author"; name?: string } | { kind: "peopleTh
 export type MondayWelcomeOpening =
   | { path: "hug"; emoji: string; hugged: HuggedPeople }
   | { path: "thoughtful-given"; recipients: ChatUserId[] }
-  | { path: "thoughtful-received"; giver: ChatUserId; quote: string | null }
-  | { path: "catch-up" };
+  | { path: "thoughtful-received"; giver: ChatUserId; quote: string | null };
 
 export type MondayWelcome = {
   kudosEmoji: string;
@@ -47,7 +45,7 @@ export const mondayWelcomeOf = internalQuery({
   handler: (ctx, { workspace, member, cause, journey }): Promise<MondayWelcome> => mondayWelcomeFor(ctx, workspace, member, cause, journey),
 });
 
-export async function mondayWelcomeFor(ctx: QueryCtx, workspace: string, member: MemberId, cause: MondayWelcomeCause, journey: OnboardingQuest[]): Promise<MondayWelcome> {
+async function mondayWelcomeFor(ctx: QueryCtx, workspace: string, member: MemberId, cause: MondayWelcomeCause, journey: OnboardingQuest[]): Promise<MondayWelcome> {
   const next = journey.find(({ finished }) => !finished)?.step ?? null;
   const links = await dmLinksFor(ctx, workspace, member);
   return {
@@ -73,8 +71,6 @@ async function openingOf(ctx: QueryCtx, member: MemberId, cause: MondayWelcomeCa
       return { path: cause.path, recipients: cause.kudos === undefined ? [] : await recipientsOf(ctx, member, cause.kudos) };
     case "thoughtful-received":
       return { path: cause.path, giver: (await chatUserOf(ctx, cause.giver)).user, quote: await publicQuoteOf(ctx, cause.kudos) };
-    case "catch-up":
-      return { path: cause.path };
   }
 }
 
