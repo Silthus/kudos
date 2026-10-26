@@ -117,13 +117,14 @@ describe("POST /slack/commands", () => {
       expect(slack.privateReplies()).toEqual(["I stay out of customer channels and channels shared with another organization, since I quote kudos."]);
     });
 
-    test("when Slack won't say what the channel is, it doesn't join", async () => {
+    test("in a private channel the app is in, which Slack won't describe without groups:read, it doesn't join and explains /invite", async () => {
       const t = testBackend();
       slack.answerInfo({ ok: false, error: "missing_scope" });
 
-      await runCommand(t, hedgehugCommand(publicChannel));
+      await runCommand(t, hedgehugCommand({ channel_id: "G1", channel_name: "privategroup" }));
 
       expect(slack.calls.filter(({ url }) => url.endsWith("/conversations.join"))).toEqual([]);
+      expect(slack.privateReplies()).toEqual(["I can't join private channels by myself. Type `/invite @HedgeHug` here and I'll start counting kudos."]);
     });
   });
 

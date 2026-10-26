@@ -177,7 +177,7 @@ function argumentsOf(command: URLSearchParams) {
   return (command.get("text") ?? "").trim().split(/\s+/).filter((word) => word !== "");
 }
 
-const unjoinableChannelErrors = new Set(["channel_not_found", "method_not_supported_for_channel_type"]);
+const unjoinableChannelErrors = new Set(["channel_not_found", "method_not_supported_for_channel_type", "missing_scope"]);
 
 function isDirectMessage(command: URLSearchParams) {
   const name = field(command, "channel_name");

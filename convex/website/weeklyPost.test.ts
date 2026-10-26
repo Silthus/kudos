@@ -275,6 +275,16 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
       expect(slack.callsTo("conversations.join")).toEqual([]);
     });
 
+    test("a channel shared between Slack describing it and the join is refused as shared", async () => {
+      slack.withChannel(pickedChannel, { name: "partners", kind: "shared" }).answering("conversations.info", () => Response.json({ ok: true, channel: { id: pickedChannel, name: "partners", is_ext_shared: false } }));
+      const owner = await aWorkspaceWithGroups({ flags: withPicker });
+
+      await owner.pickChannel(pickedLink);
+      await settle(t);
+
+      expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "shared", pick: 1 } });
+    });
+
     test("a channel Slack won't describe is not joined and reads failed", async () => {
       slack.withChannel(pickedChannel, { name: "kudos-weekly" }).answering("conversations.info", slackError("missing_scope"));
       const owner = await aWorkspaceWithGroups({ flags: withPicker });
