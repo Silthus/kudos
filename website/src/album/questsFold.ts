@@ -5,24 +5,24 @@ const storageKey = "hedgehug:quests-panel";
 
 const folded = "folded";
 
-export type QuestsFold = { open: boolean; fold: () => void; unfold: () => void };
+export type QuestsFold = { open: boolean; fold: () => void; unfold: () => void; openHere: () => void };
 
-export type FoldPlace = { key: string; asTab: boolean; wide: boolean };
+export type FoldPlace = { key: string; wide: boolean };
 
-export function useQuestsFold({ key, asTab, wide }: FoldPlace): QuestsFold {
+export function useQuestsFold({ key, wide }: FoldPlace): QuestsFold {
   const [rememberedFolded, setRememberedFolded] = useState(isRememberedFolded);
   const [openedAt, setOpenedAt] = useState<string | null>(null);
-  const remembers = wide && !asTab;
-  const open = remembers ? !rememberedFolded : openedAt === key;
+  const openHere = useCallback(() => setOpenedAt(key), [key]);
+  const open = openedAt === key || (wide && !rememberedFolded);
   const fold = useCallback(() => {
-    if (remembers) setRememberedFolded(rememberFolded(true));
-    else setOpenedAt(null);
-  }, [remembers]);
+    if (wide) setRememberedFolded(rememberFolded(true));
+    setOpenedAt(null);
+  }, [wide]);
   const unfold = useCallback(() => {
-    if (remembers) setRememberedFolded(rememberFolded(false));
-    else setOpenedAt(key);
-  }, [remembers, key]);
-  return { open, fold, unfold };
+    if (wide) setRememberedFolded(rememberFolded(false));
+    else openHere();
+  }, [wide, openHere]);
+  return { open, fold, unfold, openHere };
 }
 
 export type QuestsLanding = { asked: QuestsAsked | null; landed: () => void };

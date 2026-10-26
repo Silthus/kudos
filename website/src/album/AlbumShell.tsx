@@ -12,8 +12,7 @@ import { HowItWorks } from "./HowItWorks";
 import { AfterTheLanding, ItemBoard, ItemsWait } from "./ItemBoard";
 import { levelEmojisClimbedTo, useLevelUnlocks } from "./levelUnlocks";
 import { PackOpening, useHeld, type Held } from "./PackOpening";
-import { playerAskedAt } from "./PlayerPage";
-import { mondayQuestsIn, QuestsPanel, QuestsProvider, type ShellQuests } from "./QuestsPanel";
+import { mondayQuestsIn, QuestsPanel, type ShellQuests } from "./QuestsPanel";
 import type { QuestsLanding } from "./questsFold";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
@@ -147,14 +146,12 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
             <LandingProvider value={turns.landing}>
               <ItemTurningProvider value={itemTurningOf(turns)}>
-                <QuestsProvider value={shellQuests}>
-                  <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
-                </QuestsProvider>
+                <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
               </ItemTurningProvider>
             </LandingProvider>
           </ErrorBoundary>
         </main>
-        {shellQuests !== null && <QuestsPanel shown={shellQuests} place={{ key: keyOf(place), asTab: isOwnPageD(album, place), wide }} />}
+        {shellQuests !== null && <QuestsPanel shown={shellQuests} place={{ key: keyOf(place), wide }} />}
       </div>
     </div>
   );
@@ -165,10 +162,6 @@ type QuestsWiring = { inSight: boolean; openBoard: () => void; landing: QuestsLa
 function shellQuestsOf(quests: QuestsShown | undefined, { viewQuests, ...wiring }: QuestsWiring): ShellQuests | null {
   const monday = mondayQuestsIn(quests);
   return monday === null ? null : { quests: monday, ...wiring, view: (surface) => void viewQuests(surface) };
-}
-
-function isOwnPageD(album: Album, place: Place) {
-  return playerAskedAt(place, album) === album.me.person;
 }
 
 function firstShown(buttons: RefObject<HTMLElement | null>[]) {

@@ -16,7 +16,6 @@ import { levelShareOf, plural, xpToNextOf } from "./facts";
 import { emblemOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { PetHoggie, petOf } from "./PetHoggie";
-import { ProfileQuests } from "./QuestsPanel";
 import { OwnHypePick, ownHypeEmojiOf, type HypePicker } from "./OwnHypePick";
 import { findYourselfHref, hrefOf, type Place } from "./place";
 import { holdsNothingButEmojis, isAQuietCard, isAQuietWeek, ownWeekOf, teammateWeekOf, type EmojiStack, type PageWeek, type SaidLine } from "./playerPage";
@@ -87,7 +86,6 @@ function PlayerPage({ album, page, picker }: { album: Album; page: Page; picker:
       </section>
       {page.card.hoggies !== null && <RarestFind page={page} />}
       {page.together !== null && <Together name={page.card.name} together={page.together} />}
-      {page.own && <ProfileQuests />}
       <Week page={page} />
       {page.hypePick !== null && <YourHypeEmoji person={page.hypePick} emojiPage={album.emojiPage} picker={picker} />}
     </article>

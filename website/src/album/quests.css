@@ -378,23 +378,3 @@
   border-radius: 0.1875rem;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
 }
-
-.al-quests-profile {
-  display: grid;
-  gap: 0.75rem;
-  grid-column: 1 / -1;
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  background: var(--card);
-  padding: 1rem 1.125rem;
-  scroll-margin-top: var(--al-quests-top);
-}
-
-.al-quests-profile .al-quests-journey,
-.al-quests-profile .al-quests-list {
-  max-width: 40rem;
-}
-
-.al-quests-profile:focus {
-  outline: none;
-}

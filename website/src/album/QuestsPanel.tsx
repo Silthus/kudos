@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { IconCheck, IconChevronRight } from "@posthog/icons";
 import type { DrawnQuest, GettingStartedStep, MondayQuests } from "../../../convex/website/quests";
 import type { QuestsSurface } from "../shell";
@@ -11,17 +11,14 @@ export type ShellQuests = { quests: MondayQuests; inSight: boolean; openBoard: (
 
 type Row = { goal: string; hint: string | null; howToOpen: boolean; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
 
-const QuestsContext = createContext<ShellQuests | null>(null);
-
-export const QuestsProvider = QuestsContext.Provider;
-
 export function mondayQuestsIn(shown: QuestsShown | undefined): MondayQuests | null {
   return shown?.kind === "monday" ? shown : null;
 }
 
 export function QuestsPanel({ shown, place }: { shown: ShellQuests; place: FoldPlace }) {
-  const { open, fold, unfold } = useQuestsFold(place);
+  const { open, fold, unfold, openHere } = useQuestsFold(place);
   const { tab, foldButton, toggled } = useFocusAcrossTheFold(open);
+  const howTo = useLandedAt(shown.landing, openHere);
   useViewedOnEachOpen(open, shown.inSight, () => shown.view("panel"));
   const { done, total } = doneOf(shown.quests);
   if (!open)
@@ -44,7 +41,7 @@ export function QuestsPanel({ shown, place }: { shown: ShellQuests; place: FoldP
           <IconChevronRight />
         </button>
       </header>
-      <QuestList quests={shown.quests} openBoard={shown.openBoard} />
+      <QuestList quests={shown.quests} openBoard={shown.openBoard} howTo={howTo} />
       <Footer quests={shown.quests} />
     </aside>
   );
@@ -70,31 +67,15 @@ function focus(button: RefObject<HTMLButtonElement | null>) {
   button.current?.focus();
 }
 
-export function ProfileQuests() {
-  const shown = useContext(QuestsContext);
-  useViewedOnEachOpen(shown !== null, shown?.inSight ?? false, () => shown?.view("profile"));
-  const { section, howTo } = useLandedAt(shown?.landing, shown?.inSight ?? false);
-  if (shown === null) return null;
-  return (
-    <section ref={section} id="quests" className="al-quests al-quests-profile" aria-label="Your quests" tabIndex={-1} data-panel-target="quests">
-      <Greeting quests={shown.quests} />
-      <QuestList quests={shown.quests} openBoard={shown.openBoard} howTo={howTo} />
-      <Footer quests={shown.quests} />
-    </section>
-  );
-}
-
-function useLandedAt(landing: QuestsLanding | undefined, inSight: boolean) {
-  const section = useRef<HTMLElement>(null);
+function useLandedAt({ asked, landed }: QuestsLanding, openHere: () => void) {
   const [howTo, setHowTo] = useState<string | null>(null);
   useEffect(() => {
-    if (!inSight || !landing?.asked || section.current === null) return;
-    section.current.scrollIntoView({ block: "start" });
-    section.current.focus({ preventScroll: true });
-    setHowTo(landing.asked.howTo);
-    landing.landed();
-  }, [landing, inSight]);
-  return { section, howTo };
+    if (asked === null) return;
+    openHere();
+    setHowTo(asked.howTo);
+    landed();
+  }, [asked, landed, openHere]);
+  return howTo;
 }
 
 function Greeting({ quests }: { quests: MondayQuests }) {
