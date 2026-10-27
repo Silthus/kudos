@@ -25,7 +25,7 @@ export type SlackUserGroup = {
 
 export type UserGroupOptions = { handle?: string; name?: string; users?: string[]; disabled?: boolean; autoType?: "admin" | "owner" };
 
-export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared" | "pending-shared"; joined?: boolean };
+export type SlackChannel = { name: string; kind?: "public" | "private" | "archived" | "shared" | "pending-shared" | "private-shared"; joined?: boolean };
 
 export type SlackArgs = Record<string, unknown>;
 
@@ -100,6 +100,17 @@ export class FakeSlack {
 
   hasJoined(id: string) {
     return this.channels.get(id)?.joined === true;
+  }
+
+  renameChannel(id: string, name: string) {
+    this.channels.get(id)!.name = name;
+    return this;
+  }
+
+  shareChannel(id: string) {
+    const channel = this.channels.get(id)!;
+    channel.kind = isPrivate(channel) ? "private-shared" : "shared";
+    return this;
   }
 
   withCustomEmoji(name: string, value: string) {
@@ -240,6 +251,8 @@ export class FakeSlack {
     if (method === "conversations.replies") return this.replies(args);
     if (method === "conversations.join") return this.join(field("channel"));
     if (method === "conversations.list") return this.listChannels(args);
+    if (method === "users.conversations") return this.channelsJoined(args);
+    if (method === "conversations.leave") return this.leave(field("channel"));
     if (method === "chat.unfurl") return unfurlAnswerTo(args);
     if (method === "conversations.info") return this.channelInfo(field("channel"));
     if (method === "auth.test") return { ok: true, url: this.workspaceUrl, team: "Kudos Test", team_id: "T1", user: "kudos", user_id: "U_KUDOS_BOT", bot_id: "B_KUDOS" };
@@ -249,7 +262,7 @@ export class FakeSlack {
   private join(id: string) {
     const channel = this.channels.get(id);
     if (channel === undefined) return { ok: true, channel: { id } };
-    if (channel.kind === "private") return { ok: false, error: "method_not_supported_for_channel_type" };
+    if (isPrivate(channel)) return { ok: false, error: "method_not_supported_for_channel_type" };
     if (channel.kind === "archived") return { ok: false, error: "is_archived" };
     const alreadyIn = channel.joined === true;
     channel.joined = true;
@@ -259,13 +272,29 @@ export class FakeSlack {
 
   private channelInfo(id: string) {
     const channel = this.channels.get(id);
-    if (channel === undefined || channel.kind === "private") return { ok: false, error: "channel_not_found" };
-    return { ok: true, channel: { id, name: channel.name, is_channel: true, is_archived: channel.kind === "archived", is_ext_shared: channel.kind === "shared", is_pending_ext_shared: channel.kind === "pending-shared" } };
+    if (channel === undefined || (isPrivate(channel) && channel.joined !== true)) return { ok: false, error: "channel_not_found" };
+    return { ok: true, channel: describedChannel(id, channel) };
+  }
+
+  private channelsJoined(args: SlackArgs) {
+    const types = String(args.types ?? "public_channel").split(",");
+    const joined = [...this.channels.entries()].filter(([, channel]) => channel.joined === true && types.includes(isPrivate(channel) ? "private_channel" : "public_channel"));
+    const from = Number(args.cursor ?? 0);
+    const to = from + Math.min(Number(args.limit ?? 100), this.channelsPerPage);
+    return { ok: true, channels: joined.slice(from, to).map(([id, channel]) => describedChannel(id, channel)), response_metadata: { next_cursor: to < joined.length ? String(to) : "" } };
+  }
+
+  private leave(id: string) {
+    const channel = this.channels.get(id);
+    if (channel === undefined) return { ok: false, error: "channel_not_found" };
+    if (channel.joined !== true) return { ok: false, not_in_channel: true };
+    channel.joined = false;
+    return { ok: true };
   }
 
   private listChannels(args: SlackArgs) {
     if (args.types !== "public_channel") return { ok: false, error: "invalid_types" };
-    const listed = [...this.channels.entries()].filter(([, channel]) => channel.kind !== "private" && !(args.exclude_archived === "true" && channel.kind === "archived"));
+    const listed = [...this.channels.entries()].filter(([, channel]) => !isPrivate(channel) && !(args.exclude_archived === "true" && channel.kind === "archived"));
     const from = Number(args.cursor ?? 0);
     const to = from + Math.min(Number(args.limit ?? 100), this.channelsPerPage);
     const channels = listed.slice(from, to).map(([id, channel]) => ({
@@ -358,4 +387,13 @@ function unsupportedElementIn(view: unknown): string | null {
   const blocks = (view as { blocks?: Array<{ type: string; elements?: Array<{ type: string }> }> } | undefined)?.blocks ?? [];
   const index = blocks.findIndex((block) => block.type === "actions" && (block.elements ?? []).some((element) => multiSelects.has(element.type)));
   return index < 0 ? null : `[ERROR] unsupported element: multiselect [json-pointer:view/blocks/${index}]`;
+}
+
+function isPrivate(channel: SlackChannel) {
+  return channel.kind === "private" || channel.kind === "private-shared";
+}
+
+function describedChannel(id: string, channel: SlackChannel) {
+  const isShared = channel.kind === "shared" || channel.kind === "private-shared";
+  return { id, name: channel.name, is_channel: true, is_private: isPrivate(channel), is_archived: channel.kind === "archived", is_ext_shared: isShared, is_pending_ext_shared: channel.kind === "pending-shared", is_member: channel.joined === true };
 }

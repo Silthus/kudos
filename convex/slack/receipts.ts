@@ -140,6 +140,15 @@ export const receiveChannelCreated = internalMutation({
   },
 });
 
+export const receiveChannelToCheck = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), channel: v.string() },
+  handler: async (ctx, { channel, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await ctx.scheduler.runAfter(0, internal.slack.channelLeaves.leaveIfOffLimits, { channel });
+  },
+});
+
 export const receiveEmojiChanged = internalMutation({
   args: { workspace: v.string(), eventId: v.string() },
   handler: async (ctx, receipt) => {

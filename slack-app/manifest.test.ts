@@ -6,9 +6,9 @@ const siteUrl = "https://example-deployment.convex.site";
 describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => {
   const manifest = renderManifest(environment, siteUrl);
 
-  test("asks for every spec 1 bot scope up front, users:read.email for the directory's member profiles (F4), usergroups:read for its user groups, emoji:read for its custom emoji, reactions:read for hugs (SR17), channels:read to list and hear about every public channel it joins and links:read with links:write to unfold person and team links (LP78)", () => {
+  test("asks for every spec 1 bot scope up front, users:read.email for the directory's member profiles (F4), usergroups:read for its user groups, emoji:read for its custom emoji, reactions:read for hugs (SR17), channels:read to list and hear about every public channel it joins, channels:manage with groups:read and groups:write to leave shared and customer channels, and links:read with links:write to unfold person and team links (LP78)", () => {
     expect(manifest.oauth_config.scopes.bot.toSorted()).toEqual(
-      ["channels:history", "channels:join", "channels:read", "chat:write", "chat:write.public", "commands", "emoji:read", "groups:history", "links:read", "links:write", "reactions:read", "reactions:write", "usergroups:read", "users:read", "users:read.email"],
+      ["channels:history", "channels:join", "channels:manage", "channels:read", "chat:write", "chat:write.public", "commands", "emoji:read", "groups:history", "groups:read", "groups:write", "links:read", "links:write", "reactions:read", "reactions:write", "usergroups:read", "users:read", "users:read.email"],
     );
   });
 
@@ -26,14 +26,18 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     ]);
   });
 
-  test("subscribes to every spec 1 bot event, the user group events, emoji_changed, reaction_added for hugs (SR17), channel_created to join each new public channel and link_shared to unfold person and team links (LP78) at the deployment's events route", () => {
+  test("subscribes to every spec 1 bot event, the user group events, emoji_changed, reaction_added for hugs (SR17), channel_created to join each new public channel, channel_shared, channel_rename, group_rename and member_joined_channel to leave a channel once it is shared or a customer's, and link_shared to unfold person and team links (LP78) at the deployment's events route", () => {
     expect(manifest.settings.event_subscriptions).toEqual({
       request_url: "https://example-deployment.convex.site/slack/events",
       bot_events: [
         "app_home_opened",
         "channel_created",
+        "channel_rename",
+        "channel_shared",
         "emoji_changed",
+        "group_rename",
         "link_shared",
+        "member_joined_channel",
         "message.channels",
         "message.groups",
         "reaction_added",

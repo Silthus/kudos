@@ -254,6 +254,7 @@ import type * as slack_blocks from "../slack/blocks.js";
 import type * as slack_cardDrawing from "../slack/cardDrawing.js";
 import type * as slack_cardPictures from "../slack/cardPictures.js";
 import type * as slack_channelJoins from "../slack/channelJoins.js";
+import type * as slack_channelLeaves from "../slack/channelLeaves.js";
 import type * as slack_commandReplies from "../slack/commandReplies.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_customEmoji from "../slack/customEmoji.js";
@@ -635,6 +636,7 @@ declare const fullApi: ApiFromModules<{
   "slack/cardDrawing": typeof slack_cardDrawing;
   "slack/cardPictures": typeof slack_cardPictures;
   "slack/channelJoins": typeof slack_channelJoins;
+  "slack/channelLeaves": typeof slack_channelLeaves;
   "slack/commandReplies": typeof slack_commandReplies;
   "slack/commands": typeof slack_commands;
   "slack/customEmoji": typeof slack_customEmoji;
