@@ -20,7 +20,7 @@ Pushes to `main` deploy at once, but the Slack app's manifest changes only when 
 1. Comment on the pull request with what changed and why and the whole JSON in a `json` block. Give the steps: open HedgeHug at https://api.slack.com/apps, paste the JSON over its App Manifest, save, and reinstall. Name any one-off run you will do after the go-ahead. Comment again when a later commit changes the JSON.
 2. Ask the user in chat to apply it, linking the latest comment. Merge only after they say, after the latest comment, that it is saved and reinstalled.
 
-A change that removes a scope or event the running code uses, or adds or moves a route, reverses the order: post the comment, merge, wait for `Deploy production` to pass, then ask, because Slack checks the request URLs on save.
+A change that removes a scope or event the running code uses, or adds a route, reverses the order: post the comment, merge, wait for `Deploy production` to pass, then ask, because Slack checks the request URLs on save. Move a route by adding the new one and removing the old one in a later pull request, and give the scopes or events such a change adds a pull request of their own.
 
 ## Coherence
 
