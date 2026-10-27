@@ -3,12 +3,13 @@ import { internal } from "../_generated/api";
 import { ReportableError, typeOf } from "../analytics/exceptions";
 import { observedAction } from "../analytics/boundary";
 import { textOf } from "./directory";
-import { callSlack, readSlack, retryDelayOf, slackErrorCodeOf, type SlackAnswer } from "./webApi";
+import { isOffLimits, joinUnlessOffLimits, offLimitsReasonOf, type ChannelTraits, type OffLimits } from "./offLimitsChannels";
+import { readSlack, retryDelayOf, slackErrorCodeOf, type SlackAnswer } from "./webApi";
 
-type ListedChannel = { id: string; is_member?: boolean; is_archived?: boolean; is_ext_shared?: boolean; is_pending_ext_shared?: boolean };
+type ListedChannel = ChannelTraits & { id: string; is_member?: boolean; is_archived?: boolean };
 type ChannelsPage = { channels: ListedChannel[]; response_metadata?: { next_cursor?: string } };
 type ChannelCreated = { type: "channel_created"; channel?: { id?: unknown } };
-type Join = { kind: "joined" } | { kind: "already-in" } | { kind: "refused" } | { kind: "unanswered" } | { kind: "held"; forMs: number };
+type Join = { kind: "joined" } | { kind: "already-in" } | { kind: "off-limits" } | { kind: "refused" } | { kind: "unanswered" } | { kind: "held"; forMs: number };
 
 const channelsPerPage = "200";
 const tier3JoinsPerMinute = 50;
@@ -65,12 +66,13 @@ export function channelCreationOf(workspace: unknown, eventId: unknown, event: C
 }
 
 function isJoinable(channel: ListedChannel) {
-  return channel.is_member !== true && channel.is_archived !== true && channel.is_ext_shared !== true && channel.is_pending_ext_shared !== true;
+  return channel.is_member !== true && channel.is_archived !== true && offLimitsReasonOf(channel) === null;
 }
 
 async function joinOf(channel: string): Promise<Join> {
   const answer = await answerOrNothing(channel);
   if (answer === null) return { kind: "unanswered" };
+  if (isOffLimits(answer)) return { kind: "off-limits" };
   if (answer.ok) return answer.warning === "already_in_channel" ? { kind: "already-in" } : { kind: "joined" };
   if (answer.error === "ratelimited") return { kind: "held", forMs: retryDelayOf(answer) };
   console.warn(`channel joins: conversations.join failed: ${slackErrorCodeOf(answer.error)}`);
@@ -82,9 +84,9 @@ function retryDelayOfJoin(join: Join) {
   return join.kind === "unanswered" ? unansweredRetryMs : null;
 }
 
-async function answerOrNothing(channel: string): Promise<SlackAnswer | null> {
+async function answerOrNothing(channel: string): Promise<SlackAnswer | OffLimits | null> {
   try {
-    return await callSlack("conversations.join", { channel });
+    return await joinUnlessOffLimits(channel);
   } catch (error) {
     console.warn(`channel joins: conversations.join has no answer: ${typeOf(error)}`);
     return null;
@@ -93,5 +95,5 @@ async function answerOrNothing(channel: string): Promise<SlackAnswer | null> {
 
 function tallied({ joined, missed }: { joined: number; missed: number }, join: Join) {
   if (join.kind === "joined") return { joined: joined + 1, missed };
-  return join.kind === "already-in" ? { joined, missed } : { joined, missed: missed + 1 };
+  return join.kind === "already-in" || join.kind === "off-limits" ? { joined, missed } : { joined, missed: missed + 1 };
 }

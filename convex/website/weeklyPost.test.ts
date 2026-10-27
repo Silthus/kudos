@@ -246,6 +246,7 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     ["private", { name: "secret-plans", kind: "private" as const }],
     ["archived", { name: "old-news", kind: "archived" as const }],
     ["shared", { name: "partners", kind: "shared" as const }],
+    ["customer", { name: "customer-example-internal" }],
   ])("a %s channel is refused with why, nothing is picked, and the post stays in the announcement channel", async (check, channel) => {
     slack.withChannel(pickedChannel, channel);
     const owner = await aWorkspaceWithGroups({ flags: withPicker });
@@ -258,6 +259,42 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     await giveKudos("U_ANN", "U_BOB");
     await settleUpTo(t, mondayAtNineInBerlin);
     expect(weeklyPostChannels()).toEqual([announcementChannel]);
+  });
+
+  describe("the app stays out of shared and customer channels", () => {
+    test.each([
+      ["shared", { name: "partners", kind: "shared" as const }],
+      ["customer", { name: "customer-example-internal" }],
+    ])("a %s channel is refused without joining it", async (_, channel) => {
+      slack.withChannel(pickedChannel, channel);
+      const owner = await aWorkspaceWithGroups({ flags: withPicker });
+
+      await owner.pickChannel(pickedLink);
+      await settle(t);
+
+      expect(slack.callsTo("conversations.join")).toEqual([]);
+    });
+
+    test("a channel shared between Slack describing it and the join is refused as shared", async () => {
+      slack.withChannel(pickedChannel, { name: "partners", kind: "shared" }).answering("conversations.info", () => Response.json({ ok: true, channel: { id: pickedChannel, name: "partners", is_ext_shared: false } }));
+      const owner = await aWorkspaceWithGroups({ flags: withPicker });
+
+      await owner.pickChannel(pickedLink);
+      await settle(t);
+
+      expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "shared", pick: 1 } });
+    });
+
+    test("a channel Slack won't describe is not joined and reads failed", async () => {
+      slack.withChannel(pickedChannel, { name: "kudos-weekly" }).answering("conversations.info", slackError("missing_scope"));
+      const owner = await aWorkspaceWithGroups({ flags: withPicker });
+
+      await owner.pickChannel(pickedLink);
+      await settle(t);
+
+      expect(slack.callsTo("conversations.join")).toEqual([]);
+      expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "failed", pick: 1 } });
+    });
   });
 
   test("a channel Slack can't find for me reads not-found, and one Slack gave no answer about reads failed, both keeping the channel picked before", async () => {

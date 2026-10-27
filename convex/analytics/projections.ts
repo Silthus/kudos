@@ -132,6 +132,7 @@ const featureNames: Record<Feature, string> = {
 const commandResultNames: Record<KudosCommandResult, string> = {
   joined: "joined",
   "already-in": "already in",
+  "off-limits": "off limits",
   "private-channel": "private channel",
   "direct-message": "direct message",
 };
