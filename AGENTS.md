@@ -13,6 +13,15 @@ This repository is public: keep customer names, customer data and usage numbers 
 
 `pnpm gate` runs the typecheck, the tests, and Coherence's spec and vocabulary checks. It is the ship-to-main gate: green locally before a pull request merges to `main`. CI runs it on every pull request, beside the Coherence workflow in fail mode.
 
+## Slack manifest changes
+
+Pushes to `main` deploy at once, but the Slack app's manifest changes only when a person pastes it in. When a diff touches `slack-app/` or `convex/feedback/naming.ts`, render the manifest from the pull request's head with `node slack-app/render-manifest.ts real <URL>`, where the URL is the `*.convex.site` address in the log of the latest successful `Deploy production` run. If the JSON differs from `main`'s, hold the merge:
+
+1. Comment on the pull request with what changed and why and the whole JSON in a `json` block. Give the steps: open HedgeHug at https://api.slack.com/apps, paste the JSON over its App Manifest, save, and reinstall. Name any one-off run you will do after the go-ahead. Comment again when a later commit changes the JSON.
+2. Ask the user in chat to apply it, linking the latest comment. Merge only after they say, after the latest comment, that it is saved and reinstalled.
+
+A change that removes a scope or event the running code uses, or adds a route, reverses the order: post the comment, merge, wait for `Deploy production` to pass, then ask, because Slack checks the request URLs on save. Move a route by adding the new one and removing the old one in a later pull request, and give the scopes or events such a change adds a pull request of their own.
+
 ## Coherence
 
 Coherence guards this repository's specs, vocabulary and invariants. Its hooks (`.claude/settings.json`, `.codex/hooks.json`) bring specs, practices and findings into the session.
