@@ -265,6 +265,8 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     test.each([
       ["shared", { name: "partners", kind: "shared" as const }],
       ["customer", { name: "customer-example-internal" }],
+      ["posthog-", { name: "posthog-example" }],
+      ["ext-", { name: "ext-example" }],
     ])("a %s channel is refused without joining it", async (_, channel) => {
       slack.withChannel(pickedChannel, channel);
       const owner = await aWorkspaceWithGroups({ flags: withPicker });
@@ -283,6 +285,16 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
       await settle(t);
 
       expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "shared", pick: 1 } });
+    });
+
+    test("a channel renamed into posthog- between Slack describing it and the join is refused as a customer's", async () => {
+      slack.withChannel(pickedChannel, { name: "posthog-example" }).answering("conversations.info", () => Response.json({ ok: true, channel: { id: pickedChannel, name: "kudos-weekly" } }));
+      const owner = await aWorkspaceWithGroups({ flags: withPicker });
+
+      await owner.pickChannel(pickedLink);
+      await settle(t);
+
+      expect(await owner.weeklyPost()).toEqual({ ...unpicked, channelPick: { picked: null, check: "customer", pick: 1 } });
     });
 
     test("a channel Slack won't describe is not joined and reads failed", async () => {
