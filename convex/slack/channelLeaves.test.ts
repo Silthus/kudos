@@ -137,6 +137,15 @@ describe("the app leaves shared and customer channels", () => {
     expect(slack.hasJoined("G_SHARED")).toBe(false);
   });
 
+  test("an invite of the app into a channel named posthog- or ext-, not yet shared, keeps the app", async () => {
+    const t = testBackend();
+    slack.withChannel("C_POSTHOG", { name: "posthog-example", joined: true });
+
+    await deliver(t, memberJoinedChannelEvent("C_POSTHOG", kudosAppBotUser));
+
+    expect(slack.hasJoined("C_POSTHOG")).toBe(true);
+  });
+
   test("someone else joining a channel asks Slack nothing", async () => {
     const t = testBackend();
     slack.withChannel("C_SHARED", { name: "partners", kind: "shared", joined: true });

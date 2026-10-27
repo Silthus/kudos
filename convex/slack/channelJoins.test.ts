@@ -206,6 +206,15 @@ describe("the app stays out of shared and customer channels", () => {
     expect(logged).toHaveBeenLastCalledWith("channel joins finished: joined 2, missed 0");
   });
 
+  test("the channel join skips every channel named like one shared with another organization before the share, posthog- or ext-", async () => {
+    const t = testBackend();
+    slack.withChannel("C_POSTHOG", { name: "posthog-example" }).withChannel("C_EXT", { name: "ext-example" }).withChannel("C_POSTHOGGERS", { name: "posthoggers" });
+
+    await joinPublicChannels(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C_POSTHOGGERS" }]);
+  });
+
   test("a channel Slack won't describe is never joined", async () => {
     const t = testBackend();
     slack.withChannel("C_FIRST", { name: "first" }).answering("conversations.info", slackError("missing_scope"));
@@ -215,9 +224,9 @@ describe("the app stays out of shared and customer channels", () => {
     expect(slack.callsTo("conversations.join")).toEqual([]);
   });
 
-  test("a new customer channel is left without the app, and nothing is tried again", async () => {
+  test.each(["customer-example-internal", "posthog-example", "ext-example"])("a new channel named %s is left without the app, and nothing is tried again", async (name) => {
     const t = testBackend();
-    slack.withChannel("C_NEW", { name: "customer-example-internal" });
+    slack.withChannel("C_NEW", { name });
 
     await channelCreated(t, "C_NEW");
     await settleInTimeOrder(t);

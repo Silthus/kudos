@@ -265,6 +265,8 @@ describe("the maintainer picks the weekly post's channel", { timeout: 60_000 }, 
     test.each([
       ["shared", { name: "partners", kind: "shared" as const }],
       ["customer", { name: "customer-example-internal" }],
+      ["posthog-", { name: "posthog-example" }],
+      ["ext-", { name: "ext-example" }],
     ])("a %s channel is refused without joining it", async (_, channel) => {
       slack.withChannel(pickedChannel, channel);
       const owner = await aWorkspaceWithGroups({ flags: withPicker });

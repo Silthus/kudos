@@ -9,7 +9,7 @@ import { escaped, mrkdwn } from "./blocks";
 import type { ActionCtx } from "../_generated/server";
 import { attemptCall, isRefusedForItsBlocks, slackTextOf, type Attempt } from "./delivery";
 import { cardBlocksOf, emojisUnlockedOn } from "./linkPreviews";
-import { isOffLimits, joinUnlessOffLimits, offLimitsReasonOf, type ChannelTraits, type OffLimits } from "./offLimitsChannels";
+import { isOffLimits, joinRefusalOf, joinUnlessOffLimits, type ChannelTraits, type OffLimits } from "./offLimitsChannels";
 import type { SlackAnswer } from "./webApi";
 
 const attemptsAtMost = 3;
@@ -53,7 +53,7 @@ function foundChannelOf(answer: SlackAnswer<JoinedChannel> | OffLimits): FoundCh
   if (isOffLimits(answer)) return { kind: "refused", reason: answer.offLimits };
   if (!answer.ok) return joinRefusals[answer.error] ?? uncheckable;
   if (answer.channel?.is_private === true) return privateChannel;
-  const offLimits = offLimitsReasonOf(answer.channel ?? {});
+  const offLimits = joinRefusalOf(answer.channel ?? {});
   if (offLimits !== null) return { kind: "refused", reason: offLimits };
   const name = answer.channel?.name;
   return name === undefined ? uncheckable : { kind: "public", name };

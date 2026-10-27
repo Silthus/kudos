@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { ReportableError, typeOf } from "../analytics/exceptions";
 import { observedAction } from "../analytics/boundary";
 import { textOf } from "./directory";
-import { isOffLimits, joinUnlessOffLimits, offLimitsReasonOf, type ChannelTraits, type OffLimits } from "./offLimitsChannels";
+import { isOffLimits, joinRefusalOf, joinUnlessOffLimits, type ChannelTraits, type OffLimits } from "./offLimitsChannels";
 import { readSlack, retryDelayOf, slackErrorCodeOf, type SlackAnswer } from "./webApi";
 
 type ListedChannel = ChannelTraits & { id: string; is_member?: boolean; is_archived?: boolean };
@@ -66,7 +66,7 @@ export function channelCreationOf(workspace: unknown, eventId: unknown, event: C
 }
 
 function isJoinable(channel: ListedChannel) {
-  return channel.is_member !== true && channel.is_archived !== true && offLimitsReasonOf(channel) === null;
+  return channel.is_member !== true && channel.is_archived !== true && joinRefusalOf(channel) === null;
 }
 
 async function joinOf(channel: string): Promise<Join> {

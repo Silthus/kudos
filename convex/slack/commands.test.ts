@@ -107,6 +107,8 @@ describe("POST /slack/commands", () => {
       ["shared with another organization", { name: "partners", is_ext_shared: true }],
       ["being shared with another organization", { name: "partners", is_pending_ext_shared: true }],
       ["for a customer", { name: "customer-example-internal" }],
+      ["named to be shared with another organization", { name: "posthog-example" }],
+      ["named for another organization", { name: "ext-example" }],
     ])("in a channel %s, it stays out and says why", async (_, channel) => {
       const t = testBackend();
       slack.answerInfo({ ok: true, channel: { id: "C1", ...channel } });
