@@ -15,13 +15,12 @@ This repository is public: keep customer names, customer data and usage numbers 
 
 ## Slack manifest changes
 
-Every push to `main` deploys to production at once, but the Slack app's manifest changes only when a person pastes it in. A pull request whose diff touches `slack-app/` or `convex/feedback/naming.ts` can change the rendered manifest, and nothing it renders is exempt. Before such a pull request merges, a person applies its manifest to the real app:
+Pushes to `main` deploy at once, but the Slack app's manifest changes only when a person pastes it in. When a diff touches `slack-app/` or `convex/feedback/naming.ts`, render the manifest from its head with `node slack-app/render-manifest.ts real <URL>`, where the URL is the `*.convex.site` address in the log of the latest successful `Deploy production` run. If the JSON differs from `main`'s, hold the merge:
 
-1. When the pull request opens, and again whenever a later commit changes the rendered JSON, render it from the pull request's head: `node slack-app/render-manifest.ts real <URL>`. Take the URL from the latest production deploy: `gh run view "$(gh run list -w 'Deploy production' -s success -L 1 --json databaseId -q '.[0].databaseId')" --log | grep -om1 'https://[a-z0-9-]*\.convex\.site'`. When the JSON equals what `main` renders, nothing is owed.
-2. Post one comment on the pull request. It says what changed and why, holds the whole rendered JSON in a `json` code block, and gives the steps: open HedgeHug at https://api.slack.com/apps, paste the JSON over its App Manifest and save, then reinstall the app to the workspace when Slack asks. It names any one-off run the change needs after the reinstall, which the agent runs after the go-ahead.
-3. Ask the user in this chat to apply it, with a link to the latest such comment. Keep working on everything else, but do not merge until the user says in this chat that the latest manifest is saved and the app reinstalled. A go-ahead given before the latest comment does not count.
+1. Comment on the pull request with what changed and why, the whole JSON in a `json` block, the steps to open HedgeHug at https://api.slack.com/apps, paste the JSON over its App Manifest, save and reinstall, and any one-off run you will do after the go-ahead. Comment again when a later commit changes the JSON.
+2. Ask the user in chat to apply it, linking the latest comment. Merge once they say it is saved and reinstalled.
 
-When the change removes a scope or event the running code still uses, or adds or moves a route, flip the order: merge, wait for the `Deploy production` run to pass, then ask for the manifest. Slack checks the request URLs when the manifest is saved, and production serves a new route only after the deploy.
+A change that removes a scope or event the running code uses, or adds or moves a route, goes the other way: merge, wait for `Deploy production` to pass, then ask, because Slack checks the request URLs on save.
 
 ## Coherence
 
