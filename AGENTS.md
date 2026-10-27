@@ -13,6 +13,10 @@ This repository is public: keep customer names, customer data and usage numbers 
 
 `pnpm gate` runs the typecheck, the tests, and Coherence's spec and vocabulary checks. It is the ship-to-main gate: green locally before a pull request merges to `main`. CI runs it on every pull request, beside the Coherence workflow in fail mode.
 
+## Sandbox
+
+Lanes share the sandbox deployment `different-dog-467`. Deploy to it only with `pnpm sandbox-deploy --thread <your thread id>` from the tree you mean to prove, never the Deploy sandbox workflow or a bare `convex deploy`, which skip its lease. When it refuses to drop what another lane defines, merge that lane in; pass `--drop` only for what your branch removes. Right before each proof screenshot or recording, run `pnpm sandbox-deploy status` in that tree and redeploy unless it prints `this tree is live`.
+
 ## Coherence
 
 Coherence guards this repository's specs, vocabulary and invariants. Its hooks (`.claude/settings.json`, `.codex/hooks.json`) bring specs, practices and findings into the session.
