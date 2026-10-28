@@ -137,7 +137,7 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
 }
 
 export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
-  const draw = await thisWeeksDrawOf(ctx, member, until);
+  const draw = await thisWeeksDrawOf(ctx, member, Date.now());
   if (draw === null || !isMondayDraw(draw)) return [];
   const moved: Moved[] = [];
   for (const slot of draw.slots) {

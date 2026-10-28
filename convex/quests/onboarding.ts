@@ -69,7 +69,7 @@ export async function onboardingQuestFactsOf(ctx: QueryCtx, member: MemberId, at
 
 export async function twoDaysMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
   const start = await questStartOf(ctx, member);
-  if (start === null || (await finishOf(ctx, member, "two-days")) !== null) return [];
+  if (start === null || (await twoDaysFinishedBy(ctx, member, since))) return [];
   const sayingWhy = await sayingWhyBetween(ctx, member, start, Infinity);
   const decidedSince = await messagesGivenDecidedAfter(ctx, member, since);
   const decidedAfter = (instant: number) => new Set<AwardId>(decidedSince.filter(({ created }) => created > instant).flatMap(({ awards }) => awards.map(({ award }) => award)));
@@ -205,6 +205,11 @@ function finishedBy(ctx: MutationCtx, { workspace, giver, at, message }: KudosGi
 async function finished(ctx: MutationCtx, workspace: string, member: MemberId, step: OnboardingStep, at: number, cause?: MessageRef): Promise<FinishedOnboardingQuest | null> {
   const paid = await finishMondayQuest(ctx, workspace, member, { kind: "journey", step }, { reward: onboardingReward, catalogueVersion: mondayCatalogueVersion }, at, cause);
   return paid ? { step, reward: onboardingReward } : null;
+}
+
+async function twoDaysFinishedBy(ctx: QueryCtx, member: MemberId, instant: number): Promise<boolean> {
+  const finish = await finishOf(ctx, member, "two-days");
+  return finish !== null && finish.at <= instant;
 }
 
 function finishOf(ctx: QueryCtx, member: MemberId, step: OnboardingStep) {

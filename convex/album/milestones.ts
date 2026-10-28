@@ -3,11 +3,12 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyMatchesKeptEventValidator, hoggieDroppedEventValidator } from "../bus/events";
 import { collectionOf } from "../hoggies/collection";
-import { messagesGivenDecidedAfter } from "../engine/awards";
+import { messagesGivenDecidedAfter, type AnnotatedGivenMessage } from "../engine/awards";
 import { earnTierItem } from "../items/achievements";
 import { saysWhy } from "../progression/gate";
 import type { Moved } from "../quests/progress";
 import { chatUserOf, membersPageIn, type MemberId } from "../workspace/directory";
+import { talliedAwardOf } from "./tallies";
 import { milestoneCatalogue, type MilestoneId, type Step } from "./milestoneCatalogue";
 import type { MilestoneTier } from "./records";
 import { holdsAnySticker, nextStickerHolderAfter, peopleHeldBy } from "./stickers";
@@ -113,10 +114,15 @@ export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
 export async function thoughtfulMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
   const thoughtfulSince = (await messagesGivenDecidedAfter(ctx, member, since)).filter(({ annotations }) => saysWhy(annotations));
   const awardsOf = (messages: typeof thoughtfulSince) => messages.reduce((sum, { awards }) => sum + awards.length, 0);
-  const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - awardsOf(thoughtfulSince), 0);
+  const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - (await talliedAmong(ctx, thoughtfulSince)), 0);
   const to = from + awardsOf(thoughtfulSince.filter(({ created }) => created <= until));
   const next = milestoneCatalogue.milestones.find(({ id }) => id === "thoughtful")!.steps.find((step) => step.at > from);
   return next === undefined || to === from ? [] : [{ name: next.name, from, to: Math.min(to, next.at), of: next.at }];
+}
+
+async function talliedAmong(ctx: QueryCtx, messages: AnnotatedGivenMessage[]): Promise<number> {
+  const tallied = await Promise.all(messages.flatMap(({ awards }) => awards.map(({ award }) => talliedAwardOf(ctx, award))));
+  return tallied.filter((marker) => marker !== null).length;
 }
 
 async function countsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>): Promise<Counts> {
