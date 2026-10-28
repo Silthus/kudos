@@ -92,7 +92,7 @@ async function playedOf(ctx: QueryCtx, member: MemberId, { from, until }: { from
 }
 
 function boundedPlayed({ shown, folded }: Played): Played {
-  return { shown: countWithin(shown, mostExcerpts), folded: countWithin(folded, mostReadSince) };
+  return { shown: countWithin(shown, mostReadSince), folded: countWithin(folded, mostReadSince) };
 }
 
 function countWithin(count: number, most: number) {

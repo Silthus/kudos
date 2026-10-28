@@ -331,6 +331,28 @@ describe("LP26 LP35: endXpMoment moves the last visit to the newest instant the 
     expect(await everythingWritten()).toEqual(before);
   });
 
+  test("LP36: ending records the excerpts the website says it showed and folded, more than five when level-ups crossed, and at most the moment's 50 entries", async () => {
+    const asAlice = await aReturningMember(alice);
+    for (let kudos = 0; kudos < 2; kudos += 1) await thanks(bob, alice);
+    const moment = await theMomentOf(asAlice);
+
+    await asAlice.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false, played: { shown: 7, folded: 2 } });
+    await settle(t);
+
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: 7, folded: 2 })]);
+  });
+
+  test("LP36: played counts the website sends are held within the moment's 50 entries", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+    const moment = await theMomentOf(asAlice);
+
+    await asAlice.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false, played: { shown: 999, folded: -3 } });
+    await settle(t);
+
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: 50, folded: 0 })]);
+  });
+
   test("LP36: ending records xp moment ended with skipped, excerpts_shown and folded, a crossed level among the excerpts shown", async () => {
     const asAlice = await aReturningMember(alice);
     for (let kudos = 0; kudos < 6; kudos += 1) await thanks(bob, alice);
