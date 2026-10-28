@@ -212,6 +212,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const putIn = useSentOnce(api.website.album.putIn);
   const putAllIn = useSentOnce(api.website.album.putAllIn);
   const markEmojisSeen = useSentOnce(api.website.album.markEmojisSeen);
+  const pickKudosEmoji = useSentOnce(api.website.album.pickKudosEmoji);
   const turnItem = useSentOnce(api.website.album.turnItem);
   const arrive = useSentOnce(api.website.lastVisit.arrive);
   const makePet = useSentOnce(api.website.album.makePet);
@@ -238,6 +239,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })).then(putInShown),
       putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})).then(putAllInShown),
       markEmojisSeen: (ids) => answerWithin(commandAnswerBudgetMs, markEmojisSeen({ ids })),
+      pickKudosEmoji: (emoji, picked) => answerWithin(commandAnswerBudgetMs, pickKudosEmoji({ emoji, picked })),
       turnItem: (item) => answerWithin(commandAnswerBudgetMs, turnItem({ item: item as Id<"items"> })),
       arrive: (from) => answerWithin(commandAnswerBudgetMs, arrive({ from })),
       makePet: (hoggie) => answerWithin(commandAnswerBudgetMs, makePet({ hoggie })),
@@ -252,7 +254,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, viewQuests, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, pickKudosEmoji, turnItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, viewQuests, onSignInFailure],
   );
 }
 

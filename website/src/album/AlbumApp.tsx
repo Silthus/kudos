@@ -102,6 +102,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         putIn={actions.putIn}
         putAllIn={actions.putAllIn}
         markEmojisSeen={actions.markEmojisSeen}
+        pickKudosEmoji={actions.pickKudosEmoji}
         turnItem={actions.turnItem}
         xpMoment={visit.moment}
         endXpMoment={visit.endTheMoment}

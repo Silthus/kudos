@@ -1,6 +1,7 @@
 import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { OwnHypePick } from "../../../convex/album/emojiMappings";
+import type { KudosEmojiPick } from "../../../convex/album/kudosEmojis";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
@@ -53,6 +54,7 @@ export type Album = {
   tray: TrayItem[];
   emojis: AlbumEmoji[];
   moreEmojis: boolean;
+  kudosEmojiPicks?: string[];
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
   emojiWizard: boolean;
@@ -84,6 +86,10 @@ export type PackOpenReply = PackOpenAnswer | Denial;
 export type SeenAnswer = { kind: "seen"; ids: string[] } | { kind: "refused" };
 
 export type SeenReply = SeenAnswer | Denial;
+
+export type KudosEmojiPickReply = KudosEmojiPick | Denial;
+
+export type PickKudosEmoji = (emoji: string, picked: boolean) => Promise<KudosEmojiPickReply>;
 
 export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
 

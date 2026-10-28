@@ -1,0 +1,50 @@
+## Turn Blake's hype emoji over, as the album does when Drew takes it
+> markEmojisSeen {"ids":["hype:js7em9zag8zg267w52xfrsx5zs8h402q"]}
+{
+  "ids": [],
+  "kind": "seen"
+}
+
+## Nothing picked yet
+unpicked: Drew says hey to Avery with :raised_hands: (ts 1793187433.727000): HTTP 200
+hug: Drew reacts :raised_hands: on a message of Avery's (ts 1793187493.895000): HTTP 200
+unmentioned: Drew says hey to Avery with Blake's hype :blake-thorn-2-hype: (ts 1793187734.117000): HTTP 200
+mentioned: Drew thanks Blake with Blake's own hype :blake-thorn-2-hype: (ts 1793188034.231000): HTTP 200
+always: Drew thanks Avery with First thank-you :first-thank-you: (ts 1793188334.365000): HTTP 200
+always: Drew thanks Blake with First thank-you's second name :hog-offers-heart: (ts 1793188634.515000): HTTP 200
+awards in the proof channel (message ts, giver -> recipient):
+  1793184920.571000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+  1793186399.296000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7akyz8kjswz8ehv1savh61b18h4dr7
+  1793186699.497000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+hugs in the proof channel (message ts, emoji):
+  1793187493.895000  :raised_hands:
+
+## Drew picks :raised_hands: on the website
+> pickKudosEmoji {"emoji":"level:2","picked":true}
+{
+  "kind": "picked",
+  "picks": [
+    "level:2"
+  ]
+}
+picked: Drew says hey to Avery with :raised_hands: (ts 1793188945.733000): HTTP 200
+awards in the proof channel (message ts, giver -> recipient):
+  1793184920.571000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+  1793186399.296000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7akyz8kjswz8ehv1savh61b18h4dr7
+  1793186699.497000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+hugs in the proof channel (message ts, emoji):
+  1793187493.895000  :raised_hands:
+
+## Drew unpicks it
+> pickKudosEmoji {"emoji":"level:2","picked":false}
+{
+  "kind": "picked",
+  "picks": []
+}
+unpicked again: Drew says hey to Avery with :raised_hands: (ts 1793189256.563000): HTTP 200
+awards in the proof channel (message ts, giver -> recipient):
+  1793184920.571000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+  1793186399.296000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7akyz8kjswz8ehv1savh61b18h4dr7
+  1793186699.497000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+hugs in the proof channel (message ts, emoji):
+  1793187493.895000  :raised_hands:

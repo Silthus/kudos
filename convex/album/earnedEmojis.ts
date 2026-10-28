@@ -15,7 +15,6 @@ import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
 import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
-import type { ParseHook } from "../parser/parser";
 import { holdsTheHypeOf, hypesHeldFor, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
 import { boardOf } from "../items/ledger";
 import { hiddenItemsShownTo } from "../items/flag";
@@ -325,32 +324,52 @@ async function seenBy(ctx: QueryCtx, member: MemberId): Promise<Set<string>> {
   return new Set(seen.map(({ emoji }) => emoji));
 }
 
-export const earnedEmojiHook: ParseHook = {
-  name: "earned emoji",
-  kudosEmoji: (ctx, { workspace, giver }, emoji) => (giver === undefined ? Promise.resolve([]) : earnedEmojiNamesAmong(ctx, workspace, giver, emoji)),
-};
-
 export async function holdsEarnedEmojiNamed(ctx: QueryCtx, workspace: string, member: MemberId, toned: string): Promise<boolean> {
-  const name = withoutSkinTone(toned);
-  if (await holdsRandomEmoji(ctx, member, name)) return true;
-  const registered = await emojiNamed(ctx, workspace, name);
-  return registered !== null && (await isEarnedBy(ctx, member, registered));
+  return (await earnedEmojiNamesAmong(ctx, workspace, member, [toned], () => true)).length > 0;
 }
 
-async function earnedEmojiNamesAmong(ctx: QueryCtx, workspace: string, member: MemberId, names: string[]): Promise<string[]> {
-  const distinct = [...new Set(names)];
+export async function earnedEmojiNamesAmong(ctx: QueryCtx, workspace: string, member: MemberId, names: string[], counts: (emoji: string) => boolean | Promise<boolean>): Promise<string[]> {
   const earned: string[] = [];
-  if (distinct.length <= mostEmojiNamesLookedUpOneByOne) {
-    for (const name of distinct) if (await holdsEarnedEmojiNamed(ctx, workspace, member, name)) earned.push(name);
-    return earned;
-  }
-  const registry = await namesHeldIn(ctx, workspace);
-  const dropped = new Set(await randomEmojiNamesHeldBy(ctx, member));
-  for (const name of distinct) {
-    const registered = registry.get(withoutSkinTone(name));
-    if (dropped.has(name) || (registered !== undefined && (await isEarnedBy(ctx, member, registered)))) earned.push(name);
+  for (const { name, emoji, dropped } of await namedEmojisAmong(ctx, workspace, member, names)) {
+    if ((await counts(emoji)) && (dropped || (await isEarnedBy(ctx, member, emoji)))) earned.push(name);
   }
   return earned;
+}
+
+type NamedEmoji = { name: string; emoji: string; dropped: boolean };
+
+async function namedEmojisAmong(ctx: QueryCtx, workspace: string, member: MemberId, names: string[]): Promise<NamedEmoji[]> {
+  const distinct = [...new Set(names)];
+  if (distinct.length <= mostEmojiNamesLookedUpOneByOne) return namedOneByOne(ctx, workspace, member, distinct);
+  const registry = await namesHeldIn(ctx, workspace);
+  const drops = new Set(await randomEmojiNamesHeldBy(ctx, member));
+  return distinct.flatMap((name) => {
+    if (drops.has(name)) return [droppedNamed(name)];
+    const registered = registry.get(withoutSkinTone(name));
+    return registered === undefined ? [] : [{ name, emoji: registered, dropped: false }];
+  });
+}
+
+async function namedOneByOne(ctx: QueryCtx, workspace: string, member: MemberId, names: string[]): Promise<NamedEmoji[]> {
+  const named: NamedEmoji[] = [];
+  for (const name of names) {
+    const bare = withoutSkinTone(name);
+    if (await holdsRandomEmoji(ctx, member, bare)) named.push({ ...droppedNamed(bare), name });
+    else {
+      const registered = await emojiNamed(ctx, workspace, bare);
+      if (registered !== null) named.push({ name, emoji: registered, dropped: false });
+    }
+  }
+  return named;
+}
+
+function droppedNamed(name: string): NamedEmoji {
+  return { name, emoji: `random:${name}`, dropped: true };
+}
+
+export async function holdsEarnedEmoji(ctx: QueryCtx, member: MemberId, emoji: string): Promise<boolean> {
+  const [kind, cause] = splitOnce(emoji);
+  return kind === "random" ? holdsRandomEmoji(ctx, member, cause) : isEarnedBy(ctx, member, emoji);
 }
 
 export async function isEarnedBy(ctx: QueryCtx, member: MemberId, id: string): Promise<boolean> {

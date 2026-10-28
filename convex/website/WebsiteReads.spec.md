@@ -101,6 +101,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: markEmojisSeen in convex/website/album.ts
   trust: browser
 
+- mutation pickKudosEmoji: a browser picks or unpicks one of the signed-in member's own earned emojis to count in their kudos, with the emoji ID and whether it is picked as its arguments
+  handler: pickKudosEmoji in convex/website/album.ts
+  trust: browser
+
 - query getEmojiMappings: a browser asks, for the maintainer, for the workspace's Slack custom emoji, and behind `standard-emoji` Slack's standard emoji, with the earned emoji each one is mapped to, and the teams, milestones, levels and people to map to, with no arguments
   handler: getEmojiMappings in convex/website/emojiMappings.ts
   trust: browser
@@ -293,7 +297,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   via: website commands pass one guard
   because: a mutation is the first public function that can write, so a denial that wrote a workspace key, an exposure or a scheduled job would let anyone on the internet change state through a closed or signed-out call; the guard is memberQuery's in the same order and reads the website flag through the seam's read-only path (WS61, WS11)
   crossing: browser -> domain
-  entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation setAvatar, mutation openThoughtfulPack, mutation putIn, mutation putAllIn, mutation unlockTeamSticker, mutation makePet, mutation markEmojisSeen, mutation mapSlackEmoji, mutation pickMyHypeEmoji, mutation setWeeklyPost, mutation setPublicCelebrations, mutation pickWeeklyPostChannel, mutation turnItem, mutation arrive, mutation endXpMoment
+  entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation setAvatar, mutation openThoughtfulPack, mutation putIn, mutation putAllIn, mutation unlockTeamSticker, mutation makePet, mutation markEmojisSeen, mutation pickKudosEmoji, mutation mapSlackEmoji, mutation pickMyHypeEmoji, mutation setWeeklyPost, mutation setPublicCelebrations, mutation pickWeeklyPostChannel, mutation turnItem, mutation arrive, mutation endXpMoment
   refuted: memberQuery's guard read the website flag through the seam's writing path instead of its read-only one -> the call with a flags key but no workspace key made a key and answered refused instead of closed (2026-10-14)
   kinds: state, identity
   checklist: scoped-reads declared as website reads pass one guard

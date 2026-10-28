@@ -4,7 +4,7 @@ import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
 import type { HowItWorksCloseReply, QuestsSurface, QuestsViewReply, TurnReply } from "../shell";
-import type { Album, AlbumLevel, PackOpenReply, QuestsShown, SeenReply, UnlockReply } from "./answer";
+import type { Album, AlbumLevel, PackOpenReply, PickKudosEmoji, QuestsShown, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments, useEmojisShown } from "./EmojiMoment";
 import { useEmojisOnTheirWay, withTheEmojisAway } from "./emojisOnTheirWay";
 import { GettingStarted } from "./GettingStarted";
@@ -48,6 +48,7 @@ export type AlbumShellProps = {
   openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
   unlockTeamSticker: (team: string) => Promise<UnlockReply>;
   markEmojisSeen: (ids: string[]) => Promise<SeenReply>;
+  pickKudosEmoji: PickKudosEmoji;
   turnItem: (item: string) => Promise<TurnReply>;
   xpMoment: XpMomentAhead;
   endXpMoment: (skipped: boolean) => void;
@@ -59,7 +60,7 @@ export type AlbumShellProps = {
   viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, questsLanding, viewQuests }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, pickKudosEmoji, turnItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, questsLanding, viewQuests }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -123,7 +124,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell" data-xp-moment={sinceTheLastVisit.covers ? "" : undefined} data-emojis-arriving={onTheirWay.away.size > 0 ? "" : undefined}>
-      <TopBar album={withTheEmojisAway(landed, notInTheTopBarYet)} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} />
+      <TopBar album={withTheEmojisAway(landed, notInTheTopBarYet)} place={place} wide={wide} popover={popover} justUnlocked={justUnlocked} opensOnJustUnlocked={opensOnJustUnlocked} held={heldLevelOf(held, turns.heldLevel ?? sinceTheLastVisit.heldLevel)} popsTheLevel={sinceTheLastVisit.heldLevel !== null} moving={opening} inert={awaitingAMoment} glow={glows && <MomentGlow xpWaits={missedXpMoment.moment !== null} board={turns.board} focused={turns.closedByLater} onPress={collectWhatWaits} />} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} emojiButton={emojiButton} tray={puttingIn} pickKudosEmoji={pickKudosEmoji} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}

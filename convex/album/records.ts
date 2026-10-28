@@ -72,6 +72,8 @@ export const secondEmojiNameValidator = v.object({ workspace: v.string(), emoji:
 
 export const seenEmojiValidator = v.object({ member: v.id("members"), emoji: v.string(), at: v.number() });
 
+export const kudosEmojiPickValidator = v.object({ member: v.id("members"), emoji: v.string() });
+
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });
 
 export const emojiClassValidator = v.object({ workspace: v.string(), name: v.string(), class: v.union(v.literal("random"), v.literal("unmapped")) });

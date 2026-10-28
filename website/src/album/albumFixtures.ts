@@ -1,5 +1,6 @@
 import type { Id } from "../../../convex/_generated/dataModel";
-import { milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
+import { milestoneTierArtOf, mostKudosEmojiPicks, slugOf } from "../../../convex/album/emojiCatalogue";
+import type { KudosEmojiPick } from "../../../convex/album/kudosEmojis";
 import type { Drop } from "../../../convex/hoggies/drops";
 import type { BoardItem, ItemBoard, TurnAnswer } from "../../../convex/website/album";
 import type { GettingStarted, GettingStartedSteps } from "../../../convex/website/onboarding";
@@ -142,6 +143,7 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = started
     tray: [],
     emojis,
     moreEmojis: false,
+    kudosEmojiPicks: [],
     sharedEmojis: null,
     emojiPage,
     emojiWizard: false,
@@ -222,6 +224,15 @@ export function fixtureTurnOf(item: string): TurnAnswer {
     unlocked: { teamStickers: [], hype: null, milestones: [] },
     again: false,
   };
+}
+
+const fixtureKudosEmojiPicks = new Set<string>();
+
+export function fixtureKudosEmojiPickOf(emoji: string, picked: boolean): KudosEmojiPick {
+  if (picked && !fixtureKudosEmojiPicks.has(emoji) && fixtureKudosEmojiPicks.size >= mostKudosEmojiPicks) return { kind: "full" };
+  if (picked) fixtureKudosEmojiPicks.add(emoji);
+  else fixtureKudosEmojiPicks.delete(emoji);
+  return { kind: "picked", picks: [...fixtureKudosEmojiPicks] };
 }
 
 export function fixtureUnlockOf(album: Album, team: string): UnlockAnswer {

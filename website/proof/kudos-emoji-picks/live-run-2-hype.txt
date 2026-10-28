@@ -1,0 +1,26 @@
+## Drew turns Blake's sticker and its hoggie over, so Blake's hype emoji is Drew's
+    "kind": "sticker",
+        "kind": "hoggie",
+> markEmojisSeen {"ids":["hype:js7em9zag8zg267w52xfrsx5zs8h402q"]}
+{
+  "ids": [
+    "hype:js7em9zag8zg267w52xfrsx5zs8h402q"
+  ],
+  "kind": "seen"
+}
+unmentioned: Drew says hey to Avery with Blake's hype :blake-thorn-2-hype: (ts 1793189711.747000): HTTP 200
+mentioned: Drew thanks Blake with Blake's own hype :blake-thorn-2-hype: (ts 1793190011.893000): HTTP 200
+kudos messages in the proof channel (message ts, state, emoji):
+  1793184920.571000  given  "hedgehug"
+  1793186399.296000  given  "first-thank-you"
+  1793186699.497000  given  "hog-offers-heart"
+  1793188334.365000  over-allowance  "first-thank-you"
+  1793188634.515000  over-allowance  "hog-offers-heart"
+  1793188945.733000  over-allowance  "raised_hands"
+  1793190011.893000  over-allowance  "blake-thorn-2-hype"
+awards in the proof channel (message ts, giver -> recipient):
+  1793184920.571000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+  1793186399.296000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7akyz8kjswz8ehv1savh61b18h4dr7
+  1793186699.497000  js7amgp7gxtbmd9k9qgh0j81tx8h4xps -> js7em9zag8zg267w52xfrsx5zs8h402q
+hugs in the proof channel (message ts, emoji):
+  1793187493.895000  :raised_hands:
