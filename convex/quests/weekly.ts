@@ -4,7 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
-import { awardIdValidator, lastThankedBefore, lastThankedSince } from "../engine/awards";
+import { awardIdValidator, firstDecidedOf, lastThankedBefore, lastThankedSince, type AwardId } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
@@ -20,7 +20,7 @@ import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { onboardingFinishedAt } from "./onboarding";
 import { pendingWeeklyCratesBefore } from "./pendingCrates";
 import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, questPool, withoutFullStop, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type QuestPool, type Recipient } from "./pool";
-import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type MovedQuest, type QuestAward } from "./progress";
+import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type Moved, type MovedQuest, type ProgressRead, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
 import { questStartOf } from "./start";
 import type { WeeklyQuest } from "./step";
@@ -134,6 +134,22 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
   const swap = await swapOf(ctx, member, week);
   const slots = await weeklySlotsOf(ctx, draw, swap);
   return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap), swapAvailable: await swapAvailableIn(ctx, draw, swap, slots, at) };
+}
+
+export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
+  const draw = await thisWeeksDrawOf(ctx, member, Date.now());
+  if (draw === null || !isMondayDraw(draw)) return [];
+  const moved: Moved[] = [];
+  for (const slot of draw.slots) {
+    const pooled = questOf(slot.quest);
+    const rows = await countedWithin(ctx, member, draw.week, slot, mostAwards);
+    if (rows === null) continue;
+    const counted = await withDecided(ctx, rows);
+    const from = questProgress(pooled, counted.filter(({ decided }) => decided <= since));
+    const to = questProgress(pooled, counted.filter(({ decided }) => decided <= until));
+    if (from < to && to < pooled.progress.target) moved.push({ name: withoutFullStop(pooled.goal), from, to, of: pooled.progress.target });
+  }
+  return moved;
 }
 
 export async function drawnWeekOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawnWeek | null> {
@@ -280,12 +296,29 @@ async function questAwardsOf(ctx: QueryCtx, { awards, annotations, day, at }: Ku
   });
 }
 
-async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot): Promise<CountedAward[]> {
+async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot): Promise<Doc<"questProgress">[]> {
   const rows = await ctx.db
     .query("questProgress")
     .withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", week).eq("slot", slot))
     .collect();
   return rows.filter((row) => row.quest === quest);
+}
+
+async function countedWithin(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot, mostAwards: number): Promise<Doc<"questProgress">[] | null> {
+  const rows = await ctx.db
+    .query("questProgress")
+    .withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", week).eq("slot", slot))
+    .take(mostAwards + 1);
+  return rows.length > mostAwards ? null : rows.filter((row) => row.quest === quest);
+}
+
+async function withDecided(ctx: QueryCtx, counted: Doc<"questProgress">[]): Promise<Array<Doc<"questProgress"> & { decided: number }>> {
+  return Promise.all(counted.map(async (row) => ({ ...row, decided: (await decidedOf(ctx, row.award)) ?? row.at })));
+}
+
+async function decidedOf(ctx: QueryCtx, award: AwardId): Promise<number | null> {
+  const row = await ctx.db.get(award);
+  return row === null ? null : firstDecidedOf(ctx, row);
 }
 
 function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {

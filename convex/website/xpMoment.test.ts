@@ -8,6 +8,9 @@ import type { Infer } from "convex/values";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { kudosGivenEventValidator } from "../bus/events";
+import { onboardingGoalOf } from "../quests/onboarding";
+import { startQuests } from "../quests/start";
+import { weeklyQuestsOf } from "../quests/weekly";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 import type { AlbumAnswer, AlbumRead } from "./album";
@@ -17,6 +20,7 @@ import type { XpMoment, XpMomentAnswer, XpMomentEndReply } from "./xpMoment";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
+const dayMs = 24 * 60 * minuteMs;
 const why = "Thanks for untangling the flaky migration";
 const albumOpen = ["album", "collection", "packs", "xp-levels", "unlocks", "hugs"];
 const everyFlagOfTheMoment = [...albumOpen, "hidden-items", "xp-moments"];
@@ -585,6 +589,265 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
   });
 });
 
+describe("LP107: a quest or milestone that progressed since the last visit gets its own beat", { timeout: 60_000 }, () => {
+  const onTheMondayPath = [...everyFlagOfTheMoment, "monday-quest"];
+
+  test("answers each drawn quest that moved without finishing, from where it stood at the last visit to now", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await arrive(await signedIn(alice), null);
+    const atTheVisit = await weekOf(alice);
+    vi.setSystemTime(Date.now() + dayMs);
+
+    await thanks(alice, bob);
+    const asAlice = await signedIn(alice);
+
+    const now = await weekOf(alice);
+    const moved = now.slots.flatMap((slot, index) => {
+      const from = atTheVisit.slots[index]!.progress;
+      return slot.progress > from && slot.finishedAt === null ? [{ kind: "quest", name: slot.goal.replace(/\.$/, ""), from, to: slot.progress, of: slot.target }] : [];
+    });
+    expect(moved, "the drawn quests that moved without finishing").not.toEqual([]);
+    expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual(moved);
+  });
+
+  test("a kudos whose quests aren't judged yet waits out of the moment, and its drawn quests move from the last visit once they are", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await arrive(await signedIn(alice), null);
+    const atTheVisit = await weekOf(alice);
+    vi.setSystemTime(Date.now() + dayMs);
+    const held = await thanksWhileHeldBack(followingQuests, alice, bob);
+    const asAlice = await signedIn(alice);
+
+    expect(await momentOf(asAlice), "the moment while the quests wait").toMatchObject({ kind: "none" });
+    await held.record();
+
+    const now = await weekOf(alice);
+    const moved = now.slots.flatMap((slot, index) => {
+      const from = atTheVisit.slots[index]!.progress;
+      return slot.progress > from && slot.finishedAt === null ? [{ kind: "quest", name: slot.goal.replace(/\.$/, ""), from, to: slot.progress, of: slot.target }] : [];
+    });
+    expect(moved, "the drawn quests that moved without finishing").not.toEqual([]);
+    expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest"), "the next moment's drawn quests").toEqual(moved);
+  });
+
+  test("answers the Thoughtful milestone moving toward its next tier by the thoughtful kudos given since the last visit", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+
+    await thanks(alice, carol);
+    await thanks(alice, bob, carol);
+
+    expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 4, of: 25 }]);
+  });
+
+  test("a kudos sent before the last visit and decided after it moves the drawn quests and the milestone since the visit", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await signedIn(alice);
+    later();
+    const sentBeforeTheVisit = Date.now();
+    const asAlice = await aReturningMember(alice);
+    const atTheVisit = await weekOf(alice);
+
+    await thanksSentAt(sentBeforeTheVisit, alice, carol);
+
+    const now = await weekOf(alice);
+    const drawnMoved = now.slots.flatMap((slot, index) => {
+      const from = atTheVisit.slots[index]!.progress;
+      return slot.progress > from && slot.finishedAt === null ? [{ kind: "quest", name: slot.goal.replace(/\.$/, ""), from, to: slot.progress, of: slot.target }] : [];
+    });
+    expect(drawnMoved, "the drawn quests that moved without finishing").not.toEqual([]);
+    expect((await theMomentOf(asAlice)).progressed).toEqual([...drawnMoved, { kind: "milestone", name: "Generous soul", from: 4, to: 5, of: 25 }]);
+  });
+
+  test("a kudos sent before the last visit and decided after it moves the two-days quest since the visit", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    const member = await memberOf(alice);
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    later();
+    const sentBeforeTheVisit = Date.now();
+    const asAlice = await aReturningMember(alice);
+
+    await thanksSentAt(sentBeforeTheVisit, alice, carol);
+
+    expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
+  });
+
+  test("a kudos on last week's draw moves no quest once a new week has begun", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await arrive(await signedIn(alice), null);
+    const atTheVisit = await weekOf(alice);
+    vi.setSystemTime(new Date("2026-10-17T10:00:00Z"));
+    await thanks(alice, bob);
+    const lastWeek = await weekOf(alice);
+    expect(lastWeek.slots.some((slot, index) => slot.progress > atTheVisit.slots[index]!.progress && slot.finishedAt === null), "a drawn quest moved on Saturday").toBe(true);
+
+    vi.setSystemTime(new Date("2026-10-19T10:00:00Z"));
+    const asAlice = await signedIn(alice);
+
+    expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual([]);
+  });
+
+  test("a thoughtful kudos whose tally waits stays out of the moment, and the milestone moves from where it stood once it is tallied", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    const held = await thanksWhileHeldBack(tallying, alice, carol);
+
+    expect(await momentOf(asAlice), "the moment while the tally waits").toMatchObject({ kind: "none" });
+    await held.record();
+    const first = await theMomentOf(asAlice);
+    expect(first.progressed, "the first moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
+    await endOf(asAlice, first);
+    await thanks(alice, bob);
+
+    expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 2, to: 3, of: 25 }]);
+  });
+
+  test("a thoughtful kudos whose tally never runs moves the milestone in no moment, once the moment stops waiting on it", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    await thanksWhileHeldBack(tallying, alice, carol);
+    vi.setSystemTime(Date.now() + 11 * minuteMs);
+
+    const first = await theMomentOf(asAlice);
+    expect(first.progressed, "the moment that plays the untallied kudos").toEqual([]);
+    await endOf(asAlice, first);
+    await thanks(alice, bob);
+
+    expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
+  });
+
+  test("the two-days quest moves by the kudos the moment plays while a later kudos that finishes it waits on its XP", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    const member = await memberOf(alice);
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    await aReturningMember(alice);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+
+    await thanksWhileItsXpWaits(alice, bob);
+
+    expect((await theMomentOf(await signedIn(alice))).progressed.filter(({ name }) => name === onboardingGoalOf("two-days"))).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
+  });
+
+  test("the two-days quest moves by the kudos the moment plays while a later kudos, sent on another day before the last visit, finishes it and waits on its XP", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    const member = await memberOf(alice);
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    later();
+    const sentOnTheFirstDay = Date.now();
+    vi.setSystemTime(Date.now() + dayMs);
+    const sentOnTheSecondDay = Date.now();
+    await aReturningMember(alice);
+
+    await thanksSentAt(sentOnTheFirstDay, alice, carol);
+    await thanksSentWhileHeldBack(sentOnTheSecondDay, recordingXp, alice, bob);
+
+    expect((await theMomentOf(await signedIn(alice))).progressed.filter(({ name }) => name === onboardingGoalOf("two-days"))).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
+  });
+
+  test("past 50 awards given since the last visit the moment answers no milestone or two-days progress, and still plays", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    const member = await memberOf(alice);
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    await aReturningMember(alice);
+    for (let given = 0; given < 26; given += 1) await thanks(alice, bob, carol);
+
+    const moment = await theMomentOf(await signedIn(alice));
+
+    expect(moment.moments, "the kudos the moment plays").toBe(26);
+    expect(moment.progressed).toEqual([]);
+  });
+
+  test("50 awards given since the two-days quest started still move it, whatever was given the day before it started", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const member = await memberOf(alice);
+    later();
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    await aReturningMember(alice);
+    for (let given = 0; given < 25; given += 1) await thanks(alice, bob, carol);
+
+    const progressed = (await theMomentOf(await signedIn(alice))).progressed;
+
+    expect(progressed.filter(({ name }) => name === onboardingGoalOf("two-days"))).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
+  });
+
+  test("a drawn quest with more than 50 counted kudos this week answers no progress", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await arrive(await signedIn(alice), null);
+    const atTheVisit = await weekOf(alice);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    const now = await weekOf(alice);
+    const movedIndex = now.slots.findIndex((slot, index) => slot.progress > atTheVisit.slots[index]!.progress && slot.finishedAt === null);
+    const moved = now.slots[movedIndex]!;
+    const member = await memberOf(alice);
+    await t.run(async (ctx) => {
+      const rows = await ctx.db.query("questProgress").withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", now.week).eq("slot", moved.slot)).collect();
+      const { _id, _creationTime, ...newest } = rows.at(-1)!;
+      for (let copy = 0; copy < 51; copy += 1) await ctx.db.insert("questProgress", newest);
+    });
+
+    const progressed = (await theMomentOf(await signedIn(alice))).progressed;
+
+    expect(progressed.map(({ name }) => name)).not.toContain(moved.goal.replace(/\.$/, ""));
+  });
+
+  test("a kudos to two teammates that ends a moment without a level moves the milestone once, and the next moment moves on from it", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, bob, carol);
+    const first = await theMomentOf(asAlice);
+    expect(first.progressed, "the first moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 3, to: 5, of: 25 }]);
+    await endOf(asAlice, first);
+
+    await thanks(alice, bob);
+
+    expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 5, to: 6, of: 25 }]);
+  });
+
+  test("while progress-beats is off the moment answers no progress", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment);
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+
+    await thanks(alice, carol);
+
+    expect((await theMomentOf(asAlice)).progressed).toEqual([]);
+  });
+});
+
 function person(first: string, last: string): Person {
   return { user: `U_${first}_${last}`.toUpperCase(), name: `${first} ${last}` };
 }
@@ -594,9 +857,12 @@ function later() {
 }
 
 async function thanks(giver: Person, ...recipients: Person[]) {
-  messages += 1;
   later();
-  const at = Date.now();
+  return thanksSentAt(Date.now(), giver, ...recipients);
+}
+
+async function thanksSentAt(at: number, giver: Person, ...recipients: Person[]) {
+  messages += 1;
   const ts = `${Math.floor(at / 1000)}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settle(t);
@@ -607,10 +873,14 @@ function thanksWhileItsXpWaits(giver: Person, ...recipients: Person[]) {
   return thanksWhileHeldBack(recordingXp, giver, ...recipients);
 }
 
-async function thanksWhileHeldBack(job: Job, giver: Person, ...recipients: Person[]) {
-  messages += 1;
+function thanksWhileHeldBack(job: Job, giver: Person, ...recipients: Person[]) {
   later();
-  const ts = `${Math.floor(Date.now() / 1000)}.${String(messages).padStart(6, "0")}`;
+  return thanksSentWhileHeldBack(Date.now(), job, giver, ...recipients);
+}
+
+async function thanksSentWhileHeldBack(at: number, job: Job, giver: Person, ...recipients: Person[]) {
+  messages += 1;
+  const ts = `${Math.floor(at / 1000)}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   const heldBack = await settleHoldingBack(job.name);
   return { at: Number(ts.split(".")[0]) * 1000, record: async () => {
@@ -619,11 +889,13 @@ async function thanksWhileHeldBack(job: Job, giver: Person, ...recipients: Perso
   } };
 }
 
-type Job = { name: string; run: typeof internal.progression.progression.recordEffects | typeof internal.quests.quests.followKudosGiven };
+type Job = { name: string; run: typeof internal.progression.progression.recordEffects | typeof internal.quests.quests.followKudosGiven | typeof internal.album.tallies.tallyKudosGiven };
 
 const recordingXp: Job = { name: "progression/progression:recordEffects", run: internal.progression.progression.recordEffects };
 
 const followingQuests: Job = { name: "quests/quests:followKudosGiven", run: internal.quests.quests.followKudosGiven };
+
+const tallying: Job = { name: "album/tallies:tallyKudosGiven", run: internal.album.tallies.tallyKudosGiven };
 
 async function settleHoldingBack(name: string) {
   const heldBack: { event: Infer<typeof kudosGivenEventValidator> }[] = [];
@@ -721,6 +993,13 @@ async function stickerItemOf(giver: Person, thanked: Person): Promise<Id<"items"
   const item = items.find((row) => row.source === "sticker" && row.reason.kind === "thanks" && row.reason.person === person);
   if (item === undefined) throw new Error(`no sticker item for thanking ${thanked.name}`);
   return item._id;
+}
+
+async function weekOf(someone: Person) {
+  const member = await memberOf(someone);
+  const week = await t.run((ctx) => weeklyQuestsOf(ctx, member, Date.now()));
+  if (week === null) throw new Error("no week drawn");
+  return week;
 }
 
 async function memberOf(someone: Person): Promise<MemberId> {

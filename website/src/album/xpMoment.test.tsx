@@ -37,6 +37,7 @@ const busyReturn: XpMoment = {
   xp: 178,
   climb: { from: { level: 6, xp: 1462, startsAt: 1000, nextAt: 1500 }, to: { level: 7, xp: 1640, startsAt: 1500, nextAt: 2100 } },
   quests: [],
+  progressed: [],
   waiting: 3,
   thoughtfulGivers: 4,
   timeZone: "UTC",
@@ -947,7 +948,7 @@ const secondReward = secondBurst + 0.6 + 0.7;
 const questsLanded = secondReward + 1.1;
 
 function theQuest() {
-  return theCanvas() === null ? null : within(theCanvas()!).queryByRole("article", { name: /quest/i });
+  return theCanvas() === null ? null : within(theCanvas()!).queryByRole("article", { name: /^(A quest finished|Quest complete)/ });
 }
 
 async function finishQuests(visit: Visit = {}) {
@@ -1019,8 +1020,8 @@ describe("LP104: each quest finished since the last visit gets its own beat", { 
     expect(theTakeover()).toHaveAccessibleName("You reached level 7");
   });
 
-  it("a moment answered without quests, as by the backend before them during a revert, plays as before", async () => {
-    const { quests: _, ...answeredBeforeQuests } = busyReturn;
+  it("a moment answered without quests or progress, as by the backend before them during a revert, plays as before", async () => {
+    const { quests: _, progressed: __, ...answeredBeforeQuests } = busyReturn;
     await returnTo({ moment: answeredBeforeQuests as XpMoment, album: withLevelSevenItems });
     await collectAt(arrivedAndRead);
 
@@ -1028,7 +1029,7 @@ describe("LP104: each quest finished since the last visit gets its own beat", { 
     expect(theQuest()).toBeNull();
     expect(theTakeover()).toBeInTheDocument();
     await act(async () => fireEvent.click(theTakeover()!));
-    expect(within(theItemBoard()!).queryAllByRole("listitem", { name: /^Quest complete/ })).toEqual([]);
+    expect(within(theItemBoard()!).queryAllByRole("listitem", { name: /^Quest complete|progressed/ })).toEqual([]);
   });
 
   it("a quest whose reward waits in its crate streams no XP and says its reward waits there", async () => {
@@ -1075,5 +1076,90 @@ describe("LP104: each quest finished since the last visit gets its own beat", { 
     expect(theTakeover()).toBeInTheDocument();
     await act(async () => fireEvent.click(theTakeover()!));
     expect(within(theItemBoard()!).queryAllByRole("listitem", { name: /^Quest complete/ })).toEqual([]);
+  });
+});
+
+const twoNewMoved = { kind: "quest", name: "Thank 2 people you haven't thanked before", from: 0, to: 1, of: 2 } as const;
+
+const generousSoul = { kind: "milestone", name: "Generous soul", from: 7, to: 9, of: 25 } as const;
+
+const progressStart = collectedAndStreamed;
+
+const progressFilled = progressStart + 0.3;
+
+const secondProgressStart = progressStart + 1.7;
+
+const progressLanded = secondProgressStart + 1.7;
+
+function theProgress() {
+  return theCanvas() === null ? null : within(theCanvas()!).queryByRole("article", { name: /progressed/ });
+}
+
+function theProgressBar() {
+  return within(theProgress()!).getByRole("progressbar");
+}
+
+describe("LP107: each quest or milestone that progressed since the last visit gets its own beat", { timeout: 30_000 }, () => {
+  it("after the bar fills, each plays a short beat whose bar moves from where it stood at the last visit to now, and the takeover follows the last", async () => {
+    await returnTo({ moment: { ...busyReturn, progressed: [twoNewMoved, generousSoul] }, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(progressStart - 0.1);
+    expect(theProgress()).toBeNull();
+    await at(progressStart + 0.06);
+    expect(theProgress()).toHaveAccessibleName("Quest progressed: Thank 2 people you haven't thanked before");
+    expect(theProgressBar()).toHaveAttribute("aria-valuenow", "0");
+    expect(theProgressBar()).toHaveAttribute("aria-valuemax", "2");
+    expect(theProgress()).toHaveTextContent("0 of 2");
+    expect(theTakeover()).toBeNull();
+    await at(progressFilled + 0.06);
+    expect(theProgressBar()).toHaveAttribute("aria-valuenow", "1");
+    expect(theProgress()).toHaveTextContent("1 of 2");
+
+    await at(secondProgressStart + 0.06);
+    expect(theProgress()).toHaveAccessibleName("Milestone progressed: Generous soul");
+    expect(theProgress()).toHaveTextContent("7 of 25");
+    await at(secondProgressStart + 0.3 + 0.06);
+    expect(theProgress()).toHaveTextContent("9 of 25");
+
+    await at(progressLanded - 0.1);
+    expect(theTakeover()).toBeNull();
+    await at(progressLanded + 0.06);
+    expect(theProgress()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+  });
+
+  it("plays after the quests that finished", async () => {
+    await returnTo({ moment: { ...twoQuestsDone, progressed: [twoNewMoved] }, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(questsLanded - 0.1);
+    expect(theProgress()).toBeNull();
+    await at(questsLanded + 0.06);
+    expect(theQuest()).toBeNull();
+    expect(theProgress()).toHaveAccessibleName("Quest progressed: Thank 2 people you haven't thanked before");
+  });
+
+  it("Skip and Esc land everything and list what progressed under the summary, as reduced motion shows at once", async () => {
+    const listed = () => within(theItemBoard()!).getAllByRole("listitem", { name: /progressed/ }).map((moved) => moved.textContent);
+    const shownUnderTheSummary = ["Thank 2 people you haven't thanked before · 1 of 2", "Generous soul · 9 of 25"];
+    for (const land of [() => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })), () => fireEvent.keyDown(window, { key: "Escape" })]) {
+      const { actions, unmount } = await returnTo({ moment: { ...busyReturn, progressed: [twoNewMoved, generousSoul] }, album: withLevelSevenItems });
+      await collectAt(arrivedAndRead);
+      await at(progressFilled + 0.06);
+
+      await act(async () => land());
+
+      expect(theCanvas()).toBeNull();
+      expect(listed()).toEqual(shownUnderTheSummary);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+      unmount();
+      vi.useRealTimers();
+    }
+
+    preferReducedMotion();
+    await returnTo({ moment: { ...busyReturn, progressed: [twoNewMoved, generousSoul] } });
+    expect(theCanvas()).toBeNull();
+    expect(listed()).toEqual(shownUnderTheSummary);
   });
 });

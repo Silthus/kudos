@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstAwardsGivenAfter, givenBetween } from "../engine/awards";
+import { earliestAwardFrom, firstAwardsGivenAfter, firstDecidedOf, givenBetween, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward } from "../engine/awards";
 import { replyIsHeld } from "../feedback/heldReplies";
 import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
@@ -10,7 +10,7 @@ import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
 import { hasThankedEveryone, type Reward } from "./journey";
 import { isPaidOnTheMondayPath, mondayCatalogueVersion } from "./mondayCatalogue";
-import type { MovedQuest, QuestProgress } from "./progress";
+import type { Moved, MovedQuest, ProgressRead, QuestProgress } from "./progress";
 import { questStartOf } from "./start";
 import type { JourneyStep } from "./step";
 
@@ -67,6 +67,23 @@ export async function onboardingQuestFactsOf(ctx: QueryCtx, member: MemberId, at
   };
 }
 
+export async function twoDaysMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
+  const start = await questStartOf(ctx, member);
+  if (start === null || (await twoDaysFinishedBy(ctx, member, since))) return [];
+  const givenSinceTheStart = await givenSinceWithin(ctx, member, start, mostAwards);
+  const decidedSince = await messagesGivenDecidedAfter(ctx, member, since, mostAwards);
+  if (givenSinceTheStart === null || decidedSince === null) return [];
+  const sayingWhy = givenSinceTheStart.filter(({ annotations }) => saysWhy(annotations));
+  const decidedAfter = (instant: number) => new Set<AwardId>(decidedSince.filter(({ created }) => created > instant).flatMap(({ awards }) => awards.map(({ award }) => award)));
+  const decidedBy = (instant: number) => {
+    const later = decidedAfter(instant);
+    return sayingWhy.filter(({ award }) => !later.has(award));
+  };
+  const from = daysAmong(decidedBy(since));
+  const to = daysAmong(decidedBy(until));
+  return from < to && to < daysSayingWhyToFinishTwoDays ? [{ name: onboardingGoalOf("two-days"), from, to, of: daysSayingWhyToFinishTwoDays }] : [];
+}
+
 async function twoDaysFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<OnboardingQuestFacts> {
   const finish = await finishOf(ctx, member, "two-days");
   const progress = finish === null ? { done: await daysSayingWhyOf(ctx, member, at), of: daysSayingWhyToFinishTwoDays, unit: "days" as const } : null;
@@ -76,7 +93,14 @@ async function twoDaysFactsOf(ctx: QueryCtx, member: MemberId, at: number): Prom
 async function daysSayingWhyOf(ctx: QueryCtx, member: MemberId, at: number): Promise<number> {
   const start = await questStartOf(ctx, member);
   if (start === null) return 0;
-  const sayingWhy = (await givenBetween(ctx, member, start, at)).filter(({ annotations }) => saysWhy(annotations));
+  return daysAmong(await sayingWhyBetween(ctx, member, start, at));
+}
+
+async function sayingWhyBetween(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<DatedAward[]> {
+  return (await givenBetween(ctx, member, since, until)).filter(({ annotations }) => saysWhy(annotations));
+}
+
+function daysAmong(sayingWhy: DatedAward[]): number {
   return Math.min(new Set(sayingWhy.map(({ day }) => day)).size, daysSayingWhyToFinishTwoDays);
 }
 
@@ -183,6 +207,13 @@ function finishedBy(ctx: MutationCtx, { workspace, giver, at, message }: KudosGi
 async function finished(ctx: MutationCtx, workspace: string, member: MemberId, step: OnboardingStep, at: number, cause?: MessageRef): Promise<FinishedOnboardingQuest | null> {
   const paid = await finishMondayQuest(ctx, workspace, member, { kind: "journey", step }, { reward: onboardingReward, catalogueVersion: mondayCatalogueVersion }, at, cause);
   return paid ? { step, reward: onboardingReward } : null;
+}
+
+async function twoDaysFinishedBy(ctx: QueryCtx, member: MemberId, instant: number): Promise<boolean> {
+  const finish = await finishOf(ctx, member, "two-days");
+  if (finish === null) return false;
+  const decided = finish.cause === undefined ? null : await firstDecidedOf(ctx, finish.cause);
+  return (decided ?? finish.at) <= instant;
 }
 
 function finishOf(ctx: QueryCtx, member: MemberId, step: OnboardingStep) {

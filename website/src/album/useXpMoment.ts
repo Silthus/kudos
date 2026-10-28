@@ -6,15 +6,15 @@ import { prefersReducedMotion } from "../reducedMotion";
 import type { AlbumLevel } from "./answer";
 import type { XpMomentAhead } from "./visitArrival";
 
-export const xpMomentTiming = { settleMs: 600, staggerMs: 170, readBeatMs: 550, dissolveStaggerMs: 140, sweepMs: 720, beatMs: 550, streamMs: 700, streamSteps: 10, landedMs: 380, caughtUpMs: 2600, questChargeMs: 1400, chainedChargeMs: 700, questRevealMs: 600, questRewardMs: 1100 } as const;
+export const xpMomentTiming = { settleMs: 600, staggerMs: 170, readBeatMs: 550, dissolveStaggerMs: 140, sweepMs: 720, beatMs: 550, streamMs: 700, streamSteps: 10, landedMs: 380, caughtUpMs: 2600, questChargeMs: 1400, chainedChargeMs: 700, questRevealMs: 600, questRewardMs: 1100, progressFillDelayMs: 300, progressBeatMs: 1700 } as const;
 
-export type XpMomentPhase = "settle" | "arrive" | "hold" | "collect" | "stream" | "quests" | "takeover" | "caughtUp" | "done";
+export type XpMomentPhase = "settle" | "arrive" | "hold" | "collect" | "stream" | "quests" | "progress" | "takeover" | "caughtUp" | "done";
 
 export type XpMomentCard = { key: string; xp: number } & ({ kind: "excerpt"; excerpt: XpMoment["excerpts"][number] } | { kind: "fold"; count: number });
 
 export type QuestStage = "charge" | "burst" | "stream" | "reward";
 
-type Progress = { out: number; dissolving: number; dissolved: number; filled: number; quest: number; questStage: QuestStage; questFilled: number };
+type Progress = { out: number; dissolving: number; dissolved: number; filled: number; quest: number; questStage: QuestStage; questFilled: number; moved: number; movedFilled: boolean };
 
 export type XpMomentPlay = { moment: XpMoment; cards: XpMomentCard[]; phase: XpMomentPhase; orbXp: number; collect: () => void; skip: () => void; tookOver: () => void } & Progress;
 
@@ -22,11 +22,11 @@ export type XpMomentSequence = { play: XpMomentPlay | null; waits: boolean; cove
 
 type Step = [ms: number, step: () => void];
 
-const unstarted: Progress = { out: 0, dissolving: 0, dissolved: 0, filled: 0, quest: 0, questStage: "charge", questFilled: 0 };
+const unstarted: Progress = { out: 0, dissolving: 0, dissolved: 0, filled: 0, quest: 0, questStage: "charge", questFilled: 0, moved: 0, movedFilled: false };
 
-const playing: ReadonlySet<XpMomentPhase> = new Set(["settle", "arrive", "hold", "collect", "stream", "quests"]);
+const playing: ReadonlySet<XpMomentPhase> = new Set(["settle", "arrive", "hold", "collect", "stream", "quests", "progress"]);
 
-const onTheCanvas: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold", "collect", "stream", "quests", "takeover", "caughtUp"]);
+const onTheCanvas: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold", "collect", "stream", "quests", "progress", "takeover", "caughtUp"]);
 
 export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: { itemsWait: boolean; onEnd: (skipped: boolean) => void }): XpMomentSequence {
   const moment = ahead === "reading" ? null : ahead;
@@ -54,13 +54,15 @@ export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: 
   }, [onEnd, landed]);
   const tookOver = useCallback(() => setPhase(landed), [landed]);
   const quests = moment?.quests ?? noQuests;
-  const afterTheQuests = moment !== null && crossesALevel(moment.climb) ? "takeover" : landed;
+  const movedCount = moment?.progressed.length ?? 0;
+  const afterTheBeats = moment !== null && crossesALevel(moment.climb) ? "takeover" : landed;
+  const afterTheQuests = movedCount > 0 ? "progress" : afterTheBeats;
   const afterTheBar = quests.length > 0 ? "quests" : afterTheQuests;
   useEffect(() => {
     if (phase === null) return;
-    const timers = stepsOf(phase, { count: cards.length, quests }, { setPhase, advance, afterTheBar, afterTheQuests }).map(([ms, step]) => window.setTimeout(step, ms));
+    const timers = stepsOf(phase, { count: cards.length, quests, movedCount }, { setPhase, advance, afterTheBar, afterTheQuests, afterTheBeats }).map(([ms, step]) => window.setTimeout(step, ms));
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [phase, cards.length, quests, advance, afterTheBar, afterTheQuests]);
+  }, [phase, cards.length, quests, movedCount, advance, afterTheBar, afterTheQuests, afterTheBeats]);
   useEndedOnceItLands(phase, onEnd);
   useEscapeLandsIt(phase, skip, () => setPhase("done"));
   if (moment === null || phase === null) return { play: null, waits: ahead === "reading", covers: false, heldLevel: null, climbing: null, ended: null };
@@ -68,11 +70,11 @@ export function useXpMomentSequence(ahead: XpMomentAhead, { itemsWait, onEnd }: 
   return { play: onTheCanvas.has(phase) ? play : null, waits: phase !== "done", covers: onTheCanvas.has(phase), heldLevel: playing.has(phase) ? barLevelOf(moment, progress) : null, climbing: playing.has(phase) ? moment.climb : null, ended: playing.has(phase) ? null : moment };
 }
 
-type Setters = { setPhase: (phase: XpMomentPhase) => void; advance: (patch: Partial<Progress>) => void; afterTheBar: XpMomentPhase; afterTheQuests: XpMomentPhase };
+type Setters = { setPhase: (phase: XpMomentPhase) => void; advance: (patch: Partial<Progress>) => void; afterTheBar: XpMomentPhase; afterTheQuests: XpMomentPhase; afterTheBeats: XpMomentPhase };
 
 const noQuests: QuestDone[] = [];
 
-function stepsOf(phase: XpMomentPhase, { count, quests }: { count: number; quests: QuestDone[] }, { setPhase, advance, afterTheBar, afterTheQuests }: Setters): Step[] {
+function stepsOf(phase: XpMomentPhase, { count, quests, movedCount }: { count: number; quests: QuestDone[]; movedCount: number }, { setPhase, advance, afterTheBar, afterTheQuests, afterTheBeats }: Setters): Step[] {
   const { settleMs, staggerMs, readBeatMs, dissolveStaggerMs, sweepMs, beatMs, streamMs, streamSteps, landedMs, caughtUpMs } = xpMomentTiming;
   const each = (from: number, step: (index: number) => Step) => Array.from({ length: Math.max(0, count - from) }, (_, index) => step(index + from));
   switch (phase) {
@@ -86,6 +88,8 @@ function stepsOf(phase: XpMomentPhase, { count, quests }: { count: number; quest
       return [...Array.from({ length: streamSteps }, (_, index): Step => [((index + 1) * streamMs) / streamSteps, () => advance({ filled: index + 1 })]), [streamMs + landedMs, () => setPhase(afterTheBar)]];
     case "quests":
       return questStepsOf(quests, advance, () => setPhase(afterTheQuests));
+    case "progress":
+      return progressStepsOf(movedCount, advance, () => setPhase(afterTheBeats));
     case "caughtUp":
       return [[caughtUpMs, () => setPhase("done")]];
     default:
@@ -106,6 +110,15 @@ function questStepsOf(quests: QuestDone[], advance: (patch: Partial<Progress>) =
     start = reward + questRewardMs;
   });
   return [...steps, [start, end]];
+}
+
+function progressStepsOf(count: number, advance: (patch: Partial<Progress>) => void, end: () => void): Step[] {
+  const { progressFillDelayMs, progressBeatMs } = xpMomentTiming;
+  const beats = Array.from({ length: count }, (_, index): Step[] => [
+    [index * progressBeatMs, () => advance({ moved: index, movedFilled: false })],
+    [index * progressBeatMs + progressFillDelayMs, () => advance({ movedFilled: true })],
+  ]);
+  return [...beats.flat(), [count * progressBeatMs, end]];
 }
 
 function useEndedOnceItLands(phase: XpMomentPhase | null, onEnd: (skipped: boolean) => void) {

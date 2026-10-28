@@ -356,6 +356,8 @@ import type * as website_onboarding from "../website/onboarding.js";
 import type * as website_playerCard from "../website/playerCard.js";
 import type * as website_profile from "../website/profile.js";
 import type * as website_profileCard from "../website/profileCard.js";
+import type * as website_progressBeatsFlag from "../website/progressBeatsFlag.js";
+import type * as website_progressed from "../website/progressed.js";
 import type * as website_questBeatsFlag from "../website/questBeatsFlag.js";
 import type * as website_quests from "../website/quests.js";
 import type * as website_routes from "../website/routes.js";
@@ -742,6 +744,8 @@ declare const fullApi: ApiFromModules<{
   "website/playerCard": typeof website_playerCard;
   "website/profile": typeof website_profile;
   "website/profileCard": typeof website_profileCard;
+  "website/progressBeatsFlag": typeof website_progressBeatsFlag;
+  "website/progressed": typeof website_progressed;
   "website/questBeatsFlag": typeof website_questBeatsFlag;
   "website/quests": typeof website_quests;
   "website/routes": typeof website_routes;
