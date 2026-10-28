@@ -400,7 +400,7 @@ describe("LP31 LP32: collecting streams the XP into the bar and the canvas becom
     expect(board.getByRole("button", { name: "Later" })).toBeInTheDocument();
     expect(document.querySelector(".al-shell")).not.toHaveAttribute("data-xp-moment");
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
     expect(actions.arrive).not.toHaveBeenCalled();
   });
 
@@ -435,7 +435,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     expect(theCanvas()).toBeNull();
     expect(xpWords()).toBe("460 XP to level 8");
     expect(within(theItemBoard()!).getByText(/from 16 moments since/)).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
   });
 
   it("Esc lands everything at once too", async () => {
@@ -446,7 +446,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
 
     expect(theCanvas()).toBeNull();
     expect(theItemBoard()).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
   });
 
   it("reduced motion shows the end state at once", async () => {
@@ -456,7 +456,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     expect(theCanvas()).toBeNull();
     expect(xpWords()).toBe("460 XP to level 8");
     expect(within(theItemBoard()!).getByText(/from 16 moments since/)).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
   });
 
   it("reduced motion keeps that end state when the member turns the last item: All caught up never pops over what landed", async () => {
@@ -613,7 +613,7 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(takeover.getAllByRole("listitem")).toHaveLength(1);
     expect(theTakeover()).not.toHaveTextContent(/skill point|emblem/i);
     expect(xpWords()).toBe("460 XP to level 8");
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
 
     await at(collectedAndStreamed + 30);
     expect(theTakeover()).toBeInTheDocument();
@@ -872,7 +872,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     expect(theCanvas()).toBeNull();
     expect(actions.arrive).toHaveBeenCalledTimes(1);
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
-    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false, { shown: cameInLater.excerpts.length, folded: cameInLater.fold?.count ?? 0 });
     expect(theGlow(), "the moment it collected, while the read still answers it").toBeNull();
   });
 
@@ -892,7 +892,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     expect(theCanvas()).toBeNull();
     expect(within(theItemBoard()!).getByText(/from 1 moment since/)).toHaveTextContent("+10 XP from 1 moment since");
     expect(actions.endXpMoment).toHaveBeenCalledTimes(2);
-    expect(actions.endXpMoment).toHaveBeenLastCalledWith(cameInLater.since, cameInLater.until, true);
+    expect(actions.endXpMoment).toHaveBeenLastCalledWith(cameInLater.since, cameInLater.until, true, { shown: cameInLater.excerpts.length, folded: cameInLater.fold?.count ?? 0 });
   });
 
   it("reduced motion shows the moment's end state at once when pressed", async () => {
@@ -905,7 +905,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
 
     expect(theCanvas()).toBeNull();
     expect(within(theItemBoard()!).getByText(/from 1 moment since/)).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false, { shown: cameInLater.excerpts.length, folded: cameInLater.fold?.count ?? 0 });
   });
 
   it("with nothing waiting there is no glow", async () => {
@@ -1053,7 +1053,7 @@ describe("LP104: each quest finished since the last visit gets its own beat", { 
       expect(theCanvas()).toBeNull();
       expect(xpWords()).toBe("460 XP to level 8");
       expect(within(theItemBoard()!).getAllByRole("listitem", { name: /^Quest complete/ }).map((quest) => quest.textContent)).toEqual(["Quest complete: Give a kudos that says why.+50 XP", "Quest complete: Thank 2 people you haven't thanked before.+20 XP"]);
-      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
       unmount();
       vi.useRealTimers();
     }
@@ -1152,7 +1152,7 @@ describe("LP107: each quest or milestone that progressed since the last visit ge
 
       expect(theCanvas()).toBeNull();
       expect(listed()).toEqual(shownUnderTheSummary);
-      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
       unmount();
       vi.useRealTimers();
     }

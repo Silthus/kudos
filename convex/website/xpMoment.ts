@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { questXpOf, type QuestDone } from "../activity/entries";
-import { activitySince, newestDecidedSince, positionsSince, type EntrySince, type ReadSince } from "../activity/activity";
+import { activitySince, mostReadSince, newestDecidedTakenBackOrNotSince, positionsSince, type EntrySince, type ReadSince } from "../activity/activity";
 import { ranks, type Position } from "../activity/position";
 import { thoughtfulGiversThisWeek } from "../album/thoughtfulGivers";
 import { reportXpMomentEnded } from "../analytics/isolatedUsage";
@@ -69,19 +69,34 @@ export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> 
 });
 
 export const endXpMoment = memberMutation({
-  args: { from: v.number(), until: v.number(), skipped: v.boolean() },
-  handler: async (ctx, me, _person, { from, until, skipped }): Promise<XpMomentEndReply> => {
+  args: { from: v.number(), until: v.number(), skipped: v.boolean(), played: v.optional(v.object({ shown: v.number(), folded: v.number() })) },
+  handler: async (ctx, me, _person, { from, until, skipped, played }): Promise<XpMomentEndReply> => {
     if (!(await xpMomentsShownTo(ctx, me.member))) return { kind: "refused" };
     if ((await startOf(ctx, me.member)).since !== from || !(await wasRead(ctx, me.member, from, until))) return arrivedAt(await lastVisitOf(ctx, me.member));
-    await end(ctx, me, { from, until, skipped });
+    await end(ctx, me, { from, until, skipped, played });
     return arrivedPastWhatWasPutIn(ctx, me.member);
   },
 });
 
-async function end(ctx: MutationCtx, me: VerifiedMember, { from, until, skipped }: { from: number; until: number; skipped: boolean }) {
-  const { shown, folded } = chosenOf(await positionsSince(ctx, me.member, { above: from, upTo: until }), isLevelUpAt);
+type Played = { shown: number; folded: number };
+
+async function end(ctx: MutationCtx, me: VerifiedMember, { from, until, skipped, played }: { from: number; until: number; skipped: boolean; played: Played | undefined }) {
+  const { shown, folded } = played === undefined ? await playedOf(ctx, me.member, { from, until }) : boundedPlayed(played);
   await moveLastVisitTo(ctx, me.member, until);
-  await reportXpMomentEnded(ctx, { workspace: me.workspace, member: me.member, skipped, excerptsShown: shown.length, folded: folded.length, at: Date.now() });
+  await reportXpMomentEnded(ctx, { workspace: me.workspace, member: me.member, skipped, excerptsShown: shown, folded, at: Date.now() });
+}
+
+async function playedOf(ctx: QueryCtx, member: MemberId, { from, until }: { from: number; until: number }): Promise<Played> {
+  const { shown, folded } = chosenOf(await positionsSince(ctx, member, { above: from, upTo: until }), isLevelUpAt);
+  return { shown: shown.length, folded: folded.length };
+}
+
+function boundedPlayed({ shown, folded }: Played): Played {
+  return { shown: countWithin(shown, mostReadSince), folded: countWithin(folded, mostReadSince) };
+}
+
+function countWithin(count: number, most: number) {
+  return Number.isFinite(count) ? Math.min(most, Math.max(0, Math.floor(count))) : 0;
 }
 
 type Start = { lastVisit: number | null; since: number | null; topUp: FirstThanksTopUp | null };
@@ -103,7 +118,7 @@ function withTopUp(newestFirst: ReadSince[], topUp: FirstThanksTopUp | null): Re
 }
 
 async function wasRead(ctx: QueryCtx, member: MemberId, from: number, until: number): Promise<boolean> {
-  const newest = await newestDecidedSince(ctx, member, { above: from });
+  const newest = await newestDecidedTakenBackOrNotSince(ctx, member, { above: from });
   return until > from && newest !== null && until <= newest;
 }
 

@@ -13,6 +13,10 @@ export async function setIndicator(ctx: MutationCtx, ref: MessageRef, indicator:
   await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverIndicator, ref);
 }
 
+export async function clearIndicator(ctx: MutationCtx, ref: MessageRef) {
+  if ((await indicatorRow(ctx, ref))?.emoji) await setIndicator(ctx, ref, null);
+}
+
 export const desired = internalQuery({
   args: messageRefValidator,
   handler: async (ctx, ref): Promise<DesiredIndicator> => {

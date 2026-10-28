@@ -2,7 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import type { AttemptFailedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
-import { setIndicator, type Indicator } from "../feedback/indicator";
+import { clearIndicator, setIndicator, type Indicator } from "../feedback/indicator";
 import { replyPrivately, type Given, type Invalid, type OverAllowance, type Reply, type SkipReason, type SkippedMention } from "../feedback/replies";
 import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
@@ -127,6 +127,7 @@ async function observeFirstRevision(ctx: MutationCtx, event: MessageEvent, revis
 async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: MessageEvent, revision: Revision, { isKudosMessage, changesKudos }: Edit): Promise<Observation> {
   await ctx.db.patch(row._id, withoutAnnotations(revision));
   if (row.state === "given") {
+    if (!isKudosMessage) await clearIndicator(ctx, refOf(row));
     if (changesKudos) await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, { kind: "accepted-message-edited" });
     return { kind: "already-given", toldGiver: changesKudos };
   }

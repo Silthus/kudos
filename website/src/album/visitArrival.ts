@@ -37,7 +37,7 @@ export function useVisitArrival(album: AlbumShown | undefined, answer: XpMomentS
     (skipped: boolean) => {
       if (moment === null || ended.current === moment) return;
       ended.current = moment;
-      listen(endXpMoment(moment.since, moment.until, skipped));
+      listen(endXpMoment(moment.since, moment.until, skipped, { shown: moment.excerpts.length, folded: moment.fold?.count ?? 0 }));
     },
     [moment, listen, endXpMoment],
   );

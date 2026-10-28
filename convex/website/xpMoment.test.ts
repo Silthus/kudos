@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { deleteMessage, memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import type { Infer } from "convex/values";
@@ -115,6 +115,40 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect(moment.fold).toEqual({ count: 3, xp: 15 });
     expect(moment.moments).toBe(7);
     expect(moment.xp).toBe(35);
+  });
+
+  test("a kudos deleted in Slack since the last visit leaves the moment and its count, the kudos before it still plays, and the next arrival moves past both", async () => {
+    const asAlice = await aReturningMember(alice);
+    const kept = await thanks(bob, alice);
+    const deleted = await thanks(carol, alice);
+    await deleteMessage(t, { user: carol.user, ts: deleted.ts });
+    await settle(t);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.filter(({ entry }) => entry.kind === "kudosReceived").map(({ entry }) => entry.at)).toEqual([kept.at]);
+    const ended = await endOf(asAlice, moment, { skipped: true });
+    await settle(t);
+
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: moment.excerpts.length, folded: 0 })]);
+    expect(await momentOf(asAlice)).toMatchObject({ kind: "none" });
+    const arrived = await arrive(asAlice, (ended as { lastVisit: number }).lastVisit);
+    expect((arrived as { lastVisit: number }).lastVisit).toBeGreaterThan(moment.until);
+  });
+
+  test("a moment whose newest kudos is taken back in Slack while it plays still ends past it, counting what it played", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+    const newest = await thanks(carol, alice);
+    const moment = await theMomentOf(asAlice);
+
+    await deleteMessage(t, { user: carol.user, ts: newest.ts });
+    await settle(t);
+
+    expect(await endAsTheWebsiteDoes(asAlice, moment)).toMatchObject({ kind: "arrived", lastVisit: moment.until });
+    await settle(t);
+
+    expect(await momentOf(asAlice)).toMatchObject({ kind: "none" });
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: moment.excerpts.length, folded: 0 })]);
   });
 
   test("a level crossed is always among the excerpts, however many newer kudos came in", async () => {
@@ -295,6 +329,28 @@ describe("LP26 LP35: endXpMoment moves the last visit to the newest instant the 
 
     expect(await endOf(asAlice, { ...moment, until: moment.until + minuteMs })).toEqual({ kind: "arrived", lastVisit: moment.since });
     expect(await everythingWritten()).toEqual(before);
+  });
+
+  test("LP36: ending records the excerpts the website says it showed and folded, more than five when level-ups crossed, and at most the moment's 50 entries", async () => {
+    const asAlice = await aReturningMember(alice);
+    for (let kudos = 0; kudos < 2; kudos += 1) await thanks(bob, alice);
+    const moment = await theMomentOf(asAlice);
+
+    await asAlice.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false, played: { shown: 7, folded: 2 } });
+    await settle(t);
+
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: 7, folded: 2 })]);
+  });
+
+  test("LP36: played counts the website sends are held within the moment's 50 entries", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+    const moment = await theMomentOf(asAlice);
+
+    await asAlice.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false, played: { shown: 999, folded: -3 } });
+    await settle(t);
+
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: 50, folded: 0 })]);
   });
 
   test("LP36: ending records xp moment ended with skipped, excerpts_shown and folded, a crossed level among the excerpts shown", async () => {
@@ -963,6 +1019,10 @@ async function theMomentOf(reader: Reader): Promise<XpMoment> {
 
 function endOf(reader: Reader, { since, until }: Pick<XpMoment, "since" | "until">, { skipped = false } = {}): Promise<XpMomentEndReply | Denial> {
   return reader.mutation(api.website.xpMoment.endXpMoment, { from: since, until, skipped });
+}
+
+function endAsTheWebsiteDoes(reader: Reader, moment: XpMoment): Promise<XpMomentEndReply | Denial> {
+  return reader.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false, played: { shown: moment.excerpts.length, folded: moment.fold?.count ?? 0 } });
 }
 
 async function albumOf(reader: Reader): Promise<AlbumAnswer> {

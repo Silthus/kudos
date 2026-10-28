@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { deleteMessage, edit, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { channel, emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
@@ -129,6 +129,18 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
     expect(await personPageOf(alice, carol)).toMatchObject({ kind: "person", name: carol.name, firstThankedAt: null, kudosGiven: 0, kudosReceived: 1, best: null, hype: { earned: false, name: null } });
   });
 
+  test("a best message deleted in Slack, or edited so it no longer is a kudos, is no longer quoted", async () => {
+    const deleted = await thanks(alice, longerWhy, bob);
+    const editedAway = await thanks(alice, longerWhy, carol);
+
+    await deleteMessage(t, { user: alice.user, ts: deleted });
+    await edit(t, [section(text(`${longerWhy} `), mention(carol.user))], { user: alice.user, ts: editedAway, editedTs: nextTs() });
+    await settle(t);
+
+    expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", kudosGiven: 1, best: null });
+    expect(await personPageOf(alice, carol)).toMatchObject({ kind: "person", kudosGiven: 1, best: null });
+  });
+
   test("a person put in from a pack is held, and someone you never met shows an empty history", async () => {
     await thanks(alice, why, bob);
     await opensAndPutsInEveryPack(alice);
@@ -241,6 +253,22 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
         given: { kudos: [await kudosIn("Thanks for the docs", docs, dana), await kudosIn("Thanks for the careful review", review, carol, dana)], more: false },
         received: { kudos: [await kudosIn("Thanks for getting the release ready", ready, dana), await kudosIn("Thanks for pairing on the flaky test", pairing, carol)], more: false },
       },
+    });
+  });
+
+  test("a kudos deleted in Slack, or edited so it no longer is one, leaves the issue's lists and its kudos of the week", async () => {
+    const lead = await thanks(alice, longerWhy, bob);
+    const review = await thanks(alice, "Thanks for the careful review", carol);
+    const docs = await thanks(alice, "Thanks for the docs", dana);
+    const pairing = await thanks(carol, "Thanks for pairing on the flaky test", alice);
+
+    await deleteMessage(t, { user: alice.user, ts: lead });
+    await edit(t, [section(text("Thanks for the docs "), mention(dana.user))], { user: alice.user, ts: docs, editedTs: nextTs() });
+    await deleteMessage(t, { user: carol.user, ts: pairing });
+    await settle(t);
+
+    expect(await weekOf(alice)).toMatchObject({
+      issue: { kudosOfWeek: null, given: { kudos: [await kudosIn("Thanks for the careful review", review, carol)], more: false }, received: { kudos: [], more: false } },
     });
   });
 

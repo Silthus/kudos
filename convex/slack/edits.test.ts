@@ -314,7 +314,7 @@ describe("R26: editing a message that gave kudos", () => {
     expect(slack.calls.slice(callsBefore)).toEqual([]);
   });
 
-  test("removing its kudos emoji takes nothing back and keeps its kudos reaction", async () => {
+  test("removing its kudos emoji takes nothing back and removes its kudos reaction", async () => {
     const t = testBackend();
     await post(t, [section(mention("U_BOB"), emoji("taco"))], { ts: postedTs });
     await settle(t);
@@ -323,7 +323,7 @@ describe("R26: editing a message that gave kudos", () => {
     await settle(t);
 
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
-    expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
+    expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
     expect(slack.ephemeralsTo("U_ALICE").at(-1)?.text).toBe("This message already gave kudos, so your edit doesn't change them. To give more, send a new message.");
   });
 });
