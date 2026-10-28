@@ -1053,7 +1053,7 @@ describe("LP104: each quest finished since the last visit gets its own beat", { 
       expect(theCanvas()).toBeNull();
       expect(xpWords()).toBe("460 XP to level 8");
       expect(within(theItemBoard()!).getAllByRole("listitem", { name: /^Quest complete/ }).map((quest) => quest.textContent)).toEqual(["Quest complete: Give a kudos that says why.+50 XP", "Quest complete: Thank 2 people you haven't thanked before.+20 XP"]);
-      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
       unmount();
       vi.useRealTimers();
     }
@@ -1152,7 +1152,7 @@ describe("LP107: each quest or milestone that progressed since the last visit ge
 
       expect(theCanvas()).toBeNull();
       expect(listed()).toEqual(shownUnderTheSummary);
-      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
       unmount();
       vi.useRealTimers();
     }
