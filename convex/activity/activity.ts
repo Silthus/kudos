@@ -169,7 +169,7 @@ export type ReadSince = { decided: number; entry: EntrySince; xp: number; record
 export type Since = { above?: number; upTo?: number; questsAwaitedAbove?: number; talliesAwaitedAbove?: number };
 
 export async function activitySince(ctx: QueryCtx, member: MemberId, since: Since): Promise<ReadSince[]> {
-  const page = await stillShown(await pendingSince(ctx, member, since, mostReadSince));
+  const page = await pendingSince(ctx, member, since, mostReadSince);
   const mentions = mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked");
   return Promise.all(page.map(async ({ position, entry, xp, settled }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp()), settled: (await settled?.()) ?? true })));
 }
@@ -191,7 +191,7 @@ async function pendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Inf
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined, questsAwaitedAbove, talliesAwaitedAbove };
   const below = { decided: upTo, inclusive: true, ...(above !== undefined && { above }) };
   const reads = await Promise.all(sourcesSince.map(({ read }) => read(ctx, viewer, below, size + 1)));
-  return newestWithin(reads, size);
+  return stillShown(newestWithin(reads, size));
 }
 
 export async function activityOf(ctx: QueryCtx, member: MemberId, { filter, cursor, limit }: { filter: Filter; cursor: string | null; limit?: number }): Promise<Activity> {

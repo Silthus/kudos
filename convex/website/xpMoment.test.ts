@@ -117,7 +117,7 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect(moment.xp).toBe(35);
   });
 
-  test("a kudos deleted in Slack since the last visit leaves the moment, the kudos before it still plays, and ending it moves past both", async () => {
+  test("a kudos deleted in Slack since the last visit leaves the moment and its count, the kudos before it still plays, and the next arrival moves past both", async () => {
     const asAlice = await aReturningMember(alice);
     const kept = await thanks(bob, alice);
     const deleted = await thanks(carol, alice);
@@ -125,10 +125,14 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     await settle(t);
 
     const moment = await theMomentOf(asAlice);
-
     expect(moment.excerpts.filter(({ entry }) => entry.kind === "kudosReceived").map(({ entry }) => entry.at)).toEqual([kept.at]);
-    await endOf(asAlice, moment);
+    const ended = await endOf(asAlice, moment, { skipped: true });
+    await settle(t);
+
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: moment.excerpts.length, folded: 0 })]);
     expect(await momentOf(asAlice)).toMatchObject({ kind: "none" });
+    const arrived = await arrive(asAlice, (ended as { lastVisit: number }).lastVisit);
+    expect((arrived as { lastVisit: number }).lastVisit).toBeGreaterThan(moment.until);
   });
 
   test("a level crossed is always among the excerpts, however many newer kudos came in", async () => {
