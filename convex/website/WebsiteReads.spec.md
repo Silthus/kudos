@@ -93,10 +93,6 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: unlockTeamSticker in convex/website/album.ts
   trust: browser
 
-- mutation shareItem: a browser asks to share one of the signed-in member's own turned wins into the weekly-post channel, with the item's ID as its only argument
-  handler: shareItem in convex/website/itemShare.ts
-  trust: browser
-
 - mutation makePet: a browser asks to make one hoggie the signed-in member holds their pet, with the hoggie's slug as its only argument
   handler: makePet in convex/website/album.ts
   trust: browser

@@ -19,7 +19,3 @@ export const itemShareFlag = { key: "item-share", safeDefault: false, values: [f
 export function itemShareAppliesToWorkspace(ctx: QueryCtx, workspace: string): Promise<boolean> {
   return workspaceDecisionWithoutWriting(ctx, itemShareFlag, workspace);
 }
-
-export function itemShareShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return memberDecisionWithoutWriting(ctx, itemShareFlag, member);
-}

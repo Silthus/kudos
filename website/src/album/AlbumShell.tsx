@@ -3,7 +3,7 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
-import type { HowItWorksCloseReply, QuestsSurface, QuestsViewReply, ShareReply, TurnReply } from "../shell";
+import type { HowItWorksCloseReply, QuestsSurface, QuestsViewReply, TurnReply } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, QuestsShown, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments, useEmojisShown } from "./EmojiMoment";
 import { useEmojisOnTheirWay, withTheEmojisAway } from "./emojisOnTheirWay";
@@ -17,7 +17,6 @@ import type { QuestsLanding } from "./questsFold";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
 import { PutInFlights } from "./PutInFlights";
-import { useWinShares } from "./ShareWin";
 import { Sidebar } from "./Sidebar";
 import { teamEmojiOf } from "./teamPage";
 import { TopBar, type TopBarPopups } from "./TopBar";
@@ -53,7 +52,6 @@ export type AlbumShellProps = {
   xpMoment: XpMomentAhead;
   endXpMoment: (skipped: boolean) => void;
   missedXpMoment: MissedXpMoment;
-  shareItem: (item: string) => Promise<ShareReply>;
   closeHowItWorks: (triedSlack: boolean) => Promise<HowItWorksCloseReply>;
   anEntryIsOpen: boolean;
   quests: QuestsShown | undefined;
@@ -61,7 +59,7 @@ export type AlbumShellProps = {
   viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply>;
 } & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, shareItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, questsLanding, viewQuests }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, turnItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, questsLanding, viewQuests }: AlbumShellProps) {
   const wide = useWideScreen();
   const trayButton = useRef<HTMLButtonElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
@@ -97,7 +95,6 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const onTheirWay = useEmojisOnTheirWay();
   const turnEmojis = { answered: album.emojis, leave: onTheirWay.leave, back: onTheirWay.home, home: (id: string) => (onTheirWay.home([id]), emojisShown.shownElsewhere([id])) };
   const items = useItemBoard(album.board, turnItem, album.level, keyOf(place), { teachesTheLoop: visitCard.answered === null, emojis: turnEmojis });
-  const shares = useWinShares(shareItem);
   const flying = items.flight !== null;
   const sinceTheLastVisit = useXpMomentSequence(xpMoment, { itemsWait: (album.board?.items.length ?? 0) > 0, onEnd: endXpMoment });
   const howItWorks = cardShownAt(visitCard, { landing: items.landing, turning: items.turning, momentWaits: sinceTheLastVisit.waits });
@@ -131,10 +128,10 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
       {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={() => finishUnlocking(moment.team)} />}
       {emojiMoments.playing.length > 0 && <EmojiMoment key={emojiMoments.playing.map(({ id }) => id).join(" ")} moments={emojiMoments} emojiButton={emojiButton} />}
       {sinceTheLastVisit.play !== null && <XpMomentCanvas play={sinceTheLastVisit.play} me={album.me} levelUnlocks={levelUnlocks} onTheirWay={onTheirWay} />}
-      {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} landed={<AfterTheLanding turns={turns} album={album} shares={shares} />} touched={turns.touched} onTouch={turns.touch} onTurn={turns.turn} onLater={turns.later} />}
+      {boardShown && turns.board !== null && <ItemBoard board={turns.board} turning={turns.turning} trouble={turns.trouble} flight={turns.flight} lead={sinceTheLastVisit.ended === null ? null : <XpMomentSummary moment={sinceTheLastVisit.ended} />} landed={<AfterTheLanding turns={turns} />} touched={turns.touched} onTouch={turns.touch} onTurn={turns.turn} onLater={turns.later} />}
       {turns.flight !== null && <TurnFlight flight={turns.flight} boxes={turns.boxes} />}
       {howItWorks.card !== null && <HowItWorks card={howItWorks.card} onClose={visitCard.close} />}
-      {album.board !== null && <ItemsWait turns={turns} album={album} shares={shares} pill={!missedXpMoment.glows} />}
+      {album.board !== null && <ItemsWait turns={turns} album={album} pill={!missedXpMoment.glows} />}
       <PutInFlights flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}

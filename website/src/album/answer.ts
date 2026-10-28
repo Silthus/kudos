@@ -12,7 +12,6 @@ import type { QuestsAnswer } from "../../../convex/website/quests";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
-import type { ShareOffers } from "../../../convex/website/itemShare";
 import type { CardEmojisRead, CardWeek, PlayerCard, PlayerCardAnswer, PlayerCardRead as PlayerCardAnswered } from "../../../convex/website/playerCard";
 
 export type AlbumMe = { name: string; face: Face; person: string; team: string | null };
@@ -68,7 +67,7 @@ export type Album = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
-} & ShareOffers;
+};
 
 export type AlbumAnswer = { kind: "off" } | Album;
 
