@@ -40,6 +40,7 @@ type PageSize = { min: number; max: number; usual: number };
 
 const activityPage: PageSize = { min: 1, max: 50, usual: 20 };
 const recentPage: PageSize = { min: 1, max: 10, usual: 5 };
+const recentPagesRead = 3;
 
 export const recipientsPerPage = 700;
 
@@ -168,7 +169,7 @@ export type ReadSince = { decided: number; entry: EntrySince; xp: number; record
 export type Since = { above?: number; upTo?: number; questsAwaitedAbove?: number; talliesAwaitedAbove?: number };
 
 export async function activitySince(ctx: QueryCtx, member: MemberId, since: Since): Promise<ReadSince[]> {
-  const page = await pendingSince(ctx, member, since, mostReadSince);
+  const page = await stillShown(await pendingSince(ctx, member, since, mostReadSince));
   const mentions = mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked");
   return Promise.all(page.map(async ({ position, entry, xp, settled }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp()), settled: (await settled?.()) ?? true })));
 }
@@ -190,7 +191,7 @@ async function pendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Inf
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined, questsAwaitedAbove, talliesAwaitedAbove };
   const below = { decided: upTo, inclusive: true, ...(above !== undefined && { above }) };
   const reads = await Promise.all(sourcesSince.map(({ read }) => read(ctx, viewer, below, size + 1)));
-  return stillShown(newestWithin(reads, size));
+  return newestWithin(reads, size);
 }
 
 export async function activityOf(ctx: QueryCtx, member: MemberId, { filter, cursor, limit }: { filter: Filter; cursor: string | null; limit?: number }): Promise<Activity> {
@@ -199,11 +200,20 @@ export async function activityOf(ctx: QueryCtx, member: MemberId, { filter, curs
 }
 
 export async function recentKudosOf(ctx: QueryCtx, member: MemberId, { direction, limit }: { direction: Direction; limit?: number }): Promise<RecentKudos> {
-  const { entries } = await pageOf(ctx, member, direction, null, sizeOf(limit, recentPage));
-  return { kind: "recent", entries: entries.filter(isKudos) };
+  const size = sizeOf(limit, recentPage);
+  const mentions = mentionsOfOnePage(ctx);
+  const entries: RecentKudos["entries"] = [];
+  let cursor: Cursor | null = null;
+  for (let read = 0; read < recentPagesRead && entries.length < size; read++) {
+    const page = await pageOf(ctx, member, direction, cursor, size - entries.length, mentions);
+    entries.push(...page.entries.filter(isKudos));
+    if (page.after === null) break;
+    cursor = decodeCursor(page.after);
+  }
+  return { kind: "recent", entries };
 }
 
-async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: Cursor | null, size: number) {
+async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: Cursor | null, size: number, mentions = mentionsOfOnePage(ctx)) {
   const hugsShown = once(() => hugsShownTo(ctx, member));
   const hugsAsOf = await hugsSnapshotOf(ctx, member, filter, hugsShown, cursor);
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf, questsAwaitedAbove: Infinity, talliesAwaitedAbove: Infinity };
@@ -211,7 +221,6 @@ async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: C
   const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, belowFor(rank, after), size + 1)));
   const pending = newestOf(reads);
   const page = newestWithin(reads, size);
-  const mentions = mentionsOfOnePage(ctx);
   const entries = await Promise.all((await stillShown(page)).map(({ entry }) => entry(mentions)));
   const last = page.at(-1);
   const more = pending.length > page.length || reads.some((read) => read.cut);

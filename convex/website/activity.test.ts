@@ -372,6 +372,19 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
     }
   });
 
+  test("the last few kudos read on past kudos taken back in Slack", async () => {
+    await activityOn();
+    await post(t, thanksBob, { user: alice.user, ts: postedTs });
+    await post(t, thanksBob, { user: alice.user, ts: "1760435100.000200" });
+    await settle(t);
+
+    await deleteMessage(t, { user: alice.user, ts: "1760435100.000200", previous: thanksBob });
+    await settle(t);
+
+    const recent = await (await signedIn(bob)).query(api.website.activity.getRecentKudos, { direction: "received", limit: 1 });
+    expect(recent).toMatchObject({ kind: "recent", entries: [{ kind: "kudosReceived", at: postedAt }] });
+  });
+
   test("a kudos edited away and back into one shows again", async () => {
     await activityOn();
     await post(t, thanksBob, { user: alice.user, ts: postedTs });

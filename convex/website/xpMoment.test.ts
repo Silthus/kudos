@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { deleteMessage, memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import type { Infer } from "convex/values";
@@ -115,6 +115,20 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect(moment.fold).toEqual({ count: 3, xp: 15 });
     expect(moment.moments).toBe(7);
     expect(moment.xp).toBe(35);
+  });
+
+  test("a kudos deleted in Slack since the last visit leaves the moment, the kudos before it still plays, and ending it moves past both", async () => {
+    const asAlice = await aReturningMember(alice);
+    const kept = await thanks(bob, alice);
+    const deleted = await thanks(carol, alice);
+    await deleteMessage(t, { user: carol.user, ts: deleted.ts });
+    await settle(t);
+
+    const moment = await theMomentOf(asAlice);
+
+    expect(moment.excerpts.filter(({ entry }) => entry.kind === "kudosReceived").map(({ entry }) => entry.at)).toEqual([kept.at]);
+    await endOf(asAlice, moment);
+    expect(await momentOf(asAlice)).toMatchObject({ kind: "none" });
   });
 
   test("a level crossed is always among the excerpts, however many newer kudos came in", async () => {
