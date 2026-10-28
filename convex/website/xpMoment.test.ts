@@ -517,6 +517,18 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
     expect(moment.quests.map(({ goal }) => goal), "the quests finished").toEqual(["Give a kudos that says why."]);
   });
 
+  test("a quest finished on the unlock path, off the Monday path, gets no beat and climbs as before", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "quests", "quest-beats");
+    const asAlice = await aReturningMember(alice);
+
+    await thanks(alice, carol);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.flatMap(({ entry }) => (entry.kind === "kudosGiven" ? (entry.earned?.questsDone ?? []) : [])), "the quests Activity shows on the kudos").not.toEqual([]);
+    expect(moment.quests, "the quests finished").toEqual([]);
+    expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp);
+  });
+
   test("while quest-beats is off the moment answers no quest and climbs as before", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath);
     const asAlice = await aReturningMember(alice);

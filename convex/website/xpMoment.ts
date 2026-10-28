@@ -10,6 +10,7 @@ import { firstThanksTopUpPaidTo, type FirstThanksTopUp } from "../progression/fi
 import { progressionWaitedFor } from "../progression/effects";
 import { levelOf, xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
+import { onTheMondayPath } from "../quests/flag";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
 import { questBeatsShownTo } from "./questBeatsFlag";
@@ -57,7 +58,7 @@ export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> 
   if (since === null) return { kind: "none", lastVisit };
   const { playable, heldBack } = playableOf(withTopUp(await activitySince(ctx, me.member, { above: since }), topUp), Date.now());
   if (playable.length === 0) return { kind: "none", lastVisit };
-  return momentOf(ctx, me, since, { read: playable, heldBack, questsShown: await questBeatsShownTo(ctx, me.member) });
+  return momentOf(ctx, me, since, { read: playable, heldBack, questsShown: (await questBeatsShownTo(ctx, me.member)) && (await onTheMondayPath(ctx, me.member)) });
 });
 
 export const endXpMoment = memberMutation({
