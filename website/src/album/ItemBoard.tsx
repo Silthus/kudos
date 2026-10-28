@@ -7,7 +7,6 @@ import { NamedEmoji } from "../Emoji";
 import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
-import { ShareWin, type WinShares } from "./ShareWin";
 import { emblemOf, medalEmojiOf, medalKeyOf, medalSpokenOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
@@ -67,9 +66,7 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, touch
   );
 }
 
-type TurnedOverProps = { turns: ShownTurns; album: Album; shares: WinShares };
-
-export function ItemsWait({ turns, album, shares, pill }: TurnedOverProps & { pill: boolean }) {
+export function ItemsWait({ turns, album, pill }: { turns: ShownTurns; album: Album; pill: boolean }) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
   const settled = !open && flight === null;
   const said = landing !== null && settled;
@@ -91,22 +88,15 @@ export function ItemsWait({ turns, album, shares, pill }: TurnedOverProps & { pi
       </div>
       {settled && (
         <div className="ib-after">
-          <AfterTheLanding turns={turns} album={album} shares={shares} />
+          <AfterTheLanding turns={turns} />
         </div>
       )}
     </>
   );
 }
 
-export function AfterTheLanding({ turns: { landing, turnedThisVisit }, album, shares }: TurnedOverProps) {
-  return (
-    <>
-      {landing?.teaches && <LoopLine lesson={landing.teaches} />}
-      {turnedThisVisit.map(({ item, face }) => (
-        <ShareWin key={item} item={item} name={nameOf(face)} offered={album.shares} shares={shares} />
-      ))}
-    </>
-  );
+export function AfterTheLanding({ turns: { landing } }: { turns: ShownTurns }) {
+  return landing?.teaches && <LoopLine lesson={landing.teaches} />;
 }
 
 function LandedWords({ landing: { face, applied, unlocked } }: { landing: Landing }) {

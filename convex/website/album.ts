@@ -24,7 +24,6 @@ import { hiddenItemsShownTo } from "../items/flag";
 import { boardOf, type FaceDown } from "../items/ledger";
 import { milestonesHeldForTheirTurn } from "../items/milestoneUnlocks";
 import type { ItemReason } from "../items/records";
-import { shareOffersTo, type ShareOffers } from "../items/share";
 import { turn, type Turned, type TurnedFace } from "../items/turn";
 import { lessonAfter, type LoopLesson, type Taught } from "../items/welcome";
 import { xpToReach } from "../progression/levels";
@@ -67,8 +66,7 @@ export type AlbumAnswer = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
-} & ShareOffers &
-  Onboarding;
+} & Onboarding;
 
 export const mostPeopleShown = 500;
 
@@ -152,7 +150,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)) };
 });
 
 async function shareableUrlsTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "shareableUrls">> {

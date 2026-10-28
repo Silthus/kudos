@@ -252,12 +252,14 @@ A newcomer's first visit ends on one line about the next item, and nothing teach
 
 ### Share and the Monday post
 
+> **Share removed (2026-10-28).** The Share button for a turned win and the card it posted (LP51 to LP54) are gone: the button showed up at the foot of the album without the member asking for it. The Monday post's mark (LP55) stays.
+
 - **LP51 When Share shows.** Only after a turn that finds an epic or legendary hoggie, or whose sticker completes a team page; diamond tiers wait. It is never on by default and never posts by itself. Without a weekly-post channel there is no button.
 - **LP52 Once per win.** A win is shared at most once, keyed by its item, and the button is gone after the press, on every device.
 - **LP53 Where it goes.** HedgeHug posts the share into the workspace's weekly-post channel. No channel picker, and no new Slack scope (`chat:write.public` covers public channels).
 - **LP54 The card puts the thanks first.** `Michael thanked Alex: '…' and found a legendary Disco Hog`, giver and recipient in bold, or "…and completed the Product Analytics page", with the hoggie art or the team crest and an "Open HedgeHug" link. Colleagues' faces are not shown. The quote is the thanks alone, without the mentions and emoji that open or close the message. A kudos from a private channel names the giver and the recipient without a quote. A level-up hoggie leads with the level (`Michael reached level 7 and found …`) and the welcome item with the find alone.
 - **LP55 The Monday post marks a find.** The top-kudos post stays built around the quoted thoughtful kudos. Beside a quote it may show the hoggie the kudos brought ("found a legendary Disco Hog"), only when that item was an epic or legendary hoggie and its owner has turned it. "Team stickers unlocked last week" stays; no list of finds is added. The weekly edition on the website does not get the mark.
-- **LP56 Flag.** The share and the Monday post's mark are behind `item-share`; the share also needs `hidden-items` on for the member.
+- **LP56 Flag.** The Monday post's mark is behind `item-share`.
 
 ### Pet hoggie
 

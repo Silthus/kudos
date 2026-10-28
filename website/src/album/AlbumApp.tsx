@@ -106,7 +106,6 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         xpMoment={visit.moment}
         endXpMoment={visit.endTheMoment}
         missedXpMoment={visit.missed}
-        shareItem={actions.shareItem}
         closeHowItWorks={actions.closeHowItWorks}
         quests={quests}
         questsLanding={questsLanding}
