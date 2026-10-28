@@ -24,6 +24,8 @@ export function progressUnitOf({ progress: { counts } }: PoolQuest): QuestProgre
 
 export type Moved = { name: string; from: number; to: number; of: number };
 
+export type ProgressRead = { since: number; until: number; mostAwards: number };
+
 export const notThankedForMs = 30 * 24 * 60 * 60 * 1000;
 
 export function counts({ progress: { given } }: PoolQuest, award: QuestAward): boolean {

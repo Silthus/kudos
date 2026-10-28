@@ -290,8 +290,20 @@ export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number
       return Number.isFinite(until) ? from.lte("day", latestDayAt(until)) : from;
     })
     .collect();
-  const between = awards.filter(({ at }) => at >= since && at <= until).sort((one, other) => one.at - other.at);
-  return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at, _creationTime }, annotations }) => ({ award: _id, day, at, created: _creationTime, annotations }));
+  return datedOf(ctx, awards.filter(({ at }) => at >= since && at <= until));
+}
+
+export async function givenSinceWithin(ctx: QueryCtx, giver: MemberId, since: number, mostAwards: number): Promise<DatedAward[] | null> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", earliestDayAt(since)))
+    .take(mostAwards + 1);
+  return awards.length > mostAwards ? null : datedOf(ctx, awards.filter(({ at }) => at >= since));
+}
+
+async function datedOf(ctx: QueryCtx, awards: AwardRow[]): Promise<DatedAward[]> {
+  const sorted = awards.toSorted((one, other) => one.at - other.at);
+  return (await withStoredAnnotations(ctx, sorted)).map(({ award: { _id, day, at, _creationTime }, annotations }) => ({ award: _id, day, at, created: _creationTime, annotations }));
 }
 
 function earliestDayAt(at: number): DayKey {
@@ -511,9 +523,14 @@ export async function* awardsReceivedByDecision(ctx: QueryCtx, recipient: Member
 
 export type AnnotatedGivenMessage = GivenMessageAwards & { annotations: Annotations };
 
-export async function messagesGivenDecidedAfter(ctx: QueryCtx, giver: MemberId, after: number): Promise<AnnotatedGivenMessage[]> {
+export async function messagesGivenDecidedAfter(ctx: QueryCtx, giver: MemberId, after: number, mostAwards: number): Promise<AnnotatedGivenMessage[] | null> {
   const given: AnnotatedGivenMessage[] = [];
-  for await (const message of messagesGivenByDecision(ctx, giver, { ...fromTheNewestDecided, above: after })) given.push({ ...message, annotations: await storedAnnotationsOf(ctx, message.message) });
+  let awards = 0;
+  for await (const message of messagesGivenByDecision(ctx, giver, { ...fromTheNewestDecided, above: after })) {
+    awards += message.awards.length;
+    if (awards > mostAwards) return null;
+    given.push({ ...message, annotations: await storedAnnotationsOf(ctx, message.message) });
+  }
   return given;
 }
 

@@ -20,7 +20,7 @@ import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { onboardingFinishedAt } from "./onboarding";
 import { pendingWeeklyCratesBefore } from "./pendingCrates";
 import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, questPool, withoutFullStop, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type QuestPool, type Recipient } from "./pool";
-import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type Moved, type MovedQuest, type QuestAward } from "./progress";
+import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type Moved, type MovedQuest, type ProgressRead, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
 import { questStartOf } from "./start";
 import type { WeeklyQuest } from "./step";
@@ -136,13 +136,15 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
   return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap), swapAvailable: await swapAvailableIn(ctx, draw, swap, slots, at) };
 }
 
-export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
+export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
   const draw = await thisWeeksDrawOf(ctx, member, Date.now());
   if (draw === null || !isMondayDraw(draw)) return [];
   const moved: Moved[] = [];
   for (const slot of draw.slots) {
     const pooled = questOf(slot.quest);
-    const counted = await withDecided(ctx, await countedFor(ctx, member, draw.week, slot));
+    const rows = await countedFor(ctx, member, draw.week, slot);
+    if (rows.length > mostAwards) continue;
+    const counted = await withDecided(ctx, rows);
     const from = questProgress(pooled, counted.filter(({ decided }) => decided <= since));
     const to = questProgress(pooled, counted.filter(({ decided }) => decided <= until));
     if (from < to && to < pooled.progress.target) moved.push({ name: withoutFullStop(pooled.goal), from, to, of: pooled.progress.target });

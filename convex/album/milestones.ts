@@ -6,7 +6,7 @@ import { collectionOf } from "../hoggies/collection";
 import { messagesGivenDecidedAfter, type AnnotatedGivenMessage } from "../engine/awards";
 import { earnTierItem } from "../items/achievements";
 import { saysWhy } from "../progression/gate";
-import type { Moved } from "../quests/progress";
+import type { Moved, ProgressRead } from "../quests/progress";
 import { chatUserOf, membersPageIn, type MemberId } from "../workspace/directory";
 import { talliedAwardOf } from "./tallies";
 import { milestoneCatalogue, type MilestoneId, type Step } from "./milestoneCatalogue";
@@ -111,8 +111,10 @@ export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
   return milestoneCatalogue.milestones.flatMap(({ id, steps }) => steps.filter(({ tier }) => earned.has(tierKey(id, tier))).map(({ tier }) => ({ milestone: id, tier })));
 }
 
-export async function thoughtfulMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
-  const talliedSince = await talliedAwardsIn(ctx, (await messagesGivenDecidedAfter(ctx, member, since)).filter(({ annotations }) => saysWhy(annotations)));
+export async function thoughtfulMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
+  const givenSince = await messagesGivenDecidedAfter(ctx, member, since, mostAwards);
+  if (givenSince === null) return [];
+  const talliedSince = await talliedAwardsIn(ctx, givenSince.filter(({ annotations }) => saysWhy(annotations)));
   const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - talliedSince.length, 0);
   const to = from + talliedSince.filter(({ created }) => created <= until).length;
   const next = milestoneCatalogue.milestones.find(({ id }) => id === "thoughtful")!.steps.find((step) => step.at > from);

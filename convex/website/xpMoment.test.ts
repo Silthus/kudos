@@ -768,6 +768,45 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(await signedIn(alice))).progressed.filter(({ name }) => name === onboardingGoalOf("two-days"))).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
   });
 
+  test("past 50 awards given since the last visit the moment answers no milestone or two-days progress, and still plays", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    const member = await memberOf(alice);
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    await aReturningMember(alice);
+    for (let given = 0; given < 26; given += 1) await thanks(alice, bob, carol);
+
+    const moment = await theMomentOf(await signedIn(alice));
+
+    expect(moment.moments, "the kudos the moment plays").toBe(26);
+    expect(moment.progressed).toEqual([]);
+  });
+
+  test("a drawn quest with more than 50 counted kudos this week answers no progress", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await arrive(await signedIn(alice), null);
+    const atTheVisit = await weekOf(alice);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    const now = await weekOf(alice);
+    const movedIndex = now.slots.findIndex((slot, index) => slot.progress > atTheVisit.slots[index]!.progress && slot.finishedAt === null);
+    const moved = now.slots[movedIndex]!;
+    const member = await memberOf(alice);
+    await t.run(async (ctx) => {
+      const rows = await ctx.db.query("questProgress").withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", now.week).eq("slot", moved.slot)).collect();
+      const { _id, _creationTime, ...newest } = rows.at(-1)!;
+      for (let copy = 0; copy < 51; copy += 1) await ctx.db.insert("questProgress", newest);
+    });
+
+    const progressed = (await theMomentOf(await signedIn(alice))).progressed;
+
+    expect(progressed.map(({ name }) => name)).not.toContain(moved.goal.replace(/\.$/, ""));
+  });
+
   test("while progress-beats is off the moment answers no progress", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment);
     await thanks(alice, bob);

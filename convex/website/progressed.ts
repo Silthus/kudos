@@ -7,8 +7,11 @@ import type { MemberId } from "../workspace/directory";
 
 export type Progressed = Moved & { kind: "quest" | "milestone" };
 
+const mostAwardsRead = 50;
+
 export async function progressedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Progressed[]> {
-  const quests = [...(await twoDaysMovedSince(ctx, member, since, until)), ...(await mondayQuestsMovedSince(ctx, member, since, until))];
-  const milestones = await thoughtfulMovedSince(ctx, member, since, until);
+  const read = { since, until, mostAwards: mostAwardsRead };
+  const quests = [...(await twoDaysMovedSince(ctx, member, read)), ...(await mondayQuestsMovedSince(ctx, member, read))];
+  const milestones = await thoughtfulMovedSince(ctx, member, read);
   return [...quests.map((moved) => ({ kind: "quest" as const, ...moved })), ...milestones.map((moved) => ({ kind: "milestone" as const, ...moved }))];
 }

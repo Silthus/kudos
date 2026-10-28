@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstAwardsGivenAfter, firstDecidedOf, givenBetween, messagesGivenDecidedAfter, type AwardId, type DatedAward } from "../engine/awards";
+import { earliestAwardFrom, firstAwardsGivenAfter, firstDecidedOf, givenBetween, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward } from "../engine/awards";
 import { replyIsHeld } from "../feedback/heldReplies";
 import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
@@ -10,7 +10,7 @@ import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
 import { hasThankedEveryone, type Reward } from "./journey";
 import { isPaidOnTheMondayPath, mondayCatalogueVersion } from "./mondayCatalogue";
-import type { Moved, MovedQuest, QuestProgress } from "./progress";
+import type { Moved, MovedQuest, ProgressRead, QuestProgress } from "./progress";
 import { questStartOf } from "./start";
 import type { JourneyStep } from "./step";
 
@@ -67,11 +67,13 @@ export async function onboardingQuestFactsOf(ctx: QueryCtx, member: MemberId, at
   };
 }
 
-export async function twoDaysMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
+export async function twoDaysMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
   const start = await questStartOf(ctx, member);
   if (start === null || (await twoDaysFinishedBy(ctx, member, since))) return [];
-  const sayingWhy = await sayingWhyBetween(ctx, member, start, Infinity);
-  const decidedSince = await messagesGivenDecidedAfter(ctx, member, since);
+  const givenSinceTheStart = await givenSinceWithin(ctx, member, start, mostAwards);
+  const decidedSince = await messagesGivenDecidedAfter(ctx, member, since, mostAwards);
+  if (givenSinceTheStart === null || decidedSince === null) return [];
+  const sayingWhy = givenSinceTheStart.filter(({ annotations }) => saysWhy(annotations));
   const decidedAfter = (instant: number) => new Set<AwardId>(decidedSince.filter(({ created }) => created > instant).flatMap(({ awards }) => awards.map(({ award }) => award)));
   const decidedBy = (instant: number) => {
     const later = decidedAfter(instant);
