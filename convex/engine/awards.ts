@@ -296,9 +296,9 @@ export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number
 export async function givenSinceWithin(ctx: QueryCtx, giver: MemberId, since: number, mostAwards: number): Promise<DatedAward[] | null> {
   const awards = await ctx.db
     .query("awards")
-    .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", earliestDayAt(since)))
+    .withIndex("by_giver_at", (q) => q.eq("giver", giver).gte("at", since))
     .take(mostAwards + 1);
-  return awards.length > mostAwards ? null : datedOf(ctx, awards.filter(({ at }) => at >= since));
+  return awards.length > mostAwards ? null : datedOf(ctx, awards);
 }
 
 async function datedOf(ctx: QueryCtx, awards: AwardRow[]): Promise<DatedAward[]> {

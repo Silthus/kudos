@@ -781,6 +781,20 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect(moment.progressed).toEqual([]);
   });
 
+  test("50 awards given since the two-days quest started still move it, whatever was given the day before it started", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const member = await memberOf(alice);
+    later();
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    await aReturningMember(alice);
+    for (let given = 0; given < 25; given += 1) await thanks(alice, bob, carol);
+
+    const progressed = (await theMomentOf(await signedIn(alice))).progressed;
+
+    expect(progressed.filter(({ name }) => name === onboardingGoalOf("two-days"))).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
+  });
+
   test("a drawn quest with more than 50 counted kudos this week answers no progress", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
     await thanks(alice, bob);

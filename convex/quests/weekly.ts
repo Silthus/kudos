@@ -142,8 +142,8 @@ export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, { 
   const moved: Moved[] = [];
   for (const slot of draw.slots) {
     const pooled = questOf(slot.quest);
-    const rows = await countedFor(ctx, member, draw.week, slot);
-    if (rows.length > mostAwards) continue;
+    const rows = await countedWithin(ctx, member, draw.week, slot, mostAwards);
+    if (rows === null) continue;
     const counted = await withDecided(ctx, rows);
     const from = questProgress(pooled, counted.filter(({ decided }) => decided <= since));
     const to = questProgress(pooled, counted.filter(({ decided }) => decided <= until));
@@ -302,6 +302,14 @@ async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot
     .withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", week).eq("slot", slot))
     .collect();
   return rows.filter((row) => row.quest === quest);
+}
+
+async function countedWithin(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot, mostAwards: number): Promise<Doc<"questProgress">[] | null> {
+  const rows = await ctx.db
+    .query("questProgress")
+    .withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", week).eq("slot", slot))
+    .take(mostAwards + 1);
+  return rows.length > mostAwards ? null : rows.filter((row) => row.quest === quest);
 }
 
 async function withDecided(ctx: QueryCtx, counted: Doc<"questProgress">[]): Promise<Array<Doc<"questProgress"> & { decided: number }>> {
