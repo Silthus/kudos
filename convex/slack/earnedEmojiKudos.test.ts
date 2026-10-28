@@ -266,6 +266,22 @@ describe("in a kudos message, an earned emoji counts only when the giver picked 
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
   });
 
+  test.each([0, 60])("a held random emoji the maintainer later mapped to First thank-you gives kudos unpicked, beside %i other emoji", async (otherCount) => {
+    const t = await workspaceWithEmojiNames();
+    await droppedRandomEmoji(t, "U_ALICE");
+    await earnedFirstThankYou(t, "U_ALICE");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "milestone:thoughtful:bronze", name: randomEmoji });
+      for (const row of await ctx.db.query("emojiClasses").collect()) await ctx.db.delete(row._id);
+    });
+    const others = Array.from({ length: otherCount }, (_, index) => emoji(`other-${index}`));
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), ...others, emoji(randomEmoji))], { user: "U_ALICE", ts: messageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  });
+
   test("the hype emoji of the teammate the giver mentions gives kudos unpicked", async () => {
     const t = await workspaceWithEmojiNames();
     await heldHypeEmojiOf(t, "U_ALICE", "U_BOB");

@@ -10,6 +10,11 @@ export function KudosEmojiPicker({ album, pickKudosEmoji, Heading = "h2" }: Pick
   const heading = useId();
   const [replied, setReplied] = useState<string[] | null>(null);
   const [sending, setSending] = useState(false);
+  const [readShown, setReadShown] = useState(album.kudosEmojiPicks);
+  if (readShown !== album.kudosEmojiPicks) {
+    setReadShown(album.kudosEmojiPicks);
+    setReplied(null);
+  }
   const pickable = usableNowOf(album.emojis).filter(({ id }) => id !== firstThankYouEmoji);
   if (pickable.length === 0) return null;
   const picked = new Set((replied ?? album.kudosEmojiPicks ?? []).filter((id) => pickable.some((emoji) => emoji.id === id)));

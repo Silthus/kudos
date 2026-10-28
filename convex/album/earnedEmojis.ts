@@ -329,11 +329,11 @@ export async function holdsEarnedEmojiNamed(ctx: QueryCtx, workspace: string, me
 }
 
 export async function earnedEmojiNamesAmong(ctx: QueryCtx, workspace: string, member: MemberId, names: string[], counts: (emoji: string) => boolean | Promise<boolean>): Promise<string[]> {
-  const earned: string[] = [];
+  const earned = new Set<string>();
   for (const { name, emoji, dropped } of await namedEmojisAmong(ctx, workspace, member, names)) {
-    if ((await counts(emoji)) && (dropped || (await isEarnedBy(ctx, member, emoji)))) earned.push(name);
+    if (!earned.has(name) && (await counts(emoji)) && (dropped || (await isEarnedBy(ctx, member, emoji)))) earned.add(name);
   }
-  return earned;
+  return [...earned];
 }
 
 type NamedEmoji = { name: string; emoji: string; dropped: boolean };
@@ -344,9 +344,8 @@ async function namedEmojisAmong(ctx: QueryCtx, workspace: string, member: Member
   const registry = await namesHeldIn(ctx, workspace);
   const drops = new Set(await randomEmojiNamesHeldBy(ctx, member));
   return distinct.flatMap((name) => {
-    if (drops.has(name)) return [droppedNamed(name)];
     const registered = registry.get(withoutSkinTone(name));
-    return registered === undefined ? [] : [{ name, emoji: registered, dropped: false }];
+    return [...(drops.has(name) ? [droppedNamed(name)] : []), ...(registered === undefined ? [] : [{ name, emoji: registered, dropped: false }])];
   });
 }
 
@@ -355,10 +354,8 @@ async function namedOneByOne(ctx: QueryCtx, workspace: string, member: MemberId,
   for (const name of names) {
     const bare = withoutSkinTone(name);
     if (await holdsRandomEmoji(ctx, member, bare)) named.push({ ...droppedNamed(bare), name });
-    else {
-      const registered = await emojiNamed(ctx, workspace, bare);
-      if (registered !== null) named.push({ name, emoji: registered, dropped: false });
-    }
+    const registered = await emojiNamed(ctx, workspace, bare);
+    if (registered !== null) named.push({ name, emoji: registered, dropped: false });
   }
   return named;
 }

@@ -4,10 +4,11 @@ import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures } from "../shell";
+import { anAlbumThatAnswers } from "../test/albumThatAnswers";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
-import type { Album, AlbumEmoji, PickKudosEmoji } from "./answer";
+import type { Album, AlbumEmoji, AlbumRead, PickKudosEmoji } from "./answer";
 
 const day = 24 * 60 * 60 * 1_000;
 
@@ -56,11 +57,11 @@ const atLevelTwo: Album = {
   ],
 };
 
-type Visit = { album: Album; wizard?: boolean; inPlace?: EmojiInPlace; pickKudosEmoji?: PickKudosEmoji };
+type Visit = { album: Album; wizard?: boolean; inPlace?: EmojiInPlace; pickKudosEmoji?: PickKudosEmoji; read?: AlbumRead };
 
-function visit({ album, wizard = false, inPlace = null, pickKudosEmoji }: Visit) {
+function visit({ album, wizard = false, inPlace = null, pickKudosEmoji, read = fixedAlbum({ ...album, emojiWizard: wizard, emojiInPlace: inPlace }) }: Visit) {
   window.history.replaceState(null, "", "/");
-  return renderAlbum(shellFixtures.member, fixedAlbum({ ...album, emojiWizard: wizard, emojiInPlace: inPlace }), { settings: fixedSettings(settingsFixtures.forTheMaintainer), slackEmojiMatches: noMatches, commands: pickKudosEmoji === undefined ? {} : { pickKudosEmoji } });
+  return renderAlbum(shellFixtures.member, read, { settings: fixedSettings(settingsFixtures.forTheMaintainer), slackEmojiMatches: noMatches, commands: pickKudosEmoji === undefined ? {} : { pickKudosEmoji } });
 }
 
 async function theEmojiButton() {
@@ -124,6 +125,18 @@ describe("the emoji popup leads with the earned emojis the member picks to count
 
     expect(pickKudosEmoji).toHaveBeenCalledWith("team:quiet-harbour", false);
     expect(picks.getByRole("button", { name: ":ines-okafor-hype:" })).toBeEnabled();
+  });
+
+  it("after a press, the album's next answer shows its own picks", async () => {
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(async () => ({ kind: "picked", picks: ["level:5", "level:2"] }));
+    const live = anAlbumThatAnswers({ ...withFirstThankYou, kudosEmojiPicks: ["level:5"] });
+    const view = visit({ album: live.now(), read: live.read, pickKudosEmoji });
+    const picks = picksIn(await openTheEmojis(view));
+    await view.user.click(picks.getByRole("button", { name: ":raised_hands:" }));
+
+    live.answerNext({ ...live.now(), kudosEmojiPicks: ["team:quiet-harbour"] });
+
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: true", ":ines-okafor-hype: false", ":level-5: false", ":raised_hands: false"]);
   });
 
   it("with no earned emoji to pick, the section is gone", async () => {
