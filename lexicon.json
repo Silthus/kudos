@@ -842,6 +842,18 @@
     {
       "name": "quests panel",
       "definition": "The panel on the right of every album page that lists a Monday-path member's quests, open on a first visit and foldable to a tab (MQ39)."
+    },
+    {
+      "name": "one reply",
+      "definition": "the single Block Kit private reply a giver gets after a kudos under one-reply, in place of the success reply and the thread reply: headline with gains, kudos left, quest lines with bars, the item for thanking, one main button"
+    },
+    {
+      "name": "beat",
+      "definition": "one step of the XP moment's sequence that plays a single fact on its own, such as a finished quest bursting into its reward or a quest or milestone's bar moving since the last visit"
+    },
+    {
+      "name": "quest finished",
+      "definition": "a quest whose goal a kudos completed, paying its reward: XP, and on the Monday path an unidentified hoggie"
     }
   ],
   "retired": [

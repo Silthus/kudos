@@ -1,7 +1,7 @@
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
-import { FakeSlack, type SlackArgs } from "../../testing/fakeSlack";
+import { FakeSlack, slackError, type SlackArgs } from "../../testing/fakeSlack";
 import { post, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest } from "../../testing/signedSlack";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
@@ -178,6 +178,28 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(blockTextsOf(direct[0]!), "the direct message").toContain("🎁 *An item for thanking Carol*");
   });
 
+  test.each(["user_not_in_channel", "channel_not_found", "not_in_channel"])("Slack refusing the reply beside the kudos with %s sends it as a direct message, once", async (error) => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    slack.answering("chat.postEphemeral", slackError(error));
+
+    await thanks(alice, saysWhy, bob);
+
+    const direct = directRepliesTo(alice);
+    expect(direct.map(({ text }) => String(text).split("\n")[0]), "the direct messages Alice got").toEqual(["<@U_BOB> got 1 kudos from you · +10 XP"]);
+    expect(blockTextsOf(direct[0]!), "the direct message").toContain("🎁 *An item for thanking Bob*");
+  });
+
+  test("a reply refused beside the kudos whose direct message lands but times out is sent once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    slack.answering("chat.postEphemeral", slackError("user_not_in_channel"));
+    vi.stubGlobal("fetch", routedFetch(postHog, theFirstReplyLandsButTimesOut(alice)));
+
+    await thanks(alice, saysWhy, bob);
+    await settleUpTo(t, Date.now() + dayMs);
+
+    expect(messagesTo(alice).map(({ channel }) => channel), "where the reply was tried: the refused one beside the kudos, then the direct message").toEqual(["C1", alice.user]);
+  });
+
   test("a reply still waiting for its item after Quests stays held, so the 10-second release of any version sends it", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
     const held = holdingKudosGiven();
@@ -315,6 +337,17 @@ async function deliverOnly(event: KudosGivenEvent, names: string[]) {
 
 function namedSubscribers() {
   return new Map(subscribers.kudosGiven.map((subscription) => ("subscriber" in subscription ? subscription.subscriber : subscription)).map((subscriber) => [getFunctionName(subscriber), subscriber] as const));
+}
+
+function theFirstReplyLandsButTimesOut(person: Person): typeof fetch {
+  let timedOut = false;
+  return async (input, init) => {
+    const response = await slack.fetch(input, init);
+    const { channel, text } = init?.body ? JSON.parse(String(init.body)) : {};
+    if (timedOut || channel !== person.user || !/kudos from you/.test(String(text))) return response;
+    timedOut = true;
+    throw new DOMException("The operation timed out.", "TimeoutError");
+  };
 }
 
 function messagesTo(person: Person): SlackArgs[] {

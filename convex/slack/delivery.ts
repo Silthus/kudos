@@ -110,7 +110,14 @@ async function sendPrivateReply(ctx: ActionCtx, reply: Id<"privateReplies">, att
   const content = row.oneReply === null ? { text: [slackTextOf(row.lines), ...(row.footer === null ? [] : [settingsFooterText(row.workspace, row.footer)])].join("\n") } : oneReplyContentOf(row.workspace, row.oneReply, row.footer);
   if (row.asDirectMessage) return sendOnce(ctx, row.workspace, "chat.postMessage", { channel: row.to, ...content }, attempt);
   const message = { channel: row.conversation, user: row.to, ...content, ...(row.threadRoot && { thread_ts: row.threadRoot }) };
+  if (row.oneReply !== null) return sendBesideOrAtMostOnceAsDirectMessage(ctx, row.workspace, message, { channel: row.to, ...content }, attempt);
   return sendOnce(ctx, row.workspace, "chat.postEphemeral", message, attempt);
+}
+
+async function sendBesideOrAtMostOnceAsDirectMessage(ctx: ActionCtx, workspace: string, ephemeral: Record<string, unknown>, direct: Record<string, unknown>, attempt: number): Promise<Retry> {
+  const result = await attemptCall(ctx, workspace, "chat.postEphemeral", ephemeral);
+  if (isRefusedAsEphemeral(result)) return sendAtMostOnce(ctx, workspace, "chat.postMessage", direct, attempt);
+  return result.kind === "delivered" || result.kind === "gone" ? null : retryAfter(result, attempt);
 }
 
 async function retryOnAnyError(attempt: number, deliver: () => Promise<Retry>): Promise<Retry> {
