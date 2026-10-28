@@ -86,6 +86,11 @@ export async function hasKudosText(ctx: QueryCtx, ref: MessageRef) {
   return (await kudosTextRow(ctx, ref)) !== null;
 }
 
+export async function takenBackInSlack(ctx: QueryCtx, ref: MessageRef) {
+  const row = await kudosTextRow(ctx, ref);
+  return row?.kind === "tombstone" && row.why !== "removed";
+}
+
 export async function wordsOf(ctx: QueryCtx, ref: MessageRef): Promise<KudosText> {
   const row = await kudosTextRow(ctx, ref);
   if (row === null) return { kind: "unavailable", reason: "not-captured" };

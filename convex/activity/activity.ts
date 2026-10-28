@@ -1,6 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedByDecision, messagesGivenByDecision, type DecidedBelow, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
 import { awardsTallied } from "../album/tallies";
+import { takenBackInSlack } from "../engine/kudosText";
 import { dropsByDecision } from "../hoggies/drops";
 import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { bonusRecordedWith, xpRecordedFor } from "../progression/effects";
@@ -60,7 +61,7 @@ const kudosReceived: Source = {
   rank: ranks.kudosReceived,
   read: async (ctx, { member }, below, take) =>
     whole(
-      (await firstOf(awardsReceivedByDecision(ctx, member, below), take)).map((award) => ({
+      (await firstOf(stillInSlack(ctx, awardsReceivedByDecision(ctx, member, below)), take)).map((award) => ({
         position: { decided: award.created, rank: ranks.kudosReceived },
         entry: (mentions) => receivedEntryOf(ctx, mentions, award),
         xp: () => xpRecordedFor(ctx, award.award, "recipient"),
@@ -71,7 +72,7 @@ const kudosReceived: Source = {
 const kudosGiven: Source = {
   rank: ranks.kudosGiven,
   read: async (ctx, viewer, below, take) => {
-    const { taken, cut } = await firstWithinRecipients(messagesGivenByDecision(ctx, viewer.member, below), take, ({ awards }) => awards.length);
+    const { taken, cut } = await firstWithinRecipients(stillInSlack(ctx, messagesGivenByDecision(ctx, viewer.member, below)), take, ({ awards }) => awards.length);
     return {
       pending: taken.map((given) => ({
         position: { decided: given.created, rank: ranks.kudosGiven },
@@ -286,8 +287,16 @@ async function hugGivenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions
 type HugFacts = { emojiImage?: string; on: string; permalink: string | null; kudos: Message | null };
 
 async function hugFactsOf(ctx: QueryCtx, mentions: Mentions, { message, onKudos, emoji }: TimelineHug): Promise<HugFacts> {
-  const [emojiImage, permalink, kudos] = await Promise.all([mentions.emojiImage(message.workspace, withoutSkinTone(emoji)), permalinkOfMessage(ctx, message), onKudos ? kudosWordsOf(ctx, mentions, message) : null]);
+  const [emojiImage, permalink, kudos] = await Promise.all([mentions.emojiImage(message.workspace, withoutSkinTone(emoji)), permalinkOfMessage(ctx, message), onKudos ? kudosWordsStillInSlack(ctx, mentions, message) : null]);
   return { ...(emojiImage !== undefined && { emojiImage }), on: onKeyOf(message), permalink, kudos };
+}
+
+async function kudosWordsStillInSlack(ctx: QueryCtx, mentions: Mentions, message: MessageRef): Promise<Message | null> {
+  return (await takenBackInSlack(ctx, message)) ? null : kudosWordsOf(ctx, mentions, message);
+}
+
+async function* stillInSlack<T extends { message: MessageRef }>(ctx: QueryCtx, kudos: AsyncIterable<T>): AsyncGenerator<T> {
+  for await (const one of kudos) if (!(await takenBackInSlack(ctx, one.message))) yield one;
 }
 
 function onKeyOf({ conversation, message }: MessageRef): string {

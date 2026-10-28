@@ -347,32 +347,35 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
     }
   });
 
-  test("a kudos deleted in Slack, or edited so it no longer is one, stays as a fact without its words", async () => {
+  test("a kudos deleted in Slack, or edited so it no longer is one, leaves the activity of its giver and its recipient", async () => {
     await activityOn();
+    const kept = "1760435200.000300";
     await post(t, thanksBob, { user: alice.user, ts: postedTs });
     await post(t, thanksBob, { user: alice.user, ts: "1760435100.000200" });
+    await post(t, thanksBob, { user: alice.user, ts: kept });
     await settle(t);
 
     await deleteMessage(t, { user: alice.user, ts: postedTs, previous: thanksBob });
     await edit(t, [section(text(`thanks ${reason} `), mention(bob.user))], { user: alice.user, ts: "1760435100.000200", editedTs: "1760435160.000100" });
     await settle(t);
 
-    const { entries } = await activityOf(await signedIn(bob), { filter: "received" });
-    expect(entries.map((entry) => ("message" in entry ? entry.message : null))).toEqual([
-      { kind: "unavailable", reason: "deleted" },
-      { kind: "unavailable", reason: "deleted" },
-    ]);
+    for (const [person, filter] of [[bob, "received"], [alice, "given"], [bob, "all"], [alice, "all"]] as const) {
+      const { entries, cursor } = await activityOf(await signedIn(person), { filter, limit: 1 });
+      expect(entries.map((entry) => entry.at)).toEqual([1760435200000]);
+      expect(cursor).toBeNull();
+    }
   });
 
-  test("a kudos deleted from a public channel reads its channel as unknown, never private", async () => {
+  test("a kudos edited away and back into one shows again", async () => {
     await activityOn();
     await post(t, thanksBob, { user: alice.user, ts: postedTs });
     await settle(t);
 
-    await deleteMessage(t, { user: alice.user, ts: postedTs, previous: thanksBob });
+    await edit(t, [section(text(`thanks ${reason} `), mention(bob.user))], { user: alice.user, ts: postedTs, editedTs: "1760435060.000100" });
+    await edit(t, thanksBob, { user: alice.user, ts: postedTs, editedTs: "1760435120.000100" });
     await settle(t);
 
-    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "deleted" }, channel: { visibility: "unknown" }, saidWhy: true });
+    expect((await messageSeenBy(bob)).message).toMatchObject({ kind: "text", edited: true });
   });
 
   test("a kudos whose author left Slack answers removed at once, from an unknown channel", async () => {

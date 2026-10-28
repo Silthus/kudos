@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { deleteMessage, memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text, type ReactionOptions } from "../../testing/slackMessages";
 import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
@@ -135,6 +135,20 @@ describe("SR11: a hug on the activity timeline", () => {
     expect(byDana).toEqual([{ kind: "hugGiven", key: expect.any(String), at, people: [personOf(bob), personOf(carol)], emoji: "taco", xp: 1, on: expect.any(String), permalink, kudos: words }]);
     expect(new Set([...forBob, ...forCarol, ...byDana].map(onOf)).size).toBe(1);
     expect((await activityOf(asAlice, { filter: "all" })).entries.map(({ kind }) => kind)).not.toContain("hugReceived");
+  });
+
+  test("a hug on a kudos message deleted in Slack stays, without the kudos' words", async () => {
+    await hugsOn();
+    await kudos(alice, [bob]);
+    vi.advanceTimersByTime(minute);
+    await hug(dana, alice);
+
+    await deleteMessage(t, { user: alice.user, ts: postedTs });
+    await settle(t);
+
+    const entries = (await activityOf(await signedIn(bob), { filter: "all" })).entries;
+    expect(entries.map(({ kind }) => kind)).toEqual(["hugReceived"]);
+    expect(entries[0]).toMatchObject({ kudos: null });
   });
 
   test("hugs received on one message fold into one row: who reacted newest first, the newest emoji, its hugs and their XP, at its newest hug", async () => {
