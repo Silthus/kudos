@@ -103,7 +103,7 @@ async function wasRead(ctx: QueryCtx, member: MemberId, from: number, until: num
 }
 
 function playableOf(newestFirst: ReadSince[], now: number): { playable: ReadSince[]; heldBack: ReadSince[] } {
-  const oldestWaiting = newestFirst.findLastIndex(({ decided, recorded }) => !recorded && decided > now - progressionWaitedFor);
+  const oldestWaiting = newestFirst.findLastIndex(({ decided, recorded, settled }) => !(recorded && settled) && decided > now - progressionWaitedFor);
   return { playable: newestFirst.slice(oldestWaiting + 1), heldBack: newestFirst.slice(0, oldestWaiting + 1) };
 }
 

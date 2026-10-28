@@ -11,7 +11,7 @@ import type { kudosGivenEventValidator } from "../bus/events";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 import type { AlbumAnswer, AlbumRead } from "./album";
-import type { ArrivalAnswer } from "./lastVisit";
+import { moveLastVisitTo, type ArrivalAnswer } from "./lastVisit";
 import type { Denial } from "./memberQuery";
 import type { XpMoment, XpMomentAnswer, XpMomentEndReply } from "./xpMoment";
 
@@ -532,6 +532,20 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
     const next = await theMomentOf(asAlice);
     expect(next.quests.map(({ goal }) => goal), "the next moment's quests").toEqual(["Give a kudos that says why."]);
     expect(next.climb.to.xp - next.climb.from.xp, "the next moment's climb").toBe(next.xp + 50);
+  });
+
+  test("a first thanks whose quests aren't judged yet waits out of the moment with its top-up, so the moment climbs only by what it plays", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "onboarding", "quest-beats");
+    const asAlice = await signedIn(alice);
+    const member = await memberOf(alice);
+    await t.run((ctx) => moveLastVisitTo(ctx, member, Date.now()));
+    const atTheVisit = (await albumOf(asAlice)).level.xp;
+    await thanks(bob, alice);
+    await thanksWhileHeldBack(followingQuests, alice, carol);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the moment while the quests wait").toEqual([["kudosReceived", 5]]);
+    expect([moment.climb.from.xp, moment.climb.to.xp], "the climb").toEqual([atTheVisit, atTheVisit + 5]);
   });
 
   test("a quest finished on the unlock path, off the Monday path, gets no beat and climbs as before", async () => {

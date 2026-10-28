@@ -159,22 +159,22 @@ export const mostReadSince = 50;
 
 export type EntrySince = Exclude<ActivityEntry, Found>;
 
-export type ReadSince = { decided: number; entry: EntrySince; xp: number; recorded: boolean };
+export type ReadSince = { decided: number; entry: EntrySince; xp: number; recorded: boolean; settled: boolean };
 
 export type Since = { above?: number; upTo?: number; questsAwaitedAbove?: number };
 
 export async function activitySince(ctx: QueryCtx, member: MemberId, since: Since): Promise<ReadSince[]> {
   const page = await pendingSince(ctx, member, since, mostReadSince);
   const mentions = mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked");
-  return Promise.all(page.map(async ({ position, entry, xp, settled }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp(), (await settled?.()) ?? true) })));
+  return Promise.all(page.map(async ({ position, entry, xp, settled }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp()), settled: (await settled?.()) ?? true })));
 }
 
 export async function positionsSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<Position[]> {
   return (await pendingSince(ctx, member, since, mostReadSince)).map(({ position }) => position);
 }
 
-function recordedXpOf(xp: number | null, settled: boolean) {
-  return { xp: xp ?? 0, recorded: xp !== null && settled };
+function recordedXpOf(xp: number | null) {
+  return { xp: xp ?? 0, recorded: xp !== null };
 }
 
 export async function newestDecidedSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<number | null> {
