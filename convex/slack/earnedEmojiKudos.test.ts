@@ -44,12 +44,11 @@ afterEach(() => {
 
 describe("an emoji the giver unlocked in the album counts like the workspace's kudos emoji", () => {
   test.each([
-    ["their team emoji", teamEmoji, "team:workflows", unlockedTeamEmoji],
-    ["their level emoji", levelEmoji, "level:5", reachedLevelFive],
-  ])("a kudos message with %s they picked gives kudos", async (_, name, id, unlock) => {
+    ["their team emoji", teamEmoji, unlockedTeamEmoji],
+    ["their level emoji", levelEmoji, reachedLevelFive],
+  ])("a kudos message with %s gives kudos", async (_, name, unlock) => {
     const t = await workspaceWithEmojiNames();
     await unlock(t, "U_ALICE");
-    await pickedForKudos(t, "U_ALICE", id);
 
     await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), emoji(name))], { user: "U_ALICE", ts: messageTs });
     await settle(t);
@@ -98,7 +97,6 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
     const t = await workspaceWithEmojiNames();
     await secondNameOf(t, "team:workflows", secondTeamEmoji);
     await unlockedTeamEmoji(t, "U_ALICE");
-    await pickedForKudos(t, "U_ALICE", "team:workflows");
 
     await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), ...others, emoji(secondTeamEmoji))], { user: "U_ALICE", ts: messageTs });
     await react(t, { user: "U_ALICE", itemUser: "U_CAROL", reaction: secondTeamEmoji, ts: carolsMessageTs });
@@ -125,7 +123,6 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
   test("with random-emojis off, a held random emoji still gives kudos and a hug", async () => {
     const t = await workspaceWithEmojiNames();
     await droppedRandomEmoji(t, "U_ALICE");
-    await pickedForKudos(t, "U_ALICE", `random:${randomEmoji}`);
 
     await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), emoji(randomEmoji))], { user: "U_ALICE", ts: messageTs });
     await react(t, { user: "U_ALICE", itemUser: "U_CAROL", reaction: randomEmoji, ts: carolsMessageTs });
@@ -138,7 +135,6 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
   test("a held random emoji the maintainer mapped to a level emoji the holder hasn't reached still gives kudos and a hug", async () => {
     const t = await workspaceWithEmojiNames();
     await droppedRandomEmoji(t, "U_ALICE");
-    await pickedForKudos(t, "U_ALICE", `random:${randomEmoji}`);
     await t.run(async (ctx) => {
       await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "level:25", name: randomEmoji });
       for (const row of await ctx.db.query("emojiClasses").collect()) await ctx.db.delete(row._id);
@@ -159,7 +155,6 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
     flagsOnForEveryone(slack.fetch, ...onboardingOn);
     const t = await workspaceWithReservedNames();
     await reachedLevelTwo(t, "U_ALICE");
-    await pickedForKudos(t, "U_ALICE", "level:2");
 
     await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), element)], { user: "U_ALICE", ts: messageTs });
     await react(t, { user: "U_ALICE", itemUser: "U_CAROL", reaction, ts: carolsMessageTs });
@@ -205,7 +200,6 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
   test("a held random emoji past the album's 200 shown still gives kudos in a message with 60 other emoji", { timeout: 60_000 }, async () => {
     const t = await workspaceWithEmojiNames();
     await droppedRandomEmoji(t, "U_ALICE", Array.from({ length: 200 }, (_, index) => `a-held-${String(index).padStart(3, "0")}`));
-    await pickedForKudos(t, "U_ALICE", `random:${randomEmoji}`);
     const others = Array.from({ length: 60 }, (_, index) => emoji(`other-${index}`));
 
     await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), ...others, emoji(randomEmoji))], { user: "U_ALICE", ts: messageTs });
@@ -231,6 +225,10 @@ describe("an emoji the giver unlocked in the album counts like the workspace's k
 });
 
 describe("in a kudos message, an earned emoji counts only when the giver picked it, it is First thank-you, or it is the hype emoji of a teammate they mention", { timeout: 30_000 }, () => {
+  beforeEach(() => {
+    flagsOnForEveryone(slack.fetch, "hugs", "kudos-emoji-picks");
+  });
+
   test("an earned emoji the giver didn't pick gives no kudos, while a reaction with it is still a hug", async () => {
     const t = await workspaceWithEmojiNames();
     await unlockedTeamEmoji(t, "U_ALICE");
@@ -241,6 +239,21 @@ describe("in a kudos message, an earned emoji counts only when the giver picked 
 
     expect(await kudosReceived(t, "U_BOB"), "kudos from an unpicked emoji").toBe(0);
     expect(await xpOf(t, "U_CAROL"), "a hug from the same emoji").toBe(1);
+  });
+
+  test.each([
+    ["their team emoji", teamEmoji, "team:workflows", unlockedTeamEmoji],
+    ["their level emoji", levelEmoji, "level:5", reachedLevelFive],
+    ["a random emoji they hold", randomEmoji, `random:${randomEmoji}`, droppedRandomEmoji],
+  ])("a kudos message with %s, picked, gives kudos", async (_, name, id, unlock) => {
+    const t = await workspaceWithEmojiNames();
+    await unlock(t, "U_ALICE");
+    await pickedForKudos(t, "U_ALICE", id);
+
+    await post(t, [section(text(saysWhy), mention("U_BOB"), text(" "), emoji(name))], { user: "U_ALICE", ts: messageTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
   });
 
   test("an earned emoji the giver picked and later unpicked gives no kudos", async () => {

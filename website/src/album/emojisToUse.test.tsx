@@ -139,6 +139,16 @@ describe("the emoji popup leads with the earned emojis the member picks to count
     expect(pressedIn(picks)).toEqual([":team-quiet-harbour: true", ":ines-okafor-hype: false", ":level-5: false", ":raised_hands: false"]);
   });
 
+  it("with picking off, the album answers no picks: no section, and every earned emoji counts in a kudos as before", async () => {
+    const { kudosEmojiPicks: _off, ...withoutPicks } = withFirstThankYou;
+    const popup = await openTheEmojis(visit({ album: withoutPicks }));
+
+    const useNow = section(popup, "Use these now");
+    expect(popup.queryByRole("region", { name: /^Count in kudos/ })).not.toBeInTheDocument();
+    expect(useNow.getByText(/^React with any of them/)).toHaveTextContent("React with any of them or put them in a kudos. Each one counts like : XP for you both, and an item when you say why.");
+    expect(useNow.getAllByRole("listitem")[0]).toHaveTextContent(":hedgehog:Your kudos emoji · works from the start");
+  });
+
   it("with no earned emoji to pick, the section is gone", async () => {
     const popup = await openTheEmojis(visit({ album: newcomer }));
 

@@ -7,7 +7,7 @@ import { NamedEmoji } from "../Emoji";
 import type { Album, AlbumEmoji, PickKudosEmoji } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { NotInSlack, SetItUp } from "./findInSlack";
-import { howToUnlockWords, isReadyToUnlock, matchesSearch, milestoneGroupsOf, milestonesShown, shareOf, shelvesOf, shownCountOf, teamOf, tierWords, unlockNextOf, usableNowOf, useItInSlackWords, whyWords, type MilestoneGroup, type NextEmoji, type Shelf } from "./emojiShelf";
+import { howToUnlockWords, isReadyToUnlock, matchesSearch, milestoneGroupsOf, milestonesShown, picksKudosEmojis, shareOf, shelvesOf, shownCountOf, teamOf, tierWords, unlockNextOf, usableNowOf, useItInSlackWords, whyWords, type MilestoneGroup, type NextEmoji, type Shelf } from "./emojiShelf";
 import { NewLabel } from "./ItemBoard";
 import { KudosEmojiPicker } from "./KudosEmojiPicker";
 import { useNewInThePanel } from "./newEmojis";
@@ -59,14 +59,22 @@ function UseTheseNow({ album, howTo }: { album: Album; howTo: LoopLesson }) {
   return (
     <LeadingSection title="Use these now">
       <p className="al-emoji-panel-hint">
-        React with any of them for a hug, like <NamedEmoji name={howTo.kudosEmoji} image={howTo.kudosEmojiImage ?? undefined} />: XP for you both.
+        {picksKudosEmojis(album) ? (
+          <>
+            React with any of them for a hug, like <NamedEmoji name={howTo.kudosEmoji} image={howTo.kudosEmojiImage ?? undefined} />: XP for you both.
+          </>
+        ) : (
+          <>
+            React with any of them or put them in a kudos. Each one counts like <NamedEmoji name={howTo.kudosEmoji} image={howTo.kudosEmojiImage ?? undefined} />: XP for you both, and an item when you say why.
+          </>
+        )}
       </p>
       <ul className="al-emoji-rows">
         <li className="al-emoji-row">
           <KudosEmojiPicture howTo={howTo} />
           <span className="al-emoji-words">
             <code className="al-emoji-code ph-no-capture">:{howTo.kudosEmoji}:</code>
-            <span className="al-emoji-why">Your kudos emoji · always counts in kudos</span>
+            <span className="al-emoji-why">Your kudos emoji · {picksKudosEmojis(album) ? "always counts in kudos" : "works from the start"}</span>
           </span>
           <InSlack />
         </li>
@@ -155,7 +163,7 @@ function AllEmojis({ album, justUnlocked, onFollow, pickKudosEmoji }: PanelProps
         <h2 className="al-emoji-panel-title">
           Your emojis <span className="al-quiet">· {earned} of {shown}</span>
         </h2>
-        <p className="al-emoji-panel-hint">Emojis marked In Slack work there: react with them for a hug, and count the ones you pick in the kudos you give.</p>
+        <p className="al-emoji-panel-hint">Emojis marked In Slack work there: {picksKudosEmojis(album) ? "react with them for a hug, and count the ones you pick in the kudos you give." : "react with them and put them in the kudos you give."}</p>
         <label className="al-emoji-search">
           <IconSearch aria-hidden="true" />
           <input type="search" placeholder="Find an emoji, a team or a person" aria-label="Find an emoji" value={search} onChange={(event) => setSearch(event.target.value)} />

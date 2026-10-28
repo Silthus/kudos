@@ -35,6 +35,10 @@ export function shownCountOf(shelves: Shelf[]) {
   return shelves.reduce((count, shelf) => count + shelf.earned.length + shelf.locked.length, 0);
 }
 
+export function picksKudosEmojis({ kudosEmojiPicks }: Album): boolean {
+  return kudosEmojiPicks !== undefined;
+}
+
 export function usableNowOf(emojis: AlbumEmoji[]): AlbumEmoji[] {
   return emojis.filter(({ earned }) => earned).toSorted(newestFirst);
 }

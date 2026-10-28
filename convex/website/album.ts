@@ -4,7 +4,7 @@ import { hypesHeldFor } from "../items/hypes";
 import { kudosEmojiPicksOf, pickKudosEmoji as pickKudosEmojiOf, type KudosEmojiPick } from "../album/kudosEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
-import { albumShownTo, emojiWizardShownTo, personPageDShownTo, shareableUrlsShownTo } from "../album/flag";
+import { albumShownTo, emojiWizardShownTo, kudosEmojiPicksShownTo, personPageDShownTo, shareableUrlsShownTo } from "../album/flag";
 import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
 import { levelUpRevealOf, levelUpRevealShownTo, type LevelUpAnswer } from "../album/levelUp";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
@@ -57,7 +57,7 @@ export type AlbumAnswer = {
   milestones: MilestoneAnswer[];
   emojis: EarnedEmoji[];
   moreEmojis: boolean;
-  kudosEmojiPicks: string[];
+  kudosEmojiPicks?: string[];
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
   emojiWizard: boolean;
@@ -152,8 +152,12 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, kudosEmojiPicks: await kudosEmojiPicksOf(ctx, me.member), sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, ...(await kudosEmojiPicksShownOf(ctx, me.member)), sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)) };
 });
+
+async function kudosEmojiPicksShownOf(ctx: QueryCtx, member: MemberId): Promise<Pick<AlbumAnswer, "kudosEmojiPicks">> {
+  return (await kudosEmojiPicksShownTo(ctx, member)) ? { kudosEmojiPicks: await kudosEmojiPicksOf(ctx, member) } : {};
+}
 
 async function shareableUrlsTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "shareableUrls">> {
   return (await shareableUrlsShownTo(ctx, me.member)) ? { shareableUrls: true } : {};
@@ -318,7 +322,7 @@ export const markEmojisSeen = memberMutation({
 
 export const pickKudosEmoji = memberMutation({
   args: { emoji: v.string(), picked: v.boolean() },
-  handler: async (ctx, me, _person, { emoji, picked }): Promise<KudosEmojiPick> => ((await albumShownTo(ctx, me.member)) ? pickKudosEmojiOf(ctx, me.member, emoji, picked) : { kind: "refused" }),
+  handler: async (ctx, me, _person, { emoji, picked }): Promise<KudosEmojiPick> => ((await albumShownTo(ctx, me.member)) && (await kudosEmojiPicksShownTo(ctx, me.member)) ? pickKudosEmojiOf(ctx, me.member, emoji, picked) : { kind: "refused" }),
 });
 
 export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)), ...(await petPickOf(ctx, me)), ...(await forgeOfferOf(ctx, me)) } : { kind: "off" }));

@@ -4,6 +4,7 @@ import type { ParseHook } from "../parser/parser";
 import type { MemberId } from "../workspace/directory";
 import { earnedEmojiNamesAmong, holdsEarnedEmoji } from "./earnedEmojis";
 import { firstThankYouEmoji, mostKudosEmojiPicks } from "./emojiCatalogue";
+import { kudosEmojiPicksCountFor } from "./flag";
 
 const hypePrefix = "hype:";
 
@@ -13,11 +14,18 @@ export const earnedEmojiHook: ParseHook = {
   name: "earned emoji",
   kudosEmoji: async (ctx, { workspace, giver }, { emoji, mentions }) => {
     if (giver === undefined) return [];
-    const picked = new Set([firstThankYouEmoji, ...(await kudosEmojiPicksOf(ctx, giver))]);
-    const mentioned = mentionedPeopleIn(mentions);
-    return earnedEmojiNamesAmong(ctx, workspace, giver, emoji, async (earned) => picked.has(earned) || (await isHypeEmojiOfOneOf(ctx, earned, mentioned)));
+    const counts = (await kudosEmojiPicksCountFor(ctx, giver)) ? await pickedOrMentioned(ctx, giver, mentions) : everyEarnedEmoji;
+    return earnedEmojiNamesAmong(ctx, workspace, giver, emoji, counts);
   },
 };
+
+const everyEarnedEmoji = () => true;
+
+async function pickedOrMentioned(ctx: QueryCtx, giver: MemberId, mentions: Mention[]) {
+  const picked = new Set([firstThankYouEmoji, ...(await kudosEmojiPicksOf(ctx, giver))]);
+  const mentioned = mentionedPeopleIn(mentions);
+  return async (earned: string) => picked.has(earned) || (await isHypeEmojiOfOneOf(ctx, earned, mentioned));
+}
 
 function mentionedPeopleIn(mentions: Mention[]): Set<string> {
   return new Set(mentions.flatMap((mention) => (mention.kind === "person" ? [mention.user] : [])));

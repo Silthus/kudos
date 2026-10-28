@@ -2,7 +2,7 @@ import { useId, useState, type ReactNode } from "react";
 import { firstThankYouEmoji, mostKudosEmojiPicks } from "../../../convex/album/emojiCatalogue";
 import type { Album, AlbumEmoji, PickKudosEmoji } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
-import { usableNowOf } from "./emojiShelf";
+import { picksKudosEmojis, usableNowOf } from "./emojiShelf";
 
 type PickerProps = { album: Album; pickKudosEmoji: PickKudosEmoji; Heading?: "h2" | "h3" };
 
@@ -16,7 +16,7 @@ export function KudosEmojiPicker({ album, pickKudosEmoji, Heading = "h2" }: Pick
     setReplied(null);
   }
   const pickable = usableNowOf(album.emojis).filter(({ id }) => id !== firstThankYouEmoji);
-  if (pickable.length === 0) return null;
+  if (!picksKudosEmojis(album) || pickable.length === 0) return null;
   const picked = new Set((replied ?? album.kudosEmojiPicks ?? []).filter((id) => pickable.some((emoji) => emoji.id === id)));
   const full = picked.size >= mostKudosEmojiPicks;
   const toggle = async ({ id }: AlbumEmoji) => {

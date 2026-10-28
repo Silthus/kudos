@@ -162,7 +162,6 @@ describe("LP14: the first item turned from thanking a person unlocks their hype 
     expect(await kudosReceived(t, carol.user), "a kudos with the waiting hype emoji").toBe(0);
 
     await turnTheSticker(asAlice, bob);
-    await picksForKudos(asAlice, `hype:${await memberOf(bob)}`);
     await thanksWith(alice, "bob-okonkwo-hype", carol);
 
     expect((await personPageOf(asAlice, bob)).hype, "the person page after the turn").toMatchObject({ earned: true });
@@ -181,7 +180,6 @@ describe("LP14: the first item turned from thanking a person unlocks their hype 
     const asAliceAWeekOn = await signedIn(alice);
     expect((await thanksItemsOf(asAliceAWeekOn)).map(({ reason }) => reason.kind === "thanks" && reason.thanked.name), "the later thanks waits").toEqual([bob.name]);
 
-    await picksForKudos(asAliceAWeekOn, `hype:${await memberOf(bob)}`);
     await thanksWith(alice, "bob-okonkwo-hype", carol);
 
     expect((await personPageOf(asAliceAWeekOn, bob)).hype, "the person page").toMatchObject({ earned: true });
@@ -196,7 +194,6 @@ describe("LP14: the first item turned from thanking a person unlocks their hype 
     const hype = `hype:${await memberOf(bob)}`;
     expect((await albumOf(asAlice)).emojis.find(({ id }) => id === hype)).toMatchObject({ earned: true, seen: false });
     expect((await personPageOf(asAlice, bob)).hype).toMatchObject({ earned: true });
-    await picksForKudos(asAlice, hype);
     await thanksWith(alice, "bob-okonkwo-hype", carol);
     expect(await kudosReceived(t, carol.user)).toBe(1);
   });
@@ -273,10 +270,6 @@ async function saysLittle(giver: Person, recipient: Person) {
   vi.setSystemTime(Date.now() + minuteMs);
   await post(t, [section(text("ty "), mention(recipient.user), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}` });
   await settle(t);
-}
-
-async function picksForKudos(reader: Reader, emoji: string) {
-  expect(await reader.mutation(api.website.album.pickKudosEmoji, { emoji, picked: true })).toMatchObject({ kind: "picked" });
 }
 
 async function thanksWith(giver: Person, emojiName: string, recipient: Person) {

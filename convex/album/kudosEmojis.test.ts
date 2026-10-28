@@ -11,6 +11,7 @@ import type { MemberId } from "../workspace/directory";
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const why = "Thanks for untangling the flaky migration";
 const albumOpen = ["album", "collection", "packs"];
+const picksOn = [...albumOpen, "kudos-emoji-picks"];
 const levelEmojis = ["level:5", "level:10", "level:15", "level:20", "level:25"];
 
 type Person = { user: string; name: string };
@@ -31,7 +32,7 @@ beforeEach(async () => {
   vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => slack.fetch(input, init)));
   t = testBackend();
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 200 }));
-  await switchWebsite(t, postHog, true, ...albumOpen);
+  await switchWebsite(t, postHog, true, ...picksOn);
   for (const { user, name } of [alice, bruno]) await memberChanged(t, "team_join", { id: user, team_id: "T1", name, real_name: name, profile: { real_name: name, display_name: name } });
   await settle(t);
 });
@@ -70,19 +71,30 @@ describe("a member picks up to five earned emojis that count in their kudos mess
     expect(await picksOf(asAlice)).toEqual([]);
   });
 
-  test("with the album off, a pick is refused and records nothing", async () => {
+  test.each([
+    ["the album", []],
+    ["kudos-emoji-picks", albumOpen],
+  ])("with %s off, a pick is refused and records nothing", async (_, on) => {
     await reachesXp(alice, xpToReach(5));
-    await switchWebsite(t, postHog, true);
+    await switchWebsite(t, postHog, true, ...on);
     const asAlice = await signedIn(alice);
 
     expect(await asAlice.mutation(api.website.album.pickKudosEmoji, { emoji: "level:5", picked: true })).toEqual({ kind: "refused" });
     expect(await t.run((ctx) => ctx.db.query("kudosEmojiPicks").collect())).toEqual([]);
   });
+
+  test("with kudos-emoji-picks off, the album answers no picks", async () => {
+    await switchWebsite(t, postHog, true, ...albumOpen);
+    const album = await (await signedIn(alice)).query(api.website.album.getAlbum, {});
+
+    expect(album).toMatchObject({ kind: "album" });
+    expect(album).not.toHaveProperty("kudosEmojiPicks");
+  });
 });
 
 async function picksOf(reader: Reader): Promise<string[]> {
   const album = await reader.query(api.website.album.getAlbum, {});
-  if (album.kind !== "album") throw new Error(`expected an album, got ${album.kind}`);
+  if (album.kind !== "album" || album.kudosEmojiPicks === undefined) throw new Error("expected an album with picks");
   return album.kudosEmojiPicks;
 }
 
