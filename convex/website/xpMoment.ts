@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { questXpOf, type QuestDone } from "../activity/entries";
 import { activitySince, newestDecidedSince, positionsSince, type EntrySince, type ReadSince } from "../activity/activity";
 import { ranks, type Position } from "../activity/position";
 import { thoughtfulGiversThisWeek } from "../album/thoughtfulGivers";
@@ -11,6 +12,7 @@ import { levelOf, xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
+import { questBeatsShownTo } from "./questBeatsFlag";
 import { arrivedAt, arrivedPastWhatWasPutIn, lastVisitOf, moveLastVisitTo, type ArrivalAnswer } from "./lastVisit";
 import { memberMutation } from "./memberMutation";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
@@ -35,6 +37,7 @@ export type XpMoment = {
   moments: number;
   xp: number;
   climb: Climb;
+  quests: QuestDone[];
   waiting: WaitingCount;
   thoughtfulGivers: number | null;
   timeZone: string | null;
@@ -52,9 +55,12 @@ export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> 
   if (!(await xpMomentsShownTo(ctx, me.member))) return off;
   const { lastVisit, since, topUp } = await startOf(ctx, me.member);
   if (since === null) return { kind: "none", lastVisit };
-  const { playable, heldBack } = playableOf(withTopUp(await activitySince(ctx, me.member, { above: since }), topUp), Date.now());
+  const now = Date.now();
+  const questsShown = await questBeatsShownTo(ctx, me.member);
+  const read = await activitySince(ctx, me.member, { above: since, ...(questsShown && { questsAwaitedAbove: now - progressionWaitedFor }) });
+  const { playable, heldBack } = playableOf(withTopUp(read, topUp), now);
   if (playable.length === 0) return { kind: "none", lastVisit };
-  return momentOf(ctx, me, since, playable, xpOf(heldBack));
+  return momentOf(ctx, me, since, { read: playable, heldBack, questsShown });
 });
 
 export const endXpMoment = memberMutation({
@@ -97,13 +103,17 @@ async function wasRead(ctx: QueryCtx, member: MemberId, from: number, until: num
 }
 
 function playableOf(newestFirst: ReadSince[], now: number): { playable: ReadSince[]; heldBack: ReadSince[] } {
-  const oldestWaiting = newestFirst.findLastIndex(({ decided, recorded }) => !recorded && decided > now - progressionWaitedFor);
+  const oldestWaiting = newestFirst.findLastIndex(({ decided, recorded, settled }) => !(recorded && settled) && decided > now - progressionWaitedFor);
   return { playable: newestFirst.slice(oldestWaiting + 1), heldBack: newestFirst.slice(0, oldestWaiting + 1) };
 }
 
-async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, read: ReadSince[], heldBackXp: number): Promise<XpMoment> {
+type Read = { read: ReadSince[]; heldBack: ReadSince[]; questsShown: boolean };
+
+async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, { read, heldBack, questsShown }: Read): Promise<XpMoment> {
   const { shown, folded } = chosenOf(read, ({ entry }) => entry.kind === "levelUp");
   const xp = xpOf(read);
+  const quests = questsShown ? questsDoneIn(read) : [];
+  const questsHeldBack = questsShown ? questsDoneIn(heldBack) : [];
   const timeZone = await timeZoneOf(ctx, me.member);
   return {
     kind: "moment",
@@ -113,7 +123,8 @@ async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, read: 
     fold: folded.length === 0 ? null : { count: folded.length, xp: xpOf(folded) },
     moments: read.filter(({ entry }) => entry.kind !== "levelUp").length,
     xp,
-    climb: await climbOf(ctx, me.member, { gained: xp, heldBack: heldBackXp }),
+    climb: await climbOf(ctx, me.member, { gained: xp + questXpOf(quests), heldBack: xpOf(heldBack) + questXpOf(questsHeldBack) }),
+    quests,
     waiting: (await hiddenItemsShownTo(ctx, me.member)) ? await waitingCountOf(ctx, me.member) : 0,
     thoughtfulGivers: await thoughtfulGiversThisWeek(ctx, { workspace: me.workspace, timeZone: timeZone ?? undefined }),
     timeZone,
@@ -126,6 +137,10 @@ function chosenOf<T>(newestFirst: T[], isLevelUp: (read: T) => boolean): { shown
   const room = Math.max(0, mostExcerpts - levelUps.length);
   const kept = new Set([...levelUps, ...rest.slice(0, room)]);
   return { shown: newestFirst.filter((read) => kept.has(read)).reverse(), folded: rest.slice(room) };
+}
+
+function questsDoneIn(newestFirst: ReadSince[]): QuestDone[] {
+  return newestFirst.toReversed().flatMap(({ entry }) => (entry.kind === "kudosGiven" ? (entry.earned?.questsDone ?? []) : [])).filter(({ hoggie }) => hoggie);
 }
 
 function isLevelUpAt({ rank }: Position) {

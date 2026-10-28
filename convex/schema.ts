@@ -57,6 +57,7 @@ import {
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
+import { questsJudgedValidator } from "./quests/judged";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
@@ -587,6 +588,8 @@ export default defineSchema({
   thoughtfulBoardTallies: defineTable(thoughtfulBoardTallyValidator).index("by_workspace_period_giver", ["workspace", "period", "giver"]),
 
   boardCountedAwards: defineTable(boardCountedAwardValidator).index("by_award", ["award"]),
+
+  questsJudged: defineTable(questsJudgedValidator).index("by_award", ["award"]),
 
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 

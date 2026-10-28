@@ -510,7 +510,7 @@ describe("#708: the sidebar stays in view", () => {
 type DesktopRule = { selectors: string[]; style: CSSStyleDeclaration; conditional: boolean };
 
 const everyDesktopWidth = "(min-width: 64rem)";
-const readAtRules = ["@media", "@supports", "@container", "@keyframes"];
+const readAtRules = ["@media", "@supports", "@container", "@keyframes", "@property"];
 
 function atRulesIn(css: string) {
   return [...new Set(css.replace(/\/\*[\s\S]*?\*\//g, "").match(/@[\w-]+/g) ?? [])];

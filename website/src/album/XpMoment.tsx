@@ -1,13 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import type { Message, Person } from "../../../convex/activity/entries";
+import type { Message, Person, QuestDone } from "../../../convex/activity/entries";
 import type { XpMoment } from "../../../convex/website/xpMoment";
 import { KudosMessage } from "../activity/KudosMessage";
 import type { AlbumMe } from "./answer";
 import type { EmojisOnTheirWay } from "./emojisOnTheirWay";
 import type { LevelUnlocks } from "./levelUnlocks";
+import { ItemBack } from "./ItemBoard";
 import { LevelUpTakeover } from "./LevelUpTakeover";
+import { Confetti } from "./PackCards";
 import { SlackMessage, SlackReaction, SlackText } from "./SlackMessage";
-import { xpMomentTiming, type XpMomentPhase, type XpMomentPlay } from "./useXpMoment";
+import { xpMomentTiming, type QuestStage, type XpMomentPhase, type XpMomentPlay } from "./useXpMoment";
 import { columnsOf, isNarrow, type Viewport } from "./xpMomentLayout";
 import { barEnd, centreOf, clearParticles, dustInto, streamInto } from "./xpMomentParticles";
 import "./xpMoment.css";
@@ -22,6 +24,8 @@ const collecting: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold"]);
 
 const orbShown: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold", "collect", "stream"]);
 
+const skippable: ReadonlySet<XpMomentPhase> = new Set([...orbShown, "quests"]);
+
 export function XpMomentCanvas({ play, me, levelUnlocks, onTheirWay }: { play: XpMomentPlay; me: AlbumMe; levelUnlocks: LevelUnlocks | null; onTheirWay: EmojisOnTheirWay }) {
   const { moment, phase, skip, tookOver } = play;
   const viewport = useViewport();
@@ -32,7 +36,8 @@ export function XpMomentCanvas({ play, me, levelUnlocks, onTheirWay }: { play: X
     <div className="xpm-canvas" role="dialog" aria-modal="true" aria-label="Since your last visit" style={{ "--xpm-top": `${viewport.top}px` } as CSSProperties} data-phase={phase} data-narrow={isNarrow(viewport) ? "" : undefined}>
       {orbShown.has(phase) && <Orb play={play} orb={orb} />}
       {orbShown.has(phase) && <Cards play={play} me={me} viewport={viewport} cards={cards} orb={orb} />}
-      {orbShown.has(phase) && (
+      {phase === "quests" && <QuestBeat key={play.quest} quest={moment.quests[play.quest]!} stage={play.questStage} first={play.quest === 0} />}
+      {skippable.has(phase) && (
         <button type="button" className="xpm-skip" onClick={skip}>
           Skip
         </button>
@@ -43,7 +48,7 @@ export function XpMomentCanvas({ play, me, levelUnlocks, onTheirWay }: { play: X
   );
 }
 
-export function XpMomentSummary({ moment: { xp, moments, since, timeZone, thoughtfulGivers } }: { moment: XpMoment }) {
+export function XpMomentSummary({ moment: { xp, moments, since, timeZone, thoughtfulGivers, quests } }: { moment: XpMoment }) {
   return (
     <div className="xpm-summary">
       {xp > 0 && (
@@ -51,7 +56,64 @@ export function XpMomentSummary({ moment: { xp, moments, since, timeZone, though
           <strong>+{xp} XP</strong> from {moments} {moments === 1 ? "moment" : "moments"} since {whenOf(since, timeZone)}
         </p>
       )}
+      {quests.length > 0 && <QuestsDone quests={quests} />}
       {thoughtfulGivers !== null && thoughtfulGivers >= leastTeammatesShown && <p className="xpm-norm">{thoughtfulGivers} teammates gave thoughtful kudos this week</p>}
+    </div>
+  );
+}
+
+function QuestsDone({ quests }: { quests: QuestDone[] }) {
+  return (
+    <ul className="xpm-quests-done">
+      {quests.map(({ goal, xp, waiting }, index) => (
+        <li key={index} aria-label={`Quest complete: ${goal}`}>
+          Quest complete: {goal}
+          <span className="xpm-chip">+{xp} XP</span>
+          {waiting && " waits in your crate"}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function QuestBeat({ quest: { goal, xp, waiting }, stage, first }: { quest: QuestDone; stage: QuestStage; first: boolean }) {
+  const chip = useRef<HTMLSpanElement>(null);
+  const opened = stage !== "charge";
+  const { questChargeMs, chainedChargeMs, streamMs } = xpMomentTiming;
+  useEffect(() => {
+    if (stage === "stream" && !waiting && chip.current !== null) streamInto(chip.current, barEnd(), streamMs);
+  }, [stage, waiting, streamMs]);
+  return (
+    <article className="xpm-quest" data-stage={stage} aria-label={opened ? `Quest complete: ${goal}` : "A quest finished"} style={{ "--xpm-charge": `${first ? questChargeMs : chainedChargeMs}ms` } as CSSProperties}>
+      <span className="xpm-quest-heart" aria-hidden="true">
+        <span className="xpm-quest-rays" />
+        <span className="xpm-quest-seal">
+          <span className="xpm-quest-mark">!</span>
+        </span>
+      </span>
+      {opened && (
+        <>
+          <span className="xpm-quest-confetti">
+            <Confetti size="gold" seed={goal.length * 17} />
+          </span>
+          <p className="xpm-quest-done">Quest complete</p>
+          <p className="xpm-quest-goal">{goal}</p>
+          <span ref={chip} className="xpm-chip xpm-quest-xp">
+            +{xp} XP
+          </span>
+        </>
+      )}
+      {stage === "reward" && <QuestReward waiting={waiting} />}
+    </article>
+  );
+}
+
+function QuestReward({ waiting }: { waiting: boolean }) {
+  if (waiting) return <p className="xpm-quest-reward">Its reward waits in your crate</p>;
+  return (
+    <div className="xpm-quest-reward">
+      <ItemBack />
+      <span>An unidentified hoggie</span>
     </div>
   );
 }

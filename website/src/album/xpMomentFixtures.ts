@@ -47,6 +47,7 @@ export const xpMomentFixture: XpMoment = {
   moments: 16,
   xp: 178,
   climb: { from: { level: 6, xp: 1462, startsAt: 1000, nextAt: 1500 }, to: { level: 7, xp: 1640, startsAt: 1500, nextAt: 2100 } },
+  quests: [],
   waiting: 3,
   thoughtfulGivers: 4,
   timeZone: "UTC",
