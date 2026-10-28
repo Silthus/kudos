@@ -360,9 +360,15 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
     await settle(t);
 
     for (const [person, filter] of [[bob, "received"], [alice, "given"], [bob, "all"], [alice, "all"]] as const) {
-      const { entries, cursor } = await activityOf(await signedIn(person), { filter, limit: 1 });
-      expect(entries.map((entry) => entry.at)).toEqual([1760435200000]);
-      expect(cursor).toBeNull();
+      const asPerson = await signedIn(person);
+      const seen: number[] = [];
+      let cursor: string | null = null;
+      do {
+        const answer: Activity = await activityOf(asPerson, { filter, cursor, limit: 1 });
+        seen.push(...answer.entries.map((entry) => entry.at));
+        cursor = answer.cursor;
+      } while (cursor !== null);
+      expect(seen).toEqual([1760435200000]);
     }
   });
 
@@ -588,6 +594,40 @@ describe("AT18: a page's reads are bounded", () => {
     expect([first.entries.length, next.entries.length]).toEqual([50, 50]);
     expect(next.entries[0]?.kind).toBe("kudosGiven");
     expect(new Set([...first.entries, ...next.entries].map((entry) => ("key" in entry ? entry.key : "")))).toHaveProperty("size", 100);
+  });
+
+  test("kudos taken back in Slack page within Convex's limits, however many, and the kudos behind them still answers", { timeout: 120_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await activityOn();
+    const takenBack = 40;
+    const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member", name: bob.name, asOf: 0 }));
+    const teammate = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
+    const thanked = await t.run(async (ctx) => {
+      const ids = [];
+      for (let index = 0; index < 820; index++) ids.push(await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member", asOf: 0 }));
+      return ids;
+    });
+    await t.run((ctx) => ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: "kept", giver: teammate, recipient: me, kudos: 1, day: "2026-10-14", at: postedAt - 1 }));
+    for (let index = 0; index < takenBack; index++) {
+      await t.run(async (ctx) => {
+        const message = `deleted-${index}`;
+        for (const recipient of thanked) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver: me, recipient, kudos: 1, day: "2026-10-14", at: postedAt + index });
+        await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "tombstone", why: "deleted" });
+      });
+    }
+    const asBob = await signedIn(bob);
+
+    const seen: number[] = [];
+    let cursor: string | null = null;
+    for (let page = 0; page <= takenBack + 1; page++) {
+      const answer: Activity = await activityOf(asBob, { filter: "all", cursor, limit: 1 });
+      seen.push(...answer.entries.map((entry) => entry.at));
+      cursor = answer.cursor;
+      if (cursor === null) break;
+    }
+
+    expect(cursor).toBeNull();
+    expect(seen).toEqual([postedAt - 1]);
   });
 
   test("messages that each thanked hundreds of people page within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async () => {

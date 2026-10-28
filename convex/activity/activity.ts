@@ -30,7 +30,7 @@ type GainsShown = { xp: boolean; quests: boolean; bonuses: boolean };
 
 type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean>; hugsAsOf: number | undefined; questsAwaitedAbove: number; talliesAwaitedAbove: number };
 
-type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry>; xp: () => Promise<number | null>; settled?: () => Promise<boolean> };
+type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry>; xp: () => Promise<number | null>; settled?: () => Promise<boolean>; takenBack?: () => Promise<boolean> };
 
 type Read = { pending: Pending[]; cut: boolean };
 
@@ -61,10 +61,11 @@ const kudosReceived: Source = {
   rank: ranks.kudosReceived,
   read: async (ctx, { member }, below, take) =>
     whole(
-      (await firstOf(stillInSlack(ctx, awardsReceivedByDecision(ctx, member, below)), take)).map((award) => ({
+      (await firstOf(awardsReceivedByDecision(ctx, member, below), take)).map((award) => ({
         position: { decided: award.created, rank: ranks.kudosReceived },
         entry: (mentions) => receivedEntryOf(ctx, mentions, award),
         xp: () => xpRecordedFor(ctx, award.award, "recipient"),
+        takenBack: () => takenBackInSlack(ctx, award.message),
       })),
     ),
 };
@@ -72,7 +73,7 @@ const kudosReceived: Source = {
 const kudosGiven: Source = {
   rank: ranks.kudosGiven,
   read: async (ctx, viewer, below, take) => {
-    const { taken, cut } = await firstWithinRecipients(stillInSlack(ctx, messagesGivenByDecision(ctx, viewer.member, below)), take, ({ awards }) => awards.length);
+    const { taken, cut } = await firstWithinRecipients(messagesGivenByDecision(ctx, viewer.member, below), take, ({ awards }) => awards.length);
     return {
       pending: taken.map((given) => ({
         position: { decided: given.created, rank: ranks.kudosGiven },
@@ -80,6 +81,7 @@ const kudosGiven: Source = {
         entry: (mentions) => givenEntryOf(ctx, viewer, mentions, given),
         xp: () => giverXpRecordedFor(ctx, given),
         settled: async () => (given.created <= viewer.questsAwaitedAbove || (await questsJudgedFor(ctx, given.awards))) && (given.created <= viewer.talliesAwaitedAbove || (await awardsTallied(ctx, given.awards))),
+        takenBack: () => takenBackInSlack(ctx, given.message),
       })),
       cut,
     };
@@ -180,7 +182,7 @@ function recordedXpOf(xp: number | null) {
 }
 
 export async function newestDecidedSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<number | null> {
-  const [newest] = await pendingSince(ctx, member, since, 1);
+  const [newest] = await pendingSince(ctx, member, since, mostReadSince);
   return newest?.position.decided ?? null;
 }
 
@@ -188,7 +190,7 @@ async function pendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Inf
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined, questsAwaitedAbove, talliesAwaitedAbove };
   const below = { decided: upTo, inclusive: true, ...(above !== undefined && { above }) };
   const reads = await Promise.all(sourcesSince.map(({ read }) => read(ctx, viewer, below, size + 1)));
-  return newestWithin(reads, size);
+  return stillShown(newestWithin(reads, size));
 }
 
 export async function activityOf(ctx: QueryCtx, member: MemberId, { filter, cursor, limit }: { filter: Filter; cursor: string | null; limit?: number }): Promise<Activity> {
@@ -210,7 +212,7 @@ async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: C
   const pending = newestOf(reads);
   const page = newestWithin(reads, size);
   const mentions = mentionsOfOnePage(ctx);
-  const entries = await Promise.all(page.map(({ entry }) => entry(mentions)));
+  const entries = await Promise.all((await stillShown(page)).map(({ entry }) => entry(mentions)));
   const last = page.at(-1);
   const more = pending.length > page.length || reads.some((read) => read.cut);
   return { entries, after: more && last !== undefined ? encodeCursor({ after: last.position, hugsAsOf }) : null };
@@ -295,8 +297,9 @@ async function kudosWordsStillInSlack(ctx: QueryCtx, mentions: Mentions, message
   return (await takenBackInSlack(ctx, message)) ? null : kudosWordsOf(ctx, mentions, message);
 }
 
-async function* stillInSlack<T extends { message: MessageRef }>(ctx: QueryCtx, kudos: AsyncIterable<T>): AsyncGenerator<T> {
-  for await (const one of kudos) if (!(await takenBackInSlack(ctx, one.message))) yield one;
+async function stillShown(pending: Pending[]): Promise<Pending[]> {
+  const takenBack = await Promise.all(pending.map((one) => one.takenBack?.() ?? false));
+  return pending.filter((_, index) => !takenBack[index]);
 }
 
 function onKeyOf({ conversation, message }: MessageRef): string {
