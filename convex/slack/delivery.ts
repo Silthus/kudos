@@ -109,6 +109,7 @@ async function sendPrivateReply(ctx: ActionCtx, reply: Id<"privateReplies">, att
   if (row === null) return null;
   const content = row.oneReply === null ? { text: [slackTextOf(row.lines), ...(row.footer === null ? [] : [settingsFooterText(row.workspace, row.footer)])].join("\n") } : oneReplyContentOf(row.workspace, row.oneReply, row.footer);
   if (row.asDirectMessage) return sendOnce(ctx, row.workspace, "chat.postMessage", { channel: row.to, ...content }, attempt);
+  if (row.oneReply !== null) return sendBesideOrAsDirectMessage(ctx, row.workspace, row.to, { conversation: row.conversation, ...(row.threadRoot && { threadRoot: row.threadRoot }) }, content, attempt);
   const message = { channel: row.conversation, user: row.to, ...content, ...(row.threadRoot && { thread_ts: row.threadRoot }) };
   return sendOnce(ctx, row.workspace, "chat.postEphemeral", message, attempt);
 }

@@ -1,7 +1,7 @@
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
-import { FakeSlack, type SlackArgs } from "../../testing/fakeSlack";
+import { FakeSlack, slackError, type SlackArgs } from "../../testing/fakeSlack";
 import { post, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest } from "../../testing/signedSlack";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
@@ -176,6 +176,17 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     const direct = directRepliesTo(alice);
     expect(direct.map(({ text }) => String(text).split("\n")[0]), "the direct messages Alice got").toEqual(["<@U_CAROL> got 1 kudos from you · +10 XP"]);
     expect(blockTextsOf(direct[0]!), "the direct message").toContain("🎁 *An item for thanking Carol*");
+  });
+
+  test.each(["user_not_in_channel", "channel_not_found", "not_in_channel"])("Slack refusing the reply beside the kudos with %s sends it as a direct message, once", async (error) => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    slack.answering("chat.postEphemeral", slackError(error));
+
+    await thanks(alice, saysWhy, bob);
+
+    const direct = directRepliesTo(alice);
+    expect(direct.map(({ text }) => String(text).split("\n")[0]), "the direct messages Alice got").toEqual(["<@U_BOB> got 1 kudos from you · +10 XP"]);
+    expect(blockTextsOf(direct[0]!), "the direct message").toContain("🎁 *An item for thanking Bob*");
   });
 
   test("a reply still waiting for its item after Quests stays held, so the 10-second release of any version sends it", async () => {
