@@ -96,16 +96,18 @@ export type UsageFact =
   | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number }
   | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number }
   | { kind: "dmSent"; workspace: string; member: MemberId; dm: SentDm; at: number }
-  | { kind: "dmLinkClicked"; workspace: string; member: MemberId; dm: SentDm["kind"]; destination: DmLinkDestination; at: number }
+  | { kind: "dmLinkClicked"; workspace: string; member: MemberId; dm: DmKind; destination: DmLinkDestination; at: number }
   | { kind: "questsViewed"; workspace: string; member: MemberId; surface: QuestsSurface; at: number };
 
 export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: MondayDmSection[] };
 
-export const dmKindValidator = v.union(v.literal("welcome"), v.literal("monday"));
+export const dmKindValidator = v.union(v.literal("welcome"), v.literal("monday"), v.literal("kudos-reply"));
 
-export const dmLinkDestinationValidator = v.union(v.literal("book"), v.literal("quests"), v.literal("quests-how"));
+export const dmLinkDestinationValidator = v.union(v.literal("book"), v.literal("quests"), v.literal("quests-how"), v.literal("home"));
 
 export type DmLinkDestination = Infer<typeof dmLinkDestinationValidator>;
+
+export type DmKind = Infer<typeof dmKindValidator>;
 
 export const questsSurfaceValidator = v.union(v.literal("panel"), v.literal("profile"));
 

@@ -1,3 +1,4 @@
+import { v, type Infer } from "convex/values";
 import type { DayKey } from "../engine/allowance";
 import type { AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
@@ -7,7 +8,19 @@ export type QuestAward = { award: AwardId; recipient: MemberId; day: DayKey; at:
 
 export type CountedAward = Pick<QuestAward, "award" | "recipient" | "day">;
 
-export type QuestProgress = { done: number; of: number; unit: "kudos" | "days" | "people" };
+export const questProgressValidator = v.object({ done: v.number(), of: v.number(), unit: v.union(v.literal("kudos"), v.literal("days"), v.literal("people")) });
+
+export type QuestProgress = Infer<typeof questProgressValidator>;
+
+export const movedQuestValidator = v.object({ goal: v.string(), progress: questProgressValidator });
+
+export type MovedQuest = Infer<typeof movedQuestValidator>;
+
+const progressUnits: Record<PoolQuest["progress"]["counts"], QuestProgress["unit"]> = { recognitions: "kudos", people: "people", days: "days" };
+
+export function progressUnitOf({ progress: { counts } }: PoolQuest): QuestProgress["unit"] {
+  return progressUnits[counts];
+}
 
 export const notThankedForMs = 30 * 24 * 60 * 60 * 1000;
 

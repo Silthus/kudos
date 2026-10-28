@@ -10,7 +10,7 @@ import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
 import { hasThankedEveryone, type Reward } from "./journey";
 import { isPaidOnTheMondayPath, mondayCatalogueVersion } from "./mondayCatalogue";
-import type { QuestProgress } from "./progress";
+import type { MovedQuest, QuestProgress } from "./progress";
 import { questStartOf } from "./start";
 import type { JourneyStep } from "./step";
 
@@ -110,6 +110,12 @@ export async function advanceOnboarding(ctx: MutationCtx, event: KudosGivenEvent
   const someoneNewPostedAfter = firstThanks === null ? null : await finishSomeoneNewPostedAfter(ctx, event);
   const finished = [firstThanks, someoneNewPostedAfter, await advanceSomeoneNew(ctx, event, start), await advanceTwoDays(ctx, event, start)];
   return finished.filter((quest) => quest !== null);
+}
+
+export async function onboardingMovedBy(ctx: QueryCtx, { giver, at }: KudosGivenEvent): Promise<MovedQuest[]> {
+  const before = (await twoDaysFactsOf(ctx, giver, at - 1)).progress;
+  const after = (await twoDaysFactsOf(ctx, giver, at)).progress;
+  return before !== null && after !== null && after.done > before.done ? [{ goal: onboardingGoalOf("two-days"), progress: after }] : [];
 }
 
 export async function someoneNewWaitsOnTheMondayPath(ctx: QueryCtx, member: MemberId): Promise<boolean> {
