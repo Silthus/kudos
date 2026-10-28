@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyMatchesKeptEventValidator, hoggieDroppedEventValidator } from "../bus/events";
 import { collectionOf } from "../hoggies/collection";
-import { givenBetween } from "../engine/awards";
+import { givenDecidedAfter } from "../engine/awards";
 import { earnTierItem } from "../items/achievements";
 import { saysWhy } from "../progression/gate";
 import type { Moved } from "../quests/progress";
@@ -111,9 +111,9 @@ export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
 }
 
 export async function thoughtfulMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
-  const givenSince = (await givenBetween(ctx, member, since + 1, Infinity)).filter(({ annotations }) => saysWhy(annotations));
+  const givenSince = (await givenDecidedAfter(ctx, member, since)).filter(({ annotations }) => saysWhy(annotations));
   const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - givenSince.length, 0);
-  const to = from + givenSince.filter(({ at }) => at <= until).length;
+  const to = from + givenSince.filter(({ decided }) => decided <= until).length;
   const next = milestoneCatalogue.milestones.find(({ id }) => id === "thoughtful")!.steps.find((step) => step.at > from);
   return next === undefined || to === from ? [] : [{ name: next.name, from, to: Math.min(to, next.at), of: next.at }];
 }

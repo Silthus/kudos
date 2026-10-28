@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstAwardsGivenAfter, givenBetween } from "../engine/awards";
+import { earliestAwardFrom, firstAwardsGivenAfter, givenBetween, type DatedAward } from "../engine/awards";
 import { replyIsHeld } from "../feedback/heldReplies";
 import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
@@ -68,9 +68,11 @@ export async function onboardingQuestFactsOf(ctx: QueryCtx, member: MemberId, at
 }
 
 export async function twoDaysMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
-  if ((await finishOf(ctx, member, "two-days")) !== null) return [];
-  const from = await daysSayingWhyOf(ctx, member, since);
-  const to = await daysSayingWhyOf(ctx, member, until);
+  const start = await questStartOf(ctx, member);
+  if (start === null || (await finishOf(ctx, member, "two-days")) !== null) return [];
+  const sayingWhy = await sayingWhyBetween(ctx, member, start, Infinity);
+  const from = daysAmong(sayingWhy.filter(({ decided }) => decided <= since));
+  const to = daysAmong(sayingWhy.filter(({ decided }) => decided <= until));
   return from < to && to < daysSayingWhyToFinishTwoDays ? [{ name: onboardingGoalOf("two-days"), from, to, of: daysSayingWhyToFinishTwoDays }] : [];
 }
 
@@ -83,7 +85,14 @@ async function twoDaysFactsOf(ctx: QueryCtx, member: MemberId, at: number): Prom
 async function daysSayingWhyOf(ctx: QueryCtx, member: MemberId, at: number): Promise<number> {
   const start = await questStartOf(ctx, member);
   if (start === null) return 0;
-  const sayingWhy = (await givenBetween(ctx, member, start, at)).filter(({ annotations }) => saysWhy(annotations));
+  return daysAmong(await sayingWhyBetween(ctx, member, start, at));
+}
+
+async function sayingWhyBetween(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<DatedAward[]> {
+  return (await givenBetween(ctx, member, since, until)).filter(({ annotations }) => saysWhy(annotations));
+}
+
+function daysAmong(sayingWhy: DatedAward[]): number {
   return Math.min(new Set(sayingWhy.map(({ day }) => day)).size, daysSayingWhyToFinishTwoDays);
 }
 

@@ -4,7 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
-import { awardIdValidator, lastThankedBefore, lastThankedSince } from "../engine/awards";
+import { awardIdValidator, decidedOf, lastThankedBefore, lastThankedSince } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
@@ -142,9 +142,9 @@ export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, si
   const moved: Moved[] = [];
   for (const slot of slotsOf(draw, await swapOf(ctx, member, draw.week))) {
     const pooled = questOf(slot.quest);
-    const counted = await countedFor(ctx, member, draw.week, slot);
-    const from = questProgress(pooled, counted.filter((award) => award.at <= since));
-    const to = questProgress(pooled, counted.filter((award) => award.at <= until));
+    const counted = await withDecided(ctx, await countedFor(ctx, member, draw.week, slot));
+    const from = questProgress(pooled, counted.filter(({ decided }) => decided <= since));
+    const to = questProgress(pooled, counted.filter(({ decided }) => decided <= until));
     if (from < to && to < pooled.progress.target) moved.push({ name: withoutFullStop(pooled.goal), from, to, of: pooled.progress.target });
   }
   return moved;
@@ -300,6 +300,10 @@ async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot
     .withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", week).eq("slot", slot))
     .collect();
   return rows.filter((row) => row.quest === quest);
+}
+
+async function withDecided(ctx: QueryCtx, counted: Doc<"questProgress">[]): Promise<Array<Doc<"questProgress"> & { decided: number }>> {
+  return Promise.all(counted.map(async (row) => ({ ...row, decided: (await decidedOf(ctx, row.award)) ?? row.at })));
 }
 
 function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {

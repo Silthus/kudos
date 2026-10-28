@@ -8,6 +8,8 @@ import type { Infer } from "convex/values";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { kudosGivenEventValidator } from "../bus/events";
+import { onboardingGoalOf } from "../quests/onboarding";
+import { startQuests } from "../quests/start";
 import { weeklyQuestsOf } from "../quests/weekly";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
@@ -624,6 +626,43 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 4, of: 25 }]);
   });
 
+  test("a kudos sent before the last visit and decided after it moves the drawn quests and the milestone since the visit", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await signedIn(alice);
+    later();
+    const sentBeforeTheVisit = Date.now();
+    const asAlice = await aReturningMember(alice);
+    const atTheVisit = await weekOf(alice);
+
+    await thanksSentAt(sentBeforeTheVisit, alice, carol);
+
+    const now = await weekOf(alice);
+    const drawnMoved = now.slots.flatMap((slot, index) => {
+      const from = atTheVisit.slots[index]!.progress;
+      return slot.progress > from && slot.finishedAt === null ? [{ kind: "quest", name: slot.goal.replace(/\.$/, ""), from, to: slot.progress, of: slot.target }] : [];
+    });
+    expect(drawnMoved, "the drawn quests that moved without finishing").not.toEqual([]);
+    expect((await theMomentOf(asAlice)).progressed).toEqual([...drawnMoved, { kind: "milestone", name: "Generous soul", from: 4, to: 5, of: 25 }]);
+  });
+
+  test("a kudos sent before the last visit and decided after it moves the two-days quest since the visit", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    const member = await memberOf(alice);
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    later();
+    const sentBeforeTheVisit = Date.now();
+    const asAlice = await aReturningMember(alice);
+
+    await thanksSentAt(sentBeforeTheVisit, alice, carol);
+
+    expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
+  });
+
   test("while progress-beats is off the moment answers no progress", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment);
     await thanks(alice, bob);
@@ -644,9 +683,12 @@ function later() {
 }
 
 async function thanks(giver: Person, ...recipients: Person[]) {
-  messages += 1;
   later();
-  const at = Date.now();
+  return thanksSentAt(Date.now(), giver, ...recipients);
+}
+
+async function thanksSentAt(at: number, giver: Person, ...recipients: Person[]) {
+  messages += 1;
   const ts = `${Math.floor(at / 1000)}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settle(t);
