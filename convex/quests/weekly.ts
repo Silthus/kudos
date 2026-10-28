@@ -20,7 +20,7 @@ import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { onboardingFinishedAt } from "./onboarding";
 import { pendingWeeklyCratesBefore } from "./pendingCrates";
 import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, questPool, withoutFullStop, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type QuestPool, type Recipient } from "./pool";
-import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type MovedQuest, type QuestAward } from "./progress";
+import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type Moved, type MovedQuest, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
 import { questStartOf } from "./start";
 import type { WeeklyQuest } from "./step";
@@ -134,6 +134,20 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
   const swap = await swapOf(ctx, member, week);
   const slots = await weeklySlotsOf(ctx, draw, swap);
   return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap), swapAvailable: await swapAvailableIn(ctx, draw, swap, slots, at) };
+}
+
+export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
+  const draw = await thisWeeksDrawOf(ctx, member, until);
+  if (draw === null || !isMondayDraw(draw)) return [];
+  const moved: Moved[] = [];
+  for (const slot of slotsOf(draw, await swapOf(ctx, member, draw.week))) {
+    const pooled = questOf(slot.quest);
+    const counted = await countedFor(ctx, member, draw.week, slot);
+    const from = questProgress(pooled, counted.filter((award) => award.at <= since));
+    const to = questProgress(pooled, counted.filter((award) => award.at <= until));
+    if (from < to && to < pooled.progress.target) moved.push({ name: withoutFullStop(pooled.goal), from, to, of: pooled.progress.target });
+  }
+  return moved;
 }
 
 export async function drawnWeekOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawnWeek | null> {
@@ -280,7 +294,7 @@ async function questAwardsOf(ctx: QueryCtx, { awards, annotations, day, at }: Ku
   });
 }
 
-async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot): Promise<CountedAward[]> {
+async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot): Promise<Doc<"questProgress">[]> {
   const rows = await ctx.db
     .query("questProgress")
     .withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", week).eq("slot", slot))

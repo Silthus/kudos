@@ -12,7 +12,7 @@ type ArrivedAt = number | null | undefined;
 type Arrival = { arrivedAt: ArrivedAt; endTheMoment: (skipped: boolean) => void; moment: XpMomentAhead; missed: MissedXpMoment };
 
 export function useVisitArrival(album: AlbumShown | undefined, answer: XpMomentShown | undefined, actions: Pick<ShellActions, "arrive" | "endXpMoment">): Arrival {
-  const read = withQuestsOf(answer);
+  const read = withBeatsOf(answer);
   const answered = useFirstAnswerOfTheVisit(read);
   const [startedLater, setStartedLater] = useState<XpMoment | null>(null);
   const [arrivedAt, setArrivedAt] = useState<ArrivedAt>(undefined);
@@ -47,8 +47,9 @@ export function useVisitArrival(album: AlbumShown | undefined, answer: XpMomentS
   return { arrivedAt, endTheMoment, moment: answered === undefined ? "reading" : moment, missed: { glows, moment: missed, start } };
 }
 
-function withQuestsOf(answer: XpMomentShown | undefined): XpMomentShown | undefined {
-  return answer?.kind === "moment" && answer.quests === undefined ? { ...answer, quests: [] } : answer;
+function withBeatsOf(answer: XpMomentShown | undefined): XpMomentShown | undefined {
+  if (answer?.kind !== "moment" || (answer.quests !== undefined && answer.progressed !== undefined)) return answer;
+  return { ...answer, quests: answer.quests ?? [], progressed: answer.progressed ?? [] };
 }
 
 function useFirstAnswerOfTheVisit(read: XpMomentShown | undefined): XpMomentShown | undefined {

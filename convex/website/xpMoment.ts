@@ -12,6 +12,8 @@ import { levelOf, xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
+import { progressBeatsShownTo } from "./progressBeatsFlag";
+import { progressedSince, type Progressed } from "./progressed";
 import { questBeatsShownTo } from "./questBeatsFlag";
 import { arrivedAt, arrivedPastWhatWasPutIn, lastVisitOf, moveLastVisitTo, type ArrivalAnswer } from "./lastVisit";
 import { memberMutation } from "./memberMutation";
@@ -38,6 +40,7 @@ export type XpMoment = {
   xp: number;
   climb: Climb;
   quests: QuestDone[];
+  progressed: Progressed[];
   waiting: WaitingCount;
   thoughtfulGivers: number | null;
   timeZone: string | null;
@@ -125,6 +128,7 @@ async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, { read
     xp,
     climb: await climbOf(ctx, me.member, { gained: xp + questXpOf(quests), heldBack: xpOf(heldBack) + questXpOf(questsHeldBack) }),
     quests,
+    progressed: (await progressBeatsShownTo(ctx, me.member)) ? await progressedSince(ctx, me.member, since, read[0]!.decided) : [],
     waiting: (await hiddenItemsShownTo(ctx, me.member)) ? await waitingCountOf(ctx, me.member) : 0,
     thoughtfulGivers: await thoughtfulGiversThisWeek(ctx, { workspace: me.workspace, timeZone: timeZone ?? undefined }),
     timeZone,

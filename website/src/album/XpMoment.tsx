@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import type { Message, Person, QuestDone } from "../../../convex/activity/entries";
+import type { Progressed } from "../../../convex/website/progressed";
 import type { XpMoment } from "../../../convex/website/xpMoment";
 import { KudosMessage } from "../activity/KudosMessage";
 import type { AlbumMe } from "./answer";
@@ -24,7 +25,9 @@ const collecting: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold"]);
 
 const orbShown: ReadonlySet<XpMomentPhase> = new Set(["arrive", "hold", "collect", "stream"]);
 
-const skippable: ReadonlySet<XpMomentPhase> = new Set([...orbShown, "quests"]);
+const skippable: ReadonlySet<XpMomentPhase> = new Set([...orbShown, "quests", "progress"]);
+
+const kindNames: Record<Progressed["kind"], string> = { quest: "Quest", milestone: "Milestone" };
 
 export function XpMomentCanvas({ play, me, levelUnlocks, onTheirWay }: { play: XpMomentPlay; me: AlbumMe; levelUnlocks: LevelUnlocks | null; onTheirWay: EmojisOnTheirWay }) {
   const { moment, phase, skip, tookOver } = play;
@@ -37,6 +40,7 @@ export function XpMomentCanvas({ play, me, levelUnlocks, onTheirWay }: { play: X
       {orbShown.has(phase) && <Orb play={play} orb={orb} />}
       {orbShown.has(phase) && <Cards play={play} me={me} viewport={viewport} cards={cards} orb={orb} />}
       {phase === "quests" && <QuestBeat key={play.quest} quest={moment.quests[play.quest]!} stage={play.questStage} first={play.quest === 0} />}
+      {phase === "progress" && <ProgressBeat key={play.moved} moved={moment.progressed[play.moved]!} filled={play.movedFilled} />}
       {skippable.has(phase) && (
         <button type="button" className="xpm-skip" onClick={skip}>
           Skip
@@ -48,7 +52,7 @@ export function XpMomentCanvas({ play, me, levelUnlocks, onTheirWay }: { play: X
   );
 }
 
-export function XpMomentSummary({ moment: { xp, moments, since, timeZone, thoughtfulGivers, quests } }: { moment: XpMoment }) {
+export function XpMomentSummary({ moment: { xp, moments, since, timeZone, thoughtfulGivers, quests, progressed } }: { moment: XpMoment }) {
   return (
     <div className="xpm-summary">
       {xp > 0 && (
@@ -57,6 +61,7 @@ export function XpMomentSummary({ moment: { xp, moments, since, timeZone, though
         </p>
       )}
       {quests.length > 0 && <QuestsDone quests={quests} />}
+      {progressed.length > 0 && <ProgressedList progressed={progressed} />}
       {thoughtfulGivers !== null && thoughtfulGivers >= leastTeammatesShown && <p className="xpm-norm">{thoughtfulGivers} teammates gave thoughtful kudos this week</p>}
     </div>
   );
@@ -73,6 +78,34 @@ function QuestsDone({ quests }: { quests: QuestDone[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function ProgressedList({ progressed }: { progressed: Progressed[] }) {
+  return (
+    <ul className="xpm-progressed">
+      {progressed.map(({ kind, name, to, of }, index) => (
+        <li key={index} aria-label={`${kindNames[kind]} progressed: ${name}, ${to} of ${of}`}>
+          {name} · {to} of {of}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ProgressBeat({ moved: { kind, name, from, to, of }, filled }: { moved: Progressed; filled: boolean }) {
+  const now = filled ? to : from;
+  return (
+    <article className="xpm-moved" aria-label={`${kindNames[kind]} progressed: ${name}`} data-filled={filled ? "" : undefined}>
+      <p className="xpm-moved-kind">{kindNames[kind]} progress</p>
+      <p className="xpm-moved-name">{name}</p>
+      <div className="xpm-moved-bar" role="progressbar" aria-label={name} aria-valuemin={0} aria-valuemax={of} aria-valuenow={now} style={{ "--xpm-moved": now / of } as CSSProperties}>
+        <span className="xpm-moved-fill" />
+      </div>
+      <p className="xpm-moved-count">
+        {now} of {of}
+      </p>
+    </article>
   );
 }
 

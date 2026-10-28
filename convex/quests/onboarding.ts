@@ -10,7 +10,7 @@ import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
 import { hasThankedEveryone, type Reward } from "./journey";
 import { isPaidOnTheMondayPath, mondayCatalogueVersion } from "./mondayCatalogue";
-import type { MovedQuest, QuestProgress } from "./progress";
+import type { Moved, MovedQuest, QuestProgress } from "./progress";
 import { questStartOf } from "./start";
 import type { JourneyStep } from "./step";
 
@@ -65,6 +65,13 @@ export async function onboardingQuestFactsOf(ctx: QueryCtx, member: MemberId, at
     "someone-new": { step: "someone-new", finish: await finishOf(ctx, member, "someone-new"), progress: null },
     "two-days": await twoDaysFactsOf(ctx, member, at),
   };
+}
+
+export async function twoDaysMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
+  if ((await finishOf(ctx, member, "two-days")) !== null) return [];
+  const from = await daysSayingWhyOf(ctx, member, since);
+  const to = await daysSayingWhyOf(ctx, member, until);
+  return from < to && to < daysSayingWhyToFinishTwoDays ? [{ name: onboardingGoalOf("two-days"), from, to, of: daysSayingWhyToFinishTwoDays }] : [];
 }
 
 async function twoDaysFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<OnboardingQuestFacts> {
