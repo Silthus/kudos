@@ -7,7 +7,10 @@ import { signedRequest } from "../../../testing/signedSlack";
 import { emojiNameOf } from "../../../convex/workspace/settingsBounds";
 
 const sandbox = "different-dog-467";
-const site = `https://${sandbox}.convex.site`;
+const rig = process.env.PROOF_ENV_FILE;
+const site = rig ? process.env.PROOF_SITE! : `https://${sandbox}.convex.site`;
+const cloud = rig ? process.env.PROOF_CLOUD! : `https://${sandbox}.convex.cloud`;
+const target = rig ? ["--env-file", rig] : ["--deployment", sandbox];
 const runCommand = promisify(execFile);
 const convexEnv = sandboxOnly(process.env);
 const convexBinary = joinPath(process.cwd(), "node_modules/.bin/convex");
@@ -30,7 +33,7 @@ const tam: Person = { key: "TAM", first: "Tam", last: "Ferris" };
 
 function sandboxOnly(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const withoutDeploymentChoice = Object.fromEntries(Object.entries(env).filter(([name]) => !name.startsWith("CONVEX_")));
-  return { ...withoutDeploymentChoice, CONVEX_DEPLOYMENT: `prod:${sandbox}` };
+  return rig ? withoutDeploymentChoice : { ...withoutDeploymentChoice, CONVEX_DEPLOYMENT: `prod:${sandbox}` };
 }
 
 function scratchPackage() {
@@ -40,7 +43,7 @@ function scratchPackage() {
 }
 
 async function convex(...args: string[]) {
-  const { stdout } = await runCommand(convexBinary, [...args, "--deployment", sandbox], { cwd: scratch, env: convexEnv, maxBuffer: 256 * 1024 * 1024 });
+  const { stdout } = await runCommand(convexBinary, [...args, ...target], { cwd: scratch, env: convexEnv, maxBuffer: 256 * 1024 * 1024 });
   return stdout;
 }
 
@@ -130,7 +133,7 @@ async function newSession(user: string) {
 }
 
 function signInSnippet({ session, refreshToken }: { session: string; refreshToken: string }) {
-  const namespace = site.replace(".convex.site", ".convex.cloud").replace(/[^a-zA-Z0-9]/g, "");
+  const namespace = cloud.replace(/[^a-zA-Z0-9]/g, "");
   return [`localStorage.setItem("__convexAuthRefreshToken_${namespace}", "${refreshToken}|${session}");`, `localStorage.setItem("__convexAuthJWT_${namespace}", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJwcm9vZiJ9.");`, `localStorage.removeItem("__convexAuthOAuthVerifier_${namespace}");`, "location.reload();"].join("\n");
 }
 
