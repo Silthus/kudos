@@ -187,11 +187,20 @@ export async function newestDecidedSince(ctx: QueryCtx, member: MemberId, since:
   return newest?.position.decided ?? null;
 }
 
-async function pendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Infinity, questsAwaitedAbove = Infinity, talliesAwaitedAbove = Infinity }: Since, size: number): Promise<Pending[]> {
+export async function newestDecidedTakenBackOrNotSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<number | null> {
+  const [newest] = await everyPendingSince(ctx, member, since, 1);
+  return newest?.position.decided ?? null;
+}
+
+async function pendingSince(ctx: QueryCtx, member: MemberId, since: Since, size: number): Promise<Pending[]> {
+  return stillShown(await everyPendingSince(ctx, member, since, size));
+}
+
+async function everyPendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Infinity, questsAwaitedAbove = Infinity, talliesAwaitedAbove = Infinity }: Since, size: number): Promise<Pending[]> {
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined, questsAwaitedAbove, talliesAwaitedAbove };
   const below = { decided: upTo, inclusive: true, ...(above !== undefined && { above }) };
   const reads = await Promise.all(sourcesSince.map(({ read }) => read(ctx, viewer, below, size + 1)));
-  return stillShown(newestWithin(reads, size));
+  return newestWithin(reads, size);
 }
 
 export async function activityOf(ctx: QueryCtx, member: MemberId, { filter, cursor, limit }: { filter: Filter; cursor: string | null; limit?: number }): Promise<Activity> {

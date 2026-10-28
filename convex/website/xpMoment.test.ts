@@ -135,6 +135,19 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect((arrived as { lastVisit: number }).lastVisit).toBeGreaterThan(moment.until);
   });
 
+  test("a moment whose newest kudos is taken back in Slack while it plays still ends past it", async () => {
+    const asAlice = await aReturningMember(alice);
+    await thanks(bob, alice);
+    const newest = await thanks(carol, alice);
+    const moment = await theMomentOf(asAlice);
+
+    await deleteMessage(t, { user: carol.user, ts: newest.ts });
+    await settle(t);
+
+    expect(await endOf(asAlice, moment)).toMatchObject({ kind: "arrived", lastVisit: moment.until });
+    expect(await momentOf(asAlice)).toMatchObject({ kind: "none" });
+  });
+
   test("a level crossed is always among the excerpts, however many newer kudos came in", async () => {
     const asCarol = await aReturningMember(carol);
     await thanks(carol, alice, bob);

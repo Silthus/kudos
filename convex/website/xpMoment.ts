@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { questXpOf, type QuestDone } from "../activity/entries";
-import { activitySince, newestDecidedSince, positionsSince, type EntrySince, type ReadSince } from "../activity/activity";
+import { activitySince, newestDecidedTakenBackOrNotSince, positionsSince, type EntrySince, type ReadSince } from "../activity/activity";
 import { ranks, type Position } from "../activity/position";
 import { thoughtfulGiversThisWeek } from "../album/thoughtfulGivers";
 import { reportXpMomentEnded } from "../analytics/isolatedUsage";
@@ -103,7 +103,7 @@ function withTopUp(newestFirst: ReadSince[], topUp: FirstThanksTopUp | null): Re
 }
 
 async function wasRead(ctx: QueryCtx, member: MemberId, from: number, until: number): Promise<boolean> {
-  const newest = await newestDecidedSince(ctx, member, { above: from });
+  const newest = await newestDecidedTakenBackOrNotSince(ctx, member, { above: from });
   return until > from && newest !== null && until <= newest;
 }
 
