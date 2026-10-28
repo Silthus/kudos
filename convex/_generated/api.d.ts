@@ -234,6 +234,7 @@ import type * as quests_groupQuestFlag from "../quests/groupQuestFlag.js";
 import type * as quests_join from "../quests/join.js";
 import type * as quests_journey from "../quests/journey.js";
 import type * as quests_journeyCopy from "../quests/journeyCopy.js";
+import type * as quests_judged from "../quests/judged.js";
 import type * as quests_mondayCatalogue from "../quests/mondayCatalogue.js";
 import type * as quests_mondayQuestFlag from "../quests/mondayQuestFlag.js";
 import type * as quests_mondaySection from "../quests/mondaySection.js";
@@ -623,6 +624,7 @@ declare const fullApi: ApiFromModules<{
   "quests/join": typeof quests_join;
   "quests/journey": typeof quests_journey;
   "quests/journeyCopy": typeof quests_journeyCopy;
+  "quests/judged": typeof quests_judged;
   "quests/mondayCatalogue": typeof quests_mondayCatalogue;
   "quests/mondayQuestFlag": typeof quests_mondayQuestFlag;
   "quests/mondaySection": typeof quests_mondaySection;
