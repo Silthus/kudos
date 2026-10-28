@@ -926,9 +926,9 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
   });
 });
 
-const saidWhy = { kind: "journey", goal: "Give a kudos that says why.", xp: 50, waiting: false } as const;
+const saidWhy = { kind: "journey", goal: "Give a kudos that says why.", xp: 50, waiting: false, hoggie: true } as const;
 
-const twoNew = { kind: "weekly", goal: "Thank 2 people you haven't thanked before.", xp: 20, waiting: false } as const;
+const twoNew = { kind: "weekly", goal: "Thank 2 people you haven't thanked before.", xp: 20, waiting: false, hoggie: true } as const;
 
 const twoQuestsDone: XpMoment = { ...busyReturn, quests: [saidWhy, twoNew], climb: { from: standingAt(1392), to: busyReturn.climb.to } };
 

@@ -498,8 +498,8 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
 
     const moment = await theMomentOf(asAlice);
     expect(moment.quests, "the quests finished").toEqual([
-      { kind: "journey", goal: "Give a kudos that says why.", xp: 50, waiting: false },
-      { kind: "journey", goal: "Thank someone you haven't thanked before.", xp: 50, waiting: false },
+      { kind: "journey", goal: "Give a kudos that says why.", xp: 50, waiting: false, hoggie: true },
+      { kind: "journey", goal: "Thank someone you haven't thanked before.", xp: 50, waiting: false, hoggie: true },
     ]);
     expect(moment.climb.to, "the climb's end").toEqual((await albumOf(asAlice)).level);
     expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp + 100);
@@ -517,11 +517,41 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
     expect(moment.quests.map(({ goal }) => goal), "the quests finished").toEqual(["Give a kudos that says why."]);
   });
 
+  test("a kudos whose quests aren't judged yet waits out of the moment, and plays its quest's beat once they are", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "quest-beats");
+    const asAlice = await aReturningMember(alice);
+    const before = await thanks(bob, alice);
+    const held = await thanksWhileHeldBack(followingQuests, alice, carol);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.map(({ entry }) => entry.at), "the moment while the quests wait").toEqual([before.at]);
+    expect(moment.quests, "the quests while they wait").toEqual([]);
+    await endOf(asAlice, moment);
+    await held.record();
+
+    const next = await theMomentOf(asAlice);
+    expect(next.quests.map(({ goal }) => goal), "the next moment's quests").toEqual(["Give a kudos that says why."]);
+    expect(next.climb.to.xp - next.climb.from.xp, "the next moment's climb").toBe(next.xp + 50);
+  });
+
   test("a quest finished on the unlock path, off the Monday path, gets no beat and climbs as before", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "quests", "quest-beats");
     const asAlice = await aReturningMember(alice);
 
     await thanks(alice, carol);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.flatMap(({ entry }) => (entry.kind === "kudosGiven" ? (entry.earned?.questsDone ?? []) : [])), "the quests Activity shows on the kudos").not.toEqual([]);
+    expect(moment.quests, "the quests finished").toEqual([]);
+    expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp);
+  });
+
+  test("a quest finished on the unlock path before the member moved onto the Monday path gets no beat and climbs as before", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "quests", "quest-beats");
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, carol);
+
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "quests", "quest-beats", "monday-quest");
 
     const moment = await theMomentOf(asAlice);
     expect(moment.excerpts.flatMap(({ entry }) => (entry.kind === "kudosGiven" ? (entry.earned?.questsDone ?? []) : [])), "the quests Activity shows on the kudos").not.toEqual([]);
@@ -559,19 +589,27 @@ async function thanks(giver: Person, ...recipients: Person[]) {
   return { at: Number(ts.split(".")[0]) * 1000, ts };
 }
 
-async function thanksWhileItsXpWaits(giver: Person, ...recipients: Person[]) {
+function thanksWhileItsXpWaits(giver: Person, ...recipients: Person[]) {
+  return thanksWhileHeldBack(recordingXp, giver, ...recipients);
+}
+
+async function thanksWhileHeldBack(job: Job, giver: Person, ...recipients: Person[]) {
   messages += 1;
   later();
   const ts = `${Math.floor(Date.now() / 1000)}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
-  const heldBack = await settleHoldingBack(progressionRecord);
+  const heldBack = await settleHoldingBack(job.name);
   return { at: Number(ts.split(".")[0]) * 1000, record: async () => {
-    for (const args of heldBack) await t.mutation(internal.progression.progression.recordEffects, args);
+    for (const args of heldBack) await t.mutation(job.run, args);
     await settle(t);
   } };
 }
 
-const progressionRecord = "progression/progression:recordEffects";
+type Job = { name: string; run: typeof internal.progression.progression.recordEffects | typeof internal.quests.quests.followKudosGiven };
+
+const recordingXp: Job = { name: "progression/progression:recordEffects", run: internal.progression.progression.recordEffects };
+
+const followingQuests: Job = { name: "quests/quests:followKudosGiven", run: internal.quests.quests.followKudosGiven };
 
 async function settleHoldingBack(name: string) {
   const heldBack: { event: Infer<typeof kudosGivenEventValidator> }[] = [];

@@ -7,6 +7,7 @@ import { rewardKeyOf, rewardWaits } from "./crates";
 import { mondayPathShownTo, onTheMondayPath, questsApplyTo, questsShownTo } from "./flag";
 import { saysWhy } from "../progression/gate";
 import { advanceOnboarding } from "./onboarding";
+import { judgeQuestsOf } from "./judged";
 import { questStartOf, startQuests } from "./start";
 import { advanceJourney, finishFirstQuestOnWeeklyFinished, journey, journeyOf, type JourneyStepFacts, type Reward } from "./journey";
 import type { Quest } from "./step";
@@ -26,6 +27,7 @@ export const followKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }) => {
     const questsDone = (await onTheMondayPath(ctx, event.giver)) ? await mondayQuestsFinishedBy(ctx, event) : (await questsShownTo(ctx, event.giver)) ? await questsFinishedBy(ctx, event) : [];
+    await judgeQuestsOf(ctx, event.awards);
     await releaseSuccessReply(ctx, event.message, questsDone);
   },
 });
