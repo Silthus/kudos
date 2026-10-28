@@ -6,7 +6,8 @@ import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf, rewardWaits } from "./crates";
 import { mondayPathShownTo, onTheMondayPath, questsApplyTo, questsShownTo } from "./flag";
 import { saysWhy } from "../progression/gate";
-import { advanceOnboarding } from "./onboarding";
+import type { MovedQuest } from "./progress";
+import { advanceOnboarding, onboardingMovedBy } from "./onboarding";
 import { questStartOf, startQuests } from "./start";
 import { advanceJourney, finishFirstQuestOnWeeklyFinished, journey, journeyOf, type JourneyStepFacts, type Reward } from "./journey";
 import type { Quest } from "./step";
@@ -25,20 +26,28 @@ export const questsOf = internalQuery({
 export const followKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }) => {
-    const questsDone = (await onTheMondayPath(ctx, event.giver)) ? await mondayQuestsFinishedBy(ctx, event) : (await questsShownTo(ctx, event.giver)) ? await questsFinishedBy(ctx, event) : [];
-    await releaseSuccessReply(ctx, event.message, questsDone);
+    const { done, moved } = await questsMovedBy(ctx, event);
+    await releaseSuccessReply(ctx, event.message, done, moved);
   },
 });
 
-async function mondayQuestsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestDone[]> {
+type QuestsMoved = { done: QuestDone[]; moved: MovedQuest[] };
+
+async function questsMovedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestsMoved> {
+  if (await onTheMondayPath(ctx, event.giver)) return mondayQuestsMovedBy(ctx, event);
+  return { done: (await questsShownTo(ctx, event.giver)) ? await questsFinishedBy(ctx, event) : [], moved: [] };
+}
+
+async function mondayQuestsMovedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestsMoved> {
   if ((await questStartOf(ctx, event.giver)) === null && saysWhy(event.annotations) && (await mondayPathShownTo(ctx, event.giver))) await startQuests(ctx, event.giver, event.at);
   const drawn = await advanceWeeklyQuests(ctx, event, "monday");
   const onboarding = await advanceOnboarding(ctx, event);
-  return [...drawn.map(({ goal, reward: { xp } }) => ({ kind: "weekly", goal, xp, hoggie: true }) as const), ...onboarding.map(({ step, reward: { xp } }) => ({ kind: "journey", step, xp, hoggie: true }) as const)];
+  const done = [...drawn.finished.map(({ goal, reward: { xp } }) => ({ kind: "weekly", goal, xp, hoggie: true }) as const), ...onboarding.map(({ step, reward: { xp } }) => ({ kind: "journey", step, xp, hoggie: true }) as const)];
+  return { done, moved: [...drawn.moved, ...(await onboardingMovedBy(ctx, event))] };
 }
 
 async function questsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestDone[]> {
-  const weekly = await advanceWeeklyQuests(ctx, event, "unlocks");
+  const { finished: weekly } = await advanceWeeklyQuests(ctx, event, "unlocks");
   const steps = await advanceJourney(ctx, event, journey);
   const firstQuest = weekly.length === 0 ? null : await finishFirstQuestOnWeeklyFinished(ctx, event.workspace, event.giver, event.at, event.message);
   if (firstQuest !== null) steps.push(firstQuest);

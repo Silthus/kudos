@@ -10,12 +10,11 @@ import { hiddenItemsShownTo } from "../items/flag";
 import { waitingCountOf } from "../items/ledger";
 import { placeOf } from "../messageSettings/messageSettings";
 import { websiteOrigin } from "../website/link";
-import { nameAndPictureOf, type MemberId } from "../workspace/directory";
+import type { MemberId } from "../workspace/directory";
 import { albumSlackAppliesTo, publicPictureOf } from "./albumSlack";
-import { gainsLineWithoutQuestsOf, givenReplyOf } from "./replies";
+import { firstNameOf, mostRecipientsNamed } from "./recipientNames";
+import { gainsLineWithoutQuestsOf, givenReplyOf, tellItemsInTheReply } from "./replies";
 import type { Line } from "./segments";
-
-export const mostRecipientsNamed = 10;
 
 export type AlbumReplyDestination = { kind: "beside"; conversation: string; threadRoot?: string; user: string } | { kind: "dm"; user: string };
 
@@ -35,6 +34,7 @@ export const replyAfterTheGrant = internalMutation({
   args: { event: thoughtfulPacksGrantedEventValidator },
   returns: v.null(),
   handler: async (ctx, { event }) => {
+    if (await tellItemsInTheReply(ctx, event)) return null;
     if (await albumSlackAppliesTo(ctx, event.giver)) await ctx.scheduler.runAfter(0, internal.slack.albumReplies.deliverAlbumReply, { event });
     return null;
   },
@@ -131,9 +131,4 @@ async function buttonsOf(ctx: QueryCtx, outcomes: Outcome[], named: Outcome[], o
   const buttons: AlbumReplyButton[] = [];
   for (const { recipient } of named) buttons.push({ label: `See ${await firstNameOf(ctx, recipient)}'s page`, url: `${origin}/book#people/${encodeURIComponent(recipient)}`, id: `album-see-person:${recipient}` });
   return buttons;
-}
-
-async function firstNameOf(ctx: QueryCtx, person: MemberId): Promise<string> {
-  const { name } = await nameAndPictureOf(ctx, person);
-  return name?.trim().split(/\s+/)[0] || "Your teammate";
 }
