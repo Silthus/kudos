@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstAwardsGivenAfter, givenBetween, messagesGivenDecidedAfter, type AwardId, type DatedAward } from "../engine/awards";
+import { earliestAwardFrom, firstAwardsGivenAfter, firstDecidedOf, givenBetween, messagesGivenDecidedAfter, type AwardId, type DatedAward } from "../engine/awards";
 import { replyIsHeld } from "../feedback/heldReplies";
 import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
@@ -209,7 +209,9 @@ async function finished(ctx: MutationCtx, workspace: string, member: MemberId, s
 
 async function twoDaysFinishedBy(ctx: QueryCtx, member: MemberId, instant: number): Promise<boolean> {
   const finish = await finishOf(ctx, member, "two-days");
-  return finish !== null && finish.at <= instant;
+  if (finish === null) return false;
+  const decided = finish.cause === undefined ? null : await firstDecidedOf(ctx, finish.cause);
+  return (decided ?? finish.at) <= instant;
 }
 
 function finishOf(ctx: QueryCtx, member: MemberId, step: OnboardingStep) {

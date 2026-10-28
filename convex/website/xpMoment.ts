@@ -61,7 +61,8 @@ export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> 
   const now = Date.now();
   const questsShown = await questBeatsShownTo(ctx, me.member);
   const progressShown = await progressBeatsShownTo(ctx, me.member);
-  const read = await activitySince(ctx, me.member, { above: since, ...((questsShown || progressShown) && { questsAwaitedAbove: now - progressionWaitedFor }) });
+  const awaitedAbove = now - progressionWaitedFor;
+  const read = await activitySince(ctx, me.member, { above: since, ...((questsShown || progressShown) && { questsAwaitedAbove: awaitedAbove }), ...(progressShown && { talliesAwaitedAbove: awaitedAbove }) });
   const { playable, heldBack } = playableOf(withTopUp(read, topUp), now);
   if (playable.length === 0) return { kind: "none", lastVisit };
   return momentOf(ctx, me, since, { read: playable, heldBack, questsShown, progressShown });

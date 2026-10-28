@@ -322,6 +322,11 @@ export function weekRowOf(ctx: QueryCtx, member: MemberId, week: DayKey) {
     .unique();
 }
 
+export async function awardsTallied(ctx: QueryCtx, awards: { award: AwardId }[]): Promise<boolean> {
+  const tallied = await Promise.all(awards.map(({ award }) => talliedAwardOf(ctx, award)));
+  return tallied.every((marker) => marker !== null);
+}
+
 export function talliedAwardOf(ctx: QueryCtx, award: AwardId) {
   return ctx.db
     .query("talliedAwards")

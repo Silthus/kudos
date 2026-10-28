@@ -708,14 +708,20 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual([]);
   });
 
-  test("the Thoughtful milestone starts where it stood at the last visit while a kudos since waits on its tally", async () => {
+  test("a thoughtful kudos whose tally waits stays out of the moment, and the milestone moves from where it stood once it is tallied", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);
+    const held = await thanksWhileHeldBack(tallying, alice, carol);
 
-    await thanksWhileHeldBack(tallying, alice, carol);
+    expect(await momentOf(asAlice), "the moment while the tally waits").toMatchObject({ kind: "none" });
+    await held.record();
+    const first = await theMomentOf(asAlice);
+    expect(first.progressed, "the first moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
+    await endOf(asAlice, first);
+    await thanks(alice, bob);
 
-    expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
+    expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 2, to: 3, of: 25 }]);
   });
 
   test("the two-days quest moves by the kudos the moment plays while a later kudos that finishes it waits on its XP", async () => {
@@ -727,6 +733,22 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     vi.setSystemTime(Date.now() + dayMs);
 
     await thanksWhileItsXpWaits(alice, bob);
+
+    expect((await theMomentOf(await signedIn(alice))).progressed.filter(({ name }) => name === onboardingGoalOf("two-days"))).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
+  });
+
+  test("the two-days quest moves by the kudos the moment plays while a later kudos, sent on another day before the last visit, finishes it and waits on its XP", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    const member = await memberOf(alice);
+    await t.run((ctx) => startQuests(ctx, member, Date.now()));
+    later();
+    const sentOnTheFirstDay = Date.now();
+    vi.setSystemTime(Date.now() + dayMs);
+    const sentOnTheSecondDay = Date.now();
+    await aReturningMember(alice);
+
+    await thanksSentAt(sentOnTheFirstDay, alice, carol);
+    await thanksSentWhileHeldBack(sentOnTheSecondDay, recordingXp, alice, bob);
 
     expect((await theMomentOf(await signedIn(alice))).progressed.filter(({ name }) => name === onboardingGoalOf("two-days"))).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
   });
@@ -767,10 +789,14 @@ function thanksWhileItsXpWaits(giver: Person, ...recipients: Person[]) {
   return thanksWhileHeldBack(recordingXp, giver, ...recipients);
 }
 
-async function thanksWhileHeldBack(job: Job, giver: Person, ...recipients: Person[]) {
-  messages += 1;
+function thanksWhileHeldBack(job: Job, giver: Person, ...recipients: Person[]) {
   later();
-  const ts = `${Math.floor(Date.now() / 1000)}.${String(messages).padStart(6, "0")}`;
+  return thanksSentWhileHeldBack(Date.now(), job, giver, ...recipients);
+}
+
+async function thanksSentWhileHeldBack(at: number, job: Job, giver: Person, ...recipients: Person[]) {
+  messages += 1;
+  const ts = `${Math.floor(at / 1000)}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   const heldBack = await settleHoldingBack(job.name);
   return { at: Number(ts.split(".")[0]) * 1000, record: async () => {

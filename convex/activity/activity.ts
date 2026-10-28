@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedByDecision, messagesGivenByDecision, type DecidedBelow, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
+import { awardsTallied } from "../album/tallies";
 import { dropsByDecision } from "../hoggies/drops";
 import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { bonusRecordedWith, xpRecordedFor } from "../progression/effects";
@@ -26,7 +27,7 @@ export type Direction = Exclude<Filter, "all">;
 
 type GainsShown = { xp: boolean; quests: boolean; bonuses: boolean };
 
-type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean>; hugsAsOf: number | undefined; questsAwaitedAbove: number };
+type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean>; hugsAsOf: number | undefined; questsAwaitedAbove: number; talliesAwaitedAbove: number };
 
 type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry>; xp: () => Promise<number | null>; settled?: () => Promise<boolean> };
 
@@ -77,7 +78,7 @@ const kudosGiven: Source = {
         recipients: given.awards.length,
         entry: (mentions) => givenEntryOf(ctx, viewer, mentions, given),
         xp: () => giverXpRecordedFor(ctx, given),
-        settled: async () => given.created <= viewer.questsAwaitedAbove || (await questsJudgedFor(ctx, given.awards)),
+        settled: async () => (given.created <= viewer.questsAwaitedAbove || (await questsJudgedFor(ctx, given.awards))) && (given.created <= viewer.talliesAwaitedAbove || (await awardsTallied(ctx, given.awards))),
       })),
       cut,
     };
@@ -161,7 +162,7 @@ export type EntrySince = Exclude<ActivityEntry, Found>;
 
 export type ReadSince = { decided: number; entry: EntrySince; xp: number; recorded: boolean; settled: boolean };
 
-export type Since = { above?: number; upTo?: number; questsAwaitedAbove?: number };
+export type Since = { above?: number; upTo?: number; questsAwaitedAbove?: number; talliesAwaitedAbove?: number };
 
 export async function activitySince(ctx: QueryCtx, member: MemberId, since: Since): Promise<ReadSince[]> {
   const page = await pendingSince(ctx, member, since, mostReadSince);
@@ -182,8 +183,8 @@ export async function newestDecidedSince(ctx: QueryCtx, member: MemberId, since:
   return newest?.position.decided ?? null;
 }
 
-async function pendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Infinity, questsAwaitedAbove = Infinity }: Since, size: number): Promise<Pending[]> {
-  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined, questsAwaitedAbove };
+async function pendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Infinity, questsAwaitedAbove = Infinity, talliesAwaitedAbove = Infinity }: Since, size: number): Promise<Pending[]> {
+  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined, questsAwaitedAbove, talliesAwaitedAbove };
   const below = { decided: upTo, inclusive: true, ...(above !== undefined && { above }) };
   const reads = await Promise.all(sourcesSince.map(({ read }) => read(ctx, viewer, below, size + 1)));
   return newestWithin(reads, size);
@@ -202,7 +203,7 @@ export async function recentKudosOf(ctx: QueryCtx, member: MemberId, { direction
 async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: Cursor | null, size: number) {
   const hugsShown = once(() => hugsShownTo(ctx, member));
   const hugsAsOf = await hugsSnapshotOf(ctx, member, filter, hugsShown, cursor);
-  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf, questsAwaitedAbove: Infinity };
+  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf, questsAwaitedAbove: Infinity, talliesAwaitedAbove: Infinity };
   const after = cursor?.after ?? null;
   const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, belowFor(rank, after), size + 1)));
   const pending = newestOf(reads);
