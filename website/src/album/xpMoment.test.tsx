@@ -1005,6 +1005,32 @@ describe("LP104: each quest finished since the last visit gets its own beat", { 
     expect(theTakeover()).toBeInTheDocument();
   });
 
+  it("a quest whose XP alone crosses the level plays the takeover after its beat", async () => {
+    const crossedByTheQuest: XpMoment = { ...busyReturn, quests: [saidWhy], climb: { from: standingAt(1460), to: standingAt(1520) } };
+    await returnTo({ moment: crossedByTheQuest, album: { ...withLevelSevenItems, level: crossedByTheQuest.climb.to } });
+    await collectAt(arrivedAndRead);
+
+    await at(firstBurst + 0.06);
+    expect(xpWords(), "the excerpts' XP stays below level 7").toBe("30 XP to level 7");
+    await at(firstReward + 0.06);
+    expect(xpWords(), "the quest's XP crossed it").toBe("580 XP to level 8");
+    expect(theTakeover()).toBeNull();
+    await at(secondStart + 0.06);
+    expect(theTakeover()).toHaveAccessibleName("You reached level 7");
+  });
+
+  it("a moment answered without quests, as by the backend before them during a revert, plays as before", async () => {
+    const { quests: _, ...answeredBeforeQuests } = busyReturn;
+    await returnTo({ moment: answeredBeforeQuests as XpMoment, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(collectedAndStreamed + 0.02);
+    expect(theQuest()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+    await act(async () => fireEvent.click(theTakeover()!));
+    expect(within(theItemBoard()!).queryAllByRole("listitem", { name: /^Quest complete/ })).toEqual([]);
+  });
+
   it("a quest whose reward waits in its crate streams no XP and says its reward waits there", async () => {
     await returnTo({ moment: { ...busyReturn, quests: [{ ...twoNew, waiting: true }] }, album: withLevelSevenItems });
     await collectAt(arrivedAndRead);
