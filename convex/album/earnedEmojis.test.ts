@@ -7,7 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
-import { mostHypeEmojisShown } from "./earnedEmojis";
+import { mostHypeEmojisShown, mostPeoplePackedRead } from "./earnedEmojis";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
@@ -399,12 +399,12 @@ describe("AL26: each earned emoji is seen once", { timeout: 90_000 }, () => {
     expect(hype.filter(({ seen }) => !seen).map(({ id }) => id)).toEqual([`hype:${newest}`]);
   });
 
-  test("past the 200 hype emojis one read answers, the ones picked to count in kudos come first, so a pick can always be unpicked", async () => {
+  test("past the 500 people one read packs for, the hype emojis picked to count in kudos come first, so a pick can always be unpicked", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen, "kudos-emoji-picks");
     const aliceId = await memberOf(alice);
     const people = await t.run(async (ctx) => {
       const ids: MemberId[] = [];
-      for (let index = 0; index <= mostHypeEmojisShown; index += 1) ids.push(await ctx.db.insert("members", { workspace: "T1", user: `U_PACKED_${index}`, kind: "member", asOf: 0 }));
+      for (let index = 0; index <= mostPeoplePackedRead; index += 1) ids.push(await ctx.db.insert("members", { workspace: "T1", user: `U_PACKED_${index}`, kind: "member", asOf: 0 }));
       return ids.toSorted();
     });
     const picked = people.at(-1)!;

@@ -267,7 +267,9 @@ function levelCausesOf({ level, xp }: EmojiCauses["level"], levels: readonly num
 }
 
 async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>, { hypesHeld: held, picked = [] }: EmojiCauses): Promise<{ causes: Cause[]; more: boolean }> {
-  const people = firstWhere(unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen), ({ person }) => picked.includes(`hype:${person}`));
+  const pickedPeople = await pickedPeoplePackedBy(ctx, member, picked);
+  const isPicked = ({ person }: PackedPerson) => pickedPeople.some((packed) => packed.person === person);
+  const people = [...pickedPeople, ...unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen).filter((packed) => !isPicked(packed))];
   const causes: Cause[] = [];
   for (const { person, firstPackAt } of people.slice(0, mostHypeEmojisShown)) {
     const { name, picture } = await hypeFaceOf(ctx, workspace, person);
@@ -287,11 +289,19 @@ export async function hypeEarnedBy(ctx: QueryCtx, member: MemberId, person: Memb
 }
 
 function unseenFirst(people: PackedPerson[], seen: Set<string>): PackedPerson[] {
-  return firstWhere(people, ({ person }) => !seen.has(`hype:${person}`));
+  const isSeen = ({ person }: PackedPerson) => seen.has(`hype:${person}`);
+  return [...people.filter((packed) => !isSeen(packed)), ...people.filter(isSeen)];
 }
 
-function firstWhere(people: PackedPerson[], first: (packed: PackedPerson) => boolean): PackedPerson[] {
-  return [...people.filter(first), ...people.filter((packed) => !first(packed))];
+async function pickedPeoplePackedBy(ctx: QueryCtx, giver: MemberId, picked: string[]): Promise<PackedPerson[]> {
+  const people: PackedPerson[] = [];
+  for (const emoji of picked) {
+    const [kind, cause] = splitOnce(emoji);
+    const person = kind === "hype" ? ctx.db.normalizeId("members", cause) : null;
+    const pack = person === null ? null : await firstPackFor(ctx, giver, person);
+    if (pack !== null) people.push({ person: pack.recipient, firstPackAt: pack.at });
+  }
+  return people;
 }
 
 async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Promise<PackedPerson[]> {
@@ -412,9 +422,12 @@ function tierOf(ctx: QueryCtx, member: MemberId, milestone: MilestoneId, tier: M
 }
 
 async function hasPackedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<boolean> {
-  const pack = await ctx.db
+  return (await firstPackFor(ctx, giver, recipient)) !== null;
+}
+
+function firstPackFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId) {
+  return ctx.db
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient))
     .first();
-  return pack !== null;
 }
