@@ -18,12 +18,15 @@ import { rewardWaits } from "../quests/crates";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { withoutFullStop } from "../quests/pool";
 import { journeyStepValidator } from "../quests/step";
+import type { MovedQuest } from "../quests/progress";
+import type { ThoughtfulPacksGrantedEvent } from "../bus/events";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
 import { lookup, type MemberId } from "../workspace/directory";
 import { coinsPartOf } from "./coins";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import type { Line, Segment } from "./segments";
+import { itemsAwaitedBy, oneReplyOf, oneReplyRowOf, oneReplyShownTo, repliedItemsOf, type OneReplyFacts, type OneReplyWritten, type RepliedItems } from "./oneReply";
 import { settingsFooterFor } from "./settingsFooter";
 import { hoggieRewardOf } from "./waitingHoggies";
 
@@ -68,23 +71,30 @@ const hintLine: Line = [{ text: "Add why they earned it to earn more." }];
 
 type WrittenReply = Pick<Doc<"privateReplies">, "given" | "lines" | "gains" | "hint" | "held">;
 
+type Written = { reply: WrittenReply; oneReply: OneReplyWritten | null };
+
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
   const giver = await lookup(ctx, ref.workspace, to);
   const member = giver?.kind === "member" ? giver.member : undefined;
-  const written = reply.kind === "given" ? await successReplyWritten(ctx, member, ref, reply) : { lines: renderReply(reply) };
+  const { reply: written, oneReply } = reply.kind === "given" ? await successReplyWritten(ctx, member, ref, reply) : { reply: { lines: renderReply(reply) }, oneReply: null };
   if (saysNothing(written)) return;
   const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, ...written });
-  if (written.held) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
+  if (oneReply !== null) await ctx.db.insert("oneReplies", { reply: id, ...oneReply });
+  if (written.held === true) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
   else await deliver(ctx, id);
 }
 
-async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefined, ref: MessageRef, reply: Extract<Reply, { kind: "given" }>): Promise<WrittenReply> {
+async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefined, ref: MessageRef, reply: Extract<Reply, { kind: "given" }>): Promise<Written> {
   const lines = skippedLines(reply.outcome.skipped);
-  if (member !== undefined && !(await wantsMessage(ctx, member, "kudos-reply"))) return { lines };
+  if (member !== undefined && !(await wantsMessage(ctx, member, "kudos-reply"))) return { reply: { lines }, oneReply: null };
   const gains = await gainsWritten(ctx, member, ref, reply);
   const waitsForQuests = member !== undefined && (await questsHoldTheReplyOf(ctx, member));
   const asksWhy = member !== undefined && (await couldEarnMoreBySayingWhy(ctx, member, reply.annotations)) && (await wantsMessage(ctx, member, "tips"));
-  return { given: givenLine(reply.outcome, reply.base), lines, gains, ...(asksWhy && { hint: hintLine }), ...(waitsForQuests && { held: true as const }) };
+  const written = { lines, gains, ...(asksWhy && { hint: hintLine }), ...(waitsForQuests && { held: true as const }) };
+  if (member === undefined || !(await oneReplyShownTo(ctx, member))) return { reply: { given: givenLine(reply.outcome, reply.base), ...written }, oneReply: null };
+  const awaitsItems = await itemsAwaitedBy(ctx, member, reply.annotations);
+  const oneReply = { left: leftOf(reply.outcome, reply.base), ...(waitsForQuests && { awaitsQuests: true as const }), ...(awaitsItems && { awaitsItems: true as const }) };
+  return { reply: { given: headlineOf(reply.outcome), ...written, ...(awaitsItems && { held: true as const }) }, oneReply };
 }
 
 function saysNothing({ given, lines }: WrittenReply) {
@@ -100,16 +110,28 @@ async function gainsWritten(ctx: MutationCtx, member: MemberId | undefined, ref:
   return { xp, ...(coins > 0 && { coins }), ...(bonus.length > 0 && { bonus }) };
 }
 
-export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[]) {
+export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[], questsMoved: MovedQuest[]) {
   const held = await heldReplyOf(ctx, message);
-  if (held !== null) await release(ctx, held, questsDone);
+  if (held !== null) await release(ctx, held, questsDone, questsMoved);
+}
+
+export async function tellItemsInTheReply(ctx: MutationCtx, { message, outcomes }: ThoughtfulPacksGrantedEvent): Promise<boolean> {
+  const reply = await givenReplyOf(ctx, message);
+  const oneReply = reply === null ? null : await oneReplyRowOf(ctx, reply._id);
+  if (reply === null || oneReply?.awaitsItems !== true) return false;
+  await ctx.db.patch(oneReply._id, { awaitsItems: undefined, items: repliedItemsOf(outcomes) });
+  if (oneReply.awaitsQuests !== true) await letGo(ctx, reply._id);
+  return true;
 }
 
 export const releaseUnreleased = internalMutation({
   args: { reply: v.id("privateReplies") },
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
-    if (row?.held === true) await release(ctx, row, []);
+    if (row?.held !== true) return;
+    const oneReply = await oneReplyRowOf(ctx, reply);
+    if (oneReply !== null) await ctx.db.patch(oneReply._id, { awaitsQuests: undefined, awaitsItems: undefined });
+    await release(ctx, row, [], []);
   },
 });
 
@@ -119,16 +141,41 @@ export const privateReply = internalQuery({
     const row = await ctx.db.get(reply);
     if (row === null) return null;
     const { given, gains, hint, questsDone: _, ...stored } = row;
-    if (gains === undefined) return { ...stored, footer: null, asDirectMessage: false };
+    if (gains === undefined) return { ...stored, footer: null, asDirectMessage: false, oneReply: null };
     const member = await memberOf(ctx, row.workspace, row.to);
     const place = member === null ? "channel" : await placeOf(ctx, member, "kudos-reply");
-    if (place === "none") return row.lines.length === 0 ? null : { ...stored, footer: null, asDirectMessage: false };
+    if (place === "none") return row.lines.length === 0 ? null : { ...stored, footer: null, asDirectMessage: false, oneReply: null };
     const shown = await gainsShownTo(ctx, row.workspace, member, gains);
-    const extrasLine = extrasLineOf(shown, await hintShownTo(ctx, row.workspace, member, hint), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const shownHint = await hintShownTo(ctx, row.workspace, member, hint);
+    const delivered = { ...stored, footer: await settingsFooterFor(ctx, member), asDirectMessage: place === "dm" };
+    const oneReply = await oneReplyRowOf(ctx, reply);
+    if (oneReply !== null && member !== null && given !== undefined) {
+      const questsMoved = await questsMovedShownTo(ctx, row.workspace, member, oneReply.questsMoved ?? []);
+      const facts = oneReplyFactsOf({ headline: given, left: oneReply.left, skipped: row.lines, hint: shownHint, items: oneReply.items ?? null, questsMoved }, shown);
+      return { ...delivered, oneReply: await oneReplyOf(ctx, row.workspace, member, facts) };
+    }
+    const extrasLine = extrasLineOf(shown, shownHint, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
     const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine]), ...hoggieQuestLinesOf(shown.questsDone)];
-    return { ...stored, lines, footer: await settingsFooterFor(ctx, member), asDirectMessage: place === "dm" };
+    return { ...delivered, lines, oneReply: null };
   },
 });
+
+async function questsMovedShownTo(ctx: QueryCtx, workspace: string, member: MemberId, questsMoved: MovedQuest[]): Promise<MovedQuest[]> {
+  return questsMoved.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? questsMoved : [];
+}
+
+type WrittenFacts = { headline: Line; left: string; skipped: Line[]; hint: Line | null; items: RepliedItems | null; questsMoved: MovedQuest[] };
+
+function oneReplyFactsOf({ headline, left, skipped, hint, items, questsMoved }: WrittenFacts, shown: GainsShown): OneReplyFacts {
+  return {
+    headline,
+    gains: extrasLineOf({ ...shown, questsDone: [] }, null, null),
+    context: [[{ text: left }, ...(hint === null ? [] : [{ text: " · " }, ...hint])], ...skipped],
+    questsDone: shown.questsDone.map((done) => ({ goal: withoutFullStop(goalOf(done)), reward: done.hoggie === true ? `+${done.xp} XP and an unidentified Hoggie` : questRewardOf(done) })),
+    questsMoved,
+    items,
+  };
+}
 
 async function memberOf(ctx: QueryCtx, workspace: string, to: ChatUserId): Promise<MemberId | null> {
   const person = await lookup(ctx, workspace, to);
@@ -151,9 +198,16 @@ export async function gainsLineWithoutQuestsOf(ctx: QueryCtx, workspace: string,
   return extrasLineOf(await gainsShownTo(ctx, workspace, member, gains), null, null);
 }
 
-async function release(ctx: MutationCtx, { _id, gains }: Doc<"privateReplies">, questsDone: QuestDone[]) {
-  await ctx.db.patch(_id, { held: undefined, ...(questsDone.length > 0 && { gains: { ...gains, xp: gains?.xp ?? 0, questsDone } }) });
-  await deliver(ctx, _id);
+async function release(ctx: MutationCtx, { _id, gains }: Doc<"privateReplies">, questsDone: QuestDone[], questsMoved: MovedQuest[]) {
+  if (questsDone.length > 0) await ctx.db.patch(_id, { gains: { ...gains, xp: gains?.xp ?? 0, questsDone } });
+  const oneReply = await oneReplyRowOf(ctx, _id);
+  if (oneReply !== null) await ctx.db.patch(oneReply._id, { awaitsQuests: undefined, ...(questsMoved.length > 0 && { questsMoved }) });
+  if (oneReply?.awaitsItems !== true) await letGo(ctx, _id);
+}
+
+async function letGo(ctx: MutationCtx, reply: Id<"privateReplies">) {
+  await ctx.db.patch(reply, { held: undefined });
+  await deliver(ctx, reply);
 }
 
 async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
@@ -235,8 +289,20 @@ export function renderReply(reply: Exclude<Reply, { kind: "given" }>): Line[] {
 }
 
 function givenLine({ recipients, perRecipient, left }: Given, base: number): Line {
-  const whatIsLeft = left > 0 ? `You have ${left} kudos left today.` : `That was your last kudos for today, and you'll have ${base} more at midnight.`;
+  const whatIsLeft = left > 0 ? `You have ${left} kudos left today.` : lastKudosOf(base);
   return [...listOf(recipients.map((user) => [person(user)])), { text: ` got ${perRecipient} kudos from you. ${whatIsLeft}` }];
+}
+
+function headlineOf({ recipients, perRecipient }: Given): Line {
+  return [...listOf(recipients.map((user) => [person(user)])), { text: ` got ${perRecipient} kudos from you` }];
+}
+
+function leftOf({ left }: Given, base: number) {
+  return left > 0 ? `${left} kudos left today` : lastKudosOf(base);
+}
+
+function lastKudosOf(base: number) {
+  return `That was your last kudos for today, and you'll have ${base} more at midnight.`;
 }
 
 function overAllowanceLine({ cost, recipients, perRecipient, left }: OverAllowance, base: number): Line {

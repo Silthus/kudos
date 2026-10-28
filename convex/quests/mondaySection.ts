@@ -3,16 +3,14 @@ import { placeOf } from "../messageSettings/messageSettings";
 import type { MemberId } from "../workspace/directory";
 import { onTheMondayPath } from "./flag";
 import { onboardingQuestsOf } from "./onboarding";
-import { questOf, withoutFullStop, type PoolQuest } from "./pool";
-import type { QuestProgress } from "./progress";
+import { questOf, withoutFullStop } from "./pool";
+import { progressUnitOf, type QuestProgress } from "./progress";
 import { questStartOf } from "./start";
 import { isMondayDraw, thisWeeksQuestsOf, type WeeklySlot } from "./weekly";
 
 export type SectionQuest = { goal: string; finished: boolean; progress: QuestProgress | null };
 
 export type QuestsSection = { kind: "onboarding"; done: number; quests: SectionQuest[] } | { kind: "drawn"; quests: SectionQuest[] };
-
-const progressUnits: Record<PoolQuest["progress"]["counts"], QuestProgress["unit"]> = { recognitions: "kudos", people: "people", days: "days" };
 
 export async function questsSectionFor(ctx: MutationCtx, member: MemberId, at: number): Promise<QuestsSection | null> {
   if (!(await mondayQuestsWantedBy(ctx, member))) return null;
@@ -29,6 +27,6 @@ async function mondayQuestsWantedBy(ctx: MutationCtx, member: MemberId) {
 }
 
 function drawnQuestOf({ quest, goal, progress, target, finishedAt }: WeeklySlot): SectionQuest {
-  const counted = target > 1 ? { done: progress, of: target, unit: progressUnits[questOf(quest).progress.counts] } : null;
+  const counted = target > 1 ? { done: progress, of: target, unit: progressUnitOf(questOf(quest)) } : null;
   return { goal: withoutFullStop(goal), finished: finishedAt !== null, progress: counted };
 }

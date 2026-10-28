@@ -17,6 +17,7 @@ import { groupModeValidator } from "./groups/mode";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
+import { oneReplyValidator } from "./feedback/oneReply";
 import { segmentValidator } from "./feedback/segments";
 import { channelCheckValidator, mondayPostOutcomeValidator } from "./leaderboard/mondayPostOutcome";
 import { periodValidator } from "./leaderboard/periods";
@@ -423,6 +424,8 @@ export default defineSchema({
     gains: v.optional(gainsValidator),
     held: v.optional(v.literal(true)),
   }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
+
+  oneReplies: defineTable(oneReplyValidator).index("by_reply", ["reply"]),
 
   publicReplies: defineTable(publicReplyValidator)
     .index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"])

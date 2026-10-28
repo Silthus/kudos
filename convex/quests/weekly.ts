@@ -19,8 +19,8 @@ import { rewardValidator, type Reward } from "./journey";
 import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { onboardingFinishedAt } from "./onboarding";
 import { pendingWeeklyCratesBefore } from "./pendingCrates";
-import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type QuestPool, type Recipient } from "./pool";
-import { counts, isRecipient, notThankedForMs, questProgress, type CountedAward, type QuestAward } from "./progress";
+import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, questPool, withoutFullStop, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type QuestPool, type Recipient } from "./pool";
+import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type MovedQuest, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
 import { questStartOf } from "./start";
 import type { WeeklyQuest } from "./step";
@@ -81,9 +81,14 @@ export const drawWeeklyQuests = internalMutation({
 
 export type FinishedWeeklyQuest = { crate: WeeklyQuest; goal: string; reward: Slot["reward"] };
 
-export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent, path: QuestPath): Promise<FinishedWeeklyQuest[]> {
+export type AdvancedWeeklyQuests = { finished: FinishedWeeklyQuest[]; moved: MovedQuest[] };
+
+type SlotAdvance = { kind: "unchanged" } | { kind: "advanced"; done: number } | { kind: "finished" };
+
+export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent, path: QuestPath): Promise<AdvancedWeeklyQuests> {
   let shownChanged = (await drawWhenDue(ctx, event.giver, event.at)) === "drawn";
   const finished: FinishedWeeklyQuest[] = [];
+  const moved: MovedQuest[] = [];
   const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
   if (draw !== null && isMondayDraw(draw) === (path === "monday")) {
     const swap = await swapOf(ctx, draw.member, draw.week);
@@ -91,12 +96,18 @@ export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEve
     const awards = open.length === 0 ? [] : await questAwardsOf(ctx, event);
     for (const slot of open) {
       const advanced = await advanceSlot(ctx, event, draw, slot, awards);
-      if (advanced === "finished") finished.push({ crate: weeklyQuest(draw.week, slot), goal: questOf(slot.quest).goal, reward: slot.reward });
-      shownChanged = advanced !== "unchanged" || shownChanged;
+      if (advanced.kind === "finished") finished.push({ crate: weeklyQuest(draw.week, slot), goal: questOf(slot.quest).goal, reward: slot.reward });
+      if (advanced.kind === "advanced") moved.push(movedQuestOf(slot, advanced.done));
+      shownChanged = advanced.kind !== "unchanged" || shownChanged;
     }
   }
   if (shownChanged) await republish(ctx, event.giver);
-  return finished;
+  return { finished, moved };
+}
+
+function movedQuestOf({ quest }: Slot, done: number): MovedQuest {
+  const pooled = questOf(quest);
+  return { goal: withoutFullStop(pooled.goal), progress: { done, of: pooled.progress.target, unit: progressUnitOf(pooled) } };
 }
 
 export const drawNewWeek = internalMutation({
@@ -235,17 +246,17 @@ async function isFinished(ctx: QueryCtx, { member, week }: Draw, slot: Slot): Pr
   return (await rewardOf(ctx, member, rewardKeyOf(weeklyQuest(week, slot)))) !== null;
 }
 
-async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, week }: Draw, slot: Slot, awards: QuestAward[]): Promise<"unchanged" | "advanced" | "finished"> {
+async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, week }: Draw, slot: Slot, awards: QuestAward[]): Promise<SlotAdvance> {
   const quest = weeklyQuest(week, slot);
   const pooled = questOf(slot.quest);
   const counted = await countedFor(ctx, member, week, slot);
   const fresh = awards.filter((award) => counts(pooled, award) && !counted.some((earlier) => earlier.award === award.award));
-  if (fresh.length === 0) return "unchanged";
+  if (fresh.length === 0) return { kind: "unchanged" };
   for (const { award, recipient, day, at } of fresh) await ctx.db.insert("questProgress", { member, week, slot: slot.slot, quest: slot.quest, award, recipient, day, at });
   const before = questProgress(pooled, counted);
   const after = questProgress(pooled, [...counted, ...fresh]);
-  if (after === pooled.progress.target && (await finishDrawnQuest(ctx, event, member, quest, slot))) return "finished";
-  return after === before ? "unchanged" : "advanced";
+  if (after === pooled.progress.target && (await finishDrawnQuest(ctx, event, member, quest, slot))) return { kind: "finished" };
+  return after === before ? { kind: "unchanged" } : { kind: "advanced", done: after };
 }
 
 async function finishDrawnQuest(ctx: MutationCtx, { workspace, at, message }: KudosGivenEvent, member: MemberId, quest: WeeklyQuest, slot: Slot): Promise<boolean> {
