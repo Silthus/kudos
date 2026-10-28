@@ -46,7 +46,7 @@ export async function memberChanged(t: Backend, ...event: Parameters<typeof memb
 }
 
 export async function settle(t: Backend) {
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  await settleInTimeOrder(t, { maxTimers: 10_000 });
 }
 
 export async function settleInTimeOrder(t: Backend, { until = Infinity, maxTimers = 200, whileFunctionsRun = false } = {}) {
