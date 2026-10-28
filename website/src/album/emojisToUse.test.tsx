@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
@@ -8,7 +8,7 @@ import { anAlbumThatAnswers } from "../test/albumThatAnswers";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
-import type { Album, AlbumEmoji, AlbumRead, PickKudosEmoji } from "./answer";
+import type { Album, AlbumEmoji, AlbumRead, KudosEmojiPickReply, PickKudosEmoji } from "./answer";
 
 const day = 24 * 60 * 60 * 1_000;
 
@@ -137,6 +137,20 @@ describe("the emoji popup leads with the earned emojis the member picks to count
     live.answerNext({ ...live.now(), kudosEmojiPicks: ["team:quiet-harbour"] });
 
     expect(pressedIn(picks)).toEqual([":team-quiet-harbour: true", ":ines-okafor-hype: false", ":level-5: false", ":raised_hands: false"]);
+  });
+
+  it("a reply that lands after the album's next answer keeps the album's picks", async () => {
+    let reply: (answer: KudosEmojiPickReply) => void = () => {};
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(() => new Promise((resolve) => (reply = resolve)));
+    const live = anAlbumThatAnswers({ ...withFirstThankYou, kudosEmojiPicks: [] });
+    const view = visit({ album: live.now(), read: live.read, pickKudosEmoji });
+    const picks = picksIn(await openTheEmojis(view));
+    await view.user.click(picks.getByRole("button", { name: ":raised_hands:" }));
+
+    live.answerNext({ ...live.now(), kudosEmojiPicks: ["level:5"] });
+    await act(async () => reply({ kind: "picked", picks: ["level:2"] }));
+
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: false", ":ines-okafor-hype: false", ":level-5: true", ":raised_hands: false"]);
   });
 
   it("with picking off, the album answers no picks: no section, and every earned emoji counts in a kudos as before", async () => {

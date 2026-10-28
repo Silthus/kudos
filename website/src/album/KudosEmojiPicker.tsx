@@ -4,25 +4,24 @@ import type { Album, AlbumEmoji, PickKudosEmoji } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { picksKudosEmojis, usableNowOf } from "./emojiShelf";
 
+type Reply = { to: Album["kudosEmojiPicks"]; picks: string[] };
+
 type PickerProps = { album: Album; pickKudosEmoji: PickKudosEmoji; Heading?: "h2" | "h3" };
 
 export function KudosEmojiPicker({ album, pickKudosEmoji, Heading = "h2" }: PickerProps) {
   const heading = useId();
-  const [replied, setReplied] = useState<string[] | null>(null);
+  const [replied, setReplied] = useState<Reply | null>(null);
   const [sending, setSending] = useState(false);
-  const [readShown, setReadShown] = useState(album.kudosEmojiPicks);
-  if (readShown !== album.kudosEmojiPicks) {
-    setReadShown(album.kudosEmojiPicks);
-    setReplied(null);
-  }
   const pickable = usableNowOf(album.emojis).filter(({ id }) => id !== firstThankYouEmoji);
   if (!picksKudosEmojis(album) || pickable.length === 0) return null;
-  const picked = new Set((replied ?? album.kudosEmojiPicks ?? []).filter((id) => pickable.some((emoji) => emoji.id === id)));
+  const read = album.kudosEmojiPicks;
+  const current = replied !== null && replied.to === read ? replied.picks : (read ?? []);
+  const picked = new Set(current.filter((id) => pickable.some((emoji) => emoji.id === id)));
   const full = picked.size >= mostKudosEmojiPicks;
   const toggle = async ({ id }: AlbumEmoji) => {
     setSending(true);
     const reply = await pickKudosEmoji(id, !picked.has(id)).catch(() => null);
-    if (reply?.kind === "picked") setReplied(reply.picks);
+    if (reply?.kind === "picked") setReplied({ to: read, picks: reply.picks });
     setSending(false);
   };
   return (

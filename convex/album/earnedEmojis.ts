@@ -27,7 +27,7 @@ export type EarnedEmoji = { id: EarnedEmojiId | RandomEmojiId; kind: EarnedEmoji
 
 export type SharedEmoji = Pick<EarnedEmoji, "id" | "kind" | "name" | "from" | "picture" | "inSlack">;
 
-export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number }; hypesHeld?: HypesHeld };
+export type EmojiCauses = { pages: TeamPage[]; milestones: MilestoneAnswer[]; level: { level: number; xp: number }; hypesHeld?: HypesHeld; picked?: string[] };
 
 export type EarnedEmojis = { emojis: EarnedEmoji[]; more: boolean };
 
@@ -55,7 +55,7 @@ type EarnedCause = Pick<Cause, "id" | "picture">;
 
 export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: EmojiCauses): Promise<EarnedEmojis> {
   const seen = await seenBy(ctx, owner.member);
-  const hype = await hypeCausesOf(ctx, owner, seen, causes.hypesHeld);
+  const hype = await hypeCausesOf(ctx, owner, seen, causes);
   const emojis: EarnedEmoji[] = [];
   for (const cause of [...teamCausesOf(causes.pages), ...hype.causes, ...milestoneCausesOf(causes.milestones), ...levelCausesOf(causes.level, await emojiLevelsOf(ctx, owner.member))]) {
     const name = await emojiNameOf(ctx, owner.workspace, cause.id);
@@ -266,8 +266,8 @@ function levelCausesOf({ level, xp }: EmojiCauses["level"], levels: readonly num
   return levels.map((reward) => ({ id: `level:${reward}`, kind: "level", from: `Level ${reward}`, picture: levelEmojiPictureOf(reward), earned: level >= reward, earnedAt: null, progress: { have: xp, need: xpToReach(reward) } }));
 }
 
-async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>, held: HypesHeld | undefined): Promise<{ causes: Cause[]; more: boolean }> {
-  const people = unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen);
+async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, seen: Set<string>, { hypesHeld: held, picked = [] }: EmojiCauses): Promise<{ causes: Cause[]; more: boolean }> {
+  const people = firstWhere(unseenFirst(await peoplePackedBy(ctx, member, mostPeoplePackedRead), seen), ({ person }) => picked.includes(`hype:${person}`));
   const causes: Cause[] = [];
   for (const { person, firstPackAt } of people.slice(0, mostHypeEmojisShown)) {
     const { name, picture } = await hypeFaceOf(ctx, workspace, person);
@@ -287,8 +287,11 @@ export async function hypeEarnedBy(ctx: QueryCtx, member: MemberId, person: Memb
 }
 
 function unseenFirst(people: PackedPerson[], seen: Set<string>): PackedPerson[] {
-  const isSeen = ({ person }: PackedPerson) => seen.has(`hype:${person}`);
-  return [...people.filter((packed) => !isSeen(packed)), ...people.filter(isSeen)];
+  return firstWhere(people, ({ person }) => !seen.has(`hype:${person}`));
+}
+
+function firstWhere(people: PackedPerson[], first: (packed: PackedPerson) => boolean): PackedPerson[] {
+  return [...people.filter(first), ...people.filter((packed) => !first(packed))];
 }
 
 async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Promise<PackedPerson[]> {

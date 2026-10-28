@@ -148,11 +148,12 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
   const level = await levelOf(ctx, me.member);
   const milestones = await milestonesShownTo(ctx, me, pagesAndPeople.pages, { itemsShown });
-  const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level, ...(waiting !== null && { hypesHeld: hypesHeldFor(waiting) }) });
+  const picks = await kudosEmojiPicksShownOf(ctx, me.member);
+  const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level, ...(waiting !== null && { hypesHeld: hypesHeldFor(waiting) }), picked: picks.kudosEmojiPicks });
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, ...(await kudosEmojiPicksShownOf(ctx, me.member)), sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, ...picks, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)) };
 });
 
 async function kudosEmojiPicksShownOf(ctx: QueryCtx, member: MemberId): Promise<Pick<AlbumAnswer, "kudosEmojiPicks">> {
