@@ -22,7 +22,7 @@ export const earnedEmojiHook: ParseHook = {
 const everyEarnedEmoji = () => true;
 
 async function pickedOrMentioned(ctx: QueryCtx, giver: MemberId, mentions: Mention[]) {
-  const picked = new Set([firstThankYouEmoji, ...(await kudosEmojiPicksOf(ctx, giver))]);
+  const picked = new Set([firstThankYouEmoji, ...(await pickRowsOf(ctx, giver)).map(({ emoji }) => emoji)]);
   const mentioned = mentionedPeopleIn(mentions);
   return async (earned: string) => picked.has(earned) || (await isHypeEmojiOfOneOf(ctx, earned, mentioned));
 }
@@ -39,7 +39,9 @@ async function isHypeEmojiOfOneOf(ctx: QueryCtx, emoji: string, users: Set<strin
 }
 
 export async function kudosEmojiPicksOf(ctx: QueryCtx, member: MemberId): Promise<string[]> {
-  return (await pickRowsOf(ctx, member)).map(({ emoji }) => emoji);
+  const held: string[] = [];
+  for (const { emoji } of await pickRowsOf(ctx, member)) if (await holdsEarnedEmoji(ctx, member, emoji)) held.push(emoji);
+  return held;
 }
 
 export async function pickKudosEmoji(ctx: MutationCtx, member: MemberId, emoji: string, picked: boolean): Promise<KudosEmojiPick> {

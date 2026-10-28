@@ -60,6 +60,20 @@ describe("a member picks up to five earned emojis that count in their kudos mess
     expect((await picksOf(asAlice)).toSorted()).toEqual([...levelEmojis.slice(1), hype].toSorted());
   });
 
+  test("a pick no longer held holds no slot: the album leaves it out, and a fifth pick still fits", async () => {
+    await reachesXp(alice, xpToReach(25));
+    const asAlice = await signedIn(alice);
+    const member = await memberOf(alice);
+    await t.run((ctx) => ctx.db.insert("kudosEmojiPicks", { member, emoji: "team:nowhere" }));
+
+    expect(await picksOf(asAlice)).toEqual([]);
+    for (const level of levelEmojis.slice(0, 4)) await asAlice.mutation(api.website.album.pickKudosEmoji, { emoji: level, picked: true });
+    const fifth = await asAlice.mutation(api.website.album.pickKudosEmoji, { emoji: "level:25", picked: true });
+
+    expect(fifth).toMatchObject({ kind: "picked" });
+    expect((await picksOf(asAlice)).toSorted()).toEqual(levelEmojis.toSorted());
+  });
+
   test.each([
     ["an emoji they haven't earned", "level:25"],
     ["First thank-you, which always counts", "milestone:thoughtful:bronze"],
