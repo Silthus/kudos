@@ -211,7 +211,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: getXpMoment in convex/website/xpMoment.ts
   trust: browser
 
-- mutation endXpMoment: a browser says the signed-in member's XP moment ended, with the last visit and the newest instant the moment read and whether the member skipped it as its arguments
+- mutation endXpMoment: a browser says the signed-in member's XP moment ended, with the last visit and the newest instant the moment read, whether the member skipped it and, optionally, how many excerpts it showed and folded as its arguments, the counts reported as xp moment ended within 0 to 5 and 0 to 50, else counted again from the moment's range
   handler: endXpMoment in convex/website/xpMoment.ts
   trust: browser
 

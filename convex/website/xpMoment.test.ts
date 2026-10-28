@@ -135,7 +135,7 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect((arrived as { lastVisit: number }).lastVisit).toBeGreaterThan(moment.until);
   });
 
-  test("a moment whose newest kudos is taken back in Slack while it plays still ends past it", async () => {
+  test("a moment whose newest kudos is taken back in Slack while it plays still ends past it, counting what it played", async () => {
     const asAlice = await aReturningMember(alice);
     await thanks(bob, alice);
     const newest = await thanks(carol, alice);
@@ -144,8 +144,11 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     await deleteMessage(t, { user: carol.user, ts: newest.ts });
     await settle(t);
 
-    expect(await endOf(asAlice, moment)).toMatchObject({ kind: "arrived", lastVisit: moment.until });
+    expect(await endAsTheWebsiteDoes(asAlice, moment)).toMatchObject({ kind: "arrived", lastVisit: moment.until });
+    await settle(t);
+
     expect(await momentOf(asAlice)).toMatchObject({ kind: "none" });
+    expect(postHog.productEvents().filter(({ event }) => event === "xp moment ended").map(({ properties }) => properties)).toEqual([expect.objectContaining({ excerpts_shown: moment.excerpts.length, folded: 0 })]);
   });
 
   test("a level crossed is always among the excerpts, however many newer kudos came in", async () => {
@@ -994,6 +997,10 @@ async function theMomentOf(reader: Reader): Promise<XpMoment> {
 
 function endOf(reader: Reader, { since, until }: Pick<XpMoment, "since" | "until">, { skipped = false } = {}): Promise<XpMomentEndReply | Denial> {
   return reader.mutation(api.website.xpMoment.endXpMoment, { from: since, until, skipped });
+}
+
+function endAsTheWebsiteDoes(reader: Reader, moment: XpMoment): Promise<XpMomentEndReply | Denial> {
+  return reader.mutation(api.website.xpMoment.endXpMoment, { from: moment.since, until: moment.until, skipped: false, played: { shown: moment.excerpts.length, folded: moment.fold?.count ?? 0 } });
 }
 
 async function albumOf(reader: Reader): Promise<AlbumAnswer> {
