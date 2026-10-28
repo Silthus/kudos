@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstAwardsGivenAfter, givenBetween, type DatedAward } from "../engine/awards";
+import { earliestAwardFrom, firstAwardsGivenAfter, givenBetween, messagesGivenDecidedAfter, type AwardId, type DatedAward } from "../engine/awards";
 import { replyIsHeld } from "../feedback/heldReplies";
 import { saysWhy } from "../progression/gate";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
@@ -71,8 +71,14 @@ export async function twoDaysMovedSince(ctx: QueryCtx, member: MemberId, since: 
   const start = await questStartOf(ctx, member);
   if (start === null || (await finishOf(ctx, member, "two-days")) !== null) return [];
   const sayingWhy = await sayingWhyBetween(ctx, member, start, Infinity);
-  const from = daysAmong(sayingWhy.filter(({ decided }) => decided <= since));
-  const to = daysAmong(sayingWhy.filter(({ decided }) => decided <= until));
+  const decidedSince = await messagesGivenDecidedAfter(ctx, member, since);
+  const decidedAfter = (instant: number) => new Set<AwardId>(decidedSince.filter(({ created }) => created > instant).flatMap(({ awards }) => awards.map(({ award }) => award)));
+  const decidedBy = (instant: number) => {
+    const later = decidedAfter(instant);
+    return sayingWhy.filter(({ award }) => !later.has(award));
+  };
+  const from = daysAmong(decidedBy(since));
+  const to = daysAmong(decidedBy(until));
   return from < to && to < daysSayingWhyToFinishTwoDays ? [{ name: onboardingGoalOf("two-days"), from, to, of: daysSayingWhyToFinishTwoDays }] : [];
 }
 

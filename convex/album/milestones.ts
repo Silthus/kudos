@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyMatchesKeptEventValidator, hoggieDroppedEventValidator } from "../bus/events";
 import { collectionOf } from "../hoggies/collection";
-import { givenDecidedAfter } from "../engine/awards";
+import { messagesGivenDecidedAfter } from "../engine/awards";
 import { earnTierItem } from "../items/achievements";
 import { saysWhy } from "../progression/gate";
 import type { Moved } from "../quests/progress";
@@ -111,9 +111,10 @@ export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
 }
 
 export async function thoughtfulMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
-  const givenSince = (await givenDecidedAfter(ctx, member, since)).filter(({ annotations }) => saysWhy(annotations));
-  const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - givenSince.length, 0);
-  const to = from + givenSince.filter(({ decided }) => decided <= until).length;
+  const thoughtfulSince = (await messagesGivenDecidedAfter(ctx, member, since)).filter(({ annotations }) => saysWhy(annotations));
+  const awardsOf = (messages: typeof thoughtfulSince) => messages.reduce((sum, { awards }) => sum + awards.length, 0);
+  const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - awardsOf(thoughtfulSince), 0);
+  const to = from + awardsOf(thoughtfulSince.filter(({ created }) => created <= until));
   const next = milestoneCatalogue.milestones.find(({ id }) => id === "thoughtful")!.steps.find((step) => step.at > from);
   return next === undefined || to === from ? [] : [{ name: next.name, from, to: Math.min(to, next.at), of: next.at }];
 }

@@ -25,7 +25,7 @@ export type GivenMessagesPage = { messages: GivenMessage[]; cursor: string; isDo
 
 type AwardRow = Doc<"awards">;
 
-export type DatedAward = { award: AwardId; day: DayKey; at: number; created: number; decided: number; annotations: Annotations };
+export type DatedAward = { award: AwardId; day: DayKey; at: number; created: number; annotations: Annotations };
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -291,28 +291,7 @@ export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number
     })
     .collect();
   const between = awards.filter(({ at }) => at >= since && at <= until).sort((one, other) => one.at - other.at);
-  const decided = decidedByMessage(between);
-  return (await withStoredAnnotations(ctx, between)).map(({ award, annotations }) => ({ award: award._id, day: award.day, at: award.at, created: award._creationTime, decided: decided.get(messageKey(award))!, annotations }));
-}
-
-export async function givenDecidedAfter(ctx: QueryCtx, giver: MemberId, after: number): Promise<DatedAward[]> {
-  return (await givenBetween(ctx, giver, after - dayMs, Infinity)).filter(({ decided }) => decided > after);
-}
-
-export async function decidedOf(ctx: QueryCtx, award: AwardId): Promise<number | null> {
-  const row = await ctx.db.get(award);
-  if (row === null) return null;
-  const first = await ctx.db
-    .query("awards")
-    .withIndex("by_message", (q) => q.eq("workspace", row.workspace).eq("conversation", row.conversation).eq("message", row.message))
-    .first();
-  return first?._creationTime ?? row._creationTime;
-}
-
-function decidedByMessage(awards: AwardRow[]): Map<string, number> {
-  const decided = new Map<string, number>();
-  for (const award of awards) decided.set(messageKey(award), Math.min(decided.get(messageKey(award)) ?? Infinity, award._creationTime));
-  return decided;
+  return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at, _creationTime }, annotations }) => ({ award: _id, day, at, created: _creationTime, annotations }));
 }
 
 function earliestDayAt(at: number): DayKey {
@@ -528,6 +507,14 @@ export async function* awardsReceivedByDecision(ctx: QueryCtx, recipient: Member
     .withIndex("by_recipient_decided", (q) => decidedBelow(q.eq("recipient", recipient), below))
     .order("desc");
   for await (const row of rows) yield receivedAwardOf(row);
+}
+
+export type AnnotatedGivenMessage = GivenMessageAwards & { annotations: Annotations };
+
+export async function messagesGivenDecidedAfter(ctx: QueryCtx, giver: MemberId, after: number): Promise<AnnotatedGivenMessage[]> {
+  const given: AnnotatedGivenMessage[] = [];
+  for await (const message of messagesGivenByDecision(ctx, giver, { ...fromTheNewestDecided, above: after })) given.push({ ...message, annotations: await storedAnnotationsOf(ctx, message.message) });
+  return given;
 }
 
 export function messagesGivenByDecision(ctx: QueryCtx, giver: MemberId, below: DecidedBelow): AsyncGenerator<GivenMessageAwards> {

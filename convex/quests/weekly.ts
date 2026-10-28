@@ -4,7 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
-import { awardIdValidator, decidedOf, lastThankedBefore, lastThankedSince } from "../engine/awards";
+import { awardIdValidator, firstDecidedOf, lastThankedBefore, lastThankedSince, type AwardId } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
@@ -140,7 +140,7 @@ export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, si
   const draw = await thisWeeksDrawOf(ctx, member, until);
   if (draw === null || !isMondayDraw(draw)) return [];
   const moved: Moved[] = [];
-  for (const slot of slotsOf(draw, await swapOf(ctx, member, draw.week))) {
+  for (const slot of draw.slots) {
     const pooled = questOf(slot.quest);
     const counted = await withDecided(ctx, await countedFor(ctx, member, draw.week, slot));
     const from = questProgress(pooled, counted.filter(({ decided }) => decided <= since));
@@ -304,6 +304,11 @@ async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot
 
 async function withDecided(ctx: QueryCtx, counted: Doc<"questProgress">[]): Promise<Array<Doc<"questProgress"> & { decided: number }>> {
   return Promise.all(counted.map(async (row) => ({ ...row, decided: (await decidedOf(ctx, row.award)) ?? row.at })));
+}
+
+async function decidedOf(ctx: QueryCtx, award: AwardId): Promise<number | null> {
+  const row = await ctx.db.get(award);
+  return row === null ? null : firstDecidedOf(ctx, row);
 }
 
 function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {
