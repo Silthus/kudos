@@ -527,6 +527,7 @@ export async function messagesGivenDecidedAfter(ctx: QueryCtx, giver: MemberId, 
   const given: AnnotatedGivenMessage[] = [];
   let awards = 0;
   for await (const message of messagesGivenByDecision(ctx, giver, { ...fromTheNewestDecided, above: after })) {
+    if (((await firstDecidedOf(ctx, message.message)) ?? message.created) <= after) continue;
     awards += message.awards.length;
     if (awards > mostAwards) return null;
     given.push({ ...message, annotations: await storedAnnotationsOf(ctx, message.message) });

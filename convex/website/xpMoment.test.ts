@@ -821,6 +821,22 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect(progressed.map(({ name }) => name)).not.toContain(moved.goal.replace(/\.$/, ""));
   });
 
+  test("a kudos to two teammates that ends a moment without a level moves the milestone once, and the next moment moves on from it", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, bob, carol);
+    const first = await theMomentOf(asAlice);
+    expect(first.progressed, "the first moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 3, to: 5, of: 25 }]);
+    await endOf(asAlice, first);
+
+    await thanks(alice, bob);
+
+    expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 5, to: 6, of: 25 }]);
+  });
+
   test("while progress-beats is off the moment answers no progress", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment);
     await thanks(alice, bob);
