@@ -61,7 +61,7 @@ export async function earnedEmojisOf(ctx: QueryCtx, owner: PageOwner, causes: Em
     const name = await emojiNameOf(ctx, owner.workspace, cause.id);
     if (name !== null) emojis.push(await emojiOf(ctx, owner.workspace, cause, name, seen));
   }
-  for (const { id, name, image, from, at } of await randomEmojisHeldBy(ctx, owner.workspace, owner.member)) emojis.push({ id, kind: "random", name, from: await nameOrUnnamed(ctx, from), picture: image, earned: true, earnedAt: at, seen: seen.has(id), inSlack: true, progress: null });
+  for (const { id, name, image, from, at } of await randomEmojisHeldBy(ctx, owner.workspace, owner.member, causes.picked)) emojis.push({ id, kind: "random", name, from: await nameOrUnnamed(ctx, from), picture: image, earned: true, earnedAt: at, seen: seen.has(id), inSlack: true, progress: null });
   return { emojis, more: hype.more };
 }
 
