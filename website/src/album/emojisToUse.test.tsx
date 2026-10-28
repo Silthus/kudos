@@ -178,6 +178,14 @@ describe("the emoji popup leads with the earned emojis the member picks to count
     expect(useNow.getAllByRole("listitem")[0]).toHaveTextContent(":hedgehog:Your kudos emoji · works from the start");
   });
 
+  it("with no earned emoji left to pick but a pick the album no longer lists, the section stays so it can be unpicked", async () => {
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(async () => ({ kind: "picked", picks: [] }));
+    const popup = await openTheEmojis(visit({ album: { ...newcomer, kudosEmojiPicks: ["random:gone-parrot"] }, pickKudosEmoji }));
+
+    expect(popup.getByRole("region", { name: /^Count in kudos/ })).toHaveAccessibleName("Count in kudos · 1 of 5");
+    expect(pressedIn(picksIn(popup))).toEqual([":gone-parrot: true"]);
+  });
+
   it("with no earned emoji to pick, the section is gone", async () => {
     const popup = await openTheEmojis(visit({ album: newcomer }));
 

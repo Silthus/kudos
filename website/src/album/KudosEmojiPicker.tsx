@@ -13,10 +13,11 @@ export function KudosEmojiPicker({ album, pickKudosEmoji, Heading = "h2" }: Pick
   const [replied, setReplied] = useState<Reply | null>(null);
   const [sending, setSending] = useState(false);
   const pickable = usableNowOf(album.emojis).filter(({ id }) => id !== firstThankYouEmoji);
-  if (!picksKudosEmojis(album) || pickable.length === 0) return null;
+  if (!picksKudosEmojis(album)) return null;
   const read = album.kudosEmojiPicks;
   const picked = new Set(replied !== null && replied.to === read ? replied.picks : (read ?? []));
   const unlisted = [...picked].filter((id) => !pickable.some((emoji) => emoji.id === id));
+  if (pickable.length === 0 && unlisted.length === 0) return null;
   const full = picked.size >= mostKudosEmojiPicks;
   const toggle = async (id: string) => {
     setSending(true);
