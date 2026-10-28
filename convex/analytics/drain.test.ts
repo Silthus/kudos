@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
-import { FakePostHog, answersWith, failsToConnect, neverAnswers, postHogHost, projectToken, stallsUntilReleased, type BatchRequest } from "../../testing/fakePostHog";
+import { FakePostHog, answersAMomentLater, answersWith, failsToConnect, neverAnswers, postHogHost, projectToken, stallsUntilReleased, type BatchRequest } from "../../testing/fakePostHog";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
@@ -67,6 +67,17 @@ describe("O16: the drain", () => {
     expect(await outbox(t)).toEqual([]);
   });
 
+  test("settle lets no time pass while the drain waits for PostHog, so a batch answered a moment later is sent once", async () => {
+    const t = testBackend();
+    postHog.answering(answersAMomentLater);
+
+    await recordKudosGiven(t);
+    await settle(t);
+
+    expect(postHog.requests).toHaveLength(1);
+    expect(await outbox(t)).toEqual([]);
+  });
+
   test("a fact recorded after the drain finished starts a new drain", async () => {
     const t = testBackend();
     await recordKudosGiven(t);
@@ -119,7 +130,7 @@ describe("O18: a batch PostHog doesn't accept is retried", () => {
     await recordKudosGiven(t);
     const recorded = await outbox(t);
 
-    await settle(t);
+    await settleInTimeOrder(t, { whileFunctionsRun: true });
 
     const identities = postHog.requests.map((request) => request.events.map(identity));
     expect(identities).toHaveLength(6);
