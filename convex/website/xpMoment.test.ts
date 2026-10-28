@@ -724,6 +724,21 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 2, to: 3, of: 25 }]);
   });
 
+  test("a thoughtful kudos whose tally never runs moves the milestone in no moment, once the moment stops waiting on it", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    await thanksWhileHeldBack(tallying, alice, carol);
+    vi.setSystemTime(Date.now() + 11 * minuteMs);
+
+    const first = await theMomentOf(asAlice);
+    expect(first.progressed, "the moment that plays the untallied kudos").toEqual([]);
+    await endOf(asAlice, first);
+    await thanks(alice, bob);
+
+    expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
+  });
+
   test("the two-days quest moves by the kudos the moment plays while a later kudos that finishes it waits on its XP", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
     const member = await memberOf(alice);

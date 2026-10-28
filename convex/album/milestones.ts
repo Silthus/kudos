@@ -112,17 +112,17 @@ export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
 }
 
 export async function thoughtfulMovedSince(ctx: QueryCtx, member: MemberId, since: number, until: number): Promise<Moved[]> {
-  const thoughtfulSince = (await messagesGivenDecidedAfter(ctx, member, since)).filter(({ annotations }) => saysWhy(annotations));
-  const awardsOf = (messages: typeof thoughtfulSince) => messages.reduce((sum, { awards }) => sum + awards.length, 0);
-  const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - (await talliedAmong(ctx, thoughtfulSince)), 0);
-  const to = from + awardsOf(thoughtfulSince.filter(({ created }) => created <= until));
+  const talliedSince = await talliedAwardsIn(ctx, (await messagesGivenDecidedAfter(ctx, member, since)).filter(({ annotations }) => saysWhy(annotations)));
+  const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - talliedSince.length, 0);
+  const to = from + talliedSince.filter(({ created }) => created <= until).length;
   const next = milestoneCatalogue.milestones.find(({ id }) => id === "thoughtful")!.steps.find((step) => step.at > from);
   return next === undefined || to === from ? [] : [{ name: next.name, from, to: Math.min(to, next.at), of: next.at }];
 }
 
-async function talliedAmong(ctx: QueryCtx, messages: AnnotatedGivenMessage[]): Promise<number> {
-  const tallied = await Promise.all(messages.flatMap(({ awards }) => awards.map(({ award }) => talliedAwardOf(ctx, award))));
-  return tallied.filter((marker) => marker !== null).length;
+async function talliedAwardsIn(ctx: QueryCtx, messages: AnnotatedGivenMessage[]): Promise<{ created: number }[]> {
+  const awards = messages.flatMap(({ created, awards }) => awards.map(({ award }) => ({ award, created })));
+  const tallied = await Promise.all(awards.map(async (given) => ((await talliedAwardOf(ctx, given.award)) === null ? [] : [given])));
+  return tallied.flat();
 }
 
 async function countsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>): Promise<Counts> {
