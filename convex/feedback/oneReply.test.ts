@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, type SlackArgs } from "../../testing/fakeSlack";
 import { post, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { signedRequest } from "../../testing/signedSlack";
+import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
+import { emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, switchWebsite } from "../../testing/website";
 import type { KudosGivenEvent } from "../bus/events";
 import { publish, subscribers } from "../bus/publish";
@@ -17,6 +19,7 @@ vi.mock("../bus/publish", async (importOriginal) => {
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
+const dayMs = 24 * 60 * minuteMs;
 const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
@@ -175,6 +178,65 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(blockTextsOf(direct[0]!), "the direct message").toContain("🎁 *An item for thanking Carol*");
   });
 
+  test("after onboarding, a kudos shows each drawn quest it moved with its bar, and the next one shows the quest it finished with its reward", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    await finishOnboarding();
+
+    await thanks(alice, saysWhy, carol);
+    await thanks(alice, saysWhy, bob);
+
+    const [moved, finished] = messagesTo(alice).slice(-2);
+    expect(checklistOf(moved!), "the quests the first kudos moved").toEqual([
+      ":point_right: Thank someone and say why, 3 times  🟩⬜⬜ 1 of 3 kudos",
+      ":point_right: Thank someone and say why on 2 different days  🟩⬜ 1 of 2 days",
+      ":point_right: Thank someone and say why, 2 times  🟩⬜ 1 of 2 kudos",
+    ]);
+    expect(checklistOf(finished!), "the quests the next kudos finished and moved").toEqual([
+      ":white_check_mark: Thank someone and say why, 2 times  +20 XP and an unidentified Hoggie",
+      ":point_right: Thank someone and say why, 3 times  🟩🟩⬜ 2 of 3 kudos",
+    ]);
+  });
+
+  test("a recipient's name adds no markup to the reply", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    const dee = { user: "U_DEE", name: "<!here|everyone> Dee" };
+    slack.withMember(dee.user, { real_name: dee.name });
+
+    await thanks(alice, saysWhy, dee);
+
+    expect(blockTextsOf(messagesTo(alice)[0]!), "the one message").toContain("🎁 *An item for thanking &lt;!here|everyone&gt;*");
+  });
+
+  test("a kudos that skips more mentions than Slack shows in one line still gets its reply, cut short", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    const groups = Array.from({ length: 150 }, (_, index) => userGroup(`S${String(index).padStart(10, "0")}`));
+
+    await post(t, [section(text("thanks "), mention(bob.user), text(" "), ...groups.flatMap((group) => [group, text(" ")]), emoji("taco"))], { user: alice.user, ts: "1760349600.000001" });
+    await settleInTimeOrder(t);
+
+    const [context] = contextsOf(messagesTo(alice)[0]!);
+    expect(context, "the context's start").toMatch(/^2 kudos left today\nI skipped <!subteam\^S0000000000>, /);
+    expect(context?.length, "the context's length").toBe(3_000);
+    expect(context?.endsWith("…"), "the context ends cut short").toBe(true);
+  });
+
+  test("each button pressed in the reply records its destination", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    await thanks(alice, saysWhy, bob);
+    await press(alice, "Identify them on the website");
+    await press(alice, "See your quests");
+    await switchWebsite(t, postHog, true, ...mondayPath.filter((flag) => flag !== "hidden-items"), oneReply);
+    await thanks(alice, "thanks", carol);
+
+    await press(alice, "See your progress");
+
+    expect(linkClicks()).toEqual([
+      { kind: "kudos-reply", destination: "book" },
+      { kind: "kudos-reply", destination: "quests" },
+      { kind: "kudos-reply", destination: "home" },
+    ]);
+  });
+
   test("with one-reply off, the giver gets today's text reply and the album reply apart", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
 
@@ -249,6 +311,36 @@ function contextsOf(message: SlackArgs): string[] {
     .filter(({ type }) => type === "context")
     .slice(0, -1)
     .map(({ elements }) => elements?.map(({ text }) => text).join("") ?? "");
+}
+
+async function finishOnboarding() {
+  await thanks(alice, saysWhy, bob);
+  await thanks(alice, "thanks", carol);
+  vi.setSystemTime(Date.now() + dayMs);
+  await thanks(alice, saysWhy, bob);
+}
+
+function checklistOf(message: SlackArgs): string[] {
+  const blocks = (message.blocks ?? []) as ChecklistBlock[];
+  const sections = blocks.filter(({ type }) => type === "rich_text").flatMap(({ elements }) => elements?.flatMap((list) => list.elements ?? []) ?? []);
+  return sections.map(({ elements }) => (elements ?? []).map((element) => (element.type === "emoji" ? `:${element.name}:` : element.text)).join(""));
+}
+
+type ChecklistBlock = { type: string; elements?: Array<{ elements?: Array<{ elements?: Array<{ type: string; name?: string; text?: string }> }> }> };
+
+async function press(person: Person, label: string) {
+  const reply = messagesTo(person).at(-1)!;
+  const click = blockActions(person.user, buttonIn(reply.blocks as Block[], label), { inMessage: { channel: String(reply.channel), ts: "", ephemeral: true } });
+  const response = await t.fetch("/slack/interactivity", await signedRequest(click, { contentType: "application/x-www-form-urlencoded" }));
+  expect(response.status, "Slack's acknowledgement").toBe(200);
+  await settleUpTo(t, Date.now() + minuteMs);
+}
+
+function linkClicks() {
+  return postHog
+    .productEvents()
+    .filter(({ event }) => event === "dm link clicked")
+    .map(({ properties: { kind, destination } }) => ({ kind, destination }));
 }
 
 async function memberOf(person: Person): Promise<MemberId> {

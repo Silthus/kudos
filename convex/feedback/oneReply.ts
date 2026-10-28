@@ -35,9 +35,11 @@ export type QuestFinished = { goal: string; reward: string };
 
 export type OneReplyButton = { label: string; url: string; destination: keyof ReplyLinks; primary: boolean };
 
-export type OneReply = { headline: Line; gains: Line | null; context: Line[]; quests: ChecklistItem[]; items: string[]; buttons: OneReplyButton[] };
+export type OneReplyItem = { first: string; comesNextWeek: boolean };
 
-export type OneReplyFacts = Omit<OneReply, "quests" | "items" | "buttons"> & { questsDone: QuestFinished[]; questsMoved: MovedQuest[]; items: RepliedItems | null };
+export type OneReply = { headline: Line; gains: Line | null; context: Line[]; quests: ChecklistItem[]; items: OneReplyItem[]; moreItems: number; buttons: OneReplyButton[] };
+
+export type OneReplyFacts = Omit<OneReply, "quests" | "items" | "moreItems" | "buttons"> & { questsDone: QuestFinished[]; questsMoved: MovedQuest[]; items: RepliedItems | null };
 
 const filled = "🟩";
 const empty = "⬜";
@@ -67,7 +69,7 @@ export async function oneReplyOf(ctx: QueryCtx, workspace: string, member: Membe
   const quests = [...questsDone.map(finishedItemOf), ...questsMoved.map(movedItemOf)];
   const waiting = (await hiddenItemsShownTo(ctx, member)) ? await waitingCountOf(ctx, member) : 0;
   const links = await replyLinksFor(ctx, workspace, member);
-  return { ...facts, quests, items: items === null ? [] : await itemLinesOf(ctx, items), buttons: links === null ? [] : buttonsOf(links, waiting, quests.length > 0) };
+  return { ...facts, quests, items: items === null ? [] : await itemsOf(ctx, items), moreItems: items?.more ?? 0, buttons: links === null ? [] : buttonsOf(links, waiting, quests.length > 0) };
 }
 
 function finishedItemOf({ goal, reward }: QuestFinished): ChecklistItem {
@@ -78,13 +80,10 @@ function movedItemOf({ goal, progress: { done, of, unit } }: MovedQuest): Checkl
   return { goal, mark: "next", progress: `${filled.repeat(done)}${empty.repeat(Math.max(of - done, 0))} ${done} of ${of} ${unit}` };
 }
 
-async function itemLinesOf(ctx: QueryCtx, { outcomes, more }: RepliedItems): Promise<string[]> {
-  const lines: string[] = [];
-  for (const { recipient, outcome } of outcomes) {
-    const first = await firstNameOf(ctx, recipient);
-    lines.push(outcome === "nextWeek" ? `🎁 Your next item for ${first} comes next week` : `🎁 *An item for thanking ${first}*`);
-  }
-  return more > 0 ? [...lines, `And ${more} more.`] : lines;
+async function itemsOf(ctx: QueryCtx, { outcomes }: RepliedItems): Promise<OneReplyItem[]> {
+  const items: OneReplyItem[] = [];
+  for (const { recipient, outcome } of outcomes) items.push({ first: await firstNameOf(ctx, recipient), comesNextWeek: outcome === "nextWeek" });
+  return items;
 }
 
 function buttonsOf(links: ReplyLinks, waiting: WaitingCount, showsQuests: boolean): OneReplyButton[] {
