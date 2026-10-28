@@ -6,6 +6,7 @@ import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf, rewardWaits } from "./crates";
 import { mondayPathShownTo, onTheMondayPath, questsApplyTo, questsShownTo } from "./flag";
 import { saysWhy } from "../progression/gate";
+import { judgeQuestsOf } from "./judged";
 import type { MovedQuest } from "./progress";
 import { advanceOnboarding, onboardingMovedBy } from "./onboarding";
 import { questStartOf, startQuests } from "./start";
@@ -27,6 +28,7 @@ export const followKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }) => {
     const { done, moved } = await questsMovedBy(ctx, event);
+    await judgeQuestsOf(ctx, event.awards);
     await releaseSuccessReply(ctx, event.message, done, moved);
   },
 });

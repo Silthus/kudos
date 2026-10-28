@@ -59,6 +59,7 @@ const momentOfWhatWaited: XpMoment = {
   moments: 1,
   xp: 5,
   climb: { from: { level, xp: xp - 5, startsAt, nextAt }, to: { level, xp, startsAt, nextAt } },
+  quests: [],
   waiting: 0,
   thoughtfulGivers: null,
   timeZone: "UTC",
