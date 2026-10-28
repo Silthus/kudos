@@ -72,7 +72,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
       {
         channel: "C1",
         user: alice.user,
-        text: "<@U_BOB> got 1 kudos from you · +10 XP",
+        text: "<@U_BOB> got 1 kudos from you · +10 XP\n2 kudos left today\nDone: Thank someone and say why · +50 XP and an unidentified Hoggie\nSay why on 2 different days · 🟩⬜ 1 of 2 days\n🎁 *An item for thanking Bob*",
         blocks: [
           { type: "section", text: { type: "mrkdwn", text: "*<@U_BOB> got 1 kudos from you* · +10 XP" } },
           { type: "context", elements: [{ type: "mrkdwn", text: "2 kudos left today" }] },
@@ -174,7 +174,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     await thanks(alice, saysWhy, carol);
 
     const direct = directRepliesTo(alice);
-    expect(direct.map(({ text }) => text), "the direct messages Alice got").toEqual(["<@U_CAROL> got 1 kudos from you · +10 XP"]);
+    expect(direct.map(({ text }) => String(text).split("\n")[0]), "the direct messages Alice got").toEqual(["<@U_CAROL> got 1 kudos from you · +10 XP"]);
     expect(blockTextsOf(direct[0]!), "the direct message").toContain("🎁 *An item for thanking Carol*");
   });
 

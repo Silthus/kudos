@@ -3,6 +3,7 @@ import type { Line } from "../feedback/segments";
 import type { SettingsFooter } from "../feedback/settingsFooter";
 import { settingsFooterText } from "./appHomeLinks";
 import { escaped, mrkdwn, shortened, urlButtonOf } from "./blocks";
+import type { ChecklistItem } from "../mondayDm/questsCopy";
 import { checklistBlockOf } from "./checklist";
 import { slackTextOf } from "./delivery";
 
@@ -12,7 +13,7 @@ export function oneReplyContentOf(workspace: string, { headline, gains, context,
   const said = slackTextOf([headline]);
   const gained = gains === null ? "" : ` · ${slackTextOf([gains])}`;
   return {
-    text: `${said}${gained}`,
+    text: [`${said}${gained}`, slackTextOf(context), ...quests.map(questTextOf), ...itemLinesOf(items, moreItems)].filter((line) => line !== "").join("\n"),
     blocks: [
       { type: "section", text: mrkdwn(`*${said}*${gained}`) },
       contextOf(context),
@@ -26,6 +27,10 @@ export function oneReplyContentOf(workspace: string, { headline, gains, context,
 
 function contextOf(lines: Line[]) {
   return { type: "context", elements: [mrkdwn(shortened(slackTextOf(lines), longestText))] };
+}
+
+function questTextOf({ goal, mark, progress }: ChecklistItem) {
+  return `${mark === "done" ? "Done: " : ""}${goal}${progress === null ? "" : ` · ${progress}`}`;
 }
 
 function itemLinesOf(items: OneReplyItem[], moreItems: number) {
