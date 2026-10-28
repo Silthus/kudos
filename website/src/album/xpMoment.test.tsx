@@ -36,6 +36,7 @@ const busyReturn: XpMoment = {
   moments: 16,
   xp: 178,
   climb: { from: { level: 6, xp: 1462, startsAt: 1000, nextAt: 1500 }, to: { level: 7, xp: 1640, startsAt: 1500, nextAt: 2100 } },
+  quests: [],
   waiting: 3,
   thoughtfulGivers: 4,
   timeZone: "UTC",
@@ -922,5 +923,131 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     expect(pill.closest("header")).toBeNull();
     await act(async () => fireEvent.click(pill));
     expect(theItemBoard()).toBeInTheDocument();
+  });
+});
+
+const saidWhy = { kind: "journey", goal: "Give a kudos that says why.", xp: 50, waiting: false } as const;
+
+const twoNew = { kind: "weekly", goal: "Thank 2 people you haven't thanked before.", xp: 20, waiting: false } as const;
+
+const twoQuestsDone: XpMoment = { ...busyReturn, quests: [saidWhy, twoNew], climb: { from: standingAt(1392), to: busyReturn.climb.to } };
+
+const questsStart = collectedAndStreamed;
+
+const firstBurst = questsStart + 1.4;
+
+const firstReward = firstBurst + 0.6 + 0.7;
+
+const secondStart = firstReward + 1.1;
+
+const secondBurst = secondStart + 0.7;
+
+const secondReward = secondBurst + 0.6 + 0.7;
+
+const questsLanded = secondReward + 1.1;
+
+function theQuest() {
+  return theCanvas() === null ? null : within(theCanvas()!).queryByRole("article", { name: /quest/i });
+}
+
+async function finishQuests(visit: Visit = {}) {
+  const view = await returnTo({ moment: twoQuestsDone, album: withLevelSevenItems, ...visit });
+  await collectAt(arrivedAndRead);
+  return view;
+}
+
+describe("LP104: each quest finished since the last visit gets its own beat", { timeout: 30_000 }, () => {
+  it("after the excerpts' XP fills the bar, a sealed quest charges up giving nothing away, then bursts open with Quest complete, its goal and its bonus XP", async () => {
+    await finishQuests();
+
+    await at(questsStart - 0.1);
+    expect(theQuest()).toBeNull();
+    await at(questsStart + 0.02);
+    expect(xpWords(), "the excerpts' XP landed").toBe("530 XP to level 8");
+    expect(theTakeover()).toBeNull();
+    expect(theQuest()).toHaveAccessibleName("A quest finished");
+    expect(theQuest()).toHaveAttribute("data-stage", "charge");
+    expect(theQuest()).not.toHaveTextContent(/says why|XP/);
+    await at(firstBurst - 0.05);
+    expect(theQuest()).toHaveAttribute("data-stage", "charge");
+    await at(firstBurst + 0.06);
+    expect(theQuest()).toHaveAccessibleName("Quest complete: Give a kudos that says why.");
+    expect(theQuest()).toHaveTextContent("+50 XP");
+    expect(xpWords(), "nothing streamed yet").toBe("530 XP to level 8");
+  });
+
+  it("streams its bonus XP into the bar on its own, then the hoggie it earned comes out of it face down, and the next quest follows quickly", async () => {
+    await finishQuests();
+
+    await at(firstBurst + 0.6 + 0.4);
+    expect(xpWords(), "halfway through the quest's stream").toBe("505 XP to level 8");
+    await at(firstReward + 0.06);
+    expect(xpWords()).toBe("480 XP to level 8");
+    expect(theQuest()).toHaveAttribute("data-stage", "reward");
+    expect(within(theQuest()!).getByText("An unidentified hoggie")).toBeInTheDocument();
+    expect(theQuest()!.querySelector(".ib-back")).not.toBeNull();
+
+    await at(secondStart + 0.06);
+    expect(theQuest()).toHaveAccessibleName("A quest finished");
+    await at(secondBurst + 0.06);
+    expect(theQuest()).toHaveAccessibleName("Quest complete: Thank 2 people you haven't thanked before.");
+    await at(secondReward + 0.06);
+    expect(xpWords()).toBe("460 XP to level 8");
+  });
+
+  it("after the last quest the level-up takeover plays", async () => {
+    await finishQuests();
+
+    await at(questsLanded - 0.1);
+    expect(theTakeover()).toBeNull();
+    await at(questsLanded + 0.06);
+    expect(theQuest()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+  });
+
+  it("a quest whose reward waits in its crate streams no XP and says its reward waits there", async () => {
+    await returnTo({ moment: { ...busyReturn, quests: [{ ...twoNew, waiting: true }] }, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(firstReward + 0.06);
+    expect(theQuest()).toHaveTextContent("+20 XP");
+    expect(within(theQuest()!).getByText("Its reward waits in your crate")).toBeInTheDocument();
+    expect(theQuest()!.querySelector(".ib-back")).toBeNull();
+    expect(xpWords()).toBe("460 XP to level 8");
+  });
+
+  it("Skip and Esc land every quest's XP at once, end the moment as skipped and list the quests under the summary", async () => {
+    for (const land of [() => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })), () => fireEvent.keyDown(window, { key: "Escape" })]) {
+      const { actions, unmount } = await finishQuests();
+      await at(firstBurst + 0.06);
+
+      await act(async () => land());
+
+      expect(theCanvas()).toBeNull();
+      expect(xpWords()).toBe("460 XP to level 8");
+      expect(within(theItemBoard()!).getAllByRole("listitem", { name: /^Quest complete/ }).map((quest) => quest.textContent)).toEqual(["Quest complete: Give a kudos that says why.+50 XP", "Quest complete: Thank 2 people you haven't thanked before.+20 XP"]);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it("reduced motion shows the end state at once with each quest listed under the summary and no beat", async () => {
+    preferReducedMotion();
+    await returnTo({ moment: { ...twoQuestsDone, quests: [saidWhy, { ...twoNew, waiting: true }] } });
+
+    expect(theCanvas()).toBeNull();
+    expect(within(theItemBoard()!).getAllByRole("listitem", { name: /^Quest complete/ }).map((quest) => quest.textContent)).toEqual(["Quest complete: Give a kudos that says why.+50 XP", "Quest complete: Thank 2 people you haven't thanked before.+20 XP waits in your crate"]);
+  });
+
+  it("with no quest finished the summary lists none and the takeover follows the bar as before", async () => {
+    await returnTo({ album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(collectedAndStreamed + 0.02);
+    expect(theQuest()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+    await act(async () => fireEvent.click(theTakeover()!));
+    expect(within(theItemBoard()!).queryAllByRole("listitem", { name: /^Quest complete/ })).toEqual([]);
   });
 });

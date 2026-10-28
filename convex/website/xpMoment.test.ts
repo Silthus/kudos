@@ -486,6 +486,49 @@ describe("LP72: the XP moment carries the first-thanks top-up", { timeout: 60_00
   });
 });
 
+describe("LP104: a quest finished since the last visit gets its own beat", { timeout: 60_000 }, () => {
+  const onTheMondayPath = [...everyFlagOfTheMoment, "monday-quest"];
+
+  test("answers each quest finished since the last visit, oldest first, and climbs from before its XP, counting it once", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "quest-beats");
+    const asAlice = await aReturningMember(alice);
+
+    await thanks(alice, carol);
+    await thanks(alice, bob);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.quests, "the quests finished").toEqual([
+      { kind: "journey", goal: "Give a kudos that says why.", xp: 50, waiting: false },
+      { kind: "journey", goal: "Thank someone you haven't thanked before.", xp: 50, waiting: false },
+    ]);
+    expect(moment.climb.to, "the climb's end").toEqual((await albumOf(asAlice)).level);
+    expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp + 100);
+  });
+
+  test("a quest finished by a kudos folded out of the excerpts still gets its beat", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "quest-beats");
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, carol);
+
+    for (let kudos = 0; kudos < 6; kudos += 1) await thanks(kudos % 2 === 0 ? bob : carol, alice);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.excerpts.map(({ entry }) => entry.kind), "the excerpts").not.toContain("kudosGiven");
+    expect(moment.quests.map(({ goal }) => goal), "the quests finished").toEqual(["Give a kudos that says why."]);
+  });
+
+  test("while quest-beats is off the moment answers no quest and climbs as before", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath);
+    const asAlice = await aReturningMember(alice);
+
+    await thanks(alice, carol);
+
+    const moment = await theMomentOf(asAlice);
+    expect(moment.quests, "the quests finished").toEqual([]);
+    expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp);
+  });
+});
+
 function person(first: string, last: string): Person {
   return { user: `U_${first}_${last}`.toUpperCase(), name: `${first} ${last}` };
 }
