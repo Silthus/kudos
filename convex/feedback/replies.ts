@@ -80,12 +80,8 @@ export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRo
   if (saysNothing(written)) return;
   const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, ...written });
   if (oneReply !== null) await ctx.db.insert("oneReplies", { reply: id, ...oneReply });
-  if (waits(written, oneReply)) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
+  if (written.held === true) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
   else await deliver(ctx, id);
-}
-
-function waits({ held }: Pick<WrittenReply, "held">, oneReply: Pick<OneReplyWritten, "awaitsItems"> | null) {
-  return held === true || oneReply?.awaitsItems === true;
 }
 
 async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefined, ref: MessageRef, reply: Extract<Reply, { kind: "given" }>): Promise<Written> {
@@ -97,7 +93,8 @@ async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefine
   const written = { lines, gains, ...(asksWhy && { hint: hintLine }), ...(waitsForQuests && { held: true as const }) };
   if (member === undefined || !(await oneReplyShownTo(ctx, member))) return { reply: { given: givenLine(reply.outcome, reply.base), ...written }, oneReply: null };
   const awaitsItems = await itemsAwaitedBy(ctx, member, reply.annotations);
-  return { reply: { given: headlineOf(reply.outcome), ...written }, oneReply: { left: leftOf(reply.outcome, reply.base), ...(awaitsItems && { awaitsItems: true as const }) } };
+  const oneReply = { left: leftOf(reply.outcome, reply.base), ...(waitsForQuests && { awaitsQuests: true as const }), ...(awaitsItems && { awaitsItems: true as const }) };
+  return { reply: { given: headlineOf(reply.outcome), ...written, ...(awaitsItems && { held: true as const }) }, oneReply };
 }
 
 function saysNothing({ given, lines }: WrittenReply) {
@@ -123,7 +120,7 @@ export async function tellItemsInTheReply(ctx: MutationCtx, { message, outcomes 
   const oneReply = reply === null ? null : await oneReplyRowOf(ctx, reply._id);
   if (reply === null || oneReply?.awaitsItems !== true) return false;
   await ctx.db.patch(oneReply._id, { awaitsItems: undefined, items: repliedItemsOf(outcomes) });
-  if (reply.held !== true) await deliver(ctx, reply._id);
+  if (oneReply.awaitsQuests !== true) await letGo(ctx, reply._id);
   return true;
 }
 
@@ -131,10 +128,9 @@ export const releaseUnreleased = internalMutation({
   args: { reply: v.id("privateReplies") },
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
-    if (row === null) return;
+    if (row?.held !== true) return;
     const oneReply = await oneReplyRowOf(ctx, reply);
-    if (!waits(row, oneReply)) return;
-    if (oneReply?.awaitsItems === true) await ctx.db.patch(oneReply._id, { awaitsItems: undefined });
+    if (oneReply !== null) await ctx.db.patch(oneReply._id, { awaitsQuests: undefined, awaitsItems: undefined });
     await release(ctx, row, [], []);
   },
 });
@@ -203,10 +199,15 @@ export async function gainsLineWithoutQuestsOf(ctx: QueryCtx, workspace: string,
 }
 
 async function release(ctx: MutationCtx, { _id, gains }: Doc<"privateReplies">, questsDone: QuestDone[], questsMoved: MovedQuest[]) {
-  await ctx.db.patch(_id, { held: undefined, ...(questsDone.length > 0 && { gains: { ...gains, xp: gains?.xp ?? 0, questsDone } }) });
+  if (questsDone.length > 0) await ctx.db.patch(_id, { gains: { ...gains, xp: gains?.xp ?? 0, questsDone } });
   const oneReply = await oneReplyRowOf(ctx, _id);
-  if (oneReply !== null && questsMoved.length > 0) await ctx.db.patch(oneReply._id, { questsMoved });
-  if (oneReply?.awaitsItems !== true) await deliver(ctx, _id);
+  if (oneReply !== null) await ctx.db.patch(oneReply._id, { awaitsQuests: undefined, ...(questsMoved.length > 0 && { questsMoved }) });
+  if (oneReply?.awaitsItems !== true) await letGo(ctx, _id);
+}
+
+async function letGo(ctx: MutationCtx, reply: Id<"privateReplies">) {
+  await ctx.db.patch(reply, { held: undefined });
+  await deliver(ctx, reply);
 }
 
 async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {

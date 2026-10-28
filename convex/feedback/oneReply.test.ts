@@ -178,6 +178,30 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(blockTextsOf(direct[0]!), "the direct message").toContain("🎁 *An item for thanking Carol*");
   });
 
+  test("a reply still waiting for its item after Quests stays held, so the 10-second release of any version sends it", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    const held = holdingKudosGiven();
+
+    await posts(alice, saysWhy, bob);
+    await deliverOnly(held[0]!, [questsJob]);
+
+    expect(messagesTo(alice), "the messages Alice got while the item is pending").toEqual([]);
+    expect(await heldRepliesTo(alice), "Alice's replies still held").toBe(1);
+  });
+
+  test("an item section longer than one Slack text is cut short", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").first())!._id, { baseAllowance: 20 }));
+    const ampersands = Array.from({ length: 10 }, (_, index) => ({ user: `U_AMP${index}`, name: `${"&".repeat(79)}${index} Teammate` }));
+    for (const person of ampersands) slack.withMember(person.user, { real_name: person.name });
+
+    await thanks(alice, saysWhy, ...ampersands);
+
+    const items = blockTextsOf(messagesTo(alice)[0]!).find((line) => line.startsWith("🎁"));
+    expect(items?.length, "the item section's length").toBe(3_000);
+    expect(items?.endsWith("…"), "the item section ends cut short").toBe(true);
+  });
+
   test("after onboarding, a kudos shows each drawn quest it moved with its bar, and the next one shows the quest it finished with its reward", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
     await finishOnboarding();
@@ -311,6 +335,11 @@ function contextsOf(message: SlackArgs): string[] {
     .filter(({ type }) => type === "context")
     .slice(0, -1)
     .map(({ elements }) => elements?.map(({ text }) => text).join("") ?? "");
+}
+
+async function heldRepliesTo(person: Person) {
+  const replies = await t.run((ctx) => ctx.db.query("privateReplies").collect());
+  return replies.filter(({ to, held }) => to === person.user && held === true).length;
 }
 
 async function finishOnboarding() {

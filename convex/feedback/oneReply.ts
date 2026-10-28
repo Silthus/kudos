@@ -24,6 +24,7 @@ export type RepliedItems = Infer<typeof repliedItemsValidator>;
 export const oneReplyValidator = v.object({
   reply: v.id("privateReplies"),
   left: v.string(),
+  awaitsQuests: v.optional(v.literal(true)),
   awaitsItems: v.optional(v.literal(true)),
   items: v.optional(repliedItemsValidator),
   questsMoved: v.optional(v.array(movedQuestValidator)),
