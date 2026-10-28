@@ -1,6 +1,6 @@
 # Proof: each quest or milestone that progressed gets its own beat in the XP moment
 
-`bun website/proof/progress-beats/drive.mts seed` joins four made-up members by signed `team_join` (Pip Hollow, Wren Calder, Tam Ferris, Ivo Brandt, Slack IDs starting `U0PRFPB`), and writes a sign-in snippet for Pip and for Ivo. Every event is a signed Slack-shaped request, not a Slack click. The page body is blurred in the stills so that no workspace count shows.
+`bun website/proof/progress-beats/drive.mts seed` joins four made-up members by signed `team_join` (Pip Hollow, Wren Calder, Tam Ferris, Ivo Brandt, Slack IDs starting `U0PRFPB`), and writes a sign-in snippet for Pip and for Ivo to a folder only its owner can read, printing each snippet's path. Every event is a signed Slack-shaped request, not a Slack click. The page body is blurred in the stills so that no workspace count shows.
 
 - Pip visits, then thanks Wren and Tam. Since the visit, Pip finished two journey quests, moved `Say why on 2 different days` from 0 to 1 of 2, and reached `First thank-you`.
 - Ivo thanks Wren before the visit, and Tam and Pip after it. Since the visit, Ivo moved the thoughtful kudos milestone `Generous soul` from 1 to 3 of 25.
