@@ -60,10 +60,11 @@ export const getXpMoment = memberQuery(async (ctx, me): Promise<XpMomentAnswer> 
   if (since === null) return { kind: "none", lastVisit };
   const now = Date.now();
   const questsShown = await questBeatsShownTo(ctx, me.member);
-  const read = await activitySince(ctx, me.member, { above: since, ...(questsShown && { questsAwaitedAbove: now - progressionWaitedFor }) });
+  const progressShown = await progressBeatsShownTo(ctx, me.member);
+  const read = await activitySince(ctx, me.member, { above: since, ...((questsShown || progressShown) && { questsAwaitedAbove: now - progressionWaitedFor }) });
   const { playable, heldBack } = playableOf(withTopUp(read, topUp), now);
   if (playable.length === 0) return { kind: "none", lastVisit };
-  return momentOf(ctx, me, since, { read: playable, heldBack, questsShown });
+  return momentOf(ctx, me, since, { read: playable, heldBack, questsShown, progressShown });
 });
 
 export const endXpMoment = memberMutation({
@@ -110,9 +111,9 @@ function playableOf(newestFirst: ReadSince[], now: number): { playable: ReadSinc
   return { playable: newestFirst.slice(oldestWaiting + 1), heldBack: newestFirst.slice(0, oldestWaiting + 1) };
 }
 
-type Read = { read: ReadSince[]; heldBack: ReadSince[]; questsShown: boolean };
+type Read = { read: ReadSince[]; heldBack: ReadSince[]; questsShown: boolean; progressShown: boolean };
 
-async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, { read, heldBack, questsShown }: Read): Promise<XpMoment> {
+async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, { read, heldBack, questsShown, progressShown }: Read): Promise<XpMoment> {
   const { shown, folded } = chosenOf(read, ({ entry }) => entry.kind === "levelUp");
   const xp = xpOf(read);
   const quests = questsShown ? questsDoneIn(read) : [];
@@ -128,7 +129,7 @@ async function momentOf(ctx: QueryCtx, me: VerifiedMember, since: number, { read
     xp,
     climb: await climbOf(ctx, me.member, { gained: xp + questXpOf(quests), heldBack: xpOf(heldBack) + questXpOf(questsHeldBack) }),
     quests,
-    progressed: (await progressBeatsShownTo(ctx, me.member)) ? await progressedSince(ctx, me.member, since, read[0]!.decided) : [],
+    progressed: progressShown ? await progressedSince(ctx, me.member, since, read[0]!.decided) : [],
     waiting: (await hiddenItemsShownTo(ctx, me.member)) ? await waitingCountOf(ctx, me.member) : 0,
     thoughtfulGivers: await thoughtfulGiversThisWeek(ctx, { workspace: me.workspace, timeZone: timeZone ?? undefined }),
     timeZone,

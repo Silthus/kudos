@@ -615,6 +615,31 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual(moved);
   });
 
+  test("a kudos whose quests aren't judged yet waits out of the moment, and its drawn quests move from the last visit once they are", async () => {
+    await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
+    await thanks(alice, bob);
+    await thanks(alice, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, bob);
+    await thanks(alice, bob);
+    await arrive(await signedIn(alice), null);
+    const atTheVisit = await weekOf(alice);
+    vi.setSystemTime(Date.now() + dayMs);
+    const held = await thanksWhileHeldBack(followingQuests, alice, bob);
+    const asAlice = await signedIn(alice);
+
+    expect(await momentOf(asAlice), "the moment while the quests wait").toMatchObject({ kind: "none" });
+    await held.record();
+
+    const now = await weekOf(alice);
+    const moved = now.slots.flatMap((slot, index) => {
+      const from = atTheVisit.slots[index]!.progress;
+      return slot.progress > from && slot.finishedAt === null ? [{ kind: "quest", name: slot.goal.replace(/\.$/, ""), from, to: slot.progress, of: slot.target }] : [];
+    });
+    expect(moved, "the drawn quests that moved without finishing").not.toEqual([]);
+    expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest"), "the next moment's drawn quests").toEqual(moved);
+  });
+
   test("answers the Thoughtful milestone moving toward its next tier by the thoughtful kudos given since the last visit", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
