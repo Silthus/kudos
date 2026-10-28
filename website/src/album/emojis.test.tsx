@@ -119,11 +119,11 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     const popup = await openTheEmojis(view);
 
     expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Your emojis · 9 of 27");
-    expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Team stickers 1 of 4", "Hype 1", "Milestones 6 of 20", "Levels 1 of 2"]);
+    expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Count in kudos · 0 of 5", "Team stickers 1 of 4", "Hype 1", "Milestones 6 of 20", "Levels 1 of 2"]);
     expect(rowsIn(shelf(popup, "Team stickers"))[0]).toBe(":team-quiet-harbour:You unlocked the Quiet Harbour team sticker · 15 Oct 2026In Slack");
     expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     expect(rowsIn(shelf(popup, "Levels"))[0]).toBe(":level-5:You reached level 5Add to Slack");
-    const pictures = [...document.querySelectorAll<HTMLImageElement>(".al-popover .al-emoji-art:not([data-locked]) img")].map((picture) => picture.getAttribute("src"));
+    const pictures = [...document.querySelectorAll<HTMLImageElement>(".al-popover .al-emoji-art:not([data-locked]) img")].filter((picture) => picture.closest(".al-kudos-picks") === null).map((picture) => picture.getAttribute("src"));
     expect(pictures).toEqual(expect.arrayContaining(["/emoji/team-support.png", "/emoji/milestone-people-silver.png", "/emoji/level-5.png"]));
     expect(pictures).toHaveLength(5);
   });

@@ -1,13 +1,14 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { SlackEmojiMatchesRead } from "../emojiWizardReads";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures } from "../shell";
+import { anAlbumThatAnswers } from "../test/albumThatAnswers";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
-import type { Album, AlbumEmoji } from "./answer";
+import type { Album, AlbumEmoji, AlbumRead, KudosEmojiPickReply, PickKudosEmoji } from "./answer";
 
 const day = 24 * 60 * 60 * 1_000;
 
@@ -56,11 +57,11 @@ const atLevelTwo: Album = {
   ],
 };
 
-type Visit = { album: Album; wizard?: boolean; inPlace?: EmojiInPlace };
+type Visit = { album: Album; wizard?: boolean; inPlace?: EmojiInPlace; pickKudosEmoji?: PickKudosEmoji; read?: AlbumRead };
 
-function visit({ album, wizard = false, inPlace = null }: Visit) {
+function visit({ album, wizard = false, inPlace = null, pickKudosEmoji, read = fixedAlbum({ ...album, emojiWizard: wizard, emojiInPlace: inPlace }) }: Visit) {
   window.history.replaceState(null, "", "/");
-  return renderAlbum(shellFixtures.member, fixedAlbum({ ...album, emojiWizard: wizard, emojiInPlace: inPlace }), { settings: fixedSettings(settingsFixtures.forTheMaintainer), slackEmojiMatches: noMatches });
+  return renderAlbum(shellFixtures.member, read, { settings: fixedSettings(settingsFixtures.forTheMaintainer), slackEmojiMatches: noMatches, commands: pickKudosEmoji === undefined ? {} : { pickKudosEmoji } });
 }
 
 async function theEmojiButton() {
@@ -85,6 +86,113 @@ function namesIn(region: ReturnType<typeof within>): (string | undefined)[] {
   return rowsIn(region).map((row) => row.match(/:[a-z0-9_-]+:/)?.[0]);
 }
 
+describe("the emoji popup leads with the earned emojis the member picks to count in their kudos", () => {
+  const firstThankYou = held({ id: "milestone:thoughtful:bronze", kind: "milestone", name: "love-hog", from: "First thank-you" });
+  const withFirstThankYou: Album = { ...atLevelTwo, emojis: [...atLevelTwo.emojis, firstThankYou] };
+
+  function picksIn(popup: ReturnType<typeof within>) {
+    return within(popup.getByRole("region", { name: /^Count in kudos/ }));
+  }
+
+  function pressedIn(picks: ReturnType<typeof within>) {
+    return picks.getAllByRole("button").map((button: HTMLElement) => `${button.querySelector("code")?.textContent} ${button.getAttribute("aria-pressed")}`);
+  }
+
+  it("lists each earned emoji but First thank-you, which always counts, presses the picked ones, and a press picks one more", async () => {
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(async () => ({ kind: "picked", picks: ["level:5", "level:2"] }));
+    const view = visit({ album: { ...withFirstThankYou, kudosEmojiPicks: ["level:5"] }, pickKudosEmoji });
+    const popup = await openTheEmojis(view);
+
+    const picks = picksIn(popup);
+    expect(popup.getByRole("region", { name: /^Count in kudos/ })).toHaveAccessibleName("Count in kudos · 1 of 5");
+    expect(picks.getByText(/always count/)).toHaveTextContent("Your kudos emoji and :love-hog: always count. Pick up to 5 more for the kudos you write. A teammate's hype emoji counts when you mention them, and a reaction with any emoji is a hug.");
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: false", ":ines-okafor-hype: false", ":level-5: true", ":raised_hands: false"]);
+
+    await view.user.click(picks.getByRole("button", { name: ":raised_hands:" }));
+
+    expect(pickKudosEmoji).toHaveBeenCalledWith("level:2", true);
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: false", ":ines-okafor-hype: false", ":level-5: true", ":raised_hands: true"]);
+  });
+
+  it("with five picked, an unpicked emoji can't be pressed, and a picked one unpicks", async () => {
+    const six = [held({ id: "team:copper-kite", kind: "team", name: "team-copper-kite", from: "Copper Kite" }), held({ id: "level:10", kind: "level", name: "level-10", from: "Level 10" }), ...atLevelTwo.emojis.filter(({ earned }) => earned)];
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(async () => ({ kind: "picked", picks: ["team:copper-kite", "level:10", "level:5", "level:2"] }));
+    const view = visit({ album: { ...atLevelTwo, emojis: six, kudosEmojiPicks: ["team:copper-kite", "level:10", "level:5", "level:2", "team:quiet-harbour"] }, pickKudosEmoji });
+    const picks = picksIn(await openTheEmojis(view));
+
+    expect(picks.getByRole("button", { name: ":ines-okafor-hype:" })).toBeDisabled();
+    await view.user.click(picks.getByRole("button", { name: ":team-quiet-harbour:" }));
+
+    expect(pickKudosEmoji).toHaveBeenCalledWith("team:quiet-harbour", false);
+    expect(picks.getByRole("button", { name: ":ines-okafor-hype:" })).toBeEnabled();
+  });
+
+  it("a pick the album no longer lists, such as a random emoji Slack removed, still counts toward the five and can be unpicked", async () => {
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(async () => ({ kind: "picked", picks: ["level:5"] }));
+    const view = visit({ album: { ...withFirstThankYou, kudosEmojiPicks: ["level:5", "random:gone-parrot", "hype:someone-left"] }, pickKudosEmoji });
+    const popup = await openTheEmojis(view);
+    const picks = picksIn(popup);
+
+    expect(popup.getByRole("region", { name: /^Count in kudos/ })).toHaveAccessibleName("Count in kudos · 3 of 5");
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: false", ":ines-okafor-hype: false", ":level-5: true", ":raised_hands: false", ":gone-parrot: true", "undefined true"]);
+    expect(picks.getByRole("button", { name: ":gone-parrot: No longer listed" })).toBeEnabled();
+    await view.user.click(picks.getByRole("button", { name: "An emoji no longer listed" }));
+
+    expect(pickKudosEmoji).toHaveBeenCalledWith("hype:someone-left", false);
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: false", ":ines-okafor-hype: false", ":level-5: true", ":raised_hands: false"]);
+  });
+
+  it("after a press, the album's next answer shows its own picks", async () => {
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(async () => ({ kind: "picked", picks: ["level:5", "level:2"] }));
+    const live = anAlbumThatAnswers({ ...withFirstThankYou, kudosEmojiPicks: ["level:5"] });
+    const view = visit({ album: live.now(), read: live.read, pickKudosEmoji });
+    const picks = picksIn(await openTheEmojis(view));
+    await view.user.click(picks.getByRole("button", { name: ":raised_hands:" }));
+
+    live.answerNext({ ...live.now(), kudosEmojiPicks: ["team:quiet-harbour"] });
+
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: true", ":ines-okafor-hype: false", ":level-5: false", ":raised_hands: false"]);
+  });
+
+  it("a reply that lands after the album's next answer keeps the album's picks", async () => {
+    let reply: (answer: KudosEmojiPickReply) => void = () => {};
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(() => new Promise((resolve) => (reply = resolve)));
+    const live = anAlbumThatAnswers({ ...withFirstThankYou, kudosEmojiPicks: [] });
+    const view = visit({ album: live.now(), read: live.read, pickKudosEmoji });
+    const picks = picksIn(await openTheEmojis(view));
+    await view.user.click(picks.getByRole("button", { name: ":raised_hands:" }));
+
+    live.answerNext({ ...live.now(), kudosEmojiPicks: ["level:5"] });
+    await act(async () => reply({ kind: "picked", picks: ["level:2"] }));
+
+    expect(pressedIn(picks)).toEqual([":team-quiet-harbour: false", ":ines-okafor-hype: false", ":level-5: true", ":raised_hands: false"]);
+  });
+
+  it("with picking off, the album answers no picks: no section, and every earned emoji counts in a kudos as before", async () => {
+    const { kudosEmojiPicks: _off, ...withoutPicks } = withFirstThankYou;
+    const popup = await openTheEmojis(visit({ album: withoutPicks }));
+
+    const useNow = section(popup, "Use these now");
+    expect(popup.queryByRole("region", { name: /^Count in kudos/ })).not.toBeInTheDocument();
+    expect(useNow.getByText(/^React with any of them/)).toHaveTextContent("React with any of them or put them in a kudos. Each one counts like : XP for you both, and an item when you say why.");
+    expect(useNow.getAllByRole("listitem")[0]).toHaveTextContent(":hedgehog:Your kudos emoji · works from the start");
+  });
+
+  it("with no earned emoji left to pick but a pick the album no longer lists, the section stays so it can be unpicked", async () => {
+    const pickKudosEmoji = vi.fn<PickKudosEmoji>(async () => ({ kind: "picked", picks: [] }));
+    const popup = await openTheEmojis(visit({ album: { ...newcomer, kudosEmojiPicks: ["random:gone-parrot"] }, pickKudosEmoji }));
+
+    expect(popup.getByRole("region", { name: /^Count in kudos/ })).toHaveAccessibleName("Count in kudos · 1 of 5");
+    expect(pressedIn(picksIn(popup))).toEqual([":gone-parrot: true"]);
+  });
+
+  it("with no earned emoji to pick, the section is gone", async () => {
+    const popup = await openTheEmojis(visit({ album: newcomer }));
+
+    expect(popup.queryByRole("region", { name: /^Count in kudos/ })).not.toBeInTheDocument();
+  });
+});
+
 describe("LP74 LP75: the emoji popup leads with what the member can use", () => {
   it("a newcomer's button counts the kudos emoji alone, and the popup opens on it, then on level 2 and the hype row", async () => {
     const view = visit({ album: newcomer });
@@ -96,11 +204,11 @@ describe("LP74 LP75: the emoji popup leads with what the member can use", () => 
 
     const useNow = section(popup, "Use these now");
     const hint = useNow.getByText(/^React with any of them/);
-    expect(hint).toHaveTextContent("React with any of them or put them in a kudos. Each one counts like : XP for you both, and an item when you say why.");
+    expect(hint).toHaveTextContent("React with any of them for a hug, like : XP for you both.");
     expect(within(hint).getByRole("img", { name: ":hedgehog:" })).toHaveAttribute("src", kudosEmoji.kudosEmojiImage);
     const [kudos] = useNow.getAllByRole("listitem");
     expect(useNow.getAllByRole("listitem")).toHaveLength(1);
-    expect(kudos).toHaveTextContent(":hedgehog:Your kudos emoji · works from the start");
+    expect(kudos).toHaveTextContent(":hedgehog:Your kudos emoji · always counts in kudos");
     expect(kudos!.querySelector("img")).toHaveAttribute("src", kudosEmoji.kudosEmojiImage);
     const next = rowsIn(section(popup, "Unlock next"));
     expect(next).toHaveLength(3);

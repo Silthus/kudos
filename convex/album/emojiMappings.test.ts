@@ -7,7 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
-import { mostRandomEmojis } from "./randomEmojis";
+import { mostRandomEmojis, mostRandomEmojisShown } from "./randomEmojis";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { EmojiMappings, EmojiMappingsRead } from "../website/emojiMappings";
@@ -500,6 +500,25 @@ describe("AL23: a random emoji drops from a thoughtful pack", { timeout: 90_000 
     const drops = await t.run(async (ctx) => (await ctx.db.query("randomEmojiDrops").collect()).map(({ name }) => name));
     expect(drops.filter((name) => name === held.at(-1)), "the held drop beyond the limit is not dropped again").toHaveLength(1);
     expect(await randomEmojisOf(await signedIn(alice))).toHaveLength(held.length);
+  });
+
+  test("past the 200 drops one album read answers, the drops picked to count in kudos come first, so a pick can always be unpicked", async () => {
+    await switchWebsite(t, postHog, true, ...albumOpen, "kudos-emoji-picks");
+    const held = Array.from({ length: mostRandomEmojisShown + 1 }, (_, index) => `old-${String(index).padStart(3, "0")}`);
+    await slackHas(...held);
+    const member = await memberOf(alice);
+    await aliceCollects(otters[0]!);
+    const pack = await t.run(async (ctx) => (await ctx.db.query("thoughtfulPacks").first())!._id);
+    const picked = `random:${held.at(-1)!}`;
+    await t.run(async (ctx) => {
+      for (const name of held) await ctx.db.insert("randomEmojiDrops", { member, name, pack, at: Date.now() });
+      await ctx.db.insert("kudosEmojiPicks", { member, emoji: picked });
+    });
+
+    const album = await albumOf(await signedIn(alice));
+
+    expect(album.kudosEmojiPicks).toEqual([picked]);
+    expect(album.emojis.filter(({ kind }) => kind === "random").map(({ id }) => id)).toContain(picked);
   });
 });
 

@@ -189,7 +189,7 @@ describe("the emoji button marks New what the member has not opened yet", () => 
   }
 
   function theRowOf(code: string) {
-    return within(screen.getByRole("region", { name: "Your emojis" })).getByText(code).closest("li")!;
+    return within(screen.getByRole("region", { name: "Your emojis" })).getAllByText(code).map((name) => name.closest<HTMLElement>(".al-emoji-row")).find((row) => row !== null)!;
   }
 
   it("marks the button New while it holds an earned emoji the member has not opened the popup on, and clears it once they open it, on the next visit too", async () => {

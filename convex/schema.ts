@@ -35,6 +35,7 @@ import {
   albumStickerValidator,
   emojiNameNumberValidator,
   seenEmojiValidator,
+  kudosEmojiPickValidator,
   emojiClassValidator,
   randomEmojiDropValidator,
   emojiNameValidator,
@@ -607,6 +608,8 @@ export default defineSchema({
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
 
   seenEmojis: defineTable(seenEmojiValidator).index("by_member_emoji", ["member", "emoji"]),
+
+  kudosEmojiPicks: defineTable(kudosEmojiPickValidator).index("by_member_emoji", ["member", "emoji"]),
 
   emojiClasses: defineTable(emojiClassValidator).index("by_workspace_name", ["workspace", "name"]).index("by_workspace_class", ["workspace", "class", "name"]),
 

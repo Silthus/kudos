@@ -1,8 +1,8 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
-import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MemberId } from "../../../convex/workspace/directory";
 import { shellFixtures, type TurnReply } from "../shell";
+import { anAlbumThatAnswers } from "../test/albumThatAnswers";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedPeople } from "./albumFixtures";
@@ -27,26 +27,6 @@ afterEach(() => {
 function aStickerTurnOf(person: string, page: { kind: "team"; team: string } | { kind: "person"; person: MemberId }, unlocked: Extract<TurnReply, { kind: "turned" }>["unlocked"] = nothingUnlocked): TurnReply {
   const thanked = withItems.people.find((someone) => someone.person === person)!;
   return { kind: "turned", face: { kind: "sticker", person: person as MemberId, isNew: true, thanked: { name: thanked.name, face: thanked.face } }, applied: null, page, unlocked, again: false };
-}
-
-function anAlbumThatAnswers(first: Album) {
-  let answer = first;
-  const listeners = new Set<() => void>();
-  const read: AlbumRead = (asking) => {
-    const shown = useSyncExternalStore(
-      (listener) => {
-        listeners.add(listener);
-        return () => listeners.delete(listener);
-      },
-      () => answer,
-    );
-    return asking ? shown : undefined;
-  };
-  const answerNext = (next: Album) => {
-    answer = next;
-    act(() => listeners.forEach((listener) => listener()));
-  };
-  return { read, answerNext, now: () => answer };
 }
 
 function withTheStickerIn(album: Album, item: string, person: string): Album {

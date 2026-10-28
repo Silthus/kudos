@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
-import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type TurnReply } from "../shell";
+import { anAlbumThatAnswers } from "../test/albumThatAnswers";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixtureTurnOf } from "./albumFixtures";
@@ -22,26 +22,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-function anAlbumThatAnswers(first: Album) {
-  let answer = first;
-  const listeners = new Set<() => void>();
-  const read: AlbumRead = (asking) => {
-    const shown = useSyncExternalStore(
-      (listener) => {
-        listeners.add(listener);
-        return () => listeners.delete(listener);
-      },
-      () => answer,
-    );
-    return asking ? shown : undefined;
-  };
-  const answerNext = (next: Album) => {
-    answer = next;
-    act(() => listeners.forEach((listener) => listener()));
-  };
-  return { read, answerNext, now: () => answer };
-}
 
 function withLevelItems(level: number): Album {
   const board = withItems.board!;

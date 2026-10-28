@@ -8,6 +8,10 @@ export const levelTwoEmoji = { level: 2, name: "raised_hands" } as const;
 
 export const everyEmojiLevel: readonly number[] = [levelTwoEmoji.level, ...emojiLevels];
 
+export const firstThankYouEmoji = "milestone:thoughtful:bronze";
+
+export const mostKudosEmojiPicks = 5;
+
 export type MilestoneTierEmoji = { milestone: MilestoneId; tier: MilestoneTier; name: string };
 
 export const milestoneTierEmojis: readonly MilestoneTierEmoji[] = milestoneCatalogue.milestones.flatMap(({ id, steps }) => steps.map(({ tier, name }) => ({ milestone: id, tier, name })));

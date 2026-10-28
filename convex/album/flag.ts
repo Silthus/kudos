@@ -1,5 +1,5 @@
-import { memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
-import type { QueryCtx } from "../_generated/server";
+import { memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
 export const albumFlag = { key: "album", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -36,6 +36,16 @@ export const ownHypePickFlag = { key: "own-hype-pick", safeDefault: false, value
 
 export function ownHypePickShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecisionWithoutWriting(ctx, ownHypePickFlag, member);
+}
+
+export const kudosEmojiPicksFlag = { key: "kudos-emoji-picks", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function kudosEmojiPicksShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, kudosEmojiPicksFlag, member);
+}
+
+export function kudosEmojiPicksCountFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  return memberDecision(ctx, kudosEmojiPicksFlag, member);
 }
 
 export type AlbumShown = { album?: true };
