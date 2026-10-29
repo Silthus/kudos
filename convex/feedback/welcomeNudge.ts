@@ -10,10 +10,10 @@ import { earnWelcomeItem } from "../album/items/welcome";
 import { welcomeItemShownTo } from "../album/items/welcomeFlag";
 import { websiteOriginFor } from "../website/link";
 import { signInEntry } from "../website/routes";
+import { linkFrom } from "../website/visitSource";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { saveWelcomeNudge, settingsOf, welcomeNudgeOn } from "../workspace/settings";
 import { isTheMaintainer } from "../workspace/workspaceSettings";
-import { saysWhy } from "../progression/gate";
 import { isWelcomed } from "../welcome/welcome";
 import { onTheMondayPath } from "../quests/flag";
 import { quoteOf } from "./mondayPost";
@@ -31,7 +31,7 @@ export const nudgeTheThanked = internalMutation({
   handler: async (ctx, { event, from = 0 }): Promise<void> => {
     const recipients = recipientsOf(event);
     const next = from + recipientsNudgedPerMutation;
-    for (const recipient of recipients.slice(from, next)) await nudge(ctx, recipient, { kind: "thanks", giver: event.giver, message: event.message }, event.at, saysWhy(event.annotations));
+    for (const recipient of recipients.slice(from, next)) await nudge(ctx, recipient, { kind: "thanks", giver: event.giver, message: event.message }, event.at, true);
     if (next < recipients.length) await ctx.scheduler.runAfter(0, internal.feedback.welcomeNudge.nudgeTheThanked, { event, from: next });
   },
 });
@@ -114,7 +114,7 @@ async function hasSignedIn(ctx: QueryCtx, workspace: string, user: ChatUserId) {
 async function albumLinkFor(ctx: QueryCtx, workspace: string, member: MemberId): Promise<string | null> {
   const origin = await websiteOriginFor(ctx, workspace, member);
   if (origin === null) return null;
-  return origin.endsWith(signInEntry) ? origin : `${origin}/book`;
+  return linkFrom("welcome", origin.endsWith(signInEntry) ? origin : `${origin}/book`);
 }
 
 export async function publicQuoteOf(ctx: QueryCtx, message: MessageRef, quoted: (segments: WordSegment[]) => WordSegment[] = (segments) => segments): Promise<string | null> {
