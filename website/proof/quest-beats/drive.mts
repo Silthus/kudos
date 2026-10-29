@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
 import { promisify } from "node:util";
+import { privateFolder } from "../../../testing/privateFolder";
 import { signedRequest } from "../../../testing/signedSlack";
 import { emojiNameOf } from "../../../convex/workspace/settingsBounds";
 
@@ -176,8 +177,8 @@ async function seed() {
 async function signIn() {
   const [proofMember] = await castOf();
   const user = (await newestRows("users", 200)).find((row) => (row.chatIdentity as { user: string }).user === proofMember!.user)!;
-  writeFileSync(process.env.SIGN_IN_FILE ?? "/tmp/quest-beats-sign-in.js", signInSnippet(await newSession(user._id)));
-  log("sign-in snippet written");
+  const file = privateFolder("proof-quest-beats-sign-in-").write("sign-in.js", signInSnippet(await newSession(user._id)));
+  log(`sign-in snippet written to ${file}`);
 }
 
 const commands: Record<string, () => Promise<void>> = { seed, "sign-in": signIn };

@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
 import { promisify } from "node:util";
+import { privateFolder } from "../../../testing/privateFolder";
 import { signedRequest } from "../../../testing/signedSlack";
 import { emojiNameOf } from "../../../convex/workspace/settingsBounds";
 
@@ -189,10 +190,10 @@ async function seed() {
 async function signIn() {
   const cast = await castOf();
   const users = await newestRows("users", 200);
+  const signIns = privateFolder("proof-progress-beats-sign-in-");
   for (const member of [cast[0]!, cast[3]!]) {
     const user = users.find((row) => (row.chatIdentity as { user: string }).user === member.user)!;
-    const file = `${process.env.SIGN_IN_PREFIX ?? "/tmp/progress-beats-sign-in"}-${member.key.toLowerCase()}.js`;
-    writeFileSync(file, signInSnippet(await newSession(user._id)));
+    const file = signIns.write(`${member.key.toLowerCase()}.js`, signInSnippet(await newSession(user._id)));
     log(`sign-in snippet for ${nameOf(member)} written to ${file}`);
   }
 }
