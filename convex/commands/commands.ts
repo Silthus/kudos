@@ -203,7 +203,7 @@ async function placeAskedBy(ctx: MutationCtx, member: MemberId, command: Extract
 }
 
 async function changeMessageSetting(ctx: MutationCtx, workspace: string, member: MemberId, kind: MessageKind, place: MessagePlace) {
-  if (!(await placesOf(ctx, member, kind)).includes(place)) return;
+  if (!placesOf(kind).includes(place)) return;
   if (await setMessageSetting(ctx, member, kind, place)) await reportMessageSettingChanged(ctx, { workspace, member, setting: kind, on: place !== "none", place, at: Date.now() });
 }
 

@@ -9,9 +9,9 @@ const huggedValidator = v.union(v.object({ kind: v.literal("author"), name: v.op
 type Hugged = Infer<typeof huggedValidator>;
 
 export const deliverFirstHugReply = observedAction({
-  args: { workspace: v.string(), user: v.string(), conversation: v.string(), hugged: huggedValidator, ...attemptArgs },
+  args: { workspace: v.string(), user: v.string(), conversation: v.string(), hugged: huggedValidator, kudosEmoji: v.string(), ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...reply }) => {
-    const ephemeral = { channel: reply.conversation, user: reply.user, text: firstHugReplyText(reply.hugged) };
+    const ephemeral = { channel: reply.conversation, user: reply.user, text: firstHugReplyText(reply.hugged, reply.kudosEmoji) };
     await tryAtMostThreeTimes(
       attempt,
       (attempt) => sendAtMostOnce(ctx, reply.workspace, "chat.postEphemeral", ephemeral, attempt),
@@ -20,8 +20,8 @@ export const deliverFirstHugReply = observedAction({
   },
 });
 
-function firstHugReplyText(hugged: Hugged) {
-  return `That was a hug: +1 XP for you and ${huggedPeopleOf(hugged)}. Thank them in a message and say why to earn an item.`;
+function firstHugReplyText(hugged: Hugged, kudosEmoji: string) {
+  return `That was a hug: +1 XP for you and ${huggedPeopleOf(hugged)}. Thank them in a message with :${kudosEmoji}: to earn an item.`;
 }
 
 function huggedPeopleOf(hugged: Hugged) {

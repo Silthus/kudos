@@ -29,7 +29,7 @@ type Landing = { address: string; title: string; rarity?: Rarity };
 const home: Landing = { address: "/book#me", title: "Sam Example" };
 const milestones: Landing = { address: "/book#milestones", title: "Milestones" };
 const hoggies: Landing = { address: "/book#hoggies", title: "Hoggies" };
-const leaderboard: Landing = { address: "/leaderboard", title: "Who said thanks, and why" };
+const leaderboard: Landing = { address: "/leaderboard", title: "Who said thanks" };
 const activity: Landing = { address: "/activity", title: "Weekly edition" };
 const settings: Landing = { address: "/settings", title: "Settings" };
 

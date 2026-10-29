@@ -407,7 +407,7 @@ async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMembe
 
 async function placeOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, kind: MessageKind, place: MessagePlace) {
   if (!(await messageSettingsOnFor(ctx, me.member)) || !(await kindAppliesTo(ctx, me.member, kind))) return false;
-  return (await placesOf(ctx, me.member, kind)).includes(place) && (await noLaunchWaitsFor(ctx, me));
+  return placesOf(kind).includes(place) && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function groupOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, group: string) {

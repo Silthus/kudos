@@ -19,7 +19,7 @@ const mondayNineInKolkata = Date.parse("2026-10-19T03:30:00Z");
 const mondayNineInNewYork = Date.parse("2026-10-19T13:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
-const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
+const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teammate with :taco:, earns much more XP.";
 const recapRow = "section: *Weekly hugs recap* — Last week's hugs, the :taco: you and your teammates reacted, with their XP, on Monday morning. [select: As a DM]";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
 
@@ -123,6 +123,20 @@ describe("SR12: at Monday 09:00 in their time zone, a member who gave or receive
 
     expect(recapTimesTo("U_ALICE")).toEqual([mondayNineInNewYork]);
     expect(recapTimesTo("U_BOB")).toEqual([mondayNineInUtc]);
+  });
+});
+
+describe("HH14: the hugs recap closes on what a kudos earns", () => {
+  test("its last line names a kudos as a message that mentions a teammate with the workspace's kudos emoji", async () => {
+    const t = await workspace({ urlKnown: false });
+    await setWorkspaceSettings(t, { kudosEmoji: "raised_hands" });
+    await react(t, { user: "U_BOB", itemUser: "U_ALICE", ts: messageOf(1), reaction: "raised_hands" });
+    await settleUpTo(t, Date.now() + minuteMs);
+
+    await recapsSentOnMonday(t);
+
+    const [recap] = slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "U_ALICE");
+    expect(String(recap?.text).split("\n").slice(-2)).toEqual(["Hugs are a quick thanks. A kudos, a message that mentions a teammate with :raised_hands:, earns much more XP.", footer]);
   });
 });
 

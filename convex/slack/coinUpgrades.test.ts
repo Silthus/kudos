@@ -21,13 +21,13 @@ const alicesEmail = "alice@example.com";
 const coinsEarnedOnTheWay = 8;
 const siteUrl = "https://kudos-site.test";
 
-const sparkCopy = "+5 XP the first time each day you thank someone and say why.";
-const rhythmCopy = "+2 XP each time you thank someone and say why, once per person a day.";
-const circleCopy = "+5 XP the first time each week you thank a person and say why.";
+const sparkCopy = "+5 XP the first time each day you give a kudos.";
+const rhythmCopy = "+2 XP for each kudos you give, once per person a day.";
+const circleCopy = "+5 XP the first time each week you give a person a kudos.";
 const flameCopy = "Spark gives +8 XP instead of +5.";
 const cadenceCopy = "Rhythm gives +3 XP instead of +2.";
 const bridgeCopy = "Circle gives +8 XP instead of +5 when the person isn't in your primary group. Without a primary group, everyone counts.";
-const treasurerCopy = "+2 🪙 each time you thank someone and say why, once per person a day.";
+const treasurerCopy = "+2 🪙 for each kudos you give, once per person a day.";
 const bankerCopy = "Treasurer gives +4 🪙 instead of +2.";
 
 const treeOn = [onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("skill-tree")];

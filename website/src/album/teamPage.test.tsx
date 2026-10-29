@@ -466,7 +466,7 @@ describe("AL46: the person page", () => {
       ["Lanterns4 of 5", "/book#teams/lanterns"],
     ]);
     expect(screen.getByText(":ines-okafor-hype:")).toBeInTheDocument();
-    expect(screen.getByText("Unlocked by your first thoughtful kudos to Ines")).toBeInTheDocument();
+    expect(screen.getByText("Unlocked by your first kudos to Ines")).toBeInTheDocument();
   });
 
   it("opens them in Slack in a new tab, from the link getAlbumPerson gives", async () => {
@@ -492,7 +492,7 @@ describe("AL46: the person page", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Juno Park" })).toBeInTheDocument();
     expect(screen.getByRole("figure", { name: "Not in your album yet" })).toBeInTheDocument();
     expect(screen.getByText("Juno's pack is waiting. Open it from your packs to add Juno to your album.")).toBeInTheDocument();
-    expect(screen.getByText("Give Juno a thoughtful kudos to unlock their hype emoji")).toBeInTheDocument();
+    expect(screen.getByText("Give Juno a kudos to unlock their hype emoji")).toBeInTheDocument();
     expect(within(screen.getByRole("list", { name: "Your history together" })).getByText("Not yet")).toBeInTheDocument();
   });
 

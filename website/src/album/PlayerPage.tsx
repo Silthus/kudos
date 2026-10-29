@@ -243,7 +243,7 @@ function Stack({ className = "", children }: { className?: string; children: Rea
 }
 
 function QuietStats({ page: { own, card } }: { page: Page }) {
-  return <p className="al-pp-quiet-stats al-pp-small">{own ? "Thank a teammate and say why: your first person, hoggie and emoji land here." : `${firstNameOf(card.name)}'s album is just getting started.`}</p>;
+  return <p className="al-pp-quiet-stats al-pp-small">{own ? "Give a teammate a kudos: your first person, hoggie and emoji land here." : `${firstNameOf(card.name)}'s album is just getting started.`}</p>;
 }
 
 function Bar({ share }: { share: number }) {
@@ -266,7 +266,7 @@ function RarestFind({ page: { own, card } }: { page: Page }) {
           </span>
           <span className="al-pp-rarest-words">
             <span className="al-pp-label">{label}</span>
-            <span className="al-pp-quiet al-pp-small">{own ? "Give a thoughtful kudos and open its pack. Your first hoggie stands here." : "No hoggie found yet."}</span>
+            <span className="al-pp-quiet al-pp-small">{own ? "Give a kudos and open its pack. Your first hoggie stands here." : "No hoggie found yet."}</span>
           </span>
         </div>
       ) : (
@@ -348,7 +348,7 @@ function Together({ name, together }: { name: string; together: PersonPage }) {
       </dl>
       {together.hype.name !== null && (
         <p className="al-pp-small al-pp-together-hype ph-no-capture">
-          <code>:{together.hype.name}:</code> <span className="al-pp-quiet">{together.hype.earned ? "unlocked by your first thoughtful kudos" : `give ${first} a thoughtful kudos to unlock it`}</span>
+          <code>:{together.hype.name}:</code> <span className="al-pp-quiet">{together.hype.earned ? "unlocked by your first kudos" : `give ${first} a kudos to unlock it`}</span>
         </p>
       )}
     </section>

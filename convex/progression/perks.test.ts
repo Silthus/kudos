@@ -132,9 +132,9 @@ describe("P79: perksOf tells the website what the member owns and what each perk
       skillPoints: 1,
       owned: [{ perk: "circle", boughtAt: now.getTime() }],
       perks: [
-        { perk: "spark", name: "Spark", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+5 XP the first time each day you thank someone and say why.", state: "buyable", boughtAt: null },
-        { perk: "rhythm", name: "Rhythm", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+2 XP each time you thank someone and say why, once per person a day.", state: "buyable", boughtAt: null },
-        { perk: "circle", name: "Circle", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+5 XP the first time each week you thank a person and say why.", state: "owned", boughtAt: now.getTime() },
+        { perk: "spark", name: "Spark", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+5 XP the first time each day you give a kudos.", state: "buyable", boughtAt: null },
+        { perk: "rhythm", name: "Rhythm", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+2 XP for each kudos you give, once per person a day.", state: "buyable", boughtAt: null },
+        { perk: "circle", name: "Circle", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+5 XP the first time each week you give a person a kudos.", state: "owned", boughtAt: now.getTime() },
       ],
     });
   });

@@ -20,7 +20,7 @@ export function coinsPartOf(coins: number) {
 }
 
 export function coinsOpenedLineOf(balance: number) {
-  return balance === 0 ? "Coins are open. You earn 🪙 when you thank someone and say why." : `Coins are open. You already have ${balance} 🪙.`;
+  return balance === 0 ? "Coins are open. You earn 🪙 when you give a kudos." : `Coins are open. You already have ${balance} 🪙.`;
 }
 
 export function inventoryOpenedLineOf(balance: number, kudosEmoji: string) {

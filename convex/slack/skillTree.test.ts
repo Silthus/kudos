@@ -10,9 +10,9 @@ import { standingOf } from "../progression/progression";
 const now = new Date("2026-10-14T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 
-const sparkCopy = "+5 XP the first time each day you thank someone and say why.";
-const rhythmCopy = "+2 XP each time you thank someone and say why, once per person a day.";
-const circleCopy = "+5 XP the first time each week you thank a person and say why.";
+const sparkCopy = "+5 XP the first time each day you give a kudos.";
+const rhythmCopy = "+2 XP for each kudos you give, once per person a day.";
+const circleCopy = "+5 XP the first time each week you give a person a kudos.";
 const condition = "context: Bonuses count when your message has 5 or more words besides mentions and emoji.";
 
 let slack: FakeSlack;
