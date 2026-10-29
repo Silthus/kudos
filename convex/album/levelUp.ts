@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import type { Drop } from "./hoggies/drops";
 import { hiddenItemsShownTo } from "./items/flag";
-import { levelUpHoggiesOf, levelUpRevealOnFor } from "../unlocks/levelUpHoggies";
+import { levelUpHoggiesOf, levelUpRevealOnFor } from "./levelUpHoggies";
 import { levelUpAt, levelUpBefore } from "../unlocks/levelUps";
 import type { MemberId } from "../workspace/directory";
 import { levelEmojisEarnedIn, type EarnedEmoji } from "./earnedEmojis";
