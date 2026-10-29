@@ -80,14 +80,18 @@ export async function appEmojisIn(ctx: QueryCtx, workspace: string, levels: read
   const listed: ListedAppEmoji[] = [...registered.map((row) => ({ ...row, named: true })), ...(everyHype ? unnamedHypesOf(people, registered) : [])];
   const hintFor = hypeNameHintsIn(ctx, workspace);
   const rows: AppEmojiRow[] = [];
-  for (const { emoji, name, mappedBy, named, fullName = "", holders: held } of listed.map((row) => ({ ...row, holders: holders.get(row.emoji) ?? 0 })).toSorted((one, other) => other.holders - one.holders || one.name.localeCompare(other.name))) {
+  for (const { emoji, name, mappedBy, named, fullName = "", holders: held } of listed.map((row) => ({ ...row, holders: holders.get(row.emoji) ?? 0 })).toSorted(mostHeldFirst)) {
     const shown = await shownAppEmojiOf(ctx, workspace, emoji, { teams, currentMembers, levels });
     if (shown === null) continue;
-    if (rows.length === mostAppEmojisListed) return { rows, more: true };
+    if (rows.length === mostAppEmojisListed) return { rows: rows.toSorted(mostHeldFirst), more: true };
     const image = named ? await slackEmojiImageOf(ctx, workspace, name) : undefined;
     rows.push({ emoji, ...shown, name: named ? name : await hintFor(fullName), holders: held, slack: image === undefined ? null : { image, mappedBy } });
   }
-  return { rows, more: false };
+  return { rows: rows.toSorted(mostHeldFirst), more: false };
+}
+
+function mostHeldFirst(one: { holders: number; name: string }, other: { holders: number; name: string }): number {
+  return other.holders - one.holders || one.name.localeCompare(other.name);
 }
 
 function unnamedHypesOf(people: NamedMember[], registered: RegisteredEmoji[]): ListedAppEmoji[] {

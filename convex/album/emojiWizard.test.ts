@@ -432,8 +432,9 @@ describe("AL80: behind admin-hype-emojis, the maintainer lists every current mem
 
   test("namesakes of a member whose hype emoji is named each show the free name their first thoughtful kudos gives them", async () => {
     const namesakes = [{ user: "U_ALICE_TWO", name: alice.name }, { user: "U_ALICE_THREE", name: alice.name }];
+    const sortsBetweenTheirNames = { user: "U_ALICE_BELL", name: `${alice.name} Bell` };
     await collects(bruno, alice);
-    for (const namesake of namesakes) {
+    for (const namesake of [...namesakes, sortsBetweenTheirNames]) {
       slack.withMember(namesake.user, { profile: { display_name: namesake.name, real_name: namesake.name } });
       await memberChanged(t, "team_join", slackUser(namesake));
     }
@@ -448,6 +449,8 @@ describe("AL80: behind admin-hype-emojis, the maintainer lists every current mem
     const given = await Promise.all([alice, ...namesakes].map(async (someone) => (await emojiWithId(asBruno, `hype:${await memberOf(someone)}`))?.name));
     expect(shown).toEqual(new Set(given));
     expect(shown.size).toBe(3);
+    const unheld = listed.filter(({ holders }) => holders === 0).map(({ name }) => name);
+    expect(unheld).toEqual(unheld.toSorted((one, other) => one.localeCompare(other)));
   });
 
   test("a former member's hype emoji stays off the list, named or not", async () => {
