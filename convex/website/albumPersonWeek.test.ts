@@ -4,6 +4,7 @@ import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHo
 import { FakeSlack } from "../../testing/fakeSlack";
 import { deleteMessage, edit, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { channel, emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
+import { hugCounted, kudosCounted } from "../../testing/leaderboard";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
@@ -207,7 +208,7 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
       kind: "week",
       week: theWeek,
       thisWeek: theWeek,
-      weeks: [{ week: theWeek, days: [0, 4, 0, 0, 0, 0, 0] }],
+      weeks: [{ week: theWeek, days: [0, 4, 0, 0, 0, 0, 0], counted: 4 }],
       issue: {
         kudosGiven: 1,
         kudosReceived: 1,
@@ -323,15 +324,36 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", week: "2026-10-19", weeks: [{ week: theWeek }], issue: null });
   });
 
-  test("a kudos a giver east of the member sent on their Monday shows in its week's tab while it is still Sunday for the member", async () => {
+  test("a first kudos a giver east of the member sent on their Monday lists its giver in that week's tab and counts in the member's own week, still Sunday for them (HH30)", async () => {
     await aMember(t, carol.user, "member", "T1", "Pacific/Auckland");
     vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
     clock = Date.now();
     await thanks(carol, why, alice);
 
-    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [{ week: "2026-10-19" }], issue: null });
+    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [{ week: "2026-10-19", counted: 0 }, { week: theWeek, days: [0, 0, 0, 0, 0, 0, 0], counted: 1 }], issue: { kudosReceived: 1, thankedBy: { people: [], more: 0 } } });
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ thisWeek: theWeek });
-    expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", issue: { kudosReceived: 1, thankedBy: { people: [{ person: await memberOf(carol) }] } } });
+    expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", issue: { thankedBy: { people: [{ person: await memberOf(carol) }] } } });
+  });
+
+  test("HH30: the issue's counts are Leaderboard's, so a kudos and hugs it counted that the week's tally never saw show", async () => {
+    await thanks(alice, why, bob);
+    await kudosCounted(t, await memberOf(alice), await memberOf(carol), { kudos: 2, day: "2026-10-14" });
+    await hugCounted(t, await memberOf(alice), await memberOf(bob), { day: "2026-10-14" });
+    await hugCounted(t, await memberOf(dana), await memberOf(alice), { day: "2026-10-15" });
+
+    expect(await weekOf(alice)).toMatchObject({ kind: "week", issue: { kudosGiven: 3, kudosReceived: 0, hugsGiven: 1, hugsReceived: 1, thanked: { people: [await personIn(bob)], more: 0 }, hugged: { people: [], more: 0 } } });
+  });
+
+  test("HH30: a kudos a giver east of the member sent on their Monday counts in the member's own week, while its giver stays listed in the giver's week", async () => {
+    await aMember(t, carol.user, "member", "T1", "Pacific/Auckland");
+    await thanks(alice, why, bob);
+    vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
+    clock = Date.now();
+    await thanks(carol, why, alice);
+
+    expect(await weekOf(alice, theWeek)).toMatchObject({ kind: "week", issue: { kudosGiven: 1, kudosReceived: 1, thankedBy: { people: [], more: 0 } } });
+    expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", issue: { kudosReceived: 0, thankedBy: { people: [{ person: await memberOf(carol) }] } } });
+    expect(await weekOf(carol, "2026-10-19")).toMatchObject({ kind: "week", issue: { kudosGiven: 1, thanked: { people: [{ person: await memberOf(alice) }] } } });
   });
 
   test("a pack opened in one week and put in the next counts as opened in the first and its new face and hoggie in the second", async () => {

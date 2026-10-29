@@ -3,7 +3,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
-import { kudosCounted } from "../../testing/leaderboard";
+import { hugCounted, kudosCounted } from "../../testing/leaderboard";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
@@ -109,6 +109,16 @@ describe("LP94 LP95 LP98: getPlayerCard answers one card model for your own page
       card: { person: await memberOf(dana), place: null, people: { held: 0, newest: [] }, hoggies: { found: 0, rarest: null }, medals: { count: 0, best: [] } },
       week: { days: [0, 0, 0, 0, 0, 0, 0], thanked: 0, thankedBy: 0, packsOpened: 0, hugs: 0, kudosOfWeek: null },
     });
+  });
+
+  test("HH30: a teammate's week counts the hugs Leaderboard counted in their own week", async () => {
+    const bobInAuckland = await aMember(t, bob.user, "member", "T1", "Pacific/Auckland");
+    vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
+    await hugCounted(t, bobInAuckland, await memberOf(carol), { day: "2026-10-19" });
+    await hugCounted(t, await memberOf(dana), bobInAuckland, { day: "2026-10-18", at: Date.parse("2026-10-18T12:00:00Z") });
+    await hugCounted(t, await memberOf(dana), bobInAuckland, { day: "2026-10-18", at: Date.parse("2026-10-18T10:00:00Z") });
+
+    expect(await cardOf(alice, bob)).toMatchObject({ kind: "card", week: { hugs: 2 } });
   });
 
   test("your own card carries no week, since your own page reads your whole week", async () => {

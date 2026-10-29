@@ -11,6 +11,8 @@ import { anEmptyWeek, weekAt, weekRowOf, weekTallyIn } from "../album/tallies";
 import { hoggiesShownTo } from "../album/hoggies/flag";
 import { tiersTurnedBy } from "../album/items/milestoneUnlocks";
 import { placeOf, type BoardPlace } from "../leaderboard/boards";
+import { totalsOf } from "../leaderboard/counts";
+import { keyOf } from "../leaderboard/periods";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { isAPersonOf, type MemberId } from "../workspace/directory";
 import { levelOf, type AlbumAnswer } from "./album";
@@ -112,8 +114,10 @@ async function medalsOf(ctx: QueryCtx, person: MemberId): Promise<PlayerCard["me
 }
 
 async function cardWeekOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<CardWeek> {
-  const row = await weekRowOf(ctx, person, await weekAt(ctx, person, Date.now()));
-  const { days, thanked, thankedBy, packsOpened = 0, hugsGiven, hugsReceived, kudosOfWeek } = row === null ? anEmptyWeek() : weekTallyIn(row);
+  const week = await weekAt(ctx, person, Date.now());
+  const row = await weekRowOf(ctx, person, week);
+  const { days, thanked, thankedBy, packsOpened = 0, kudosOfWeek } = row === null ? anEmptyWeek() : weekTallyIn(row);
+  const { hugsGiven, hugsReceived } = await totalsOf(ctx, person, keyOf("week", week));
   return {
     days,
     thanked: thanked.people.length + thanked.more,

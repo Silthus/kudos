@@ -10,6 +10,7 @@ import { emojiLineOf, type RecapEmojiLine } from "../feedback/albumRecap";
 import { settingsFooterFor, type SettingsFooter } from "../feedback/settingsFooter";
 import { teaserOf } from "../feedback/teaser";
 import { placeOf } from "../messageSettings/messageSettings";
+import { hugXpOf, type HugWeekXp } from "../progression/hugXp";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { hasMondayDm } from "../mondayDm/rows";
 import { permalinkOf } from "../slack/permalink";
@@ -82,7 +83,7 @@ export async function hugsSectionFor(ctx: MutationCtx, member: MemberId, monday:
 
 export async function hugsSentInTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey) {
   const week = await hugWeekOf(ctx, member, mondayBefore(monday));
-  if (week !== null) await reportHugsRecapSent(ctx, recapSentOf(week, "monday"));
+  if (week !== null) await reportHugsRecapSent(ctx, await recapSentOf(ctx, week, "monday"));
 }
 
 export const recapLater = internalMutation({
@@ -100,11 +101,12 @@ export const recapEnded = internalMutation({
     const row = await awaitingTry(ctx, week, attempt);
     if (row === null) return;
     await ctx.db.patch(week, { recap: sent ? "sent" : "failed" });
-    if (sent) await reportHugsRecapSent(ctx, recapSentOf(row, "recap"));
+    if (sent) await reportHugsRecapSent(ctx, await recapSentOf(ctx, row, "recap"));
   },
 });
 
-function recapSentOf({ workspace, member, given, received, givenXp, receivedXp }: HugWeek, via: HugsRecapCarrier) {
+async function recapSentOf(ctx: QueryCtx, { workspace, member, week }: HugWeek, via: HugsRecapCarrier) {
+  const { given, received, givenXp, receivedXp } = await hugXpOf(ctx, member, week);
   return { workspace, member, given, received, xp: givenXp + receivedXp, via, at: Date.now() };
 }
 
@@ -167,14 +169,14 @@ async function recapLinesOf(ctx: QueryCtx, week: HugWeek): Promise<Omit<HugsSect
   const url = await workspaceUrlOf(ctx, week.workspace);
   const mostHugged = week.mostHugged === undefined || url === null ? [] : [await mostHuggedLineOf(ctx, url, reacted, week.workspace, week.mostHugged)];
   const teaser = await teaserOf(ctx, week.member);
-  return { lines: [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(week, reacted), ...mostHugged], closing: [...(teaser === null ? [] : [teaser]), kudosNudgeWith(kudosEmoji)] };
+  return { lines: [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(await hugXpOf(ctx, week.member, week.week), reacted), ...mostHugged], closing: [...(teaser === null ? [] : [teaser]), kudosNudgeWith(kudosEmoji)] };
 }
 
 function kudosNudgeWith(kudosEmoji: string) {
   return `Hugs are a quick thanks. A kudos, a message that mentions a teammate with :${kudosEmoji}:, earns much more XP.`;
 }
 
-function countLinesOf({ given, givenXp, received, receivedXp }: HugWeek, reacted: string): string[] {
+function countLinesOf({ given, givenXp, received, receivedXp }: HugWeekXp, reacted: string): string[] {
   const givenLine = given === 0 ? [] : [`You ${reacted} and gave ${hugsOf(given)} (+${givenXp} XP).`];
   const receivedLine = received === 0 ? [] : [`Teammates ${reacted} on your messages and gave you ${hugsOf(received)} (+${receivedXp} XP).`];
   return [...givenLine, ...receivedLine];

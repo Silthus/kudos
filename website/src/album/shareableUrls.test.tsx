@@ -52,7 +52,7 @@ function withNextWeekFilled(read: WeekRead): WeekRead {
     const answer = read(asking, week);
     if (answer?.kind !== "week") return answer;
     const [newest] = answer.weeks;
-    return { ...answer, weeks: [{ week: "2026-10-19", days: newest!.days }, ...answer.weeks] };
+    return { ...answer, weeks: [{ ...newest!, week: "2026-10-19" }, ...answer.weeks] };
   };
 }
 

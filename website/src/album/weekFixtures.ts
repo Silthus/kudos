@@ -114,10 +114,10 @@ const ownKudosIssue: WeekIssue = {
 };
 
 const tabs: WeekTab[] = [
-  { week: thisWeek, days: fullIssue.days },
-  { week: "2026-10-05", days: quietIssue.days },
-  { week: "2026-09-28", days: overflowingIssue.days },
-  { week: "2026-09-21", days: ownKudosIssue.days },
+  { week: thisWeek, days: fullIssue.days, counted: 18 },
+  { week: "2026-10-05", days: quietIssue.days, counted: 0 },
+  { week: "2026-09-28", days: overflowingIssue.days, counted: 23 },
+  { week: "2026-09-21", days: ownKudosIssue.days, counted: 1 },
 ];
 
 const issues: Record<string, WeekIssue> = { [thisWeek]: fullIssue, "2026-10-05": quietIssue, "2026-09-28": overflowingIssue, "2026-09-21": ownKudosIssue };

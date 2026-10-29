@@ -145,7 +145,7 @@ export type WeekIssue = {
   received: WeekKudosList;
 };
 
-export type WeekTab = { week: string; days: number[] };
+export type WeekTab = { week: string; days: number[]; counted: number };
 
 export type AlbumWeek = { kind: "week"; week: string; thisWeek: string; weeks: WeekTab[]; issue: WeekIssue | null };
 

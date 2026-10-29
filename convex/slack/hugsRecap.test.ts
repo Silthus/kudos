@@ -7,8 +7,11 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { convexStops, memberChanged, pendingJobs, react, settleUpTo, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { hugCounted } from "../../testing/leaderboard";
 import { internal } from "../_generated/api";
 import crons from "../crons";
+import { recordReward } from "../progression/progression";
+import type { MemberId } from "../workspace/directory";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const minuteMs = 60 * 1000;
@@ -137,6 +140,37 @@ describe("HH14: the hugs recap closes on what a kudos earns", () => {
 
     const [recap] = slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "U_ALICE");
     expect(String(recap?.text).split("\n").slice(-2)).toEqual(["Hugs are a quick thanks. A kudos, a message that mentions a teammate with :raised_hands:, earns much more XP.", footer]);
+  });
+});
+
+describe("HH30: the recap reads the week's hugs from Leaderboard and their XP from Progression", () => {
+  test("a hug Leaderboard counted that the recap's own week never saw shows, at the hug XP each", async () => {
+    const t = await workspace({ urlKnown: false });
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hugCounted(t, await memberOf(t, "U_BOB"), await memberOf(t, "U_ALICE"), { day: "2026-10-14" });
+
+    await recapsSentOnMonday(t);
+
+    expect(recapTo("U_BOB")).toEqual([":taco: Your week in hugs", "You reacted :taco: and gave 2 hugs (+2 XP).", nudge, footer].join("\n"));
+    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in hugs", "Teammates reacted :taco: on your messages and gave you 2 hugs (+2 XP).", nudge, footer].join("\n"));
+  });
+
+  test("the day bonuses of the member's seven days add to the XP given and the week's bonus to the XP received, and a bonus of another week adds nothing", async () => {
+    const t = await workspace({ urlKnown: false });
+    await hug(t, "U_ALICE", "U_BOB", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(2));
+    const alice = await memberOf(t, "U_ALICE");
+    for (const key of ["hug-day:2026-10-13", "hug-day:2026-10-18"]) await bonusPaid(t, alice, key, 9);
+    await bonusPaid(t, alice, "hug-week:2026-10-12", 4);
+    for (const key of ["hug-day:2026-10-11", "hug-day:2026-10-19", "hug-week:2026-10-05", "hug-week:2026-10-19"]) await bonusPaid(t, alice, key, 100);
+
+    await recapsSentOnMonday(t);
+
+    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+19 XP).", "Teammates reacted :taco: on your messages and gave you 1 hug (+5 XP).", nudge, footer].join("\n"));
+    expect(recapsSent().map(({ properties }) => [properties.hugs_given, properties.hugs_received, properties.xp])).toEqual([
+      [1, 1, 24],
+      [1, 1, 2],
+    ]);
   });
 });
 
@@ -404,6 +438,21 @@ async function workspace({ transactionLimits = false, urlKnown = true } = {}) {
 async function hug(t: Backend, giver: string, author: string, message: string) {
   await react(t, { user: giver, itemUser: author, ts: message });
   await settleUpTo(t, Date.now() + minuteMs);
+}
+
+async function memberOf(t: Backend, user: string): Promise<MemberId> {
+  const member = await t.run((ctx) =>
+    ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique(),
+  );
+  if (member === null) throw new Error(`no member ${user}`);
+  return member._id;
+}
+
+async function bonusPaid(t: Backend, member: MemberId, key: string, xp: number) {
+  await t.run((ctx) => recordReward(ctx, "T1", { member, key, xp, coins: 0, item: null, catalogueVersion: "hugs-1", at: Date.now() }));
 }
 
 async function hugWeeksSeeded(t: Backend, members: number) {
