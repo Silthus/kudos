@@ -5,6 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { analyticsIdOf } from "../analytics/person";
 import { hugGivenEventValidator, kudosGivenEventValidator, questFinishedEventValidator, type HugGivenEvent, type KudosGivenEvent, type MemberWelcomedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
+import { sendsOnce } from "../feedback/sentNotices";
 import { requestWelcome } from "../feedback/welcome";
 import { hugOf } from "../hugs/records";
 import { earnWelcomeItem } from "../items/welcome";
@@ -83,7 +84,7 @@ async function welcomeTheThoughtfullyThanked(ctx: MutationCtx, event: KudosGiven
 
 async function replyToTheFirstHug(ctx: MutationCtx, event: HugGivenEvent) {
   const hug = await hugOf(ctx, event.message, event.giver);
-  if (hug === null) return;
+  if (hug === null || !(await sendsOnce(ctx, event.giver, "first-hug-reply"))) return;
   const { workspace, user } = await chatUserOf(ctx, event.giver);
   const hugged = hug.author === undefined ? { kind: "peopleThanked" as const } : await authorHuggedOf(ctx, hug.author);
   await ctx.scheduler.runAfter(0, internal.slack.firstHugReply.deliverFirstHugReply, { workspace, user, conversation: event.message.conversation, hugged });

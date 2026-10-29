@@ -1,7 +1,7 @@
 import staticHostingComponent from "@convex-dev/static-hosting/test";
 import postHogComponent from "@posthog/convex/test";
 import { convexTest } from "convex-test";
-import type { GenericDatabaseReader } from "convex/server";
+import { makeFunctionReference, type GenericDatabaseReader } from "convex/server";
 import { vi } from "vitest";
 import type { DataModel } from "../convex/_generated/dataModel";
 import schema from "../convex/schema";
@@ -92,6 +92,13 @@ export async function convexStops(t: Backend, functionName: string) {
   await t.run(async (ctx) => {
     for (const job of await pendingJobsOf(ctx, functionName)) await ctx.scheduler.cancel(job._id);
   });
+}
+
+export async function deliverAgain(t: Backend, subscriber: string) {
+  const delivered = await t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name }) => name === subscriber));
+  if (delivered.length === 0) throw new Error(`deliverAgain: ${subscriber} was never delivered`);
+  for (const { args } of delivered) await t.mutation(makeFunctionReference<"mutation">(subscriber), args[0] as never);
+  await settle(t);
 }
 
 export function pendingJobs(t: Backend, functionName: string) {
