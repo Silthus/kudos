@@ -1,11 +1,10 @@
-import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, landsButTimesOut, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsOnForEveryone, onForEveryone } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
-import { post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
+import { deliverAgain, post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aSignedInSession } from "../../testing/website";
 import { internal } from "../_generated/api";
@@ -273,8 +272,7 @@ describe("MQ13: one welcome per member, ever", { timeout: 60_000 }, () => {
     await hug(bob, alice);
     await thanks(carol, saysWhy, alice);
 
-    for (const job of await jobsOf(subscriber)) await t.mutation(makeFunctionReference<"mutation">(job.name), job.args[0] as never);
-    await settle(t);
+    await deliverAgain(t, subscriber);
 
     expect(slack.callsTo("chat.postMessage").filter(isAMondayWelcome).map(({ channel }) => channel).toSorted()).toEqual(["U_ALICE", "U_BOB", "U_CAROL"]);
   });
@@ -301,6 +299,15 @@ describe("MQ15 MQ43: off the Monday path, the first hug keeps its reply and send
 
     expect(slack.callsTo("chat.postEphemeral").map(({ text }) => text)).toEqual(["That was a hug: +1 XP for you and Alice Marchetti. Thank them in a message and say why to earn an item."]);
     expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === bob.user)).toEqual([]);
+  });
+
+  test("Bob's first hug delivered again keeps its one reply", async () => {
+    t = await workspace(todaysFlags);
+    await hug(bob, alice);
+
+    await deliverAgain(t, "welcome/welcome:welcomeOnHug");
+
+    expect(slack.callsTo("chat.postEphemeral"), "the first-hug replies").toHaveLength(1);
   });
 });
 
@@ -548,10 +555,6 @@ function readRichElement({ type, name, text, style }: RichElement) {
 
 function sectionOf(text: string) {
   return { type: "section", text: { type: "mrkdwn", text } };
-}
-
-async function jobsOf(name: string) {
-  return (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).filter((job) => job.name === name);
 }
 
 function dmsSent() {
