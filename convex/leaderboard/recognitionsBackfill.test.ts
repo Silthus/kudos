@@ -5,6 +5,7 @@ import { signingSecret } from "../../testing/signedSlack";
 import { post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import type { HugGivenEvent } from "../bus/events";
 import { insertAwards } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import { totalsOf } from "./counts";
@@ -52,6 +53,24 @@ describe("HH27: the backfill counts the kudos and hugs that came before Leaderbo
 
     expect(await countEarlierRecognitions(t)).toEqual({ kudosReceived: 0, hugsGiven: 0, hugsReceived: 0 });
     expect(await everyCount(t)).toEqual(counted);
+  });
+
+  test("firstDay keeps the earliest giving day, whatever order the awards were stored in and whatever the followers counted first", async () => {
+    const t = testBackend();
+    const [ann, bea, cy] = await members(t, 3);
+    await storedAward(t, ann!, cy!, { day: "2026-10-16", message: "1" });
+    await storedAward(t, ann!, cy!, { day: "2026-10-14", message: "2" });
+    await storedAward(t, bea!, cy!, { day: "2026-10-15", message: "3" });
+    await t.action(internal.leaderboard.backfill.countEarlierKudos, {});
+    await t.mutation(internal.leaderboard.hugs.countHugGiven, { event: hugGivenLive(bea!, "2026-10-13") });
+
+    await countEarlierRecognitions(t);
+    await countEarlierRecognitions(t);
+
+    for (const period of ["week:2026-10-12", "month:2026-10", "all"]) {
+      expect(await t.run((ctx) => totalsOf(ctx, ann!, period)), `Ann's ${period}`).toMatchObject({ kudosGiven: 2, firstDay: "2026-10-14" });
+      expect(await t.run((ctx) => totalsOf(ctx, bea!, period)), `Bea's ${period}`).toMatchObject({ kudosGiven: 1, hugsGiven: 1, firstDay: "2026-10-13" });
+    }
   });
 
   test("a kudos and a hug to 1,000 people count within Convex's limits", async () => {
@@ -142,6 +161,14 @@ async function kudosAndHugStoredBeforeTheFollowers(t: Backend, giver: MemberId, 
     const hug = await ctx.db.insert("hugs", { ...message, giver: hugger, onKudos: true, emoji: "taco", at, day: "2026-10-18" });
     for (const member of recipients) await ctx.db.insert("hugPeople", { hug, member, at });
   });
+}
+
+async function storedAward(t: Backend, giver: MemberId, recipient: MemberId, { day, message }: { day: string; message: string }) {
+  await t.run((ctx) => insertAwards(ctx, { workspace: "T1", conversation: "C1", message }, [{ giver, recipient, kudos: 1 }], day, Date.parse(`${day}T12:00:00Z`)));
+}
+
+function hugGivenLive(giver: MemberId, day: string): HugGivenEvent {
+  return { type: "hugGiven", workspace: "T1", giver, message: { workspace: "T1", conversation: "C1", message: "9" }, onKudos: false, at: Date.parse(`${day}T12:00:00Z`), day };
 }
 
 function slackTs(at: number) {
