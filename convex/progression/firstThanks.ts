@@ -2,7 +2,8 @@ import type { QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { firstDecidedOf, oldestAwardGivenBy, type AwardWithId } from "../engine/awards";
 import { onboardingShownTo } from "../album/items/onboardingFlag";
-import { onboardingQuestXpOf } from "../quests/onboarding";
+import { isPaidOnTheMondayPath } from "../quests/mondayCatalogue";
+import { onboardingRewardKeys } from "../quests/onboarding";
 import type { MemberId } from "../workspace/directory";
 import { isRecorded, progressionWaitedFor } from "./effects";
 import { xpToReach } from "./levels";
@@ -16,7 +17,7 @@ export type FirstThanksTopUp = { xp: number; decided: number };
 
 export async function firstThanksTopUpFor(ctx: QueryCtx, { giver, message, at }: KudosGivenEvent, recorded: AwardWithId[], xpAfter: number): Promise<RewardRecord | null> {
   if (!(await recordsTheFirstAwardOf(ctx, giver, recorded))) return null;
-  const xp = xpToReach(levelTheFirstThanksReaches) - (xpAfter - (await onboardingQuestXpOf(ctx, giver)));
+  const xp = xpToReach(levelTheFirstThanksReaches) - (xpAfter - (await onboardingQuestXpCreditedTo(ctx, giver)));
   if (xp <= 0 || !(await onboardingShownTo(ctx, giver))) return null;
   return { member: giver, key: firstThanksKey, xp, coins: 0, item: null, catalogueVersion: firstThanksCatalogueVersion, at, cause: message };
 }
@@ -32,6 +33,15 @@ export async function firstThanksAwaitsItsMoment(ctx: QueryCtx, member: MemberId
   if ((await firstThanksTopUpPaidTo(ctx, member)) !== null) return true;
   const oldest = await oldestAwardGivenBy(ctx, member);
   return oldest !== null && oldest.decided > now - progressionWaitedFor && !(await isRecorded(ctx, oldest.award, "giver")) && (await onboardingShownTo(ctx, member));
+}
+
+async function onboardingQuestXpCreditedTo(ctx: QueryCtx, member: MemberId): Promise<number> {
+  let xp = 0;
+  for (const key of onboardingRewardKeys) {
+    const reward = await rewardOf(ctx, member, key);
+    if (reward !== null && isPaidOnTheMondayPath(reward)) xp += reward.xp;
+  }
+  return xp;
 }
 
 async function recordsTheFirstAwardOf(ctx: QueryCtx, giver: MemberId, recorded: AwardWithId[]): Promise<boolean> {

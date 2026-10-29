@@ -148,6 +148,18 @@ describe("HH24: Quests publishes its finish and pays nothing; its followers pay 
     expect(await questItemsOf(alice), "the quest items on the board").toEqual([{ kind: "quest", quest: { kind: "journey", step: "first-thanks" } }]);
   });
 
+  test("with Quests, then Progression, then the finish's followers, the giver still lands at 70 XP", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    const given = holdingKudosGiven();
+    await thanks(alice, saysWhy, bob);
+    const finished = holdingQuestFinished();
+
+    await runSubscribersInOrder(given[0]!, ["quests/quests:followKudosGiven", "progression/progression:recordEffects"]);
+    for (const fact of finished) await deliverNow(fact);
+
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+  });
+
   test("Quests' finish record, not the reward record, answers whether an onboarding quest is finished", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
@@ -846,6 +858,10 @@ async function withoutRows(table: "rewardRecords" | "questFinishes", person: Per
 
 async function deliverInOrder(event: KudosGivenEvent, first: string[]) {
   vi.mocked(publish).mockImplementation(deliverForReal);
+  await runSubscribersInOrder(event, first);
+}
+
+async function runSubscribersInOrder(event: KudosGivenEvent, first: string[]) {
   const named = new Map(subscribers.kudosGiven.map((subscription) => ("subscriber" in subscription ? subscription.subscriber : subscription)).map((subscriber) => [getFunctionName(subscriber), subscriber] as const));
   for (const name of [...first, ...[...named.keys()].filter((name) => !first.includes(name))]) {
     await t.mutation(named.get(name)! as FunctionReference<"mutation", "internal", { event: KudosGivenEvent }>, { event });

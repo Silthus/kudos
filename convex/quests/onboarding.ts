@@ -118,14 +118,7 @@ export async function onboardingFinishedAt(ctx: QueryCtx, member: MemberId): Pro
   return finishedAt;
 }
 
-export async function onboardingQuestXpOf(ctx: QueryCtx, member: MemberId): Promise<number> {
-  let xp = 0;
-  for (const step of onboardingSteps) {
-    const finish = await finishOf(ctx, member, step);
-    if (finish !== null && isPaidOnTheMondayPath(finish)) xp += finish.xp;
-  }
-  return xp;
-}
+export const onboardingRewardKeys = onboardingSteps.map((step) => rewardKeyOf({ kind: "journey", step }));
 
 export async function advanceOnboarding(ctx: MutationCtx, event: KudosGivenEvent): Promise<FinishedOnboardingQuest[]> {
   const start = await questStartOf(ctx, event.giver);
