@@ -214,14 +214,14 @@ export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<D
   return previous?.day ?? null;
 }
 
-export type GivenKudos = { message: MessageRef; at: number };
+export type GivenKudos = { award: AwardId; message: MessageRef; at: number };
 
-export async function firstGivenSince(ctx: QueryCtx, giver: MemberId, since: number): Promise<GivenKudos | null> {
-  const first = await ctx.db
+export async function* givenNewestFirst(ctx: QueryCtx, giver: MemberId, since: number, until: number): AsyncGenerator<GivenKudos> {
+  const given = ctx.db
     .query("awards")
-    .withIndex("by_giver_at", (q) => q.eq("giver", giver).gte("at", since))
-    .first();
-  return first === null ? null : { message: { workspace: first.workspace, conversation: first.conversation, message: first.message }, at: first.at };
+    .withIndex("by_giver_at", (q) => q.eq("giver", giver).gte("at", since).lte("at", until))
+    .order("desc");
+  for await (const { _id, workspace, conversation, message, at } of given) yield { award: _id, message: { workspace, conversation, message }, at };
 }
 
 export type EarliestAward = { award: AwardId; at: number; created: number };

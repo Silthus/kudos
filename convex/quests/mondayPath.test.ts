@@ -191,6 +191,19 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([someoneNew]);
   });
 
+  test("MQ47: a kudos Quests handled before any kudos counted leaves first-thanks to the next kudos, which says so in its reply", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+    await thanks(alice, "thanks", bob);
+    await switchWebsite(t, postHog, true, ...mondayPath);
+
+    const next = await thanks(alice, "thanks", bob);
+
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([next]);
+    expect(replyTo(alice), "the next kudos' reply").toContain(firstThanksDone);
+  });
+
   test("MQ47: delivered later first, each kudos counts as done only the quest its own kudos finished", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);

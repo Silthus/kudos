@@ -1,13 +1,14 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { isSameMessage, type MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstDecidedOf, firstGivenSince, givenBetween, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward } from "../engine/awards";
+import { earliestAwardFrom, firstDecidedOf, givenBetween, givenNewestFirst, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward, type GivenKudos } from "../engine/awards";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
 import { hasThankedEveryone, type Reward } from "./journey";
 import { journeyGoalOf } from "./journeyCopy";
+import { questsJudgedFor } from "./judged";
 import { isPaidOnTheMondayPath, mondayCatalogueVersion } from "./mondayCatalogue";
 import type { Moved, MovedQuest, ProgressRead, QuestProgress } from "./progress";
 import { questStartOf } from "./start";
@@ -165,10 +166,19 @@ async function firstThanksCameBefore(ctx: QueryCtx, member: MemberId, start: num
   return (await givenBetween(ctx, member, start, at - 1)).length > 0;
 }
 
-async function advanceFirstThanks(ctx: MutationCtx, { workspace, giver }: KudosGivenEvent, start: number): Promise<void> {
-  if ((await finishOf(ctx, giver, "first-thanks")) !== null) return;
-  const earliest = await firstGivenSince(ctx, giver, start);
-  if (earliest !== null) await finished(ctx, workspace, giver, "first-thanks", earliest.at, earliest.message);
+async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<void> {
+  if ((await finishOf(ctx, event.giver, "first-thanks")) !== null) return;
+  const earliest = (await earliestKudosQuestsHaveNotJudged(ctx, event, start)) ?? event;
+  await finished(ctx, event.workspace, event.giver, "first-thanks", earliest.at, earliest.message);
+}
+
+async function earliestKudosQuestsHaveNotJudged(ctx: QueryCtx, { giver, at }: KudosGivenEvent, start: number): Promise<GivenKudos | null> {
+  let earliest: GivenKudos | null = null;
+  for await (const kudos of givenNewestFirst(ctx, giver, start, at)) {
+    if (await questsJudgedFor(ctx, [kudos])) break;
+    earliest = kudos;
+  }
+  return earliest;
 }
 
 async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<void> {
