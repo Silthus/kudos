@@ -5,6 +5,7 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import type { Id } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
 import { standingOf } from "../progression/progression";
 
@@ -57,6 +58,17 @@ describe("P90: a first kudos that says why finishes the Journey's first step", (
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
     expect(slack.messagesIn("C1").map(({ text }) => text)).not.toContainEqual(expect.stringContaining("reached level"));
+  });
+
+  test("HH24: the step's finish is written to Quests' own finish record, as on the Monday path", async () => {
+    const t = await workspace();
+
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    const alice = await memberOf(t, "U_ALICE");
+    const cause = { workspace: "T1", conversation: "C1", message: "1760349600.000101" };
+    const kudosSentAt = new Date("2025-10-13T10:00:00Z").getTime();
+    expect(await finishesOf(t, alice)).toEqual([{ member: alice, key: "journey:first-thanks", xp: 10, catalogueVersion: "2", at: kudosSentAt, cause }]);
   });
 });
 
@@ -268,4 +280,9 @@ async function memberOf(t: Backend, user: string) {
 async function standing(t: Backend, user: string) {
   const member = await memberOf(t, user);
   return t.run((ctx) => standingOf(ctx, member));
+}
+
+async function finishesOf(t: Backend, member: Id<"members">) {
+  const rows = await t.run((ctx) => ctx.db.query("questFinishes").withIndex("by_member_key", (q) => q.eq("member", member)).collect());
+  return rows.map(({ _id, _creationTime, ...finish }) => finish);
 }
