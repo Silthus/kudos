@@ -3,7 +3,6 @@ import { hasHuggedBefore } from "../hugs/records";
 import { earnedItemOf, newestTurnOf } from "../items/ledger";
 import { rewardKeyOf } from "../quests/crates";
 import { questItemKeyOf } from "../quests/finish";
-import { saysWhyCounts } from "../quests/journeyCopy";
 import { nextOnboardingQuestOf, onboardingFinishedBy, onboardingGoalOf, onboardingQuestFactsOf, onboardingReward, onboardingTargetOf, type OnboardingQuestFacts, type OnboardingStep } from "../quests/onboarding";
 import { withoutFullStop, type QuestId } from "../quests/pool";
 import type { Quest } from "../quests/step";
@@ -33,9 +32,9 @@ const guidance: Record<"hug" | "turn", { goal: string; hint: string | null }> = 
 };
 
 const questHints: Record<OnboardingStep, string> = {
-  "first-thanks": saysWhyCounts,
+  "first-thanks": "Mention someone in a Slack message and add your kudos emoji.",
   "someone-new": "Someone from another team counts, and so does a new joiner.",
-  "two-days": saysWhyCounts,
+  "two-days": "One kudos today and another on any later day.",
 };
 
 export async function mondayQuestsOf(ctx: QueryCtx, me: VerifiedMember): Promise<MondayQuests> {

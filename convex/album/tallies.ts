@@ -5,7 +5,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { hugGivenEventValidator, kudosGivenEventValidator } from "../bus/events";
 import { allowanceDay, type DayKey } from "../engine/allowance";
 import { givenFactsOf, storedAnnotationsOf, type AwardId } from "../engine/awards";
-import type { Annotations, MessageRef } from "../engine/messageEvent";
+import { isSameMessage, type Annotations, type MessageRef } from "../engine/messageEvent";
 import { hugOf, hugPeopleAfter, hugWithId, type Hug } from "../hugs/records";
 import { hugsOnTheMessage } from "../hugs/weeks";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
@@ -293,14 +293,10 @@ function bestOf(current: KudosPick | null, candidate: KudosPick): KudosPick {
 }
 
 function kudosOfTheWeek(current: HugPick | null, candidate: HugPick): HugPick {
-  if (current === null || sameMessage(current.message, candidate.message)) return candidate;
+  if (current === null || isSameMessage(current.message, candidate.message)) return candidate;
   if (candidate.hugs !== current.hugs) return candidate.hugs > current.hugs ? candidate : current;
   if (candidate.words !== current.words) return candidate.words > current.words ? candidate : current;
   return candidate.at >= current.at ? candidate : current;
-}
-
-function sameMessage(one: MessageRef, other: MessageRef) {
-  return one.workspace === other.workspace && one.conversation === other.conversation && one.message === other.message;
 }
 
 function countedOn(days: number[], week: DayKey, day: DayKey) {

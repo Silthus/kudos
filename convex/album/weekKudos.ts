@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { weekOf, type DayKey, type Week } from "../engine/allowance";
 import { awardsInWeekNewestDaysFirst, type WeekAward } from "../engine/awards";
 import { takenBackInSlack } from "../engine/kudosText";
-import type { MessageRef } from "../engine/messageEvent";
+import { isSameMessage, type MessageRef } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 
 export const kudosListedAWeek = 50;
@@ -62,8 +62,4 @@ function keyOf({ workspace, conversation, message }: MessageRef) {
 
 function withAFewNamed({ message, at, people }: MessageAwards): WeekKudos {
   return { message, at, people: people.slice(0, peopleNamedAKudos), morePeople: Math.max(0, people.length - peopleNamedAKudos) };
-}
-
-function isSameMessage(one: MessageRef, other: MessageRef) {
-  return one.workspace === other.workspace && one.conversation === other.conversation && one.message === other.message;
 }

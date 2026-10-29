@@ -27,7 +27,7 @@ const dan = { user: "U_DAN", name: "Dan Halvorsen" };
 const quests = `${siteUrl}/book#me/quests`;
 const book = `${siteUrl}/book`;
 const oneWaits = "An unidentified Hoggie for your collection is waiting for you.";
-const firstThanksUpNext = "section: *Up next: thank someone and say why.*\nMention them, add :taco: and write a sentence about what they did.";
+const firstThanksUpNext = "section: *Up next: give a kudos to someone.*\nMention them in a message and add :taco:.";
 
 type Person = { user: string; name: string };
 
@@ -78,13 +78,13 @@ describe("MQ14 MQ15 MQ19 MQ21 MQ22: a first hug on the Monday path is answered w
                 style: "bullet",
                 indent: 0,
                 elements: [
-                  { type: "rich_text_section", elements: [{ type: "emoji", name: "point_right", skin_tone: 2 }, { type: "text", text: " Thank someone and say why", style: { bold: true, strike: false } }] },
-                  { type: "rich_text_section", elements: [{ type: "emoji", name: "white_circle" }, { type: "text", text: " Thank someone you haven't thanked before", style: { bold: false, strike: false } }] },
+                  { type: "rich_text_section", elements: [{ type: "emoji", name: "point_right", skin_tone: 2 }, { type: "text", text: " Give a kudos to someone", style: { bold: true, strike: false } }] },
+                  { type: "rich_text_section", elements: [{ type: "emoji", name: "white_circle" }, { type: "text", text: " Thank someone new", style: { bold: false, strike: false } }] },
                   {
                     type: "rich_text_section",
                     elements: [
                       { type: "emoji", name: "white_circle" },
-                      { type: "text", text: " Say why on 2 different days", style: { bold: false, strike: false } },
+                      { type: "text", text: " Thank someone on two different days", style: { bold: false, strike: false } },
                       { type: "text", text: "  0 of 2 days", style: { italic: true } },
                     ],
                   },
@@ -93,7 +93,7 @@ describe("MQ14 MQ15 MQ19 MQ21 MQ22: a first hug on the Monday path is answered w
             ],
           },
           {
-            ...sectionOf("*Up next: thank someone and say why.*\nMention them, add :taco: and write a sentence about what they did."),
+            ...sectionOf("*Up next: give a kudos to someone.*\nMention them in a message and add :taco:."),
             accessory: { type: "button", text: { type: "plain_text", text: "Show me how" }, action_id: "dm-link:welcome:quests-how", value: "first-thanks" },
           },
           { type: "context", elements: [{ type: "mrkdwn", text: "🎁 +50 XP and an unidentified Hoggie for your collection" }] },
@@ -139,7 +139,7 @@ describe("MQ14 MQ15 MQ19 MQ21 MQ22: a first hug on the Monday path is answered w
   });
 });
 
-describe("MQ14 MQ21: a first thoughtful kudos on the Monday path welcomes the giver at 1 of 3 and each recipient at 0 of 3", { timeout: 60_000 }, () => {
+describe("MQ14 MQ21 MQ46: a first kudos on the Monday path welcomes the giver at 1 of 3, and a thoughtful one each recipient at 0 of 3", { timeout: 60_000 }, () => {
   test("the giver's welcome says the first step is done and points at thanking someone new", async () => {
     t = await workspace(mondayPath);
 
@@ -151,8 +151,8 @@ describe("MQ14 MQ21: a first thoughtful kudos on the Monday path welcomes the gi
       `section: Hey <@U_ALICE> :wave::skin-tone-2: Your first kudos just landed with <@U_BOB>, and you said why. That's the one that counts! :tada:\n\nYou just completed the first step of your onboarding journey. Six unidentified Hoggies for your collection are waiting for you.`,
       "divider",
       "section: *Your onboarding journey* · 1 of 3 done",
-      "rich_text: :white_check_mark: ~Thank someone and say why~ | :point_right: *Thank someone you haven't thanked before* | :white_circle: Say why on 2 different days _1 of 2 days_",
-      `section: *Up next: thank someone you haven't thanked before.*\nSomeone from another team counts too. [button: Show me how → someone-new]`,
+      "rich_text: :white_check_mark: ~Give a kudos to someone~ | :point_right: *Thank someone new* | :white_circle: Thank someone on two different days _1 of 2 days_",
+      `section: *Up next: thank someone new.*\nSomeone from another team counts too. [button: Show me how → someone-new]`,
       "context: 🎁 +50 XP and an unidentified Hoggie for your collection",
       "actions: [Identify them now] | See your quests",
     ]);
@@ -170,7 +170,7 @@ describe("MQ14 MQ21: a first thoughtful kudos on the Monday path welcomes the gi
         `section: Hey <@${recipient.user}> :wave::skin-tone-2: <@U_ALICE> just thanked you with a kudos!\n> _${saysWhy} @Bob Okonkwo @Carol Lindqvist :taco:_\n\nFeels good, right? :slightly_smiling_face: ${oneWaits} Your first quest is to pass it on.`,
         "divider",
         "section: *Your onboarding journey* · 0 of 3 done",
-        "rich_text: :point_right: *Thank someone and say why* | :white_circle: Thank someone you haven't thanked before | :white_circle: Say why on 2 different days _0 of 2 days_",
+        "rich_text: :point_right: *Give a kudos to someone* | :white_circle: Thank someone new | :white_circle: Thank someone on two different days _0 of 2 days_",
         `${firstThanksUpNext} [button: Show me how → first-thanks]`,
         "context: 🎁 +50 XP and an unidentified Hoggie for your collection",
         "actions: [Identify it now] | See your quests",
@@ -178,12 +178,13 @@ describe("MQ14 MQ21: a first thoughtful kudos on the Monday path welcomes the gi
     }
   });
 
-  test("a kudos that doesn't say why welcomes nobody", async () => {
+  test("MQ46: a first kudos that doesn't say why welcomes its giver at 1 of 3 and none of its recipients", async () => {
     t = await workspace(mondayPath);
 
     await thanks(alice, "thanks", bob);
 
-    expect(slack.callsTo("chat.postMessage").filter(isAMondayWelcome)).toEqual([]);
+    expect(welcomesTo(alice).map((welcome) => readWelcome(welcome)[2]), "the giver's welcomes").toEqual(["section: *Your onboarding journey* · 1 of 3 done"]);
+    expect(welcomesTo(bob), "the recipient's welcomes").toEqual([]);
   });
 });
 
@@ -198,7 +199,7 @@ describe("MQ22: Show me how answers in the welcome's thread", { timeout: 60_000 
       {
         channel: "U_BOB",
         thread_ts: welcomeShownTo(bob).ts,
-        text: "*How to thank someone and say why*\nMention them, add :taco: and write a sentence about what they did.\n\nA kudos that says why looks like this, in any channel I'm in:\n> @Ana thanks for untangling the deploy, it saved my afternoon :taco:",
+        text: "*How to give a kudos to someone*\nMention them in a message and add :taco:.\n\nA kudos looks like this, in any channel I'm in:\n> @Ana thanks for untangling the deploy, it saved my afternoon :taco:",
         unfurl_links: false,
         unfurl_media: false,
       },
@@ -212,7 +213,7 @@ describe("MQ22: Show me how answers in the welcome's thread", { timeout: 60_000 
     await showMeHow(alice);
 
     expect(howToRepliesTo(alice).map(({ text }) => text)).toEqual([
-      "*How to thank someone you haven't thanked before*\nSomeone from another team counts too.\n\nA kudos that says why looks like this, in any channel I'm in:\n> @Ana thanks for untangling the deploy, it saved my afternoon :taco:",
+      "*How to thank someone new*\nSomeone from another team counts too.\n\nA kudos looks like this, in any channel I'm in:\n> @Ana thanks for untangling the deploy, it saved my afternoon :taco:",
     ]);
   });
 

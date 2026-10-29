@@ -39,8 +39,8 @@ const mondayPath = [...todaysFlags, "monday-quest"];
 const drawnReward = { xp: 20, coins: 0, item: null };
 const drawnPaid = { xp: 20, coins: 0 };
 const saysWhyGoal = "Thank someone and say why";
-const firstThanksDone = "Quest done: Thank someone and say why · +50 XP and an unidentified Hoggie for your collection";
-const someoneNewDone = "Quest done: Thank someone you haven't thanked before · +50 XP and an unidentified Hoggie for your collection";
+const firstThanksDone = "Quest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection";
+const someoneNewDone = "Quest done: Thank someone new · +50 XP and an unidentified Hoggie for your collection";
 
 const deliverForReal = vi.mocked(publish).getMockImplementation()!;
 
@@ -70,7 +70,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("MQ5 MQ7 MQ10 MQ12: a first thoughtful kudos on the Monday path finishes the first onboarding quest", { timeout: 60_000 }, () => {
+describe("MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first onboarding quest", { timeout: 60_000 }, () => {
   test("the giver lands at 70 XP, 1 of 3 done, with the quest's Hoggie waiting and the reply's finish line", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
 
@@ -108,7 +108,7 @@ describe("MQ5 MQ7 MQ10 MQ12: a first thoughtful kudos on the Monday path finishe
     expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(1);
   });
 
-  test("MQ43: with monday-quest off, a first thoughtful kudos is as before: 20 XP, no quest, no finish line", async () => {
+  test("MQ43: with monday-quest off, a first kudos is as before: 20 XP, no quest, no finish line", async () => {
     await switchWebsite(t, postHog, true, ...todaysFlags);
 
     await thanks(alice, saysWhy, bob);
@@ -131,74 +131,57 @@ describe("MQ3 MQ5 MQ6: the three onboarding quests are active at once", { timeou
     expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(2);
   });
 
-  test("kudos that say why on 2 different days finish the third quest, whatever order the steps come in", async () => {
+  test("MQ46: kudos on 2 different days finish the third quest, whatever they say and whatever order the steps come in", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await memberChanged(t, "team_join", { id: carol.user, profile: { real_name: carol.name } });
 
-    await thanks(alice, saysWhy, bob);
+    await thanks(alice, "thanks", bob);
     vi.setSystemTime(Date.now() + 24 * 60 * minuteMs);
-    await thanks(alice, saysWhy, bob);
+    await thanks(alice, "thanks", bob);
 
     expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
-    expect(replyTo(alice), "the second day's reply").toContain("Quest done: Say why on 2 different days · +50 XP and an unidentified Hoggie for your collection");
+    expect(replyTo(alice), "the second day's reply").toContain("Quest done: Thank someone on two different days · +50 XP and an unidentified Hoggie for your collection");
   });
 
-  test("a kudos that doesn't say why starts nothing, and the giver's first kudos that says why starts the quests and finishes the first", async () => {
+  test("MQ46: a first kudos that doesn't say why starts the quests and finishes the first, landing the giver at 70 XP", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
 
     await thanks(alice, "thanks", bob);
-    const plain = replyTo(alice);
-    await thanks(alice, saysWhy, carol);
 
-    expect(plain.join("\n"), "the plain kudos' reply").not.toContain("Quest done");
-    expect(replyTo(alice), "the kudos that says why's reply").toEqual(expect.arrayContaining([firstThanksDone]));
-    expect(replyTo(alice).join("\n"), "the kudos that says why's reply").not.toContain("haven't thanked before");
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
+    expect(replyTo(alice), "the plain kudos' reply").toContain(firstThanksDone);
   });
 });
 
 describe("MQ5: the onboarding quests count each kudos as of when it was given, whatever order the subscribers run in", { timeout: 60_000 }, () => {
-  test("a kudos given before the one that finished first-thanks doesn't finish someone-new, even when it is delivered after it", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await startedByTheSweep(alice);
-    const held = holdingKudosGiven();
-
-    await thanks(alice, "thanks", bob);
-    await thanks(alice, saysWhy, carol);
-    await deliverInOrder(held[1]!, []);
-    await deliverInOrder(held[0]!, []);
-
-    expect(await nextQuestOf(alice), "the next onboarding quest").toBe("someone-new");
-    expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(1);
-  });
-
   test.each([
-    ["before", [1, 0]],
-    ["after", [0, 1]],
-  ])("a kudos to someone new given after the one that finished first-thanks finishes someone-new as its own, delivered %s it", async (_, order) => {
+    ["the earlier first", [0, 1]],
+    ["the later first", [1, 0]],
+  ])("MQ47: two kudos to someone new, each in its own message, finish first-thanks and someone-new, one each, delivered %s", async (_, order) => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);
     const held = holdingKudosGiven();
 
-    await thanks(alice, saysWhy, carol);
     await thanks(alice, "thanks", bob);
+    await thanks(alice, "thanks", carol);
     for (const index of order) await deliverInOrder(held[index]!, []);
 
-    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([held[0]!.message.message]);
-    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([held[1]!.message.message]);
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([held[order[0]!]!.message.message]);
+    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([held[order[1]!]!.message.message]);
   });
 
-  test("a kudos to someone new posted after the one that finishes first-thanks finishes someone-new, even when Slack sends it first", async () => {
+  test("MQ47: a kudos to someone new that Slack sends before an earlier one finishes first-thanks, and the earlier one finishes someone-new", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);
     vi.setSystemTime(Date.now() + 2 * minuteMs);
-    const sayingWhy = tsOf(Date.now() - minuteMs);
+    const earlier = tsOf(Date.now() - minuteMs);
 
-    const toSomeoneNew = await thanksPostedAt(tsOf(Date.now()), alice, "thanks", bob);
-    await thanksPostedAt(sayingWhy, alice, saysWhy, carol);
+    const sentFirst = await thanksPostedAt(tsOf(Date.now()), alice, "thanks", bob);
+    await thanksPostedAt(earlier, alice, "thanks", carol);
 
-    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([sayingWhy]);
-    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([toSomeoneNew]);
-    expect(replyTo(alice).filter((line) => line.startsWith("Quest done:")), "the reply still to be sent tells both finishes").toEqual([firstThanksDone, someoneNewDone]);
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([sentFirst]);
+    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([earlier]);
   });
 
   test("kudos that say why on 2 different days finish two-days, even when Slack sends the later day's first", async () => {
@@ -214,7 +197,7 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
 
     expect(await causesOf(alice, "journey:two-days"), "the kudos two-days is paid for").toEqual([dayOne]);
     expect(await finishTimesOf(alice, "journey:two-days"), "when two-days finished: on the second day").toEqual([dayTwoAt]);
-    expect(replyTo(alice), "the reply still to be sent").toContain("Quest done: Say why on 2 different days · +50 XP and an unidentified Hoggie for your collection");
+    expect(replyTo(alice), "the reply still to be sent").toContain("Quest done: Thank someone on two different days · +50 XP and an unidentified Hoggie for your collection");
   });
 
   test("a kudos that says why counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {
@@ -301,9 +284,11 @@ describe("MQ5: someone-new is judged across a leave and a rejoin as on the unloc
   });
 
   test("a giver who had thanked every teammate before the quests started finishes someone-new on the next kudos after first-thanks", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath);
+    await switchWebsite(t, postHog, true, ...todaysFlags);
     await thanks(alice, "thanks", bob, carol);
-    await thanks(alice, saysWhy, bob);
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await sweepForANewWeek();
+    await thanks(alice, "thanks", bob);
     expect(await nextQuestOf(alice), "the next onboarding quest after first-thanks").toBe("someone-new");
 
     await thanks(alice, "thanks", bob);
@@ -326,11 +311,12 @@ describe("MQ5: someone-new is judged across a leave and a rejoin as on the unloc
     expect(await nextQuestOf(alice), "the next onboarding quest").toBeNull();
   });
 
-  test("before first-thanks is done, a leave finishes nothing", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await startedByTheSweep(alice);
+  test("before first-thanks is done, a leave finishes nothing, even for a giver who thanked everyone before the start", async () => {
+    await switchWebsite(t, postHog, true, ...todaysFlags);
     await joins(carol);
     await thanks(alice, "thanks", bob);
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await sweepForANewWeek();
 
     await leaves(carol);
 

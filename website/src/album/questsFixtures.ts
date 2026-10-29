@@ -1,8 +1,6 @@
 import type { DrawnQuest, GettingStartedStep, MondayQuests } from "../../../convex/website/quests";
 import type { QuestsRead, QuestsShown } from "./answer";
 
-const saysWhyCounts = "It counts when your message has 5 or more words besides mentions and emoji.";
-
 const once = { done: 0, target: 1 };
 
 const finishedOnce = { done: 1, target: 1 };
@@ -10,10 +8,10 @@ const finishedOnce = { done: 1, target: 1 };
 function newcomerJourney(): GettingStartedStep[] {
   return [
     { step: "hug", goal: "Give your first hug", hint: "React with your kudos emoji on any message in Slack.", progress: finishedOnce, done: true, reward: null, item: null },
-    { step: "first-thanks", goal: "Thank someone and say why", hint: saysWhyCounts, progress: once, done: false, reward: { xp: 50 }, item: null },
+    { step: "first-thanks", goal: "Give a kudos to someone", hint: "Mention someone in a Slack message and add your kudos emoji.", progress: once, done: false, reward: { xp: 50 }, item: null },
     { step: "turn", goal: "Identify the hoggie it left on your board", hint: null, progress: once, done: false, reward: null, item: null },
-    { step: "someone-new", goal: "Thank someone you haven't thanked before", hint: "Someone from another team counts, and so does a new joiner.", progress: once, done: false, reward: { xp: 50 }, item: null },
-    { step: "two-days", goal: "Say why on 2 different days", hint: saysWhyCounts, progress: { done: 0, target: 2 }, done: false, reward: { xp: 50 }, item: null },
+    { step: "someone-new", goal: "Thank someone new", hint: "Someone from another team counts, and so does a new joiner.", progress: once, done: false, reward: { xp: 50 }, item: null },
+    { step: "two-days", goal: "Thank someone on two different days", hint: "One kudos today and another on any later day.", progress: { done: 0, target: 2 }, done: false, reward: { xp: 50 }, item: null },
   ];
 }
 
