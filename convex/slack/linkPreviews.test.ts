@@ -337,7 +337,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
         type: "section",
         fields: [
           { type: "mrkdwn", text: "🏆 *No. 1* on the all-time leaderboard" },
-          { type: "mrkdwn", text: "💛 *12* thoughtful kudos given" },
+          { type: "mrkdwn", text: "💛 *12* kudos given" },
           { type: "mrkdwn", text: "🦔 *3* of 151 hoggies found" },
           { type: "mrkdwn", text: "📒 *1* person in their album" },
           { type: "mrkdwn", text: "🔓 *1* emoji unlocked" },
@@ -375,7 +375,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
       type: "section",
       fields: [
         { type: "mrkdwn", text: "🏆 *No. 1, tied* on the all-time leaderboard" },
-        { type: "mrkdwn", text: "💛 *4* thoughtful kudos given" },
+        { type: "mrkdwn", text: "💛 *4* kudos given" },
       ],
     });
   });
@@ -484,7 +484,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
 });
 
 describe("LP85: while rich-link-cards is on, a team card shows who said thanks, its place and its rarest hoggies", { timeout: 30_000 }, () => {
-  test("a team link unfolds into the share of its people who said thanks, its all-time place, its thoughtful kudos and its people's rarest hoggies", async () => {
+  test("a team link unfolds into the share of its people who said thanks, its all-time place, its kudos given and its people's rarest hoggies", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
     const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
     await matched(t, bram, 2);
@@ -504,7 +504,7 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
         type: "section",
         fields: [
           { type: "mrkdwn", text: "🏆 *No. 1* on the all-time team leaderboard" },
-          { type: "mrkdwn", text: "💛 *15* thoughtful kudos given" },
+          { type: "mrkdwn", text: "💛 *15* kudos given" },
         ],
       },
       { type: "context", elements: [hoggiePicture("angel", "Angel"), hoggiePicture("asleep", "Asleep"), { type: "mrkdwn", text: "Rarest find: *Angel* · Epic" }] },
@@ -521,7 +521,9 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*\n3 people\n🌱 No thoughtful kudos yet. The first one puts Kettle Works on the board.`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*
+3 people
+🌱 No kudos yet. The first one puts Kettle Works on the board.`, verbatim: true },
         accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
       },
       { type: "context", elements: [{ type: "mrkdwn", text: teamAsOf }] },
@@ -566,7 +568,7 @@ describe("LP84: a person card's emoji count stays within Convex's limits", { tim
 });
 
 describe("LP86: a rich card shows only the leaderboard's facts and the person's own page, the same whoever shares it", { timeout: 30_000 }, () => {
-  test("a member off the boards shows no place and no thoughtful kudos, and their team doesn't count them", async () => {
+  test("a member off the boards shows no place and no kudos given, and their team doesn't count them", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");
     await thanked(t, { [juno]: 12 });
@@ -575,10 +577,10 @@ describe("LP86: a rich card shows only the leaderboard's facts and the person's 
 
     await shared(t, [person, team]);
 
-    expect(JSON.stringify(blocksOf(person))).not.toMatch(/leaderboard|thoughtful/);
+    expect(JSON.stringify(blocksOf(person))).not.toMatch(/leaderboard|kudos given/);
     expect(JSON.stringify(blocksOf(person))).toMatch(/Level 3 → 4/);
     expect(JSON.stringify(blocksOf(team))).not.toMatch(/leaderboard|said thanks/);
-    expect(JSON.stringify(blocksOf(team))).toMatch(/No thoughtful kudos yet/);
+    expect(JSON.stringify(blocksOf(team))).toMatch(/No kudos yet/);
   });
 
   test("the card is the same whoever shares it, and names no XP, no kudos received and no hugs", async () => {
@@ -679,7 +681,7 @@ describe("LP99 LP100: while card-image is on, a person link unfolds into a pictu
       {
         type: "image",
         image_url: picture!.url,
-        alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 this week, 4 thoughtful kudos. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 0 medals. Rarest find: Wizard, Legendary, found 21 Oct 2026.",
+        alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 this week, 4 kudos. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 0 medals. Rarest find: Wizard, Legendary, found 21 Oct 2026.",
       },
       { type: "context", elements: [{ type: "mrkdwn", text: `*<${fromALinkCard(url)}|Juno Park>* · HedgeHug album · as of ${madeAt}` }] },
     ]);

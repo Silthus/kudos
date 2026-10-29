@@ -78,7 +78,7 @@ function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onCho
     <div className="al-page-body al-leaderboard">
       <header className="al-leaderboard-head">
         <div className="al-leaderboard-title">
-          <p className="al-eyebrow">Leaderboard · thoughtful kudos given</p>
+          <p className="al-eyebrow">Leaderboard · kudos given</p>
           <PageTitle tab="Leaderboard" size="hero">
             Who said thanks, and why
           </PageTitle>
@@ -90,7 +90,7 @@ function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onCho
         <TeamBoard boards={boards} rows={teamRows} foldToggle={foldToggle} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
-        <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
+        <p>Only kudos count. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
         {!boards.onTheBoards && (
           <p className="al-board-off">
             You're off the boards by choice. Switch on "Show me on the leaderboards" in <AppLink href={hrefOf({ kind: "settings" })}>Settings</AppLink> to come back.
@@ -193,7 +193,7 @@ function PeopleStory({ boards, words, offer, onChoosePeriod }: PeopleStoryProps)
   const given = boards.people.reduce((sum, { thoughtful }) => sum + thoughtful, 0);
   return (
     <Story headline={<span className="ph-no-capture">{leadWords(leaders.map(({ name }) => name), leaders[0]!.thoughtful)}</span>}>
-      {[`${given} thoughtful kudos given${words.span || " in all"}.`, boards.onTheBoards ? myStandingWords(boards.pinned.me, words) : ""].join(" ").trim()}
+      {[`${given} kudos given${words.span || " in all"}.`, boards.onTheBoards ? myStandingWords(boards.pinned.me, words) : ""].join(" ").trim()}
     </Story>
   );
 }
@@ -238,7 +238,7 @@ function TeamStory({ boards, words }: { boards: ThoughtfulBoards; words: PeriodW
 function NoTeamYet() {
   return (
     <>
-      Your thoughtful kudos count for your team once you're matched to your profile. <AppLink href={findYourselfHref}>Find yourself on posthog.com</AppLink>
+      Your kudos count for your team once you're matched to your profile. <AppLink href={findYourselfHref}>Find yourself on posthog.com</AppLink>
     </>
   );
 }
@@ -381,7 +381,7 @@ function Score({ thoughtful }: { thoughtful: number }) {
   return (
     <span className="al-board-score">
       {thoughtful}
-      <span className="al-sr"> thoughtful kudos</span>
+      <span className="al-sr"> kudos</span>
     </span>
   );
 }

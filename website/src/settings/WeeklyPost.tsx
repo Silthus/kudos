@@ -12,7 +12,7 @@ type ChannelPick = NonNullable<WeeklyPostSetting["channelPick"]>;
 
 type ChannelCheck = NonNullable<ChannelPick["check"]>;
 
-const postNamed: Record<WeeklyPostSetting["posts"], string> = { groups: "last week's top groups", topKudos: "last week's top thoughtful kudos" };
+const postNamed: Record<WeeklyPostSetting["posts"], string> = { groups: "last week's top groups", topKudos: "last week's top kudos" };
 
 const landedLines = { on: "Switched on. The next one goes out on Monday at 9:00.", off: "Switched off. Nothing goes out until it's switched on again." };
 
