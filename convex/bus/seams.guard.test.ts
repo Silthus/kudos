@@ -65,7 +65,6 @@ const allowed: string[] = [
   "convex/progression/perks.ts coinsShownTo",
   "convex/progression/perks.ts spend",
   "convex/progression/progression.ts credit",
-  "convex/quests/finish.ts earnItem",
   "convex/quests/finish.ts recordReward",
   "convex/quests/groupQuest.ts table:members",
   "convex/quests/groupQuest.ts table:userGroups",

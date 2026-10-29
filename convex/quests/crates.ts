@@ -59,11 +59,13 @@ export async function recordWaits(ctx: QueryCtx, reward: RewardRecord | null): P
   return reward?.held === true && (await crateOpeningOf(ctx, reward.member, reward.key)) === null;
 }
 
-export function waitsUnopened(reward: RewardRecord | null, opening: Doc<"crateOpenings"> | null): boolean {
+type Finish = Pick<RewardRecord, "at" | "catalogueVersion" | "held">;
+
+export function waitsUnopened(reward: Finish | null, opening: Doc<"crateOpenings"> | null): boolean {
   return reward?.held === true && opening === null;
 }
 
-export function crateOpenedAt(reward: RewardRecord | null, opening: Doc<"crateOpenings"> | null): number | null {
+export function crateOpenedAt(reward: Finish | null, opening: Doc<"crateOpenings"> | null): number | null {
   if (opening !== null) return opening.at;
   return reward !== null && isPaidOnTheMondayPath(reward) ? reward.at : null;
 }

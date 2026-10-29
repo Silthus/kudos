@@ -2,7 +2,6 @@ import type { MutationCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
-import { earnItem } from "../album/items/ledger";
 import { belongsInTheFinishRecord, recordQuestFinish } from "./finishes";
 import { recordReward } from "../progression/progression";
 import { rewardOf } from "../progression/rewards";
@@ -18,17 +17,11 @@ import type { Quest } from "./step";
 
 export type PromisedReward = { reward: Reward; catalogueVersion: string; poolQuest?: QuestId | GroupQuestId };
 
-export function questItemKeyOf(rewardKey: string): `quest:${string}` {
-  return `quest:${rewardKey}`;
-}
-
 export async function finishMondayQuest(ctx: MutationCtx, workspace: string, member: MemberId, quest: Quest, { reward, catalogueVersion, poolQuest }: PromisedReward, at: number, cause?: MessageRef): Promise<boolean> {
-  const key = rewardKeyOf(quest);
-  const recorded = await recordReward(ctx, workspace, { member, key, ...reward, coins: 0, catalogueVersion, at, ...(cause && { cause }) });
+  const rewardKey = rewardKeyOf(quest);
+  const recorded = await recordQuestFinish(ctx, { member, key: rewardKey, xp: reward.xp, catalogueVersion, at, ...(cause && { cause }) });
   if (recorded === "already recorded") return false;
-  await recordQuestFinish(ctx, { member, key, xp: reward.xp, catalogueVersion, at, ...(cause && { cause }) });
-  await earnItem(ctx, { workspace, member, source: "hoggie", key: questItemKeyOf(key), reason: { kind: "quest", quest }, earnedAt: at });
-  await publish(ctx, { type: "questFinished", workspace, member, quest, ...(poolQuest === undefined ? {} : { poolQuest }), reward: { xp: reward.xp, coins: 0 }, at });
+  await publish(ctx, { type: "questFinished", workspace, member, quest, ...(poolQuest === undefined ? {} : { poolQuest }), rewardKey, reward: { xp: reward.xp, coins: 0 }, catalogueVersion, at, ...(cause && { cause }) });
   return true;
 }
 

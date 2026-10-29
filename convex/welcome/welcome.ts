@@ -10,8 +10,8 @@ import { requestWelcome } from "../feedback/welcome";
 import { hugOf } from "../hugs/records";
 import { earnWelcomeItem } from "../album/items/welcome";
 import { onboardingShownTo } from "../album/items/onboardingFlag";
-import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
+import { questFinishOf } from "../quests/finishes";
 import { mondayPathShownTo, onTheMondayPath } from "../quests/flag";
 import { isPaidOnTheMondayPath } from "../quests/mondayCatalogue";
 import { onboardingQuestsOf } from "../quests/onboarding";
@@ -47,7 +47,7 @@ export const welcomeOnFirstThanks = internalMutation({
   args: { event: questFinishedEventValidator },
   handler: async (ctx, { event: { member, quest, at } }): Promise<void> => {
     if (!isTheFirstThanks(quest)) return;
-    const finish = await rewardOf(ctx, member, rewardKeyOf(quest));
+    const finish = await questFinishOf(ctx, member, rewardKeyOf(quest));
     if (finish === null || !isPaidOnTheMondayPath(finish) || !(await onTheMondayPath(ctx, member))) return;
     await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-given", ...(finish.cause && { kudos: finish.cause }) }, at);
   },

@@ -12,6 +12,7 @@ import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
+import { questFinishOf } from "./finishes";
 import { crateOpenedAt, crateOpeningOf, rewardKeyOf, waitsUnopened, weeklyQuestOfRewardKey } from "./crates";
 import { finishMondayQuest, finishQuest } from "./finish";
 import { onTheMondayPath, questsLiveFor, type QuestPath } from "./flag";
@@ -243,10 +244,11 @@ function questSwapOf({ swappedIn, replaced, swappedAt }: Swap): QuestSwap {
   return { slot: swappedIn.slot, replaced, quest: swappedIn.quest, swappedAt };
 }
 
-async function weeklySlotOf(ctx: QueryCtx, { member, week }: Draw, slot: Slot): Promise<WeeklySlot> {
+async function weeklySlotOf(ctx: QueryCtx, draw: Draw, slot: Slot): Promise<WeeklySlot> {
+  const { member, week } = draw;
   const pooled = questOf(slot.quest);
   const key = rewardKeyOf(weeklyQuest(week, slot));
-  const finish = await rewardOf(ctx, member, key);
+  const finish = await finishOfSlot(ctx, draw, slot);
   const opening = await crateOpeningOf(ctx, member, key);
   const progress = questProgress(pooled, await countedFor(ctx, member, week, slot));
   return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: crateOpenedAt(finish, opening), waiting: waitsUnopened(finish, opening) };
@@ -258,8 +260,13 @@ async function unfinishedSlotsOf(ctx: QueryCtx, draw: Draw, slots: Slot[]): Prom
   return open;
 }
 
-async function isFinished(ctx: QueryCtx, { member, week }: Draw, slot: Slot): Promise<boolean> {
-  return (await rewardOf(ctx, member, rewardKeyOf(weeklyQuest(week, slot)))) !== null;
+async function isFinished(ctx: QueryCtx, draw: Draw, slot: Slot): Promise<boolean> {
+  return (await finishOfSlot(ctx, draw, slot)) !== null;
+}
+
+function finishOfSlot(ctx: QueryCtx, { member, week }: Draw, slot: Slot) {
+  const key = rewardKeyOf(weeklyQuest(week, slot));
+  return isPaidOnTheMondayPath(slot) ? questFinishOf(ctx, member, key) : rewardOf(ctx, member, key);
 }
 
 async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, week }: Draw, slot: Slot, awards: QuestAward[]): Promise<SlotAdvance> {

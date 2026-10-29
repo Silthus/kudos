@@ -10,7 +10,7 @@ import { appHomeOpened, emoji, mention, section, text } from "../../testing/slac
 import { opens } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import type { KudosGivenEvent } from "../bus/events";
+import type { KudosGivenEvent, QuestFinishedEvent } from "../bus/events";
 import { publish, subscribers } from "../bus/publish";
 import { messageSettingsOf } from "../messageSettings/messageSettings";
 import { standingOf } from "../progression/progression";
@@ -125,6 +125,61 @@ describe("MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first
     expect(await xpOf(alice), "the giver's XP").toBe(20);
     expect(await questItemsOf(alice), "the quest items on the board").toEqual([]);
     expect(replyTo(alice).join("\n"), "the after-kudos reply").not.toContain("Quest done");
+  });
+});
+
+describe("HH24: Quests publishes its finish and pays nothing; its followers pay from questFinished", { timeout: 60_000 }, () => {
+  test("the finish publishes its reward key, reward, catalogue version and cause, names the quest in the reply, and is paid once its facts are delivered", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    const held = holdingQuestFinished();
+
+    const ts = await thanks(alice, saysWhy, bob);
+
+    expect(held.map(({ rewardKey, reward, catalogueVersion, cause }) => ({ rewardKey, reward, catalogueVersion, cause })), "the finish facts").toEqual([
+      { rewardKey: "journey:first-thanks", reward: { xp: 50, coins: 0 }, catalogueVersion: "monday-1", cause: { workspace: "T1", conversation: "C1", message: ts } },
+    ]);
+    expect(replyTo(alice), "the after-kudos reply").toContain(firstThanksDone);
+    expect(await xpOf(alice), "the giver's XP before the facts are delivered").toBe(20);
+    expect(await questItemsOf(alice), "the quest items before the facts are delivered").toEqual([]);
+
+    for (let delivery = 0; delivery < 2; delivery += 1) await deliverNow(held[0]!);
+
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+    expect(await questItemsOf(alice), "the quest items on the board").toEqual([{ kind: "quest", quest: { kind: "journey", step: "first-thanks" } }]);
+  });
+
+  test("with Quests, then Progression, then the finish's followers, the giver still lands at 70 XP", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    const given = holdingKudosGiven();
+    await thanks(alice, saysWhy, bob);
+    const finished = holdingQuestFinished();
+
+    await runSubscribersInOrder(given[0]!, ["quests/quests:followKudosGiven", "progression/progression:recordEffects"]);
+    for (const fact of finished) await deliverNow(fact);
+
+    expect(await xpOf(alice), "the giver's XP").toBe(70);
+  });
+
+  test("Quests' finish record, not the reward record, answers whether an onboarding quest is finished", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+
+    await withoutRows("rewardRecords", alice, "journey:first-thanks");
+    expect(await nextQuestOf(alice), "without the reward record").toBe("someone-new");
+
+    await withoutRows("questFinishes", alice, "journey:first-thanks");
+    expect(await nextQuestOf(alice), "without the finish record").toBe("first-thanks");
+  });
+
+  test("Quests' finish record answers whether a drawn quest is finished", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+    await thanks(alice, saysWhy, bob);
+    const finished = (await weekOf(alice))!.slots.filter(({ finishedAt }) => finishedAt !== null);
+
+    for (const { slot } of finished) await withoutRows("rewardRecords", alice, `weekly:${(await weekOf(alice))!.week}:${slot}`);
+
+    expect((await weekOf(alice))!.slots.filter(({ finishedAt }) => finishedAt !== null), "the finished slots without their reward records").toEqual(finished);
   });
 });
 
@@ -779,8 +834,34 @@ function holdingKudosGiven() {
   return held;
 }
 
+function holdingQuestFinished() {
+  const held: QuestFinishedEvent[] = [];
+  vi.mocked(publish).mockImplementation(async (ctx, event) => {
+    if (event.type === "questFinished") held.push(event);
+    else await deliverForReal(ctx, event);
+  });
+  return held;
+}
+
+async function deliverNow(event: QuestFinishedEvent) {
+  vi.mocked(publish).mockImplementation(deliverForReal);
+  await t.run((ctx) => deliverForReal(ctx, event));
+  await settle(t);
+}
+
+async function withoutRows(table: "rewardRecords" | "questFinishes", person: Person, key: string) {
+  const member = await memberOf(person);
+  await t.run(async (ctx) => {
+    for (const row of await ctx.db.query(table).withIndex("by_member_key", (q) => q.eq("member", member).eq("key", key)).collect()) await ctx.db.delete(row._id);
+  });
+}
+
 async function deliverInOrder(event: KudosGivenEvent, first: string[]) {
   vi.mocked(publish).mockImplementation(deliverForReal);
+  await runSubscribersInOrder(event, first);
+}
+
+async function runSubscribersInOrder(event: KudosGivenEvent, first: string[]) {
   const named = new Map(subscribers.kudosGiven.map((subscription) => ("subscriber" in subscription ? subscription.subscriber : subscription)).map((subscriber) => [getFunctionName(subscriber), subscriber] as const));
   for (const name of [...first, ...[...named.keys()].filter((name) => !first.includes(name))]) {
     await t.mutation(named.get(name)! as FunctionReference<"mutation", "internal", { event: KudosGivenEvent }>, { event });
