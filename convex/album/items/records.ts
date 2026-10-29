@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { milestoneIdValidator, milestoneTierValidator } from "../records";
 import { messageRefValidator } from "../../engine/messageEvent";
-import { rarityValidator } from "../hoggies/catalogue";
+import { rarityValidator, weightsNameValidator } from "../hoggies/catalogue";
 import { questValidator } from "../../quests/step";
 
 export const itemSourceValidator = v.union(v.literal("sticker"), v.literal("hoggie"));
@@ -22,6 +22,8 @@ export const itemValidator = v.object({
   source: itemSourceValidator,
   key: v.string(),
   floor: v.optional(rarityValidator),
+  cap: v.optional(rarityValidator),
+  weights: v.optional(weightsNameValidator),
   reason: itemReasonValidator,
   earnedAt: v.number(),
   turnedAt: v.optional(v.number()),
