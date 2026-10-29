@@ -191,11 +191,16 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([someoneNew]);
   });
 
-  test("MQ47: a kudos Quests handled before any kudos counted leaves first-thanks to the next kudos, which says so in its reply", async () => {
+  test.each([
+    ["Quests marked handled", false],
+    ["Quests handled before it marked what it handled", true],
+  ])("MQ47: a kudos %s, from before any kudos counted, leaves first-thanks to the next kudos, which says so in its reply", async (_, unmarked) => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);
     await switchWebsite(t, postHog, true, ...todaysFlags);
     await thanks(alice, "thanks", bob);
+    if (unmarked) await forgetWhatQuestsHandled();
+    vi.setSystemTime(Date.now() + 30 * minuteMs);
     await switchWebsite(t, postHog, true, ...mondayPath);
 
     const next = await thanks(alice, "thanks", bob);
@@ -695,6 +700,12 @@ async function onboardingRecordsOf(person: Person) {
     .filter((record) => record.member === member && record.key.startsWith("journey:"))
     .map(({ key }) => key)
     .toSorted();
+}
+
+async function forgetWhatQuestsHandled() {
+  await t.run(async (ctx) => {
+    for (const { _id } of await ctx.db.query("questsJudged").collect()) await ctx.db.delete(_id);
+  });
 }
 
 async function onboardingDoneBy(event: KudosGivenEvent) {

@@ -2,6 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { isSameMessage, type MessageRef } from "../engine/messageEvent";
 import { earliestAwardFrom, firstDecidedOf, givenBetween, givenNewestFirst, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward, type GivenKudos } from "../engine/awards";
+import { progressionWaitedFor } from "../progression/effects";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf } from "./crates";
@@ -168,14 +169,15 @@ async function firstThanksCameBefore(ctx: QueryCtx, member: MemberId, start: num
 
 async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, start: number): Promise<void> {
   if ((await finishOf(ctx, event.giver, "first-thanks")) !== null) return;
-  const earliest = (await earliestKudosQuestsHaveNotJudged(ctx, event, start)) ?? event;
+  const earliest = (await earliestKudosAwaitingQuests(ctx, event, start)) ?? event;
   await finished(ctx, event.workspace, event.giver, "first-thanks", earliest.at, earliest.message);
 }
 
-async function earliestKudosQuestsHaveNotJudged(ctx: QueryCtx, { giver, at }: KudosGivenEvent, start: number): Promise<GivenKudos | null> {
+async function earliestKudosAwaitingQuests(ctx: QueryCtx, event: KudosGivenEvent, start: number): Promise<GivenKudos | null> {
+  const awaitedAbove = (await recordedAtOf(ctx, event)) - progressionWaitedFor;
   let earliest: GivenKudos | null = null;
-  for await (const kudos of givenNewestFirst(ctx, giver, start, at)) {
-    if (await questsJudgedFor(ctx, [kudos])) break;
+  for await (const kudos of givenNewestFirst(ctx, event.giver, start, event.at)) {
+    if (kudos.created <= awaitedAbove || (await questsJudgedFor(ctx, [kudos]))) break;
     earliest = kudos;
   }
   return earliest;
