@@ -4,7 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
-import type { MessageRef } from "../engine/messageEvent";
+import { isSameMessage, type MessageRef } from "../engine/messageEvent";
 import type { CrateKey } from "../hoggies/crateKey";
 import { earnItem } from "../items/ledger";
 import { givingWeekOf } from "../progression/progress";
@@ -67,7 +67,7 @@ export async function isFirstPackFor(ctx: QueryCtx, { _id, giver, recipient }: D
 
 export async function isFirstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId, message: MessageRef): Promise<boolean> {
   const first = await firstPackGrantedFor(ctx, giver, recipient);
-  return first !== null && isTheSameMessage(first.message, message);
+  return first !== null && isSameMessage(first.message, message);
 }
 
 export function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
@@ -75,10 +75,6 @@ export function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: M
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))
     .first();
-}
-
-function isTheSameMessage(one: MessageRef, other: MessageRef) {
-  return one.workspace === other.workspace && one.conversation === other.conversation && one.message === other.message;
 }
 
 function recipientsOf(event: KudosGivenEvent): MemberId[] {

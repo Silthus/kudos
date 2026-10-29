@@ -13,9 +13,8 @@ import { skillTreeAppliesIn } from "../progression/skillTree";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { journeyStepNamedTo, questsHoldTheReplyOf } from "../quests/flag";
-import { isOnboardingStep, onboardingGoalOf } from "../quests/onboarding";
+import { finishedStepGoalOf } from "../quests/onboarding";
 import { rewardWaits } from "../quests/crates";
-import { journeyGoalOf } from "../quests/journeyCopy";
 import { withoutFullStop } from "../quests/pool";
 import { journeyStepValidator } from "../quests/step";
 import type { MovedQuest } from "../quests/progress";
@@ -274,7 +273,7 @@ function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
 
 function goalOf(done: QuestDoneShown) {
   if (done.kind === "weekly") return done.goal;
-  return done.hoggie === true && isOnboardingStep(done.step) ? onboardingGoalOf(done.step) : journeyGoalOf(done.step);
+  return finishedStepGoalOf(done.step, done.hoggie === true);
 }
 
 export function renderReply(reply: Exclude<Reply, { kind: "given" }>): Line[] {

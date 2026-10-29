@@ -5,7 +5,6 @@ import { releaseSuccessReply, type QuestDone } from "../feedback/replies";
 import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf, rewardWaits } from "./crates";
 import { mondayPathShownTo, onTheMondayPath, questsApplyTo, questsShownTo } from "./flag";
-import { saysWhy } from "../progression/gate";
 import { judgeQuestsOf } from "./judged";
 import type { MovedQuest } from "./progress";
 import { advanceOnboarding, onboardingMovedBy } from "./onboarding";
@@ -41,7 +40,7 @@ async function questsMovedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<
 }
 
 async function mondayQuestsMovedBy(ctx: MutationCtx, event: KudosGivenEvent): Promise<QuestsMoved> {
-  if ((await questStartOf(ctx, event.giver)) === null && saysWhy(event.annotations) && (await mondayPathShownTo(ctx, event.giver))) await startQuests(ctx, event.giver, event.at);
+  if ((await questStartOf(ctx, event.giver)) === null && (await mondayPathShownTo(ctx, event.giver))) await startQuests(ctx, event.giver, event.at);
   const drawn = await advanceWeeklyQuests(ctx, event, "monday");
   const onboarding = await advanceOnboarding(ctx, event);
   const done = [...drawn.finished.map(({ goal, reward: { xp } }) => ({ kind: "weekly", goal, xp, hoggie: true }) as const), ...onboarding.map(({ step, reward: { xp } }) => ({ kind: "journey", step, xp, hoggie: true }) as const)];
