@@ -23,8 +23,8 @@ const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
 const dan = { user: "U_DAN", name: "Dan Halvorsen" };
-const quests = `${siteUrl}/book#me/quests`;
-const book = `${siteUrl}/book`;
+const quests = `${siteUrl}/book?src=welcome#me/quests`;
+const book = `${siteUrl}/book?src=welcome`;
 const oneWaits = "An unidentified Hoggie for your collection is waiting for you.";
 const firstThanksUpNext = "section: *Up next: give a kudos to someone.*\nMention them in a message and add :taco:.";
 

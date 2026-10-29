@@ -283,7 +283,9 @@ function finishedRowsIn(home: string[]) {
 }
 
 function openOnTheWeb(path: string) {
-  return `[link: Open ${siteUrl}${path}]`;
+  const link = new URL(path, siteUrl);
+  link.searchParams.set("src", "app-home");
+  return `[link: Open ${link}]`;
 }
 
 function gainsLinesTo(user: string) {
