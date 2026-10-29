@@ -430,6 +430,26 @@ describe("AL80: behind admin-hype-emojis, the maintainer lists every current mem
     expect((await emojiWithId(asBruno, `hype:${await memberOf(lei)}`))?.name, lei.name).toBe(shown.lei);
   });
 
+  test("namesakes of a member whose hype emoji is named each show the free name their first thoughtful kudos gives them", async () => {
+    const namesakes = [{ user: "U_ALICE_TWO", name: alice.name }, { user: "U_ALICE_THREE", name: alice.name }];
+    await collects(bruno, alice);
+    for (const namesake of namesakes) {
+      slack.withMember(namesake.user, { profile: { display_name: namesake.name, real_name: namesake.name } });
+      await memberChanged(t, "team_join", slackUser(namesake));
+    }
+    await settle(t);
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    const listed = (await appEmojisOf(await signedIn(owner))).emojis;
+    const shown = new Set(listed.filter(({ kind, from }) => kind === "hype" && from === alice.name).map(({ name }) => name));
+
+    await collects(bruno, ...namesakes);
+
+    const asBruno = await signedIn(bruno);
+    const given = await Promise.all([alice, ...namesakes].map(async (someone) => (await emojiWithId(asBruno, `hype:${await memberOf(someone)}`))?.name));
+    expect(shown).toEqual(new Set(given));
+    expect(shown.size).toBe(3);
+  });
+
   test("a former member's hype emoji stays off the list, named or not", async () => {
     await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
     await aliceCollects(lanterns[0]!);

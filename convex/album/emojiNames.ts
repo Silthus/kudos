@@ -26,8 +26,12 @@ export async function nameHypeEmojiOf(ctx: MutationCtx, workspace: string, perso
   await allocate(ctx, workspace, `hype:${person}`, hypeNameShapeOf(await fullNameOf(ctx, person)));
 }
 
-export function hypeEmojiNameFor(fullName: string): string {
+export function firstHypeEmojiNameFor(fullName: string): string {
   return firstCandidateOf(hypeNameShapeOf(fullName));
+}
+
+export async function hypeEmojiNameFor(ctx: QueryCtx, workspace: string, fullName: string, alsoTaken: AlsoTaken): Promise<string> {
+  return (await nextFreeName(ctx, workspace, hypeNameShapeOf(fullName), alsoTaken)).name;
 }
 
 function hypeNameShapeOf(fullName: string): NameShape {
@@ -237,26 +241,42 @@ async function allocate(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiI
   await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name: await firstFreeName(ctx, workspace, shape) });
 }
 
-type AlsoTaken = (name: string) => Promise<boolean>;
+export type AlsoTaken = (name: string) => Promise<boolean>;
+
+type FreeName = { name: string; number?: number };
 
 function firstCandidateOf({ slug, empty, suffix }: NameShape): string {
   return slug === "" ? `${empty}-1${suffix}` : `${slug}${suffix}`;
 }
 
 async function firstFreeName(ctx: MutationCtx, workspace: string, shape: NameShape, alsoTaken: AlsoTaken = async () => false): Promise<string> {
+  const { name, number } = await nextFreeName(ctx, workspace, shape, alsoTaken);
+  if (number !== undefined) await recordNumberOf(ctx, workspace, shape, number);
+  return name;
+}
+
+async function nextFreeName(ctx: QueryCtx, workspace: string, shape: NameShape, alsoTaken: AlsoTaken): Promise<FreeName> {
   const { slug, empty, suffix } = shape;
   const isFreeHere = async (name: string) => (await isFree(ctx, workspace, name)) && !(await alsoTaken(name));
   const plain = firstCandidateOf(shape);
-  if (slug !== "" && (await isFreeHere(plain))) return plain;
+  if (slug !== "" && (await isFreeHere(plain))) return { name: plain };
   const stem = slug === "" ? empty : slug;
-  const numbering = await numberingOf(ctx, workspace, `${stem}${suffix}`);
+  const numbering = await numberingOf(ctx, workspace, numberedStemOf(shape));
   for (let n = (numbering?.last ?? (slug === "" ? 0 : 1)) + 1; ; n += 1) {
     const name = `${stem}-${n}${suffix}`;
-    if (!(await isFreeHere(name))) continue;
-    if (numbering === null) await ctx.db.insert("emojiNameNumbers", { workspace, stem: `${stem}${suffix}`, last: n });
-    else await ctx.db.patch(numbering._id, { last: n });
-    return name;
+    if (await isFreeHere(name)) return { name, number: n };
   }
+}
+
+async function recordNumberOf(ctx: MutationCtx, workspace: string, shape: NameShape, last: number): Promise<void> {
+  const stem = numberedStemOf(shape);
+  const numbering = await numberingOf(ctx, workspace, stem);
+  if (numbering === null) await ctx.db.insert("emojiNameNumbers", { workspace, stem, last });
+  else await ctx.db.patch(numbering._id, { last });
+}
+
+function numberedStemOf({ slug, empty, suffix }: NameShape): string {
+  return `${slug === "" ? empty : slug}${suffix}`;
 }
 
 async function isFree(ctx: QueryCtx, workspace: string, name: string) {

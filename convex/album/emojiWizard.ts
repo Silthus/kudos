@@ -10,7 +10,7 @@ import { levelEmojiPictureOf } from "./levelEmojis";
 import { emojiClassesIn, isClassed } from "./emojiClasses";
 import { hypeFaceOf, isEarnedBy, teamPictureOf, type EarnedEmojiKind } from "./earnedEmojis";
 import { placeSlackEmoji, targetOf, type MappingTarget } from "./emojiMappings";
-import { emojiNamed, emojiNameOf, giveEmojiTheName, hypeEmojiNameFor, mapperOf, namesHeldIn, registeredEmojisIn, teamPrefixed, type EarnedEmojiId, type RegisteredEmoji } from "./emojiNames";
+import { emojiNamed, emojiNameOf, giveEmojiTheName, hypeEmojiNameFor, firstHypeEmojiNameFor, mapperOf, namesHeldIn, registeredEmojisIn, teamPrefixed, type EarnedEmojiId, type RegisteredEmoji } from "./emojiNames";
 import type { EmojiMapper } from "./records";
 
 export type SlackEmojiMatch = { name: string; image: string; free: boolean };
@@ -69,7 +69,7 @@ export async function mapAppEmojiInPlace(ctx: MutationCtx, workspace: string, ma
 
 export type AppEmojiRows = { rows: AppEmojiRow[]; more: boolean };
 
-type ListedAppEmoji = RegisteredEmoji & { named: boolean };
+type ListedAppEmoji = RegisteredEmoji & { named: boolean; fullName?: string };
 
 export async function appEmojisIn(ctx: QueryCtx, workspace: string, levels: readonly number[], everyHype: boolean): Promise<AppEmojiRows> {
   const teams = new Map((await companyTeamsOf(ctx)).map((team) => [team.team, team]));
@@ -78,20 +78,32 @@ export async function appEmojisIn(ctx: QueryCtx, workspace: string, levels: read
   const holders = await holdersIn(ctx, currentMembers);
   const registered = await registeredEmojisIn(ctx, workspace);
   const listed: ListedAppEmoji[] = [...registered.map((row) => ({ ...row, named: true })), ...(everyHype ? unnamedHypesOf(people, registered) : [])];
+  const hints = hypeNameHintsIn(ctx, workspace);
   const rows: AppEmojiRow[] = [];
-  for (const { emoji, name, mappedBy, named, holders: held } of listed.map((row) => ({ ...row, holders: holders.get(row.emoji) ?? 0 })).toSorted((one, other) => other.holders - one.holders || one.name.localeCompare(other.name))) {
+  for (const { emoji, name, mappedBy, named, fullName = "", holders: held } of listed.map((row) => ({ ...row, holders: holders.get(row.emoji) ?? 0 })).toSorted((one, other) => other.holders - one.holders || one.name.localeCompare(other.name))) {
     const shown = await shownAppEmojiOf(ctx, workspace, emoji, { teams, currentMembers, levels });
     if (shown === null) continue;
     if (rows.length === mostAppEmojisListed) return { rows, more: true };
     const image = named ? await slackEmojiImageOf(ctx, workspace, name) : undefined;
-    rows.push({ emoji, ...shown, name, holders: held, slack: image === undefined ? null : { image, mappedBy } });
+    rows.push({ emoji, ...shown, name: named ? name : await hints.nameFor(fullName), holders: held, slack: image === undefined ? null : { image, mappedBy } });
   }
   return { rows, more: false };
 }
 
 function unnamedHypesOf(people: NamedMember[], registered: RegisteredEmoji[]): ListedAppEmoji[] {
   const named = new Set<string>(registered.map(({ emoji }) => emoji));
-  return people.filter(({ member }) => !named.has(`hype:${member}`)).map(({ member, fullName }) => ({ emoji: `hype:${member}`, name: hypeEmojiNameFor(fullName), mappedBy: null, named: false }));
+  return people.filter(({ member }) => !named.has(`hype:${member}`)).map(({ member, fullName }) => ({ emoji: `hype:${member}`, name: firstHypeEmojiNameFor(fullName), fullName, mappedBy: null, named: false }));
+}
+
+function hypeNameHintsIn(ctx: QueryCtx, workspace: string) {
+  const hinted = new Set<string>();
+  return {
+    async nameFor(fullName: string): Promise<string> {
+      const name = await hypeEmojiNameFor(ctx, workspace, fullName, async (candidate) => hinted.has(candidate));
+      hinted.add(name);
+      return name;
+    },
+  };
 }
 
 function splitOnce(id: string): [string, string] {
