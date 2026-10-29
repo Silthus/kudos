@@ -558,8 +558,8 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
 
     const moment = await theMomentOf(asAlice);
     expect(moment.quests, "the quests finished").toEqual([
-      { kind: "journey", goal: "Give a kudos that says why.", xp: 50, waiting: false, hoggie: true },
-      { kind: "journey", goal: "Thank someone you haven't thanked before.", xp: 50, waiting: false, hoggie: true },
+      { kind: "journey", goal: "Give a kudos to someone", xp: 50, waiting: false, hoggie: true },
+      { kind: "journey", goal: "Thank someone new", xp: 50, waiting: false, hoggie: true },
     ]);
     expect(moment.climb.to, "the climb's end").toEqual((await albumOf(asAlice)).level);
     expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp + 100);
@@ -574,7 +574,7 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
 
     const moment = await theMomentOf(asAlice);
     expect(moment.excerpts.map(({ entry }) => entry.kind), "the excerpts").not.toContain("kudosGiven");
-    expect(moment.quests.map(({ goal }) => goal), "the quests finished").toEqual(["Give a kudos that says why."]);
+    expect(moment.quests.map(({ goal }) => goal), "the quests finished").toEqual(["Give a kudos to someone"]);
   });
 
   test("a kudos whose quests aren't judged yet waits out of the moment, and plays its quest's beat once they are", async () => {
@@ -590,7 +590,7 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
     await held.record();
 
     const next = await theMomentOf(asAlice);
-    expect(next.quests.map(({ goal }) => goal), "the next moment's quests").toEqual(["Give a kudos that says why."]);
+    expect(next.quests.map(({ goal }) => goal), "the next moment's quests").toEqual(["Give a kudos to someone"]);
     expect(next.climb.to.xp - next.climb.from.xp, "the next moment's climb").toBe(next.xp + 50);
   });
 

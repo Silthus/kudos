@@ -273,7 +273,7 @@ describe("MQ22 MQ28: a DM link keeps its quests through sign-in", { timeout: 30_
     openAsAMember("/book?code=12345678#me/quests/someone-new");
 
     const panel = within(await screen.findByRole("complementary", { name: "Quests" }, arrival));
-    const step = within(panel.getByRole("listitem", { name: /^Thank someone you haven't thanked before:/ }));
+    const step = within(panel.getByRole("listitem", { name: /^Thank someone new:/ }));
     expect(await step.findByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
   });
 });

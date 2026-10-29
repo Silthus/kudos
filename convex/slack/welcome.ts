@@ -69,9 +69,9 @@ export const deliverMondayWelcome = observedAction({
 const recipientsNamedAtMost = 3;
 
 const howTos: Record<OnboardingStep, (kudosEmoji: string) => string> = {
-  "first-thanks": (kudosEmoji) => `Mention them, add :${kudosEmoji}: and write a sentence about what they did.`,
+  "first-thanks": (kudosEmoji) => `Mention them in a message and add :${kudosEmoji}:.`,
   "someone-new": () => "Someone from another team counts too.",
-  "two-days": () => "Two kudos that say why, on two different days.",
+  "two-days": () => "One kudos today and another on any later day.",
 };
 
 const rewardLine = `🎁 ${hoggieRewardOf(onboardingReward.xp)}`;
@@ -95,7 +95,7 @@ export const replyWithHowTo = observedAction({
 });
 
 function howToReplyOf(step: OnboardingStep, kudosEmoji: string) {
-  return `*How to ${onboardingGoalOf(step).toLowerCase()}*\n${howTos[step](kudosEmoji)}\n\nA kudos that says why looks like this, in any channel I'm in:\n> ${exampleKudos} :${kudosEmoji}:`;
+  return `*How to ${onboardingGoalOf(step).toLowerCase()}*\n${howTos[step](kudosEmoji)}\n\nA kudos looks like this, in any channel I'm in:\n> ${exampleKudos} :${kudosEmoji}:`;
 }
 
 function mondayWelcomeMessageOf(welcome: MondayWelcome, user: string) {

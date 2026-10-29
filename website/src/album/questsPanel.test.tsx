@@ -64,10 +64,10 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     expect(panel.getByText("A few small ways to make someone's day. Every quest leaves an unidentified hoggie on your board.")).toBeInTheDocument();
     expect(panel.getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual([
       "Give your first hug: done",
-      "Thank someone and say why: next, +50 XP and an unidentified hoggie",
+      "Give a kudos to someone: next, +50 XP and an unidentified hoggie",
       "Identify the hoggie it left on your board: not yet",
-      "Thank someone you haven't thanked before: not yet, +50 XP and an unidentified hoggie",
-      "Say why on 2 different days: not yet, +50 XP and an unidentified hoggie",
+      "Thank someone new: not yet, +50 XP and an unidentified hoggie",
+      "Thank someone on two different days: not yet, +50 XP and an unidentified hoggie",
     ]);
     expect(panel.getByText("Once these are done, three new quests arrive every Monday.")).toBeInTheDocument();
   });
@@ -76,7 +76,7 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     visit(aTeamPage, { quests: fixedQuests(questsFixtures.halfway) });
 
     const panel = await openPanel();
-    const next = within(panel.getByRole("listitem", { name: /^Thank someone you haven't thanked before: next/ }));
+    const next = within(panel.getByRole("listitem", { name: /^Thank someone new: next/ }));
     expect(next.getByText("Next")).toBeInTheDocument();
     expect(next.getByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
     expect(panel.getByRole("img", { name: "1 of 2" })).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     visit(aTeamPage, { quests: fixedQuests(questsFixtures.firstThanks) });
 
     const panel = await openPanel();
-    const finished = within(panel.getByRole("listitem", { name: /^Thank someone and say why: done/ }));
+    const finished = within(panel.getByRole("listitem", { name: /^Give a kudos to someone: done/ }));
     expect(finished.getByRole("button", { name: "Identify it on your board →" })).toBeInTheDocument();
     expect(panel.getAllByRole("button", { name: "Identify it on your board →" })).toHaveLength(1);
   });
@@ -219,7 +219,7 @@ describe("MQ40: the member's own page D leaves the quests to the panel", { timeo
   ])("MQ22: the welcome's link %s opens the named step's how-to: %s", async (address, opened) => {
     visit(address, { album: withPageD });
 
-    const step = within((await openPanel()).getByRole("listitem", { name: /^Thank someone you haven't thanked before:/ }));
+    const step = within((await openPanel()).getByRole("listitem", { name: /^Thank someone new:/ }));
 
     if (opened) expect(await step.findByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
     else expect(step.queryByText("Someone from another team counts, and so does a new joiner.")).not.toBeInTheDocument();
