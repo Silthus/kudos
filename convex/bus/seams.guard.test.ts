@@ -93,10 +93,26 @@ describe("HH16: writes cross modules as bus facts", () => {
   test("the crossings of a module's write function or table are exactly the allowlist, so it only shrinks", () => {
     expect(everyCrossing().toSorted(), "+ crossings not on the allowlist, - allowlisted crossings that no longer occur").toEqual(allowed.toSorted());
   });
+
+  test.each([
+    ["a named import", `import { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a renamed import over lines", `import {\n  type Earning,\n  earnItem as earn,\n} from '../items/ledger';`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a namespace import", `import * as ledger from "../items/ledger";\nawait ledger.earnItem(ctx, earning);`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a re-export", `export { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a query in single quotes", `await ctx.db.query('items').collect();`, ["convex/stickers/stickers.ts table:items"]],
+    ["a type-only import", `import type { earnItem } from "../items/ledger";`, []],
+    ["the module's own write and table", `import { insertSticker } from "./records";\nawait ctx.db.query("stickers").collect();`, []],
+  ])("finds %s", (_, source, crossings) => {
+    expect(crossingsOf("/convex/stickers/stickers.ts", source)).toEqual(crossings);
+  });
 });
 
 function everyCrossing() {
-  return [...new Set(Object.entries(sources).flatMap(([path, source]) => [...writesImportedBy(path, source), ...tablesQueriedBy(path, source)]))];
+  return [...new Set(Object.entries(sources).flatMap(([path, source]) => crossingsOf(path, source)))];
+}
+
+function crossingsOf(path: string, source: string) {
+  return [...writesImportedBy(path, source), ...tablesQueriedBy(path, source)];
 }
 
 function writesImportedBy(path: string, source: string) {
@@ -107,15 +123,26 @@ function writesImportedBy(path: string, source: string) {
 }
 
 function tablesQueriedBy(path: string, source: string) {
-  return [...source.matchAll(/\.query\(\s*"(\w+)"/g)]
+  return [...source.matchAll(/\.query\(\s*["'`](\w+)["'`]/g)]
     .map(([, table = ""]) => table)
     .filter((table) => ownerOf(table) !== undefined && ownerOf(table) !== moduleOf(path))
     .map((table) => `${fileOf(path)} table:${table}`);
 }
 
 function importsOf(source: string) {
-  return [...source.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*"([^"]+)"/g)].map(([whole, names = "", from = ""]) => ({
-    names: whole.startsWith("import type") ? [] : names.split(",").flatMap(valueNameOf),
+  return [...namedImportsOf(source), ...namespaceImportsOf(source)];
+}
+
+function namedImportsOf(source: string) {
+  return [...source.matchAll(/(?:import|export)\s+(type\s+)?\{([^}]*)\}\s*from\s*["']([^"']+)["']/g)].map(([, typeOnly, names = "", from = ""]) => ({
+    names: typeOnly === undefined ? names.split(",").flatMap(valueNameOf) : [],
+    from,
+  }));
+}
+
+function namespaceImportsOf(source: string) {
+  return [...source.matchAll(/import\s+\*\s+as\s+(\w+)\s+from\s*["']([^"']+)["']/g)].map(([, namespace = "", from = ""]) => ({
+    names: [...source.matchAll(new RegExp(`\\b${namespace}\\.(\\w+)`, "g"))].map(([, name = ""]) => name),
     from,
   }));
 }
