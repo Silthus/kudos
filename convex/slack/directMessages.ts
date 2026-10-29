@@ -17,7 +17,8 @@ export const deliverDirectMessage = observedAction({
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
-        if (await ctx.runQuery(internal.feedback.notify.followersStillAwaited, { member: message.member, notification: message.notification })) {
+        const followersAwaitedUntil = await ctx.runQuery(internal.feedback.notify.followersAwaitedUntil, { member: message.member, notification: message.notification });
+        if (followersAwaitedUntil !== null && Date.now() < followersAwaitedUntil) {
           await ctx.scheduler.runAfter(followerWaitMs, internal.slack.directMessages.deliverDirectMessage, { ...message, attempt });
           return null;
         }

@@ -29,7 +29,8 @@ export async function levelUpRevealedTo(ctx: QueryCtx, member: MemberId, level: 
 
 const followerAwaitedMs = 5000;
 
-export async function levelUpFollowerAwaitedFor(ctx: QueryCtx, member: MemberId, level: number): Promise<boolean> {
+export async function levelUpFollowerAwaitedUntil(ctx: QueryCtx, member: MemberId, level: number): Promise<number | null> {
   const recordedAt = await levelUpRecordedAt(ctx, member, level);
-  return recordedAt !== null && Date.now() < recordedAt + followerAwaitedMs && !(await levelUpEarned(ctx, member, level));
+  if (recordedAt === null || (await levelUpEarned(ctx, member, level))) return null;
+  return recordedAt + followerAwaitedMs;
 }
