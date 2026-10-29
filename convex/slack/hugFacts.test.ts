@@ -88,6 +88,18 @@ describe("HH19 HH21: a member's hype emoji the giver doesn't hold is a hype reac
     ]);
   });
 
+  test("a hype emoji the giver holds is a hug, and no hype reaction", async () => {
+    const t = await workspace();
+    const carol = await hypeEmojiOf(t, "U_CAROL", "carol-hype");
+    await holdHypeEmoji(t, "U_BOB", carol);
+
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", reaction: "carol-hype" });
+
+    expect(await xpOfEveryone(t)).toEqual({ U_ALICE: 1, U_BOB: 1, U_CAROL: 0, U_DANA: 0 });
+    expect(factsOf("hugGiven")).toEqual([expect.objectContaining({ giver: await memberOf(t, "U_BOB"), reaction: "carol-hype" })]);
+    expect(factsOf("hypeReacted")).toEqual([]);
+  });
+
   test("a hype emoji whose owner reacts with it does nothing", async () => {
     const t = await workspace();
     await hypeEmojiOf(t, "U_BOB", "bob-hype");
@@ -195,6 +207,14 @@ async function hypeEmojiOf(t: Backend, user: string, name: string) {
   const person = await t.run(async (ctx) => ctx.db.insert("members", { workspace: "T1", user, kind: "member" }));
   await t.run((ctx) => ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person, name }));
   return person;
+}
+
+async function holdHypeEmoji(t: Backend, user: string, owner: MemberId) {
+  const holder = await t.run(async (ctx) => ctx.db.insert("members", { workspace: "T1", user, kind: "member" }));
+  await t.run(async (ctx) => {
+    await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: holder, recipient: owner, week: "2026-10-12", message, holdsSticker: false, at: now.getTime() });
+    await ctx.db.insert("seenEmojis", { member: holder, emoji: `hype:${owner}`, at: now.getTime() });
+  });
 }
 
 function factsOf<T extends DomainEvent["type"]>(type: T) {
