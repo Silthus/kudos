@@ -185,6 +185,17 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
+  test("a level-up DM Slack rate-limits after its wait for the follower is over is sent again without waiting a second time", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+    slack.answeringIn("chat.postMessage", "U_ALICE", rateLimitedFor(30));
+
+    await settle(t);
+
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
+    expect(await dmDeliveryRuns(t), "the first run, its five waits and the one retry").toBe(7);
+  });
+
   test.each([
     ["level-up-reveal is off", revealOn.filter((flag) => flag !== "level-up-reveal")],
     ["collection is off, so nothing dropped", revealOn.filter((flag) => flag !== "collection")],
@@ -300,6 +311,10 @@ function cancelAlbumsFollower(t: Backend): Promise<LevelReachedEvent | undefined
 
 function dmDeliveryRan(t: Backend): Promise<boolean> {
   return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).some(({ name, state }) => name.includes("deliverDirectMessage") && state.kind === "success"));
+}
+
+async function dmDeliveryRuns(t: Backend): Promise<number> {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name }) => name.includes("deliverDirectMessage")).length);
 }
 
 function levelUpDms() {
