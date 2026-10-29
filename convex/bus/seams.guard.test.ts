@@ -101,6 +101,10 @@ describe("HH16: writes cross modules as bus facts", () => {
     ["a named import with its extension", `import { earnItem } from "../items/ledger.ts";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a re-export", `export { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a query in single quotes", `await ctx.db.query('items').collect();`, ["convex/stickers/stickers.ts table:items"]],
+    ["a query spaced from its table", `await ctx.db.query ( "items" ).collect();`, ["convex/stickers/stickers.ts table:items"]],
+    ["a star re-export of another module", `export * from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
+    ["a named star re-export of another module", `export * as ledger from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
+    ["a namespace import beside a default import", `import ledger, * as all from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
     ["a type-only import", `import type { earnItem } from "../items/ledger";`, []],
     ["the module's own write and table", `import { insertSticker } from "./records";\nawait ctx.db.query("stickers").collect();`, []],
   ])("finds %s", (_, source, crossings) => {
@@ -113,7 +117,7 @@ function everyCrossing() {
 }
 
 function crossingsOf(path: string, source: string) {
-  return [...writesImportedBy(path, source), ...namespacesImportedBy(path, source), ...tablesQueriedBy(path, source)];
+  return [...writesImportedBy(path, source), ...wholeModulesReachedBy(path, source), ...tablesQueriedBy(path, source)];
 }
 
 function writesImportedBy(path: string, source: string) {
@@ -123,8 +127,8 @@ function writesImportedBy(path: string, source: string) {
     .map((name) => `${fileOf(path)} ${name}`);
 }
 
-function namespacesImportedBy(path: string, source: string) {
-  return [...source.matchAll(/import\s+\*\s+as\s+\w+\s+from\s*["']([^"']+)["']/g)]
+function wholeModulesReachedBy(path: string, source: string) {
+  return [...source.matchAll(/(?:import\s+(?:\w+\s*,\s*)?\*\s+as\s+\w+|export\s+\*(?:\s+as\s+\w+)?)\s+from\s*["']([^"']+)["']/g)]
     .map(([, from = ""]) => from)
     .filter((from) => isAnotherModule(path, from))
     .map((from) => `${fileOf(path)} namespace:${fileOf(resolved(path, from))}`);
@@ -135,7 +139,7 @@ function isAnotherModule(path: string, from: string) {
 }
 
 function tablesQueriedBy(path: string, source: string) {
-  return [...source.matchAll(/\.query\(\s*["'`](\w+)["'`]/g)]
+  return [...source.matchAll(/\.query\s*\(\s*["'`](\w+)["'`]/g)]
     .map(([, table = ""]) => table)
     .filter((table) => ownerOf(table) !== undefined && ownerOf(table) !== moduleOf(path))
     .map((table) => `${fileOf(path)} table:${table}`);
