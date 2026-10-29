@@ -7,7 +7,7 @@ import { reachesLevel } from "../../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../../testing/website";
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { catalogue, type Rarity } from "../hoggies/catalogue";
+import { catalogue, hoggiesOfRarity, type Rarity } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
 import { earnItem } from "./ledger";
 import type { AlbumAnswer, AlbumRead, TurnAnswer } from "../../website/album";
@@ -149,7 +149,48 @@ describe("HH39: the turn draws within the floor, cap and weights its item stored
     expect(turned.map((drop) => drop && { hoggie: drop.hoggie, rarity: drop.rarity }), "the turned faces").toEqual(drawn);
     expect(new Set(turned.map((drop) => drop?.rarity)), "the rarities turned").toEqual(new Set(["rare"]));
   });
+
+  test("HH40 HH42: a team item with named weights turned by a member who owns every rare can still turn rare, while one without them skips rare as before", async () => {
+    await switchWebsite(t, postHog, true, ...itemsOn, "achievement-hoggies");
+    const member = await memberOf(await joined(alice));
+    const everyRare = await ownsEveryRare(member);
+    const named = await firstTeamCrateDrawingRare(member, everyRare);
+    await t.run(async (ctx) => {
+      await earnItem(ctx, { workspace: "T1", member, source: "hoggie", key: named, floor: "rare", weights: "base", reason: { kind: "team", team: named.slice("team:".length), name: "Named" }, earnedAt: Date.now() });
+      await earnItem(ctx, { workspace: "T1", member, source: "hoggie", key: "team:legacy", floor: "rare", reason: { kind: "team", team: "legacy", name: "Legacy" }, earnedAt: Date.now() });
+    });
+    const asAlice = await signedIn(alice);
+
+    const faces = new Map<string, { hoggie: string; rarity: Rarity } | null>();
+    for (const { item } of (await boardOf(asAlice)).items) {
+      const key = (await t.run((ctx) => ctx.db.get(item)))!.key;
+      const drop = hoggieDrawnBy(await turn(asAlice, item));
+      faces.set(key, drop && { hoggie: drop.hoggie, rarity: drop.rarity });
+    }
+
+    const drawn = (crate: string, weights?: "base") => drawOf({ secret: process.env.HOGGIE_DRAW_SECRET ?? "", member, crate, version: catalogue.version, floor: "rare", weights, owned: everyRare });
+    expect(faces.get(named), "the named-weights item's face").toEqual(await drawn(named, "base"));
+    expect(faces.get(named)?.rarity, "the named-weights item's rarity").toBe("rare");
+    expect(faces.get("team:legacy"), "the legacy item's face").toEqual(await drawn("team:legacy"));
+    expect(faces.get("team:legacy")?.rarity, "the legacy item's rarity").not.toBe("rare");
+  });
 });
+
+async function ownsEveryRare(member: MemberId): Promise<Set<string>> {
+  const rares = hoggiesOfRarity("rare").map(({ hoggie }) => hoggie);
+  await t.run(async (ctx) => {
+    for (const [n, hoggie] of rares.entries()) await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: Date.now(), firstN: n + 1 });
+  });
+  return new Set(rares);
+}
+
+async function firstTeamCrateDrawingRare(member: MemberId, owned: Set<string>): Promise<string> {
+  for (let n = 0; ; n++) {
+    const crate = `team:named-${n}`;
+    const { rarity } = await drawOf({ secret: process.env.HOGGIE_DRAW_SECRET ?? "", member, crate, version: catalogue.version, floor: "rare", weights: "base", owned });
+    if (rarity === "rare") return crate;
+  }
+}
 
 describe("LP6 LP24: with hidden-items back off, fillItems reveals every waiting level item through the old level-up drop, once", { timeout: 60_000 }, () => {
   test("a level reached with hidden-items on reaches the old reveal once it is off, pays nothing, a rerun drops nothing more, and with hidden-items on again nothing waits or draws twice", async () => {
