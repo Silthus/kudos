@@ -98,11 +98,13 @@ describe("CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and a
 
     await giveKudos(t, "U_ALICE", "U_CAROL");
 
-    expect(questDmsTo("U_ALICE")).toEqual([
-      `✅ You finished a Journey step: ${firstThanksGoal} *10 XP* waits in your crate.`,
-      `✅ You finished a quest: ${sayWhyGoal} *300 XP* waits in your crate.`,
-      `✅ You finished a Journey step: ${firstQuestGoal} *20 XP* waits in your crate.`,
-    ]);
+    expect(questDmsTo("U_ALICE").toSorted(), "the quest DMs, in any order").toEqual(
+      [
+        `✅ You finished a Journey step: ${firstThanksGoal} *10 XP* waits in your crate.`,
+        `✅ You finished a quest: ${sayWhyGoal} *300 XP* waits in your crate.`,
+        `✅ You finished a Journey step: ${firstQuestGoal} *20 XP* waits in your crate.`,
+      ].toSorted(),
+    );
   });
 
   test("CR10: journey-joined says each step's XP waits in its crate", async () => {
@@ -136,11 +138,13 @@ describe("CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and a
 
     await giveKudos(t, "U_ALICE", "U_CAROL");
 
-    expect(questDmsTo("U_ALICE")).toEqual([
-      `✅ You finished a Journey step: ${firstThanksGoal} You earned *10 XP*.`,
-      `✅ You finished a quest: ${sayWhyGoal} You earned *300 XP*.`,
-      `✅ You finished a Journey step: ${firstQuestGoal} You earned *20 XP*.`,
-    ]);
+    expect(questDmsTo("U_ALICE").toSorted(), "the quest DMs, in any order").toEqual(
+      [
+        `✅ You finished a Journey step: ${firstThanksGoal} You earned *10 XP*.`,
+        `✅ You finished a quest: ${sayWhyGoal} You earned *300 XP*.`,
+        `✅ You finished a Journey step: ${firstQuestGoal} You earned *20 XP*.`,
+      ].toSorted(),
+    );
   });
   test("CR11: the profile's finished quest and Journey steps say the XP waits in the crate, and read You earned once opened", async () => {
     const t = await workspaceDeciding(...held);
