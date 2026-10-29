@@ -2,6 +2,8 @@ import { v, type Infer } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { messageRefValidator } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
+import { journeyQuestOfRewardKey, weeklyQuestOfRewardKey } from "./crates";
+import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 
 export const questFinishValidator = v.object({
   member: v.id("members"),
@@ -25,4 +27,8 @@ export async function recordQuestFinish(ctx: MutationCtx, finish: QuestFinish): 
   if ((await questFinishOf(ctx, finish.member, finish.key)) !== null) return "already recorded";
   await ctx.db.insert("questFinishes", finish);
   return "recorded";
+}
+
+export function belongsInTheFinishRecord({ key, catalogueVersion }: Pick<QuestFinish, "key" | "catalogueVersion">): boolean {
+  return journeyQuestOfRewardKey(key) !== null || (isPaidOnTheMondayPath({ catalogueVersion }) && weeklyQuestOfRewardKey(key) !== null);
 }
