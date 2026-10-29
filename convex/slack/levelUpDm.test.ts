@@ -162,7 +162,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event: levelReached });
     await settle(t);
 
-    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book#level-up/2|Reveal your three new hoggies>` }]);
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book?src=reply#level-up/2|Reveal your three new hoggies>` }]);
   });
 
   test("a level-up DM that waited while level-up-reveal went off links to the member's level, since the follower dropped nothing", async () => {
@@ -173,7 +173,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event: levelReached });
     await settle(t);
 
-    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
   test("a level-up DM whose follower never runs is sent once its wait is over, with the link to the member's level", async () => {
@@ -182,7 +182,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
 
     await settle(t);
 
-    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
   test.each([
@@ -230,7 +230,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(levelUpDms()).toHaveLength(2);
-    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` });
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
   });
 
   test("a DM Slack held back while level-up-reveal went off links to the member's level when it is sent again", async () => {
