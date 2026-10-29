@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
+import { defaultKudosEmoji } from "../workspace/settings";
 import { escaped } from "./blocks";
 import { attemptArgs, sendAtMostOnce, tryAtMostThreeTimes } from "./delivery";
 
@@ -9,9 +10,9 @@ const huggedValidator = v.union(v.object({ kind: v.literal("author"), name: v.op
 type Hugged = Infer<typeof huggedValidator>;
 
 export const deliverFirstHugReply = observedAction({
-  args: { workspace: v.string(), user: v.string(), conversation: v.string(), hugged: huggedValidator, kudosEmoji: v.string(), ...attemptArgs },
+  args: { workspace: v.string(), user: v.string(), conversation: v.string(), hugged: huggedValidator, kudosEmoji: v.optional(v.string()), ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...reply }) => {
-    const ephemeral = { channel: reply.conversation, user: reply.user, text: firstHugReplyText(reply.hugged, reply.kudosEmoji) };
+    const ephemeral = { channel: reply.conversation, user: reply.user, text: firstHugReplyText(reply.hugged, reply.kudosEmoji ?? defaultKudosEmoji()) };
     await tryAtMostThreeTimes(
       attempt,
       (attempt) => sendAtMostOnce(ctx, reply.workspace, "chat.postEphemeral", ephemeral, attempt),

@@ -60,11 +60,11 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   kinds: state
   checklist: revalidated-permission dismissed: counting an award needs no permission, since the awards were decided when they were given, and the read decides `album` for the signed-in member on every read
   checklist: separation-of-duties dismissed: no approval policy
-  checklist: legal-state-succession dismissed: a tally only grows, by the awards whose tally mark its page inserts in the same mutation
-  checklist: supersession-safety dismissed: every count adds to a tally and nothing displaces a later value; Convex retries a page whose read of an award's board count or the tally changed before it committed
-  checklist: worker-fencing dismissed: no worker owns a tally; a tally page and a history page that meet one award conflict on its board count, so one retries and finds it counted
+  checklist: legal-state-succession dismissed: a tally only grows, by the awards whose `talliedAwards` mark the tally inserts in the same mutation
+  checklist: supersession-safety dismissed: every count adds to a tally and nothing displaces a later value; Convex retries a tally whose read of an award's `talliedAwards` mark or the board tally changed before it committed
+  checklist: worker-fencing dismissed: no worker owns a tally; the tally is the boards' only writer, and two tallies that meet one award conflict on its `talliedAwards` mark, so one retries and finds it counted
   checklist: commit-ordered-effects dismissed: counting issues no external effect
-  checklist: resumption-coverage dismissed: the tally page and the history page count an award only where they insert its board count, each in its own mutation, so a resumed, retried or redelivered award counts once
+  checklist: resumption-coverage dismissed: the tally counts an award on the boards only where it inserts the award's `talliedAwards` mark in the same mutation, so a resumed, retried or redelivered award counts once
 - a member who left the boards is on neither thoughtful board: A member whose `Show me on the leaderboards` setting is off is on no member's people board, their own included, adds nothing to their teams on the team board, and finds their own row pinned off the boards.
   over: a member who turned the setting off on the website after a kudos to two people, beside two givers on the boards, read by that member and by another
   via: AL49: a member who left the boards is on neither thoughtful board

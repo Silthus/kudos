@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, networkFailure, rateLimitedFor, slackError, type SlackUser } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
+import { internal } from "../_generated/api";
 import { post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, type ReactionOptions } from "../../testing/slackMessages";
 import { standingOf } from "../progression/progression";
@@ -125,6 +126,15 @@ describe("LP73: a member's first hug ever gets one first-hug reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toHaveLength(2);
     expect(slack.ephemeralsTo("U_BOB").at(-1)).toEqual({ channel: "C1", user: "U_BOB", text: toTheAuthor("Alice") });
     expect(slack.timesOf("chat.postEphemeral")[1]! - slack.timesOf("chat.postEphemeral")[0]!).toBeGreaterThanOrEqual(30_000);
+  });
+
+  test("a retry queued before the reply named its kudos emoji still goes out, naming the deployment's kudos emoji", async () => {
+    vi.stubEnv("KUDOS_EMOJI", "hugging_face");
+    const t = await workspace(onboardingOn);
+
+    await t.action(internal.slack.firstHugReply.deliverFirstHugReply, { workspace: "T1", user: "U_BOB", conversation: "C1", hugged: { kind: "author", name: "Alice" }, attempt: 2 });
+
+    expect(slack.ephemeralsTo("U_BOB").map(({ text }) => text)).toEqual(["That was a hug: +1 XP for you and Alice. Thank them in a message with :hugging_face: to earn an item."]);
   });
 
   test.each([
