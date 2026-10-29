@@ -111,14 +111,13 @@ describe("O3: attempt failed", () => {
     await settleInTimeOrder(t);
 
     const events = withoutWelcomes(coreLoopEvents());
-    expect(events.map((event) => [event.event, event.properties.retry])).toEqual([
+    const sent = events.map((event) => [event.event, event.properties.retry]);
+    expect(sent.slice(0, 3), "the attempt's events, in order").toEqual([
       ["attempt failed", false],
       ["kudos given", true],
       ["kudos received", true],
-      ["packs earned", undefined],
-      ["person collected", undefined],
-      ["person collected", undefined],
     ]);
+    expect(sent.slice(3).map(([event]) => event).sort(), "the album's events, which independent subscribers send in any order").toEqual(["packs earned", "person collected", "person collected"]);
     expect(events[0]!.distinct_id).toBe(events[1]!.distinct_id);
   });
 
