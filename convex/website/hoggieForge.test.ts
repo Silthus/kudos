@@ -7,7 +7,7 @@ import { memberChanged, settleInTimeOrder, testBackend, type Backend } from "../
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { hoggiesOfRarity } from "../hoggies/catalogue";
+import { hoggiesOfRarity } from "../album/hoggies/catalogue";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 

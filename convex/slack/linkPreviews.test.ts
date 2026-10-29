@@ -937,7 +937,7 @@ async function matched(t: Backend, member: MemberId, profile: number) {
 }
 
 async function teamWithEveryHoggie(t: Backend, team: string, size: number, firstProfile = 1000): Promise<MemberId[]> {
-  const { catalogue } = await import("../hoggies/catalogue");
+  const { catalogue } = await import("../album/hoggies/catalogue");
   const profiles = Array.from({ length: size }, (_, index) => firstProfile + index);
   const people: MemberId[] = [];
   for (const profile of profiles) {

@@ -1,5 +1,5 @@
 import { hoggieRewardOf, waitingHoggiesLineOf } from "../feedback/waitingHoggies";
-import type { WaitingCount } from "../items/ledger";
+import type { WaitingCount } from "../album/items/ledger";
 import type { QuestsSection, SectionQuest } from "../quests/mondaySection";
 import { onboardingReward } from "../quests/onboarding";
 import { mondayReward } from "../quests/pool";

@@ -4,7 +4,7 @@ import { awardsOfMessage } from "../engine/awards";
 import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
 import { publicQuoteOf } from "../feedback/welcomeNudge";
 import { hugOf } from "../hugs/records";
-import { shownWaitingHoggiesOf, type WaitingCount } from "../items/ledger";
+import { shownWaitingHoggiesOf, type WaitingCount } from "../album/items/ledger";
 import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";

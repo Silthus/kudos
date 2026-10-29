@@ -1,5 +1,5 @@
 import { useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { hoggieNamed } from "../../../convex/hoggies/catalogue";
+import { hoggieNamed } from "../../../convex/album/hoggies/catalogue";
 import { KudosMessage } from "../activity/KudosMessage";
 import { AnswerPage } from "../pages/AnswerPage";
 import { AppLink } from "../AppLink";

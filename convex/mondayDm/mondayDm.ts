@@ -7,7 +7,7 @@ import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowa
 import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import { settingsFooterFor } from "../feedback/settingsFooter";
 import { hugsSectionFor, hugsSentInTheMondayDm, mondayAfter, type HugsSection } from "../hugs/recap";
-import { shownWaitingHoggiesOf } from "../items/ledger";
+import { shownWaitingHoggiesOf } from "../album/items/ledger";
 import { onTheMondayPath } from "../quests/flag";
 import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";

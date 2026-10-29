@@ -7,8 +7,8 @@ import { memberChanged, settleInTimeOrder, testBackend, type Backend } from "../
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import { catalogue, hoggieNamed } from "../hoggies/catalogue";
-import { drawOf } from "../hoggies/draw";
+import { catalogue, hoggieNamed } from "../album/hoggies/catalogue";
+import { drawOf } from "../album/hoggies/draw";
 import { recordReward } from "../progression/progression";
 import schema from "../schema";
 import { balanceOf } from "../wallet/wallet";

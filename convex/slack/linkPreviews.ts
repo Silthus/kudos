@@ -4,7 +4,7 @@ import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { medalText } from "../feedback/profileCard";
 import { productName } from "../feedback/naming";
-import { rarityWord } from "../hoggies/catalogue";
+import { rarityWord } from "../album/hoggies/catalogue";
 import type { BoardPlace, CardHoggie, CardTeam, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
 import type { LinkPreview, PersonPreview, TeamPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn, slackDayOf } from "./blocks";

@@ -10,7 +10,7 @@ import "wawoff2/decompress.js";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import type { MilestoneTier } from "../album/records";
-import { rarityWord, type Rarity } from "../hoggies/catalogue";
+import { rarityWord, type Rarity } from "../album/hoggies/catalogue";
 import { counted, drawnCardValidator, foundDayOf, isAQuietCard, placeWordsOf, quietLineOf, type DrawnCard, type DrawnFace } from "./playerCard";
 
 const cardSize = { width: 1200, height: 630 };

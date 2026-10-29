@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
 import { promisify } from "node:util";
 import { signedRequest } from "../../../testing/signedSlack";
-import { drawOf } from "../../../convex/hoggies/draw";
-import { catalogue } from "../../../convex/hoggies/catalogue";
+import { drawOf } from "../../../convex/album/hoggies/draw";
+import { catalogue } from "../../../convex/album/hoggies/catalogue";
 import { xpToReach } from "../../../convex/progression/levels";
 import { emojiNameOf } from "../../../convex/workspace/settingsBounds";
 
