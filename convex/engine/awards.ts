@@ -99,6 +99,13 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 
+export type RecordedAward = GivenAward & { workspace: string; at: number };
+
+export async function awardsInCreationOrder(ctx: QueryCtx, page: PaginationOptions): Promise<PaginationResult<RecordedAward>> {
+  const result = await ctx.db.query("awards").paginate(page);
+  return { ...result, page: result.page.map(({ _id, workspace, giver, recipient, kudos, day, at }) => ({ award: _id, workspace, giver, recipient, kudos, day, at })) };
+}
+
 export type WorkspaceAward = GivenAward & { message: MessageRef; at: number; created: number };
 
 export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: PaginationOptions): Promise<PaginationResult<WorkspaceAward>> {

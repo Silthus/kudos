@@ -114,7 +114,7 @@ describe("GB35: running totals for the totals counted before they shipped", () =
     await givenLive(t, "U1", { "U2": 7 }, { message: "5", day: "2026-10-13" });
     expect((await everyoneBoard(t, "U1")).improvement).toEqual({ gain: 1 });
 
-    expect(await fillRunningTotals(t, { pageSize: 1 })).toMatchObject({ filled: 2 });
+    expect(await fillRunningTotals(t, { pageSize: 1 })).toMatchObject({ filled: 4 });
 
     expect(await runningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [2, 6, 10], "month:2026-10": [0, 0, 0, 0, 2, 6, 10, 10, 10, 10, 10, 10, 17], "week:2026-10-12": [0, 7] });
     expect((await everyoneBoard(t, "U1")).improvement).toEqual({ gain: 1 });

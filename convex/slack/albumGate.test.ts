@@ -402,7 +402,7 @@ function freshFakes() {
 }
 
 const convexTestId = /^\d+[a-zA-Z_]+$/;
-const keyedId = /^([a-z]+):(\d+[a-zA-Z_]+)$/;
+const keyedId = /^([a-z-]+):(\d+[a-zA-Z_]+)$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const createdInTheSameMillisecond = /(\d{13})\.\d+$/;
 const opaque = new Set(["cursor", "eventId"]);

@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
-import { weekPlaceOf, type BoardPlace } from "../album/boards";
 import { emojiStackOf, type EmojiStack } from "../album/earnedEmojis";
 import { albumShownTo, personPageDShownTo } from "../album/flag";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie } from "../album/albumHoggies";
@@ -11,6 +10,7 @@ import { peopleHeldBy } from "../album/stickers";
 import { anEmptyWeek, weekAt, weekRowOf, weekTallyIn } from "../album/tallies";
 import { hoggiesShownTo } from "../album/hoggies/flag";
 import { tiersTurnedBy } from "../album/items/milestoneUnlocks";
+import { placeOf, type BoardPlace } from "../leaderboard/boards";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { isAPersonOf, type MemberId } from "../workspace/directory";
 import { levelOf, type AlbumAnswer } from "./album";
@@ -77,7 +77,7 @@ export async function playerCardOf(ctx: QueryCtx, workspace: string, person: Mem
     ...(await faceIn(ctx, workspace, person)),
     team,
     level: (await xpLevelsShownIn(ctx, workspace)) ? await levelOf(ctx, person) : null,
-    place: await weekPlaceOf(ctx, { workspace, member: person }),
+    place: await placeOf(ctx, { workspace, member: person }, "week"),
     people: await peopleOf(ctx, workspace, person),
     hoggies: await hoggiesOf(ctx, person),
     medals: await medalsOf(ctx, person),
