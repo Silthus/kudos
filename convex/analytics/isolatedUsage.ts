@@ -6,7 +6,7 @@ import { messageKindValidator, messagePlaceValidator } from "../messageSettings/
 import { mondayDmSectionValidator } from "../mondayDm/records";
 import { welcomePathValidator } from "../welcome/welcomedAs";
 import { failuresLogged } from "./failures";
-import { dmKindValidator, dmLinkDestinationValidator, questsSurfaceValidator } from "./projections";
+import { dmKindValidator, dmLinkDestinationValidator, hugsRecapCarrierValidator, questsSurfaceValidator } from "./projections";
 import { recordUsage, usageNotRecorded } from "./usage";
 
 const leaderboardViewValidator = v.object({
@@ -102,6 +102,7 @@ const hugsRecapValidator = v.object({
   given: v.number(),
   received: v.number(),
   xp: v.number(),
+  via: v.optional(hugsRecapCarrierValidator),
   at: v.number(),
 });
 

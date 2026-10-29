@@ -351,7 +351,7 @@ describe("SR12 SR13 SR21: the recap goes only while the member wants it", () => 
 });
 
 describe("SR16: hugs recap sent reaches PostHog", () => {
-  test("with the hugs given and received and their XP, and nothing else", async () => {
+  test("with the hugs given and received, their XP and the recap as its DM, and nothing else", async () => {
     const t = await workspace();
     await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await hug(t, "U_CAROL", "U_ALICE", messageOf(1));
@@ -361,11 +361,22 @@ describe("SR16: hugs recap sent reaches PostHog", () => {
 
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
     expect(recapsSent().map(({ properties }) => properties)).toEqual([
-      { ...shared, hugs_given: 1, hugs_received: 2, xp: 3 },
-      { ...shared, hugs_given: 1, hugs_received: 1, xp: 2 },
-      { ...shared, hugs_given: 1, hugs_received: 0, xp: 1 },
+      { ...shared, hugs_given: 1, hugs_received: 2, xp: 3, via: "recap" },
+      { ...shared, hugs_given: 1, hugs_received: 1, xp: 2, via: "recap" },
+      { ...shared, hugs_given: 1, hugs_received: 0, xp: 1, via: "recap" },
     ]);
     expect(JSON.stringify(recapsSent())).not.toMatch(new RegExp(`U_ALICE|U_BOB|U_CAROL|C1|${messageOf(1).split(".")[0]}`));
+  });
+
+  test("a recap queued before via existed is sent without it", async () => {
+    const t = await workspace();
+    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+
+    await t.mutation(internal.analytics.isolatedUsage.recordHugsRecapSent, { workspace: "T1", member, given: 1, received: 2, xp: 3, at: Date.now() });
+
+    await settleUpTo(t, Date.now() + minuteMs);
+    expect(recapsSent().map(({ properties }) => Object.keys(properties))).toEqual([expect.not.arrayContaining(["via"])]);
+    expect(recapsSent().map(({ properties }) => properties.hugs_received)).toEqual([2]);
   });
 });
 
