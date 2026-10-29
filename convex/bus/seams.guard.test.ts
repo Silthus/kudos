@@ -97,7 +97,7 @@ describe("HH16: writes cross modules as bus facts", () => {
   test.each([
     ["a named import", `import { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a renamed import over lines", `import {\n  type Earning,\n  earnItem as earn,\n} from '../items/ledger';`, ["convex/stickers/stickers.ts earnItem"]],
-    ["a namespace import", `import * as ledger from "../items/ledger";\nawait ledger.earnItem(ctx, earning);`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a namespace import of a module's writes", `import * as ledger from "../items/ledger";\nconst { earnItem } = ledger;`, ["convex/stickers/stickers.ts earnItem", "convex/stickers/stickers.ts markTurned"]],
     ["a re-export", `export { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a query in single quotes", `await ctx.db.query('items').collect();`, ["convex/stickers/stickers.ts table:items"]],
     ["a type-only import", `import type { earnItem } from "../items/ledger";`, []],
@@ -117,7 +117,9 @@ function crossingsOf(path: string, source: string) {
 
 function writesImportedBy(path: string, source: string) {
   return importsOf(source)
-    .filter(({ from }) => from.startsWith(".") && moduleOf(resolved(path, from)) !== moduleOf(path))
+    .map(({ names, from }) => ({ from: resolved(path, from), names }))
+    .filter(({ from }) => from.startsWith("/convex/") && moduleOf(from) !== moduleOf(path))
+    .map(({ from, names }) => ({ names: names ?? writesExportedBy(from) }))
     .flatMap(({ names }) => names.filter((name) => writeFunctions.includes(name)))
     .map((name) => `${fileOf(path)} ${name}`);
 }
@@ -141,10 +143,12 @@ function namedImportsOf(source: string) {
 }
 
 function namespaceImportsOf(source: string) {
-  return [...source.matchAll(/import\s+\*\s+as\s+(\w+)\s+from\s*["']([^"']+)["']/g)].map(([, namespace = "", from = ""]) => ({
-    names: [...source.matchAll(new RegExp(`\\b${namespace}\\.(\\w+)`, "g"))].map(([, name = ""]) => name),
-    from,
-  }));
+  return [...source.matchAll(/import\s+\*\s+as\s+\w+\s+from\s*["']([^"']+)["']/g)].map(([, from = ""]) => ({ names: undefined, from }));
+}
+
+function writesExportedBy(file: string) {
+  const source = sources[`${file}.ts`] ?? "";
+  return writeFunctions.filter((name) => new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${name}\\b`).test(source));
 }
 
 function valueNameOf(specifier: string) {
@@ -157,6 +161,7 @@ function ownerOf(table: string) {
 }
 
 function resolved(path: string, from: string) {
+  if (!from.startsWith(".")) return from;
   const parts = path.split("/").slice(0, -1);
   for (const part of from.split("/")) {
     if (part === "..") parts.pop();
