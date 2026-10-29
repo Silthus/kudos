@@ -5,7 +5,8 @@ import { observedAction } from "../analytics/boundary";
 import { medalText } from "../feedback/profileCard";
 import { productName } from "../feedback/naming";
 import { rarityWord } from "../album/hoggies/catalogue";
-import type { BoardPlace, CardHoggie, CardTeam, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
+import type { BoardPlace } from "../leaderboard/boards";
+import type { CardHoggie, CardTeam, LevelWay, PersonStats, TeamStats } from "../website/linkCardStats";
 import type { LinkPreview, PersonPreview, TeamPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn, slackDayOf } from "./blocks";
 import type { MemberId } from "../workspace/directory";
@@ -176,7 +177,7 @@ function barOf(share: number) {
 
 function placeFieldsOf(place: BoardPlace | null, board: string) {
   if (place === null) return [];
-  return [`🏆 *No. ${place.rank}${place.tied ? ", tied" : ""}* on the all-time ${board}`, `💛 *${place.thoughtful}* kudos given`];
+  return [`🏆 *No. ${place.rank}${place.tied ? ", tied" : ""}* on the all-time ${board}`, `💛 *${place.kudosGiven}* kudos given`];
 }
 
 function statBlocksOf(fields: string[], rarest: CardHoggie[]) {
