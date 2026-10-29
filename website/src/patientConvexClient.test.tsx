@@ -17,10 +17,17 @@ function offline() {
   return new TypeError("Failed to fetch");
 }
 
-function tokenFetcherHandedToConvex(fetchToken: AuthTokenFetcher): AuthTokenFetcher {
+function aSignedInClient(fetchToken: AuthTokenFetcher) {
   const setAuth = vi.spyOn(ConvexReactClient.prototype, "setAuth").mockImplementation(() => {});
-  new PatientConvexClient("https://happy-hog-123.convex.cloud").setAuth(fetchToken);
-  return setAuth.mock.calls[0]![0];
+  vi.spyOn(ConvexReactClient.prototype, "clearAuth").mockImplementation(() => {});
+  vi.spyOn(ConvexReactClient.prototype, "close").mockResolvedValue();
+  const client = new PatientConvexClient("https://happy-hog-123.convex.cloud");
+  client.setAuth(fetchToken);
+  return { client, fetchTokenHandedToConvex: setAuth.mock.calls[0]![0] };
+}
+
+function tokenFetcherHandedToConvex(fetchToken: AuthTokenFetcher): AuthTokenFetcher {
+  return aSignedInClient(fetchToken).fetchTokenHandedToConvex;
 }
 
 describe("a token refresh that fails on the network waits for the network instead of failing", () => {
@@ -38,8 +45,9 @@ describe("a token refresh that fails on the network waits for the network instea
 
   it("without an online event tries again after a pause that doubles, up to a minute", async () => {
     const fetchToken = vi.fn<AuthTokenFetcher>().mockRejectedValue(offline());
+    const { client, fetchTokenHandedToConvex } = aSignedInClient(fetchToken);
 
-    void tokenFetcherHandedToConvex(fetchToken)(forced);
+    void fetchTokenHandedToConvex(forced);
     const triesAfter = async (ms: number) => {
       await vi.advanceTimersByTimeAsync(ms);
       return fetchToken.mock.calls.length;
@@ -51,6 +59,7 @@ describe("a token refresh that fails on the network waits for the network instea
     expect(await triesAfter(4_000 + 8_000 + 16_000 + 32_000)).toBe(7);
     expect(await triesAfter(59_999)).toBe(7);
     expect(await triesAfter(1)).toBe(8);
+    await client.close();
   });
 
   it("still fails at once on an error that isn't the network's", async () => {
@@ -58,6 +67,26 @@ describe("a token refresh that fails on the network waits for the network instea
     const fetchToken = vi.fn<AuthTokenFetcher>().mockRejectedValue(broken);
 
     await expect(tokenFetcherHandedToConvex(fetchToken)(forced)).rejects.toBe(broken);
+    expect(fetchToken).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a refresh waiting for the network stops once nobody needs its token", () => {
+  it.each([
+    ["a new sign-in replaces it", (client: PatientConvexClient) => client.setAuth(async () => "next-jwt")],
+    ["the sign-in is cleared", (client: PatientConvexClient) => client.clearAuth()],
+    ["the client closes", (client: PatientConvexClient) => void client.close()],
+  ])("when %s it answers no token and tries no more", async (_, nobodyNeedsTheToken) => {
+    const fetchToken = vi.fn<AuthTokenFetcher>().mockRejectedValue(offline());
+    const { client, fetchTokenHandedToConvex } = aSignedInClient(fetchToken);
+
+    const token = fetchTokenHandedToConvex(forced);
+    await vi.advanceTimersByTimeAsync(0);
+    nobodyNeedsTheToken(client);
+    window.dispatchEvent(new Event("online"));
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    await expect(token).resolves.toBeNull();
     expect(fetchToken).toHaveBeenCalledTimes(1);
   });
 });
