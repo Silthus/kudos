@@ -215,6 +215,9 @@ importers:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
+      typescript5:
+        specifier: npm:typescript@5.9.3
+        version: typescript@5.9.3
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.27.0)(jiti@2.7.0)(yaml@2.9.1)
@@ -3144,8 +3147,7 @@ snapshots:
       vscode-languageserver-protocol: 3.18.4
     optional: true
 
-  typescript@5.9.3:
-    optional: true
+  typescript@5.9.3: {}
 
   typescript@7.0.2:
     optionalDependencies:

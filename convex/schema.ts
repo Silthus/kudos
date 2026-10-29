@@ -859,6 +859,9 @@ export default defineSchema({
   reportedJobs: defineTable({
     job: v.id("_scheduled_functions"),
   }).index("by_job", ["job"]),
+  replays: defineTable({
+    job: v.id("_scheduled_functions"),
+  }).index("by_job", ["job"]),
 
   flagExposures: defineTable({
     member: v.id("members"),
