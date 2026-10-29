@@ -11,6 +11,8 @@ export type RecognitionCounts = { kudosGiven: number; kudosReceived: number; hug
 
 export type PeriodTotals = RecognitionCounts & { firstDay: DayKey | null };
 
+export type MemberTotals = PeriodTotals & { member: MemberId };
+
 export type Landing = { workspace: string; member: MemberId; day: DayKey };
 
 type Added = Partial<RecognitionCounts>;
@@ -54,7 +56,18 @@ export async function noteGivingDay(ctx: MutationCtx, { member, day }: Landing) 
 }
 
 export async function totalsOf(ctx: QueryCtx, member: MemberId, period: PeriodKey): Promise<PeriodTotals> {
-  const row = await periodRowOf(ctx, member, period);
+  return periodTotalsOf(await periodRowOf(ctx, member, period));
+}
+
+export async function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<MemberTotals[]> {
+  const rows = await ctx.db
+    .query("givenTotals")
+    .withIndex("by_period", (q) => q.eq("workspace", workspace).eq("period", period))
+    .collect();
+  return rows.map((row) => ({ member: row.member, ...periodTotalsOf(row) }));
+}
+
+function periodTotalsOf(row: Total | null): PeriodTotals {
   return { ...countsOf(row), firstDay: row?.firstDay ?? null };
 }
 
