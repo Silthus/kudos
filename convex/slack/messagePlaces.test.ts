@@ -97,20 +97,17 @@ describe("QM23: each kind is one choice of place", () => {
   });
 });
 
-describe("QM23: tips follow their reply", () => {
-  test("a stale Turn on for tips, while the reply arrives as a DM, turns tips on beside that DM", async () => {
+describe("HH15: the tips setting is retired", () => {
+  test("App Home lists no Tips while the skill tree applies, and a stale Tips click writes nothing", async () => {
     const t = await unlocksShippedBeforeAnyoneJoined(await settingsOpen([messageSettings, "xp-levels", "unlocks", "skill-tree"]));
+    const settingsBefore = await t.run((ctx) => ctx.db.query("messageSettings").collect());
 
-    await command(t, "U_ALICE", { type: "setMessageSetting", kind: "kudos-reply", place: "dm" });
     await command(t, "U_ALICE", { type: "setMessageSetting", kind: "tips", on: false });
-    await command(t, "U_ALICE", { type: "setMessageSetting", kind: "tips", on: true });
+    await command(t, "U_ALICE", { type: "setMessageSetting", kind: "tips", place: "none" });
 
-    expect(settingChanges()).toEqual([
-      { kind: "kudos-reply", on: true, place: "dm" },
-      { kind: "tips", on: false, place: "none" },
-      { kind: "tips", on: true, place: "dm" },
-    ]);
-    expect(placesOffered("U_ALICE", "Tips")).toEqual(["As a DM", "None"]);
+    expect(placesOffered("U_ALICE", "Tips"), "the Tips row's places").toBeUndefined();
+    expect(await t.run((ctx) => ctx.db.query("messageSettings").collect()), "the stored message settings").toEqual(settingsBefore);
+    expect(settingChanges(), "the message settings changed").toEqual([]);
   });
 });
 

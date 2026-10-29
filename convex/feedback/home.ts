@@ -341,9 +341,8 @@ function dateOf(at: number, timeZone: string | undefined) {
 }
 
 function skillTreeGroups({ perks: tree, coinsName }: Extract<ShownTab, { tab: "skillTree" }>): HomeLine[][] {
-  const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
   const toSpend: HomeLine[][] = ownsEveryPerk(tree) ? [] : [[{ kind: "text", text: `You have ${bold(skillPointsOf(tree.skillPoints))} to spend.` }]];
-  return [...toSpend, [...tree.perks.flatMap((perk) => perkLines(perk, coinsName)), condition]];
+  return [...toSpend, tree.perks.flatMap((perk) => perkLines(perk, coinsName))];
 }
 
 function perkLines(perk: TreePerk, coinsName: string): HomeLine[] {

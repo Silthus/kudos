@@ -20,7 +20,6 @@ const messageSettings = "message-settings";
 
 const rows = {
   kudosReply: "section: *After-kudos reply* — What a kudos you gave earned you, right after you send it. [select: In the channel]",
-  tips: "section: *Tips* — Short tips on earning more, like saying why you're thanking someone. [select: In the channel]",
   levelUps: "section: *Level ups* — When you reach a level, with what it opens for you. [select: As a DM]",
   newFeatures: "section: *New features* — When a new feature is ready for you to open. [select: As a DM]",
   quests: "section: *Quests and Journey* — When you finish a quest or a Journey step. [select: As a DM]",
@@ -108,7 +107,6 @@ describe("QM20: the Settings tab lists what I send you while message-settings is
     expect(publishedHome(slack, "U_ALICE").slice(publishedHome(slack, "U_ALICE").indexOf(whatISendYou))).toEqual([
       whatISendYou,
       rows.kudosReply,
-      rows.tips,
       rows.levelUps,
       rows.newFeatures,
       rows.quests,

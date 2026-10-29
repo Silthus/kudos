@@ -20,7 +20,7 @@ export function howToCollectWords(album: Album, person: string, name: string) {
   const first = firstNameOf(name);
   if (isInTheTray(album, person)) return `${first}'s card is in your tray. Put it in from the top bar.`;
   if (hasAPackWaiting(album, person)) return `${first}'s pack is waiting. Open it from your packs to add ${first} to your album.`;
-  return `Give ${first} a thoughtful kudos in Slack: thank them and say why. Their sticker comes in the pack.`;
+  return `Give ${first} a kudos in Slack: mention them in a message with your kudos emoji. Their sticker comes in the pack.`;
 }
 
 function isInTheTray(album: Album, person: string) {

@@ -144,7 +144,7 @@ function Issue({ issue, me }: { issue: WeekIssue; me: string }) {
   return (
     <>
       <Tallies issue={issue} />
-      {isQuiet(issue) ? <p className="al-issue-quiet">A quiet week. Thank someone in Slack and say why, and it shows here.</p> : <IssueBody issue={issue} me={me} />}
+      {isQuiet(issue) ? <p className="al-issue-quiet">A quiet week. Give someone a kudos in Slack, and it shows here.</p> : <IssueBody issue={issue} me={me} />}
     </>
   );
 }
@@ -193,7 +193,7 @@ function IssueBody({ issue, me }: { issue: WeekIssue; me: string }) {
         <KudosSection title="Said to you" list={issue.received} />
       </div>
       <div className="al-issue-side">
-        <Section title="New in your album">{countOf(issue.newFaces) === 0 ? <p className="al-issue-hint">No new faces this week. A thoughtful kudos to someone new brings their card.</p> : <People listed={issue.newFaces} />}</Section>
+        <Section title="New in your album">{countOf(issue.newFaces) === 0 ? <p className="al-issue-hint">No new faces this week. A kudos to someone new brings their card.</p> : <People listed={issue.newFaces} />}</Section>
         {countOf(issue.hoggies) > 0 && (
           <Section title="Hoggies from your packs">
             <Hoggies found={issue.hoggies} />
