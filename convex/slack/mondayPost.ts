@@ -82,7 +82,7 @@ async function postWeek(ctx: ActionCtx, workspace: string, { channel, post }: Cl
 async function firstNewGiversCardOf(ctx: ActionCtx, workspace: string, { origin, newGivers = [] }: TopKudosPost): Promise<CardedMessage["card"]> {
   const [first] = newGivers;
   if (origin === null || first === undefined) return null;
-  const preview = await ctx.runQuery(internal.website.linkPreviews.personCardOf, { workspace, person: first.member });
+  const preview = await ctx.runQuery(internal.website.linkPreviews.personCardOf, { workspace, person: first.member, source: "monday-post" });
   return preview === null ? null : cardBlocksOf(preview, await emojisUnlockedOn(ctx, workspace, preview));
 }
 

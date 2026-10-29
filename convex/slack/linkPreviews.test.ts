@@ -66,7 +66,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
             blocks: [
               {
                 type: "section",
-                text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
+                text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
                 accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" },
               },
               { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · person page" }] },
@@ -86,9 +86,19 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
 
     expect(cardOf(url)).toEqual({
       type: "section",
-      text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\nLevel 1`, verbatim: true },
+      text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Bram Ode>*\nLevel 1`, verbatim: true },
       accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" },
     });
+  });
+
+  test("HH93: a link copied from another Slack message unfolds under the address it was shared with, and its card names the link card as the source", async () => {
+    const t = await workspace();
+    const bram = await memberOf(t, "U_BRAM");
+    const copied = `${site}/book?src=monday-post#people/${bram}`;
+
+    await shared(t, [copied], { user: "U_BRAM" });
+
+    expect(cardOf(copied)).toMatchObject({ text: { text: `*<${site}/book?src=link-card#people/${bram}|Bram Ode>*\nLevel 1` } });
   });
 
   test("a team link unfolds into its crest, name and size", async () => {
@@ -102,7 +112,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
         blocks: [
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people`, verbatim: true },
+            text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*\n3 people`, verbatim: true },
             accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
           },
           { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · team page" }] },
@@ -118,7 +128,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
 
     await shared(t, [url]);
 
-    expect(cardOf(url)).toEqual({ type: "section", text: { type: "mrkdwn", text: `*<${url}|&lt;!here&gt; Ops &amp; @channel>*\n1 person`, verbatim: true } });
+    expect(cardOf(url)).toEqual({ type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|&lt;!here&gt; Ops &amp; @channel>*\n1 person`, verbatim: true } });
   });
 
   test("a team with the catalogue's own crest still shows its posthog.com crest picture", async () => {
@@ -320,7 +330,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\n:team-kettle-works: Kettle Works · Lanterns\n*Level 3 → 4*\n▰▰▱▱▱▱▱▱▱▱\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Juno Park>*\n:team-kettle-works: Kettle Works · Lanterns\n*Level 3 → 4*\n▰▰▱▱▱▱▱▱▱▱\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
         accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" },
       },
       {
@@ -398,7 +408,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
 
     await shared(t, [url]);
 
-    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${url}|Juno Park>*`, "Kettle Works · :team-lanterns: Lanterns"]);
+    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${fromALinkCard(url)}|Juno Park>*`, "Kettle Works · :team-lanterns: Lanterns"]);
   });
 
   test("a person on no team shows no team line", async () => {
@@ -407,7 +417,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
 
     await shared(t, [url]);
 
-    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${url}|Bram Ode>*`, "*Level 1 → 2*"]);
+    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${fromALinkCard(url)}|Bram Ode>*`, "*Level 1 → 2*"]);
   });
 
   test("the emojis they unlocked count as their album counts them: team stickers, hype, milestone and level emojis", async () => {
@@ -467,7 +477,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     await shared(t, [url]);
 
     expect(blocksOf(url)).toEqual([
-      { type: "section", text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\n*Level 1 → 2*\n▱▱▱▱▱▱▱▱▱▱\n🌱 Just getting started. Their first thanks and finds show up here.`, verbatim: true }, accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" } },
+      { type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Bram Ode>*\n*Level 1 → 2*\n▱▱▱▱▱▱▱▱▱▱\n🌱 Just getting started. Their first thanks and finds show up here.`, verbatim: true }, accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" } },
       { type: "context", elements: [{ type: "mrkdwn", text: asOf }] },
     ]);
   });
@@ -487,7 +497,7 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people\n▰▰▰▰▰▰▱▱▱▱  *2 of 3* have said thanks`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*\n3 people\n▰▰▰▰▰▰▱▱▱▱  *2 of 3* have said thanks`, verbatim: true },
         accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
       },
       {
@@ -511,7 +521,9 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people\n🌱 No kudos yet. The first one puts Kettle Works on the board.`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*
+3 people
+🌱 No kudos yet. The first one puts Kettle Works on the board.`, verbatim: true },
         accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
       },
       { type: "context", elements: [{ type: "mrkdwn", text: teamAsOf }] },
@@ -613,13 +625,13 @@ describe("LP88: rich link cards are behind rich-link-cards", { timeout: 30_000 }
     expect(slack.callsTo("chat.unfurl")[0]!.unfurls).toEqual({
       [person]: {
         blocks: [
-          { type: "section", text: { type: "mrkdwn", text: `*<${person}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true }, accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" } },
+          { type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(person)}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true }, accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" } },
           { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · person page" }] },
         ],
       },
       [team]: {
         blocks: [
-          { type: "section", text: { type: "mrkdwn", text: `*<${team}|Kettle Works>*\n3 people`, verbatim: true }, accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" } },
+          { type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(team)}|Kettle Works>*\n3 people`, verbatim: true }, accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" } },
           { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · team page" }] },
         ],
       },
@@ -671,7 +683,7 @@ describe("LP99 LP100: while card-image is on, a person link unfolds into a pictu
         image_url: picture!.url,
         alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 this week, 4 kudos. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 0 medals. Rarest find: Wizard, Legendary, found 21 Oct 2026.",
       },
-      { type: "context", elements: [{ type: "mrkdwn", text: `*<${url}|Juno Park>* · HedgeHug album · as of ${madeAt}` }] },
+      { type: "context", elements: [{ type: "mrkdwn", text: `*<${fromALinkCard(url)}|Juno Park>* · HedgeHug album · as of ${madeAt}` }] },
     ]);
   });
 
@@ -1038,4 +1050,10 @@ async function earned(t: Backend, member: MemberId, ladder: LadderId, ...tiers: 
       await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: Date.now(), award, catalogueVersion: "1", rewards: [] });
     }
   });
+}
+
+function fromALinkCard(url: string) {
+  const link = new URL(url);
+  link.searchParams.set("src", "link-card");
+  return link.toString();
 }

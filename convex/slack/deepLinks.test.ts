@@ -15,7 +15,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const siteUrl = "https://kudos-site.test";
 const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
 const givenToBob: Given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
-const leaderboardReady = `section: *Leaderboard* is ready. It opens the boards. [link: Open ${siteUrl}/leaderboard]`;
+const leaderboardReady = `section: *Leaderboard* is ready. It opens the boards. [link: Open ${siteUrl}/leaderboard?src=reply]`;
 const openLeaderboardCommand = JSON.stringify({ type: "openUnlock", feature: "leaderboard" });
 const openLeaderboard = { type: "button", action_id: openLeaderboardCommand, value: openLeaderboardCommand } as const;
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -55,7 +55,7 @@ describe("SW13 SW14 SW18: the success reply ends its extras line with a link to 
     await giveKudos(t, "U_ALICE", ["U_BOB", "U_CAROL"]);
 
     expect(successRepliesTo("U_ALICE")).toEqual([
-      ["<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 8 kudos left today.", `+20 XP · <${siteUrl}/|See your progress on the web>`],
+      ["<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 8 kudos left today.", `+20 XP · <${siteUrl}/?src=reply|See your progress on the web>`],
     ]);
   });
 
@@ -64,7 +64,7 @@ describe("SW13 SW14 SW18: the success reply ends its extras line with a link to 
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
-    expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", `<${siteUrl}/|See your progress on the web>`]]);
+    expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", `<${siteUrl}/?src=reply|See your progress on the web>`]]);
   });
 
   test.each(closed)("$condition, the ephemeral is byte-for-byte today's", async ({ flags, env = {} }) => {
@@ -112,7 +112,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
     const welcome = welcomeLinesTo("U_ALICE");
-    expect(welcome.at(-2)).toBe(`<${siteUrl}/|See your progress>`);
+    expect(welcome.at(-2)).toBe(`<${siteUrl}/?src=welcome|See your progress>`);
     expect(welcome.at(-1)).toBe("<slack://app?team=T1&id=A_KUDOS&tab=home|Open App Home>");
   });
 
@@ -131,7 +131,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await giveKudos(t, "U_ALICE", ["U_BOB"], 2);
 
-    expect(dmsTo("U_ALICE")).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
+    expect(dmsTo("U_ALICE")).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
   test.each(closed)("$condition, the level-up DM is today's", async ({ flags, env = {} }) => {
@@ -149,9 +149,9 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     await giveKudos(t, "U_ALICE", ["U_BOB"], 10);
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      ["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady, `section: <${siteUrl}/|See your level on the web>`],
+      ["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady, `section: <${siteUrl}/?src=reply|See your level on the web>`],
     ]);
-    expect(dmsTo("U_ALICE")[0]?.text).toBe(`🎉 You reached level 3!\nLevel 4 is 200 XP away.\n*Leaderboard* is ready. It opens the boards.\n<${siteUrl}/|See your level on the web>`);
+    expect(dmsTo("U_ALICE")[0]?.text).toBe(`🎉 You reached level 3!\nLevel 4 is 200 XP away.\n*Leaderboard* is ready. It opens the boards.\n<${siteUrl}/?src=reply|See your level on the web>`);
   });
 
   test("a ship sweep DM links to what's ready on the web, after its Open button", async () => {
@@ -159,7 +159,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await sweep(t);
 
-    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([[leaderboardReady, `section: <${siteUrl}/|See what's ready on the web>`]]);
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([[leaderboardReady, `section: <${siteUrl}/?src=reply|See what's ready on the web>`]]);
   });
 
   test("SW15: a ship sweep DM whose crates were all opened before delivery is not sent, link or not", async () => {
@@ -171,7 +171,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await sweep(t);
 
-    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([[leaderboardReady, `section: <${siteUrl}/|See what's ready on the web>`]]);
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([[leaderboardReady, `section: <${siteUrl}/?src=reply|See what's ready on the web>`]]);
     expect(dmsTo("U_ALICE")).toHaveLength(2);
   });
 
@@ -182,7 +182,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     await notified(t, (ctx) => notifyQuestFinished(ctx, alice, { kind: "journey", step: "first-thanks" }, 50));
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/]`, `section: <${siteUrl}/|See your Journey on the web>`],
+      [`section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/?src=reply]`, `section: <${siteUrl}/?src=reply|See your Journey on the web>`],
     ]);
   });
 
@@ -194,9 +194,9 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
       [
-        `section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/]`,
-        `section: ✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *50 XP*. [link: Open ${siteUrl}/]`,
-        `section: <${siteUrl}/|See your Journey on the web>`,
+        `section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/?src=reply]`,
+        `section: ✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *50 XP*. [link: Open ${siteUrl}/?src=reply]`,
+        `section: <${siteUrl}/?src=reply|See your Journey on the web>`,
       ],
     ]);
   });
@@ -208,7 +208,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, { ...weeklyQuest, slot }, "Give kudos on two days.", 20));
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/]`, `section: <${siteUrl}/|See your quests on the web>`],
+      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/?src=reply]`, `section: <${siteUrl}/?src=reply|See your quests on the web>`],
     ]);
   });
 
@@ -219,7 +219,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, { kind: "weekly", week: "2026-10-05", slot: 1 }, "Give kudos on two days.", 20));
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/]`, `section: <${siteUrl}/|See your quests on the web>`],
+      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/?src=reply]`, `section: <${siteUrl}/?src=reply|See your quests on the web>`],
     ]);
   });
 

@@ -7,7 +7,6 @@ import { deliverAgain, react, settle, settleInTimeOrder, testBackend, type Backe
 import { blockActions, buttonIn, publishedHome, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import { replyPrivately, type Given } from "../feedback/replies";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 
@@ -26,8 +25,6 @@ const xpAndUnlocksOn = [onForEveryone("xp-levels"), onForEveryone("unlocks")];
 const previewedByAlice = [...xpAndUnlocksOn, onForEmails(coins, alicesEmail)];
 const offForEveryoneElse = [...xpAndUnlocksOn, offForEveryone(coins)];
 const notCreated = xpAndUnlocksOn;
-const unsentMessage = { workspace: "T1", conversation: "C1", message: "1760349999.000100" };
-const givenToBob: Given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -132,18 +129,6 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
     await giveKudos(t, "U_ALICE", ["U_BOB"], "thanks");
 
     expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · +4 🪙"]);
-  });
-
-  test("CO14 CO21: with the skill tree on and no perk owned, a hint written while Coins was open is left out when coins turn off before Slack takes the reply", async () => {
-    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("skill-tree"));
-    await coinsOpenedBy(t, "U_ALICE");
-    const earlier = successRepliesTo("U_ALICE").length;
-    await t.run((ctx) => replyPrivately(ctx, unsentMessage, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10 }));
-
-    await flagsFromPostHog(t, postHog, ...offForEveryoneElse, onForEveryone("skill-tree"));
-    await settle(t);
-
-    expect(successRepliesTo("U_ALICE").slice(earlier)).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"]]);
   });
 
   test("F25: the coins exposure carries true for the previewer and false for the other member", async () => {

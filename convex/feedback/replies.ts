@@ -148,7 +148,7 @@ export const privateReply = internalQuery({
       const facts = oneReplyFactsOf({ headline: given, left: oneReply.left, skipped: row.lines, items: oneReply.items ?? null, questsMoved }, shown);
       return { ...delivered, oneReply: await oneReplyOf(ctx, row.workspace, member, facts) };
     }
-    const extrasLine = extrasLineOf(shown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const extrasLine = extrasLineOf(shown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply, "reply"));
     const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine]), ...hoggieQuestLinesOf(shown.questsDone)];
     return { ...delivered, lines, oneReply: null };
   },

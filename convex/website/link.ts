@@ -10,6 +10,7 @@ import { websiteOpen, websiteOpenTo } from "./flag";
 import { settingsSectionsShownTo } from "./settings";
 import { crateTargetValidator, homePanelValidator, listedPageOf, settingsSectionValidator, signInEntry, urlOf, type Page } from "./routes";
 import { openFeaturesOf } from "./unlockPath";
+import { visitSourceValidator, type VisitSource } from "./visitSource";
 
 const crate = v.optional(crateTargetValidator);
 
@@ -30,14 +31,14 @@ const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.
 export type FrontDoorLinks = Infer<typeof frontDoorLinksValidator>;
 
 export const websiteLinkOf = internalQuery({
-  args: { workspace: v.string(), page: pageValidator },
+  args: { workspace: v.string(), page: pageValidator, source: visitSourceValidator },
   returns: v.union(v.string(), v.null()),
-  handler: (ctx, { workspace, page }) => websiteLink(ctx, workspace, page),
+  handler: (ctx, { workspace, page, source }) => websiteLink(ctx, workspace, page, source),
 });
 
-export async function websiteLink(ctx: QueryCtx, workspace: string, page: Page): Promise<string | null> {
+export async function websiteLink(ctx: QueryCtx, workspace: string, page: Page, source: VisitSource): Promise<string | null> {
   const origin = await websiteOrigin(ctx, workspace);
-  return origin === null ? null : urlOf(origin, page);
+  return origin === null ? null : urlOf(origin, page, source);
 }
 
 export const frontDoorLinksOf = internalQuery({
@@ -74,7 +75,7 @@ async function doorFor(ctx: QueryCtx, member: MemberId | undefined): Promise<Doo
 
 function listedLinkOf(origin: string, feature: Feature) {
   const page = listedPageOf(feature);
-  return page === null ? [] : [{ label: scheduled(feature).name, url: urlOf(origin, page) }];
+  return page === null ? [] : [{ label: scheduled(feature).name, url: urlOf(origin, page, "app-home") }];
 }
 
 export async function websiteOrigin(ctx: QueryCtx, workspace: string): Promise<string | null> {
