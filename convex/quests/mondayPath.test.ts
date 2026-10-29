@@ -209,6 +209,26 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     expect(replyTo(alice), "the next kudos' reply").toContain(firstThanksDone);
   });
 
+  test("MQ47: a kudos Slack sends late, older than one Quests handled long ago, still takes first-thanks when delivered after a later kudos to someone new", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    vi.setSystemTime(Date.now() + 2 * minuteMs);
+    const sentLate = tsOf(Date.now());
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+    await thanks(alice, "thanks", bob);
+    vi.setSystemTime(Date.now() + 30 * minuteMs);
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    const held = holdingKudosGiven();
+
+    await thanksPostedAt(sentLate, alice, "thanks", bob);
+    const someoneNew = await thanks(alice, "thanks", carol);
+    await deliverInOrder(held[1]!, []);
+    await deliverInOrder(held[0]!, []);
+
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([sentLate]);
+    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([someoneNew]);
+  });
+
   test("MQ47: delivered later first, each kudos counts as done only the quest its own kudos finished", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);

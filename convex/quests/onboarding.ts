@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { isSameMessage, type MessageRef } from "../engine/messageEvent";
-import { earliestAwardFrom, firstDecidedOf, givenBetween, givenNewestFirst, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward, type GivenKudos } from "../engine/awards";
+import { earliestAwardFrom, firstDecidedOf, givenBetween, givenRecordedAfter, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward, type GivenKudos } from "../engine/awards";
 import { progressionWaitedFor } from "../progression/effects";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
@@ -174,13 +174,11 @@ async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, star
 }
 
 async function earliestKudosAwaitingQuests(ctx: QueryCtx, event: KudosGivenEvent, start: number): Promise<GivenKudos | null> {
-  const awaitedAbove = (await recordedAtOf(ctx, event)) - progressionWaitedFor;
-  let earliest: GivenKudos | null = null;
-  for await (const kudos of givenNewestFirst(ctx, event.giver, start, event.at)) {
-    if (kudos.created <= awaitedAbove || (await questsJudgedFor(ctx, [kudos]))) break;
-    earliest = kudos;
+  const recent = await givenRecordedAfter(ctx, event.giver, (await recordedAtOf(ctx, event)) - progressionWaitedFor);
+  for (const kudos of recent.filter(({ at }) => at >= start && at <= event.at).toSorted((one, other) => one.at - other.at)) {
+    if (!(await questsJudgedFor(ctx, [kudos]))) return kudos;
   }
-  return earliest;
+  return null;
 }
 
 async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<void> {
