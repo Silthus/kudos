@@ -167,6 +167,23 @@ describe("HH43: while rarity-caps is on, the forge stops at rare", { timeout: 60
     const [first, again] = actions.forgeHoggie.mock.calls;
     expect(again).toEqual(first);
   });
+
+  it("a rare's forge refused as rarity-caps turns on offers no forge after the refusal", async () => {
+    let shown = forgeOn({ ape: 4 });
+    const refusedUnderTheCap = async () => {
+      shown = forgeOn({ ape: 4 }, "rare");
+      return { kind: "refused" } as const;
+    };
+    window.history.replaceState(null, "", "/book#hoggies/ape");
+    const { user, showVisitor } = renderAlbum(memberWithTheAlbum, (asking) => (asking ? withNoItems : undefined), { hoggies: (asking) => (asking ? shown : undefined), commands: { forgeHoggie: refusedUnderTheCap } });
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Epic" }));
+    act(() => showVisitor({ ...memberWithTheAlbum }));
+
+    const shownAfter = await entry();
+    await waitFor(() => expect(shownAfter.getByText("Copies").nextSibling).toHaveTextContent("4 copies"));
+    expect(shownAfter.queryByRole("button", { name: /forge/i })).not.toBeInTheDocument();
+  });
 });
 
 describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a face-down item the member turns over", { timeout: 60_000 }, () => {
