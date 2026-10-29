@@ -160,8 +160,20 @@ describe("HH16: writes cross modules as bus facts", () => {
     ["a default export", `export default async function (ctx: MutationCtx) {}`, ["default"]],
     ["a method of an exported object", `export const ledger = { async earn(ctx: MutationCtx) {} };`, ["ledger"]],
     ["a property of a local write", `const ledger = { earn: async (ctx: MutationCtx) => {} };\nexport const earnBonus = ledger.earn;`, ["earnBonus"]],
+    ["an arrow whose callable type takes a mutation's context", `export const earnBonus: (ctx: MutationCtx) => Promise<void> = async (ctx) => {};`, ["earnBonus"]],
+    ["a write whose context may be missing", `export function earnBonus(ctx: MutationCtx | undefined) {}\nexport function earnLater(ctx: MutationCtx | null) {}`, ["earnBonus", "earnLater"]],
   ])("reads %s of a module that writes rewards", (_, source, writes) => {
     expect(writeFunctionsIn("/convex/album/items/bonus.ts", source)).toEqual(writes);
+  });
+
+  test("reads a write of files that re-export each other as a write from either file", () => {
+    const files = {
+      "/convex/album/items/first.ts": `export * from "./second";\nexport async function earnCycle(ctx: MutationCtx) {}`,
+      "/convex/album/items/second.ts": `export * from "./first";`,
+    };
+
+    expect(writesOfFile(files, "/convex/album/items/first.ts"), "the first file").toContain("earnCycle");
+    expect(writesOfFile(files, "/convex/album/items/second.ts"), "the second file").toSatisfy((writes: string[]) => isAWriteOf(writes, "earnCycle"));
   });
 });
 
@@ -261,35 +273,38 @@ function isAWriteOf(writes: string[], name: string) {
 
 function writeFunctionsOf(target: string) {
   if (placeThatWritesRewardsOf(target) === undefined) return [];
-  const path = sourcePathOf(target);
-  return path === undefined ? [everyName] : writesOfFile(path);
+  const path = sourcePathOf(sources, target);
+  return path === undefined ? [everyName] : writesOfFile(sources, path);
 }
 
 function placeThatWritesRewardsOf(path: string) {
   return placesThatWriteRewards.find((place) => path.startsWith(`/convex/${place}/`));
 }
 
-function sourcePathOf(target: string) {
-  return [`${target}.ts`, `${target}/index.ts`].find((path) => path in sources);
+type Files = Record<string, string>;
+
+function sourcePathOf(files: Files, target: string) {
+  return [`${target}.ts`, `${target}/index.ts`].find((path) => path in files);
 }
 
-const writesByFile = new Map<string, string[]>();
+const writesByFiles = new WeakMap<Files, Map<string, string[]>>();
 
-function writesOfFile(path: string): string[] {
+function writesOfFile(files: Files, path: string): string[] {
+  const writesByFile = writesByFiles.get(files) ?? writesByFiles.set(files, new Map()).get(files)!;
   const known = writesByFile.get(path);
   if (known !== undefined) return known;
-  writesByFile.set(path, []);
-  const writes = writeFunctionsIn(path, sources[path] ?? "");
+  writesByFile.set(path, [everyName]);
+  const writes = writeFunctionsIn(path, files[path] ?? "", files);
   writesByFile.set(path, writes);
   return writes;
 }
 
-function writeFunctionsIn(path: string, source: string) {
+function writeFunctionsIn(path: string, source: string, files: Files = sources) {
   const file = syntaxOf(path, source);
-  return [...new Set(file.statements.flatMap((statement) => writesExportedBy({ path, file }, statement)))];
+  return [...new Set(file.statements.flatMap((statement) => writesExportedBy({ path, file, files }, statement)))];
 }
 
-type ParsedFile = { path: string; file: ts.SourceFile };
+type ParsedFile = { path: string; file: ts.SourceFile; files: Files };
 
 function writesExportedBy(parsed: ParsedFile, statement: ts.Statement): string[] {
   if (ts.isExportDeclaration(statement)) return statement.isTypeOnly ? [] : writesListedBy(parsed, statement);
@@ -331,10 +346,10 @@ function writesListedBy(parsed: ParsedFile, statement: ts.ExportDeclaration) {
     .map((element) => element.name.text);
 }
 
-function writesOfModule({ path }: ParsedFile, from: string) {
+function writesOfModule({ path, files }: ParsedFile, from: string) {
   if (!from.startsWith(".")) return [];
-  const target = sourcePathOf(resolved(path, from));
-  return target === undefined ? [everyName] : writesOfFile(target);
+  const target = sourcePathOf(files, resolved(path, from));
+  return target === undefined ? [everyName] : writesOfFile(files, target);
 }
 
 function importedWrites(parsed: ParsedFile, from: string, name: string) {
@@ -367,7 +382,7 @@ function importBindsAWrite(parsed: ParsedFile, statement: ts.ImportDeclaration, 
 }
 
 function declarationWrites(parsed: ParsedFile, declaration: ts.VariableDeclaration | ts.FunctionDeclaration | ts.ClassDeclaration, seen: Set<string>) {
-  if (ts.isVariableDeclaration(declaration)) return (declaration.type !== undefined && typeNeedsAMutationCtx(declaration.type, [])) || (declaration.initializer !== undefined && expressionWrites(parsed, declaration.initializer, seen));
+  if (ts.isVariableDeclaration(declaration)) return (declaration.type !== undefined && annotationNeedsAMutationCtx(declaration.type)) || (declaration.initializer !== undefined && expressionWrites(parsed, declaration.initializer, seen));
   return expressionWrites(parsed, declaration, seen);
 }
 
@@ -381,13 +396,17 @@ function expressionWrites(parsed: ParsedFile, node: ts.Node, seen: Set<string>):
   return node.getChildren().some((child) => expressionWrites(parsed, child, seen));
 }
 
+function annotationNeedsAMutationCtx(type: ts.TypeNode) {
+  return ts.isFunctionTypeNode(type) ? functionNeedsAMutationCtx(type) : typeNeedsAMutationCtx(type, []);
+}
+
 function functionNeedsAMutationCtx(fn: ts.SignatureDeclaration) {
   return fn.parameters.some(({ type }) => type !== undefined && typeNeedsAMutationCtx(type, fn.typeParameters ?? []));
 }
 
 function typeNeedsAMutationCtx(type: ts.TypeNode, typeParameters: readonly ts.TypeParameterDeclaration[]): boolean {
   if (ts.isParenthesizedTypeNode(type)) return typeNeedsAMutationCtx(type.type, typeParameters);
-  if (ts.isUnionTypeNode(type)) return type.types.every((member) => typeNeedsAMutationCtx(member, typeParameters));
+  if (ts.isUnionTypeNode(type)) return type.types.filter((member) => !isNothing(member)).every((member) => typeNeedsAMutationCtx(member, typeParameters));
   if (ts.isIntersectionTypeNode(type)) return type.types.some((member) => typeNeedsAMutationCtx(member, typeParameters));
   if (ts.isIndexedAccessTypeNode(type)) return typeNeedsAMutationCtx(type.objectType, typeParameters);
   if (ts.isTypeLiteralNode(type)) return type.members.some((member) => ts.isPropertySignature(member) && member.type !== undefined && typeNeedsAMutationCtx(member.type, typeParameters));
@@ -397,6 +416,10 @@ function typeNeedsAMutationCtx(type: ts.TypeNode, typeParameters: readonly ts.Ty
   const constraint = typeParameters.find((parameter) => parameter.name.text === name)?.constraint;
   if (constraint !== undefined) return typeNeedsAMutationCtx(constraint, typeParameters);
   return (type.typeArguments ?? []).some((argument) => typeNeedsAMutationCtx(argument, typeParameters));
+}
+
+function isNothing(type: ts.TypeNode) {
+  return type.kind === ts.SyntaxKind.UndefinedKeyword || type.kind === ts.SyntaxKind.VoidKeyword || (ts.isLiteralTypeNode(type) && type.literal.kind === ts.SyntaxKind.NullKeyword);
 }
 
 function isAnotherModule(path: string, from: string) {
