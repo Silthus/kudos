@@ -9,6 +9,7 @@ import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { catalogue, type Rarity } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
+import { earnItem } from "./ledger";
 import type { AlbumAnswer, AlbumRead, TurnAnswer } from "../../website/album";
 import type { Denial } from "../../website/memberQuery";
 import type { MemberId } from "../../workspace/directory";
@@ -129,6 +130,24 @@ describe("LP11 LP20: a level item is drawn at its turn, pays no XP, and the thir
       const answer = await turn(asAlice, _id);
       expect(rareOrRarer.includes(hoggieDrawnBy(answer)?.rarity ?? "common"), `${key}'s turned rarity`).toBe(true);
     }
+  });
+});
+
+describe("HH39: the turn draws within the floor, cap and weights its item stored", { timeout: 120_000 }, () => {
+  test("twenty items stored exactly rare with base weights each turn rare, drawn as the draw answers for that floor and cap", async () => {
+    const member = await memberOf(await joined(alice));
+    const keys = Array.from({ length: 20 }, (_, n) => `level:${n + 2}:1`);
+    await t.run(async (ctx) => {
+      for (const [n, key] of keys.entries()) await earnItem(ctx, { workspace: "T1", member, source: "hoggie", key, floor: "rare", cap: "rare", weights: "base", reason: { kind: "levelUp", level: n + 2 }, earnedAt: Date.now() });
+    });
+    const asAlice = await signedIn(alice);
+
+    const turned = [];
+    for (const { item } of (await boardOf(asAlice)).items) turned.push(hoggieDrawnBy(await turn(asAlice, item)));
+
+    const drawn = await Promise.all(keys.map((crate) => drawOf({ secret: process.env.HOGGIE_DRAW_SECRET ?? "", member, crate, version: catalogue.version, floor: "rare", cap: "rare", weights: "base" })));
+    expect(turned.map((drop) => drop && { hoggie: drop.hoggie, rarity: drop.rarity }), "the turned faces").toEqual(drawn);
+    expect(new Set(turned.map((drop) => drop?.rarity)), "the rarities turned").toEqual(new Set(["rare"]));
   });
 });
 

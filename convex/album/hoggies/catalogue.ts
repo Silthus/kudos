@@ -17,6 +17,12 @@ export const rarities: ReadonlyArray<{ rarity: Rarity; weight: number }> = [
   { rarity: "legendary", weight: 2 },
 ];
 
+export const weightsNameValidator = v.literal("base");
+
+export type WeightsName = Infer<typeof weightsNameValidator>;
+
+export const weightsNamed: Record<WeightsName, ReadonlyArray<{ rarity: Rarity; weight: number }>> = { base: rarities };
+
 const words: Record<Rarity, string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary" };
 
 const squares: Record<Rarity, string> = { common: "⬜", uncommon: "🟩", rare: "🟦", epic: "🟪", legendary: "🟧" };
