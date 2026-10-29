@@ -7,3 +7,5 @@ We chose a stored ledger over an item board derived on each read from the packs,
 Earned emojis are never items and never hidden: each unlocks with the turn that brings it, after the item lands. The turn records the milestone tiers it reaches in the same mutation and answers them, so milestones stay inline rather than following the bus. The turn never rolls a random emoji; the sandbox's old open keeps its roll until the tray retires. These are the product owner's calls in the core-loop spec (LP3, LP13, LP14, LP15 in `spec/core-loop.md`), which amend the architecture's emoji source, its random roll at the turn and its move of milestones to the bus. The spec wins where the two differ.
 
 Shaped in [docs/architecture/items.md](../architecture/items.md). Coherence journal decisions: `d-b644d867`, amended by `d-2a4c6b50`.
+
+Amended by [ADR-0017](0017-album-owns-collecting.md): the ledger is a part of `Album`, and its earns follow the bus.
