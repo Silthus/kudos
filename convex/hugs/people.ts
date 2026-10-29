@@ -3,11 +3,9 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { hugGivenEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
-import { recordReward } from "../progression/progression";
 import { isMember, type MemberId } from "../workspace/directory";
 import { countReceivedOnTheMessage, insertPaid, isPaid, hugOf, hugPeoplePageOf, type Hug } from "./records";
 import { countHugReceived, weekOfPersonAt } from "./weeks";
-import { hugXp, hugsCatalogueVersion } from "./xp";
 
 const peopleAPage = 100;
 
@@ -27,8 +25,6 @@ async function payPerson(ctx: MutationCtx, hug: Hug, person: MemberId) {
   await insertPaid(ctx, hug, person);
   await countReceivedOnTheMessage(ctx, hug, person);
   await countHugReceived(ctx, hug, person);
-  const key = `hug:${hug.giver}:${hug.conversation}:${hug.message}`;
-  await recordReward(ctx, hug.workspace, { member: person, key, xp: hugXp, coins: 0, item: null, catalogueVersion: hugsCatalogueVersion, at: hug.at });
   await publishHugReceived(ctx, hug, person);
 }
 
