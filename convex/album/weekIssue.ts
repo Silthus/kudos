@@ -1,6 +1,8 @@
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import type { DayKey } from "../engine/allowance";
+import { totalsOf, type RecognitionCounts } from "../leaderboard/counts";
+import { keyOf } from "../leaderboard/periods";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
 import { anEmptyWeek, weekAt, weekRowOf, weekTallyIn, type WeekTally } from "./tallies";
@@ -34,7 +36,12 @@ export async function weekEditionOf(ctx: QueryCtx, member: MemberId, asked: DayK
 
 async function issueOf(ctx: QueryCtx, member: MemberId, week: DayKey, row: WeekRow | null): Promise<Issue> {
   const { packsOpened = 0, newFaces = { people: [], more: 0 }, hoggiesFound = { hoggies: [], more: 0 }, ...tally } = row === null ? anEmptyWeek() : weekTallyIn(row);
-  return { ...tally, packsOpened, newFaces, hoggiesFound, ...(await weekKudosOf(ctx, member, week, tally.kudosOfWeek?.message ?? null)) };
+  return { ...tally, ...(await countsOf(ctx, member, week)), packsOpened, newFaces, hoggiesFound, ...(await weekKudosOf(ctx, member, week, tally.kudosOfWeek?.message ?? null)) };
+}
+
+async function countsOf(ctx: QueryCtx, member: MemberId, week: DayKey): Promise<RecognitionCounts> {
+  const { kudosGiven, kudosReceived, hugsGiven, hugsReceived } = await totalsOf(ctx, member, keyOf("week", week));
+  return { kudosGiven, kudosReceived, hugsGiven, hugsReceived };
 }
 
 function isAWeek(day: DayKey) {
