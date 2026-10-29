@@ -215,7 +215,7 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([earlier]);
   });
 
-  test("kudos that say why on 2 different days finish two-days, even when Slack sends the later day's first", async () => {
+  test("kudos on 2 different days finish two-days, even when Slack sends the later day's first", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);
     vi.setSystemTime(Date.now() + 2 * minuteMs);
@@ -223,22 +223,22 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
     vi.setSystemTime(Date.now() + dayMs);
 
     const dayTwoAt = Date.now();
-    await thanksPostedAt(tsOf(dayTwoAt), alice, saysWhy, bob);
-    await thanksPostedAt(dayOne, alice, saysWhy, bob);
+    await thanksPostedAt(tsOf(dayTwoAt), alice, "thanks", bob);
+    await thanksPostedAt(dayOne, alice, "thanks", bob);
 
     expect(await causesOf(alice, "journey:two-days"), "the kudos two-days is paid for").toEqual([dayOne]);
     expect(await finishTimesOf(alice, "journey:two-days"), "when two-days finished: on the second day").toEqual([dayTwoAt]);
     expect(replyTo(alice), "the reply still to be sent").toContain("Quest done: Thank someone on two different days · +50 XP and an unidentified Hoggie for your collection");
   });
 
-  test("a kudos that says why counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {
+  test("a kudos counts toward two-days only with the kudos given up to it, even when a later day's is already in", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await memberChanged(t, "team_join", { id: carol.user, profile: { real_name: carol.name } });
     const held = holdingKudosGiven();
 
-    await thanks(alice, saysWhy, bob);
+    await thanks(alice, "thanks", bob);
     vi.setSystemTime(Date.now() + dayMs);
-    await thanks(alice, saysWhy, bob);
+    await thanks(alice, "thanks", bob);
     await deliverInOrder(held[0]!, []);
 
     expect(await nextQuestOf(alice), "the next onboarding quest after the first day's kudos").toBe("someone-new");
