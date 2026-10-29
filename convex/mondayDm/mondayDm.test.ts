@@ -260,6 +260,25 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
     expect(productEvents("hugs recap sent").map(({ properties }) => properties.hugs_received).toSorted(), "the hugs received in Bob's recap and in Alice's Monday DM").toEqual([0, 1]);
   });
 
+  test("hugs recap sent names the DM that carried the hugs, so the Monday DM's add up with its dm sent", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await hug(bob, alice);
+    await hug(bob, carol);
+
+    await mondayArrives();
+
+    expect(dmsTo(carol), "Carol was only hugged, so she keeps today's recap").toHaveLength(1);
+    const recapsSent = productEvents("hugs recap sent").map(({ properties }) => ({ given: properties.hugs_given, received: properties.hugs_received, via: properties.via }));
+    expect(recapsSent.toSorted((first, second) => JSON.stringify(first).localeCompare(JSON.stringify(second))), "Alice's and Bob's Monday DMs, and Carol's recap").toEqual([
+      { given: 0, received: 1, via: "monday" },
+      { given: 0, received: 1, via: "recap" },
+      { given: 2, received: 0, via: "monday" },
+    ]);
+    const mondayDmsWithHugs = productEvents("dm sent").filter(({ properties }) => properties.kind === "monday" && String(properties.sections).split(",").includes("hugs"));
+    expect(recapsSent.filter(({ via }) => via === "monday")).toHaveLength(mondayDmsWithHugs.length);
+  });
+
   test("a rate limit is retried, at most three tries in all", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);

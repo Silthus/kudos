@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { reportHugsRecapSent } from "../analytics/isolatedUsage";
+import type { HugsRecapCarrier } from "../analytics/projections";
 import { wallClockAt, type DayKey } from "../engine/allowance";
 import { threadRootOf } from "../engine/engine";
 import { emojiLineOf, type RecapEmojiLine } from "../feedback/albumRecap";
@@ -82,7 +83,7 @@ export async function hugsSectionFor(ctx: MutationCtx, member: MemberId, monday:
 
 export async function hugsSentInTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey) {
   const week = await hugWeekOf(ctx, member, mondayBefore(monday));
-  if (week !== null) await reportHugsRecapSent(ctx, recapSentOf(week));
+  if (week !== null) await reportHugsRecapSent(ctx, recapSentOf(week, "monday"));
 }
 
 export const recapLater = internalMutation({
@@ -100,12 +101,12 @@ export const recapEnded = internalMutation({
     const row = await awaitingTry(ctx, week, attempt);
     if (row === null) return;
     await ctx.db.patch(week, { recap: sent ? "sent" : "failed" });
-    if (sent) await reportHugsRecapSent(ctx, recapSentOf(row));
+    if (sent) await reportHugsRecapSent(ctx, recapSentOf(row, "recap"));
   },
 });
 
-function recapSentOf({ workspace, member, given, received, givenXp, receivedXp }: HugWeek) {
-  return { workspace, member, given, received, xp: givenXp + receivedXp, at: Date.now() };
+function recapSentOf({ workspace, member, given, received, givenXp, receivedXp }: HugWeek, via: HugsRecapCarrier) {
+  return { workspace, member, given, received, xp: givenXp + receivedXp, via, at: Date.now() };
 }
 
 async function claimedForTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey): Promise<HugWeek | null> {

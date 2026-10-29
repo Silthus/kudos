@@ -92,7 +92,7 @@ export type UsageFact =
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; via?: "dm-button"; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
-  | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number }
+  | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; via?: HugsRecapCarrier; at: number }
   | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number }
   | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number }
   | { kind: "dmSent"; workspace: string; member: MemberId; dm: SentDm; at: number }
@@ -108,6 +108,10 @@ export const dmLinkDestinationValidator = v.union(v.literal("book"), v.literal("
 export type DmLinkDestination = Infer<typeof dmLinkDestinationValidator>;
 
 export type DmKind = Infer<typeof dmKindValidator>;
+
+export const hugsRecapCarrierValidator = v.union(v.literal("recap"), v.literal("monday"));
+
+export type HugsRecapCarrier = Infer<typeof hugsRecapCarrierValidator>;
 
 export const questsSurfaceValidator = v.union(v.literal("panel"), v.literal("profile"));
 
@@ -315,7 +319,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
     case "hugsRecapSent":
-      return { event: "hugs recap sent", subject, at: fact.at, properties: { hugs_given: fact.given, hugs_received: fact.received, xp: fact.xp } };
+      return { event: "hugs recap sent", subject, at: fact.at, properties: { hugs_given: fact.given, hugs_received: fact.received, xp: fact.xp, ...(fact.via !== undefined && { via: fact.via }) } };
     case "xpMomentEnded":
       return { event: "xp moment ended", subject, at: fact.at, properties: { skipped: fact.skipped, excerpts_shown: fact.excerptsShown, folded: fact.folded } };
     case "howItWorksClosed":
