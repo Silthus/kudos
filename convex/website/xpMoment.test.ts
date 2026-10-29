@@ -731,7 +731,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed).toEqual([...drawnMoved, { kind: "milestone", name: "Generous soul", from: 4, to: 5, of: 25 }]);
   });
 
-  test("a kudos sent before the last visit and decided after it moves the two-days quest since the visit", async () => {
+  test("MQ46: a kudos that doesn't say why, sent before the last visit and decided after it, moves the two-days quest since the visit", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     const member = await memberOf(alice);
     await t.run((ctx) => startQuests(ctx, member, Date.now()));
@@ -739,7 +739,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     const sentBeforeTheVisit = Date.now();
     const asAlice = await aReturningMember(alice);
 
-    await thanksSentAt(sentBeforeTheVisit, alice, carol);
+    await kudosSentAt(sentBeforeTheVisit, "thanks", alice, carol);
 
     expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual([{ kind: "quest", name: onboardingGoalOf("two-days"), from: 0, to: 1, of: 2 }]);
   });
@@ -918,9 +918,13 @@ async function thanks(giver: Person, ...recipients: Person[]) {
 }
 
 async function thanksSentAt(at: number, giver: Person, ...recipients: Person[]) {
+  return kudosSentAt(at, why, giver, ...recipients);
+}
+
+async function kudosSentAt(at: number, words: string, giver: Person, ...recipients: Person[]) {
   messages += 1;
   const ts = `${Math.floor(at / 1000)}.${String(messages).padStart(6, "0")}`;
-  await post(t, [section(text(`${why} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
+  await post(t, [section(text(`${words} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settle(t);
   return { at: Number(ts.split(".")[0]) * 1000, ts };
 }
