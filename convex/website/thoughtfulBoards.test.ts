@@ -318,6 +318,24 @@ describe("AL40: getThoughtfulBoards answers off while album is off for the membe
   });
 });
 
+describe("E2: a view of the website's Leaderboard sends leaderboard viewed", () => {
+  test.each(["week", "last-week", "month", "all"] as const)("a view of the %s boards sends one leaderboard viewed for the Everyone board from the website", async (period) => {
+    expect(await (await signedIn(alice)).mutation(api.website.album.viewLeaderboard, { period })).toEqual({ kind: "viewed" });
+    await settle(t);
+
+    expect(leaderboardViews()).toEqual([{ board: "everyone", period, surface: "website" }]);
+  });
+
+  test("with album off a view is refused and sends nothing", async () => {
+    await switchWebsite(t, postHog, true, "everyone-board");
+
+    expect(await (await signedIn(alice)).mutation(api.website.album.viewLeaderboard, { period: "week" })).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(leaderboardViews()).toEqual([]);
+  });
+});
+
 function slackUserOf({ user, name }: Person) {
   const picture = user === bob.user ? { image_72: bobsPicture, image_192: bobsPicture } : {};
   return { real_name: name, profile: { real_name: name, display_name: name, ...picture } };
@@ -389,4 +407,11 @@ async function hugs(giver: Person, author: Person, ts: string) {
 async function signedIn(person: Person) {
   const { asSignedIn } = await aSignedInSession(t, { user: person.user, name: person.name });
   return asSignedIn;
+}
+
+function leaderboardViews() {
+  return postHog
+    .productEvents()
+    .filter(({ event }) => event === "leaderboard viewed")
+    .map(({ properties: { board, period, surface } }) => ({ board, period, surface }));
 }

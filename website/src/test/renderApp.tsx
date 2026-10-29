@@ -40,7 +40,7 @@ const noXpMoment: XpMomentRead = (asking) => (asking ? { kind: "off" } : undefin
 
 const noPlayerCards: PlayerCardRead = (asking) => (asking ? { card: { kind: "off" }, emojis: { kind: "off" } } : { card: undefined, emojis: undefined });
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickKudosEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks" | "viewQuests">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickKudosEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks" | "viewQuests" | "viewLeaderboard">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment, usePlayerCard: noPlayerCards, useQuests: noQuests };
 
@@ -88,7 +88,8 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     arrive: vi.fn(commands.arrive ?? (async (from: number | null) => ({ kind: "arrived", lastVisit: from }) as const)),
     endXpMoment: vi.fn(commands.endXpMoment ?? (async (_from: number, until: number) => ({ kind: "arrived", lastVisit: until }) as const)),
     closeHowItWorks: vi.fn(commands.closeHowItWorks ?? (async () => ({ kind: "closed" }) as const)),
-    viewQuests: vi.fn(commands.viewQuests ?? (async () => ({ kind: "viewed" }) as const)),
+    viewQuests: vi.fn(commands.viewQuests ?? (() => {})),
+    viewLeaderboard: vi.fn(commands.viewLeaderboard ?? (() => {})),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (
