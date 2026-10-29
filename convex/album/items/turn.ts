@@ -63,7 +63,7 @@ async function landFirstTime(ctx: MutationCtx, owner: PageOwner, row: Item, at: 
 async function drawTheHoggie(ctx: MutationCtx, owner: PageOwner, row: Item, at: number): Promise<Landed | null> {
   const crate = row.key as CrateKey;
   if (row.reason.kind === "forge") await dropForged(ctx, owner.member, crate, row.reason.hoggie, at);
-  else await dropFor(ctx, owner.member, crate, at, { surface: "website", floor: row.floor, unowned: isAnAchievement(row.reason) });
+  else await dropFor(ctx, owner.member, crate, at, { surface: "website", floor: row.floor, cap: row.cap, weights: row.weights, unowned: isAnAchievement(row.reason) });
   const drop = await dropOf(ctx, owner.member, crate);
   if (drop === null) return null;
   await tallyHoggieFound(ctx, owner.member, { hoggie: drop.hoggie, rarity: drop.rarity }, at);

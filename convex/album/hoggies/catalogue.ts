@@ -17,6 +17,20 @@ export const rarities: ReadonlyArray<{ rarity: Rarity; weight: number }> = [
   { rarity: "legendary", weight: 2 },
 ];
 
+export const kudosPackWeights: ReadonlyArray<{ rarity: Rarity; weight: number }> = [
+  { rarity: "common", weight: 50 },
+  { rarity: "uncommon", weight: 28 },
+  { rarity: "rare", weight: 18 },
+  { rarity: "epic", weight: 3.5 },
+  { rarity: "legendary", weight: 0.5 },
+];
+
+export const weightsNameValidator = v.union(v.literal("base"), v.literal("kudos"));
+
+export type WeightsName = Infer<typeof weightsNameValidator>;
+
+export const weightsNamed: Record<WeightsName, ReadonlyArray<{ rarity: Rarity; weight: number }>> = { base: rarities, kudos: kudosPackWeights };
+
 const words: Record<Rarity, string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary" };
 
 const squares: Record<Rarity, string> = { common: "⬜", uncommon: "🟩", rare: "🟦", epic: "🟪", legendary: "🟧" };
