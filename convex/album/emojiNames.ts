@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyTeamsReplacedEventValidator } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
-import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
+import { fullNameOf, type MemberId } from "../workspace/directory";
 import { slackEmojiImageOf } from "../workspace/slackEmoji";
 import { isStandardEmojiName } from "../workspace/standardEmoji";
 import { emojiLevels, levelTwoEmoji, milestoneTierEmojiOf, milestoneTierEmojis, slugOf } from "./emojiCatalogue";
@@ -23,7 +23,16 @@ export async function nameHypeEmojiOf(ctx: MutationCtx, workspace: string, perso
   if ((await registeredAs(ctx, workspace, `hype:${person}`)) !== null) return;
   await reserveSharedNamesIn(ctx, workspace);
   await reserveTeamNamesShapedLikeHypes(ctx, workspace);
-  await allocate(ctx, workspace, `hype:${person}`, { slug: slugOf(await fullNameOf(ctx, person)), empty: "person", suffix: hypeSuffix });
+  await allocate(ctx, workspace, `hype:${person}`, hypeNameShapeOf(await fullNameOf(ctx, person)));
+}
+
+export function hypeEmojiNameFor(fullName: string): string {
+  const { slug, empty, suffix } = hypeNameShapeOf(fullName);
+  return `${slug === "" ? empty : slug}${suffix}`;
+}
+
+function hypeNameShapeOf(fullName: string): NameShape {
+  return { slug: slugOf(fullName), empty: "person", suffix: hypeSuffix };
 }
 
 export async function teamEmojiNameOf(ctx: MutationCtx, workspace: string, team: string): Promise<string> {
@@ -117,7 +126,7 @@ async function naturalShapeOf(ctx: QueryCtx, emoji: EarnedEmojiId): Promise<Name
   if (kind === "level") return levelNameShapeOf(cause);
   if (kind === "milestone") return { slug: slugOf(milestoneTierEmojiOf(cause)?.name ?? cause), empty: "milestone", suffix: "" };
   if (kind === "team") return teamNameShapeOf((await companyTeamsOf(ctx)).find(({ team }) => team === cause)?.name ?? cause);
-  return { slug: slugOf(await fullNameOf(ctx, cause as MemberId)), empty: "person", suffix: hypeSuffix };
+  return hypeNameShapeOf(await fullNameOf(ctx, cause as MemberId));
 }
 
 function splitOnce(id: string): [string, string] {
@@ -156,10 +165,6 @@ async function workspacesWithARegistry(ctx: QueryCtx): Promise<string[]> {
     .withIndex("by_emoji", (q) => q.eq("emoji", firstUse).eq("person", undefined))
     .collect();
   return firstUses.map(({ workspace }) => workspace);
-}
-
-async function fullNameOf(ctx: QueryCtx, person: MemberId): Promise<string> {
-  return (await personFactsOf(ctx, person))?.realName ?? (await displayNameOf(ctx, person)) ?? "";
 }
 
 async function reserveSharedNamesIn(ctx: MutationCtx, workspace: string) {
