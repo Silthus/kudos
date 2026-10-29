@@ -4,6 +4,7 @@ import type { CrateKey } from "../hoggies/crateKey";
 import { customEmojiImageOf } from "../../workspace/customEmoji";
 import type { MemberId } from "../../workspace/directory";
 import { settingsOf } from "../../workspace/settings";
+import { rarityRangeFor, welcomeRarities } from "../hoggies/rarityCaps";
 import { earnItem } from "./ledger";
 import type { Turned } from "./turn";
 import { welcomeItemShownTo } from "./welcomeFlag";
@@ -16,7 +17,7 @@ export const welcomeCrateKey: CrateKey = "welcome:first";
 
 export async function earnWelcomeItem(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<void> {
   if (!(await welcomeItemShownTo(ctx, member))) return;
-  await earnItem(ctx, { workspace, member, source: "hoggie", key: welcomeCrateKey, floor: "rare", reason: { kind: "welcome" }, earnedAt: at });
+  await earnItem(ctx, { workspace, member, source: "hoggie", key: welcomeCrateKey, ...(await rarityRangeFor(ctx, member, welcomeRarities)), reason: { kind: "welcome" }, earnedAt: at });
 }
 
 export async function lessonAfter(ctx: QueryCtx, owner: { workspace: string; member: MemberId }, item: Id<"items">, { again }: Turned): Promise<Taught> {

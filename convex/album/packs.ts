@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { kudosPackRarities, rarityRangeFor } from "./hoggies/rarityCaps";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
@@ -101,7 +102,7 @@ type Thanks = { workspace: string; giver: MemberId; recipient: MemberId; message
 
 async function earnThanksItems(ctx: MutationCtx, thanks: Thanks, pack: PackId, holdsSticker: boolean) {
   const earning = thanksEarningOf(thanks);
-  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack) });
+  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack), ...(await rarityRangeFor(ctx, earning.member, kudosPackRarities)) });
   if (holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack });
 }
 

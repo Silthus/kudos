@@ -3,6 +3,7 @@ import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
 import { earnItem } from "../album/items/ledger";
+import { questHoggieRarities, rarityRangeFor } from "../album/hoggies/rarityCaps";
 import { recordReward } from "../progression/progression";
 import { rewardOf } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
@@ -25,7 +26,7 @@ export async function finishMondayQuest(ctx: MutationCtx, workspace: string, mem
   const key = rewardKeyOf(quest);
   const recorded = await recordReward(ctx, workspace, { member, key, ...reward, coins: 0, catalogueVersion, at, ...(cause && { cause }) });
   if (recorded === "already recorded") return false;
-  await earnItem(ctx, { workspace, member, source: "hoggie", key: questItemKeyOf(key), reason: { kind: "quest", quest }, earnedAt: at });
+  await earnItem(ctx, { workspace, member, source: "hoggie", key: questItemKeyOf(key), ...(await rarityRangeFor(ctx, member, questHoggieRarities)), reason: { kind: "quest", quest }, earnedAt: at });
   await publish(ctx, { type: "questFinished", workspace, member, quest, ...(poolQuest === undefined ? {} : { poolQuest }), reward: { xp: reward.xp, coins: 0 }, at });
   return true;
 }

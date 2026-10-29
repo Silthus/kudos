@@ -1,17 +1,21 @@
 import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
-import type { Rarity } from "./hoggies/catalogue";
 import type { CrateKey } from "./hoggies/crateKey";
 import { dropFor, droppedIn, foundIn, type Drop } from "./hoggies/drops";
 import { crestsShownTo } from "./hoggies/flag";
 import { hiddenItemsShownTo } from "./items/flag";
 import { earnedItemOf, earnItem, markTurned } from "./items/ledger";
+import { levelUpSlotRarities, levelUpThirdSlotRarities, rarityRangeFor, storedRangeOf, type SourceRarities } from "./hoggies/rarityCaps";
 import type { MemberId } from "../workspace/directory";
 
 export const levelUpRevealFlag = { key: "level-up-reveal", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
-const slots: ReadonlyArray<{ slot: number; floor?: Rarity }> = [{ slot: 1 }, { slot: 2 }, { slot: 3, floor: "rare" }];
+const slots: ReadonlyArray<{ slot: number; rarities: SourceRarities }> = [
+  { slot: 1, rarities: levelUpSlotRarities },
+  { slot: 2, rarities: levelUpSlotRarities },
+  { slot: 3, rarities: levelUpThirdSlotRarities },
+];
 
 export function levelUpCrateKeyOf(level: number, slot: number): CrateKey {
   return `level:${level}:${slot}`;
@@ -38,13 +42,14 @@ export async function dropLevelUpHoggies(ctx: MutationCtx, levelUp: LevelUp): Pr
 }
 
 async function earnLevelUpItems(ctx: MutationCtx, { workspace, member, level, at }: LevelUp): Promise<void> {
-  for (const { slot, floor } of slots) await earnItem(ctx, { workspace, member, source: "hoggie", key: levelUpCrateKeyOf(level, slot), ...(floor && { floor }), reason: { kind: "levelUp", level }, earnedAt: at });
+  for (const { slot, rarities } of slots) await earnItem(ctx, { workspace, member, source: "hoggie", key: levelUpCrateKeyOf(level, slot), ...(await rarityRangeFor(ctx, member, rarities)), reason: { kind: "levelUp", level }, earnedAt: at });
 }
 
 async function revealLevelUpHoggies(ctx: MutationCtx, { member, level, at }: LevelUp): Promise<void> {
-  for (const { slot, floor } of slots) {
+  for (const { slot } of slots) {
     const crate = levelUpCrateKeyOf(level, slot);
-    await dropFor(ctx, member, crate, at, { floor });
+    const item = await earnedItemOf(ctx, member, "hoggie", crate);
+    await dropFor(ctx, member, crate, at, item === null ? {} : storedRangeOf(item));
     if (await droppedIn(ctx, member, crate)) await markTurned(ctx, member, "hoggie", crate, at);
   }
 }
