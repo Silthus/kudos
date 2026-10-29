@@ -16,7 +16,7 @@ import { messageSettingsOf } from "../messageSettings/messageSettings";
 import { standingOf } from "../progression/progression";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
-import { nextOnboardingQuestOf } from "./onboarding";
+import { advanceOnboarding, nextOnboardingQuestOf } from "./onboarding";
 import { openQuestCrate } from "./open";
 import { questStartOf } from "./start";
 import { weekStartOf } from "./week";
@@ -33,6 +33,7 @@ const dayMs = 24 * 60 * minuteMs;
 const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
+const dave = { user: "U_DAVE", name: "Dave Achterberg" };
 const saysWhy = "thanks for untangling the flaky migration today";
 const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items", "onboarding"];
 const mondayPath = [...todaysFlags, "monday-quest"];
@@ -158,17 +159,47 @@ describe("MQ5: the onboarding quests count each kudos as of when it was given, w
   test.each([
     ["the earlier first", [0, 1]],
     ["the later first", [1, 0]],
-  ])("MQ47: two kudos to someone new, each in its own message, finish first-thanks and someone-new, one each, delivered %s", async (_, order) => {
+  ])("MQ47: two kudos to someone new, each in its own message, pay first-thanks for the earlier and someone-new for the later, delivered %s", async (_, order) => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await startedByTheSweep(alice);
     const held = holdingKudosGiven();
 
-    await thanks(alice, "thanks", bob);
-    await thanks(alice, "thanks", carol);
+    const earlier = await thanks(alice, "thanks", bob);
+    const later = await thanks(alice, "thanks", carol);
     for (const index of order) await deliverInOrder(held[index]!, []);
 
-    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([held[order[0]!]!.message.message]);
-    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([held[order[1]!]!.message.message]);
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([earlier]);
+    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([later]);
+  });
+
+  test.each([
+    ["the earlier first", [0, 1]],
+    ["the later first", [1, 0]],
+  ])("MQ47: a kudos to someone thanked before the start and a later one to someone new finish both quests, delivered %s", async (_, order) => {
+    await switchWebsite(t, postHog, true, ...todaysFlags);
+    await joins(dave);
+    await thanks(alice, "thanks", bob);
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await sweepForANewWeek();
+    const held = holdingKudosGiven();
+
+    const repeat = await thanks(alice, "thanks", bob);
+    const someoneNew = await thanks(alice, "thanks", carol);
+    for (const index of order) await deliverInOrder(held[index]!, []);
+
+    expect(await causesOf(alice, "journey:first-thanks"), "the kudos first-thanks is paid for").toEqual([repeat]);
+    expect(await causesOf(alice, "journey:someone-new"), "the kudos someone-new is paid for").toEqual([someoneNew]);
+  });
+
+  test("MQ47: delivered later first, each kudos counts as done only the quest its own kudos finished", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await startedByTheSweep(alice);
+    const held = holdingKudosGiven();
+    await thanks(alice, "thanks", bob);
+    await thanks(alice, "thanks", carol);
+
+    expect(await onboardingDoneBy(held[1]!), "the quests the later kudos finished").toEqual(["someone-new"]);
+    expect(await onboardingDoneBy(held[0]!), "the quests the earlier kudos finished").toEqual(["first-thanks"]);
   });
 
   test("MQ47: a kudos to someone new that Slack sends before an earlier one finishes first-thanks, and the earlier one finishes someone-new", async () => {
@@ -651,6 +682,10 @@ async function onboardingRecordsOf(person: Person) {
     .filter((record) => record.member === member && record.key.startsWith("journey:"))
     .map(({ key }) => key)
     .toSorted();
+}
+
+async function onboardingDoneBy(event: KudosGivenEvent) {
+  return t.run(async (ctx) => (await advanceOnboarding(ctx, event)).map(({ step }) => step));
 }
 
 function holdingKudosGiven() {

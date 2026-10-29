@@ -214,6 +214,16 @@ export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<D
   return previous?.day ?? null;
 }
 
+export type GivenKudos = { message: MessageRef; at: number };
+
+export async function firstGivenSince(ctx: QueryCtx, giver: MemberId, since: number): Promise<GivenKudos | null> {
+  const first = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_at", (q) => q.eq("giver", giver).gte("at", since))
+    .first();
+  return first === null ? null : { message: { workspace: first.workspace, conversation: first.conversation, message: first.message }, at: first.at };
+}
+
 export type EarliestAward = { award: AwardId; at: number; created: number };
 
 export async function earliestAwardFrom(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<EarliestAward | null> {
