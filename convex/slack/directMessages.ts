@@ -30,14 +30,10 @@ export const deliverDirectMessage = observedAction({
         if (destination === "dm") return sendOnce(ctx, message.workspace, "chat.postMessage", { channel: message.user, ...content }, attempt);
         return sendBesideOrAsDirectMessage(ctx, message.workspace, message.user, destination, content, attempt);
       },
-      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverDirectMessage, { ...message, attempt: retry.attempt, ...waitsSoFar(followerWaits) }),
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverDirectMessage, { ...message, attempt: retry.attempt }),
     );
   },
 });
-
-function waitsSoFar(followerWaits: number) {
-  return followerWaits === 0 ? {} : { followerWaits };
-}
 
 export const deliverPurchaseReply = observedAction({
   args: { member: v.id("members"), workspace: v.string(), conversation: v.string(), beside: v.optional(besideValidator), outcome: purchaseOutcomeValidator, ...attemptArgs },

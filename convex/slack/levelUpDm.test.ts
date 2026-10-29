@@ -197,7 +197,21 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
-  test("a level-up DM Slack rate-limits after its wait for the follower is over is sent again without waiting a second time", async () => {
+  test("a level-up DM Slack rate-limits after Album's follower earned the level is held back with only the arguments the previous version takes, and sent again with its reveal", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    const levelReached = await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+    slack.answeringIn("chat.postMessage", "U_ALICE", rateLimitedFor(30));
+
+    await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event: levelReached });
+    await settle(t);
+
+    const retries = (await dmDeliveryArgs(t)).filter(({ attempt }) => attempt === 2);
+    expect(retries).toHaveLength(1);
+    expect(retries[0]).not.toHaveProperty("followerWaits");
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book?src=reply#level-up/2|Reveal your three new hoggies>` });
+  });
+
+  test("a level-up DM Slack rate-limits after its wait for a follower that never ran is sent again after at most one more wait", async () => {
     const t = await websiteWorkspaceWith(...revealOn);
     await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
     slack.answeringIn("chat.postMessage", "U_ALICE", rateLimitedFor(30));
@@ -205,7 +219,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await settle(t);
 
     expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
-    expect(await dmDeliveryRuns(t), "the first run, its five waits and the one retry").toBe(7);
+    expect(await dmDeliveryRuns(t), "the first run and its five waits, then the retry and its five waits").toBe(12);
   });
 
   test.each([
