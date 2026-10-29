@@ -1,0 +1,12 @@
+{
+  "ordinaryRareFloor": {
+    "rare": 6345,
+    "epic": 2764,
+    "legendary": 891
+  },
+  "exhaustedRareAchievement": {
+    "epic": 7478,
+    "legendary": 2522
+  },
+  "ordinaryDuplicate": 6345
+}
