@@ -14,7 +14,9 @@ import { homeTabValidator } from "./feedback/homes";
 import { attributedAwardValidator, groupOrNoneValidator } from "./groups/attributedAward";
 import { primaryGroupCauseValidator } from "./groups/cause";
 import { groupModeValidator } from "./groups/mode";
-import { publicReplyValidator } from "./feedback/publicReplies";
+import { celebratedLevelValidator, publicReplyValidator } from "./feedback/publicReplies";
+import { grantReplyValidator } from "./feedback/albumReplies";
+import { sentNoticeValidator } from "./feedback/sentNotices";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
 import { oneReplyValidator } from "./feedback/oneReply";
@@ -427,6 +429,12 @@ export default defineSchema({
   }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
 
   oneReplies: defineTable(oneReplyValidator).index("by_reply", ["reply"]),
+
+  grantReplies: defineTable(grantReplyValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]),
+
+  sentNotices: defineTable(sentNoticeValidator).index("by_member_notice", ["member", "notice"]),
+
+  celebratedLevels: defineTable(celebratedLevelValidator).index("by_member_message", ["member", "workspace", "conversation", "message"]),
 
   publicReplies: defineTable(publicReplyValidator)
     .index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"])

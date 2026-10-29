@@ -3,7 +3,7 @@ import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testin
 import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { deliverAgain, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
@@ -95,6 +95,15 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
 
     expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins are open. You earn 🪙 when you thank someone and say why.");
     expect(await walletOf(t, "U_ALICE")).toEqual({ balance: 0 });
+  });
+
+  test("the opening of Coins delivered again tells the previewer once", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await coinsOpenedBy(t, "U_ALICE");
+
+    await deliverAgain(t, "feedback/coins:tellCoinsOpened");
+
+    expect(textsOfDmsTo("U_ALICE").filter((dm) => dm.startsWith("Coins are open"))).toEqual(["Coins are open. You already have 8 🪙."]);
   });
 
   test("with progression DMs off, opening Coins sends no DM", async () => {
