@@ -15,6 +15,13 @@ const sendsItsMessageAgainWhenDeliveredTwice = [
   internal.feedback.publicReplies.celebrateLevel,
 ].map(getFunctionName);
 
+const finishesTheDeliveryOfASubscriber = [
+  internal.album.tallies.tallyHug,
+  internal.album.milestones.recordMilestonesOfStickerHolders,
+  internal.engine.kudosText.forgetAuthoredWords,
+  internal.quests.journey.recheckSomeoneNewOf,
+];
+
 export const replay = internalMutation({
   args: { job: v.id("_scheduled_functions") },
   handler: async (ctx, { job }): Promise<Replayed> => {
@@ -30,9 +37,8 @@ export const replay = internalMutation({
 });
 
 function replayableSubscribers() {
-  return Object.values(subscribers)
-    .flat()
-    .map((subscription) => getFunctionName("subscriber" in subscription ? subscription.subscriber : subscription))
+  return [...Object.values(subscribers).flat().map((subscription) => ("subscriber" in subscription ? subscription.subscriber : subscription)), ...finishesTheDeliveryOfASubscriber]
+    .map(getFunctionName)
     .filter((name) => !sendsItsMessageAgainWhenDeliveredTwice.includes(name));
 }
 

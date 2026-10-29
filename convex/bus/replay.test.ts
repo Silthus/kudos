@@ -52,11 +52,23 @@ describe("HH17: a failed subscriber is replayed by hand", () => {
   });
 
   test.each([
-    ["a function that is no subscriber", internal.album.tallies.tallyHug],
+    ["the next tally page of a hug", internal.album.tallies.tallyHug],
+    ["the next sticker holder of the milestones", internal.album.milestones.recordMilestonesOfStickerHolders],
+    ["the next page of a leaver's forgotten words", internal.engine.kudosText.forgetAuthoredWords],
+    ["the journey recheck of one member", internal.quests.journey.recheckSomeoneNewOf],
+  ])("a failed job of %s, which a subscriber schedules to finish its delivery, is replayed", async (_, fn) => {
+    const t = testBackend();
+    const failed = await failedJobOf(t, fn);
+
+    expect(await t.mutation(internal.bus.replay.replay, { job: failed })).toBe("replayed");
+  });
+
+  test.each([
+    ["a function that is no subscriber", internal.feedback.homes.republishAdminsIn],
     ["a subscriber that sends its message again when delivered twice", internal.welcome.welcome.welcomeOnHug],
   ])("a failed job of %s is not replayed", async (_, fn) => {
     const t = testBackend();
-    const failed = await jobOf(t, (ctx) => ctx.scheduler.runAfter(0, fn as FunctionReference<"mutation", "internal">, { stale: "arguments" }));
+    const failed = await failedJobOf(t, fn);
 
     expect(await t.mutation(internal.bus.replay.replay, { job: failed })).toBe("not a subscriber");
   });
@@ -74,6 +86,10 @@ async function recordingOfAKudos(t: Backend) {
     const member = await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" });
     return ctx.scheduler.runAfter(0, internal.analytics.subscribers.recordKudosGiven, { event: await kudosGivenEventWithAward(ctx, member, member, { at: now.getTime() }) });
   });
+}
+
+async function failedJobOf(t: Backend, fn: FunctionReference<"mutation", "internal">) {
+  return jobOf(t, (ctx) => ctx.scheduler.runAfter(0, fn, { stale: "arguments" }));
 }
 
 async function jobOf(t: Backend, schedule: (ctx: MutationCtx) => Promise<Id<"_scheduled_functions">>) {
