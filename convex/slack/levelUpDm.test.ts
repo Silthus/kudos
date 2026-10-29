@@ -6,6 +6,7 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { components, internal } from "../_generated/api";
+import type { LevelReachedEvent } from "../bus/events";
 import { standingOf } from "../progression/progression";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -150,21 +151,49 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book#level-up/2|Reveal your three new hoggies>` }]);
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book?src=reply#level-up/2|Reveal your three new hoggies>` }]);
   });
 
-  test("a level-up DM read before Album has dropped the level's hoggies still links to their reveal", async () => {
+  test("a level-up DM Slack takes before Album's follower has earned the level waits for it, then links to the reveal its drops make", async () => {
     const t = await websiteWorkspaceWith(...revealOn);
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
-    const alice = await memberOf(t, "U_ALICE");
-    await t.run(async (ctx) => {
-      for (const drop of await ctx.db.query("drops").withIndex("by_member", (q) => q.eq("member", alice)).collect()) await ctx.db.delete(drop._id);
-      for (const item of await ctx.db.query("items").withIndex("by_member_turned", (q) => q.eq("member", alice)).collect()) await ctx.db.delete(item._id);
-    });
+    const levelReached = await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+    expect(levelUpDms(), "the DMs while the follower has not run").toEqual([]);
 
-    const lines = await t.query(internal.feedback.notify.linesStillWanted, { member: alice, notification: { kind: "level-reached", level: 2, skillPoints: 0, xpToNextLevel: 80, ready: [] } });
+    await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event: levelReached });
+    await settle(t);
 
-    expect(lines, "the DM's lines while the follower has not committed").toContainEqual({ link: { url: `${siteUrl}/book#level-up/2`, label: "Reveal your three new hoggies" } });
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book?src=reply#level-up/2|Reveal your three new hoggies>` }]);
+  });
+
+  test("a level-up DM that waited while level-up-reveal went off links to the member's level, since the follower dropped nothing", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    const levelReached = await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+    await switchFlags(t, ...revealOn.filter((flag) => flag !== "level-up-reveal"));
+
+    await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event: levelReached });
+    await settle(t);
+
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
+  });
+
+  test("a level-up DM whose follower never runs is sent once its wait is over, with the link to the member's level", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+
+    await settle(t);
+
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
+  });
+
+  test("a level-up DM Slack rate-limits after its wait for the follower is over is sent again without waiting a second time", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+    slack.answeringIn("chat.postMessage", "U_ALICE", rateLimitedFor(30));
+
+    await settle(t);
+
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
+    expect(await dmDeliveryRuns(t), "the first run, its five waits and the one retry").toBe(7);
   });
 
   test.each([
@@ -176,7 +205,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
   test("LP25: while hidden-items is on, the level-up DM links to the album, whose item board holds the level's three items", async () => {
@@ -184,7 +213,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` }]);
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
   test("LP25: a DM Slack held back while hidden-items went on links to the album when it is sent again, though its hoggies dropped", async () => {
@@ -198,7 +227,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(levelUpDms()).toHaveLength(2);
-    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` });
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
   });
 
   test("a DM Slack held back while level-up-reveal went on links to the member's level when it is sent again, since its level dropped nothing", async () => {
@@ -212,7 +241,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(levelUpDms()).toHaveLength(2);
-    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` });
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
   });
 
   test("a DM Slack held back while level-up-reveal went off links to the member's level when it is sent again", async () => {
@@ -226,7 +255,7 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(levelUpDms()).toHaveLength(2);
-    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` });
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
   });
 });
 
@@ -255,6 +284,37 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
   const blocks = [section(mention(recipient), ...Array.from({ length: kudos }, () => emoji("taco")))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `1760349600.00010${sentMessages}` })));
   await settle(t);
+}
+
+async function giveKudosHoldingAlbum(t: Backend, giver: string, recipient: string, kudos: number): Promise<LevelReachedEvent> {
+  sentMessages += 1;
+  const blocks = [section(mention(recipient), ...Array.from({ length: kudos }, () => emoji("taco")))];
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `1760349600.00010${sentMessages}` })));
+  let held: LevelReachedEvent | undefined;
+  for (let fired = 0; fired < 1_000; fired += 1) {
+    await t.finishInProgressScheduledFunctions();
+    held ??= await cancelAlbumsFollower(t);
+    if (held !== undefined && (await dmDeliveryRan(t))) return held;
+    vi.advanceTimersToNextTimer();
+  }
+  throw new Error("the level-up DM's delivery never ran");
+}
+
+function cancelAlbumsFollower(t: Backend): Promise<LevelReachedEvent | undefined> {
+  return t.run(async (ctx) => {
+    const follower = (await ctx.db.system.query("_scheduled_functions").collect()).find(({ name, state }) => name.includes("earnLevelUpHoggies") && state.kind === "pending");
+    if (follower === undefined) return undefined;
+    await ctx.scheduler.cancel(follower._id);
+    return (follower.args[0] as { event: LevelReachedEvent }).event;
+  });
+}
+
+function dmDeliveryRan(t: Backend): Promise<boolean> {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).some(({ name, state }) => name.includes("deliverDirectMessage") && state.kind === "success"));
+}
+
+async function dmDeliveryRuns(t: Backend): Promise<number> {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name }) => name.includes("deliverDirectMessage")).length);
 }
 
 function levelUpDms() {

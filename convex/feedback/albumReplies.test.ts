@@ -43,13 +43,12 @@ const theBus = vi.hoisted(() => ({ holdingGrants: false, heldGrants: [] as unkno
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
   actual.subscribers.kudosGiven = actual.subscribers.kudosGiven.map((subscription) => {
-    if (!("subscriber" in subscription) || getFunctionName(subscription.subscriber) !== grantJob) return subscription;
-    const { subscriber, only } = subscription;
+    if ("subscriber" in subscription || getFunctionName(subscription) !== grantJob) return subscription;
     return {
-      subscriber,
+      subscriber: subscription,
       only: (event: KudosGivenEvent) => {
-        if (theBus.holdingGrants && only(event)) theBus.heldGrants.push(event);
-        return !theBus.holdingGrants && only(event);
+        if (theBus.holdingGrants) theBus.heldGrants.push(event);
+        return !theBus.holdingGrants;
       },
     };
   });
@@ -85,7 +84,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("AL59: a thoughtful kudos gets one thread reply that names what each recipient's pack holds", { timeout: 60_000 }, () => {
+describe("AL59: a kudos gets one thread reply that names what each recipient's pack holds", { timeout: 60_000 }, () => {
   test("a thoughtful kudos to someone new and to someone already in the album shows its giver alone one reply in its thread, a section for each, the new person's team progress, their hype emoji as a picture, Open your pack and the gains line", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     await aliceCollects(carol);
@@ -102,7 +101,7 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
           { type: "section", text: { type: "mrkdwn", text: "*Bob is new in your album*\nLanterns 2/2: page complete!\nOtters 1/2" } },
           { type: "context", elements: [{ type: "image", image_url: bobsStoredFace, alt_text: "Bob's hype emoji" }, { type: "mrkdwn", text: "Bob's hype emoji is unlocked" }] },
           { type: "section", text: { type: "mrkdwn", text: "*A pack for thanking Carol*\nCarol is already in your album, so this pack holds a hoggie." } },
-          { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Open your pack" }, url: `${site}/book#packs`, action_id: "album-open-packs" }] },
+          { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Open your pack" }, url: `${site}/book?src=reply#packs`, action_id: "album-open-packs" }] },
           { type: "context", elements: [{ type: "mrkdwn", text: "+20 XP" }] },
         ],
       },
@@ -118,9 +117,9 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
 
     expect(sectionsOf(threadRepliesTo(first))).toEqual(["*Dana is new in your album*\nOtters 1/2"]);
     expect(sectionsOf(threadRepliesTo(sameWeek))).toEqual(["*Kudos counted.*\nYour next pack for Dana comes next week."]);
-    expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See Dana's page", url: `${site}/book#people/${await memberOf(dana)}`, action_id: `album-see-person:${await memberOf(dana)}` }]);
+    expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See Dana's page", url: `${site}/book?src=reply#people/${await memberOf(dana)}`, action_id: `album-see-person:${await memberOf(dana)}` }]);
     expect(sectionsOf(threadRepliesTo(nextWeek))).toEqual(["*Dana's sticker is already waiting in your packs*\nSo this pack holds a hoggie."]);
-    expect(buttonsOf(threadRepliesTo(nextWeek))).toEqual([{ text: "Open your pack", url: `${site}/book#packs`, action_id: "album-open-packs" }]);
+    expect(buttonsOf(threadRepliesTo(nextWeek))).toEqual([{ text: "Open your pack", url: `${site}/book?src=reply#packs`, action_id: "album-open-packs" }]);
     expect(hypeLinesOf(threadRepliesTo(first))).toEqual(["Dana's hype emoji is unlocked"]);
     expect(hypeLinesOf(threadRepliesTo(sameWeek))).toEqual([]);
     expect(hypeLinesOf(threadRepliesTo(nextWeek))).toEqual([]);
@@ -171,13 +170,15 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     ]);
   });
 
-  test("a short kudos keeps today's private reply and posts nothing in its thread", async () => {
+  test("HH8: a short kudos gets its one thread reply like any kudos, also when Slack delivers it twice", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
 
     const ts = await thanks(alice, "ty", bob);
+    await post(t, [section(text("ty "), mention(bob.user), emoji("taco"))], { user: alice.user, ts, channel });
+    await settle(t);
 
-    expect(threadRepliesTo(ts)).toEqual([]);
-    expect(slack.ephemeralsTo(alice.user).map(({ text }) => text)).toEqual([expect.stringContaining("got 1 kudos from you")]);
+    expect(sectionsOf(threadRepliesTo(ts)), "the thread reply").toEqual(["*Bob is new in your album*\nLanterns 1/2\nOtters 1/2"]);
+    expect(slack.ephemeralsTo(alice.user).filter(({ text }) => String(text).includes("got 1 kudos from you")), "the private reply").toHaveLength(1);
   });
 
   test("with Feedback's private reply delivered before the grant and the grant run after, the reply is posted once, and a grant run again posts nothing more", async () => {
@@ -246,8 +247,8 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     const again = await thanks(alice, "Thanks again for pairing on the rollback", bob, dana);
 
     expect(buttonsOf(threadRepliesTo(again))).toEqual([
-      { text: "See Bob's page", url: `${site}/book#people/${await memberOf(bob)}`, action_id: `album-see-person:${await memberOf(bob)}` },
-      { text: "See Dana's page", url: `${site}/book#people/${await memberOf(dana)}`, action_id: `album-see-person:${await memberOf(dana)}` },
+      { text: "See Bob's page", url: `${site}/book?src=reply#people/${await memberOf(bob)}`, action_id: `album-see-person:${await memberOf(bob)}` },
+      { text: "See Dana's page", url: `${site}/book?src=reply#people/${await memberOf(dana)}`, action_id: `album-see-person:${await memberOf(dana)}` },
     ]);
   });
 
@@ -309,7 +310,7 @@ describe("LP25: while hidden-items is on for the giver, the reply says only that
           { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Bob*" } },
           { type: "section", text: { type: "mrkdwn", text: "*An item for thanking Carol*" } },
           { type: "context", elements: [{ type: "mrkdwn", text: `${5 + levelTwoItems} wait` }] },
-          { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your items" }, url: `${site}/book`, action_id: "album-see-items" }] },
+          { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your items" }, url: `${site}/book?src=reply`, action_id: "album-see-items" }] },
           { type: "context", elements: [{ type: "mrkdwn", text: "+20 XP" }] },
         ],
       },
@@ -324,7 +325,7 @@ describe("LP25: while hidden-items is on for the giver, the reply says only that
 
     expect(sectionsOf(threadRepliesTo(sameWeek))).toEqual(["*Kudos counted.*\nYour next item for Dana comes next week."]);
     expect(contextsOf(threadRepliesTo(sameWeek))[0]).toEqual([{ type: "mrkdwn", text: `${2 + levelTwoItems} wait` }]);
-    expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See your items", url: `${site}/book`, action_id: "album-see-items" }]);
+    expect(buttonsOf(threadRepliesTo(sameWeek))).toEqual([{ text: "See your items", url: `${site}/book?src=reply`, action_id: "album-see-items" }]);
   });
 
   test("past fifty waiting items the count reads 50+ wait, and fifty read 50 wait", async () => {

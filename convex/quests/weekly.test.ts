@@ -198,7 +198,7 @@ describe("P71 R36: a success reply held for Quests is never lost", () => {
     const given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
     await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
 
-    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: given, base: 10, annotations: {} }));
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: given, base: 10 }));
     vi.advanceTimersByTime(9_999);
     await t.finishInProgressScheduledFunctions();
     expect(slack.ephemeralsTo("U_ALICE")).toEqual([]);

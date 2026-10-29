@@ -237,7 +237,7 @@ describe("E6 O15 O20: a view whose recording fails", () => {
 
     expect(reply?.text).toContain("🥇 <@U_BOB> · 1 kudos");
     expect(console.error).toHaveBeenCalledWith("analytics.usage_not_recorded", { error: "Error" });
-    expect(productEvents().filter((event) => !event.event.startsWith("kudos") && event.event !== "member welcomed" && event.event !== "person collected")).toEqual([]);
+    expect(productEvents().filter((event) => !event.event.startsWith("kudos") && !["member welcomed", "person collected", "packs earned"].includes(event.event))).toEqual([]);
   });
 });
 

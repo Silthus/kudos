@@ -3,7 +3,7 @@ import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testin
 import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { react, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import type { KudosGivenEvent } from "../bus/events";
@@ -71,9 +71,9 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
   });
 
   test("with nothing earned yet, the opening DM leaves the balance out", async () => {
-    const t = await workspaceDeciding(...previewedByAlice);
+    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("hugs"));
 
-    await coinsOpenedBy(t, "U_ALICE", "thanks");
+    await coinsOpenedThroughHugsBy(t, "U_ALICE");
 
     expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
   });
@@ -294,11 +294,28 @@ async function everyoneElseOf(definitions: FlagDefinition[]) {
   return slack.calls.filter(({ args }) => ![args.channel, args.user, args.user_id].includes("U_ALICE")).map(withoutTimestamps);
 }
 
-async function coinsOpenedBy(t: Backend, user: string, words = saysWhy) {
-  await giveKudos(t, user, ["U_BOB"], words);
+async function coinsOpenedBy(t: Backend, user: string) {
+  await giveKudos(t, user, ["U_BOB"], saysWhy);
   await xpOf(t, user, xpBelowLevelSix);
-  await giveKudos(t, user, ["U_BOB"], words);
+  await giveKudos(t, user, ["U_BOB"], saysWhy);
+  await openCoins(t, user);
+}
+
+async function coinsOpenedThroughHugsBy(t: Backend, user: string) {
+  await hugBobsMessage(t, user);
+  await xpOf(t, user, xpBelowLevelSix + 9);
+  await hugBobsMessage(t, user);
+  await openCoins(t, user);
+}
+
+async function openCoins(t: Backend, user: string) {
   await send(t, blockActions(user, staleButtonOf({ type: "openUnlock", feature: "coins" })));
+}
+
+async function hugBobsMessage(t: Backend, user: string) {
+  sentMessages += 1;
+  await react(t, { user, itemUser: "U_BOB", ts: `${Math.floor(Date.now() / 1000) - sentMessages}.000100` });
+  await settleInTimeOrder(t);
 }
 
 type Limits = { transactionLimits: boolean; baseAllowance: number };
