@@ -108,8 +108,8 @@ async function leaveTheBoards(person: { user: string }, visible = false) {
   await t.finishInProgressScheduledFunctions();
 }
 
-describe("AT31 AT34: the spotlight draws only public, said-why kudos of the member's workspace", () => {
-  test("draws a public kudos that said why with its people, its link and its words", async () => {
+describe("AT31 AT34: the spotlight draws only public kudos of the member's workspace", () => {
+  test("draws a public kudos with its people, its link and its words", async () => {
     await spotlightOn();
     await give(thanks(bob), { user: alice.user, ts: tsOn(0) });
 
@@ -133,7 +133,7 @@ describe("AT31 AT34: the spotlight draws only public, said-why kudos of the memb
     });
   });
 
-  test("never draws a private channel's kudos, a bare one, one that didn't give, or one whose words were backfilled", async () => {
+  test("HH6: draws a short public kudos as any other, and never a private channel's kudos, one that didn't give, or one whose words were backfilled", async () => {
     await spotlightOn();
     await give(thanks(bob, "public and kind with a reason "), { user: alice.user, ts: tsOn(0) });
     await give(thanks(bob, "private and kind with a reason "), { user: alice.user, ts: tsOn(1), channelType: "group" });
@@ -141,7 +141,7 @@ describe("AT31 AT34: the spotlight draws only public, said-why kudos of the memb
     await give(thanks(alice, "thanking myself for a long reason "), { user: alice.user, ts: tsOn(3) });
     await givenBeforeCapture(thanks(bob, "backfilled and kind with a reason "), { user: alice.user, ts: tsOn(4) });
 
-    expect(await wordsOfEveryDrawn(carol, 3)).toEqual(["public and kind with a reason", "public and kind with a reason", "public and kind with a reason"]);
+    expect(new Set(await wordsOfEveryDrawn(carol, 4))).toEqual(new Set(["public and kind with a reason", "ty"]));
     expect(await wordsReceivedBy(bob)).toContain("backfilled and kind with a reason ");
   });
 
@@ -156,17 +156,16 @@ describe("AT31 AT34: the spotlight draws only public, said-why kudos of the memb
     expect(await wordsOfEveryDrawn(carol, 2)).toEqual(["in our workspace with a reason", "in our workspace with a reason"]);
   });
 
-  test("an edit that drops the reason drops the kudos, and editing the reason back draws it again", async () => {
+  test("HH6: an edit that drops the reason keeps the kudos in the draw, with its newest words", async () => {
     await spotlightOn();
     await give(thanks(bob), { user: alice.user, ts: tsOn(0) });
 
     await edit(t, thanks(bob, "ty "), { user: alice.user, ts: tsOn(0), editedTs: `${firstTs + 60}.000100` });
     await settle(t);
-    expect(await spotlightSeenBy(carol, { seed: 0 })).toEqual({ kind: "empty" });
 
-    await edit(t, thanks(bob, `thanks again ${reason} `), { user: alice.user, ts: tsOn(0), editedTs: `${firstTs + 120}.000100` });
-    await settle(t);
-    expect(await spotlightSeenBy(carol, { seed: 0 })).toMatchObject({ kind: "kudos", message: { kind: "text", edited: true } });
+    const drawn = await spotlightSeenBy(carol, { seed: 0 });
+    expect(drawn).toMatchObject({ kind: "kudos", message: { kind: "text", edited: true } });
+    expect(drawn.kind === "kudos" && firstWordsOf(drawn)).toEqual("ty");
   });
 
   test("a kudos deleted in Slack, or whose author left Slack, leaves the draw", async () => {

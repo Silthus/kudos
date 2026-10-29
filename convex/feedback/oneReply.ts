@@ -3,11 +3,9 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { grantOutcomeValidator } from "../album/records";
 import { exposed, memberDecision, type Flag } from "../analytics/flags";
-import type { Annotations } from "../engine/messageEvent";
 import { hiddenItemsShownTo } from "../album/items/flag";
 import { waitingCountOf, type WaitingCount } from "../album/items/ledger";
 import type { ChecklistItem } from "../mondayDm/questsCopy";
-import { saysWhy } from "../progression/gate";
 import { movedQuestValidator, type MovedQuest } from "../quests/progress";
 import type { MemberId } from "../workspace/directory";
 import { albumSlackAppliesTo } from "./albumSlack";
@@ -58,8 +56,8 @@ export function oneReplyRowOf(ctx: QueryCtx, reply: Id<"privateReplies">): Promi
     .unique();
 }
 
-export async function itemsAwaitedBy(ctx: QueryCtx, member: MemberId, annotations: Annotations): Promise<boolean> {
-  return saysWhy(annotations) && (await albumSlackAppliesTo(ctx, member)) && (await hiddenItemsShownTo(ctx, member));
+export async function itemsAwaitedBy(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await albumSlackAppliesTo(ctx, member)) && (await hiddenItemsShownTo(ctx, member));
 }
 
 export function repliedItemsOf(outcomes: RepliedItems["outcomes"]): RepliedItems {

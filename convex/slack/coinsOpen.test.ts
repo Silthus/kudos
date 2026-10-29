@@ -3,11 +3,10 @@ import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testin
 import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { deliverAgain, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { deliverAgain, react, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import { replyPrivately, type Given } from "../feedback/replies";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 
@@ -26,8 +25,6 @@ const xpAndUnlocksOn = [onForEveryone("xp-levels"), onForEveryone("unlocks")];
 const previewedByAlice = [...xpAndUnlocksOn, onForEmails(coins, alicesEmail)];
 const offForEveryoneElse = [...xpAndUnlocksOn, offForEveryone(coins)];
 const notCreated = xpAndUnlocksOn;
-const unsentMessage = { workspace: "T1", conversation: "C1", message: "1760349999.000100" };
-const givenToBob: Given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -86,14 +83,14 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
   });
 
   test("with nothing earned yet, opening Coins tells the previewer how to earn them", async () => {
-    const t = await workspaceDeciding(...previewedByAlice);
-    await giveKudos(t, "U_ALICE", ["U_BOB"], "thanks");
-    await xpOf(t, "U_ALICE", xpBelowLevelSix);
+    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("hugs"));
+    await hugBobsMessage(t, "U_ALICE");
+    await xpOf(t, "U_ALICE", xpBelowLevelSix + 9);
 
-    await giveKudos(t, "U_ALICE", ["U_CAROL"], "thanks");
+    await hugBobsMessage(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", buttonIn(blocksOf(levelUpDmTo("U_ALICE", 6)), "Open"), { inMessage: { channel: "U_ALICE", ts: "1760349700.000100" } }));
 
-    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins are open. You earn 🪙 when you thank someone and say why.");
+    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins are open. You earn 🪙 when you give a kudos.");
     expect(await walletOf(t, "U_ALICE")).toEqual({ balance: 0 });
   });
 
@@ -120,7 +117,7 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
     expect(await walletOf(t, "U_ALICE")).toEqual({ balance: 8 });
   });
 
-  test("CO21: once Coins is open, a kudos that doesn't say why asks the previewer to say why", async () => {
+  test("HH6 HH8: once Coins is open, a short kudos earns coins like any kudos and asks nobody to say why", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await giveKudos(t, "U_ALICE", ["U_BOB"], "thanks");
     await xpOf(t, "U_ALICE", xpBelowLevelSix);
@@ -128,21 +125,10 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
     expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_CAROL> got 1 kudos from you. You have 8 kudos left today.", "+10 XP"]);
     await send(t, blockActions("U_ALICE", buttonIn(blocksOf(levelUpDmTo("U_ALICE", 6)), "Open"), { inMessage: { channel: "U_ALICE", ts: "1760349700.000100" } }));
 
+    vi.setSystemTime(tuesday + dayMs);
     await giveKudos(t, "U_ALICE", ["U_BOB"], "thanks");
 
-    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 7 kudos left today.", "+10 XP · Add why they earned it to earn more."]);
-  });
-
-  test("CO14 CO21: with the skill tree on and no perk owned, a hint written while Coins was open is left out when coins turn off before Slack takes the reply", async () => {
-    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("skill-tree"));
-    await coinsOpenedBy(t, "U_ALICE");
-    const earlier = successRepliesTo("U_ALICE").length;
-    await t.run((ctx) => replyPrivately(ctx, unsentMessage, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10, annotations: { gate: { version: 1, thoughtful: false } } }));
-
-    await flagsFromPostHog(t, postHog, ...offForEveryoneElse, onForEveryone("skill-tree"));
-    await settle(t);
-
-    expect(successRepliesTo("U_ALICE").slice(earlier)).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"]]);
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · +4 🪙"]);
   });
 
   test("F25: the coins exposure carries true for the previewer and false for the other member", async () => {
@@ -162,7 +148,7 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
 
     expect(whilePreviewed.calls.flatMap(readCall).filter(namesCoins)).toEqual([]);
     expect(whilePreviewed).toEqual(whileOff);
-    expect(whilePreviewed.balance).toBe(8);
+    expect(whilePreviewed.balance).toBe(12);
   });
 });
 
@@ -203,7 +189,7 @@ describe("CO14 P78: coins are dark where they aren't shown, and still recorded",
     expect(slackCallsAbout("U_ALICE").flatMap(readCall).filter(namesCoins)).toEqual([]);
     expect(await coinUnlocks(t)).toEqual([]);
     expect(await walletOf(t, "U_ALICE")).toBeNull();
-    expect(await balanceRecordedFor(t, "U_ALICE")).toBe(8);
+    expect(await balanceRecordedFor(t, "U_ALICE")).toBe(12);
   });
 
   test("turning coins off after the previewer opened Coins hides the balance again and keeps it", async () => {
@@ -260,6 +246,12 @@ async function giveKudos(t: Backend, giver: string, recipients: string[], words:
   sentMessages += 1;
   const blocks = [section(...recipients.flatMap((recipient) => [mention(recipient), text(" ")]), text(`${words} `), emoji("taco"))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
+  await settleInTimeOrder(t);
+}
+
+async function hugBobsMessage(t: Backend, user: string) {
+  sentMessages += 1;
+  await react(t, { user, itemUser: "U_BOB", ts: `${Math.floor(Date.now() / 1000) - sentMessages}.000100` });
   await settleInTimeOrder(t);
 }
 

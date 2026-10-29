@@ -40,12 +40,12 @@ export type TopKudosMessage = { headline: string; kudos: TopKudosEntry[]; embeds
 export function renderTopKudosPost({ kudos, teams, origin, newGivers: highlightedGivers }: TopKudosPost): TopKudosMessage {
   const highlighted = highlightedGivers !== undefined;
   const newGivers = highlightedGivers ?? [];
-  const pageOf = (person: QuotedPerson) => (origin === null ? undefined : personPageOf(origin, person.member));
+  const pageOf = (person: QuotedPerson) => (origin === null ? undefined : personPageOf(origin, person.member, "monday-post"));
   return {
-    headline: "🏆 Last week's top thoughtful kudos",
+    headline: "🏆 Last week's top kudos",
     kudos: kudos.map((entry, index) => ({ lead: highlighted ? linkedLeadOf(entry, pageOf) : leadOf(entry, index + 1), quote: quoteOf(entry.words), permalink: entry.permalink })),
     embedsQuotedMessage: highlighted,
-    newGivers: newGivers.length === 0 ? null : { headline: "🌱 Top new givers last week", rows: newGivers.map((giver, index) => ({ place: index + 1, ...giver, page: origin === null ? null : personPageOf(origin, giver.member) })) },
+    newGivers: newGivers.length === 0 ? null : { headline: "🌱 Top new givers last week", rows: newGivers.map((giver, index) => ({ place: index + 1, ...giver, page: origin === null ? null : personPageOf(origin, giver.member, "monday-post") })) },
     teams: teams.length === 0 ? null : { headline: "Team stickers unlocked last week", rows: teams.map(({ name, count, emoji }) => ({ team: name, count: `×${count}`, emoji: emoji === null ? null : { ...emoji, picture: publicPictureOf(emoji.picture, origin) } })) },
   };
 }

@@ -395,7 +395,7 @@ describe("LP31 LP32: collecting streams the XP into the bar and the canvas becom
     expect(theCanvas()).toBeNull();
     const board = within(theItemBoard()!);
     expect(board.getByText(/from 16 moments since/)).toHaveTextContent("+178 XP from 16 moments since Mon 09:12");
-    expect(board.getByText("4 teammates gave thoughtful kudos this week")).toBeInTheDocument();
+    expect(board.getByText("4 teammates gave kudos this week")).toBeInTheDocument();
     expect(board.getAllByRole("button", { name: "An unidentified item. Identify it" })).toHaveLength(3);
     expect(board.getByRole("button", { name: "Later" })).toBeInTheDocument();
     expect(document.querySelector(".al-shell")).not.toHaveAttribute("data-xp-moment");
@@ -409,7 +409,7 @@ describe("LP31 LP32: collecting streams the XP into the bar and the canvas becom
     await act(async () => fireEvent.keyDown(window, { key: "Escape" }));
 
     expect(within(theItemBoard()!).getByText(/from 16 moments since/)).toBeInTheDocument();
-    expect(screen.queryByText(/teammates gave thoughtful kudos/)).toBeNull();
+    expect(screen.queryByText(/teammates gave kudos/)).toBeNull();
   });
 
   it("with no items waiting it reads the summary on the canvas with All caught up, then leaves", async () => {

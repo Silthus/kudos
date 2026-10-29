@@ -30,7 +30,6 @@ const recapsPerSweep = 100;
 const recapHour = 9;
 const triesAtMost = 3;
 const dayMs = 24 * 60 * 60 * 1000;
-const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
 
 export const sweep = internalMutation({
   args: {},
@@ -168,7 +167,11 @@ async function recapLinesOf(ctx: QueryCtx, week: HugWeek): Promise<Omit<HugsSect
   const url = await workspaceUrlOf(ctx, week.workspace);
   const mostHugged = week.mostHugged === undefined || url === null ? [] : [await mostHuggedLineOf(ctx, url, reacted, week.workspace, week.mostHugged)];
   const teaser = await teaserOf(ctx, week.member);
-  return { lines: [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(week, reacted), ...mostHugged], closing: [...(teaser === null ? [] : [teaser]), nudge] };
+  return { lines: [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(week, reacted), ...mostHugged], closing: [...(teaser === null ? [] : [teaser]), kudosNudgeWith(kudosEmoji)] };
+}
+
+function kudosNudgeWith(kudosEmoji: string) {
+  return `Hugs are a quick thanks. A kudos, a message that mentions a teammate with :${kudosEmoji}:, earns much more XP.`;
 }
 
 function countLinesOf({ given, givenXp, received, receivedXp }: HugWeek, reacted: string): string[] {

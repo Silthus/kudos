@@ -9,7 +9,7 @@ Branch `album/7` at `f494a21f` (`main` at `d3a28eff` merged in), hand-deployed a
 5. `milestoneTiers-giver.jsonl`: the two stored tiers, `{ member, milestone, tier, at, catalogue: 1 }`.
 6. `workspace-pass.txt`: `recordMilestonesInWorkspace`, the pass the history's last page schedules, run by hand over the sandbox workspace, whose history finished before this deploy. Every page succeeded, it recorded the tiers the history's stickers, week tallies and team stickers reach, no tier is stored twice, and the giver's tiers kept their dates.
 
-The catalogue's diamond step `D` for Full pages and Across the company is **50**, fixed from production's company teams with at least two matched members on 2026-10-19 (counts withheld).
+The catalogue's diamond step `D` for Full pages and Across the company is **50**, fixed in the catalogue.
 
 The `getAlbum` files keep the packs, the tray, the held people's IDs and the milestones. `me`, `level` and `teams` are left out: `teams` lists every posthog.com team and its people.
 

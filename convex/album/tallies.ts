@@ -8,10 +8,10 @@ import { givenFactsOf, storedAnnotationsOf, type AwardId } from "../engine/award
 import { isSameMessage, type Annotations, type MessageRef } from "../engine/messageEvent";
 import { hugOf, hugPeopleAfter, hugWithId, type Hug } from "../hugs/records";
 import { hugsOnTheMessage } from "../hugs/weeks";
-import { gateDecisionOf, wordCountOf } from "../progression/gate";
+import { wordCountOf } from "../progression/gate";
 import { givingWeekOf } from "../progression/progress";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
-import { countOnTheBoardsOnce } from "./boards";
+import { countOnTheBoards } from "./boards";
 import { recordMilestonesOf } from "./milestones";
 import { pairTallyValidator, weekTallyValidator, type HoggieFound, type HugPick, type KudosPick, type WeekList } from "./records";
 
@@ -21,7 +21,7 @@ export const peopleListed = 12;
 
 export type KudosAward = { award: AwardId; message: MessageRef; giver: MemberId; recipient: MemberId; kudos: number; day: DayKey; at: number };
 
-export type KudosWeight = { words: number; thoughtful: boolean; hugs: number };
+export type KudosWeight = { words: number; hugs: number };
 
 const pairTallyAnswer = pairTallyValidator.omit("member", "person");
 
@@ -68,7 +68,7 @@ export const tallyKudosGiven = internalMutation({
     for (const { award, giver, recipient, kudos } of event.awards.slice(from, next)) {
       await tallyAward(ctx, { award, message: event.message, giver, recipient, kudos, day: event.day, at: event.at }, weight);
     }
-    if (weight.thoughtful) await recordMilestonesOf(ctx, { workspace: event.workspace, member: event.giver }, Date.now());
+    await recordMilestonesOf(ctx, { workspace: event.workspace, member: event.giver }, Date.now());
     if (next < event.awards.length) await ctx.scheduler.runAfter(0, internal.album.tallies.tallyKudosGiven, { event, from: next });
     return null;
   },
@@ -137,24 +137,24 @@ export async function weekAt(ctx: QueryCtx, member: MemberId, at: number): Promi
 }
 
 async function kudosWeightOf(ctx: QueryCtx, message: MessageRef, annotations: Annotations): Promise<KudosWeight> {
-  return { words: wordCountOf(annotations) ?? 0, thoughtful: gateDecisionOf(annotations)?.thoughtful === true, hugs: await hugsOnTheMessage(ctx, message) };
+  return { words: wordCountOf(annotations) ?? 0, hugs: await hugsOnTheMessage(ctx, message) };
 }
 
 export async function storedKudosWeightOf(ctx: QueryCtx, message: MessageRef): Promise<KudosWeight> {
   return kudosWeightOf(ctx, message, await storedAnnotationsOf(ctx, message));
 }
 
-export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, thoughtful, hugs }: KudosWeight) {
+export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, hugs }: KudosWeight) {
   if ((await talliedAwardOf(ctx, award.award)) !== null) return;
-  await ctx.db.insert("talliedAwards", { award: award.award });
+  await ctx.db.insert("talliedAwards", { award: award.award, everyKudos: true });
   const { message, giver, recipient, kudos, day, at } = award;
   const week = givingWeekOf(day);
   const pick = { message, hugs, words, at };
-  await changePair(ctx, giver, recipient, { kudosGiven: kudos, thankedAt: at, ...(thoughtful && { best: { message, words, at } }) });
+  await changePair(ctx, giver, recipient, { kudosGiven: kudos, thankedAt: at, best: { message, words, at } });
   await changePair(ctx, recipient, giver, { kudosReceived: kudos });
-  await changeWeek(ctx, giver, week, { kudosGiven: kudos, thoughtfulGiven: thoughtful ? 1 : 0, listed: { list: "thanked", person: recipient }, pick, on: day });
-  await changeWeek(ctx, recipient, week, { kudosReceived: kudos, thoughtfulReceived: thoughtful ? 1 : 0, listed: { list: "thankedBy", person: giver }, pick, on: day });
-  if (thoughtful) await countOnTheBoardsOnce(ctx, { award: award.award, workspace: message.workspace, giver, day });
+  await changeWeek(ctx, giver, week, { kudosGiven: kudos, thoughtfulGiven: 1, listed: { list: "thanked", person: recipient }, pick, on: day });
+  await changeWeek(ctx, recipient, week, { kudosReceived: kudos, thoughtfulReceived: 1, listed: { list: "thankedBy", person: giver }, pick, on: day });
+  await countOnTheBoards(ctx, { workspace: message.workspace, giver, day });
 }
 
 export type HugPeopleTallied = { tallied: number; last: MemberId | null };

@@ -144,7 +144,7 @@ function Issue({ issue, me }: { issue: WeekIssue; me: string }) {
   return (
     <>
       <Tallies issue={issue} />
-      {isQuiet(issue) ? <p className="al-issue-quiet">A quiet week. Thank someone in Slack and say why, and it shows here.</p> : <IssueBody issue={issue} me={me} />}
+      {isQuiet(issue) ? <p className="al-issue-quiet">A quiet week. Give someone a kudos in Slack, and it shows here.</p> : <IssueBody issue={issue} me={me} />}
     </>
   );
 }
@@ -165,8 +165,8 @@ function Tallies({ issue }: { issue: WeekIssue }) {
   const hugs = issue.hugsGiven + issue.hugsReceived;
   return (
     <dl className="al-issue-tallies">
-      <Tally term={thanked === 1 ? "person you thanked" : "people you thanked"} figure={thanked} note={`${issue.kudosGiven} kudos, ${issue.thoughtfulGiven} said why`} />
-      <Tally term="thanked you" figure={thankedBy} note={`${issue.kudosReceived} kudos, ${issue.thoughtfulReceived} said why`} />
+      <Tally term={thanked === 1 ? "person you thanked" : "people you thanked"} figure={thanked} note={`${issue.kudosGiven} kudos`} />
+      <Tally term="thanked you" figure={thankedBy} note={`${issue.kudosReceived} kudos`} />
       <Tally term={issue.packsOpened === 1 ? "pack opened" : "packs opened"} figure={issue.packsOpened} note={newFaces === 0 ? "no new faces" : `${plural(newFaces, "new face", "new faces")} in your album`} />
       <Tally term={hugs === 1 ? "hug" : "hugs"} figure={hugs} note={`${issue.hugsGiven} given · ${issue.hugsReceived} received`} />
     </dl>
@@ -193,7 +193,7 @@ function IssueBody({ issue, me }: { issue: WeekIssue; me: string }) {
         <KudosSection title="Said to you" list={issue.received} />
       </div>
       <div className="al-issue-side">
-        <Section title="New in your album">{countOf(issue.newFaces) === 0 ? <p className="al-issue-hint">No new faces this week. A thoughtful kudos to someone new brings their card.</p> : <People listed={issue.newFaces} />}</Section>
+        <Section title="New in your album">{countOf(issue.newFaces) === 0 ? <p className="al-issue-hint">No new faces this week. A kudos to someone new brings their card.</p> : <People listed={issue.newFaces} />}</Section>
         {countOf(issue.hoggies) > 0 && (
           <Section title="Hoggies from your packs">
             <Hoggies found={issue.hoggies} />
