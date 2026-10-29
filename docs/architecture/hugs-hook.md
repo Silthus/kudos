@@ -166,7 +166,7 @@ export const questFinishedEventValidator = v.object({
 ### Bus: the rule and the replay (`convex/bus/replay.ts`, `convex/bus/seams.guard.test.ts`)
 
 ```ts
-export type Replayed = "replayed" | "not failed" | "not a subscriber";
+export type Replayed = "replayed" | "not failed" | "not a subscriber" | "already replayed";
 
 export const replay = internalMutation({
   args: { job: v.id("_scheduled_functions") },
@@ -174,7 +174,7 @@ export const replay = internalMutation({
 });
 ```
 
-- **What replay does.** It reads the job from `_scheduled_functions`. It answers `not failed` unless the job's state is failed, and `not a subscriber` unless its function is in `subscribers` or is a subscriber's own next page (`payHugPeople`, `recordEffects`, `countKudosGiven`). Otherwise it schedules the same function with the same arguments, a page's `from` or `cursor` included.
+- **What replay does.** It reads the job from `_scheduled_functions`. It answers `not failed` unless the job's state is failed, and `not a subscriber` unless its function is in `subscribers` or is a subscriber's own next page (`payHugPeople`, `recordEffects`, `countKudosGiven`). Otherwise it schedules the same function with the same arguments, a page's `from` or `cursor` included. `spec/hugs-hook.md` (HH17) amends it: it answers `already replayed` for a job it replayed before, and records each replay in the same mutation that schedules it, so two calls never start two runs. The subscribers that would send a message again stay outside it until Silthus/personal#235.
 - **A manual step.** An operator runs it from the sweep's error report. Nothing replays on its own, because a bug that throws would throw on every retry.
 - **Performance.** One system read and one schedule.
 - **The guard test.**
