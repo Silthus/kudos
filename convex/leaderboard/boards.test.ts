@@ -148,6 +148,19 @@ describe("HH28: boardsOf pins the viewer", () => {
     expect(boards.onTheBoards).toBe(false);
     expect(boards.people.kudosGiven).toEqual([]);
   });
+
+  test("read for the workspace with no viewer, the boards rank everyone, pin nobody and mark no team", async () => {
+    const { ann, bea } = await people("Ann", "Bea");
+    await onTeam("lanterns", "Lanterns", ann);
+    await gaveKudos(ann, [bea]);
+
+    const boards = await t.run((ctx) => boardsOf(ctx, { workspace: "T1", member: null }, { period: "all", team: null }));
+
+    expect(standingsOn(boards).kudosGiven).toEqual(["1 Ann 1"]);
+    expect(teamStandingsOn(boards).kudosGiven).toEqual(["1 Lanterns 1"]);
+    expect(boards.people.kudosGiven.some(({ viewer }) => viewer)).toBe(false);
+    expect(boards.me).toBeNull();
+  });
 });
 
 describe("HH28: placeOf answers one member's place by the kudos they gave", () => {

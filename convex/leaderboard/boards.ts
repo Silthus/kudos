@@ -16,6 +16,8 @@ export type Measure = keyof RecognitionCounts;
 
 export type BoardViewer = { workspace: string; member: MemberId };
 
+export type BoardReader = { workspace: string; member: MemberId | null };
+
 export type BoardsAsked = { period: Period; team: string | null };
 
 export type Standing = { rank: number; tied: boolean };
@@ -36,18 +38,21 @@ export async function boardsShownTo(ctx: QueryCtx, member: MemberId): Promise<Vi
   return ["everyone", ...groups, ...myGroup];
 }
 
-export async function boardsOf(ctx: QueryCtx, viewer: BoardViewer, { period, team }: BoardsAsked): Promise<Boards> {
+export async function boardsOf(ctx: QueryCtx, reader: BoardReader, { period, team }: BoardsAsked): Promise<Boards> {
   const companyTeams = await companyTeamsOf(ctx);
-  const totals = await totalsIn(ctx, viewer.workspace, keyOf(period, await todayOf(ctx, viewer.member)));
-  const people = await peopleOf(ctx, viewer, totals, companyTeams);
-  const teams = teamTotalsOf(companyTeams, people, teamsOf(companyTeams, await profileOf(ctx, viewer)));
-  const me = people.find(({ viewer: isViewer }) => isViewer) ?? (await personOf(ctx, viewer, nothingCountedBy(viewer.member), companyTeams));
+  const totals = await totalsIn(ctx, reader.workspace, keyOf(period, await todayOf(ctx, reader.member)));
+  const people = await peopleOf(ctx, reader, totals, companyTeams);
+  const teams = teamTotalsOf(companyTeams, people, teamsOf(companyTeams, await profileOf(ctx, reader)));
   return {
     people: eachMeasure((measure) => placedBy(people, measure).filter(({ teams: theirs }) => team === null || theirs.includes(team))),
     teams: eachMeasure((measure) => placedBy(teams, measure)),
-    me,
-    onTheBoards: await isOnTheBoards(ctx, viewer.member),
+    me: reader.member === null ? null : await pinnedViewerOf(ctx, { workspace: reader.workspace, member: reader.member }, people, companyTeams),
+    onTheBoards: reader.member !== null && (await isOnTheBoards(ctx, reader.member)),
   };
+}
+
+async function pinnedViewerOf(ctx: QueryCtx, viewer: BoardViewer, people: BoardPerson[], companyTeams: CompanyTeam[]): Promise<BoardPerson | null> {
+  return people.find(({ viewer: isViewer }) => isViewer) ?? (await personOf(ctx, viewer, nothingCountedBy(viewer.member), companyTeams));
 }
 
 export async function placeOf(ctx: QueryCtx, member: BoardViewer, period: Period): Promise<BoardPlace | null> {
@@ -72,16 +77,16 @@ async function rankedAmong(ctx: QueryCtx, totals: MemberTotals[]): Promise<Membe
   return ranked.filter((memberTotals) => memberTotals !== null);
 }
 
-async function todayOf(ctx: QueryCtx, member: MemberId): Promise<DayKey> {
-  return allowanceDay(Date.now(), (await timeZoneOf(ctx, member)) ?? undefined);
+async function todayOf(ctx: QueryCtx, member: MemberId | null): Promise<DayKey> {
+  return allowanceDay(Date.now(), member === null ? undefined : ((await timeZoneOf(ctx, member)) ?? undefined));
 }
 
-async function peopleOf(ctx: QueryCtx, viewer: BoardViewer, totals: MemberTotals[], companyTeams: CompanyTeam[]): Promise<BoardPerson[]> {
+async function peopleOf(ctx: QueryCtx, viewer: BoardReader, totals: MemberTotals[], companyTeams: CompanyTeam[]): Promise<BoardPerson[]> {
   const people = await Promise.all(totals.map((memberTotals) => personOf(ctx, viewer, memberTotals, companyTeams)));
   return people.filter((person) => person !== null);
 }
 
-async function personOf(ctx: QueryCtx, viewer: BoardViewer, { member, firstDay, ...counts }: MemberTotals, companyTeams: CompanyTeam[]): Promise<BoardPerson | null> {
+async function personOf(ctx: QueryCtx, viewer: BoardReader, { member, firstDay, ...counts }: MemberTotals, companyTeams: CompanyTeam[]): Promise<BoardPerson | null> {
   const nameAndPicture = await rankedNameAndPictureOf(ctx, member);
   if (nameAndPicture === null) return null;
   const match = await storedCompanyMatchOf(ctx, viewer.workspace, member);
@@ -104,8 +109,8 @@ function sumOf(people: BoardPerson[], measure: Measure): number {
   return people.reduce((sum, { counts }) => sum + counts[measure], 0);
 }
 
-async function profileOf(ctx: QueryCtx, { workspace, member }: BoardViewer): Promise<number | null> {
-  return (await storedCompanyMatchOf(ctx, workspace, member))?.profile ?? null;
+async function profileOf(ctx: QueryCtx, { workspace, member }: BoardReader): Promise<number | null> {
+  return member === null ? null : ((await storedCompanyMatchOf(ctx, workspace, member))?.profile ?? null);
 }
 
 function teamsOf(companyTeams: CompanyTeam[], profile: number | null): string[] {
