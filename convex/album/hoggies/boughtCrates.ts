@@ -1,4 +1,5 @@
 import type { Doc } from "../../_generated/dataModel";
+import { boughtCrateRarities } from "./rarityCaps";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { publish } from "../../bus/publish";
 import type { Surface } from "../../commands/surface";
@@ -30,7 +31,7 @@ export async function buyCrate(ctx: MutationCtx, member: MemberId, next: number,
 export async function openCrate(ctx: MutationCtx, member: MemberId, crate: string, at: number, surface: Surface): Promise<void> {
   const bought = await boughtCrateOf(ctx, member, crate);
   if (bought === null || bought.openedAt !== undefined || !(await hoggiesShownTo(ctx, member))) return;
-  await dropFor(ctx, member, boughtCrateKeyOf(bought.n), at, { surface });
+  await dropFor(ctx, member, boughtCrateKeyOf(bought.n), at, { surface, rarities: boughtCrateRarities });
   await ctx.db.patch(bought._id, { openedAt: at });
 }
 
@@ -66,7 +67,7 @@ export async function boughtCrateOpened(ctx: QueryCtx, member: MemberId, crate: 
   return (await boughtCrateOf(ctx, member, crate))?.openedAt !== undefined;
 }
 
-function boughtCrateKeyOf(next: number): CrateKey {
+export function boughtCrateKeyOf(next: number): CrateKey {
   return `bought:${next}`;
 }
 

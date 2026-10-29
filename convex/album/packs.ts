@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { earnHoggieItem, kudosPackRarities } from "./hoggies/rarityCaps";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
@@ -101,12 +102,14 @@ type Thanks = { workspace: string; giver: MemberId; recipient: MemberId; message
 
 async function earnThanksItems(ctx: MutationCtx, thanks: Thanks, pack: PackId, holdsSticker: boolean) {
   const earning = thanksEarningOf(thanks);
-  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack) });
+  await earnHoggieItem(ctx, { ...earning, key: crateKeyOf(pack) }, kudosPackRarities);
   if (holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack });
 }
 
-export function earnPackItemsOf(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">) {
-  return earnThanksItems(ctx, pack, pack._id, pack.holdsSticker);
+export async function earnItemsOfAPackGivenBeforeTheLedger(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">) {
+  const earning = thanksEarningOf(pack);
+  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack._id), ...kudosPackRarities.today });
+  if (pack.holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack._id });
 }
 
 export function thanksEarningOf({ workspace, giver, recipient, message, at }: Thanks) {

@@ -265,6 +265,27 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: resumption-coverage dismissed: no batch forges
   checklist: declared-target-coverage dismissed: the one surface that forges is the website's forgeHoggie, and the one that turns its item is turnItem, both reached by the oracle
   checklist: completion-evidence dismissed: forgeHoggie answers the item it earned, and turnItem the drop it recorded
+- the forge stops at rare under rarity-caps: While `rarity-caps` is on for the member, forgeHoggie of a rare or an epic is refused and writes nothing, a common and an uncommon forge as before, and getAlbumHoggies answers `forge` with `upTo` `rare`, read without an exposure, so the website shows no forge for a rare or rarer; while it is off, getAlbumHoggies answers `upTo` `legendary` and a rare and an epic forge as before; an item forged before the flag turned on turns into the rarity above the hoggie it was forged from, and a hoggie forge whose answer was lost before the flag turned on keeps its retry, which fetches that answer, while a hoggie forge the server refused shows none once the flag is on (HH43)
+  over: with rarity-caps on, four copies each of a common, an uncommon, a rare and an epic forged in turn, read through forgeHoggie's answers and every table; with it off, four of a rare and of an epic; getAlbumHoggies with the flag on and off, read with every table before and after; a rare forged with the flag off and turned with it on; a rare's forge whose answer was lost while the flag turned on, retried from its entry; a rare's forge refused as the flag turned on, read from its entry; the website's field guide entries of an uncommon, a rare and an epic with forges up to rare
+  via: HH43: while rarity-caps is on, the forge stops at rare
+  refuted: highestForgedFor in convex/album/hoggies/rarityCaps.ts answered legendary whatever rarity-caps decided -> 2 of 8 tests failed: with rarity-caps on, a rare and an epic forged and getAlbumHoggies offered forges up to legendary (2026-10-29)
+  because: the product owner approved, 2026-10-29, that kudos are the only source of epic and legendary hoggies (HH41, HH43), so three spares must not make one; a forge already earned keeps its promise, since its item was earned before the cap, and the page must not offer a forge the server refuses
+  kinds: state
+  checklist: scoped-reads dismissed: forgeHoggie and getAlbumHoggies read only the signed-in member's tallies and flag decision, named by the verified session
+  checklist: revalidated-permission dismissed: the flag is read in the same mutation that spends the copies
+  checklist: encrypted-storage dismissed: hoggies are game data every teammate's album shows, not confidential
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted
+  checklist: input-validation dismissed: the hoggie's rarity comes from the catalogue, never from the request
+  checklist: revision-preservation dismissed: a refused forge writes nothing, and an earned forge's item is never revised
+  checklist: separation-of-duties dismissed: no approval policy; the flag is switched in PostHog by the owner
+  checklist: legal-state-succession dismissed: the cap only refuses; a tally moves only as the forge already moves it
+  checklist: supersession-safety dismissed: a forge sent again with its request answers its item before the cap is read, so a forge earned before the flag turned on still answers it
+  checklist: worker-fencing dismissed: no worker forges
+  checklist: commit-ordered-effects dismissed: a refusal publishes nothing, and the flag read writes no exposure
+  checklist: durable-dispatch-intent dismissed: the forge schedules nothing
+  checklist: resumption-coverage dismissed: no batch forges
+  checklist: declared-target-coverage dismissed: forgeHoggie is the one surface that forges, and getAlbumHoggies the one that offers it, both reached by the oracle
+  checklist: completion-evidence dismissed: forgeHoggie answers refused or the item it earned
 - a forged hoggie is a find from a forge crate that pays nothing: The turn of a hoggie forge's item records its hoggie as a drop of the `forge` crate kind, whose first copy is new, and publishes hoggieDropped, which PostHog receives as one hoggie dropped with crate_kind forge, its rarity and is_new, and no pack XP or coins, and nothing before the turn; it joins the member's week once, so getAlbumWeek lists it among the week's hoggies found, however often its request or its turn is sent; and a milestone tier it reaches unlocks in that turn
   over: one forge of four Bananas into the one hoggie a rarity up left, read through the PostHog captures after the outbox drains before and after the turn; the same forge and its turn sent twice, read through getAlbumWeek; a forge whose hoggie is the member's tenth, read through the turn's answer
   via: HF5, HF12: a forged hoggie is a find with no pack, captured as hoggie dropped from a forge crate
@@ -294,3 +315,25 @@ Hoggies: the hoggies and team crests members collect from the crates they open (
   checklist: declared-target-coverage dismissed: the surfaces are the website's getAlbumHoggies and forgeHoggie, each read by the oracle
   checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
   checklist: resumption-coverage dismissed: no batch runs for forges
+- each source stores its cap under rarity-caps: While `rarity-caps` is on for the member when a hoggie item is earned, the item stores the range of the numbers table in `spec/hugs-hook.md` (HH41): a kudos pack `kudos` weights with no floor or cap; the welcome item, a level up's third slot, a completed team and the silver, gold and diamond milestone tiers exactly rare; the bronze tier uncommon to rare; a level up's first two slots and an onboarding quest's hoggie capped at rare; each capped range with `base` weights; while it is off, each stores today's floor and no cap or weights (HH42); the flag is decided only for an item not yet earned, so an item earned again keeps the range it stored and records no new exposure, and a pack given before the item ledger and earned by fillItems stores today's range without deciding the flag (HH42); a bought crate drops within rare while the flag is on when it is opened and as today while it is off, and the old level-up reveal and a kudos pack's opening draw within the range their item stored
+  over: a member per source and flag value, each source earned once through its own earn function, a kudos pack through grantThoughtfulPacks, and read from the stored items; each source earned with the flag off and again with it on, read from the stored items and the rarity-caps exposures; a pack given before the item ledger filled by fillItems with the flag on; a bought crate whose draw today lands above rare opened with the flag on and off; a level up revealed the old way and a kudos pack given and opened, with the flag on and off at the earn
+  via: HH41 HH42: each source stores its cap under rarity-caps
+  refuted: rarityRangeFor in convex/album/hoggies/rarityCaps.ts answered today's range whatever rarity-caps decided -> 8 of 19 tests failed: with rarity-caps on, each item source stored today's floor and no cap or weights (2026-10-29)
+  refuted: each hoggie source decided rarity-caps before it checked for its earned item, and fillItems earned old packs through the grant's decision -> 5 of 26 tests failed: the welcome item, a level up, a completed team and the milestone tiers earned again recorded a true exposure, and fillItems stored kudos weights on a pack given before the ledger (2026-10-29)
+  because: the product owner approved the numbers table on 2026-10-29 so that kudos are the only source of epic and legendary hoggies (HH41) while every item earned before the flag keeps the odds it was earned with (HH42); a source without its cap would still hand out legendaries, and an item that read the flag at its turn rather than its earn would change odds already promised
+  kinds: storage, state
+  checklist: scoped-reads dismissed: each earn and drop reads only the member's own items, drops and flag decision, by an equality on the member
+  checklist: revalidated-permission dismissed: the flag is decided in the same mutation that earns the item or drops the hoggie
+  checklist: encrypted-storage dismissed: items and drops are game data, not confidential
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted
+  checklist: input-validation dismissed: every range comes from a constant in rarityCaps.ts, and the items table's validator takes only the five rarities and the two weight names
+  checklist: revision-preservation dismissed: an item's range is written once at its earn, and a drop record is never revised
+  checklist: separation-of-duties dismissed: no approval policy; the flag is switched in PostHog by the owner, outside this deployment
+  checklist: legal-state-succession dismissed: an item is earned once per member, source and key, so a later decision of the flag never rewrites its range
+  checklist: supersession-safety dismissed: a second earn finds the first item by its key and writes nothing, so the range decided first stands
+  checklist: worker-fencing dismissed: no worker earns items; each earn and drop is one mutation on the member's own rows
+  checklist: commit-ordered-effects dismissed: the flag's exposure leaves through the analytics outbox after commit, and the earn issues no other effect
+  checklist: durable-dispatch-intent dismissed: the range is decided in the earn's own mutation, so it commits with the item or not at all
+  checklist: resumption-coverage dismissed: fillItems earns through the same earn functions, each page in its own mutation
+  checklist: declared-target-coverage dismissed: every earn of a hoggie item and every drop without an item passes its source's constant; feature openings and quest crate openings, dark since unlocks and quests were retired, pass theirs too and are not under the oracle
+  checklist: completion-evidence dismissed: the stored item and the drop record are the evidence, read by the oracle

@@ -5,7 +5,7 @@ import type { KudosEmojiPick } from "../../../convex/album/kudosEmojis";
 import type { Drop } from "../../../convex/album/hoggies/drops";
 import type { Pet as AlbumPet } from "../../../convex/album/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
-import type { ForgeAnswer, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
+import type { ForgeAnswer, ForgeOffered, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
 import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
@@ -187,7 +187,7 @@ export type PersonRead = (asking: boolean, person: string | null) => PersonShown
 
 export type { AlbumHoggie, AlbumRarity };
 
-export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null; forge?: true };
+export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null; forge?: ForgeOffered };
 
 export type { PetAnswer };
 

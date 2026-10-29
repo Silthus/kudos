@@ -19,7 +19,7 @@ export function withoutCollectionExposure<T extends Tables>(tables: T): T {
 }
 
 export function withoutDropExposures<T extends Tables>(tables: T): T {
-  return withoutExposureOf("packs", withoutCollectionExposure(tables));
+  return withoutExposureOf("rarity-caps", withoutExposureOf("packs", withoutCollectionExposure(tables)));
 }
 
 export async function holds(t: Backend, member: MemberId, ...hoggies: string[]) {

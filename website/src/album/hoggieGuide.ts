@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { rarityAbove, sparesForged } from "../../../convex/album/hoggies/catalogue";
+import { forgedRarityOf, sparesForged } from "../../../convex/album/hoggies/catalogue";
 import type { Rarity } from "../shell";
 import type { AlbumHoggie, AlbumHoggies, AlbumRarity } from "./answer";
 import { rarityWordOf } from "./opening";
@@ -54,8 +54,8 @@ export function hoggieLabelOf(hoggie: AlbumHoggie) {
 
 export type ForgeOffer = { kind: "ready" | "short"; into: Rarity; full: boolean };
 
-export function forgeOfferOf(hoggie: AlbumHoggie, answer: AlbumHoggies): ForgeOffer | null {
-  const into = rarityAbove(hoggie.rarity);
+export function forgeOfferOf(hoggie: AlbumHoggie, answer: AlbumHoggies, unanswered: boolean): ForgeOffer | null {
+  const into = answer.forge === undefined ? null : forgedRarityOf(hoggie.rarity, unanswered ? "legendary" : answer.forge.upTo);
   if (!hoggie.found || into === null) return null;
   const full = answer.hoggies.every((other) => other.rarity !== into || other.found);
   return { kind: hoggie.spares >= sparesForged ? "ready" : "short", into, full };
