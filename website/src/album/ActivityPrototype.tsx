@@ -15,7 +15,7 @@ import "./activityPrototype.css";
 type Way = "hug" | "kudos";
 type Who = { name: string; face: Face };
 type Thanks = { way: Way; from: Who; day: string; words: string; permalink: string };
-type Quest = { tier: "Easy" | "Middle"; way: Way; goal: string; how: string; done: number; target: number; reward: string };
+type Quest = { way: Way; goal: string; how: string; done: number; target: number; reward: string };
 type Step = { way: Way; title: string; why: string; button: string; href: string; hugging: { author: Who; words: string } | null };
 type Situation = { received: Thanks[]; givenThisWeek: number; lastWeek: { hugsGiven: number; kudosGiven: number; hugsReceived: number; kudosReceived: number } | null; quests: Quest[]; next: Step };
 
@@ -44,11 +44,11 @@ const juno = who("Juno Park");
 const fen = who("Fen Marlowe");
 const alex = who("Alex Lee");
 
-const hugAMessage: Quest = { tier: "Easy", way: "hug", goal: "Hug a teammate's message", how: "React with :hedgehug: to any message in Slack.", done: 0, target: 1, reward: "+20 XP and a hoggie" };
+const hugAMessage: Quest = { way: "hug", goal: "Hug a teammate's message", how: "React with :hedgehug: to any message in Slack.", done: 0, target: 1, reward: "+20 XP and a hoggie" };
 
-const giveAKudos: Quest = { tier: "Middle", way: "kudos", goal: "Give a kudos to someone", how: "Write :hedgehug: @name and what they did, in any channel.", done: 0, target: 1, reward: "+20 XP and a hoggie" };
+const giveAKudos: Quest = { way: "kudos", goal: "Give a kudos to someone", how: "Write :hedgehug: @name and what they did, in any channel.", done: 0, target: 1, reward: "+20 XP and a hoggie" };
 
-const thankSomeoneNew: Quest = { tier: "Middle", way: "kudos", goal: "Thank someone new", how: "A kudos to someone you haven't thanked before.", done: 0, target: 1, reward: "+20 XP and a hoggie" };
+const thankSomeoneNew: Quest = { way: "kudos", goal: "Thank someone new", how: "A kudos to someone you haven't thanked before.", done: 0, target: 1, reward: "+20 XP and a hoggie" };
 
 const firstHug: Step = { way: "hug", title: "Give your first hug", why: "React with :hedgehug: to a teammate's message in Slack. That's a hug: they see it, and you both get XP.", button: "Open Slack", href: slack, hugging: { author: alex, words: "Shipped the fix for the flaky deploy, should be green now." } };
 
@@ -116,11 +116,7 @@ function VariantA({ situation: { received, lastWeek, quests, next } }: { situati
       <div className="ap-a-grid">
         <section className="ap-panel" aria-label="This week's quests">
           <h3 className="ap-panel-title">This week's quests · {doneCountOf(quests)}</h3>
-          <ul className="ap-quest-rows">
-            {quests.map((quest) => (
-              <QuestRow key={quest.goal} quest={quest} />
-            ))}
-          </ul>
+          <QuestChecks quests={quests} />
         </section>
         <section className="ap-panel" aria-label="Who thanked you">
           <h3 className="ap-panel-title">Who thanked you this week</h3>
@@ -149,7 +145,7 @@ function VariantB({ situation: { received, givenThisWeek, quests, next } }: { si
         {quests.map((quest) => (
           <li key={quest.goal} className="ap-b-quest" data-next={quest === nextQuest ? "" : undefined}>
             <p className="ap-b-tier">
-              {quest.tier} · <WayWord way={quest.way} />
+              <WayWord way={quest.way} />
             </p>
             <h2 className="ap-b-goal">{quest === nextQuest ? next.title : quest.goal}</h2>
             <p className="ap-b-how">
@@ -248,19 +244,7 @@ function VariantC({ situation: { received, lastWeek, quests, next } }: { situati
       <aside className="ap-c-rail" aria-label="This week">
         <section className="ap-panel">
           <h3 className="ap-panel-title">Quests · {doneCountOf(quests)}</h3>
-          <ul className="ap-c-checks">
-            {quests.map((quest) => (
-              <li key={quest.goal}>
-                <span className="ap-c-box" aria-hidden="true" />
-                <span>
-                  {quest.goal}
-                  <span className="ap-c-check-tier">
-                    {quest.tier} · {quest.reward}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <QuestChecks quests={quests} />
         </section>
         {lastWeek !== null && (
           <section className="ap-panel">
@@ -332,20 +316,22 @@ function ReceivedList({ received }: { received: Thanks[] }) {
   );
 }
 
-function QuestRow({ quest }: { quest: Quest }) {
+function QuestChecks({ quests }: { quests: Quest[] }) {
   return (
-    <li className="ap-quest-row">
-      <span className="ap-quest-tier" data-way={quest.way}>
-        {quest.tier}
-      </span>
-      <div className="ap-quest-words">
-        <p className="ap-quest-goal">{quest.goal}</p>
-        <p className="ap-quiet">
-          <WithEmoji text={quest.how} />
-        </p>
-      </div>
-      <span className="ap-quest-reward">{quest.reward}</span>
-    </li>
+    <ul className="ap-checks">
+      {quests.map((quest) => (
+        <li key={quest.goal} className="ap-check" data-done={quest.done >= quest.target ? "" : undefined}>
+          <span className="ap-check-box" aria-hidden="true" />
+          <span className="ap-check-words">
+            <span className="ap-check-goal">{quest.goal}</span>
+            <span className="ap-check-note">
+              <WithEmoji text={quest.how} />
+            </span>
+            <span className="ap-check-note">{quest.reward}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
