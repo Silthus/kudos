@@ -471,12 +471,16 @@ describe("AL80: behind admin-hype-emojis, the maintainer lists every current mem
     expect(names).toEqual(["otter-quillfeather1-hype"]);
   });
 
-  test(`thousands of unnamed members still answer at most ${mostAppEmojisListed} app emojis, the most held first, within Convex's limits`, async () => {
+  test.each([
+    { crowd: "distinct names", nameOf: (index: number) => `Crowd ${index}` },
+    { crowd: "one shared name", nameOf: () => "Crowd" },
+    { crowd: "names without Latin letters", nameOf: () => "李雷" },
+  ])(`thousands of unnamed members with $crowd still answer at most ${mostAppEmojisListed} app emojis, the most held first, within Convex's limits`, async ({ nameOf }) => {
     await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
     await aliceCollects(otters[0]!);
     for (let batch = 0; batch < crowdRows / crowdBatch; batch++)
       await t.run(async (ctx) => {
-        for (let index = batch * crowdBatch; index < (batch + 1) * crowdBatch; index++) await ctx.db.insert("members", { workspace: "T1", user: `U_CROWD_${index}`, kind: "member", name: `Crowd ${index}` });
+        for (let index = batch * crowdBatch; index < (batch + 1) * crowdBatch; index++) await ctx.db.insert("members", { workspace: "T1", user: `U_CROWD_${index}`, kind: "member", name: nameOf(index) });
       });
 
     const { emojis, more } = await appEmojisOf(await signedIn(owner));

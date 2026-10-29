@@ -30,8 +30,16 @@ export function firstHypeEmojiNameFor(fullName: string): string {
   return firstCandidateOf(hypeNameShapeOf(fullName));
 }
 
-export async function hypeEmojiNameFor(ctx: QueryCtx, workspace: string, fullName: string, alsoTaken: AlsoTaken): Promise<string> {
-  return (await nextFreeName(ctx, workspace, hypeNameShapeOf(fullName), alsoTaken)).name;
+export function hypeNameHintsIn(ctx: QueryCtx, workspace: string): (fullName: string) => Promise<string> {
+  const hinted = new Set<string>();
+  const lastHintedNumbers = new Map<string, number>();
+  return async (fullName) => {
+    const shape = hypeNameShapeOf(fullName);
+    const { name, number } = await nextFreeName(ctx, workspace, shape, async (candidate) => hinted.has(candidate), lastHintedNumbers.get(numberedStemOf(shape)));
+    hinted.add(name);
+    if (number !== undefined) lastHintedNumbers.set(numberedStemOf(shape), number);
+    return name;
+  };
 }
 
 function hypeNameShapeOf(fullName: string): NameShape {
@@ -241,7 +249,7 @@ async function allocate(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiI
   await ctx.db.insert("emojiNames", { workspace, ...storedKeyOf(emoji), name: await firstFreeName(ctx, workspace, shape) });
 }
 
-export type AlsoTaken = (name: string) => Promise<boolean>;
+type AlsoTaken = (name: string) => Promise<boolean>;
 
 type FreeName = { name: string; number?: number };
 
@@ -255,14 +263,14 @@ async function firstFreeName(ctx: MutationCtx, workspace: string, shape: NameSha
   return name;
 }
 
-async function nextFreeName(ctx: QueryCtx, workspace: string, shape: NameShape, alsoTaken: AlsoTaken): Promise<FreeName> {
+async function nextFreeName(ctx: QueryCtx, workspace: string, shape: NameShape, alsoTaken: AlsoTaken, numberedPast?: number): Promise<FreeName> {
   const { slug, empty, suffix } = shape;
-  const isFreeHere = async (name: string) => (await isFree(ctx, workspace, name)) && !(await alsoTaken(name));
+  const isFreeHere = async (name: string) => !(await alsoTaken(name)) && (await isFree(ctx, workspace, name));
   const plain = firstCandidateOf(shape);
   if (slug !== "" && (await isFreeHere(plain))) return { name: plain };
   const stem = slug === "" ? empty : slug;
-  const numbering = await numberingOf(ctx, workspace, numberedStemOf(shape));
-  for (let n = (numbering?.last ?? (slug === "" ? 0 : 1)) + 1; ; n += 1) {
+  const last = numberedPast ?? (await numberingOf(ctx, workspace, numberedStemOf(shape)))?.last ?? (slug === "" ? 0 : 1);
+  for (let n = last + 1; ; n += 1) {
     const name = `${stem}-${n}${suffix}`;
     if (await isFreeHere(name)) return { name, number: n };
   }
