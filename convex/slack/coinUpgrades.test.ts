@@ -76,7 +76,7 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
 
     await openSkillTreeTab(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE").slice(4, -1)).toEqual([
+    expect(publishedHome(slack, "U_ALICE").slice(4)).toEqual([
       `section: ✅ *Spark* · Owned\n${sparkCopy}`,
       `section: ✅ *Rhythm* · Owned\n${rhythmCopy}`,
       `section: ✅ *Circle* · Owned\n${circleCopy}`,
