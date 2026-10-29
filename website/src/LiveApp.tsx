@@ -247,8 +247,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       forgeHoggie: (hoggie, request) => answerWithin(commandAnswerBudgetMs, forgeHoggie({ hoggie, request })),
       endXpMoment: (from, until, skipped, played) => answerWithin(commandAnswerBudgetMs, endXpMoment({ from, until, skipped, played })),
       closeHowItWorks: (triedSlack) => answerWithin(commandAnswerBudgetMs, closeHowItWorks({ triedSlack })),
-      viewQuests: (surface) => answerWithin(commandAnswerBudgetMs, viewQuests({ surface })),
-      viewLeaderboard: (period) => answerWithin(commandAnswerBudgetMs, viewLeaderboard({ period })),
+      viewQuests: (surface) => withoutWaiting(viewQuests({ surface })),
+      viewLeaderboard: (period) => withoutWaiting(viewLeaderboard({ period })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -258,6 +258,10 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
     }),
     [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, pickKudosEmoji, turnItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, viewQuests, viewLeaderboard, onSignInFailure],
   );
+}
+
+function withoutWaiting(report: Promise<unknown>) {
+  report.catch(() => undefined);
 }
 
 function useSentOnce<Mutation extends FunctionReference<"mutation">>(mutation: Mutation) {

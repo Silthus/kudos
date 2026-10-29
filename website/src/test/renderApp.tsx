@@ -88,8 +88,8 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     arrive: vi.fn(commands.arrive ?? (async (from: number | null) => ({ kind: "arrived", lastVisit: from }) as const)),
     endXpMoment: vi.fn(commands.endXpMoment ?? (async (_from: number, until: number) => ({ kind: "arrived", lastVisit: until }) as const)),
     closeHowItWorks: vi.fn(commands.closeHowItWorks ?? (async () => ({ kind: "closed" }) as const)),
-    viewQuests: vi.fn(commands.viewQuests ?? (async () => ({ kind: "viewed" }) as const)),
-    viewLeaderboard: vi.fn(commands.viewLeaderboard ?? (async () => ({ kind: "viewed" }) as const)),
+    viewQuests: vi.fn(commands.viewQuests ?? (() => {})),
+    viewLeaderboard: vi.fn(commands.viewLeaderboard ?? (() => {})),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (

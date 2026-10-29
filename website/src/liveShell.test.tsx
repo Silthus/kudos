@@ -4,6 +4,7 @@ import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { boardsFixtures } from "./album/boardsFixtures";
 import { Root } from "./Root";
 import { settingsFixtures } from "./settingsFixtures";
 import { shellFixtures } from "./shell";
@@ -27,7 +28,7 @@ vi.mock("convex/browser", async (importOriginal) => ({
       this.token = token;
     }
     mutation(mutation: FunctionReference<"mutation">, args: unknown) {
-      return sentOverHttp({ address: this.address, token: this.token, mutation: getFunctionName(mutation), args });
+      return Promise.resolve(sentOverHttp({ address: this.address, token: this.token, mutation: getFunctionName(mutation), args }));
     }
   },
 }));
@@ -346,6 +347,32 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     profileRead.mockReturnValue(shellFixtures.member);
     boardRead.mockImplementation((query: string, args: unknown) => (query === "website/album:getAlbum" ? album : otherReads(query, args)));
   }
+
+  it("E2: the Leaderboard sends its view of this week as one viewLeaderboard over HTTP with the session's token", async () => {
+    showTheAlbum(albumV1, (query) => (query === "website/album:getThoughtfulBoards" ? boardsFixtures.week : undefined));
+    sentOverHttp.mockResolvedValue({ kind: "viewed" });
+    window.history.replaceState(null, "", "/leaderboard");
+
+    renderLiveSite();
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:viewLeaderboard", args: { period: "week" } }));
+  });
+
+  it("E2: a Leaderboard view the network drops is let go, leaving no unhandled rejection", async () => {
+    const unhandled: unknown[] = [];
+    const keep = (reason: unknown) => void unhandled.push(reason);
+    process.on("unhandledRejection", keep);
+    showTheAlbum(albumV1, (query) => (query === "website/album:getThoughtfulBoards" ? boardsFixtures.week : undefined));
+    sentOverHttp.mockRejectedValue(new TypeError("Failed to fetch"));
+    window.history.replaceState(null, "", "/leaderboard");
+
+    renderLiveSite();
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledOnce());
+    await new Promise((settled) => setTimeout(settled, 0));
+    process.off("unhandledRejection", keep);
+    expect(unhandled).toEqual([]);
+  });
 
   it("a member getMyProfile says album for gets the album from one getAlbum subscription, with what the read doesn't answer yet left empty", async () => {
     showTheAlbum(albumV1);
