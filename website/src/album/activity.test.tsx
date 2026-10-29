@@ -140,8 +140,10 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
   });
 
   it("a week whose only recognition is a kudos counted in the member's own week shows that count and is not called quiet (HH30)", async () => {
-    visit(fixedWeek({ ...weekFixtures.quiet, issue: { ...weekFixtures.quiet.issue!, kudosReceived: 1 } }));
+    const quiet = weekFixtures.quiet;
+    visit(fixedWeek({ ...quiet, weeks: quiet.weeks.map((tab) => (tab.week === quiet.week ? { ...tab, counted: 1 } : tab)), issue: { ...quiet.issue!, kudosReceived: 1 } }));
 
+    expect((await weekTabs()).getByRole("tab", { name: /^Last week/ })).toHaveTextContent("Last week5–11 Oct1 kudos or hug");
     const panel = await issue();
     expect(tallies(panel)).toContain("thanked you | 0 | 1 kudos");
     expect(panel.queryByText("A quiet week. Give someone a kudos in Slack, and it shows here.")).not.toBeInTheDocument();

@@ -208,7 +208,7 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
       kind: "week",
       week: theWeek,
       thisWeek: theWeek,
-      weeks: [{ week: theWeek, days: [0, 4, 0, 0, 0, 0, 0] }],
+      weeks: [{ week: theWeek, days: [0, 4, 0, 0, 0, 0, 0], counted: 4 }],
       issue: {
         kudosGiven: 1,
         kudosReceived: 1,
@@ -330,7 +330,7 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     clock = Date.now();
     await thanks(carol, why, alice);
 
-    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [{ week: "2026-10-19" }, { week: theWeek }], issue: { kudosReceived: 1, thankedBy: { people: [], more: 0 } } });
+    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [{ week: "2026-10-19", counted: 0 }, { week: theWeek, days: [0, 0, 0, 0, 0, 0, 0], counted: 1 }], issue: { kudosReceived: 1, thankedBy: { people: [], more: 0 } } });
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ thisWeek: theWeek });
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", issue: { thankedBy: { people: [{ person: await memberOf(carol) }] } } });
   });

@@ -82,7 +82,7 @@ function WeekTabs({ weeks, chosen, thisWeek, ids, onChoose }: WeekTabsProps) {
           <span className="al-week-tab-label">{tabLabelOf(tab.week, thisWeek)}</span>
           <span className="al-week-tab-span">{weekSpanOf(tab.week)}</span>
           <Sparkline days={tab.days} busiest={busiest} />
-          <span className="al-week-tab-count">{momentsOf(tab.days)}</span>
+          <span className="al-week-tab-count">{momentsOf(tab)}</span>
         </button>
       ))}
     </div>
@@ -118,8 +118,8 @@ function Sparkline({ days, busiest }: { days: number[]; busiest: number }) {
   );
 }
 
-function momentsOf(days: number[]) {
-  const moments = days.reduce((sum, count) => sum + count, 0);
+function momentsOf({ days, counted }: WeekTab) {
+  const moments = days.reduce((sum, count) => sum + count, 0) || counted;
   if (moments === 0) return "A quiet week";
   return moments === 1 ? "1 kudos or hug" : `${moments} kudos and hugs`;
 }

@@ -69,6 +69,14 @@ export async function firstCountedWeekOf(ctx: QueryCtx, member: MemberId): Promi
   return first === null ? null : first.period.slice(weekKeys.from.length);
 }
 
+export async function weekCountsBetween(ctx: QueryCtx, member: MemberId, oldest: DayKey, newest: DayKey): Promise<Map<DayKey, RecognitionCounts>> {
+  const rows = await ctx.db
+    .query("givenTotals")
+    .withIndex("by_member_period", (q) => q.eq("member", member).gte("period", keyOf("week", oldest)).lte("period", keyOf("week", newest)))
+    .collect();
+  return new Map(rows.map((row) => [row.period.slice(weekKeys.from.length), countsOf(row)]));
+}
+
 export async function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<MemberTotals[]> {
   const rows = await ctx.db
     .query("givenTotals")
