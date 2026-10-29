@@ -2,9 +2,8 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { weekOf, type DayKey } from "../engine/allowance";
 import { awardAt, givenEarlierInWeek, type AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
-import { gateDecisionOf } from "./gate";
 import type { GateDecision } from "./gate";
-import { bonusPaidIn, type BonusLine, type EffectsRecord, type Side, type ThoughtfulAward } from "./progress";
+import { bonusPaidIn, type BonusLine, type EffectsRecord, type Side, type EarlierAward } from "./progress";
 
 export const progressionWaitedFor = 10 * 60_000;
 
@@ -46,9 +45,9 @@ function recordOf(ctx: QueryCtx, award: AwardId, side: Side) {
     .first();
 }
 
-export async function thoughtfulAwardsBefore(ctx: QueryCtx, giver: MemberId, day: DayKey, award: AwardId): Promise<ThoughtfulAward[]> {
+export async function awardsBefore(ctx: QueryCtx, giver: MemberId, day: DayKey, award: AwardId): Promise<EarlierAward[]> {
   const earlier = await givenEarlierInWeek(ctx, giver, weekOf(day), award);
-  return earlier.filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true).map(({ recipient, day }) => ({ recipient, day }));
+  return earlier.map(({ recipient, day }) => ({ recipient, day }));
 }
 
 export async function gaveThoughtfulKudos(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<boolean> {

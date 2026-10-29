@@ -115,6 +115,7 @@ describe("O3: attempt failed", () => {
       ["attempt failed", false],
       ["kudos given", true],
       ["kudos received", true],
+      ["packs earned", undefined],
       ["person collected", undefined],
       ["person collected", undefined],
     ]);

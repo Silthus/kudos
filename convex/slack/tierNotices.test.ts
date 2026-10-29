@@ -241,7 +241,7 @@ describe("CO20: a tier DM line that paid coins says them while coins are visible
     await giveKudos(t, "U_ALICE", "U_BOB");
 
     expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
-    expect(await t.run((ctx) => balanceOf(ctx, alice!))).toBe(20);
+    expect(await t.run((ctx) => balanceOf(ctx, alice!))).toBe(24);
   });
 });
 

@@ -85,7 +85,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("AL59: a thoughtful kudos gets one thread reply that names what each recipient's pack holds", { timeout: 60_000 }, () => {
+describe("AL59: a kudos gets one thread reply that names what each recipient's pack holds", { timeout: 60_000 }, () => {
   test("a thoughtful kudos to someone new and to someone already in the album shows its giver alone one reply in its thread, a section for each, the new person's team progress, their hype emoji as a picture, Open your pack and the gains line", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     await aliceCollects(carol);
@@ -171,13 +171,15 @@ describe("AL59: a thoughtful kudos gets one thread reply that names what each re
     ]);
   });
 
-  test("a short kudos keeps today's private reply and posts nothing in its thread", async () => {
+  test("HH8: a short kudos gets its one thread reply like any kudos, also when Slack delivers it twice", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
 
     const ts = await thanks(alice, "ty", bob);
+    await post(t, [section(text("ty "), mention(bob.user), emoji("taco"))], { user: alice.user, ts, channel });
+    await settle(t);
 
-    expect(threadRepliesTo(ts)).toEqual([]);
-    expect(slack.ephemeralsTo(alice.user).map(({ text }) => text)).toEqual([expect.stringContaining("got 1 kudos from you")]);
+    expect(sectionsOf(threadRepliesTo(ts)), "the thread reply").toEqual(["*Bob is new in your album*\nLanterns 1/2\nOtters 1/2"]);
+    expect(slack.ephemeralsTo(alice.user).filter(({ text }) => String(text).includes("got 1 kudos from you")), "the private reply").toHaveLength(1);
   });
 
   test("with Feedback's private reply delivered before the grant and the grant run after, the reply is posted once, and a grant run again posts nothing more", async () => {

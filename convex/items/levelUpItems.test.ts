@@ -52,12 +52,12 @@ describe("LP6 LP7: a level up earns its three hoggies as items", { timeout: 60_0
     await kudos(alice, bob, 2);
     const asAlice = await signedIn(alice);
 
-    expect(await itemsOf(alice), "the giver's stored items").toEqual([
+    expect(await levelUpItemsOf(alice), "the giver's stored level-up items").toEqual([
       { source: "hoggie", key: "level:2:1", reason: { kind: "levelUp", level: 2 } },
       { source: "hoggie", key: "level:2:2", reason: { kind: "levelUp", level: 2 } },
       { source: "hoggie", key: "level:2:3", floor: "rare", reason: { kind: "levelUp", level: 2 } },
     ]);
-    expect((await boardOf(asAlice)).items.map(({ reason }) => reason), "the board's reasons").toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
+    expect(levelUpItemsOn(await boardOf(asAlice)).map(({ reason }) => reason), "the board's level-up reasons").toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
     expect(await cratesDroppedFor(alice), "the level up's drops").toEqual([]);
     expect(await foundHoggiesOf(asAlice), "the hoggies found").toEqual([]);
   });
@@ -78,7 +78,7 @@ describe("LP6 LP7: a level up earns its three hoggies as items", { timeout: 60_0
 
     expect(await cratesDroppedFor(alice), "the level up's drops").toEqual(["level:2:1", "level:2:2", "level:2:3"]);
     await switchWebsite(t, postHog, true, ...itemsOn);
-    expect((await boardOf(await signedIn(alice))).items).toEqual([]);
+    expect(levelUpItemsOn(await boardOf(await signedIn(alice)))).toEqual([]);
   });
 
   test("with hidden-items and level-up-reveal off, nothing drops and the three items wait on the board once hidden-items turns on", async () => {
@@ -87,7 +87,7 @@ describe("LP6 LP7: a level up earns its three hoggies as items", { timeout: 60_0
 
     expect(await cratesDroppedFor(alice), "the level up's drops").toEqual([]);
     await switchWebsite(t, postHog, true, ...itemsOn);
-    expect((await boardOf(await signedIn(alice))).items.map(({ reason }) => reason)).toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
+    expect(levelUpItemsOn(await boardOf(await signedIn(alice))).map(({ reason }) => reason)).toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
   });
 });
 
@@ -246,6 +246,14 @@ async function itemsKeyed(person: Person, wanted: (key: string) => boolean) {
       .collect(),
   );
   return items.filter(({ key }) => wanted(key));
+}
+
+function levelUpItemsOn(board: Awaited<ReturnType<typeof boardOf>>) {
+  return board.items.filter(({ reason }) => reason.kind === "levelUp");
+}
+
+async function levelUpItemsOf(person: Person) {
+  return (await itemsOf(person)).filter(({ reason }) => reason.kind === "levelUp");
 }
 
 async function itemsOf(person: Person) {

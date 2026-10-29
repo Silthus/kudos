@@ -10,7 +10,7 @@ import type { Annotations, MessageRef } from "../engine/messageEvent";
 import { gateDecisionOf } from "./gate";
 import { catalogue } from "./catalogue";
 import type { Award, AwardWithId } from "../engine/awards";
-import { insertEffects, isRecorded, thoughtfulAwardsBefore } from "./effects";
+import { awardsBefore, insertEffects, isRecorded } from "./effects";
 import { firstThanksTopUpFor } from "./firstThanks";
 import { baseXpOf, bonusPaidIn, coinsIn, effectsFor, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type BonusLine, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
 import { receivingOf, receivingWeekOf, recordReceiving } from "./receiving";
@@ -51,7 +51,7 @@ type GivenBy = { workspace: string; giver: MemberId; day: DayKey; awards: AwardW
 
 async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: GivenBy, member: MemberId): Promise<Giving> {
   if (member !== giver || awards.length === 0) return noGiving;
-  return { perks: await perksPayingIn(ctx, workspace, giver), earlier: await thoughtfulAwardsBefore(ctx, giver, day, awards[0]!.award) };
+  return { perks: await perksPayingIn(ctx, workspace, giver), earlier: await awardsBefore(ctx, giver, day, awards[0]!.award) };
 }
 
 export type GiverLines = { bonus: BonusLine[]; coins: number };

@@ -13,7 +13,6 @@ import { signInEntry } from "../website/routes";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { saveWelcomeNudge, settingsOf, welcomeNudgeOn } from "../workspace/settings";
 import { isTheMaintainer } from "../workspace/workspaceSettings";
-import { saysWhy } from "../progression/gate";
 import { isWelcomed } from "../welcome/welcome";
 import { onTheMondayPath } from "../quests/flag";
 import { quoteOf } from "./mondayPost";
@@ -31,7 +30,7 @@ export const nudgeTheThanked = internalMutation({
   handler: async (ctx, { event, from = 0 }): Promise<void> => {
     const recipients = recipientsOf(event);
     const next = from + recipientsNudgedPerMutation;
-    for (const recipient of recipients.slice(from, next)) await nudge(ctx, recipient, { kind: "thanks", giver: event.giver, message: event.message }, event.at, saysWhy(event.annotations));
+    for (const recipient of recipients.slice(from, next)) await nudge(ctx, recipient, { kind: "thanks", giver: event.giver, message: event.message }, event.at, true);
     if (next < recipients.length) await ctx.scheduler.runAfter(0, internal.feedback.welcomeNudge.nudgeTheThanked, { event, from: next });
   },
 });

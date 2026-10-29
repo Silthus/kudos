@@ -89,7 +89,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
 
     const [dm, ...more] = dmsTo(alice).map(seen);
     expect(more).toEqual([]);
-    expect(dm?.[0]).toBe(`section: Happy Monday :sun_with_face: Here are three quests for your week. Each one pays +20 XP and an unidentified Hoggie for your collection.\n\nTen unidentified Hoggies for your collection are waiting for you.`);
+    expect(dm?.[0]).toBe(`section: Happy Monday :sun_with_face: Here are three quests for your week. Each one pays +20 XP and an unidentified Hoggie for your collection.\n\n11 unidentified Hoggies for your collection are waiting for you.`);
     expect(dm?.slice(1, 4)).toHaveLength(3);
     for (const quest of dm!.slice(1, 4)) expect(quest).toMatch(/^⚪ /);
     expect(dm?.slice(4)).toEqual([`actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests) | Stop Monday quests`]);

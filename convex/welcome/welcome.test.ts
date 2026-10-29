@@ -139,7 +139,7 @@ describe("MQ14 MQ15 MQ19 MQ21 MQ22: a first hug on the Monday path is answered w
   });
 });
 
-describe("MQ14 MQ21 MQ46: a first kudos on the Monday path welcomes the giver at 1 of 3, and a thoughtful one each recipient at 0 of 3", { timeout: 60_000 }, () => {
+describe("MQ14 MQ21 MQ46 HH12: a first kudos on the Monday path welcomes the giver at 1 of 3, and each recipient at 0 of 3", { timeout: 60_000 }, () => {
   test("the giver's welcome says the first step is done and points at thanking someone new", async () => {
     t = await workspace(mondayPath);
 
@@ -178,13 +178,31 @@ describe("MQ14 MQ21 MQ46: a first kudos on the Monday path welcomes the giver at
     }
   });
 
-  test("MQ46: a first kudos that doesn't say why welcomes its giver at 1 of 3 and none of its recipients", async () => {
+  test("HH12: a first kudos that doesn't say why welcomes its giver at 1 of 3 and its recipient at 0 of 3, quoting it", async () => {
     t = await workspace(mondayPath);
 
     await thanks(alice, "thanks", bob);
 
     expect(welcomesTo(alice).map((welcome) => readWelcome(welcome)[2]), "the giver's welcomes").toEqual(["section: *Your onboarding journey* · 1 of 3 done"]);
-    expect(welcomesTo(bob), "the recipient's welcomes").toEqual([]);
+    expect(welcomesTo(bob).map((welcome) => readWelcome(welcome).slice(0, 3)), "the recipient's welcomes").toEqual([
+      [
+        `section: Hey <@U_BOB> :wave::skin-tone-2: <@U_ALICE> just thanked you with a kudos!\n> _thanks @Bob Okonkwo :taco:_\n\nFeels good, right? :slightly_smiling_face: ${oneWaits} Your first quest is to pass it on: mention someone in a message with :taco:. Or react to any message with :taco: for a quick hug.`,
+        "divider",
+        "section: *Your onboarding journey* · 0 of 3 done",
+      ],
+    ]);
+  });
+
+  test("HH12: a short kudos delivered twice welcomes its recipient once", async () => {
+    t = await workspace(mondayPath);
+    const ts = messageAgo(0);
+    const shortKudos = [section(text("ty "), mention(bob.user), text(" "), emoji("taco"))];
+
+    await post(t, shortKudos, { user: alice.user, ts });
+    await post(t, shortKudos, { user: alice.user, ts });
+    await settle(t);
+
+    expect(welcomesTo(bob)).toHaveLength(1);
   });
 });
 

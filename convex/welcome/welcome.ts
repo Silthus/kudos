@@ -9,7 +9,6 @@ import { requestWelcome } from "../feedback/welcome";
 import { hugOf } from "../hugs/records";
 import { earnWelcomeItem } from "../items/welcome";
 import { onboardingShownTo } from "../items/onboardingFlag";
-import { saysWhy } from "../progression/gate";
 import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { mondayPathShownTo, onTheMondayPath } from "../quests/flag";
@@ -70,15 +69,15 @@ async function recordWelcome(ctx: MutationCtx, member: MemberId, cause: MondayWe
 
 async function welcome(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
   if (await isWelcomed(ctx, member)) return;
-  if (await onTheMondayPath(ctx, member)) return welcomeTheThoughtfullyThanked(ctx, event, { member, as });
+  if (await onTheMondayPath(ctx, member)) return welcomeTheThanked(ctx, event, { member, as });
   const welcomed = await welcomedAs(ctx, event, as);
   await ctx.db.insert("welcomes", { member, welcomed });
   await requestWelcome(ctx, member, welcomed);
   await publish(ctx, { type: "memberWelcomed", workspace: event.workspace, member, as, at: Date.now() });
 }
 
-async function welcomeTheThoughtfullyThanked(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
-  if (as === "recipient" && saysWhy(event.annotations)) await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-received", giver: event.giver, kudos: event.message }, event.at);
+async function welcomeTheThanked(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
+  if (as === "recipient") await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-received", giver: event.giver, kudos: event.message }, event.at);
 }
 
 async function replyToTheFirstHug(ctx: MutationCtx, event: HugGivenEvent) {

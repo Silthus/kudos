@@ -46,8 +46,8 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
       ["a reward without coins", () => t.run((ctx) => rewardOf(ctx, alice, "journey:first-quest", 0)), 14],
       ["a spend of 6", () => spendOf(t, alice, 6), 8],
       ["a spend of 9 it can't cover", () => spendOf(t, alice, 9), 8],
-      ["a kudos that doesn't say why", () => thank(t, "U_CAROL", "2026-10-14T10:00:00Z", "thanks"), 8],
-      ["a kudos that says why to someone new", () => thank(t, "U_CAROL", "2026-10-14T11:00:00Z"), 12],
+      ["a kudos that doesn't say why, which pays like any kudos", () => thank(t, "U_CAROL", "2026-10-14T10:00:00Z", "thanks"), 12],
+      ["a second kudos to the same person that day", () => thank(t, "U_CAROL", "2026-10-14T11:00:00Z"), 12],
       ["a spend of the whole balance", () => spendOf(t, alice, 12), 0],
       ["a spend of 1 from nothing", () => spendOf(t, alice, 1), 0],
     ];
