@@ -63,7 +63,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     expect(note.getByRole("link", { name: /Open in Slack/ })).toHaveAttribute("href", "https://example.slack.com/archives/C1/p2");
   });
 
-  it("shows no note while nobody has sent you a thoughtful kudos", async () => {
+  it("shows no note while nobody has sent you a kudos", async () => {
     visit({ profile: profileFixtures.quiet });
 
     await screen.findByRole("heading", { level: 1, name: "Sam Example" }, arrival);
@@ -74,13 +74,13 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     visit();
     const { me, team } = pinnedOf(boardsFixtures.week);
 
-    const rank = await section("This week's thoughtful kudos");
+    const rank = await section("This week's kudos");
     expect(topBar().getByText("Level 6")).toBeInTheDocument();
     expect(topBar().getByText("290 XP to level 7")).toBeInTheDocument();
     expect(screen.getByRole("main")).toHaveTextContent(/Level 6/);
     expect(rank.getByText(`No. ${me.rank}`)).toBeInTheDocument();
-    expect(rank.getByText(`${me.thoughtful} thoughtful kudos given`)).toBeInTheDocument();
-    expect(rank.getByText(`Lanterns is No. ${team.rank} with ${team.thoughtful} thoughtful kudos.`)).toBeInTheDocument();
+    expect(rank.getByText(`${me.thoughtful} kudos given`)).toBeInTheDocument();
+    expect(rank.getByText(`Lanterns is No. ${team.rank} with ${team.thoughtful} kudos.`)).toBeInTheDocument();
     expect(rank.getByRole("link", { name: "See the leaderboard" })).toHaveAttribute("href", "/leaderboard");
   });
 
@@ -88,21 +88,21 @@ describe("AL52: the profile page shows you, your week and your album at a glance
     const tied: ThoughtfulBoards = { ...boardsFixtures.twoTeams, pinned: { ...boardsFixtures.twoTeams.pinned, me: { ...boardsFixtures.twoTeams.pinned.me!, rank: 4, tied: true } } };
     visit({ boards: tied });
 
-    const rank = await section("This week's thoughtful kudos");
+    const rank = await section("This week's kudos");
     expect(rank.getByText("No. 4, tied")).toBeInTheDocument();
-    expect(rank.getByText("Lanterns is No. 2 with 8 thoughtful kudos.")).toBeInTheDocument();
+    expect(rank.getByText("Lanterns is No. 2 with 8 kudos.")).toBeInTheDocument();
     expect(rank.queryByText(/Tin Orchard/)).toBeNull();
   });
 
-  it("asks for a first thoughtful kudos this week while you have none", async () => {
+  it("asks for a first kudos this week while you have none", async () => {
     visit({ boards: boardsFixtures.quiet });
-    expect((await section("This week's thoughtful kudos")).getByText("Give a thoughtful kudos to join this week's board.")).toBeInTheDocument();
+    expect((await section("This week's kudos")).getByText("Give a kudos to join this week's board.")).toBeInTheDocument();
   });
 
   it("points to Settings while you left the boards by choice", async () => {
     visit({ boards: boardsFixtures.hidden });
 
-    const rank = await section("This week's thoughtful kudos");
+    const rank = await section("This week's kudos");
     expect(rank.getByText(/You're off the boards by choice/)).toBeInTheDocument();
     expect(rank.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
   });

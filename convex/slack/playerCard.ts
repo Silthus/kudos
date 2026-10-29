@@ -72,7 +72,7 @@ function levelFactsOf({ level }: DrawnCard) {
 }
 
 function placeFactOf({ place }: DrawnCard) {
-  return place === null ? placeWordsOf(place) : `${placeWordsOf(place)}, ${counted(place.thoughtful, "thoughtful kudos", "thoughtful kudos")}`;
+  return place === null ? placeWordsOf(place) : `${placeWordsOf(place)}, ${place.thoughtful} kudos`;
 }
 
 function statFactsOf({ hoggies, people, emojis, medals }: DrawnCard) {

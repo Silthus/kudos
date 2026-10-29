@@ -196,7 +196,7 @@ function textLines(text: string | null): HomeLine[] {
 }
 
 function normLineOf(thoughtfulGivers: number): HomeLine {
-  return { kind: "text", text: `${thoughtfulGivers} teammates gave thoughtful kudos this week` };
+  return { kind: "text", text: `${thoughtfulGivers} teammates gave kudos this week` };
 }
 
 function levelLineOf({ level, xpToNextLevel, skillPoints, coins }: ToldProgression): HomeLine {
@@ -576,7 +576,7 @@ function welcomeNudgeLinesOf(on: boolean): HomeLine[] {
   return [heading, { kind: "action", text: `I send a teammate one DM, the first time they are thanked or hugged while they have never opened the ${productName} website, so they can collect their rare hoggie.`, action: { label: "Switch off", command: { type: "setWelcomeNudge", on: false } } }];
 }
 
-const weeklyPostNamed = { groups: "last week's top groups", topKudos: "last week's top thoughtful kudos" } as const;
+const weeklyPostNamed = { groups: "last week's top groups", topKudos: "last week's top kudos" } as const;
 
 function mondayPostLinesOf({ channel, channelPicked, on, timeZone, cantPost, posts }: MondayPostSwitch): HomeLine[] {
   const where = `<#${channel}>`;
