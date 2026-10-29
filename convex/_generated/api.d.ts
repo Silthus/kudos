@@ -147,6 +147,7 @@ import type * as feedback_publicReplies from "../feedback/publicReplies.js";
 import type * as feedback_recipientNames from "../feedback/recipientNames.js";
 import type * as feedback_replies from "../feedback/replies.js";
 import type * as feedback_segments from "../feedback/segments.js";
+import type * as feedback_sentNotices from "../feedback/sentNotices.js";
 import type * as feedback_settingsFooter from "../feedback/settingsFooter.js";
 import type * as feedback_teaser from "../feedback/teaser.js";
 import type * as feedback_tierNotices from "../feedback/tierNotices.js";
@@ -537,6 +538,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/recipientNames": typeof feedback_recipientNames;
   "feedback/replies": typeof feedback_replies;
   "feedback/segments": typeof feedback_segments;
+  "feedback/sentNotices": typeof feedback_sentNotices;
   "feedback/settingsFooter": typeof feedback_settingsFooter;
   "feedback/teaser": typeof feedback_teaser;
   "feedback/tierNotices": typeof feedback_tierNotices;

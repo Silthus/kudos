@@ -2,7 +2,7 @@ import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, slackError, type SlackArgs } from "../../testing/fakeSlack";
-import { post, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
+import { deliverAgain, post, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest } from "../../testing/signedSlack";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
 import { emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
@@ -28,6 +28,7 @@ const mondayPath = ["xp-levels", "album", "album-slack", "collection", "packs", 
 const oneReply = "one-reply";
 const questsJob = "quests/quests:followKudosGiven";
 const grantJob = "album/packs:grantThoughtfulPacks";
+const albumReplyJob = "feedback/albumReplies:replyAfterTheGrant";
 const site = "https://kudos-site.test";
 const footer = { type: "context", elements: [{ type: "mrkdwn", text: "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab." }] };
 const doneMark = { type: "emoji", name: "white_check_mark" };
@@ -138,6 +139,28 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     await deliverOnly(held[0]!, [grantJob]);
 
     expect(messagesTo(alice), "the messages Alice got after the grant").toHaveLength(2);
+  });
+
+  test("a grant told in the one reply and delivered again sends nothing more", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    await thanks(alice, saysWhy, bob);
+
+    await deliverAgain(t, albumReplyJob);
+
+    expect(messagesTo(alice), "the messages Alice got").toHaveLength(1);
+  });
+
+  test("a grant later than the reply and delivered again is told on its own once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    const held = holdingKudosGiven();
+    await posts(alice, saysWhy, bob);
+    await deliverInOrder(held[0]!, [], [grantJob]);
+    await settleUpTo(t, Date.now() + 10_000);
+    await deliverOnly(held[0]!, [grantJob]);
+
+    await deliverAgain(t, albumReplyJob);
+
+    expect(messagesTo(alice), "the messages Alice got").toHaveLength(2);
   });
 
   test("a quick thanks from a giver off the Monday path and without hidden items moves no quest and shows who got kudos, the kudos left and one button to the progress", async () => {
