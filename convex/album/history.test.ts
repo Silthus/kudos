@@ -33,7 +33,9 @@ vi.mock("../bus/publish", async (importOriginal) => {
   const heldWhileNotTallying = <E,>(subscriptions: unknown[]) =>
     subscriptions.map((subscription) => {
       if (typeof subscription === "object" && subscription !== null && "subscriber" in subscription) return subscription;
-      if (!getFunctionName(subscription as never).startsWith("album/tallies")) return subscription;
+      const name = getFunctionName(subscription as never);
+      if (name === "album/packs:grantThoughtfulPacks") return { subscriber: subscription, only: () => theAlbum.tallying };
+      if (!name.startsWith("album/tallies")) return subscription;
       return {
         subscriber: subscription,
         only: (event: E) => {

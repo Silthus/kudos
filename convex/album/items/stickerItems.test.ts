@@ -143,9 +143,7 @@ describe("LP14: the first item turned from thanking a person unlocks their hype 
   });
 
   test("a thanks whose pack holds no sticker, because the person's sticker is already in the album, unlocks the hype emoji with its hoggie's turn", async () => {
-    await saysLittle(alice, bob);
-    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
-    await settle(t);
+    await aStickerTheHistoryBrought(alice, bob);
     await thanks(alice, bob);
     const asAlice = await signedIn(alice);
 
@@ -265,12 +263,6 @@ async function thanks(giver: Person, ...recipients: Person[]) {
   return ts;
 }
 
-async function saysLittle(giver: Person, recipient: Person) {
-  messages += 1;
-  vi.setSystemTime(Date.now() + minuteMs);
-  await post(t, [section(text("ty "), mention(recipient.user), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}` });
-  await settle(t);
-}
 
 async function thanksWith(giver: Person, emojiName: string, recipient: Person) {
   messages += 1;
@@ -381,4 +373,9 @@ async function everythingWritten() {
     return rows;
   });
   return { tables, scheduled: await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()) };
+}
+
+async function aStickerTheHistoryBrought(member: Person, person: Person) {
+  const [memberId, personId] = [await memberOf(member), await memberOf(person)];
+  await t.run((ctx) => ctx.db.insert("albumStickers", { member: memberId, person: personId, from: "history", at: Date.now() }));
 }

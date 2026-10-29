@@ -117,9 +117,9 @@ describe("P4 P19: a skill point is spent once and never refunded", () => {
 
     await t.mutation(internal.progression.progression.recordEffects, { event: await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob)) });
 
-    expect(await standing(t, alice)).toEqual({ xp: 1000, level: 6, skillPoints: 1 });
+    expect(await standing(t, alice), "the kudos' 10 XP and spark's 5").toEqual({ xp: 1005, level: 6, skillPoints: 1 });
     expect(await buy(t, alice, "rhythm", "trigger-2")).toEqual({ kind: "bought", perk: "rhythm" });
-    expect(await standing(t, alice)).toEqual({ xp: 1000, level: 6, skillPoints: 0 });
+    expect(await standing(t, alice)).toEqual({ xp: 1005, level: 6, skillPoints: 0 });
   });
 });
 

@@ -82,24 +82,24 @@ describe("P16 P18 P20: a giver who owns spark, rhythm and circle earns their bon
     ]);
   });
 
-  test("P13: a kudos that doesn't say why earns base XP only", async () => {
+  test("HH6: a kudos that doesn't say why earns every bonus like any kudos", async () => {
     const { t } = await giverOwning("UTC", "spark", "rhythm", "circle");
 
     await thank(t, "U_BOB", "thanks", "2026-10-14T09:00:00Z");
 
-    expect(await giverRecords(t)).toEqual([{ baseXp: 10, bonus: [] }]);
-    expect(await xpOf(t, "U_ALICE")).toBe(startingXp + 10);
+    expect(await giverRecords(t)).toEqual([{ baseXp: 10, bonus: [spark, rhythm, circle] }]);
+    expect(await xpOf(t, "U_ALICE")).toBe(startingXp + 22);
   });
 
-  test("P16: a kudos that doesn't say why uses up no first, so saying why to Bob later that day earns every line", async () => {
+  test("HH6: a kudos that doesn't say why uses up the day's first, so saying why to Bob later that day earns nothing more", async () => {
     const { t } = await giverOwning("UTC", "spark", "rhythm", "circle");
 
     await thank(t, "U_BOB", "thanks", "2026-10-14T09:00:00Z");
     await thank(t, "U_BOB", saysWhy, "2026-10-14T10:00:00Z");
 
     expect(await giverRecords(t)).toEqual([
-      { baseXp: 10, bonus: [] },
       { baseXp: 10, bonus: [spark, rhythm, circle] },
+      { baseXp: 10, bonus: [] },
     ]);
   });
 

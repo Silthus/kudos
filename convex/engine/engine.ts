@@ -273,13 +273,13 @@ async function giveUpWhenChecksRanOut(ctx: MutationCtx, row: KudosMessageRow) {
 
 async function tellGiver(ctx: MutationCtx, row: KudosMessageRow, outcome: Outcome, base: number) {
   await setIndicator(ctx, refOf(row), indicatorOf(outcome));
-  await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, replyOf(row, outcome, base));
+  await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, replyOf(outcome, base));
 }
 
-function replyOf({ annotations }: KudosMessageRow, outcome: Outcome, base: number): Reply {
+function replyOf(outcome: Outcome, base: number): Reply {
   switch (outcome.kind) {
     case "given":
-      return { kind: "given", outcome, base, annotations };
+      return { kind: "given", outcome, base };
     case "over-allowance":
       return { kind: "over-allowance", outcome, base };
     case "invalid":
