@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { Award } from "../engine/awards";
-import { type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
 import { perkOf } from "../progression/tree";
 import { heldReplyOf } from "./heldReplies";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
@@ -57,7 +57,7 @@ export type OverAllowance = { cost: number; recipients: number; perRecipient: nu
 export type Invalid = { skipped: SkippedMention[] };
 
 export type Reply =
-  | { kind: "given"; outcome: Given; base: number; annotations: Annotations }
+  | { kind: "given"; outcome: Given; base: number }
   | { kind: "over-allowance"; outcome: OverAllowance; base: number }
   | { kind: "invalid"; outcome: Invalid }
   | { kind: "accepted-message-edited" };
@@ -96,12 +96,12 @@ function saysNothing({ given, lines }: WrittenReply) {
   return given === undefined && lines.length === 0;
 }
 
-async function gainsWritten(ctx: MutationCtx, member: MemberId | undefined, ref: MessageRef, { outcome, annotations }: Extract<Reply, { kind: "given" }>): Promise<Gains> {
+async function gainsWritten(ctx: MutationCtx, member: MemberId | undefined, ref: MessageRef, { outcome }: Extract<Reply, { kind: "given" }>): Promise<Gains> {
   const xp = giverXpOf(outcome.awards);
   if (member === undefined) return { xp };
   await xpLevelsShownTo(ctx, member);
   await coinsShownTo(ctx, member);
-  const { bonus, coins } = await giverLinesOf(ctx, member, ref, annotations);
+  const { bonus, coins } = await giverLinesOf(ctx, member, ref);
   return { xp, ...(coins > 0 && { coins }), ...(bonus.length > 0 && { bonus }) };
 }
 

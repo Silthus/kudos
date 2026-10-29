@@ -32,8 +32,10 @@ vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
   const heldWhileNotTallying = <E,>(subscriptions: unknown[]) =>
     subscriptions.map((subscription) => {
-      if (typeof subscription === "object" && subscription !== null && "subscriber" in subscription) return grantedOnlyOnceTheAlbumIsTallying(subscription as { subscriber: never; only: (event: E) => boolean });
-      if (!getFunctionName(subscription as never).startsWith("album/tallies")) return subscription;
+      if (typeof subscription === "object" && subscription !== null && "subscriber" in subscription) return subscription;
+      const name = getFunctionName(subscription as never);
+      if (name === "album/packs:grantThoughtfulPacks") return { subscriber: subscription, only: () => theAlbum.tallying };
+      if (!name.startsWith("album/tallies")) return subscription;
       return {
         subscriber: subscription,
         only: (event: E) => {
@@ -42,8 +44,6 @@ vi.mock("../bus/publish", async (importOriginal) => {
         },
       };
     });
-  const grantedOnlyOnceTheAlbumIsTallying = <E,>(subscription: { subscriber: never; only: (event: E) => boolean }) =>
-    getFunctionName(subscription.subscriber) === "album/packs:grantThoughtfulPacks" ? { ...subscription, only: (event: E) => theAlbum.tallying && subscription.only(event) } : subscription;
   actual.subscribers.kudosGiven = heldWhileNotTallying(actual.subscribers.kudosGiven) as typeof actual.subscribers.kudosGiven;
   actual.subscribers.hugGiven = heldWhileNotTallying(actual.subscribers.hugGiven) as typeof actual.subscribers.hugGiven;
   return actual;

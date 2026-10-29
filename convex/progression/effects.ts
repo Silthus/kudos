@@ -45,9 +45,8 @@ function recordOf(ctx: QueryCtx, award: AwardId, side: Side) {
     .first();
 }
 
-export async function awardsBefore(ctx: QueryCtx, giver: MemberId, day: DayKey, award: AwardId): Promise<EarlierAward[]> {
-  const earlier = await givenEarlierInWeek(ctx, giver, weekOf(day), award);
-  return earlier.map(({ recipient, day }) => ({ recipient, day }));
+export function awardsBefore(ctx: QueryCtx, giver: MemberId, day: DayKey, award: AwardId): Promise<EarlierAward[]> {
+  return givenEarlierInWeek(ctx, giver, weekOf(day), award);
 }
 
 export async function gaveThoughtfulKudos(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<boolean> {

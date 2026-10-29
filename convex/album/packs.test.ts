@@ -26,13 +26,12 @@ const theGrants = vi.hoisted(() => ({ holding: false, held: [] as unknown[] }));
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
   actual.subscribers.kudosGiven = actual.subscribers.kudosGiven.map((subscription) => {
-    if (!("subscriber" in subscription) || getFunctionName(subscription.subscriber) !== grantJob) return subscription;
-    const { subscriber, only } = subscription;
+    if ("subscriber" in subscription || getFunctionName(subscription) !== grantJob) return subscription;
     return {
-      subscriber,
+      subscriber: subscription,
       only: (event: KudosGivenEvent) => {
-        if (theGrants.holding && only(event)) theGrants.held.push(event);
-        return !theGrants.holding && only(event);
+        if (theGrants.holding) theGrants.held.push(event);
+        return !theGrants.holding;
       },
     };
   });

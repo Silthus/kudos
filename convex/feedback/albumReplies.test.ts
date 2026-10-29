@@ -43,13 +43,12 @@ const theBus = vi.hoisted(() => ({ holdingGrants: false, heldGrants: [] as unkno
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
   actual.subscribers.kudosGiven = actual.subscribers.kudosGiven.map((subscription) => {
-    if (!("subscriber" in subscription) || getFunctionName(subscription.subscriber) !== grantJob) return subscription;
-    const { subscriber, only } = subscription;
+    if ("subscriber" in subscription || getFunctionName(subscription) !== grantJob) return subscription;
     return {
-      subscriber,
+      subscriber: subscription,
       only: (event: KudosGivenEvent) => {
-        if (theBus.holdingGrants && only(event)) theBus.heldGrants.push(event);
-        return !theBus.holdingGrants && only(event);
+        if (theBus.holdingGrants) theBus.heldGrants.push(event);
+        return !theBus.holdingGrants;
       },
     };
   });

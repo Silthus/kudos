@@ -8,7 +8,6 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageChangedEvent, messageEvent, section, userGroup, type RichElement } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { Annotations } from "../engine/messageEvent";
 import { notify, type Notification } from "../feedback/notify";
 import { questsWaitMs, replyPrivately, type Reply, type SkippedMention, type SkipReason } from "../feedback/replies";
 import { messageKinds, type MessageKind } from "../messageSettings/kinds";
@@ -578,8 +577,8 @@ async function whileTurnedOff(t: Backend, user: string, kind: MessageKind, write
   });
 }
 
-function aGivenReply({ skipped = [], annotations = {} }: { skipped?: SkippedMention[]; annotations?: Annotations }): Reply {
-  return { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped, awards: [{ kudos: 1 }] }, base: 10, annotations };
+function aGivenReply({ skipped = [] }: { skipped?: SkippedMention[] }): Reply {
+  return { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped, awards: [{ kudos: 1 }] }, base: 10 };
 }
 
 function skippedMention(user: string, reason: SkipReason): SkippedMention {

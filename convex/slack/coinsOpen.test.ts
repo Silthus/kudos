@@ -138,7 +138,7 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
     const t = await workspaceDeciding(...previewedByAlice, onForEveryone("skill-tree"));
     await coinsOpenedBy(t, "U_ALICE");
     const earlier = successRepliesTo("U_ALICE").length;
-    await t.run((ctx) => replyPrivately(ctx, unsentMessage, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10, annotations: { gate: { version: 1, thoughtful: false } } }));
+    await t.run((ctx) => replyPrivately(ctx, unsentMessage, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10 }));
 
     await flagsFromPostHog(t, postHog, ...offForEveryoneElse, onForEveryone("skill-tree"));
     await settle(t);
