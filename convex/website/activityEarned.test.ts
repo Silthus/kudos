@@ -163,9 +163,9 @@ describe("AT25: the perk bonuses each given kudos earned", () => {
 
     const [given] = givenEntries(await activityOf(alice, { filter: "given" }));
     expect(given?.earned?.bonuses).toEqual([
-      { perk: { id: "spark", name: "Spark" }, why: "your first kudos of the day that said why", xp: 5 },
-      { perk: { id: "rhythm", name: "Rhythm" }, why: "saying why to each person, once a day", xp: 4 },
-      { perk: { id: "circle", name: "Circle" }, why: "your first kudos of the week that said why, to each person", xp: 10 },
+      { perk: { id: "spark", name: "Spark" }, why: "your first kudos of the day", xp: 5 },
+      { perk: { id: "rhythm", name: "Rhythm" }, why: "a kudos to each person, once a day", xp: 4 },
+      { perk: { id: "circle", name: "Circle" }, why: "your first kudos of the week to each person", xp: 10 },
     ]);
     expect(gainsLinesTo(alice)).toEqual([`+20 XP · ${bonusPartsOf(given!).join(" · ")}`]);
   });

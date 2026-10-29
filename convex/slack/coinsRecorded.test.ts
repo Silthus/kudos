@@ -66,15 +66,14 @@ describe("CO1 CO2 CO3: a kudos that says why records coins in the wallet, whatev
     expect(await balances(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: 4, U_BOB: 2 });
   }, 30_000);
 
-  test("a kudos that doesn't say why records none and opens no wallet", async () => {
+  test("HH6: a kudos that doesn't say why records its coins like any kudos", async () => {
     const t = await workspaceWithFlagsOff();
 
     await thank(t, "U_ALICE", "U_BOB", "thanks", "2026-10-14T09:00:00Z");
 
-    expect(await coinsOn(t, "U_ALICE")).toEqual([[]]);
-    expect(await coinsOn(t, "U_BOB")).toEqual([[]]);
-    expect(await balances(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: 0, U_BOB: 0 });
-    expect(await t.run((ctx) => ctx.db.query("wallets").collect())).toEqual([]);
+    expect(await coinsOn(t, "U_ALICE")).toEqual([[giving]]);
+    expect(await coinsOn(t, "U_BOB")).toEqual([[receiving]]);
+    expect(await balances(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: 4, U_BOB: 2 });
   }, 30_000);
 
   test("CO5: redelivering an award whose records were written before coins existed writes and credits nothing", async () => {
@@ -125,13 +124,13 @@ describe("CO3: a giver pays a recipient receiving coins at most once a week, and
     expect(await balances(t, "U_BOB")).toEqual({ U_BOB: 4 });
   }, 30_000);
 
-  test("a kudos that doesn't say why uses up no giver, so Alice saying why later in the week pays", async () => {
+  test("HH6: a kudos that doesn't say why uses up its giver, so Alice saying why later in the week pays nothing more", async () => {
     const t = await workspaceWithFlagsOff();
 
     await thank(t, "U_ALICE", "U_BOB", "thanks", "2026-10-14T09:00:00Z");
     await thank(t, "U_ALICE", "U_BOB", saysWhy, "2026-10-15T09:00:00Z");
 
-    expect(await coinsOn(t, "U_BOB")).toEqual([[], [receiving]]);
+    expect(await coinsOn(t, "U_BOB")).toEqual([[receiving], []]);
   }, 30_000);
 });
 

@@ -8,7 +8,6 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageChangedEvent, messageEvent, section, userGroup, type RichElement } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { Annotations } from "../engine/messageEvent";
 import { notify, type Notification } from "../feedback/notify";
 import { questsWaitMs, replyPrivately, type Reply, type SkippedMention, type SkipReason } from "../feedback/replies";
 import { messageKinds, type MessageKind } from "../messageSettings/kinds";
@@ -21,7 +20,6 @@ const messageSettings = "message-settings";
 
 const rows = {
   kudosReply: "section: *After-kudos reply* — What a kudos you gave earned you, right after you send it. [select: In the channel]",
-  tips: "section: *Tips* — Short tips on earning more, like saying why you're thanking someone. [select: In the channel]",
   levelUps: "section: *Level ups* — When you reach a level, with what it opens for you. [select: As a DM]",
   newFeatures: "section: *New features* — When a new feature is ready for you to open. [select: As a DM]",
   quests: "section: *Quests and Journey* — When you finish a quest or a Journey step. [select: As a DM]",
@@ -46,10 +44,8 @@ const levelUpDm = "🎉 You reached level 2!\nLevel 3 is 80 XP away.";
 const levelUpPost = "🎉 <@U_ALICE> reached level 2.";
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
 const givenToBob = "<@U_BOB> got 1 kudos from you.";
-const hint = "Add why they earned it to earn more.";
 const skippedBot = "I skipped <@U_BOT>: bots don't receive kudos.";
 const skippedGroup = "I skipped <!subteam^S_TEAM>: `@here`, `@channel` and user groups don't receive kudos, so tag people individually.";
-const withoutWhy = { gate: { version: 1, thoughtful: false, words: 1 } };
 
 const queuedDms: Array<[string, string, Notification]> = [
   ["level-reached", "Level ups", { kind: "level-reached", level: 2, skillPoints: null, xpToNextLevel: 80, ready: [] }],
@@ -111,7 +107,6 @@ describe("QM20: the Settings tab lists what I send you while message-settings is
     expect(publishedHome(slack, "U_ALICE").slice(publishedHome(slack, "U_ALICE").indexOf(whatISendYou))).toEqual([
       whatISendYou,
       rows.kudosReply,
-      rows.tips,
       rows.levelUps,
       rows.newFeatures,
       rows.quests,
@@ -247,7 +242,7 @@ describe("QM13: errors that need action are never silenced", () => {
   });
 });
 
-describe("QM17 QM18: the after-kudos reply and its tips honour their settings", () => {
+describe("QM17 HH8: the after-kudos reply honours its setting", () => {
   test("after-kudos reply off: a kudos that skipped nobody gets no reply", async () => {
     const t = await settingsOpen([messageSettings, "xp-levels"]);
     await turn(t, "U_ALICE", "After-kudos reply");
@@ -281,53 +276,6 @@ describe("QM17 QM18: the after-kudos reply and its tips honour their settings", 
     await settle(t);
 
     expect(ephemeralsTo("U_ALICE").slice(before)).toEqual([]);
-  });
-
-  test("a hint written while tips are off is not sent, even once they are on again before Slack would take it", async () => {
-    const t = await sparkOwnedBy("U_ALICE");
-
-    await whileTurnedOff(t, "U_ALICE", "tips", (ctx) => replyPrivately(ctx, aKudosMessage, undefined, "U_ALICE", aGivenReply({ annotations: withoutWhy })));
-    await settle(t);
-
-    expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 9 kudos left today.\n+10 XP\n${footer}`);
-  });
-
-  test("tips off: the success reply keeps its gains and loses only the hint", async () => {
-    const t = await sparkOwnedBy("U_ALICE");
-    await giveKudos(t, "U_ALICE", "U_BOB", 1);
-    const withTips = ephemeralsTo("U_ALICE").at(-1);
-
-    await turn(t, "U_ALICE", "Tips");
-    await giveKudos(t, "U_ALICE", "U_BOB", 1);
-
-    expect(withTips).toBe(`${givenToBob} You have 9 kudos left today.\n+10 XP · ${hint}\n${footer}`);
-    expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 8 kudos left today.\n+10 XP\n${footer}`);
-  });
-
-  test("with Coins open and the skill tree off, the Tips row shows, and turning it off drops the hint", async () => {
-    const t = await coinsOpenedBy("U_ALICE");
-    await giveKudos(t, "U_ALICE", "U_BOB", 1);
-    const withTips = ephemeralsTo("U_ALICE").at(-1);
-    await openHome(t, "U_ALICE");
-    await click(t, "U_ALICE", "Settings");
-
-    await turn(t, "U_ALICE", "Tips");
-    await giveKudos(t, "U_ALICE", "U_BOB", 1);
-
-    expect(withTips).toContain(hint);
-    expect(ephemeralsTo("U_ALICE").at(-1)).not.toContain(hint);
-  });
-
-  test("a reply held for Quests, released after tips turned off, has no hint", async () => {
-    const t = await questsHoldingReplies();
-    await sparkBoughtBy(t, "U_ALICE");
-    await t.run((ctx) => replyPrivately(ctx, aKudosMessage, undefined, "U_ALICE", aGivenReply({ annotations: withoutWhy })));
-
-    await turn(t, "U_ALICE", "Tips");
-    vi.advanceTimersByTime(questsWaitMs);
-    await settle(t);
-
-    expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 9 kudos left today.\n+10 XP\n${footer}`);
   });
 });
 
@@ -627,8 +575,8 @@ async function whileTurnedOff(t: Backend, user: string, kind: MessageKind, write
   });
 }
 
-function aGivenReply({ skipped = [], annotations = {} }: { skipped?: SkippedMention[]; annotations?: Annotations }): Reply {
-  return { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped, awards: [{ kudos: 1 }] }, base: 10, annotations };
+function aGivenReply({ skipped = [] }: { skipped?: SkippedMention[] }): Reply {
+  return { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped, awards: [{ kudos: 1 }] }, base: 10 };
 }
 
 function skippedMention(user: string, reason: SkipReason): SkippedMention {

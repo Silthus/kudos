@@ -14,11 +14,11 @@ const form = { contentType: "application/x-www-form-urlencoded" };
 const inDm = { channel: "D_ALICE", ts: "1760349700.000200" };
 const siteUrl = "https://kudos-site.test";
 const alicesEmail = "alice@example.com";
-const buyOnTheWeb = `[link: Buy ${siteUrl}/]`;
+const buyOnTheWeb = `[link: Buy ${siteUrl}/?src=reply]`;
 
-const sparkLine = "section: *Spark* · 1 skill point\n+5 XP the first time each day you thank someone and say why. [button: Buy]";
-const rhythmLine = "section: *Rhythm* · 1 skill point\n+2 XP each time you thank someone and say why, once per person a day. [button: Buy]";
-const circleLine = "section: *Circle* · 1 skill point\n+5 XP the first time each week you thank a person and say why. [button: Buy]";
+const sparkLine = "section: *Spark* · 1 skill point\n+5 XP the first time each day you give a kudos. [button: Buy]";
+const rhythmLine = "section: *Rhythm* · 1 skill point\n+2 XP for each kudos you give, once per person a day. [button: Buy]";
+const circleLine = "section: *Circle* · 1 skill point\n+5 XP the first time each week you give a person a kudos. [button: Buy]";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -136,12 +136,12 @@ describe("each perk's purchase button in Slack links to the skill tree's page wh
       sparkLine.replace("[button: Buy]", buyOnTheWeb),
       rhythmLine.replace("[button: Buy]", buyOnTheWeb),
       circleLine.replace("[button: Buy]", buyOnTheWeb),
-      `section: <${siteUrl}/|See your level on the web>`,
+      `section: <${siteUrl}/?src=reply|See your level on the web>`,
     ]);
     expect(accessoryBeside("*Rhythm*")).toEqual({
       type: "button",
       text: { type: "plain_text", text: "Buy" },
-      url: `${siteUrl}/`,
+      url: `${siteUrl}/?src=reply`,
       action_id: "website-link:buy:rhythm",
       accessibility_label: "Buy Rhythm on HedgeHug's Skill tree page",
     });
@@ -155,10 +155,10 @@ describe("each perk's purchase button in Slack links to the skill tree's page wh
     await reachLevelSix(t, "U_ALICE");
     await clickInHome(t, "U_ALICE", staleButtonOf({ type: "showHomeTab", tab: "profile" }));
 
-    expect(accessoryBeside("*Rhythm*")).toMatchObject({ url: `${siteUrl}/sign-in/`, action_id: "website-link:buy:rhythm" });
-    expect(readBlocks(blocksOf(lastDmTo("U_ALICE"))).at(-1)).toBe(`section: <${siteUrl}/sign-in/|See your level on the web>`);
+    expect(accessoryBeside("*Rhythm*")).toMatchObject({ url: `${siteUrl}/sign-in/?src=reply`, action_id: "website-link:buy:rhythm" });
+    expect(readBlocks(blocksOf(lastDmTo("U_ALICE"))).at(-1)).toBe(`section: <${siteUrl}/sign-in/?src=reply|See your level on the web>`);
     expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
-    expect(urlOfHomeButton("Skill tree")).toBe(`${siteUrl}/sign-in/`);
+    expect(urlOfHomeButton("Skill tree")).toBe(`${siteUrl}/sign-in/?src=app-home`);
   });
 
   test("clicking a Buy link buys nothing and answers nothing, while a Buy left in an earlier DM still buys its perk", async () => {

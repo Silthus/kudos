@@ -1,12 +1,10 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { achievementsApplyIn, bookAppliesIn } from "../achievements/flag";
-import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { questsFor } from "../quests/flag";
 import { hugsShownTo } from "../hugs/flag";
 import { unlocksAppliedTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
-import { coinsVisibleTo } from "../wallet/visibility";
 import { publicCelebrationsOn } from "../workspace/celebrationsSwitch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
@@ -22,7 +20,7 @@ type Applies = (ctx: QueryCtx, member: MemberId, workspace: string) => Promise<b
 
 const appliesWhile: Record<MessageKind, Applies> = {
   "kudos-reply": async () => true,
-  tips: async (ctx, member, workspace) => (await skillTreeAppliesIn(ctx, workspace)) || (await coinsVisibleTo(ctx, member)),
+  tips: async () => false,
   "level-ups": (ctx, member) => xpLevelsOnFor(ctx, member),
   "new-features": async (ctx, member) => (await xpLevelsOnFor(ctx, member)) && (await unlocksAppliedTo(ctx, member)),
   quests: async (ctx, member) => (await questsFor(ctx, member)) !== null,
@@ -43,7 +41,7 @@ export async function messageSettingsOf(ctx: QueryCtx, member: MemberId): Promis
   for (const entry of messageKinds) {
     const place = await placeOf(ctx, member, entry.kind);
     const description = (await describedFor(ctx, member, workspace, entry)).replace("{kudos emoji}", `:${kudosEmoji}:`);
-    settings.push({ ...entry, description, applies: await kindAppliesTo(ctx, member, entry.kind), on: place !== "none", place, places: await placesOf(ctx, member, entry.kind) });
+    settings.push({ ...entry, description, applies: await kindAppliesTo(ctx, member, entry.kind), on: place !== "none", place, places: placesChosenFrom[entry.kind] });
   }
   return settings;
 }
@@ -59,16 +57,13 @@ export async function kindAppliesTo(ctx: QueryCtx, member: MemberId, kind: Messa
 }
 
 export async function wantsMessage(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<boolean> {
-  return (await chosenPlaceOf(ctx, member, kind)) !== "none";
+  return (await placeOf(ctx, member, kind)) !== "none";
 }
 
 export async function placeOf(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<MessagePlace> {
-  const chosen = await chosenPlaceOf(ctx, member, kind);
-  return kind === "tips" && chosen !== "none" ? placeOfTheReply(ctx, member) : chosen;
-}
-
-export async function placesOf(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<readonly MessagePlace[]> {
-  return kind === "tips" ? [await placeOfTheReply(ctx, member), "none"] : placesChosenFrom[kind];
+  const row = await settingRow(ctx, member, kind);
+  if (!(row?.on ?? (await todaysDefaultOf(ctx, member, kind)))) return "none";
+  return row?.place ?? defaultPlaceOf(kind);
 }
 
 export async function setMessageSetting(ctx: MutationCtx, member: MemberId, kind: MessageKind, place: MessagePlace): Promise<boolean> {
@@ -86,8 +81,7 @@ function storedSettingOf(kind: MessageKind, place: MessagePlace) {
 }
 
 export async function placeWhenOn(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<MessagePlace> {
-  if (kind === "tips") return placeOfTheReply(ctx, member);
-  const chosen = await chosenPlaceOf(ctx, member, kind);
+  const chosen = await placeOf(ctx, member, kind);
   return chosen === "none" ? defaultPlaceOf(kind) : chosen;
 }
 
@@ -111,18 +105,8 @@ async function wantsAnyDirectMessage(ctx: QueryCtx, member: MemberId) {
   return false;
 }
 
-async function placeOfTheReply(ctx: QueryCtx, member: MemberId): Promise<MessagePlace> {
-  return (await chosenPlaceOf(ctx, member, "kudos-reply")) === "dm" ? "dm" : "channel";
-}
-
-async function chosenPlaceOf(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<MessagePlace> {
-  const row = await settingRow(ctx, member, kind);
-  if (!(row?.on ?? (await todaysDefaultOf(ctx, member, kind)))) return "none";
-  return row?.place ?? defaultPlaceOf(kind);
-}
-
 function defaultPlaceOf(kind: MessageKind): MessagePlace {
-  return kind === "tips" ? "channel" : placesChosenFrom[kind][0]!;
+  return placesChosenFrom[kind][0]!;
 }
 
 async function todaysDefaultOf(ctx: QueryCtx, member: MemberId, kind: MessageKind) {

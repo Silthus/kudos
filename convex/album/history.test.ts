@@ -33,7 +33,9 @@ vi.mock("../bus/publish", async (importOriginal) => {
   const heldWhileNotTallying = <E,>(subscriptions: unknown[]) =>
     subscriptions.map((subscription) => {
       if (typeof subscription === "object" && subscription !== null && "subscriber" in subscription) return subscription;
-      if (!getFunctionName(subscription as never).startsWith("album/tallies")) return subscription;
+      const name = getFunctionName(subscription as never);
+      if (name === "album/packs:grantThoughtfulPacks") return { subscriber: subscription, only: () => theAlbum.tallying };
+      if (!name.startsWith("album/tallies")) return subscription;
       return {
         subscriber: subscription,
         only: (event: E) => {
@@ -204,8 +206,8 @@ describe("the album's tallies count each award and hug once", { timeout: 120_000
 });
 
 describe("AL46 AL48: the pair and week tallies", { timeout: 60_000 }, () => {
-  test("a pair tally holds when you first thanked them, kudos and hugs both ways, and your best message: the thoughtful kudos you gave them with the most words, ties to the newest", async () => {
-    await thanks(bob, "ty", alice);
+  test("HH6: a pair tally holds when you first thanked them, kudos and hugs both ways, and your best message: the kudos you gave them with the most words, a short one when it's all you gave, ties to the newest", async () => {
+    const bobsShortThanks = await thanks(bob, "ty", alice);
     const firstThanks = clock + minuteMs;
     await thanks(alice, why, bob);
     const best = await thanks(alice, longerWhy, bob);
@@ -223,10 +225,10 @@ describe("AL46 AL48: the pair and week tallies", { timeout: 60_000 }, () => {
       hugsReceived: 1,
       best: { message: aMessage(tiedButNewer), words: expect.any(Number), at: Number(tiedButNewer.split(".")[0]) * 1000 },
     });
-    expect(await pairTally(bob, alice)).toMatchObject({ firstThankedAt: tuesday.getTime() + minuteMs, kudosGiven: 1, kudosReceived: 4, hugsGiven: 1, hugsReceived: 1, best: null });
+    expect(await pairTally(bob, alice)).toMatchObject({ firstThankedAt: tuesday.getTime() + minuteMs, kudosGiven: 1, kudosReceived: 4, hugsGiven: 1, hugsReceived: 1, best: { message: aMessage(bobsShortThanks) } });
   });
 
-  test("a week tally counts the week, keeps 12 people a list with the rest counted, picks the kudos of the week by hugs then words, and counts each day", async () => {
+  test("HH6: a week tally counts the week, its thoughtful awards from every kudos, keeps 12 people a list with the rest counted, picks the kudos of the week by hugs then words, and counts each day", async () => {
     const crowd = aCrowdOf(14);
     const wordy = await thanks(alice, longerWhy, ...crowd);
     const hugged = await thanks(alice, why, bob);
@@ -239,7 +241,7 @@ describe("AL46 AL48: the pair and week tallies", { timeout: 60_000 }, () => {
       kudosGiven: 15,
       kudosReceived: 1,
       thoughtfulGiven: 15,
-      thoughtfulReceived: 0,
+      thoughtfulReceived: 1,
       hugsGiven: 0,
       hugsReceived: 1,
       thanked: { people: expect.any(Array), more: 3 },

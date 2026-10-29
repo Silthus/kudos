@@ -2,6 +2,7 @@ import type { PostHog } from "posthog-js/dist/module.full.no-external";
 import type { BrowserAnalytics } from "../../../convex/website/browserAnalytics";
 import type { Denial } from "../../../convex/website/memberQuery";
 import { captureEveryPageview, pagePropertiesOf } from "./pageviews";
+import { keepTheVisitSource } from "./visitSource";
 
 export type Capture = Extract<BrowserAnalytics, { kind: "capture" }>;
 
@@ -22,6 +23,7 @@ const thisPage = crypto.randomUUID();
 let instances = 0;
 
 export function browserAnalytics(load: PostHogLoader, onCapturing: CapturingChange = () => undefined) {
+  keepTheVisitSource();
   let running: Running | null = null;
   let answered = false;
   let held: Caught[] = [];

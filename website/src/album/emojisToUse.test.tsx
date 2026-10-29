@@ -174,7 +174,7 @@ describe("the emoji popup leads with the earned emojis the member picks to count
 
     const useNow = section(popup, "Use these now");
     expect(popup.queryByRole("region", { name: /^Count in kudos/ })).not.toBeInTheDocument();
-    expect(useNow.getByText(/^React with any of them/)).toHaveTextContent("React with any of them or put them in a kudos. Each one counts like : XP for you both, and an item when you say why.");
+    expect(useNow.getByText(/^React with any of them/)).toHaveTextContent("React with any of them or put them in a kudos. Each one counts like : XP for you both, and an item when it's in a kudos.");
     expect(useNow.getAllByRole("listitem")[0]).toHaveTextContent(":hedgehog:Your kudos emoji · works from the start");
   });
 
@@ -214,7 +214,7 @@ describe("LP74 LP75: the emoji popup leads with what the member can use", () => 
     expect(next).toHaveLength(3);
     expect(next[0]).toContain(":raised_hands:");
     expect(next[0]).toContain("Reach level 2 · your first kudos does it");
-    expect(next[1]).toBe("Thank someone and say why: unlock their hype emoji");
+    expect(next[1]).toBe("Give someone a kudos: unlock their hype emoji");
     expect(next[2]).toContain(":team-kettle-works:");
   });
 

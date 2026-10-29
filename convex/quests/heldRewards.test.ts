@@ -102,7 +102,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
     expect(await rewardKeysOf(t, "U_ALICE")).toContain("journey:someone-new");
     expect(homesPublishedTo("U_ALICE")).toBeGreaterThan(homesBefore);
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toContain("section: *Journey:* ✅ Thank someone you haven't thanked before. *30 XP* waits in your crate. [button: Open]");
-    expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual({ xp: 10, level: 1, skillPoints: 0, balance: 0 });
+    expect(await standingAndBalanceOf(t, "U_ALICE"), "the kudos' own XP and giving coins, with the quest's 30 XP still in its crate").toEqual({ xp: 10, level: 1, skillPoints: 0, balance: 4 });
   });
 
   test("a reward of a fraction of a coin or of negative coins is refused at the finish and stores nothing", async () => {

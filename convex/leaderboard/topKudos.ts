@@ -1,12 +1,12 @@
 import type { QueryCtx } from "../_generated/server";
 import { teamEmojiOf, type ShownEmoji } from "../album/earnedEmojis";
-import { thoughtfulKudosBetween, type Instants, type ThoughtfulKudos } from "../album/packs";
+import { grantedKudosBetween, type GrantedKudos, type Instants } from "../album/packs";
 import { teamStickersUnlockedIn } from "../album/teamStickers";
 import type { Segment } from "../activity/entries";
 import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf, type Mentions } from "../activity/kudos";
 import type { DayKey } from "../engine/allowance";
 import type { MessageRef, WordSegment } from "../engine/messageEvent";
-import { publicThoughtfulKudosOf, type DrawableKudos } from "../engine/spotlight";
+import { publicKudosOf, type DrawableKudos } from "../engine/spotlight";
 import { hugsOnTheMessage } from "../hugs/weeks";
 import { turnedFindOf, type Find } from "../album/items/finds";
 import { itemShareAppliesToWorkspace } from "../album/items/flag";
@@ -33,7 +33,7 @@ export type UnlockedTeam = { name: string; count: number; emoji: ShownEmoji | nu
 
 export type TopKudosPost = { kind: "topKudos"; kudos: QuotedKudos[]; teams: UnlockedTeam[]; origin: string | null; newGivers?: NewGiver[] };
 
-type Ranked = ThoughtfulKudos & { hugs: number };
+type Ranked = GrantedKudos & { hugs: number };
 
 export async function topKudosPostOf(ctx: QueryCtx, workspace: string, week: Instants, postWeek: DayKey): Promise<TopKudosPost> {
   const highlights = await weeklyHighlightsApplyTo(ctx, workspace);
@@ -46,7 +46,7 @@ async function topKudosOf(ctx: QueryCtx, workspace: string, week: Instants, quot
   const marksFinds = await itemShareAppliesToWorkspace(ctx, workspace);
   const quoted: QuotedKudos[] = [];
   for (const { message, at } of (await rankedKudosOf(ctx, workspace, week)).slice(0, mostKudosChecked)) {
-    const kudos = await publicThoughtfulKudosOf(ctx, message);
+    const kudos = await publicKudosOf(ctx, message);
     if (kudos !== null) quoted.push({ ...(await quotedKudosOf(ctx, mentions, message, kudos)), find: marksFinds ? await turnedFindOf(ctx, { giver: kudos.giver, message, at }) : null });
     if (quoted.length === quotedAtMost) break;
   }
@@ -55,7 +55,7 @@ async function topKudosOf(ctx: QueryCtx, workspace: string, week: Instants, quot
 
 async function rankedKudosOf(ctx: QueryCtx, workspace: string, week: Instants): Promise<Ranked[]> {
   const ranked: Ranked[] = [];
-  for (const kudos of await thoughtfulKudosBetween(ctx, workspace, week, mostKudosRanked)) ranked.push({ ...kudos, hugs: await hugsOnTheMessage(ctx, kudos.message) });
+  for (const kudos of await grantedKudosBetween(ctx, workspace, week, mostKudosRanked)) ranked.push({ ...kudos, hugs: await hugsOnTheMessage(ctx, kudos.message) });
   return ranked.sort((one, other) => other.hugs - one.hugs || other.recipients - one.recipients || other.at - one.at);
 }
 

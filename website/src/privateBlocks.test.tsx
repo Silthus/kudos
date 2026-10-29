@@ -89,7 +89,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     await user.click(await screen.findByRole("button", { name: /^Your emojis/ }));
 
     expect(exposedIn(container)).toEqual([]);
-    expect([...container.querySelectorAll(".al-emoji-popover .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining([":ines-okafor-hype:", "From your first thoughtful pack for Ines Okafor · 9 Oct 2026"]));
+    expect([...container.querySelectorAll(".al-emoji-popover .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining([":ines-okafor-hype:", "From your first pack for Ines Okafor · 9 Oct 2026"]));
   });
 
   it("AL56: an emoji bundle from the fixture build keeps each emoji's picture, its name and what it came from in blocks", async () => {
