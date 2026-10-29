@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { rarityAbove, sparesForged } from "../../../convex/hoggies/catalogue";
+import { rarityAbove, sparesForged } from "../../../convex/album/hoggies/catalogue";
 import type { Rarity } from "../shell";
 import type { AlbumHoggie, AlbumHoggies, AlbumRarity } from "./answer";
 import { rarityWordOf } from "./opening";

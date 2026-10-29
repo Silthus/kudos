@@ -346,9 +346,9 @@ const itemShare = "item-share";
 const itemsOn = ["hidden-items", "collection"].map(onForEveryone);
 const theDraw = vi.hoisted(() => ({ planned: [] as string[] }));
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
-  const { hoggieNamed } = await import("../hoggies/catalogue");
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
+  const { hoggieNamed } = await import("../album/hoggies/catalogue");
   return {
     ...actual,
     drawOf: async (input: Parameters<typeof actual.drawOf>[0]) => {
@@ -566,7 +566,7 @@ async function memberIdOf(someone: Person) {
 }
 
 async function pageOf(someone: Person) {
-  return `${site}/book#people/${encodeURIComponent(await memberIdOf(someone))}`;
+  return `${site}/book?src=monday-post#people/${encodeURIComponent(await memberIdOf(someone))}`;
 }
 
 const albumSlackOff: Array<{ condition: string; flags: FlagDefinition[]; turnOff?: () => void; momentsSent?: { recaps: number; mondayPosts: number } }> = [

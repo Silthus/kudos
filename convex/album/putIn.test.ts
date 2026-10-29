@@ -14,15 +14,15 @@ import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 import { openUnlock } from "../unlocks/unlocks";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
-import { crestWith } from "../hoggies/catalogue";
+import { crestWith } from "./hoggies/catalogue";
 import type { CollectionAnswer } from "../website/collection";
 import type { MemberId } from "../workspace/directory";
 
 const theDraw = vi.hoisted(() => ({ pinned: null as string | null }));
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
-  const { hoggieNamed } = await import("../hoggies/catalogue");
+vi.mock("./hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./hoggies/draw")>();
+  const { hoggieNamed } = await import("./hoggies/catalogue");
   return {
     ...actual,
     drawOf: vi.fn(async (input: Parameters<typeof actual.drawOf>[0]) => (theDraw.pinned === null || !input.crate.startsWith("thoughtful:") ? actual.drawOf(input) : { hoggie: theDraw.pinned, rarity: hoggieNamed(theDraw.pinned)!.rarity })),

@@ -10,7 +10,7 @@ import { publishedHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { aSession, aSignedInSession } from "../../testing/website";
-import { catalogue } from "../hoggies/catalogue";
+import { catalogue } from "../album/hoggies/catalogue";
 import { api, internal } from "../_generated/api";
 import { albumFlag, albumShownTo } from "../album/flag";
 import { xpToReach } from "../progression/levels";
@@ -69,8 +69,8 @@ vi.mock("../website/seen", async (importOriginal) => {
   return { ...actual, seenKeyOf: vi.fn((member: Parameters<typeof actual.seenKeyOf>[0], crate: string) => actual.seenKeyOf(named(member) as typeof member, crate.replace(/[^:]+/g, named))) };
 });
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
   return { ...actual, drawOf: vi.fn((input: Parameters<typeof actual.drawOf>[0]) => actual.drawOf({ ...input, member: namedIds.get(input.member) ?? input.member })) };
 });
 
@@ -134,7 +134,7 @@ describe("AL39: the album is dark where album is off, shows only to the members 
 
     expect(walk.seen).toEqual(withoutTheAlbum.seen);
     expect(withoutTheAlbum.albumRows.thoughtfulPacks).toEqual([]);
-    expect(walk.albumRows.thoughtfulPacks).toHaveLength(3);
+    expect(walk.albumRows.thoughtfulPacks).toHaveLength(4);
     expect(walk.albumRows.emojiNames.length).toBeGreaterThan(0);
     expect(withoutTheAlbum.albumRows.pairTallies).toEqual([]);
     expect(walk.albumRows.pairTallies.length).toBeGreaterThan(0);
@@ -156,6 +156,7 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(packsEarnedIn(withoutTheAlbum)).toEqual([]);
     expect(packsEarnedIn(walk)).toEqual([
       { packs_earned: 2, recipients: 2 },
+      { packs_earned: 1, recipients: 1 },
       { packs_earned: 1, recipients: 1 },
     ]);
     expect(Object.values(walk.albums).every((answer) => !(answer as object).hasOwnProperty("packs"))).toBe(true);
@@ -184,7 +185,7 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(withoutAlbumOnTheProfiles(on.seen)).toEqual(off.seen);
     expect(on.albums.U_ALICE).toMatchObject({ kind: "album", me: { name: alice.name }, packs: [{ person: "<member U_BOB>" }, { person: "<member U_CAROL>" }], morePacks: false });
     expect(on.albums.U_BOB).toMatchObject({ kind: "album", packs: [{ person: "<member U_ALICE>" }] });
-    expect(on.albums.U_CAROL).toMatchObject({ kind: "album", packs: [] });
+    expect(on.albums.U_CAROL).toMatchObject({ kind: "album", packs: [{ person: "<member U_BOB>" }] });
     expect(on.pages.U_ALICE).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, kudosReceived: 1 }, week: { kind: "week", issue: { kudosGiven: 2, kudosReceived: 1 } } });
     expect(on.pages.U_CAROL).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, best: null }, week: { kind: "week", issue: { kudosGiven: 1, kudosReceived: 1 } } });
     expect(Object.values(on.hoggies)).toEqual(members.map(() => expect.objectContaining({ kind: "hoggies", total: catalogue.hoggies.length })));

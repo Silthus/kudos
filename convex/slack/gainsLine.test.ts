@@ -62,7 +62,7 @@ describe("SW5 SW8: the gains line shows only what its giver can see when Slack t
   test("a reply held for Quests whose giver's xp-levels turns off before its release goes out with no XP part", async () => {
     const t = await unlocksShippedBeforeAnyoneJoined(await workspaceDeciding(onForEveryone(xpLevels), onForEveryone("unlocks"), onForEveryone("quests")));
     await memberInserted(t, "U_ALICE");
-    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10, annotations: {} }));
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10 }));
 
     await flagsFromPostHog(t, postHog, offForEveryone(xpLevels), onForEveryone("unlocks"), onForEveryone("quests"));
     vi.advanceTimersByTime(10_000);
@@ -77,7 +77,7 @@ describe("O36: xp-levels exposure", () => {
     const t = await workspaceDeciding(onForEveryone(xpLevels));
     const alice = await memberInserted(t, "U_ALICE");
 
-    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10, annotations: {} }));
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10 }));
 
     expect(await xpLevelsExposuresIn(t)).toEqual([{ member: alice, value: true }]);
   });

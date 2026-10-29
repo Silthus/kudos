@@ -1,10 +1,10 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { WithoutSystemFields } from "convex/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { Rarity } from "../hoggies/catalogue";
-import { dropFor, dropOf, packOf, type Drop } from "../hoggies/drops";
-import { hoggiesShownTo } from "../hoggies/flag";
-import { earnItem, isTurned, markTurned } from "../items/ledger";
+import type { Rarity } from "./hoggies/catalogue";
+import { dropFor, dropOf, packOf, type Drop } from "./hoggies/drops";
+import { hoggiesShownTo } from "./hoggies/flag";
+import { earnItem, isTurned, markTurned } from "./items/ledger";
 import type { AppliedReward } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { crateKeyOf, thanksEarningOf, thoughtfulCratePrefix } from "./packs";

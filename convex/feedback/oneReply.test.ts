@@ -2,7 +2,7 @@ import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, slackError, type SlackArgs } from "../../testing/fakeSlack";
-import { post, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
+import { deliverAgain, post, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest } from "../../testing/signedSlack";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
 import { emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
@@ -28,6 +28,7 @@ const mondayPath = ["xp-levels", "album", "album-slack", "collection", "packs", 
 const oneReply = "one-reply";
 const questsJob = "quests/quests:followKudosGiven";
 const grantJob = "album/packs:grantThoughtfulPacks";
+const albumReplyJob = "feedback/albumReplies:replyAfterTheGrant";
 const site = "https://kudos-site.test";
 const footer = { type: "context", elements: [{ type: "mrkdwn", text: "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab." }] };
 const doneMark = { type: "emoji", name: "white_check_mark" };
@@ -100,8 +101,8 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
           {
             type: "actions",
             elements: [
-              { type: "button", text: { type: "plain_text", text: "Identify them on the website" }, url: `${site}/book`, action_id: "dm-link:kudos-reply:book", style: "primary" },
-              { type: "button", text: { type: "plain_text", text: "See your quests" }, url: `${site}/book#me/quests`, action_id: "dm-link:kudos-reply:quests" },
+              { type: "button", text: { type: "plain_text", text: "Identify them on the website" }, url: `${site}/book?src=reply`, action_id: "dm-link:kudos-reply:book", style: "primary" },
+              { type: "button", text: { type: "plain_text", text: "See your quests" }, url: `${site}/book?src=reply#me/quests`, action_id: "dm-link:kudos-reply:quests" },
             ],
           },
           footer,
@@ -140,16 +141,40 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(messagesTo(alice), "the messages Alice got after the grant").toHaveLength(2);
   });
 
-  test("a quick thanks from a giver off the Monday path and without hidden items moves no quest and shows who got kudos, the kudos left and one button to the progress", async () => {
+  test("a grant told in the one reply and delivered again sends nothing more", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    await thanks(alice, saysWhy, bob);
+
+    await deliverAgain(t, albumReplyJob);
+
+    expect(messagesTo(alice), "the messages Alice got").toHaveLength(1);
+  });
+
+  test("a grant later than the reply and delivered again is told on its own once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    const held = holdingKudosGiven();
+    await posts(alice, saysWhy, bob);
+    await deliverInOrder(held[0]!, [], [grantJob]);
+    await settleUpTo(t, Date.now() + 10_000);
+    await deliverOnly(held[0]!, [grantJob]);
+
+    await deliverAgain(t, albumReplyJob);
+
+    expect(messagesTo(alice), "the messages Alice got").toHaveLength(2);
+  });
+
+  test("a quick thanks from a giver off the Monday path and without hidden items moves no quest and shows who got kudos, the kudos left and one button to the progress, with the album's thread reply after it", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath.filter((flag) => flag !== "hidden-items" && flag !== "monday-quest"), oneReply);
 
     await thanks(alice, "thanks", bob);
 
-    expect(messagesTo(alice).map(({ blocks }) => blocks), "the messages Alice got").toEqual([
+    const [privateReply, threadReply] = messagesTo(alice).map(({ blocks }) => blocks);
+    expect(threadReply, "the album's thread reply").toEqual(expect.arrayContaining([{ type: "section", text: { type: "mrkdwn", text: "*Bob is new in your album*" } }]));
+    expect([privateReply], "the private reply").toEqual([
       [
         { type: "section", text: { type: "mrkdwn", text: "*<@U_BOB> got 1 kudos from you* · +10 XP" } },
         { type: "context", elements: [{ type: "mrkdwn", text: "2 kudos left today" }] },
-        { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${site}/`, action_id: "dm-link:kudos-reply:home", style: "primary" }] },
+        { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${site}/?src=reply`, action_id: "dm-link:kudos-reply:home", style: "primary" }] },
         footer,
       ],
     ]);
@@ -303,7 +328,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     await thanks(alice, saysWhy, bob);
 
     expect(messagesTo(alice).map(({ text }) => text), "the messages Alice got").toEqual([
-      "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.\n+10 XP · <https://kudos-site.test/|See your progress on the web>\nQuest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection\n<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
+      "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.\n+10 XP · <https://kudos-site.test/?src=reply|See your progress on the web>\nQuest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection\n<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
       "An item for thanking Bob",
     ]);
   });
@@ -409,7 +434,7 @@ function checklistOf(message: SlackArgs): string[] {
 type ChecklistBlock = { type: string; elements?: Array<{ elements?: Array<{ elements?: Array<{ type: string; name?: string; text?: string }> }> }> };
 
 async function press(person: Person, label: string) {
-  const reply = messagesTo(person).at(-1)!;
+  const reply = messagesTo(person).findLast(({ blocks }) => JSON.stringify(blocks).includes(`"text":"${label}"`))!;
   const click = blockActions(person.user, buttonIn(reply.blocks as Block[], label), { inMessage: { channel: String(reply.channel), ts: "", ephemeral: true } });
   const response = await t.fetch("/slack/interactivity", await signedRequest(click, { contentType: "application/x-www-form-urlencoded" }));
   expect(response.status, "Slack's acknowledgement").toBe(200);

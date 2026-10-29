@@ -1,6 +1,7 @@
 import { isAnAlbumHash } from "../album/place";
 import { routeOf } from "../route";
 import { onAddressChange } from "./addressChanges";
+import { sourceOfTheFirstPageview } from "./visitSource";
 
 export type PageProperties = { page: string; book_page?: string; spread?: string };
 
@@ -21,7 +22,7 @@ export function captureEveryPageview(posthog: PageviewSink): () => void {
     const properties = pagePropertiesOf(window.location);
     for (const property of bookOnly) if (!(property in properties)) posthog.unregister(property);
     posthog.register(properties);
-    posthog.capture("$pageview", properties);
+    posthog.capture("$pageview", { ...properties, ...sourceOfTheFirstPageview() });
     last = { address, properties };
   };
   view();

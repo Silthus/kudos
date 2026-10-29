@@ -3,7 +3,7 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { useWideScreen } from "../useWideScreen";
-import type { HowItWorksCloseReply, QuestsSurface, QuestsViewReply, TurnReply } from "../shell";
+import type { HowItWorksCloseReply, QuestsSurface, TurnReply } from "../shell";
 import type { Album, AlbumLevel, PackOpenReply, PickKudosEmoji, QuestsShown, SeenReply, UnlockReply } from "./answer";
 import { EmojiMoment, useEmojiMoments, useEmojisShown } from "./EmojiMoment";
 import { useEmojisOnTheirWay, withTheEmojisAway } from "./emojisOnTheirWay";
@@ -57,7 +57,7 @@ export type AlbumShellProps = {
   anEntryIsOpen: boolean;
   quests: QuestsShown | undefined;
   questsLanding: QuestsLanding;
-  viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply>;
+  viewQuests: (surface: QuestsSurface) => void;
 } & PutInCommands;
 
 export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, profile, hoggies, levelUp, busy, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker, markEmojisSeen, pickKudosEmoji, turnItem, xpMoment, endXpMoment, missedXpMoment, closeHowItWorks, anEntryIsOpen, quests, questsLanding, viewQuests }: AlbumShellProps) {
@@ -155,11 +155,11 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   );
 }
 
-type QuestsWiring = { inSight: boolean; openBoard: () => void; landing: QuestsLanding; viewQuests: (surface: QuestsSurface) => Promise<QuestsViewReply> };
+type QuestsWiring = { inSight: boolean; openBoard: () => void; landing: QuestsLanding; viewQuests: (surface: QuestsSurface) => void };
 
 function shellQuestsOf(quests: QuestsShown | undefined, { viewQuests, ...wiring }: QuestsWiring): ShellQuests | null {
   const monday = mondayQuestsIn(quests);
-  return monday === null ? null : { quests: monday, ...wiring, view: (surface) => void viewQuests(surface) };
+  return monday === null ? null : { quests: monday, ...wiring, view: viewQuests };
 }
 
 function firstShown(buttons: RefObject<HTMLElement | null>[]) {

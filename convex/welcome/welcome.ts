@@ -5,11 +5,11 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { analyticsIdOf } from "../analytics/person";
 import { hugGivenEventValidator, kudosGivenEventValidator, questFinishedEventValidator, type HugGivenEvent, type KudosGivenEvent, type MemberWelcomedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
+import { sendsOnce } from "../feedback/sentNotices";
 import { requestWelcome } from "../feedback/welcome";
 import { hugOf } from "../hugs/records";
-import { earnWelcomeItem } from "../items/welcome";
-import { onboardingShownTo } from "../items/onboardingFlag";
-import { saysWhy } from "../progression/gate";
+import { earnWelcomeItem } from "../album/items/welcome";
+import { onboardingShownTo } from "../album/items/onboardingFlag";
 import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { mondayPathShownTo, onTheMondayPath } from "../quests/flag";
@@ -70,20 +70,20 @@ async function recordWelcome(ctx: MutationCtx, member: MemberId, cause: MondayWe
 
 async function welcome(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
   if (await isWelcomed(ctx, member)) return;
-  if (await onTheMondayPath(ctx, member)) return welcomeTheThoughtfullyThanked(ctx, event, { member, as });
+  if (await onTheMondayPath(ctx, member)) return welcomeTheThanked(ctx, event, { member, as });
   const welcomed = await welcomedAs(ctx, event, as);
   await ctx.db.insert("welcomes", { member, welcomed });
   await requestWelcome(ctx, member, welcomed);
   await publish(ctx, { type: "memberWelcomed", workspace: event.workspace, member, as, at: Date.now() });
 }
 
-async function welcomeTheThoughtfullyThanked(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
-  if (as === "recipient" && saysWhy(event.annotations)) await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-received", giver: event.giver, kudos: event.message }, event.at);
+async function welcomeTheThanked(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
+  if (as === "recipient") await welcomeOnTheMondayPath(ctx, member, { path: "thoughtful-received", giver: event.giver, kudos: event.message }, event.at);
 }
 
 async function replyToTheFirstHug(ctx: MutationCtx, event: HugGivenEvent) {
   const hug = await hugOf(ctx, event.message, event.giver);
-  if (hug === null) return;
+  if (hug === null || !(await sendsOnce(ctx, event.giver, "first-hug-reply"))) return;
   const { workspace, user } = await chatUserOf(ctx, event.giver);
   const hugged = hug.author === undefined ? { kind: "peopleThanked" as const } : await authorHuggedOf(ctx, hug.author);
   await ctx.scheduler.runAfter(0, internal.slack.firstHugReply.deliverFirstHugReply, { workspace, user, conversation: event.message.conversation, hugged });

@@ -1,7 +1,7 @@
 import type { Id } from "../../../convex/_generated/dataModel";
 import { milestoneTierArtOf, mostKudosEmojiPicks, slugOf } from "../../../convex/album/emojiCatalogue";
 import type { KudosEmojiPick } from "../../../convex/album/kudosEmojis";
-import type { Drop } from "../../../convex/hoggies/drops";
+import type { Drop } from "../../../convex/album/hoggies/drops";
 import type { BoardItem, ItemBoard, TurnAnswer } from "../../../convex/website/album";
 import type { GettingStarted, GettingStartedSteps } from "../../../convex/website/onboarding";
 import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, SharedEmoji, TrayItem, UnlockAnswer } from "./answer";

@@ -171,7 +171,7 @@
     },
     {
       "name": "thoughtful kudos",
-      "definition": "A kudos message that says why its recipients earned it: for now, at least five words besides the mentions and kudos emoji. Only thoughtful kudos trigger bonus XP, perk effects, drops and coins, and spend the weekly reserve; every Given award still earns base XP."
+      "definition": "A kudos message whose stored gate decision says it says why its recipients earned it: for now, at least five words besides the mentions and kudos emoji. Engine still decides and stores it and analytics keeps it on kudos given, but nothing a member sees reads it: every reader treats any kudos as it treated a thoughtful one (HH6)."
     },
     {
       "name": "sticker book",
@@ -725,7 +725,7 @@
     },
     {
       "name": "thoughtful pack",
-      "definition": "The pack a thoughtful kudos earns its giver for the person it thanked, at most once per giver, person and week (AL1, AL2); it holds that person's album sticker the first time and a hoggie every time (AL5)."
+      "definition": "The pack any kudos earns its giver for the person it thanked, at most once per giver, person and week (AL1, AL2, HH7); it holds that person's album sticker the first time and a hoggie every time (AL5). It keeps its storage name from when only a thoughtful kudos earned it."
     },
     {
       "name": "tray",

@@ -25,11 +25,11 @@ import type {
 } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
-import type { Period } from "../leaderboard/periods";
+import type { BoardPeriod } from "../album/boards";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
-import { crateKindOf } from "../hoggies/crateKey";
+import { crateKindOf } from "../album/hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
 import type { WelcomePath } from "../welcome/welcomedAs";
@@ -87,7 +87,7 @@ export type ProductEvent = {
 export type UsageFact =
   | { kind: "appHomeOpened"; workspace: string; member: MemberId; at: number }
   | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
-  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: Period; surface: LeaderboardSurface; at: number }
+  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: BoardPeriod; surface: LeaderboardSurface; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; via?: "dm-button"; at: number }
@@ -121,9 +121,9 @@ export type PickSurface = "welcome" | "settings" | "website";
 
 export type ViewedBoard = "everyone" | "groups" | "my-group";
 
-export type LeaderboardSurface = "app-home" | "command";
+export type LeaderboardSurface = "app-home" | "command" | "website";
 
-const surfaceNames: Record<LeaderboardSurface, string> = { "app-home": "app home", command: "command" };
+const surfaceNames: Record<LeaderboardSurface, string> = { "app-home": "app home", command: "command", website: "website" };
 
 const outcomeNames: Record<AttemptFailedEvent["outcome"], string> = { "over-allowance": "over allowance", invalid: "invalid" };
 

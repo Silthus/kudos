@@ -1,4 +1,4 @@
-import { catalogue, hoggieNamed } from "../convex/hoggies/catalogue";
+import { catalogue, hoggieNamed } from "../convex/album/hoggies/catalogue";
 import type { MemberId } from "../convex/workspace/directory";
 import type { Backend } from "./slackBackend";
 

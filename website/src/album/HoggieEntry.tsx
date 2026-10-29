@@ -1,5 +1,5 @@
 import { IconX } from "@posthog/icons";
-import { rarityAbove } from "../../../convex/hoggies/catalogue";
+import { rarityAbove } from "../../../convex/album/hoggies/catalogue";
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 import type { AlbumHoggie, AlbumHoggies } from "./answer";
 import { keepFocusIn } from "./focusTrap";

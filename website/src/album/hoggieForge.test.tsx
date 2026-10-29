@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { catalogue } from "../../../convex/hoggies/catalogue";
+import { catalogue } from "../../../convex/album/hoggies/catalogue";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "../test/systemTheme";

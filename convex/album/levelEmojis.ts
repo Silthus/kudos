@@ -1,5 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
-import { onboardingShownTo } from "../items/onboardingFlag";
+import { onboardingShownTo } from "./items/onboardingFlag";
 import type { MemberId } from "../workspace/directory";
 import { standardEmojiNamed } from "../workspace/standardEmoji";
 import { emojiArtPictureOf, emojiLevels, everyEmojiLevel, levelTwoEmoji } from "./emojiCatalogue";

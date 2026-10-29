@@ -3,6 +3,7 @@ import { weeklyQuestValidator, type GroupQuestCrate, type Quest, type WeeklyQues
 import type { WeekKey } from "../quests/week";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import type { pageValidator } from "./link";
+import { linkFrom, type VisitSource } from "./visitSource";
 
 export type Page = Infer<typeof pageValidator>;
 
@@ -156,6 +157,6 @@ export function weeklyCratePageOf(quest: WeeklyQuest, thisWeek: WeekKey): Page {
   return quest.week === thisWeek ? questCratePageOf(quest) : earlierWeekCratePageOf(quest);
 }
 
-export function urlOf(origin: string, page: Page) {
-  return `${origin}${routeOf(page)}`;
+export function urlOf(origin: string, page: Page, source: VisitSource) {
+  return linkFrom(source, `${origin}${routeOf(page)}`);
 }

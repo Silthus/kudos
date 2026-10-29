@@ -470,3 +470,30 @@ describe("AL40: the Leaderboard reads getThoughtfulBoards only while it is open"
     expect(screen.getByRole("navigation", { name: "Album" })).toBeInTheDocument();
   });
 });
+
+describe("E2: each period the Leaderboard shows is reported as viewed once", { timeout: 30_000 }, () => {
+  function views(actions: { viewLeaderboard: ReturnType<typeof vi.fn> }) {
+    return actions.viewLeaderboard.mock.calls.map(([period]) => period);
+  }
+
+  it("reports this week on arrival and each period once its boards show", async () => {
+    const { user, actions } = visitWith(boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.lastWeek }));
+    await board("People");
+
+    expect(views(actions)).toEqual(["week"]);
+
+    await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
+    await screen.findByText("6 thoughtful kudos given last week. You're No. 2 with 2.", {}, arrival);
+
+    expect(views(actions)).toEqual(["week", "last-week"]);
+  });
+
+  it("reports nothing for a period whose boards haven't come yet", async () => {
+    const { user, actions } = visitWith(boardsByPeriod({ week: boardsFixtures.week }));
+    await board("People");
+
+    await user.click(periodSwitch().getByRole("button", { name: "This month" }));
+
+    expect(views(actions)).toEqual(["week"]);
+  });
+});

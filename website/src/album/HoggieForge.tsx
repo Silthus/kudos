@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { sparesForged } from "../../../convex/hoggies/catalogue";
+import { sparesForged } from "../../../convex/album/hoggies/catalogue";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Rarity } from "../shell";
 import type { AlbumHoggie, AlbumHoggies } from "./answer";

@@ -159,7 +159,7 @@ async function leaderboardReply(ctx: ActionCtx, viewer: Viewer, rest: string[]):
   const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, asked);
   const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, asked);
   const everyone = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, asked);
-  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period } });
+  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period }, source: "reply" });
   const boards = renderBoards(groups, myGroup, everyone, period);
   const shown = { groups: boards.some(({ board }) => board === "groups"), myGroup: boards.some(({ board }) => board === "my-group") };
   return { lines: [...boards.flatMap(({ lines }, index) => (index === 0 ? lines : [[], ...lines])), ...renderFullBoardLink(website)], period, shown };

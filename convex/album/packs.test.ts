@@ -26,13 +26,12 @@ const theGrants = vi.hoisted(() => ({ holding: false, held: [] as unknown[] }));
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
   actual.subscribers.kudosGiven = actual.subscribers.kudosGiven.map((subscription) => {
-    if (!("subscriber" in subscription) || getFunctionName(subscription.subscriber) !== grantJob) return subscription;
-    const { subscriber, only } = subscription;
+    if ("subscriber" in subscription || getFunctionName(subscription) !== grantJob) return subscription;
     return {
-      subscriber,
+      subscriber: subscription,
       only: (event: KudosGivenEvent) => {
-        if (theGrants.holding && only(event)) theGrants.held.push(event);
-        return !theGrants.holding && only(event);
+        if (theGrants.holding) theGrants.held.push(event);
+        return !theGrants.holding;
       },
     };
   });
@@ -64,23 +63,32 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("a thoughtful pack is earned once per giver, person and week", () => {
-  test("a thoughtful kudos to three people earns its giver one waiting pack for each, oldest first", async () => {
+describe("a pack is earned once per giver, person and week", () => {
+  test("a kudos to three people earns its giver one waiting pack for each, oldest first", async () => {
     await thanks(alice, why, bob, carol, dana);
 
     expect(await packsOf(alice)).toEqual([bob.name, carol.name, dana.name]);
     expect(await packsOf(bob)).toEqual([]);
   });
 
-  test("a second thoughtful kudos to one of them that week, a short kudos and a hug earn none", async () => {
+  test("HH7: a short kudos earns a pack like any kudos, and the same Slack event delivered twice earns it once", async () => {
+    const ts = nextTs();
+    const plainKudos = [section(text("ty "), mention(bob.user), emoji("taco"))];
+
+    await post(t, plainKudos, { user: alice.user, ts });
+    await post(t, plainKudos, { user: alice.user, ts });
+    await settle(t);
+
+    expect(await packsOf(alice)).toEqual([bob.name]);
+  });
+
+  test("a second kudos to one of them that week, short or not, and a hug earn none", async () => {
     const first = await thanks(alice, why, bob, carol, dana);
     await thanks(alice, "Thanks again for pairing on the rollback", bob);
     await thanks(alice, "ty", carol);
-    await thanks(bob, "ty", alice);
     await hugs(carol, alice, first);
 
     expect(await packsOf(alice)).toEqual([bob.name, carol.name, dana.name]);
-    expect(await packsOf(bob)).toEqual([]);
     expect(await packsOf(carol)).toEqual([]);
   });
 
@@ -140,13 +148,14 @@ describe("AL4 AL5: each grant records its outcome", () => {
 });
 
 describe("a message's packs are told once", { timeout: 30_000 }, () => {
-  test("a thoughtful kudos to three people sends one packs earned with packs_earned 3, and a second to one of them one with 0 and recipients 1", async () => {
+  test("a kudos to three people sends one packs earned with packs_earned 3, and a second to one of them, short or not, one each with 0 and recipients 1", async () => {
     await thanks(alice, why, bob, carol, dana);
     await thanks(alice, "Thanks again for pairing on the rollback", bob);
     await thanks(alice, "ty", carol);
 
     expect(packsEarnedEvents()).toEqual([
       { packs_earned: 3, recipients: 3 },
+      { packs_earned: 0, recipients: 1 },
       { packs_earned: 0, recipients: 1 },
     ]);
   });

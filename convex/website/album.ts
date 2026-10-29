@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
-import { hypesHeldFor } from "../items/hypes";
+import { hypesHeldFor } from "../album/items/hypes";
+import { reportLeaderboardViewed } from "../analytics/isolatedUsage";
 import { kudosEmojiPicksOf, pickKudosEmoji as pickKudosEmojiOf, type KudosEmojiPick } from "../album/kudosEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
 import { albumShownTo, emojiWizardShownTo, kudosEmojiPicksShownTo, personPageDShownTo, shareableUrlsShownTo } from "../album/flag";
-import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
+import { albumHoggiesOf, type AlbumHoggies } from "../album/albumHoggies";
 import { levelUpRevealOf, levelUpRevealShownTo, type LevelUpAnswer } from "../album/levelUp";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
@@ -18,15 +19,15 @@ import { unlockTeamStickerOf } from "../album/teamStickers";
 import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import type { Id } from "../_generated/dataModel";
-import { hoggieForgeShownTo, hoggiesShownTo, petHoggieShownTo } from "../hoggies/flag";
-import { forge } from "../hoggies/forge";
-import { makePetOf, petOf, petsIn, type Pet } from "../hoggies/pet";
-import { hiddenItemsShownTo } from "../items/flag";
-import { boardOf, type FaceDown } from "../items/ledger";
-import { milestonesHeldForTheirTurn } from "../items/milestoneUnlocks";
-import type { ItemReason } from "../items/records";
-import { turn, type Turned, type TurnedFace } from "../items/turn";
-import { lessonAfter, type LoopLesson, type Taught } from "../items/welcome";
+import { hoggieForgeShownTo, hoggiesShownTo, petHoggieShownTo } from "../album/hoggies/flag";
+import { forge } from "../album/hoggies/forge";
+import { makePetOf, petOf, petsIn, type Pet } from "../album/hoggies/pet";
+import { hiddenItemsShownTo } from "../album/items/flag";
+import { boardOf, type FaceDown } from "../album/items/ledger";
+import { milestonesHeldForTheirTurn } from "../album/items/milestoneUnlocks";
+import type { ItemReason } from "../album/items/records";
+import { turn, type Turned, type TurnedFace } from "../album/items/turn";
+import { lessonAfter, type LoopLesson, type Taught } from "../album/items/welcome";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
@@ -383,6 +384,17 @@ export const getThoughtfulBoards = memberQuery({
     await followTheClock(ctx);
     const { people, teams, pinned, onTheBoards } = await thoughtfulBoardsOf(ctx, me, { whoGave: team ?? null, period: period ?? "week" });
     return { kind: "boards", people: people.map(personRowOf), teams, pinned: { me: pinned.me === null ? null : personRowOf(pinned.me), teams: pinned.teams }, onTheBoards };
+  },
+});
+
+export type LeaderboardViewAnswer = { kind: "viewed" } | { kind: "refused" };
+
+export const viewLeaderboard = memberMutation({
+  args: { period: boardPeriodValidator },
+  handler: async (ctx, me, _person, { period }): Promise<LeaderboardViewAnswer> => {
+    if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
+    await reportLeaderboardViewed(ctx, { workspace: me.workspace, member: me.member, board: "everyone", period, surface: "website", at: Date.now() });
+    return { kind: "viewed" };
   },
 });
 

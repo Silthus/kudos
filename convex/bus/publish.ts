@@ -2,8 +2,7 @@ import type { FunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { journeyStepOpenedBy } from "../quests/step";
-import { earnsPacks } from "../album/earns";
-import { crateKindOf } from "../hoggies/crateKey";
+import { crateKindOf } from "../album/hoggies/crateKey";
 import { isTheFirstThanks } from "../welcome/firstThanks";
 import type { DomainEvent } from "./events";
 
@@ -21,7 +20,7 @@ export const subscribers: Registry = {
     internal.leaderboard.totals.countKudosGiven,
     internal.groups.attribution.attributeKudosGiven,
     internal.stickers.stickers.recordStickers,
-    { subscriber: internal.album.packs.grantThoughtfulPacks, only: earnsPacks },
+    internal.album.packs.grantThoughtfulPacks,
     internal.album.tallies.tallyKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],

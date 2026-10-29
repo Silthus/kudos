@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { build, type Rolldown } from "vite";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { milestoneCatalogue } from "../../convex/album/milestoneCatalogue";
-import { catalogue as hoggieCatalogue } from "../../convex/hoggies/catalogue";
+import { catalogue as hoggieCatalogue } from "../../convex/album/hoggies/catalogue";
 
 const entryBudgetGzipBytes = 340_000;
 
