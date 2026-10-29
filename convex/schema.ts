@@ -58,6 +58,7 @@ import {
   weekTallyValidator,
 } from "./album/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
+import { questFinishValidator } from "./quests/finishes";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
 import { questsJudgedValidator } from "./quests/judged";
@@ -640,6 +641,8 @@ export default defineSchema({
   teamPageChecks: defineTable(teamPageCheckValidator).index("by_member", ["member"]),
 
   boughtCrates: defineTable(boughtCrateValidator).index("by_member_crate", ["member", "crate"]).index("by_member_n", ["member", "n"]).index("by_member_opened", ["member", "openedAt", "n"]),
+
+  questFinishes: defineTable(questFinishValidator).index("by_member_key", ["member", "key"]),
 
   pendingCratesBackfill: defineTable({
     cursor: v.union(v.string(), v.null()),

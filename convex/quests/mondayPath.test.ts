@@ -84,6 +84,14 @@ describe("MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first
     expect(finishDmsTo(alice), "a finish DM").toEqual([]);
   });
 
+  test("HH24: the finish is written to Quests' own finish record, under the member and the reward key", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+
+    const ts = await thanks(alice, saysWhy, bob);
+
+    expect(await finishesOf(alice)).toEqual([{ key: "journey:first-thanks", xp: 50, catalogueVersion: "monday-1", at: Number(ts.split(".")[0]) * 1000, cause: { workspace: "T1", conversation: "C1", message: ts } }]);
+  });
+
   test.each([
     ["Quests before Progression", ["quests/quests:followKudosGiven", "progression/progression:recordEffects"]],
     ["Progression before Quests", ["progression/progression:recordEffects", "quests/quests:followKudosGiven"]],
@@ -106,6 +114,7 @@ describe("MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first
     for (let delivery = 0; delivery < 3; delivery += 1) await deliverInOrder(held[0]!, ["progression/progression:recordEffects", "quests/quests:followKudosGiven"]);
 
     expect(await xpOf(alice), "the giver's XP").toBe(70);
+    expect(await finishesOf(alice), "the finish records").toHaveLength(1);
     expect(await questItemsOf(alice), "the quest items on the board").toHaveLength(1);
   });
 
@@ -764,6 +773,12 @@ function finishDmsTo(person: Person) {
 async function xpOf(person: Person) {
   const member = await memberOf(person);
   return t.run(async (ctx) => (await standingOf(ctx, member)).xp);
+}
+
+async function finishesOf(person: Person) {
+  const member = await memberOf(person);
+  const rows = await t.run((ctx) => ctx.db.query("questFinishes").withIndex("by_member_key", (q) => q.eq("member", member)).collect());
+  return rows.map(({ key, xp, catalogueVersion, at, cause }) => ({ key, xp, catalogueVersion, at, cause }));
 }
 
 async function nextQuestOf(person: Person) {
