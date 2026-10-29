@@ -1,9 +1,12 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyMatchesKeptEventValidator, hoggieDroppedEventValidator } from "../bus/events";
 import { collectionOf } from "./hoggies/collection";
 import { messagesGivenDecidedAfter, type AnnotatedGivenMessage } from "../engine/awards";
+import type { Annotations } from "../engine/messageEvent";
+import { saysWhy } from "../progression/gate";
 import { earnTierItem } from "./items/achievements";
 import type { Moved, ProgressRead } from "../quests/progress";
 import { chatUserOf, membersPageIn, type MemberId } from "../workspace/directory";
@@ -113,17 +116,21 @@ export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
 export async function kudosGivenMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
   const givenSince = await messagesGivenDecidedAfter(ctx, member, since, mostAwards);
   if (givenSince === null) return [];
-  const talliedSince = await talliedAwardsIn(ctx, givenSince);
+  const talliedSince = await countedAwardsIn(ctx, givenSince);
   const from = Math.max((await kudosAwardsGivenBy(ctx, member)) - talliedSince.length, 0);
   const to = from + talliedSince.filter(({ created }) => created <= until).length;
   const next = milestoneCatalogue.milestones.find(({ id }) => id === "thoughtful")!.steps.find((step) => step.at > from);
   return next === undefined || to === from ? [] : [{ name: next.name, from, to: Math.min(to, next.at), of: next.at }];
 }
 
-async function talliedAwardsIn(ctx: QueryCtx, messages: AnnotatedGivenMessage[]): Promise<{ created: number }[]> {
-  const awards = messages.flatMap(({ created, awards }) => awards.map(({ award }) => ({ award, created })));
-  const tallied = await Promise.all(awards.map(async (given) => ((await talliedAwardOf(ctx, given.award)) === null ? [] : [given])));
-  return tallied.flat();
+async function countedAwardsIn(ctx: QueryCtx, messages: AnnotatedGivenMessage[]): Promise<{ created: number }[]> {
+  const awards = messages.flatMap(({ created, awards, annotations }) => awards.map(({ award }) => ({ award, created, annotations })));
+  const counted = await Promise.all(awards.map(async ({ award, created, annotations }) => (countedTheMilestone(await talliedAwardOf(ctx, award), annotations) ? [{ created }] : [])));
+  return counted.flat();
+}
+
+function countedTheMilestone(tallied: Doc<"talliedAwards"> | null, annotations: Annotations): boolean {
+  return tallied !== null && (tallied.everyKudos === true || saysWhy(annotations));
 }
 
 async function countsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<TeamPage[]>): Promise<Counts> {
