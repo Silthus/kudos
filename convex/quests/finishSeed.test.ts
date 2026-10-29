@@ -15,8 +15,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("HH24: a one-off seed writes Quests' finish record for every Monday-path quest already finished", () => {
-  test("each Monday-path finish gets its finish row, in pages, nothing else does, and nothing is published", async () => {
+describe("HH24: a one-off seed writes Quests' finish record for every Journey step and Monday-path weekly quest already finished", () => {
+  test("each Journey finish, on either path, and each Monday-path weekly finish gets its finish row, in pages, nothing else does, and nothing is published", async () => {
     const t = testBackend();
     const alice = await member(t, "U_ALICE");
     const bob = await member(t, "U_BOB");
@@ -27,15 +27,17 @@ describe("HH24: a one-off seed writes Quests' finish record for every Monday-pat
       { member: bob, key: "weekly:2026-10-05:1", xp: 20, catalogueVersion: "1" },
       { member: bob, key: "group:somegroup:2026-10-12", xp: 30, catalogueVersion: "monday-1" },
       { member: bob, key: "hug-given:C1:1760349600.000100", xp: 1, catalogueVersion: "hugs-1" },
+      { member: bob, key: "journey:first-thanks", xp: 10, catalogueVersion: "1", cause },
     ]);
 
     const pages = await seedAll(t, 2);
 
-    expect(pages, "the pages and what each seeded").toEqual([2, 1, 0]);
+    expect(pages, "the pages and what each seeded").toEqual([2, 1, 0, 1]);
     expect(await finishesOf(t)).toEqual([
       { member: alice, key: "journey:first-thanks", xp: 50, catalogueVersion: "monday-1", at, cause },
       { member: alice, key: "weekly:2026-10-12:0", xp: 20, catalogueVersion: "monday-1", at },
       { member: bob, key: "journey:someone-new", xp: 50, catalogueVersion: "monday-1", at },
+      { member: bob, key: "journey:first-thanks", xp: 10, catalogueVersion: "1", at, cause },
     ]);
     expect(await scheduledJobs(t), "the jobs scheduled").toEqual([]);
   });
