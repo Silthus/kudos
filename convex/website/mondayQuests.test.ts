@@ -100,7 +100,10 @@ describe("MQ37 MQ38: on the Monday path the quests read answers the Getting star
   test("MQ7: a step finished before its quest paid an item answers no item state", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     const member = await memberOf(alice);
-    await t.run((ctx) => ctx.db.insert("rewardRecords", { member, key: "journey:first-thanks", xp: 20, coins: 10, item: null, catalogueVersion: "1", at: Date.now() }));
+    await t.run(async (ctx) => {
+      await ctx.db.insert("rewardRecords", { member, key: "journey:first-thanks", xp: 20, coins: 10, item: null, catalogueVersion: "1", at: Date.now() });
+      await ctx.db.insert("questFinishes", { member, key: "journey:first-thanks", xp: 20, catalogueVersion: "1", at: Date.now() });
+    });
 
     const quests = await mondayQuestsOf(alice);
 

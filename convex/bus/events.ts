@@ -117,7 +117,10 @@ export const questFinishedEventValidator = v.object({
   type: v.literal("questFinished"),
   ...questFields,
   poolQuest: v.optional(poolQuestIdValidator),
+  rewardKey: v.optional(v.string()),
   reward: v.optional(v.object({ xp: v.number(), coins: v.number() })),
+  catalogueVersion: v.optional(v.string()),
+  cause: v.optional(messageRefValidator),
 });
 
 export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(poolQuestIdValidator) });
@@ -288,12 +291,39 @@ export const hugGivenEventValidator = v.object({
   giver: v.id("members"),
   message: messageRefValidator,
   onKudos: v.boolean(),
+  author: v.optional(v.id("members")),
   at: v.number(),
   day: v.string(),
   first: v.optional(v.boolean()),
+  reaction: v.optional(v.string()),
 });
 
 export type HugGivenEvent = Infer<typeof hugGivenEventValidator>;
+
+export const hugReceivedEventValidator = v.object({
+  type: v.literal("hugReceived"),
+  workspace: v.string(),
+  giver: v.id("members"),
+  person: v.id("members"),
+  message: messageRefValidator,
+  at: v.number(),
+  week: v.string(),
+});
+
+export type HugReceivedEvent = Infer<typeof hugReceivedEventValidator>;
+
+export const hypeReactedEventValidator = v.object({
+  type: v.literal("hypeReacted"),
+  workspace: v.string(),
+  giver: v.id("members"),
+  owner: v.id("members"),
+  author: v.id("members"),
+  emoji: v.string(),
+  message: messageRefValidator,
+  at: v.number(),
+});
+
+export type HypeReactedEvent = Infer<typeof hypeReactedEventValidator>;
 
 export type DomainEvent =
   | KudosGivenEvent
@@ -320,6 +350,8 @@ export type DomainEvent =
   | HoggieDroppedEvent
   | CrateBoughtEvent
   | HugGivenEvent
+  | HugReceivedEvent
+  | HypeReactedEvent
   | TeamPagesCompletedEvent
   | StickersCollectedEvent
   | ThoughtfulPacksGrantedEvent
