@@ -30,9 +30,9 @@ const slack = "slack://open";
 const emoji = "hedgehug";
 
 const variants: Choice[] = [
-  { key: "A", label: "(You, then the boards)" },
-  { key: "B", label: "(Awards wall)" },
-  { key: "C", label: "(Team race)" },
+  { key: "A", label: "(You, then the boards) · low use: period switch, Who gave, team fold · known pain: row clicks" },
+  { key: "B", label: "(Awards wall) · low use: period switch, Who gave, team fold · known pain: row clicks" },
+  { key: "C", label: "(Team race) · low use: period switch, Who gave, team fold · known pain: row clicks" },
 ];
 
 const states: Choice[] = [
