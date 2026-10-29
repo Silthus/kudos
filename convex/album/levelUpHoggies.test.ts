@@ -102,6 +102,17 @@ describe("a level up drops a hoggie from each of three crates", () => {
     expect(await copiesHeldBy(member), "copies in the collection").toBe(3);
   });
 
+  test("a level-up first delivered while level-up-reveal was off drops nothing when replayed after it turns on", async () => {
+    const member = await aMemberWith("collection");
+    await reachesLevel(t, member, 3);
+    await switchWebsite(t, postHog, true, "level-up-reveal", "collection");
+
+    await reachesLevel(t, member, 3);
+
+    expect(await cratesOf(member)).toEqual([]);
+    expect(await copiesHeldBy(member), "copies in the collection").toBe(0);
+  });
+
   test("the hoggies pay no pack bonus, so they never level the member up again", async () => {
     const member = await aMemberWith("level-up-reveal", "collection", "packs");
     const before = await t.run((ctx) => standingOf(ctx, member));
