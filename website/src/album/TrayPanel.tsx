@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { hoggieNamed } from "../../../convex/hoggies/catalogue";
+import { hoggieNamed } from "../../../convex/album/hoggies/catalogue";
 import { hoggiePictureOf } from "../crates/Hoggie";
 import { MemberFace } from "../Face";
 import { HedgehogSitting } from "../hoggies";

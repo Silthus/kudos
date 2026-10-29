@@ -1,5 +1,5 @@
-import type { Rarity } from "../../../convex/hoggies/catalogue";
-import type { CompletedCrest, CrestArt, Drop, HoggieArt } from "../../../convex/hoggies/drops";
+import type { Rarity } from "../../../convex/album/hoggies/catalogue";
+import type { CompletedCrest, CrestArt, Drop, HoggieArt } from "../../../convex/album/hoggies/drops";
 
 export type { CompletedCrest, CrestArt, Drop, HoggieArt, Rarity };
 

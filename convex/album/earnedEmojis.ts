@@ -15,9 +15,9 @@ import type { MilestoneId, MilestoneTier, TeamSticker } from "./records";
 import { randomEmojisShownTo } from "./flag";
 import { holdsRandomEmoji, randomEmojiNamesHeldBy, randomEmojisHeldBy, type RandomEmojiId } from "./randomEmojis";
 import type { PageOwner, TeamPage } from "./teamPages";
-import { holdsTheHypeOf, hypesHeldFor, hypeWaitsForItsItem, type HypesHeld } from "../items/hypes";
-import { boardOf } from "../items/ledger";
-import { hiddenItemsShownTo } from "../items/flag";
+import { holdsTheHypeOf, hypesHeldFor, hypeWaitsForItsItem, type HypesHeld } from "./items/hypes";
+import { boardOf } from "./items/ledger";
+import { hiddenItemsShownTo } from "./items/flag";
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 

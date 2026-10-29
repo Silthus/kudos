@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
 import { emojiStackOf } from "../album/earnedEmojis";
 import { workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
-import { hoggieSharePictureOf } from "../items/shareArt";
+import { hoggieSharePictureOf } from "../album/items/shareArt";
 import type { Face } from "../website/faces";
 import { siteOriginFor } from "../website/link";
 import { crestPictureOf } from "../website/linkCardStats";

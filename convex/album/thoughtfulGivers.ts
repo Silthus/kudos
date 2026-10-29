@@ -1,6 +1,6 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { allowanceDay } from "../engine/allowance";
-import { teasersShownTo } from "../items/flag";
+import { teasersShownTo } from "./items/flag";
 import { keyOf, type PeriodKey } from "../leaderboard/periods";
 import type { MemberId } from "../workspace/directory";
 

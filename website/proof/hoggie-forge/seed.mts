@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { catalogue, hoggieNamed, hoggiesOfRarity } from "../../../convex/hoggies/catalogue";
+import { catalogue, hoggieNamed, hoggiesOfRarity } from "../../../convex/album/hoggies/catalogue";
 
 const [member, out] = process.argv.slice(2);
 if (!member || !out) throw new Error("usage: seed.mts <member id> <out dir>");

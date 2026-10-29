@@ -1,7 +1,7 @@
 import { companyProfilesIn, publicNameOf, type CompanyProfile } from "../companyProfiles/matcher";
 import { companyTeamsOf, crestArtOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
-import { crestNamed } from "../hoggies/catalogue";
-import type { CollectedCrest } from "../hoggies/collection";
+import { crestNamed } from "../album/hoggies/catalogue";
+import type { CollectedCrest } from "../album/hoggies/collection";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId, MemberRows } from "../workspace/directory";
 import type { AlbumOwner } from "./albums";

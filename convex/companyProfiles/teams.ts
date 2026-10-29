@@ -1,6 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { crestNamed } from "../hoggies/catalogue";
+import { crestNamed } from "../album/hoggies/catalogue";
 
 export type TeamCrestArt = { kind: "crest"; slug: string } | { kind: "image"; url: string } | null;
 
