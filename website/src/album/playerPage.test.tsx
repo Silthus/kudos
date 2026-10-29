@@ -67,7 +67,7 @@ describe("LP93 LP94 LP96: page D shows your own page as a player card, your rare
     expect(stats.getByRole("link", { name: `24 of ${withPageD.people.length} people` })).toBeInTheDocument();
     expect(stats.getByRole("group", { name: "7 emojis" })).toBeInTheDocument();
     expect(stats.getByRole("link", { name: "4 medals" })).toBeInTheDocument();
-    expect((await region("Your card")).getByRole("link", { name: "No. 1 this week · 7 thoughtful kudos" })).toHaveAttribute("href", "/leaderboard");
+    expect((await region("Your card")).getByRole("link", { name: "No. 1 this week · 7 kudos" })).toHaveAttribute("href", "/leaderboard");
   });
 
   it("emphasises the rarest find with a way to all hoggies", async () => {
@@ -145,7 +145,7 @@ describe("LP93 LP95 LP96: page D shows a teammate's card, their rarest find, the
     expect(card.getByText("Teammate · in your album")).toBeInTheDocument();
     expect(card.getByRole("heading", { level: 1, name: "Wren Alder" })).toBeInTheDocument();
     expect(card.getByText("· level 4")).toBeInTheDocument();
-    expect(card.getByRole("link", { name: "No. 3 tied this week · 4 thoughtful kudos" })).toBeInTheDocument();
+    expect(card.getByRole("link", { name: "No. 3 tied this week · 4 kudos" })).toBeInTheDocument();
     expect(card.getByRole("group", { name: "21 of 151 hoggies found" })).toBeInTheDocument();
     expect(card.queryByRole("link", { name: "21 of 151 hoggies found" })).not.toBeInTheDocument();
     expect(card.getByRole("group", { name: "9 people" })).toBeInTheDocument();

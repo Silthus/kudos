@@ -57,7 +57,7 @@ describe("the maintainer switches the weekly post only through setWeeklyPost", {
   it("says what it posts, where and when, and links the announcement channel in Slack", async () => {
     await showSettings(forTheMaintainer());
 
-    expect(weeklyPostSection()).toHaveTextContent("Every Monday at 9:00, Europe/Berlin time, I can post last week's top thoughtful kudos in the announcement channel.");
+    expect(weeklyPostSection()).toHaveTextContent("Every Monday at 9:00, Europe/Berlin time, I can post last week's top kudos in the announcement channel.");
     expect(within(weeklyPostSection()).getByRole("link", { name: "the announcement channel" })).toHaveAttribute("href", "https://hedgehug.slack.com/archives/C_ANNOUNCE");
     expect(theSwitch()).not.toBeChecked();
   });
@@ -165,7 +165,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
   it("offers the picker beside the announcement channel while none is picked", async () => {
     await showSettings(forTheMaintainer(weeklyPostParts.unpicked));
 
-    expect(weeklyPostSection()).toHaveTextContent("I can post last week's top thoughtful kudos in the announcement channel.");
+    expect(weeklyPostSection()).toHaveTextContent("I can post last week's top kudos in the announcement channel.");
     expect(linkField()).toHaveValue("");
     expect(within(channelForm()).getByText("In Slack, right-click a public channel and pick Copy, then Copy link. Paste it here.")).toBeInTheDocument();
   });
@@ -173,7 +173,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
   it("names the picked channel and links it in Slack", async () => {
     await showSettings(forTheMaintainer(weeklyPostParts.picked));
 
-    expect(weeklyPostSection()).toHaveTextContent("Every Monday at 9:00, Europe/Berlin time, I post last week's top thoughtful kudos in #kudos-weekly.");
+    expect(weeklyPostSection()).toHaveTextContent("Every Monday at 9:00, Europe/Berlin time, I post last week's top kudos in #kudos-weekly.");
     expect(within(weeklyPostSection()).getByRole("link", { name: "#kudos-weekly" })).toHaveAttribute("href", pickedLink);
   });
 
@@ -300,7 +300,7 @@ describe("the maintainer picks the weekly post's channel only through pickWeekly
 
     expect(channelStatus()).toHaveTextContent(line);
     expect(linkField()).toHaveValue(otherLink);
-    expect(weeklyPostSection()).toHaveTextContent("I post last week's top thoughtful kudos in #kudos-weekly.");
+    expect(weeklyPostSection()).toHaveTextContent("I post last week's top kudos in #kudos-weekly.");
   });
 
   it("after an answer that never came, says what the read then shows about the pick", async () => {
