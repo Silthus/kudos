@@ -62,7 +62,7 @@ export function XpMomentSummary({ moment: { xp, moments, since, timeZone, though
       )}
       {quests.length > 0 && <QuestsDone quests={quests} />}
       {progressed.length > 0 && <ProgressedList progressed={progressed} />}
-      {thoughtfulGivers !== null && thoughtfulGivers >= leastTeammatesShown && <p className="xpm-norm">{thoughtfulGivers} teammates gave thoughtful kudos this week</p>}
+      {thoughtfulGivers !== null && thoughtfulGivers >= leastTeammatesShown && <p className="xpm-norm">{thoughtfulGivers} teammates gave kudos this week</p>}
     </div>
   );
 }

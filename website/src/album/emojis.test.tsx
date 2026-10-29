@@ -139,7 +139,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     await view.user.click(milestones.getByRole("button", { name: "Show all · 3 more" }));
 
-    expect(milestones.getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent)).toEqual(["Faces in the album 2 of 4", "Full pages 1 of 4", "Across the company 1 of 4", "Hoggie hunter 1 of 4", "Kind words 1 of 4"]);
+    expect(milestones.getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent)).toEqual(["Faces in the album 2 of 4", "Full pages 1 of 4", "Across the company 1 of 4", "Hoggie hunter 1 of 4", "Kudos given 1 of 4"]);
   });
 
   it("a hype emoji without a face shows the person's initials in the hype colours", async () => {
@@ -224,7 +224,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(rowsIn(popup)).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     await view.user.clear(popup.getByRole("searchbox", { name: "Find an emoji" }));
     await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "heart of the team");
-    expect(rowsIn(popup)).toEqual([":heart-of-the-team:Reach gold in Kind words · 9 of 100"]);
+    expect(rowsIn(popup)).toEqual([":heart-of-the-team:Reach gold in Kudos given · 9 of 100"]);
     await view.user.clear(popup.getByRole("searchbox", { name: "Find an emoji" }));
     await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "zebra");
     expect(popup.getByText("No emoji matches “zebra”.")).toBeInTheDocument();
@@ -540,7 +540,7 @@ describe("#664 AL32: the Settings page shows workspace admins the shared list", 
       ":team-copper-kite:The Copper Kite team stickerAdd to Slack",
       ":first-face:Bronze in Faces in the album: First faceIn Slack",
     ]);
-    expect(rows).toContain(":heart-of-the-team:Gold in Kind words: Heart of the teamAdd to Slack");
+    expect(rows).toContain(":heart-of-the-team:Gold in Kudos given: Heart of the teamAdd to Slack");
     expect(rows.slice(-2)).toEqual([":level-5:Reaching level 5Add to Slack", ":level-10:Reaching level 10Add to Slack"]);
     expect(rows).toHaveLength(26);
     expect(list.getByText("2 of 26 in Slack")).toBeInTheDocument();

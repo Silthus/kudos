@@ -46,8 +46,8 @@ export async function drawFrom(ctx: QueryCtx, workspace: string, walk: DrawWalk)
   return { kind: "empty" };
 }
 
-export async function publicThoughtfulKudosOf(ctx: QueryCtx, ref: MessageRef): Promise<DrawableKudos | null> {
-  if (!isPublicAndThoughtful(await wordsOf(ctx, ref))) return null;
+export async function publicKudosOf(ctx: QueryCtx, ref: MessageRef): Promise<DrawableKudos | null> {
+  if (!isPublic(await wordsOf(ctx, ref))) return null;
   return drawableAmong(ctx, ref, await awardsOfMessage(ctx, ref));
 }
 
@@ -99,12 +99,12 @@ async function drawableAmong(ctx: QueryCtx, ref: MessageRef, awards: Awards): Pr
   if (first === undefined) return null;
   if (!(await isMember(ctx, first.giver)) || !(await allOnTheBoards(ctx, peopleOf(awards)))) return null;
   const words = await wordsOf(ctx, ref);
-  if (!isPublicAndThoughtful(words)) return null;
+  if (!isPublic(words)) return null;
   return { at: first.at, giver: first.giver, recipients: awards.map(({ recipient }) => recipient), segments: words.segments, edited: words.edited };
 }
 
-function isPublicAndThoughtful(words: KudosText): words is Extract<KudosText, { kind: "text" }> {
-  return words.kind === "text" && words.visibility === "public" && words.gate?.thoughtful === true;
+function isPublic(words: KudosText): words is Extract<KudosText, { kind: "text" }> {
+  return words.kind === "text" && words.visibility === "public";
 }
 
 async function allOnTheBoards(ctx: QueryCtx, members: MemberId[]) {
