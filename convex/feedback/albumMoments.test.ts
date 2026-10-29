@@ -566,7 +566,7 @@ async function memberIdOf(someone: Person) {
 }
 
 async function pageOf(someone: Person) {
-  return `${site}/book#people/${encodeURIComponent(await memberIdOf(someone))}`;
+  return `${site}/book?src=monday-post#people/${encodeURIComponent(await memberIdOf(someone))}`;
 }
 
 const albumSlackOff: Array<{ condition: string; flags: FlagDefinition[]; turnOff?: () => void; momentsSent?: { recaps: number; mondayPosts: number } }> = [

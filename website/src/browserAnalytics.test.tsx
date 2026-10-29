@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { ConvexProvider, type ConvexReactClient } from "convex/react";
@@ -195,6 +195,7 @@ beforeEach(() => {
   fakeSystemTheme(false);
   preferWideScreen();
   window.history.replaceState(null, "", "/book#me");
+  sessionStorage.clear();
   vi.resetModules();
   recorded.imports = 0;
   recorded.calls.length = 0;
@@ -447,6 +448,75 @@ describe("MS22: pageviews follow the address", () => {
     act(() => window.dispatchEvent(new PopStateEvent("popstate")));
 
     expect(sentEvents()).toEqual([{ event: "$pageview", page: "leaderboard", book_page: undefined, spread: undefined }]);
+  });
+});
+
+describe("HH93: a page view names where the visit came from", () => {
+  function pageviewSources() {
+    return recorded.sent.filter(({ event }) => event === "$pageview").map(({ properties }) => ({ page: properties.page, source: properties.source }));
+  }
+
+  async function loadTheSite(address: string, analytics: unknown) {
+    window.history.replaceState(null, "", address);
+    vi.resetModules();
+    const site = await renderLiveSite();
+    analyticsAnswers(analytics);
+    return site;
+  }
+
+  it("a link's src leaves the address before the page settles, and only the visit's first page view carries it as its source", async () => {
+    const { user } = await loadTheSite("/leaderboard?src=monday-dm", ann);
+    await capturing();
+
+    expect(window.location.search, "the address after src is removed").toBe("");
+    await user.click(within(await topBar()).getByRole("link", { name: /^Your profile/ }));
+
+    expect(pageviewSources()).toEqual([
+      { page: "leaderboard", source: "monday-dm" },
+      { page: "book", source: undefined },
+    ]);
+    expect(recorded.sent.filter(({ event }) => event === "$pageleave").map(({ properties }) => properties.source)).toEqual([undefined]);
+  });
+
+  it("removing src keeps the sign-in code and the hash, and records no page view of its own", async () => {
+    await loadTheSite("/book?src=welcome&code=SIGNIN-CODE-1234#milestones", ann);
+    await capturing();
+
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe("/book?code=SIGNIN-CODE-1234#milestones");
+    expect(pageviewSources()).toEqual([{ page: "book", source: "welcome" }]);
+  });
+
+  it.each(["", "?src=someone-else"])("a visit whose address carries no known source (%j) is direct, and leaves no src behind", async (search) => {
+    await loadTheSite(`/book${search}#me`, ann);
+    await capturing();
+
+    expect(window.location.search).toBe("");
+    expect(pageviewSources()).toEqual([{ page: "book", source: "direct" }]);
+  });
+
+  it("the source outlives the sign-in round trip, and the next visit without one is direct again", async () => {
+    await loadTheSite("/sign-in/book?src=welcome#milestones", { kind: "signed-out" });
+    cleanup();
+    await loadTheSite("/book?code=SIGNIN-CODE-1234#milestones", ann);
+    await capturing();
+    expect(pageviewSources()).toEqual([{ page: "book", source: "welcome" }]);
+
+    cleanup();
+    recorded.sent.length = 0;
+    await loadTheSite("/book#me", ann);
+    await waitFor(() => expect(pageviewSources()).toEqual([{ page: "book", source: "direct" }]));
+  });
+
+  it("a later member's capture on the same page sends no source again", async () => {
+    await loadTheSite("/book?src=reply#me", ann);
+    await capturing();
+    analyticsAnswers(bea);
+    await waitFor(() => expect(pageviewSources()).toHaveLength(2));
+
+    expect(pageviewSources()).toEqual([
+      { page: "book", source: "reply" },
+      { page: "book", source: undefined },
+    ]);
   });
 });
 

@@ -101,8 +101,8 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
           {
             type: "actions",
             elements: [
-              { type: "button", text: { type: "plain_text", text: "Identify them on the website" }, url: `${site}/book`, action_id: "dm-link:kudos-reply:book", style: "primary" },
-              { type: "button", text: { type: "plain_text", text: "See your quests" }, url: `${site}/book#me/quests`, action_id: "dm-link:kudos-reply:quests" },
+              { type: "button", text: { type: "plain_text", text: "Identify them on the website" }, url: `${site}/book?src=reply`, action_id: "dm-link:kudos-reply:book", style: "primary" },
+              { type: "button", text: { type: "plain_text", text: "See your quests" }, url: `${site}/book?src=reply#me/quests`, action_id: "dm-link:kudos-reply:quests" },
             ],
           },
           footer,
@@ -172,7 +172,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
       [
         { type: "section", text: { type: "mrkdwn", text: "*<@U_BOB> got 1 kudos from you* · +10 XP" } },
         { type: "context", elements: [{ type: "mrkdwn", text: "2 kudos left today" }] },
-        { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${site}/`, action_id: "dm-link:kudos-reply:home", style: "primary" }] },
+        { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${site}/?src=reply`, action_id: "dm-link:kudos-reply:home", style: "primary" }] },
         footer,
       ],
     ]);
@@ -326,7 +326,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     await thanks(alice, saysWhy, bob);
 
     expect(messagesTo(alice).map(({ text }) => text), "the messages Alice got").toEqual([
-      "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.\n+10 XP · <https://kudos-site.test/|See your progress on the web>\nQuest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection\n<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
+      "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.\n+10 XP · <https://kudos-site.test/?src=reply|See your progress on the web>\nQuest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection\n<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
       "An item for thanking Bob",
     ]);
   });

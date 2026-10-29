@@ -125,7 +125,7 @@ async function contentOf(ctx: QueryCtx, workspace: string, member: MemberId, { h
 
 async function mondayQuestsOf(ctx: QueryCtx, workspace: string, member: MemberId, quests: QuestsSection | null): Promise<MondayQuests | null> {
   if (quests === null) return null;
-  const links = await dmLinksFor(ctx, workspace, member);
+  const links = await dmLinksFor(ctx, workspace, member, "monday-dm");
   const waiting = await shownWaitingHoggiesOf(ctx, member, links);
   return { ...questsCopyOf(quests, waiting), waiting: waiting !== 0, links };
 }

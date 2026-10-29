@@ -10,6 +10,7 @@ import { earnWelcomeItem } from "../items/welcome";
 import { welcomeItemShownTo } from "../items/welcomeFlag";
 import { websiteOriginFor } from "../website/link";
 import { signInEntry } from "../website/routes";
+import { linkFrom } from "../website/visitSource";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { saveWelcomeNudge, settingsOf, welcomeNudgeOn } from "../workspace/settings";
 import { isTheMaintainer } from "../workspace/workspaceSettings";
@@ -114,7 +115,7 @@ async function hasSignedIn(ctx: QueryCtx, workspace: string, user: ChatUserId) {
 async function albumLinkFor(ctx: QueryCtx, workspace: string, member: MemberId): Promise<string | null> {
   const origin = await websiteOriginFor(ctx, workspace, member);
   if (origin === null) return null;
-  return origin.endsWith(signInEntry) ? origin : `${origin}/book`;
+  return linkFrom("welcome", origin.endsWith(signInEntry) ? origin : `${origin}/book`);
 }
 
 export async function publicQuoteOf(ctx: QueryCtx, message: MessageRef, quoted: (segments: WordSegment[]) => WordSegment[] = (segments) => segments): Promise<string | null> {

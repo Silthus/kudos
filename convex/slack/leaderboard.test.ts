@@ -179,9 +179,9 @@ describe("SW13 SW14: the leaderboard reply links to the same board on the web", 
   }
 
   test.each([
-    { text: "leaderboard", below: ["▲ 2 more kudos than this time last week", `<${siteUrl}/leaderboard|See the full leaderboard on the web>`] },
-    { text: "leaderboard month", below: ["▲ 2 more kudos than this time last month", `<${siteUrl}/leaderboard|See the full leaderboard on the web>`] },
-    { text: "leaderboard all", below: [`<${siteUrl}/leaderboard|See the full leaderboard on the web>`] },
+    { text: "leaderboard", below: ["▲ 2 more kudos than this time last week", `<${siteUrl}/leaderboard?src=reply|See the full leaderboard on the web>`] },
+    { text: "leaderboard month", below: ["▲ 2 more kudos than this time last month", `<${siteUrl}/leaderboard?src=reply|See the full leaderboard on the web>`] },
+    { text: "leaderboard all", below: [`<${siteUrl}/leaderboard?src=reply|See the full leaderboard on the web>`] },
   ])("`/hedgehug $text` ends with a link to its period's board", async ({ text, below }) => {
     const t = await boardOfTwoGivers("website");
 
@@ -196,7 +196,7 @@ describe("SW13 SW14: the leaderboard reply links to the same board on the web", 
 
     const reply = await command(t, "U1", "leaderboard all");
 
-    expect(reply.text.split("\n").at(-1)).toBe(`<${siteUrl}/leaderboard|See the full leaderboard on the web>`);
+    expect(reply.text.split("\n").at(-1)).toBe(`<${siteUrl}/leaderboard?src=reply|See the full leaderboard on the web>`);
   });
 
   test("a period it doesn't know answers the usage, with no link", async () => {

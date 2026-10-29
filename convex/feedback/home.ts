@@ -33,6 +33,7 @@ import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { boughtCratePageOf, crateOfferPageOf, earlierWeekCratePageOf, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page, type SettingsSection } from "../website/routes";
+import type { Website } from "../website/visitSource";
 import type { SlackEmojiReach } from "../workspace/slackEmoji";
 import { coinsPartOf, inCoins } from "./coins";
 import type { CrateStoreShown, HoggiesShown, HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
@@ -114,31 +115,31 @@ function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
 function frontDoorOf(facts: MemberHome, home: ShownHome | null, links: FrontDoorLinks): HomeView {
   if (home === null) return summaryOf(facts, noProfileFacts, links);
   const { shown } = home;
-  const view = shown.tab === "profile" ? summaryOf(facts, shown, links) : withWebsiteLink(frontDoorTabOf(facts, shown, links), urlOf(links.origin, { page: "home" }));
+  const view = shown.tab === "profile" ? summaryOf(facts, shown, links) : withWebsiteLink(frontDoorTabOf(facts, shown, links), urlOf(links.origin, { page: "home" }, "app-home"));
   return { tabBar: tabBar(home.tabs, shown.tab), ...view };
 }
 
 function frontDoorTabOf(facts: MemberHome, shown: ShownTab, links: FrontDoorLinks): HomeView {
   const view = tabOf(facts, shown, sectionLinksOf(links));
-  return shown.tab === "inventory" ? { ...view, groups: [[inventoryOnTheWeb(links.origin)], ...view.groups] } : view;
+  return shown.tab === "inventory" ? { ...view, groups: [[inventoryOnTheWeb(appHomeOf(links))], ...view.groups] } : view;
 }
 
-function sectionLinksOf({ origin, sections }: FrontDoorLinks): SectionLinks {
-  return (section) => (sections.includes(section) ? [sectionOnTheWeb(section, origin)] : []);
+function sectionLinksOf(links: FrontDoorLinks): SectionLinks {
+  return (section) => (links.sections.includes(section) ? [sectionOnTheWeb(section, appHomeOf(links))] : []);
 }
 
-function sectionOnTheWeb(section: HomeSection, website: string): HomeLine {
+function sectionOnTheWeb(section: HomeSection, website: Website): HomeLine {
   const action = linkOnTheWeb({ ...sectionLinks[section], id: `settings:${section}` }, { page: "settings", section }, website);
   return { kind: "action", text: "You can change this on the web, too.", action };
 }
 
-function inventoryOnTheWeb(website: string): HomeLine {
+function inventoryOnTheWeb(website: Website): HomeLine {
   const action = linkOnTheWeb({ label: "Inventory", spoken: "Open your inventory", id: "inventory" }, { page: "home", panel: "inventory" }, website);
   return { kind: "action", text: "Your inventory is on the web, too.", action };
 }
 
-function withWebsiteLink(view: HomeView, website: string): HomeView {
-  return { ...view, groups: [...view.groups, [{ kind: "link", label: openTheWebsite, url: website }]] };
+function withWebsiteLink(view: HomeView, url: string): HomeView {
+  return { ...view, groups: [...view.groups, [{ kind: "link", label: openTheWebsite, url }]] };
 }
 
 function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {
@@ -182,12 +183,12 @@ function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest,
 
 function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies, boughtCrates, teaser, thoughtfulGivers }: ProfileFacts, links: FrontDoorLinks): HomeView {
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)]), ...textLines(teaser), ...(thoughtfulGivers === null ? [] : [normLineOf(thoughtfulGivers)])];
-  const { origin } = links;
-  const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, origin), earlierGroupCrates, origin);
-  const collectionPage = hoggies === null ? null : origin;
-  const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [], collectionPage)];
-  const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
-  return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
+  const website = appHomeOf(links);
+  const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, website), earlierGroupCrates, website);
+  const collectionPage = hoggies === null ? null : website;
+  const waiting = [...readyCratesOf(unlocks, website), ...earlier.shown, ...weeklyCratesOf(quests, website), ...journeyCratesOf(journey, website), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [], collectionPage)];
+  const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website });
+  return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, website), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
 function textLines(text: string | null): HomeLine[] {
@@ -204,15 +205,15 @@ function levelLineOf({ level, xpToNextLevel, skillPoints, coins }: ToldProgressi
   return { kind: "text", text: `Level ${level} · ${xpToNextLevel} XP to level ${level + 1}${skillTree}${wallet}` };
 }
 
-function readyCratesOf(unlocks: UnlocksHome | null, website: string): HomeLine[] {
+function readyCratesOf(unlocks: UnlocksHome | null, website: Website): HomeLine[] {
   return (unlocks?.ready ?? []).map(({ feature, name }) => ({ kind: "action", text: `${bold(name)} is ready.`, action: openUnlock(feature, website) }));
 }
 
-function earlierCratesOf(crates: UnopenedCrate[] | null, website: string): HomeLine[] {
+function earlierCratesOf(crates: UnopenedCrate[] | null, website: Website): HomeLine[] {
   return (crates ?? []).map(({ crate, week, goal, reward, waiting }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate(crate, website, earlierWeekCratePageOf(crate)) }));
 }
 
-function cappedEarlierCrates(weekly: HomeLine[], groupCrates: WaitingGroupCrate[] | null, website: string | null): { shown: HomeLine[]; more: HomeLine[] } {
+function cappedEarlierCrates(weekly: HomeLine[], groupCrates: WaitingGroupCrate[] | null, website: Website | null): { shown: HomeLine[]; more: HomeLine[] } {
   const lines = [...weekly, ...(groupCrates ?? []).map((crate) => earlierGroupCrateLine(crate, website))];
   return { shown: lines.slice(0, earlierCratesShown), more: moreEarlierCrates(lines.length - earlierCratesShown) };
 }
@@ -227,13 +228,13 @@ function moreEarlierCrates(more: number): HomeLine[] {
   return [{ kind: "hint", text: more === 1 ? "1 more crate from earlier weeks waits to open." : `${more} more crates from earlier weeks wait to open.` }];
 }
 
-function weeklyCratesOf(quests: WeeklyQuests | null, website: string): HomeLine[] {
+function weeklyCratesOf(quests: WeeklyQuests | null, website: Website): HomeLine[] {
   if (quests === null) return [];
   const unopened = quests.slots.filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
   return unopened.map(({ slot, goal, reward, waiting }) => ({ kind: "action", text: `✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate({ kind: "weekly", week: quests.week, slot }, website) }));
 }
 
-function journeyCratesOf(journey: JourneyStepShown[] | null, website: string): HomeLine[] {
+function journeyCratesOf(journey: JourneyStepShown[] | null, website: Website): HomeLine[] {
   const unopened = (journey ?? []).filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
   return unopened.map(({ step, reward, waiting }) => ({ kind: "action", text: `✅ ${journeyGoalOf(step)}${waitingPartOf(reward.xp, waiting)}`, action: openCrate({ kind: "journey", step }, website) }));
 }
@@ -242,7 +243,7 @@ function waitingPartOf(xp: number, waiting: boolean) {
   return waiting ? ` · ${xp} XP waits in your crate` : "";
 }
 
-function hoggiesLinesOf(hoggies: HoggiesShown | null, website: string | null): HomeLine[][] {
+function hoggiesLinesOf(hoggies: HoggiesShown | null, website: Website | null): HomeLine[][] {
   if (hoggies === null) return [];
   const text = `Hoggies: ${hoggies.owned} of ${hoggies.total}${crestsPartOf(hoggies)} · ${lastFoundPartOf(hoggies)}`;
   const line: HomeLine = website === null ? { kind: "text", text } : { kind: "action", text, action: linkOnTheWeb({ label: "View", spoken: "View your hoggies", id: "hoggies" }, { page: "bookCollection" }, website) };
@@ -258,14 +259,14 @@ function avatarLinesOf(choice: AvatarChoice | null): HomeLine[] {
   return [{ kind: "pick", id: "setAvatar", text, placeholder: "Use as avatar", options: [...none, ...options] }];
 }
 
-function crateOfferLines(store: CrateStoreShown | null, website: string | null): HomeLine[] {
+function crateOfferLines(store: CrateStoreShown | null, website: Website | null): HomeLine[] {
   if (store === null) return [];
   const action = buyACrate(store, website);
   const short: HomeLine[] = store.short !== null && store.short > 0 ? [{ kind: "hint", text: `You need ${store.short} more 🪙.` }] : [];
   return [{ kind: "action", text: "A crate drops one hoggie when you open it.", action }, ...short];
 }
 
-function buyACrate({ price, next }: CrateStoreShown, website: string | null): HomeAction {
+function buyACrate({ price, next }: CrateStoreShown, website: Website | null): HomeAction {
   const label = `Buy a crate · ${coinsOf(price)}`;
   const spoken = `Buy a crate for ${price} coins`;
   if (website !== null) return linkOnTheWeb({ label, spoken, id: "crate-store" }, crateOfferPageOf(), website);
@@ -273,13 +274,13 @@ function buyACrate({ price, next }: CrateStoreShown, website: string | null): Ho
   return { label, command: { type: "buyCrate", next }, accessibilityLabel: spoken, confirm };
 }
 
-function boughtCratesLines([oldest, ...others]: string[], website: string | null): HomeLine[] {
+function boughtCratesLines([oldest, ...others]: string[], website: Website | null): HomeLine[] {
   if (oldest === undefined) return [];
   const text = others.length === 0 ? "A crate you bought" : `${others.length + 1} crates you bought`;
   return [{ kind: "action", text, action: openBoughtCrate(oldest, website) }];
 }
 
-function openBoughtCrate(crate: string, website: string | null): HomeAction {
+function openBoughtCrate(crate: string, website: Website | null): HomeAction {
   const spoken = "Open a crate you bought";
   if (website === null) return { label: "Open", command: { type: "openCrate", crate }, accessibilityLabel: spoken };
   return linkOnTheWeb({ label: "Open", spoken, id: crate }, boughtCratePageOf(crate), website);
@@ -293,8 +294,12 @@ function lastFoundPartOf({ lastFound }: HoggiesShown) {
   return lastFound === null ? "every crate you open drops one." : `last found: ${lastFound.name} (${rarityLabel(lastFound.rarity)})`;
 }
 
+function appHomeOf({ origin }: FrontDoorLinks): Website {
+  return { origin, source: "app-home" };
+}
+
 function websiteButtonsOf({ origin, pages }: FrontDoorLinks): HomeLine {
-  return { kind: "links", links: [{ label: `Open ${productName}`, url: urlOf(origin, { page: "home" }) }, ...pages] };
+  return { kind: "links", links: [{ label: `Open ${productName}`, url: urlOf(origin, { page: "home" }, "app-home") }, ...pages] };
 }
 
 function periodChoices(selected: Period): HomeLine {
@@ -414,11 +419,11 @@ function itemLabelOf({ art, name }: CatalogueItem) {
   return art.kind === "unicode" ? `${art.glyph} ${name}` : name;
 }
 
-export function perkOfferOf(perk: Perk, website: string | null): { text: string; action: HomeAction } {
+export function perkOfferOf(perk: Perk, website: Website | null): { text: string; action: HomeAction } {
   return { text: perkTextOf(perk), action: buyPerk(perk, website) };
 }
 
-function buyPerk(perk: Perk, website: string | null): HomeAction {
+function buyPerk(perk: Perk, website: Website | null): HomeAction {
   const spoken = `Buy ${perk.name}`;
   if (website === null) return { label: "Buy", command: { type: "buyPerk", perk: perk.perk }, accessibilityLabel: spoken, confirm: purchaseConfirmationOf(perk) };
   return linkOnTheWeb({ label: "Buy", spoken, id: `buy:${perk.perk}` }, { page: "skillTree" }, website);
@@ -645,7 +650,7 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   return [...readyLines, ...nextLine];
 }
 
-type QuestRows = { cratesShownApart: boolean; website: string | null };
+type QuestRows = { cratesShownApart: boolean; website: Website | null };
 
 function questsThisWeek(quests: WeeklyQuests | null, groupQuest: GroupQuest | null, rows: QuestRows): HomeLine[][] {
   const slots = quests === null ? [] : quests.slots.map((slot) => weeklyQuestLine(quests.week, slot, { swapAvailable: quests.swapAvailable, ...rows }));
@@ -660,7 +665,7 @@ function asksToSayWhy(quests: WeeklyQuests | null, groupQuest: GroupQuest | null
   return personal || (groupQuest !== null && !groupQuest.done && groupQuest.quest === "together-say-why");
 }
 
-function groupQuestLine({ group, week, goal, tookPart, target, done, crate }: GroupQuest, website: string | null): HomeLine {
+function groupQuestLine({ group, week, goal, tookPart, target, done, crate }: GroupQuest, website: Website | null): HomeLine {
   const text = `${group.name} quest: ${goal} · ${tookPart} of ${target} took part${done ? " · ✅" : ""}`;
   if (crate === null || crate.opened) return { kind: "text", text };
   return { kind: "action", text, action: openCrate({ kind: "group", group: group.group, week }, website) };
@@ -682,7 +687,7 @@ function waitingToOpenLines(crates: UnopenedCrate[], groupCrates: WaitingGroupCr
   return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...more, ...boughtCratesLines(bought, null)];
 }
 
-function earlierGroupCrateLine({ crate, group, goal }: WaitingGroupCrate, website: string | null): HomeLine {
+function earlierGroupCrateLine({ crate, group, goal }: WaitingGroupCrate, website: Website | null): HomeLine {
   return { kind: "action", text: `${weekLabelOf(crate.week)} ✅ ${group} quest: ${goal}`, action: openCrate(crate, website, earlierWeekCratePageOf(crate)) };
 }
 
@@ -695,20 +700,20 @@ function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt, wait
   return hint === null ? [active] : [active, { kind: "hint", text: hint }];
 }
 
-export function finishedQuestCrateOf(quest: JourneyQuest, xp: number, waiting: boolean, website: string | null): { text: string; action: HomeAction } {
+export function finishedQuestCrateOf(quest: JourneyQuest, xp: number, waiting: boolean, website: Website | null): { text: string; action: HomeAction } {
   return { text: `✅ You finished a Journey step: ${journeyGoalOf(quest.step)} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website) };
 }
 
-export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, waiting: boolean, website: string | null, thisWeek: WeekKey): { text: string; action: HomeAction } {
+export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, waiting: boolean, website: Website | null, thisWeek: WeekKey): { text: string; action: HomeAction } {
   return { text: `✅ You finished a quest: ${goal} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website, weeklyCratePageOf(quest, thisWeek)) };
 }
 
-function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
+function swapQuest(quest: WeeklyQuest, website: Website | null): HomeAction {
   if (website === null) return { label: "Swap", command: { type: "rerollQuest", quest } };
   return linkOnTheWeb({ label: "Swap", spoken: "Swap", id: `swap:${rewardKeyOf(quest)}` }, { page: "quests", quest: quest.slot }, website);
 }
 
-function openCrate(quest: Quest, website: string | null, page = questCratePageOf(quest)): HomeAction {
+function openCrate(quest: Quest, website: Website | null, page = questCratePageOf(quest)): HomeAction {
   if (website === null) return { label: "Open", command: { type: "openQuestCrate", quest } };
   return openOnTheWeb(rewardKeyOf(quest), page, website);
 }
@@ -717,21 +722,21 @@ function rewardTold(xp: number, waiting: boolean) {
   return waiting ? `${bold(`${xp} XP`)} waits in your crate.` : `You earned ${bold(`${xp} XP`)}.`;
 }
 
-export function readyCrateOf({ feature, name, opens }: ScheduledFeature, website: string | null): { text: string; action: HomeAction } {
+export function readyCrateOf({ feature, name, opens }: ScheduledFeature, website: Website | null): { text: string; action: HomeAction } {
   return { text: `${bold(name)} is ready. It opens ${opens}.`, action: openUnlock(feature, website) };
 }
 
-function openUnlock(feature: Feature, website: string | null): HomeAction {
+function openUnlock(feature: Feature, website: Website | null): HomeAction {
   if (website === null) return { label: "Open", command: { type: "openUnlock", feature } };
   return openOnTheWeb(feature, readyCratePageOf(feature), website);
 }
 
-function openOnTheWeb(id: string, page: Page, website: string): LinkAction {
+function openOnTheWeb(id: string, page: Page, website: Website): LinkAction {
   return linkOnTheWeb({ label: "Open", spoken: "Open", id }, page, website);
 }
 
-function linkOnTheWeb({ label, spoken, id }: { label: string; spoken: string; id: string }, page: Page, website: string): LinkAction {
-  return { label, url: urlOf(website, page), accessibilityLabel: `${spoken} on ${productName}'s ${pageNames[page.page]} page`, id };
+function linkOnTheWeb({ label, spoken, id }: { label: string; spoken: string; id: string }, page: Page, website: Website): LinkAction {
+  return { label, url: urlOf(website.origin, page, website.source), accessibilityLabel: `${spoken} on ${productName}'s ${pageNames[page.page]} page`, id };
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {

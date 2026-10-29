@@ -11,6 +11,7 @@ import { hiddenItemsShownTo } from "../items/flag";
 import { waitingCountOf } from "../items/ledger";
 import { placeOf } from "../messageSettings/messageSettings";
 import { websiteOrigin } from "../website/link";
+import { linkFrom } from "../website/visitSource";
 import type { MemberId } from "../workspace/directory";
 import { albumSlackAppliesTo, publicPictureOf } from "./albumSlack";
 import { firstNameOf, mostRecipientsNamed } from "./recipientNames";
@@ -86,7 +87,7 @@ async function itemsBodyOf(ctx: QueryCtx, { giver }: ThoughtfulPacksGrantedEvent
   const recipients: AlbumReplyRecipient[] = [];
   for (const { recipient, outcome } of named) recipients.push({ ...itemWordsOf(outcome, await firstNameOf(ctx, recipient)), hype: null });
   const waiting = await waitingCountOf(ctx, giver);
-  return { recipients, waiting: waiting === 0 ? null : `${waiting} wait`, buttons: origin === null ? [] : [{ label: "See your items", url: `${origin}/book`, id: "album-see-items" }] };
+  return { recipients, waiting: waiting === 0 ? null : `${waiting} wait`, buttons: origin === null ? [] : [{ label: "See your items", url: linkFrom("reply", `${origin}/book`), id: "album-see-items" }] };
 }
 
 function itemWordsOf(outcome: GrantOutcome, first: string) {
@@ -148,8 +149,8 @@ function pictureOf({ picture }: HypeEmoji, first: string, origin: string | null)
 }
 
 async function buttonsOf(ctx: QueryCtx, outcomes: Outcome[], named: Outcome[], origin: string): Promise<AlbumReplyButton[]> {
-  if (outcomes.some(({ outcome }) => outcome !== "nextWeek")) return [{ label: "Open your pack", url: `${origin}/book#packs`, id: "album-open-packs" }];
+  if (outcomes.some(({ outcome }) => outcome !== "nextWeek")) return [{ label: "Open your pack", url: linkFrom("reply", `${origin}/book#packs`), id: "album-open-packs" }];
   const buttons: AlbumReplyButton[] = [];
-  for (const { recipient } of named) buttons.push({ label: `See ${await firstNameOf(ctx, recipient)}'s page`, url: `${origin}/book#people/${encodeURIComponent(recipient)}`, id: `album-see-person:${recipient}` });
+  for (const { recipient } of named) buttons.push({ label: `See ${await firstNameOf(ctx, recipient)}'s page`, url: linkFrom("reply", `${origin}/book#people/${encodeURIComponent(recipient)}`), id: `album-see-person:${recipient}` });
   return buttons;
 }
