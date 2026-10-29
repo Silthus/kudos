@@ -4,7 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/events";
 import { achievementsApplyIn } from "../achievements/flag";
-import type { MessageRef } from "../engine/messageEvent";
+import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { wantsMessage } from "../messageSettings/messageSettings";
 import { questsApplyIn } from "../quests/flag";
 import { xpLevelsShownIn } from "../progression/xpLevels";
@@ -30,6 +30,8 @@ export const publicReplyValidator = v.union(
   v.object({ ...replyFields, summary: v.id("tierSummaries") }),
 );
 
+export const celebratedLevelValidator = v.object({ ...messageRefValidator.fields, member: v.id("members"), level: v.number() });
+
 export type PublicSection = Infer<typeof publicSectionValidator>;
 
 type Announced = { reached: { member: MemberId; level: number } } | { summary: Id<"tierSummaries"> };
@@ -41,9 +43,17 @@ export const celebrateLevel = internalMutation({
     const { user } = await chatUserOf(ctx, event.member);
     const section = levelSection(event.member, user, event.level);
     if (event.message === undefined) await announceRewardedLevel(ctx, event, section);
-    else await setPublicSection(ctx, event.message, section);
+    else await celebrateLevelBeside(ctx, event.message, event, section);
   },
 });
+
+async function celebrateLevelBeside(ctx: MutationCtx, ref: MessageRef, { member, level }: LevelReachedEvent, section: PublicSection) {
+  const celebrated = await celebratedLevelRow(ctx, ref, member);
+  if (celebrated !== null && celebrated.level >= level) return;
+  if (celebrated === null) await ctx.db.insert("celebratedLevels", { ...ref, member, level });
+  else await ctx.db.patch(celebrated._id, { level });
+  await setPublicSection(ctx, ref, section);
+}
 
 export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, section: PublicSection) {
   const { announcementChannel: channel } = await settingsOf(ctx, ref.workspace);
@@ -173,6 +183,13 @@ function publicReplyRow(ctx: QueryCtx, ref: MessageRef, channel: string) {
     .withIndex("by_destination", (q) =>
       q.eq("workspace", ref.workspace).eq("conversation", ref.conversation).eq("message", ref.message).eq("channel", channel).eq("threadTs", undefined),
     )
+    .unique();
+}
+
+function celebratedLevelRow(ctx: QueryCtx, { workspace, conversation, message }: MessageRef, member: MemberId) {
+  return ctx.db
+    .query("celebratedLevels")
+    .withIndex("by_member_message", (q) => q.eq("member", member).eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
     .unique();
 }
 
