@@ -145,6 +145,25 @@ describe("HH16: writes cross modules as bus facts", () => {
   ])("finds %s", (_, source, crossings) => {
     expect(crossingsOf("/convex/stickers/stickers.ts", source)).toEqual(crossings);
   });
+
+  test.each([
+    ["an exported function", `export async function earnBonus(ctx: MutationCtx, member: MemberId) {}`, ["earnBonus"]],
+    ["an exported function with a type parameter", `export function earnAll<T extends Item>(ctx: MutationCtx, items: T[]) {}`, ["earnAll"]],
+    ["an exported function whose context is destructured", `export function earnBonus({ db }: MutationCtx) {}`, ["earnBonus"]],
+    ["an exported arrow", `export const earnBonus = async (ctx: MutationCtx) => {};`, ["earnBonus"]],
+    ["an exported wrapped arrow", `export const earnBonus = withBudget(async (ctx: MutationCtx) => {});`, ["earnBonus"]],
+    ["a function exported in a list", `async function earnBonus(ctx: MutationCtx) {}\nexport { earnBonus };`, ["earnBonus"]],
+    ["a function exported under another name", `async function earn(ctx: MutationCtx) {}\nexport { earn as earnBonus };`, ["earnBonus"]],
+    ["a re-export it can't read", `export { earn as earnBonus } from "./ledger";`, ["earnBonus"]],
+    ["a destructured export it can't read", `export const { earnBonus, levels: levelOf = level } = writers;`, ["earnBonus", "levelOf"]],
+    ["a read", `export async function standingOf(ctx: QueryCtx, member: MemberId) {}`, []],
+    ["a read that also takes a mutation's context", `export function xpLevelsShownIn(ctx: QueryCtx | MutationCtx, workspace: string) {}`, []],
+    ["a constant", `export const hugXp = 1;\nfunction earn(ctx: MutationCtx) {}`, []],
+    ["a read exported in a list", `function standingOf(ctx: QueryCtx) {}\nexport { standingOf, type Standing };`, []],
+    ["a type-only list", `export type { Earning } from "./ledger";`, []],
+  ])("reads %s of a module that writes rewards", (_, source, writes) => {
+    expect(writeFunctionsIn(source)).toEqual(writes);
+  });
 });
 
 function everyCrossing() {
@@ -166,7 +185,65 @@ function writeFunctionsOf(module: string) {
   if (!modulesThatWriteRewards.includes(module)) return [];
   return Object.entries(sources)
     .filter(([path]) => moduleOf(path) === module)
-    .flatMap(([, source]) => [...source.matchAll(/export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^>]*>)?\s*\(\s*\w+\s*:\s*MutationCtx\b/g)].map(([, name = ""]) => name));
+    .flatMap(([, source]) => writeFunctionsIn(source));
+}
+
+type Exported = { name: string; local: string | null };
+
+function writeFunctionsIn(source: string) {
+  return exportsOf(source)
+    .filter(({ local }) => local === null || takesMutationCtx(source, local))
+    .map(({ name }) => name);
+}
+
+function exportsOf(source: string): Exported[] {
+  return [...declaredExportsOf(source), ...destructuredExportsOf(source), ...listedExportsOf(source)];
+}
+
+function declaredExportsOf(source: string): Exported[] {
+  return [...source.matchAll(/export\s+(?:async\s+)?(?:function\s*\*?\s*|(?:const|let|var)\s+)(\w+)/g)].map(([, name = ""]) => ({ name, local: name }));
+}
+
+function destructuredExportsOf(source: string): Exported[] {
+  return [...source.matchAll(/export\s+(?:const|let|var)\s+[{[]([^}\]]*)/g)].flatMap(([, bindings = ""]) => bindings.split(",").flatMap(boundNameOf).map((name) => ({ name, local: null })));
+}
+
+function boundNameOf(binding: string) {
+  const [target = ""] = binding.split("=", 1);
+  const name = target.split(":").at(-1)?.trim() ?? "";
+  return /^\w+$/.test(name) ? [name] : [];
+}
+
+function listedExportsOf(source: string): Exported[] {
+  return [...source.matchAll(/export\s+(type\s+)?\{([^}]*)\}(\s*from\b)?/g)].flatMap(([, typeOnly, specifiers = "", from]) =>
+    typeOnly === undefined ? specifiers.split(",").flatMap((specifier) => listedExportOf(specifier, from !== undefined)) : [],
+  );
+}
+
+function listedExportOf(specifier: string, reexported: boolean): Exported[] {
+  const [local = "", name = local] = specifier.trim().split(/\s+as\s+/);
+  if (local === "" || local.startsWith("type ")) return [];
+  return [{ name, local: reexported ? null : local }];
+}
+
+function takesMutationCtx(source: string, local: string) {
+  return [...source.matchAll(new RegExp(String.raw`(?:function\s*\*?\s*|(?:const|let|var)\s+)${local}\b`, "g"))].some(({ index }) => needsAMutationCtx(signatureFrom(source, index)));
+}
+
+function needsAMutationCtx(signature: string) {
+  return /MutationCtx\b/.test(signature) && !/QueryCtx\b/.test(signature);
+}
+
+function signatureFrom(source: string, start: number) {
+  const open = source.indexOf("(", start);
+  const end = source.indexOf(";", start);
+  if (open === -1 || (end !== -1 && end < open)) return source.slice(start, end === -1 ? undefined : end);
+  let depth = 0;
+  for (let at = open; at < source.length; at += 1) {
+    if (source[at] === "(") depth += 1;
+    if (source[at] === ")" && (depth -= 1) === 0) return source.slice(start, at + 1);
+  }
+  return source.slice(start);
 }
 
 function wholeModulesReachedBy(path: string, source: string) {
