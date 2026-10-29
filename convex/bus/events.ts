@@ -117,7 +117,10 @@ export const questFinishedEventValidator = v.object({
   type: v.literal("questFinished"),
   ...questFields,
   poolQuest: v.optional(poolQuestIdValidator),
+  rewardKey: v.optional(v.string()),
   reward: v.optional(v.object({ xp: v.number(), coins: v.number() })),
+  catalogueVersion: v.optional(v.string()),
+  cause: v.optional(messageRefValidator),
 });
 
 export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(poolQuestIdValidator) });

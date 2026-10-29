@@ -128,7 +128,7 @@ describe("MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first
   });
 });
 
-describe("HH24: Quests publishes its finish and pays nothing; Progression and Album pay from questFinished", { timeout: 60_000 }, () => {
+describe("HH24: Quests publishes its finish and pays nothing; its followers pay from questFinished", { timeout: 60_000 }, () => {
   test("the finish publishes its reward key, reward, catalogue version and cause, names the quest in the reply, and is paid once its facts are delivered", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     const held = holdingQuestFinished();

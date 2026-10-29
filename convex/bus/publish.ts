@@ -40,6 +40,8 @@ export const subscribers: Registry = {
   questFinished: [
     { subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" },
     { subscriber: internal.welcome.welcome.welcomeOnFirstThanks, only: ({ quest }) => isTheFirstThanks(quest) },
+    internal.progression.questRewards.payQuestFinished,
+    internal.album.items.questHoggies.earnQuestHoggie,
     internal.analytics.subscribers.recordQuestFinished,
   ],
   questOpened: [internal.analytics.subscribers.recordQuestOpened],

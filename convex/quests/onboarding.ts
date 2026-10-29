@@ -3,10 +3,10 @@ import type { KudosGivenEvent } from "../bus/events";
 import { isSameMessage, type MessageRef } from "../engine/messageEvent";
 import { earliestAwardFrom, firstDecidedOf, givenBetween, givenRecordedAfter, givenSinceWithin, messagesGivenDecidedAfter, type AwardId, type DatedAward, type GivenKudos } from "../engine/awards";
 import { progressionWaitedFor } from "../progression/effects";
-import { rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf } from "./crates";
 import { finishMondayQuest } from "./finish";
+import { questFinishOf, type QuestFinish } from "./finishes";
 import { hasThankedEveryone, type Reward } from "./journey";
 import { journeyGoalOf } from "./journeyCopy";
 import { questsJudgedFor } from "./judged";
@@ -33,7 +33,7 @@ export type FinishedOnboardingQuest = { step: OnboardingStep; reward: Reward };
 
 export type OnboardingQuest = { step: OnboardingStep; goal: string; finished: boolean; progress: QuestProgress | null };
 
-export type OnboardingQuestFacts = { step: OnboardingStep; finish: RewardRecord | null; progress: QuestProgress | null };
+export type OnboardingQuestFacts = { step: OnboardingStep; finish: QuestFinish | null; progress: QuestProgress | null };
 
 export function onboardingGoalOf(step: OnboardingStep): string {
   return onboardingGoals[step];
@@ -228,5 +228,5 @@ async function twoDaysFinishedBy(ctx: QueryCtx, member: MemberId, instant: numbe
 }
 
 function finishOf(ctx: QueryCtx, member: MemberId, step: OnboardingStep) {
-  return rewardOf(ctx, member, rewardKeyOf({ kind: "journey", step }));
+  return questFinishOf(ctx, member, rewardKeyOf({ kind: "journey", step }));
 }
