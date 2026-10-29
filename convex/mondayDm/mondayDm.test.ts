@@ -74,7 +74,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
         "✅ ~Give a kudos to someone~",
         "👉 *Thank someone new*",
         "⚪ Thank someone on two different days _1 of 2 days_",
-        `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests) | Stop Monday quests`,
+        `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book?src=monday-dm) | See your quests (dm-link:monday:quests → ${siteUrl}/book?src=monday-dm#me/quests) | Stop Monday quests`,
         `context: ${footer}`,
       ],
     ]);
@@ -92,7 +92,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     expect(dm?.[0]).toBe(`section: Happy Monday :sun_with_face: Here are three quests for your week. Each one pays +20 XP and an unidentified Hoggie for your collection.\n\nTen unidentified Hoggies for your collection are waiting for you.`);
     expect(dm?.slice(1, 4)).toHaveLength(3);
     for (const quest of dm!.slice(1, 4)) expect(quest).toMatch(/^⚪ /);
-    expect(dm?.slice(4)).toEqual([`actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book) | See your quests (dm-link:monday:quests → ${siteUrl}/book#me/quests) | Stop Monday quests`]);
+    expect(dm?.slice(4)).toEqual([`actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book?src=monday-dm) | See your quests (dm-link:monday:quests → ${siteUrl}/book?src=monday-dm#me/quests) | Stop Monday quests`]);
   });
 
   test("with the website closed to the member, the DM counts no waiting hoggies it can't link to", async () => {
@@ -165,7 +165,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     await mondayArrives();
 
     expect(seen(dmsTo(alice).at(-1)!).at(-1)).toBe(
-      `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/sign-in/book) | See your quests (dm-link:monday:quests → ${siteUrl}/sign-in/book#me/quests) | Stop Monday quests`,
+      `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/sign-in/book?src=monday-dm) | See your quests (dm-link:monday:quests → ${siteUrl}/sign-in/book?src=monday-dm#me/quests) | Stop Monday quests`,
     );
   });
 
@@ -178,8 +178,8 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
 
     const welcome = slack.messagesShownIn(alice.user).find(({ blocks }) => welcomeLinksIn((blocks ?? []) as Block[]).length > 0);
     expect(linkUrlsIn(welcome!.blocks as Block[])).toEqual({
-      "dm-link:welcome:book": `${siteUrl}/sign-in/book`,
-      "dm-link:welcome:quests": `${siteUrl}/sign-in/book#me/quests`,
+      "dm-link:welcome:book": `${siteUrl}/sign-in/book?src=welcome`,
+      "dm-link:welcome:quests": `${siteUrl}/sign-in/book?src=welcome#me/quests`,
     });
   });
 

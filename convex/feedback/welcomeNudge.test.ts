@@ -77,7 +77,7 @@ describe("LP45 LP46 LP47 LP48: the welcome nudge is one DM ever to a member who 
         blocks: [
           { type: "section", text: { type: "mrkdwn", text: `<@U_ALICE> thanked you :taco:\n>${why} @Bob Okonkwo:taco:` } },
           { type: "section", text: { type: "mrkdwn", text: waits } },
-          { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Open your HedgeHug album" }, url: `${siteUrl}/book`, action_id: "welcome-nudge-open-album" }] },
+          { type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Open your HedgeHug album" }, url: `${siteUrl}/book?src=welcome`, action_id: "welcome-nudge-open-album" }] },
         ],
       },
     ]);
