@@ -3,7 +3,7 @@ import schema from "../schema";
 
 const sources = import.meta.glob<string>(["/convex/**/*.ts", "!/convex/_generated/**", "!/convex/**/*.test.ts"], { query: "?raw", import: "default", eager: true });
 
-const writeFunctions = ["recordReward", "applyGain", "earnItem", "markTurned", "dropFor", "credit", "spend"];
+const modulesThatWriteRewards = ["progression", "wallet", "items", "hoggies"];
 
 const tablesOf: Record<string, string[]> = {
   achievements: ["bookLaunches", "ladderCounts", "ladderMarks", "countedAwards", "bookBatches", "bookReplays", "bookReplayCursors", "earnedTiers"],
@@ -36,15 +36,32 @@ const allowed: string[] = [
   "convex/achievements/tierCoins.ts recordReward",
   "convex/achievements/tierEmoji.ts recordReward",
   "convex/album/emojiWizard.ts table:memberProgress",
+  "convex/album/milestones.ts earnTierItem",
   "convex/album/opening.ts dropFor",
+  "convex/album/opening.ts dropOf",
   "convex/album/opening.ts earnItem",
   "convex/album/opening.ts markTurned",
   "convex/album/packs.ts earnItem",
   "convex/album/putIn.ts markTurned",
+  "convex/album/putIn.ts putDropIn",
+  "convex/album/teamStickers.ts earnTeamItem",
+  "convex/commands/commands.ts buyCrate",
+  "convex/commands/commands.ts buyPerk",
+  "convex/commands/commands.ts openCrate",
+  "convex/commands/commands.ts setAvatar",
+  "convex/commands/commands.ts xpLevelsShownTo",
   "convex/companyProfiles/storedFaces.ts table:workspaces",
+  "convex/feedback/coins.ts coinsShownTo",
+  "convex/feedback/homes.ts coinsVisibleAndExposedTo",
+  "convex/feedback/homes.ts skillTreeShownTo",
+  "convex/feedback/homes.ts xpLevelsShownTo",
+  "convex/feedback/notify.ts xpLevelsShownTo",
+  "convex/feedback/replies.ts coinsShownTo",
+  "convex/feedback/replies.ts xpLevelsShownTo",
   "convex/feedback/tierNotices.ts table:members",
   "convex/feedback/tierNotices.ts table:unlockLaunches",
   "convex/feedback/welcome.ts table:welcomes",
+  "convex/feedback/welcomeNudge.ts earnWelcomeItem",
   "convex/feedback/welcomeNudge.ts table:users",
   "convex/groups/groups.ts table:userGroups",
   "convex/groups/reconcile.ts table:members",
@@ -53,13 +70,16 @@ const allowed: string[] = [
   "convex/hoggies/forge.ts earnItem",
   "convex/hugs/hugs.ts recordReward",
   "convex/hugs/people.ts recordReward",
+  "convex/items/fill.ts table:members",
   "convex/items/fill.ts table:thoughtfulPacks",
   "convex/items/fill.ts table:trayItems",
-  "convex/items/fill.ts table:members",
   "convex/items/finds.ts table:thoughtfulPacks",
   "convex/items/turn.ts dropFor",
+  "convex/items/turn.ts dropForged",
+  "convex/items/turn.ts dropOf",
   "convex/leaderboard/newGivers.ts table:thoughtfulBoardTallies",
   "convex/mondayDm/mondayDm.ts table:questStarts",
+  "convex/progression/perks.ts coinsShownTo",
   "convex/progression/perks.ts spend",
   "convex/progression/progression.ts credit",
   "convex/quests/finish.ts earnItem",
@@ -69,17 +89,28 @@ const allowed: string[] = [
   "convex/quests/join.ts table:members",
   "convex/quests/journey.ts table:members",
   "convex/quests/newWeek.ts table:members",
-  "convex/quests/open.ts dropFor",
   "convex/quests/open.ts applyGain",
+  "convex/quests/open.ts dropFor",
+  "convex/slack/appHome.ts xpLevelsShownTo",
+  "convex/slack/verifyMember.ts earnWelcomeItem",
   "convex/store/buying.ts spend",
+  "convex/store/visibility.ts coinsShownTo",
   "convex/unlocks/launch.ts table:members",
+  "convex/unlocks/launch.ts xpLevelsShownTo",
   "convex/unlocks/levelUpHoggies.ts dropFor",
   "convex/unlocks/levelUpHoggies.ts earnItem",
   "convex/unlocks/levelUpHoggies.ts markTurned",
-  "convex/unlocks/sweep.ts table:members",
   "convex/unlocks/sweep.ts table:memberProgress",
+  "convex/unlocks/sweep.ts table:members",
   "convex/unlocks/unlocks.ts dropFor",
+  "convex/website/album.ts forge",
+  "convex/website/album.ts makePetOf",
+  "convex/website/album.ts turn",
+  "convex/website/commands.ts dropOf",
+  "convex/website/commands.ts openedCrateDropOf",
   "convex/website/linkPreviews.ts table:companyTeams",
+  "convex/website/signIn.ts earnWelcomeItem",
+  "convex/welcome/welcome.ts earnWelcomeItem",
 ];
 
 describe("HH16: writes cross modules as bus facts", () => {
@@ -90,7 +121,7 @@ describe("HH16: writes cross modules as bus facts", () => {
     expect(new Set(mapped).size, "tables owned twice").toBe(mapped.length);
   });
 
-  test("the crossings of a module's write function or table are exactly the allowlist, so it only shrinks", () => {
+  test("the crossings of a write function of a module that writes rewards, or of a table, are exactly the allowlist, so it only shrinks", () => {
     expect(everyCrossing().toSorted(), "+ crossings not on the allowlist, - allowlisted crossings that no longer occur").toEqual(allowed.toSorted());
   });
 
@@ -105,6 +136,10 @@ describe("HH16: writes cross modules as bus facts", () => {
     ["a star re-export of another module", `export * from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
     ["a named star re-export of another module", `export * as ledger from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
     ["a namespace import beside a default import", `import ledger, * as all from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
+    ["a wrapper of a write in a module that writes rewards", `import { earnWelcomeItem } from "../items/welcome";`, ["convex/stickers/stickers.ts earnWelcomeItem"]],
+    ["a read of a module that writes rewards", `import { standingOf } from "../progression/progression";`, []],
+    ["a query with a type argument", `await ctx.db.query<"items">("items").collect();`, ["convex/stickers/stickers.ts table:items"]],
+    ["a query whose table the guard can't read", `await ctx.db.query(tableName).collect();`, ["convex/stickers/stickers.ts query:tableName"]],
     ["a type-only import", `import type { earnItem } from "../items/ledger";`, []],
     ["the module's own write and table", `import { insertSticker } from "./records";\nawait ctx.db.query("stickers").collect();`, []],
   ])("finds %s", (_, source, crossings) => {
@@ -123,8 +158,15 @@ function crossingsOf(path: string, source: string) {
 function writesImportedBy(path: string, source: string) {
   return namedImportsOf(source)
     .filter(({ from }) => isAnotherModule(path, from))
-    .flatMap(({ names }) => names.filter((name) => writeFunctions.includes(name)))
+    .flatMap(({ names, from }) => names.filter((name) => writeFunctionsOf(moduleOf(resolved(path, from))).includes(name)))
     .map((name) => `${fileOf(path)} ${name}`);
+}
+
+function writeFunctionsOf(module: string) {
+  if (!modulesThatWriteRewards.includes(module)) return [];
+  return Object.entries(sources)
+    .filter(([path]) => moduleOf(path) === module)
+    .flatMap(([, source]) => [...source.matchAll(/export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^>]*>)?\s*\(\s*\w+\s*:\s*MutationCtx\b/g)].map(([, name = ""]) => name));
 }
 
 function wholeModulesReachedBy(path: string, source: string) {
@@ -139,10 +181,11 @@ function isAnotherModule(path: string, from: string) {
 }
 
 function tablesQueriedBy(path: string, source: string) {
-  return [...source.matchAll(/\.query\s*\(\s*["'`](\w+)["'`]/g)]
-    .map(([, table = ""]) => table)
-    .filter((table) => ownerOf(table) !== undefined && ownerOf(table) !== moduleOf(path))
-    .map((table) => `${fileOf(path)} table:${table}`);
+  return [...source.matchAll(/\.query\s*(?:<[^>]*>)?\s*\(\s*([^),]*)/g)].flatMap(([, argument = ""]) => {
+    const table = /^["'`](\w+)["'`]$/.exec(argument.trim())?.[1];
+    if (table === undefined) return [`${fileOf(path)} query:${argument.trim()}`];
+    return ownerOf(table) !== undefined && ownerOf(table) !== moduleOf(path) ? [`${fileOf(path)} table:${table}`] : [];
+  });
 }
 
 function namedImportsOf(source: string) {
@@ -171,7 +214,7 @@ function resolved(path: string, from: string) {
 }
 
 function moduleOf(path: string) {
-  const [, , module, ...rest] = path.split("/");
+  const [, , module = "", ...rest] = path.split("/");
   return rest.length === 0 ? "" : module;
 }
 
