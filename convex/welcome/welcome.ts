@@ -17,7 +17,6 @@ import { isPaidOnTheMondayPath } from "../quests/mondayCatalogue";
 import { onboardingQuestsOf } from "../quests/onboarding";
 import { startQuests } from "../quests/start";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
-import { settingsOf } from "../workspace/settings";
 import { isTheFirstThanks } from "./firstThanks";
 import type { MondayWelcomeCause } from "./mondayWelcome";
 import type { WelcomedAs } from "./welcomedAs";
@@ -87,8 +86,7 @@ async function replyToTheFirstHug(ctx: MutationCtx, event: HugGivenEvent) {
   if (hug === null || !(await sendsOnce(ctx, event.giver, "first-hug-reply"))) return;
   const { workspace, user } = await chatUserOf(ctx, event.giver);
   const hugged = hug.author === undefined ? { kind: "peopleThanked" as const } : await authorHuggedOf(ctx, hug.author);
-  const { kudosEmoji } = await settingsOf(ctx, workspace);
-  await ctx.scheduler.runAfter(0, internal.slack.firstHugReply.deliverFirstHugReply, { workspace, user, conversation: event.message.conversation, hugged, kudosEmoji });
+  await ctx.scheduler.runAfter(0, internal.slack.firstHugReply.deliverFirstHugReply, { workspace, user, conversation: event.message.conversation, hugged });
 }
 
 async function authorHuggedOf(ctx: MutationCtx, author: MemberId) {

@@ -41,7 +41,7 @@ export async function messageSettingsOf(ctx: QueryCtx, member: MemberId): Promis
   for (const entry of messageKinds) {
     const place = await placeOf(ctx, member, entry.kind);
     const description = (await describedFor(ctx, member, workspace, entry)).replace("{kudos emoji}", `:${kudosEmoji}:`);
-    settings.push({ ...entry, description, applies: await kindAppliesTo(ctx, member, entry.kind), on: place !== "none", place, places: placesOf(entry.kind) });
+    settings.push({ ...entry, description, applies: await kindAppliesTo(ctx, member, entry.kind), on: place !== "none", place, places: placesChosenFrom[entry.kind] });
   }
   return settings;
 }
@@ -64,10 +64,6 @@ export async function placeOf(ctx: QueryCtx, member: MemberId, kind: MessageKind
   const row = await settingRow(ctx, member, kind);
   if (!(row?.on ?? (await todaysDefaultOf(ctx, member, kind)))) return "none";
   return row?.place ?? defaultPlaceOf(kind);
-}
-
-export function placesOf(kind: MessageKind): readonly MessagePlace[] {
-  return placesChosenFrom[kind];
 }
 
 export async function setMessageSetting(ctx: MutationCtx, member: MemberId, kind: MessageKind, place: MessagePlace): Promise<boolean> {
