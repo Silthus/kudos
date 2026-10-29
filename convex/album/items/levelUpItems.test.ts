@@ -7,7 +7,7 @@ import { reachesLevel } from "../../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../../testing/website";
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { catalogue, type Rarity } from "../hoggies/catalogue";
+import { catalogue, hoggiesOfRarity, type Rarity } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
 import { earnItem } from "./ledger";
 import type { AlbumAnswer, AlbumRead, TurnAnswer } from "../../website/album";
@@ -53,12 +53,12 @@ describe("LP6 LP7: a level up earns its three hoggies as items", { timeout: 60_0
     await kudos(alice, bob, 2);
     const asAlice = await signedIn(alice);
 
-    expect(await itemsOf(alice), "the giver's stored items").toEqual([
+    expect(await levelUpItemsOf(alice), "the giver's stored level-up items").toEqual([
       { source: "hoggie", key: "level:2:1", reason: { kind: "levelUp", level: 2 } },
       { source: "hoggie", key: "level:2:2", reason: { kind: "levelUp", level: 2 } },
       { source: "hoggie", key: "level:2:3", floor: "rare", reason: { kind: "levelUp", level: 2 } },
     ]);
-    expect((await boardOf(asAlice)).items.map(({ reason }) => reason), "the board's reasons").toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
+    expect(levelUpItemsOn(await boardOf(asAlice)).map(({ reason }) => reason), "the board's level-up reasons").toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
     expect(await cratesDroppedFor(alice), "the level up's drops").toEqual([]);
     expect(await foundHoggiesOf(asAlice), "the hoggies found").toEqual([]);
   });
@@ -89,7 +89,7 @@ describe("LP6 LP7: a level up earns its three hoggies as items", { timeout: 60_0
 
     expect(await cratesDroppedFor(alice), "the level up's drops").toEqual(["level:2:1", "level:2:2", "level:2:3"]);
     await switchWebsite(t, postHog, true, ...itemsOn);
-    expect((await boardOf(await signedIn(alice))).items).toEqual([]);
+    expect(levelUpItemsOn(await boardOf(await signedIn(alice)))).toEqual([]);
   });
 
   test("with hidden-items and level-up-reveal off, nothing drops and the three items wait on the board once hidden-items turns on", async () => {
@@ -98,7 +98,7 @@ describe("LP6 LP7: a level up earns its three hoggies as items", { timeout: 60_0
 
     expect(await cratesDroppedFor(alice), "the level up's drops").toEqual([]);
     await switchWebsite(t, postHog, true, ...itemsOn);
-    expect((await boardOf(await signedIn(alice))).items.map(({ reason }) => reason)).toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
+    expect(levelUpItemsOn(await boardOf(await signedIn(alice))).map(({ reason }) => reason)).toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
   });
 });
 
@@ -149,7 +149,48 @@ describe("HH39: the turn draws within the floor, cap and weights its item stored
     expect(turned.map((drop) => drop && { hoggie: drop.hoggie, rarity: drop.rarity }), "the turned faces").toEqual(drawn);
     expect(new Set(turned.map((drop) => drop?.rarity)), "the rarities turned").toEqual(new Set(["rare"]));
   });
+
+  test("HH40 HH42: a team item with named weights turned by a member who owns every rare can still turn rare, while one without them skips rare as before", async () => {
+    await switchWebsite(t, postHog, true, ...itemsOn, "achievement-hoggies");
+    const member = await memberOf(await joined(alice));
+    const everyRare = await ownsEveryRare(member);
+    const named = await firstTeamCrateDrawingRare(member, everyRare);
+    await t.run(async (ctx) => {
+      await earnItem(ctx, { workspace: "T1", member, source: "hoggie", key: named, floor: "rare", weights: "base", reason: { kind: "team", team: named.slice("team:".length), name: "Named" }, earnedAt: Date.now() });
+      await earnItem(ctx, { workspace: "T1", member, source: "hoggie", key: "team:legacy", floor: "rare", reason: { kind: "team", team: "legacy", name: "Legacy" }, earnedAt: Date.now() });
+    });
+    const asAlice = await signedIn(alice);
+
+    const faces = new Map<string, { hoggie: string; rarity: Rarity } | null>();
+    for (const { item } of (await boardOf(asAlice)).items) {
+      const key = (await t.run((ctx) => ctx.db.get(item)))!.key;
+      const drop = hoggieDrawnBy(await turn(asAlice, item));
+      faces.set(key, drop && { hoggie: drop.hoggie, rarity: drop.rarity });
+    }
+
+    const drawn = (crate: string, weights?: "base") => drawOf({ secret: process.env.HOGGIE_DRAW_SECRET ?? "", member, crate, version: catalogue.version, floor: "rare", weights, owned: everyRare });
+    expect(faces.get(named), "the named-weights item's face").toEqual(await drawn(named, "base"));
+    expect(faces.get(named)?.rarity, "the named-weights item's rarity").toBe("rare");
+    expect(faces.get("team:legacy"), "the legacy item's face").toEqual(await drawn("team:legacy"));
+    expect(faces.get("team:legacy")?.rarity, "the legacy item's rarity").not.toBe("rare");
+  });
 });
+
+async function ownsEveryRare(member: MemberId): Promise<Set<string>> {
+  const rares = hoggiesOfRarity("rare").map(({ hoggie }) => hoggie);
+  await t.run(async (ctx) => {
+    for (const [n, hoggie] of rares.entries()) await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: Date.now(), firstN: n + 1 });
+  });
+  return new Set(rares);
+}
+
+async function firstTeamCrateDrawingRare(member: MemberId, owned: Set<string>): Promise<string> {
+  for (let n = 0; ; n++) {
+    const crate = `team:named-${n}`;
+    const { rarity } = await drawOf({ secret: process.env.HOGGIE_DRAW_SECRET ?? "", member, crate, version: catalogue.version, floor: "rare", weights: "base", owned });
+    if (rarity === "rare") return crate;
+  }
+}
 
 describe("LP6 LP24: with hidden-items back off, fillItems reveals every waiting level item through the old level-up drop, once", { timeout: 60_000 }, () => {
   test("a level reached with hidden-items on reaches the old reveal once it is off, pays nothing, a rerun drops nothing more, and with hidden-items on again nothing waits or draws twice", async () => {
@@ -279,6 +320,14 @@ async function itemsKeyed(person: Person, wanted: (key: string) => boolean) {
       .collect(),
   );
   return items.filter(({ key }) => wanted(key));
+}
+
+function levelUpItemsOn(board: Awaited<ReturnType<typeof boardOf>>) {
+  return board.items.filter(({ reason }) => reason.kind === "levelUp");
+}
+
+async function levelUpItemsOf(person: Person) {
+  return (await itemsOf(person)).filter(({ reason }) => reason.kind === "levelUp");
 }
 
 async function itemsOf(person: Person) {

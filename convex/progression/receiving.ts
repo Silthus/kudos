@@ -3,13 +3,12 @@ import type { KudosGivenEvent } from "../bus/events";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
-import { gateDecisionOf } from "./gate";
 import { noReceiving, type EffectsRecord, type Receiving } from "./progress";
 
 export type ReceivingWeek = Receiving & { recipient: MemberId; week: DayKey };
 
-export async function receivingWeekOf(ctx: QueryCtx, { giver, at, annotations }: KudosGivenEvent, member: MemberId): Promise<ReceivingWeek | null> {
-  if (member === giver || gateDecisionOf(annotations)?.thoughtful !== true) return null;
+export async function receivingWeekOf(ctx: QueryCtx, { giver, at }: KudosGivenEvent, member: MemberId): Promise<ReceivingWeek | null> {
+  if (member === giver) return null;
   const recipient = await ctx.db.get(member);
   const timeZone = recipient?.kind === "member" ? recipient.timeZone : undefined;
   const week = weekOf(allowanceDay(at, timeZone)).monday;
