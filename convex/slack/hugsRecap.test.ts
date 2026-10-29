@@ -367,6 +367,17 @@ describe("SR16: hugs recap sent reaches PostHog", () => {
     ]);
     expect(JSON.stringify(recapsSent())).not.toMatch(new RegExp(`U_ALICE|U_BOB|U_CAROL|C1|${messageOf(1).split(".")[0]}`));
   });
+
+  test("a recap queued before via existed is sent without it", async () => {
+    const t = await workspace();
+    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+
+    await t.mutation(internal.analytics.isolatedUsage.recordHugsRecapSent, { workspace: "T1", member, given: 1, received: 2, xp: 3, at: Date.now() });
+
+    await settleUpTo(t, Date.now() + minuteMs);
+    expect(recapsSent().map(({ properties }) => Object.keys(properties))).toEqual([expect.not.arrayContaining(["via"])]);
+    expect(recapsSent().map(({ properties }) => properties.hugs_received)).toEqual([2]);
+  });
 });
 
 async function workspace({ transactionLimits = false, urlKnown = true } = {}) {
