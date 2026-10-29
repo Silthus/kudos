@@ -197,6 +197,20 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
   });
 
+  test("a level-up DM Slack rate-limits after Album's follower earned the level is held back with only the arguments the previous version takes, and sent again with its reveal", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    const levelReached = await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+    slack.answeringIn("chat.postMessage", "U_ALICE", rateLimitedFor(30));
+
+    await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event: levelReached });
+    await settle(t);
+
+    const retries = (await dmDeliveryArgs(t)).filter(({ attempt }) => attempt === 2);
+    expect(retries).toHaveLength(1);
+    expect(retries[0]).not.toHaveProperty("followerWaits");
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book?src=reply#level-up/2|Reveal your three new hoggies>` });
+  });
+
   test("a level-up DM Slack rate-limits after its wait for the follower is over is sent again without waiting a second time", async () => {
     const t = await websiteWorkspaceWith(...revealOn);
     await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
@@ -205,7 +219,29 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await settle(t);
 
     expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` });
-    expect(await dmDeliveryRuns(t), "the first run, its five waits and the one retry").toBe(7);
+    expect((await dmDeliveryArgs(t)).filter(({ attempt }) => attempt === 2), "the one retry, which waits no more").toHaveLength(1);
+  });
+
+  test("a level-up DM waiting for Album's follower is queued with only the arguments the previous version takes", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+
+    await settle(t);
+
+    const deliveries = await dmDeliveryArgs(t);
+    expect(deliveries.length, "the first run and its waits").toBeGreaterThan(1);
+    for (const delivery of deliveries) expect(delivery).not.toHaveProperty("followerWaits");
+  });
+
+  test("a level-up DM whose wait runs late stops waiting five seconds after the level up, with the link to the member's level", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudosHoldingAlbum(t, "U_ALICE", "U_BOB", 2);
+    vi.setSystemTime(Date.now() + 60_000);
+
+    await settle(t);
+
+    expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/?src=reply|See your level on the web>` }]);
+    expect(await dmDeliveryRuns(t), "the first run and the one late wait").toBe(2);
   });
 
   test.each([

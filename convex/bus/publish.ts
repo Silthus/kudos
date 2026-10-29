@@ -40,6 +40,8 @@ export const subscribers: Registry = {
   questFinished: [
     { subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" },
     { subscriber: internal.welcome.welcome.welcomeOnFirstThanks, only: ({ quest }) => isTheFirstThanks(quest) },
+    internal.progression.questRewards.payQuestFinished,
+    internal.album.items.questHoggies.earnQuestHoggie,
     internal.analytics.subscribers.recordQuestFinished,
   ],
   questOpened: [internal.analytics.subscribers.recordQuestOpened],
@@ -58,11 +60,14 @@ export const subscribers: Registry = {
   crateBought: [],
   hugGiven: [
     { subscriber: internal.welcome.welcome.welcomeOnHug, only: ({ first }) => first === true },
+    internal.progression.hugRewards.payHugGiven,
     internal.hugs.people.payHugPeople,
     internal.feedback.welcomeNudge.nudgeTheHugged,
     internal.album.tallies.tallyHugGiven,
     internal.analytics.subscribers.recordHugGiven,
   ],
+  hugReceived: [internal.progression.hugRewards.payHugReceived],
+  hypeReacted: [],
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
   thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned, internal.feedback.albumReplies.replyAfterTheGrant],

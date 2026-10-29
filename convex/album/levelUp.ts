@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import type { Drop } from "./hoggies/drops";
 import { hiddenItemsShownTo } from "./items/flag";
 import { levelUpEarned, levelUpHoggiesOf, levelUpRevealOnFor } from "./levelUpHoggies";
-import { levelUpAt, levelUpBefore } from "../unlocks/levelUps";
+import { levelUpAt, levelUpBefore, levelUpRecordedAt } from "../unlocks/levelUps";
 import type { MemberId } from "../workspace/directory";
 import { levelEmojisEarnedIn, type EarnedEmoji } from "./earnedEmojis";
 import { albumShownTo } from "./flag";
@@ -27,6 +27,10 @@ export async function levelUpRevealedTo(ctx: QueryCtx, member: MemberId, level: 
   return (await levelUpRevealShownTo(ctx, member)) && (await levelUpHoggiesOf(ctx, member, level)).length > 0;
 }
 
-export async function levelUpPendingFor(ctx: QueryCtx, member: MemberId, level: number): Promise<boolean> {
-  return !(await levelUpEarned(ctx, member, level));
+const followerAwaitedMs = 5000;
+
+export async function levelUpFollowerAwaitedUntil(ctx: QueryCtx, member: MemberId, level: number): Promise<number | null> {
+  const recordedAt = await levelUpRecordedAt(ctx, member, level);
+  if (recordedAt === null || (await levelUpEarned(ctx, member, level))) return null;
+  return recordedAt + followerAwaitedMs;
 }

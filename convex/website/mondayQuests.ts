@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { hasHuggedBefore } from "../hugs/records";
 import { earnedItemOf, newestTurnOf } from "../album/items/ledger";
 import { rewardKeyOf } from "../quests/crates";
-import { questItemKeyOf } from "../quests/finish";
+import { questItemKeyOf } from "../album/items/questHoggies";
 import { nextOnboardingQuestOf, onboardingFinishedBy, onboardingGoalOf, onboardingQuestFactsOf, onboardingReward, onboardingTargetOf, type OnboardingQuestFacts, type OnboardingStep } from "../quests/onboarding";
 import { withoutFullStop, type QuestId } from "../quests/pool";
 import type { Quest } from "../quests/step";
