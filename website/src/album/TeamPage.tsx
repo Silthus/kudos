@@ -17,11 +17,18 @@ import type { TeamUnlocking } from "./useTeamUnlock";
 import { LandedHype, NewLabel } from "./ItemBoard";
 import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker, useLanding } from "./useItemBoard";
 import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
+import { LockedTeamPrototype } from "./BookPrototype";
+import { useBookVariant } from "./bookPrototypeVariant";
 import "./team.css";
 
 const sealSize = 128;
 
 export function TeamPage({ album, team, unlocking }: { album: Album; team: AlbumTeam; unlocking: TeamUnlocking }) {
+  if (useBookVariant() !== null && team.state === "progress") return <LockedTeamPrototype album={album} team={team} />;
+  return <RealTeamPage album={album} team={team} unlocking={unlocking} />;
+}
+
+function RealTeamPage({ album, team, unlocking }: { album: Album; team: AlbumTeam; unlocking: TeamUnlocking }) {
   const onThePhoto = onThePhotoOf(album, team);
   const emoji = teamEmojiOf(album, team.team);
   const mapsInPlace = useMapsInPlace();

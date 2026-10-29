@@ -18,6 +18,7 @@ import { findYourselfHref, hrefOf } from "./place";
 import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, type BestMedal, type NextMedal, type Standing } from "./profile";
 import { dateOf } from "./teamPage";
 import { ShareLink } from "./ShareLink";
+import { NextMilestones } from "./BookPrototype";
 import "./team.css";
 import "./profile.css";
 
@@ -61,6 +62,7 @@ function ProfilePage({ album, profile, standing, hoggies }: { album: Album; prof
         <Entry album={album} team={team} note={profile.note} />
         <Rank standing={standing} />
       </div>
+      <NextMilestones album={album} />
       {team === undefined && <FindYourTeam />}
       <Glance album={album} team={team} hoggies={hoggies} />
       <Finds album={album} newest={profile.newest} hoggies={hoggies} />

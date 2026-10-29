@@ -6,6 +6,7 @@ import { HedgehogSitting } from "../hoggies";
 import type { Album, AlbumPerson, AlbumTeam } from "./answer";
 import { medalsOf, myTeamOf, plural, progressOf, teamsByProgress } from "./facts";
 import { hrefOf, type Place } from "./place";
+import { useBookVariant, type BookVariant } from "./bookPrototypeVariant";
 
 const shownAtFirst = 10;
 
@@ -22,6 +23,127 @@ export function Sidebar({ album, place }: { album: Album; place: Place }) {
 function stayBeside() {}
 
 export function TeamsAndPages({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+  const variant = useBookVariant();
+  if (variant !== null) return <PrototypeTeamsAndPages album={album} place={place} onFollow={onFollow} variant={variant} />;
+  return <RealTeamsAndPages album={album} place={place} onFollow={onFollow} />;
+}
+
+function PrototypeTeamsAndPages({ album, place, onFollow, variant }: { album: Album; place: Place; onFollow: () => void; variant: BookVariant }) {
+  const [search, setSearch] = useState("");
+  const words = search.trim();
+  return (
+    <>
+      {variant === "B" ? <PageButtons album={album} place={place} onFollow={onFollow} /> : <DeepPages album={album} place={place} onFollow={onFollow} />}
+      <label className="al-search">
+        <IconSearch className="al-search-icon" />
+        <input type="search" placeholder="Search teams and people" aria-label="Search teams and people" value={search} onChange={(event) => setSearch(event.target.value)} />
+      </label>
+      {words !== "" ? <Found album={album} words={words} place={place} onFollow={onFollow} /> : variant === "A" ? <BrowseStickyFewer album={album} place={place} onFollow={onFollow} /> : variant === "B" ? <BrowseScrollBox album={album} place={place} onFollow={onFollow} /> : <BrowseAllTeamsView album={album} place={place} onFollow={onFollow} />}
+    </>
+  );
+}
+
+function PageButtons({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+  return (
+    <div className="proto-side-pages">
+      <AppLink href={hrefOf({ kind: "hoggies", hoggie: null })} className="proto-side-page" aria-current={place.kind === "hoggies" ? "page" : undefined} data-slot="hoggies" onFollow={onFollow}>
+        <HedgehogSitting size={24} />
+        <span>Hoggies</span>
+      </AppLink>
+      <AppLink href={hrefOf({ kind: "milestones" })} className="proto-side-page" aria-current={place.kind === "milestones" ? "page" : undefined} onFollow={onFollow}>
+        <IconRibbon />
+        <span>Milestones</span>
+        <span className="al-page-count">{plural(medalsOf(album), "medal", "medals")}</span>
+      </AppLink>
+    </div>
+  );
+}
+
+function BrowseStickyFewer({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+  const [showingAll, setShowingAll] = useState(false);
+  const mine = myTeamOf(album);
+  const others = teamsByProgress(album.teams);
+  const shown = showingAll ? others : withTheCurrentTeam(others.slice(0, shownAtFirst), others, place);
+  const hidden = others.length - shown.length;
+  return (
+    <>
+      {mine !== undefined && <MyTeam team={mine} current={isCurrentTeam(place, mine)} onFollow={onFollow} />}
+      <section className="al-side-section">
+        <h2 className="al-side-heading">
+          <span>Teams</span>
+          <span>{others.length}</span>
+        </h2>
+        <TeamList teams={shown} place={place} onFollow={onFollow} />
+        {hidden > 0 && (
+          <button type="button" className="al-more" onClick={() => setShowingAll(true)}>
+            Show {hidden} more
+          </button>
+        )}
+        {showingAll && (
+          <button type="button" className="al-more proto-sticky-fewer" onClick={() => setShowingAll(false)}>
+            Show fewer ▴
+          </button>
+        )}
+      </section>
+    </>
+  );
+}
+
+function BrowseScrollBox({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+  const mine = myTeamOf(album);
+  const others = teamsByProgress(album.teams);
+  return (
+    <>
+      {mine !== undefined && <MyTeam team={mine} current={isCurrentTeam(place, mine)} onFollow={onFollow} />}
+      <section className="al-side-section">
+        <h2 className="al-side-heading">
+          <span>Teams</span>
+          <span>{others.length}</span>
+        </h2>
+        <div className="proto-team-scroll">
+          <TeamList teams={others} place={place} onFollow={onFollow} />
+        </div>
+      </section>
+    </>
+  );
+}
+
+const closestShown = 5;
+
+function BrowseAllTeamsView({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+  const [allTeams, setAllTeams] = useState(false);
+  const mine = myTeamOf(album);
+  const others = teamsByProgress(album.teams);
+  if (allTeams)
+    return (
+      <section className="al-side-section proto-all-teams">
+        <button type="button" className="al-more" onClick={() => setAllTeams(false)}>
+          ← Back
+        </button>
+        <h2 className="al-side-heading">
+          <span>All teams</span>
+          <span>{others.length}</span>
+        </h2>
+        <TeamList teams={others} place={place} onFollow={onFollow} />
+      </section>
+    );
+  return (
+    <>
+      {mine !== undefined && <MyTeam team={mine} current={isCurrentTeam(place, mine)} onFollow={onFollow} />}
+      <section className="al-side-section">
+        <h2 className="al-side-heading">
+          <span>Closest to unlocking</span>
+        </h2>
+        <TeamList teams={withTheCurrentTeam(others.slice(0, closestShown), others, place)} place={place} onFollow={onFollow} />
+        <button type="button" className="al-more" onClick={() => setAllTeams(true)}>
+          All {others.length} teams →
+        </button>
+      </section>
+    </>
+  );
+}
+
+function RealTeamsAndPages({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
   const [search, setSearch] = useState("");
   const words = search.trim();
   return (

@@ -13,6 +13,7 @@ import { rememberSignInStarted } from "../signInAttempt";
 import type { Album, BoardPeriod, HoggiesShown } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
+import { BookPrototypeBar } from "./BookPrototype";
 import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, useBoardsOfPeriod, type AddressedChoice } from "./boardPeriods";
 import { useHoggieAddress } from "./hoggieAddress";
@@ -113,6 +114,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         viewQuests={actions.viewQuests}
         anEntryIsOpen={anEntryIsOpenAt(place, hoggies)}
       />
+      <BookPrototypeBar />
       </NewLabelsProvider>
       </EmojiWizardHost>
     </NavigateProvider>
