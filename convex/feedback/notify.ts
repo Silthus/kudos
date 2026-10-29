@@ -2,7 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
-import { levelUpsRevealHoggiesTo } from "../album/levelUp";
+import { levelUpRevealedTo } from "../album/levelUp";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { recordedRewardsOf, tierRewardsRecordedFor, type TierRewardsRecorded } from "../achievements/tierRewards";
 import { laddersShownTo } from "../achievements/shown";
@@ -144,7 +144,7 @@ export const purchaseReplyStillWanted = internalQuery({
 });
 
 async function linkedPageOf(ctx: QueryCtx, member: MemberId, notification: Notification) {
-  if (notification.kind === "level-reached" && (await levelUpsRevealHoggiesTo(ctx, member))) return levelUpRevealOf(notification.level);
+  if (notification.kind === "level-reached" && (await levelUpRevealedTo(ctx, member, notification.level))) return levelUpRevealOf(notification.level);
   return linkedPages[notification.kind];
 }
 
