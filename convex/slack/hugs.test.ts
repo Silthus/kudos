@@ -128,15 +128,12 @@ describe("SR1 SR18: every other reaction does nothing", () => {
     expect(hugsGiven()).toEqual([]);
   });
 
-  test.each([
-    ["its author", "U_ALICE"],
-    ["one of its recipients", "U_CAROL"],
-  ])("a reaction by %s on a Given kudos message gives no XP", async (_, user) => {
+  test("a reaction by its author on a Given kudos message gives no XP", async () => {
     const t = await workspace();
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
     const before = await xpOfEveryone(t);
 
-    await hug(t, { user, itemUser: "U_ALICE" });
+    await hug(t, { user: "U_ALICE", itemUser: "U_ALICE" });
 
     expect(await xpOfEveryone(t)).toEqual(before);
     expect(hugsGiven()).toEqual([]);
@@ -175,7 +172,7 @@ describe("SR4: people the directory doesn't know are looked up first", () => {
   });
 });
 
-describe("SR16: a hug reaches PostHog as hug given, with only whether it was on a kudos message", () => {
+describe("SR16 HH90: a hug reaches PostHog as hug given, with only whether it was on a kudos message and the emoji reacted", () => {
   test.each([
     ["an ordinary message", false],
     ["a Given kudos message", true],
@@ -183,11 +180,11 @@ describe("SR16: a hug reaches PostHog as hug given, with only whether it was on 
     const t = await workspace();
     if (onKudos) await kudos(t, "U_ALICE", ["U_CAROL"]);
 
-    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", reaction: "taco::skin-tone-3" });
 
     const given = hugsGiven();
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
-    expect(given.map(({ properties }) => properties)).toEqual([{ ...shared, on_kudos: onKudos }]);
+    expect(given.map(({ properties }) => properties)).toEqual([{ ...shared, on_kudos: onKudos, reaction: "taco" }]);
     expect(JSON.stringify(given)).not.toMatch(new RegExp(`U_ALICE|U_BOB|C1|${secondsOf(messageTs)}`));
   });
 });

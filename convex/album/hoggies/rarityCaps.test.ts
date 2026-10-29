@@ -7,7 +7,6 @@ import { aDeploymentForWorkspace, aMember, switchWebsite } from "../../../testin
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
-import { finishMondayQuest } from "../../quests/finish";
 import { onboardingReward } from "../../quests/onboarding";
 import { mondayCatalogueVersion } from "../../quests/mondayCatalogue";
 import type { MemberId } from "../../workspace/directory";
@@ -88,7 +87,7 @@ const itemSources: Record<string, ItemSource> = {
     ],
   },
   "an onboarding quest's hoggie": {
-    earns: (member) => t.run((ctx) => finishMondayQuest(ctx, "T1", member, { kind: "journey", step: "first-thanks" }, { reward: onboardingReward, catalogueVersion: mondayCatalogueVersion }, Date.now())),
+    earns: (member) => t.mutation(internal.album.items.questHoggies.earnQuestHoggie, { event: { type: "questFinished", workspace: "T1", member, quest: { kind: "journey", step: "first-thanks" }, rewardKey: "journey:first-thanks", reward: { xp: onboardingReward.xp, coins: 0 }, catalogueVersion: mondayCatalogueVersion, at: Date.now() } }),
     capped: [{ key: "quest:", ...cappedAtRare }],
     today: [{ key: "quest:" }],
   },

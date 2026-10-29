@@ -18,9 +18,13 @@ export async function countHugGiven(ctx: MutationCtx, hug: CountedHug) {
   await countHugOnTheMessage(ctx, hug);
 }
 
-export async function countHugReceived(ctx: MutationCtx, hug: Hug, person: MemberId) {
+export async function weekOfPersonAt(ctx: QueryCtx, person: MemberId, at: number): Promise<DayKey> {
   const timeZone = (await timeZoneOf(ctx, person)) ?? undefined;
-  const week = await weekRowOf(ctx, hug.workspace, person, weekOf(allowanceDay(hug.at, timeZone)).monday);
+  return weekOf(allowanceDay(at, timeZone)).monday;
+}
+
+export async function countHugReceived(ctx: MutationCtx, hug: Hug, person: MemberId) {
+  const week = await weekRowOf(ctx, hug.workspace, person, await weekOfPersonAt(ctx, person, hug.at));
   const onTheMessage = await countHugOnTheMessageFor(ctx, person, week.week, hug);
   await ctx.db.patch(week._id, { received: week.received + 1, receivedXp: week.receivedXp + hugXp, mostHugged: mostHuggedOf(week.mostHugged, onTheMessage) });
 }

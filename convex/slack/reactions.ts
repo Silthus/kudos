@@ -1,10 +1,9 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
 import type { HugReaction } from "../hugs/reaction";
-import { mayGiveHugWith } from "../hugs/hugs";
+import { mayReactWith as hugsMayReactWith } from "../hugs/hugs";
 import type { EventCallback } from "./normalize";
 import { isText } from "./richText";
-import { withoutSkinTone } from "../workspace/slackEmoji";
 
 type ReactionAdded = {
   type: "reaction_added";
@@ -21,9 +20,9 @@ export function isReactionAdded(envelope: EventCallback): envelope is ReactionEn
   return envelope.event.type === "reaction_added";
 }
 
-export const mayHugWith = internalQuery({
+export const mayReactWith = internalQuery({
   args: { workspace: v.string(), giver: v.string(), emoji: v.string() },
-  handler: (ctx, { workspace, giver, emoji }) => mayGiveHugWith(ctx, workspace, giver, withoutSkinTone(emoji)),
+  handler: (ctx, { workspace, giver, emoji }) => hugsMayReactWith(ctx, workspace, giver, emoji),
 });
 
 export function hugReactionOf(envelope: ReactionEnvelope): HugReaction | null {
