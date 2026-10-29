@@ -15,7 +15,8 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { messageSettingsShownTo } from "../messageSettings/flag";
 import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
-import { kindAppliesTo, placesOf, placeWhenOn, setMessageSetting, setNotificationSwitches } from "../messageSettings/messageSettings";
+import { placesChosenFrom } from "../messageSettings/kinds";
+import { kindAppliesTo, placeWhenOn, setMessageSetting, setNotificationSwitches } from "../messageSettings/messageSettings";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { buyPerk } from "../progression/perks";
 import type { PurchaseOutcome } from "../progression/purchases";
@@ -203,7 +204,7 @@ async function placeAskedBy(ctx: MutationCtx, member: MemberId, command: Extract
 }
 
 async function changeMessageSetting(ctx: MutationCtx, workspace: string, member: MemberId, kind: MessageKind, place: MessagePlace) {
-  if (!(await placesOf(ctx, member, kind)).includes(place)) return;
+  if (!placesChosenFrom[kind].includes(place)) return;
   if (await setMessageSetting(ctx, member, kind, place)) await reportMessageSettingChanged(ctx, { workspace, member, setting: kind, on: place !== "none", place, at: Date.now() });
 }
 

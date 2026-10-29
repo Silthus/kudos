@@ -16,9 +16,9 @@ const siteUrl = "https://kudos-site.test";
 const alicesEmail = "alice@example.com";
 const buyOnTheWeb = `[link: Buy ${siteUrl}/?src=reply]`;
 
-const sparkLine = "section: *Spark* · 1 skill point\n+5 XP the first time each day you thank someone and say why. [button: Buy]";
-const rhythmLine = "section: *Rhythm* · 1 skill point\n+2 XP each time you thank someone and say why, once per person a day. [button: Buy]";
-const circleLine = "section: *Circle* · 1 skill point\n+5 XP the first time each week you thank a person and say why. [button: Buy]";
+const sparkLine = "section: *Spark* · 1 skill point\n+5 XP the first time each day you give a kudos. [button: Buy]";
+const rhythmLine = "section: *Rhythm* · 1 skill point\n+2 XP for each kudos you give, once per person a day. [button: Buy]";
+const circleLine = "section: *Circle* · 1 skill point\n+5 XP the first time each week you give a person a kudos. [button: Buy]";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;

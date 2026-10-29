@@ -565,12 +565,12 @@ describe("LP76: Getting started follows the loop", () => {
 
     expect(strip).toHaveTextContent("Getting started · 2 of 4");
     expect(strip).toHaveTextContent("Next: Identify an item · identify a waiting item on your board");
-    expect(within(strip).getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual(["Give a hug: done", "Give a thoughtful kudos: done", "Identify an item: not yet", "Reach level 2: not yet"]);
+    expect(within(strip).getAllByRole("listitem").map((step) => step.getAttribute("aria-label"))).toEqual(["Give a hug: done", "Give a kudos: done", "Identify an item: not yet", "Reach level 2: not yet"]);
   });
 
   it.each([
     ["nothing done", { hugged: false, thoughtful: false, turned: false, levelTwo: false }, "Next: Give a hug · react with 🦔 on any message in Slack"],
-    ["a hug given", { hugged: true, thoughtful: false, turned: false, levelTwo: false }, "Next: Give a thoughtful kudos · thank a teammate with 🦔 in a message and say why"],
+    ["a hug given", { hugged: true, thoughtful: false, turned: false, levelTwo: false }, "Next: Give a kudos · thank a teammate with 🦔 in a message"],
     ["only level 2 left", { hugged: true, thoughtful: true, turned: true, levelTwo: false }, "Next: Reach level 2 · your first kudos takes you there"],
     ["level 2 reached first", { hugged: false, thoughtful: false, turned: false, levelTwo: true }, "Next: Give a hug · react with 🦔 on any message in Slack"],
   ])("with %s, names the first step not done, with the workspace's kudos emoji in its hint", async (_, steps, next) => {
@@ -616,7 +616,7 @@ describe("AL43: every album route has its page", () => {
     { path: "/book#milestones", title: "Milestones" },
     { path: "/book#packs", title: "Your packs" },
     { path: "/activity", title: "Weekly edition" },
-    { path: "/leaderboard", title: "Who said thanks, and why" },
+    { path: "/leaderboard", title: "Who said thanks" },
     { path: "/settings", title: "Settings" },
   ];
 

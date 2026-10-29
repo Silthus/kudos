@@ -60,7 +60,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by kudos in 
   it("ranks the givers and the teams in their own boards, ties sharing a rank", async () => {
     visit();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Who said thanks, and why" }, arrival)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Who said thanks" }, arrival)).toBeInTheDocument();
     expect(rowsOf(await board("People"))).toEqual([
       "Rank 1: Wren Alder Kettle Works 6 kudos",
       "Rank 2: Ines Okafor Lanterns, Kettle Works 5 kudos",
@@ -112,7 +112,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by kudos in 
     renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.teamless), { boards: fixedBoards(boardsFixtures.teamless) });
 
     const teams = await board("Teams");
-    expect(teams.getByText("No team has said thanks with a why yet this week.")).toBeInTheDocument();
+    expect(teams.getByText("No team has given a kudos yet this week.")).toBeInTheDocument();
     expect(teams.queryAllByRole("listitem"), "a quiet board starts folded").toHaveLength(0);
     fireEvent.click(teams.getByRole("button", { name: `${albumFixtures.teamless.teams.length} more teams with nothing yet` }));
     expect(rowsOf(teams)).toHaveLength(albumFixtures.teamless.teams.length);
@@ -218,11 +218,11 @@ describe("AL49: the Leaderboard shows people and teams side by side by kudos in 
     visit(boardsFixtures.quiet);
 
     const people = await board("People");
-    expect(people.getByText("Nobody has said thanks with a why yet this week.")).toBeInTheDocument();
-    expect(people.getByText("You haven't given one yet. Thank someone and say why to lead the board.")).toBeInTheDocument();
+    expect(people.getByText("Nobody has given a kudos yet this week.")).toBeInTheDocument();
+    expect(people.getByText("You haven't given one yet. Give a kudos to lead the board.")).toBeInTheDocument();
     expect(rowsOf(people)).toEqual(["Not ranked: Sam Example You Lanterns, Tin Orchard 0 kudos"]);
     const teams = await board("Teams");
-    expect(teams.getByText("No team has said thanks with a why yet this week.")).toBeInTheDocument();
+    expect(teams.getByText("No team has given a kudos yet this week.")).toBeInTheDocument();
     expect(teams.getByText("Lanterns hasn't given one yet. Tin Orchard hasn't given one yet.")).toBeInTheDocument();
     expect(rowsOf(teams), "the member's own teams stay listed while the rest fold").toEqual(["Not ranked: Lanterns Your team Who gave 0 kudos", "Not ranked: Tin Orchard Your team Who gave 0 kudos"]);
     expect(teams.getByRole("button", { name: /more teams with nothing yet$/ })).toHaveAttribute("aria-expanded", "false");
@@ -317,7 +317,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by kudos in 
     const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.quiet, "last-week": boardsFixtures.lastWeek }));
 
     const people = await board("People");
-    expect(people.getByText("Nobody has said thanks with a why yet this week.")).toBeInTheDocument();
+    expect(people.getByText("Nobody has given a kudos yet this week.")).toBeInTheDocument();
     await user.click(people.getByRole("button", { name: "See last week" }));
 
     expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
@@ -332,13 +332,13 @@ describe("AL49: the Leaderboard shows people and teams side by side by kudos in 
     await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
 
     const people = await board("People");
-    expect(people.getByText("Nobody said thanks with a why last week.")).toBeInTheDocument();
+    expect(people.getByText("Nobody gave a kudos last week.")).toBeInTheDocument();
     expect(people.getByText("You didn't give one last week.")).toBeInTheDocument();
-    expect((await board("Teams")).getByText("No team said thanks with a why last week.")).toBeInTheDocument();
+    expect((await board("Teams")).getByText("No team gave a kudos last week.")).toBeInTheDocument();
     expect((await board("Teams")).getByText("Lanterns didn't give one last week. Tin Orchard didn't give one last week.")).toBeInTheDocument();
     await user.click(people.getByRole("button", { name: "See all time" }));
 
-    expect((await board("People")).getByText("Nobody has said thanks with a why yet.")).toBeInTheDocument();
+    expect((await board("People")).getByText("Nobody has given a kudos yet.")).toBeInTheDocument();
     expect((await board("People")).queryByRole("button", { name: /^See / })).not.toBeInTheDocument();
   });
 
@@ -407,7 +407,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by kudos in 
     await user.click((await board("People")).getByRole("button", { name: "See last week" }));
 
     const people = await board("People");
-    expect(people.getByText("Nobody has said thanks with a why yet this week.")).toBeInTheDocument();
+    expect(people.getByText("Nobody has given a kudos yet this week.")).toBeInTheDocument();
     expect(people.getByRole("button", { name: "See last week" })).toBeInTheDocument();
     expect(people.queryByRole("button", { name: "See all time" })).not.toBeInTheDocument();
     expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
