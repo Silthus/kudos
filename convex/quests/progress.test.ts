@@ -48,3 +48,26 @@ describe("P84: a quest's progress over the awards it counted", () => {
     expect(questProgress(questOf(quest), counted)).toBe(progress);
   });
 });
+
+describe("HH13: the kudos pool counts any kudos", () => {
+  const dave = "dave" as Id<"members">;
+
+  test.each<[QuestId, string, Partial<QuestAward>, boolean]>([
+    ["kudos-once", "a kudos that doesn't say why", { saysWhy: false }, true],
+    ["kudos-two-days", "a kudos that doesn't say why to someone thanked before", { saysWhy: false, lastThankedBefore: at - dayMs }, true],
+    ["three-in-a-day", "a kudos that doesn't say why to someone thanked before", { saysWhy: false, lastThankedBefore: at - dayMs }, true],
+  ])("%s counts %s: %s", (quest, _, facts, counted) => {
+    expect(counts(questOf(quest), award(facts))).toBe(counted);
+  });
+
+  test.each<[QuestId, string, number, QuestAward[]]>([
+    ["kudos-once", "one kudos", 1, [award()]],
+    ["kudos-two-days", "kudos on one day", 1, [award(), award({ recipient: carol })]],
+    ["kudos-two-days", "kudos on two different days", 2, [award(), award({ day: "2026-10-14" })]],
+    ["three-in-a-day", "two people thanked on one day and a third the next", 2, [award(), award({ recipient: carol }), award({ recipient: dave, day: "2026-10-14" })]],
+    ["three-in-a-day", "the same person thanked three times on one day", 1, [award(), award(), award()]],
+    ["three-in-a-day", "three people thanked on one day", 3, [award(), award({ recipient: carol }), award({ recipient: dave })]],
+  ])("%s after %s is %d", (quest, _, progress, counted) => {
+    expect(questProgress(questOf(quest), counted)).toBe(progress);
+  });
+});

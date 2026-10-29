@@ -29,7 +29,7 @@ const why = "Thanks for untangling the flaky migration";
 const albumOn = ["website", "album", "collection", "packs", "xp-levels", "message-settings", "hugs", "groups", "monday-post"];
 const albumSlack = "album-slack";
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
-const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
+const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teammate with :taco:, earns much more XP.";
 
 const theGate = vi.hoisted(() => ({ shut: false }));
 

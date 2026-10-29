@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, networkFailure, rateLimitedFor, slackError, type SlackUser } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
+import { internal } from "../_generated/api";
 import { post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, type ReactionOptions } from "../../testing/slackMessages";
 import { standingOf } from "../progression/progression";
@@ -11,8 +12,8 @@ const hourMs = 60 * 60 * 1000;
 const alicesMessage = slackTs(now.getTime() - hourMs);
 const alicesOtherMessage = slackTs(now.getTime() - 2 * hourMs);
 const onboardingOn = ["hugs", "hidden-items", "onboarding"];
-const toTheAuthor = (name: string) => `That was a hug: +1 XP for you and ${name}. Thank them in a message and say why to earn an item.`;
-const toThePeopleThanked = "That was a hug: +1 XP for you and the people thanked. Thank them in a message and say why to earn an item.";
+const toTheAuthor = (name: string) => `That was a hug: +1 XP for you and ${name}. Thank them in a message with :taco: to earn an item.`;
+const toThePeopleThanked = "That was a hug: +1 XP for you and the people thanked. Thank them in a message with :taco: to earn an item.";
 
 let slack: FakeSlack;
 
@@ -38,6 +39,15 @@ describe("LP73: a member's first hug ever gets one first-hug reply", () => {
 
     expect(slack.callsTo("chat.postEphemeral")).toEqual([{ channel: "C1", user: "U_BOB", text: toTheAuthor("Alice") }]);
     expect(slack.callsTo("chat.postMessage")).toEqual([]);
+  });
+
+  test("HH15: names a kudos as a message with the workspace's kudos emoji, and never asks to say why", async () => {
+    const t = await workspace(onboardingOn);
+    await setWorkspaceSettings(t, { kudosEmoji: "raised_hands" });
+
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", reaction: "raised_hands" });
+
+    expect(slack.ephemeralsTo("U_BOB").map(({ text }) => text)).toEqual(["That was a hug: +1 XP for you and Alice. Thank them in a message with :raised_hands: to earn an item."]);
   });
 
   test.each<[string, Partial<SlackUser>, string]>([
@@ -116,6 +126,14 @@ describe("LP73: a member's first hug ever gets one first-hug reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toHaveLength(2);
     expect(slack.ephemeralsTo("U_BOB").at(-1)).toEqual({ channel: "C1", user: "U_BOB", text: toTheAuthor("Alice") });
     expect(slack.timesOf("chat.postEphemeral")[1]! - slack.timesOf("chat.postEphemeral")[0]!).toBeGreaterThanOrEqual(30_000);
+  });
+
+  test("a reply queued before the deploy still goes out, naming the workspace's kudos emoji", async () => {
+    const t = await workspace(onboardingOn);
+
+    await t.action(internal.slack.firstHugReply.deliverFirstHugReply, { workspace: "T1", user: "U_BOB", conversation: "C1", hugged: { kind: "author", name: "Alice" }, attempt: 2 });
+
+    expect(slack.ephemeralsTo("U_BOB").map(({ text }) => text)).toEqual(["That was a hug: +1 XP for you and Alice. Thank them in a message with :taco: to earn an item."]);
   });
 
   test.each([

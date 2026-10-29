@@ -121,7 +121,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Your emojis · 9 of 27");
     expect(popup.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["Count in kudos · 0 of 5", "Team stickers 1 of 4", "Hype 1", "Milestones 6 of 20", "Levels 1 of 2"]);
     expect(rowsIn(shelf(popup, "Team stickers"))[0]).toBe(":team-quiet-harbour:You unlocked the Quiet Harbour team sticker · 15 Oct 2026In Slack");
-    expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
+    expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your first pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     expect(rowsIn(shelf(popup, "Levels"))[0]).toBe(":level-5:You reached level 5Add to Slack");
     const pictures = [...document.querySelectorAll<HTMLImageElement>(".al-popover .al-emoji-art:not([data-locked]) img")].filter((picture) => picture.closest(".al-kudos-picks") === null).map((picture) => picture.getAttribute("src"));
     expect(pictures).toEqual(expect.arrayContaining(["/emoji/team-support.png", "/emoji/milestone-people-silver.png", "/emoji/level-5.png"]));
@@ -212,7 +212,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     const withADrop = visit("/", { album: { ...midway, emojis: [...midway.emojis, drop] } });
     const again = await openTheEmojis(withADrop);
 
-    expect(rowsIn(shelf(again, "Random drops"))).toEqual([":shipit:A random drop in your thoughtful pack for Ines Okafor · 17 Oct 2026In Slack"]);
+    expect(rowsIn(shelf(again, "Random drops"))).toEqual([":shipit:A random drop in your pack for Ines Okafor · 17 Oct 2026In Slack"]);
   });
 
   it("a search finds emojis by name, team, milestone or person, and says when none matches", async () => {
@@ -221,7 +221,7 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
 
     await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "ines");
 
-    expect(rowsIn(popup)).toEqual(["IO:ines-okafor-hype:From your first thoughtful pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
+    expect(rowsIn(popup)).toEqual(["IO:ines-okafor-hype:From your first pack for Ines Okafor · 9 Oct 2026Add to Slack"]);
     await view.user.clear(popup.getByRole("searchbox", { name: "Find an emoji" }));
     await view.user.type(popup.getByRole("searchbox", { name: "Find an emoji" }), "heart of the team");
     expect(rowsIn(popup)).toEqual([":heart-of-the-team:Reach gold in Kudos given · 9 of 100"]);
@@ -327,7 +327,7 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
     expect(cards.map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([":team-quiet-harbour:", ":level-5:", ":bram-teller-hype:", ":fen-marlowe-hype:"]);
     expect(cards[0]).toHaveTextContent("The Quiet Harbour team sticker");
     expect(cards[1]).toHaveTextContent("Reaching level 5");
-    expect(cards[2]).toHaveTextContent("Your first thoughtful pack for Bram Teller");
+    expect(cards[2]).toHaveTextContent("Your first pack for Bram Teller");
     expect(cards.every((card) => card.querySelector(".al-emoji-art") !== null)).toBe(true);
     await view.user.click(within(bundle).getByRole("button", { name: "Add to my emojis" }));
 

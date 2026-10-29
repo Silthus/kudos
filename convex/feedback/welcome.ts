@@ -150,9 +150,8 @@ function capitalized(words: string) {
 }
 
 function stepOf({ welcomed }: Welcome, kudosEmoji: string): Line {
-  const sayWhy = "Say why you're thanking them: it means more.";
-  if (welcomed?.as === "giver") return [{ text: `👉 *Next step:* thank two more teammates this week. ${sayWhy}` }];
-  return [{ text: `👉 *Your first step:* thank someone who helped you lately. Mention them and add :${kudosEmoji}: to your message in any channel I'm in. ${sayWhy}` }];
+  if (welcomed?.as === "giver") return [{ text: "👉 *Next step:* thank two more teammates this week." }];
+  return [{ text: `👉 *Your first step:* thank someone who helped you lately. Mention them and add :${kudosEmoji}: to your message in any channel I'm in.` }];
 }
 
 async function websiteOf(ctx: QueryCtx, workspace: string, member: MemberId | undefined): Promise<WelcomeMessage["website"]> {
