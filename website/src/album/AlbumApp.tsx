@@ -13,6 +13,8 @@ import { rememberSignInStarted } from "../signInAttempt";
 import type { Album, BoardPeriod, HoggiesShown } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
+import { LeaderboardPrototype } from "./LeaderboardPrototype";
+import { isPrototypeBuild } from "./PrototypeSwitcher";
 import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, useBoardsOfPeriod, type AddressedChoice } from "./boardPeriods";
 import { useHoggieAddress } from "./hoggieAddress";
@@ -91,7 +93,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         place={place}
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp)) || (player !== null && isWaitingForThePlayer(ownPlayer, playerReads))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
-        leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
+        leaderboard={isPrototypeBuild ? <LeaderboardPrototype /> : <LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
         profile={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}

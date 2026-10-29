@@ -115,6 +115,7 @@ const fixturesByName: Record<string, ShellState> = {
   "album-person-page-d": shellFixtures.member,
   "album-quests": shellFixtures.member,
   "album-quests-week": shellFixtures.member,
+  "album-leaderboard-prototype": shellFixtures.member,
   error: shellFixtures.error,
 };
 
