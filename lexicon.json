@@ -858,6 +858,10 @@
     {
       "name": "measure",
       "definition": "One of the four counts a board ranks members and teams by: kudos given, kudos received, hugs given or hugs received (HH28, HH73)."
+    },
+    {
+      "name": "player card",
+      "definition": "A member's card on their person page, in its share picture and in a person link's unfold: their face, name, first team, level and XP, this week's place and kudos given on the Leaderboard, and their album's people, hoggies, emojis and medals (LP94). Not a card: a card is an unlocked image with a quip."
     }
   ],
   "retired": [
