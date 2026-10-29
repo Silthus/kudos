@@ -224,12 +224,13 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect((await theMomentOf(asAlice)).excerpts.map(({ entry }) => entry.at), "ten minutes on").toEqual([held.at]);
   });
 
-  test("LP40 LP41: the moment carries this week's thoughtful givers where xp-moments is on, with teasers off, and none below three", async () => {
+  test("LP40 LP41 HH11: the moment carries this week's givers of any kudos where xp-moments is on, with teasers off, and none below three", async () => {
     const asAlice = await aReturningMember(alice);
     await thanks(alice, bob);
     expect((await theMomentOf(asAlice)).thoughtfulGivers).toBeNull();
+    later();
 
-    await thanks(carol, bob);
+    await kudosSentAt(Date.now(), "ty", carol, bob);
 
     expect((await theMomentOf(asAlice)).thoughtfulGivers).toBe(3);
   });
@@ -696,7 +697,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest"), "the next moment's drawn quests").toEqual(moved);
   });
 
-  test("answers the Thoughtful milestone moving toward its next tier by the thoughtful kudos given since the last visit", async () => {
+  test("answers the kudos milestone moving toward its next tier by the kudos given since the last visit", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);
@@ -705,6 +706,17 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     await thanks(alice, bob, carol);
 
     expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 4, of: 25 }]);
+  });
+
+  test("HH9: a short kudos given since the last visit moves the kudos milestone", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    later();
+
+    await kudosSentAt(Date.now(), "ty", alice, carol);
+
+    expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
   });
 
   test("a kudos sent before the last visit and decided after it moves the drawn quests and the milestone since the visit", async () => {
@@ -764,7 +776,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual([]);
   });
 
-  test("a thoughtful kudos whose tally waits stays out of the moment, and the milestone moves from where it stood once it is tallied", async () => {
+  test("a kudos whose tally waits stays out of the moment, and the milestone moves from where it stood once it is tallied", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);
@@ -780,7 +792,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 2, to: 3, of: 25 }]);
   });
 
-  test("a thoughtful kudos whose tally never runs moves the milestone in no moment, once the moment stops waiting on it", async () => {
+  test("a kudos whose tally never runs moves the milestone in no moment, once the moment stops waiting on it", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);

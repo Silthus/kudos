@@ -42,7 +42,7 @@ export function renderTopKudosPost({ kudos, teams, origin, newGivers: highlighte
   const newGivers = highlightedGivers ?? [];
   const pageOf = (person: QuotedPerson) => (origin === null ? undefined : personPageOf(origin, person.member));
   return {
-    headline: "🏆 Last week's top thoughtful kudos",
+    headline: "🏆 Last week's top kudos",
     kudos: kudos.map((entry, index) => ({ lead: highlighted ? linkedLeadOf(entry, pageOf) : leadOf(entry, index + 1), quote: quoteOf(entry.words), permalink: entry.permalink })),
     embedsQuotedMessage: highlighted,
     newGivers: newGivers.length === 0 ? null : { headline: "🌱 Top new givers last week", rows: newGivers.map((giver, index) => ({ place: index + 1, ...giver, page: origin === null ? null : personPageOf(origin, giver.member) })) },

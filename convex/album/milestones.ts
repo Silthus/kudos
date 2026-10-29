@@ -5,7 +5,6 @@ import { companyMatchesKeptEventValidator, hoggieDroppedEventValidator } from ".
 import { collectionOf } from "./hoggies/collection";
 import { messagesGivenDecidedAfter, type AnnotatedGivenMessage } from "../engine/awards";
 import { earnTierItem } from "./items/achievements";
-import { saysWhy } from "../progression/gate";
 import type { Moved, ProgressRead } from "../quests/progress";
 import { chatUserOf, membersPageIn, type MemberId } from "../workspace/directory";
 import { talliedAwardOf } from "./tallies";
@@ -111,11 +110,11 @@ export async function tiersEarnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
   return milestoneCatalogue.milestones.flatMap(({ id, steps }) => steps.filter(({ tier }) => earned.has(tierKey(id, tier))).map(({ tier }) => ({ milestone: id, tier })));
 }
 
-export async function thoughtfulMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
+export async function kudosGivenMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
   const givenSince = await messagesGivenDecidedAfter(ctx, member, since, mostAwards);
   if (givenSince === null) return [];
-  const talliedSince = await talliedAwardsIn(ctx, givenSince.filter(({ annotations }) => saysWhy(annotations)));
-  const from = Math.max((await thoughtfulAwardsGivenBy(ctx, member)) - talliedSince.length, 0);
+  const talliedSince = await talliedAwardsIn(ctx, givenSince);
+  const from = Math.max((await kudosAwardsGivenBy(ctx, member)) - talliedSince.length, 0);
   const to = from + talliedSince.filter(({ created }) => created <= until).length;
   const next = milestoneCatalogue.milestones.find(({ id }) => id === "thoughtful")!.steps.find((step) => step.at > from);
   return next === undefined || to === from ? [] : [{ name: next.name, from, to: Math.min(to, next.at), of: next.at }];
@@ -141,13 +140,13 @@ async function factsOf(ctx: QueryCtx, member: MemberId, pagesOf: () => Promise<T
       teams: pages.filter(({ state }) => state === "unlocked").length,
       reach: pages.filter(({ held }) => held > 0).length,
       hoggies: hoggieFirstFinds.length,
-      thoughtful: await thoughtfulAwardsGivenBy(ctx, member),
+      thoughtful: await kudosAwardsGivenBy(ctx, member),
     },
     hoggieFirstFinds,
   };
 }
 
-async function thoughtfulAwardsGivenBy(ctx: QueryCtx, member: MemberId): Promise<number> {
+async function kudosAwardsGivenBy(ctx: QueryCtx, member: MemberId): Promise<number> {
   const weeks = await ctx.db
     .query("weekTallies")
     .withIndex("by_member_week", (q) => q.eq("member", member))

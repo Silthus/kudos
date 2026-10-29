@@ -114,7 +114,7 @@ function blocksOf({ headline, kudos, newGivers, teams, card }: CardedMessage) {
 
 function newGiverLineOf({ place, name, page, thoughtful }: NewGiverRow) {
   const named = page === null ? escaped(name) : `<${page}|${escaped(name)}>`;
-  return `${place}. *${named}* · ${thoughtful} thoughtful kudos`;
+  return `${place}. *${named}* · ${thoughtful} kudos`;
 }
 
 function kudosBlockOf({ lead, quote, permalink }: TopKudosEntry) {

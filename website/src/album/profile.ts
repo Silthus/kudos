@@ -77,5 +77,5 @@ export function rankWords({ rank, tied }: { rank: number; tied: boolean }) {
 }
 
 export function teamRankWords({ name, rank, tied, thoughtful }: BoardTeam) {
-  return rank === null ? `${name} hasn't given one yet this week.` : `${name} is ${rankWords({ rank, tied })} with ${thoughtful} thoughtful kudos.`;
+  return rank === null ? `${name} hasn't given one yet this week.` : `${name} is ${rankWords({ rank, tied })} with ${thoughtful} kudos.`;
 }

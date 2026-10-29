@@ -70,7 +70,7 @@ const day = 86_400_000;
 const now = Date.parse("2026-10-18T10:00:00Z");
 
 
-const lede = "Earn medals as your album grows: the people and teams you collect, the hoggies you find and the thoughtful kudos you give. Every medal unlocks its own emoji for Slack.";
+const lede = "Earn medals as your album grows: the people and teams you collect, the hoggies you find and the kudos you give. Every medal unlocks its own emoji for Slack.";
 
 function nameOf(medal: HTMLElement) {
   return within(medal).getByRole("heading", { level: 3 }).textContent;
@@ -116,7 +116,7 @@ describe("AL51: Milestones puts the next steps first: the closest medal of every
     );
     expect(guidance).toEqual([
       ["Thank someone new in Slack and say why, then identify the items it earns", "12 of 25 people in your album"],
-      ["Thank anyone in Slack and say why. Thanking the same person again counts too", "9 of 25 thoughtful kudos given"],
+      ["Give anyone a kudos in Slack. Thanking the same person again counts too", "9 of 25 kudos given"],
       ["Thank someone from a team not yet in your album, then identify the items it earns", "6 of 10 teams in your album"],
       ["Identify your items to find hoggies you don't have yet. Repeats don't count", "18 of 40 different hoggies found"],
       ["Collect everyone on a team to unlock it", "1 of 5 full teams unlocked"],

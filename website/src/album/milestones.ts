@@ -15,7 +15,7 @@ const milestoneWords: Record<MilestoneId, MilestoneWords> = {
   teams: { name: "Full pages", counted: { one: "full team unlocked", many: "full teams unlocked" }, emblem: "team-spirit", hint: "Collect everyone on a team to unlock it" },
   reach: { name: "Across the company", counted: { one: "team in your album", many: "teams in your album" }, emblem: "old-friends", hint: "Thank someone from a team not yet in your album, then identify the items it earns" },
   hoggies: { name: "Hoggie hunter", counted: { one: "different hoggie found", many: "different hoggies found" }, emblem: "recognition", hint: "Identify your items to find hoggies you don't have yet. Repeats don't count" },
-  thoughtful: { name: "Kind words", counted: { one: "thoughtful kudos given", many: "thoughtful kudos given" }, emblem: "generosity", hint: "Thank anyone in Slack and say why. Thanking the same person again counts too" },
+  thoughtful: { name: "Kudos given", counted: { one: "kudos given", many: "kudos given" }, emblem: "generosity", hint: "Give anyone a kudos in Slack. Thanking the same person again counts too" },
 };
 
 const tierWords: Record<MilestoneTierId, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
