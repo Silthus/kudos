@@ -151,7 +151,11 @@ function Issue({ issue, me }: { issue: WeekIssue; me: string }) {
 
 function isQuiet(issue: WeekIssue) {
   const lists = [issue.thanked, issue.thankedBy, issue.hugged, issue.huggedBy, issue.newFaces];
-  return issue.days.every((count) => count === 0) && issue.packsOpened === 0 && issue.kudosOfWeek === null && lists.every((list) => countOf(list) === 0) && countOf(issue.hoggies) === 0 && issue.given.kudos.length + issue.received.kudos.length === 0;
+  return issue.days.every((count) => count === 0) && !hasRecognitions(issue) && issue.packsOpened === 0 && issue.kudosOfWeek === null && lists.every((list) => countOf(list) === 0) && countOf(issue.hoggies) === 0 && issue.given.kudos.length + issue.received.kudos.length === 0;
+}
+
+function hasRecognitions({ kudosGiven, kudosReceived, hugsGiven, hugsReceived }: WeekIssue) {
+  return kudosGiven + kudosReceived + hugsGiven + hugsReceived > 0;
 }
 
 function countOf({ more, ...list }: PeopleListed | HoggiesFound) {
