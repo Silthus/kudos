@@ -150,6 +150,21 @@ describe("HH39: the turn draws within the floor, cap and weights its item stored
     expect(new Set(turned.map((drop) => drop?.rarity)), "the rarities turned").toEqual(new Set(["rare"]));
   });
 
+  test("HH41: twenty items stored with the kudos weights, as rarity-caps stores a kudos pack's item, each turn as the kudos-weighted draw answers", async () => {
+    const member = await memberOf(await joined(alice));
+    const keys = Array.from({ length: 20 }, (_, n) => `level:${n + 2}:1`);
+    await t.run(async (ctx) => {
+      for (const [n, key] of keys.entries()) await earnItem(ctx, { workspace: "T1", member, source: "hoggie", key, weights: "kudos", reason: { kind: "levelUp", level: n + 2 }, earnedAt: Date.now() });
+    });
+    const asAlice = await signedIn(alice);
+
+    const turned = [];
+    for (const { item } of (await boardOf(asAlice)).items) turned.push(hoggieDrawnBy(await turn(asAlice, item)));
+
+    const drawn = await Promise.all(keys.map((crate) => drawOf({ secret: process.env.HOGGIE_DRAW_SECRET ?? "", member, crate, version: catalogue.version, weights: "kudos" })));
+    expect(turned.map((drop) => drop && { hoggie: drop.hoggie, rarity: drop.rarity }), "the turned faces").toEqual(drawn);
+  });
+
   test("HH40 HH42: a team item with named weights turned by a member who owns every rare can still turn rare, while one without them skips rare as before", async () => {
     await switchWebsite(t, postHog, true, ...itemsOn, "achievement-hoggies");
     const member = await memberOf(await joined(alice));
