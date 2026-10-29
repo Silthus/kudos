@@ -121,11 +121,11 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
     expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", slackProfile: null });
   });
 
-  test("a person you only thanked briefly, or who only thanked you, shows no best message and their hype emoji still locked", async () => {
+  test("a person you only thanked briefly shows no best message, and one who only thanked you shows none and their hype emoji still locked", async () => {
     await thanks(alice, "ty", bob);
     await thanks(carol, why, alice);
 
-    expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", name: bob.name, kudosGiven: 1, kudosReceived: 0, best: null, teams: [], hype: { earned: false, name: null } });
+    expect(await personPageOf(alice, bob)).toMatchObject({ kind: "person", name: bob.name, kudosGiven: 1, kudosReceived: 0, best: null, teams: [] });
     expect(await personPageOf(alice, carol)).toMatchObject({ kind: "person", name: carol.name, firstThankedAt: null, kudosGiven: 0, kudosReceived: 1, best: null, hype: { earned: false, name: null } });
   });
 

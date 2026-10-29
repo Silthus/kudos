@@ -226,6 +226,7 @@ async function cardOf(viewer: Person, owner: Person) {
 }
 
 const noticedCoins = 10;
+const receiving = 2;
 
 describe("CV35 SB21: Team Spirit counts completed team pages", { timeout: 120_000 }, () => {
   test("1, 2, 4 and 8 completions earn bronze, silver, gold and diamond once each, each caused by the completion that reached it, with coins and handshake paid once", async () => {
@@ -246,7 +247,7 @@ describe("CV35 SB21: Team Spirit counts completed team pages", { timeout: 120_00
     await redelivered(teammates[7]!, completedAt[7]!);
     await checkedAgain(alice, completedAt[7]!);
 
-    expect(coinsGained, "Team Spirit pays 10 at bronze and 100 at diamond; the first thanks alice receives also pays Noticed's 10").toEqual([10 + noticedCoins, 0, 0, 0, 0, 0, 0, 100]);
+    expect(coinsGained, "Team Spirit pays 10 at bronze and 100 at diamond; the first thanks alice receives also pays Noticed's 10, and every thanks from a new giver pays receiving coins").toEqual([10 + noticedCoins + receiving, receiving, receiving, receiving, receiving, receiving, receiving, 100 + receiving]);
     expect(await coinsOf(reader), "a redelivered kudos or a retried check paid coins again").toBe(coinsBeforeTheRetries);
 
     expect(await earnedOn(reader)).toEqual({

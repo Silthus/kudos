@@ -163,12 +163,14 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(messagesTo(alice), "the messages Alice got").toHaveLength(2);
   });
 
-  test("a quick thanks from a giver off the Monday path and without hidden items moves no quest and shows who got kudos, the kudos left and one button to the progress", async () => {
+  test("a quick thanks from a giver off the Monday path and without hidden items moves no quest and shows who got kudos, the kudos left and one button to the progress, with the album's thread reply after it", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath.filter((flag) => flag !== "hidden-items" && flag !== "monday-quest"), oneReply);
 
     await thanks(alice, "thanks", bob);
 
-    expect(messagesTo(alice).map(({ blocks }) => blocks), "the messages Alice got").toEqual([
+    const [privateReply, threadReply] = messagesTo(alice).map(({ blocks }) => blocks);
+    expect(threadReply, "the album's thread reply").toEqual(expect.arrayContaining([{ type: "section", text: { type: "mrkdwn", text: "*Bob is new in your album*" } }]));
+    expect([privateReply], "the private reply").toEqual([
       [
         { type: "section", text: { type: "mrkdwn", text: "*<@U_BOB> got 1 kudos from you* · +10 XP" } },
         { type: "context", elements: [{ type: "mrkdwn", text: "2 kudos left today" }] },
@@ -432,7 +434,7 @@ function checklistOf(message: SlackArgs): string[] {
 type ChecklistBlock = { type: string; elements?: Array<{ elements?: Array<{ elements?: Array<{ type: string; name?: string; text?: string }> }> }> };
 
 async function press(person: Person, label: string) {
-  const reply = messagesTo(person).at(-1)!;
+  const reply = messagesTo(person).findLast(({ blocks }) => JSON.stringify(blocks).includes(`"text":"${label}"`))!;
   const click = blockActions(person.user, buttonIn(reply.blocks as Block[], label), { inMessage: { channel: String(reply.channel), ts: "", ephemeral: true } });
   const response = await t.fetch("/slack/interactivity", await signedRequest(click, { contentType: "application/x-www-form-urlencoded" }));
   expect(response.status, "Slack's acknowledgement").toBe(200);

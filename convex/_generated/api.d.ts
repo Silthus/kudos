@@ -30,7 +30,6 @@ import type * as activity_spotlight from "../activity/spotlight.js";
 import type * as album_albumHoggies from "../album/albumHoggies.js";
 import type * as album_boards from "../album/boards.js";
 import type * as album_earnedEmojis from "../album/earnedEmojis.js";
-import type * as album_earns from "../album/earns.js";
 import type * as album_emojiCatalogue from "../album/emojiCatalogue.js";
 import type * as album_emojiClasses from "../album/emojiClasses.js";
 import type * as album_emojiMappings from "../album/emojiMappings.js";
@@ -422,7 +421,6 @@ declare const fullApi: ApiFromModules<{
   "album/albumHoggies": typeof album_albumHoggies;
   "album/boards": typeof album_boards;
   "album/earnedEmojis": typeof album_earnedEmojis;
-  "album/earns": typeof album_earns;
   "album/emojiCatalogue": typeof album_emojiCatalogue;
   "album/emojiClasses": typeof album_emojiClasses;
   "album/emojiMappings": typeof album_emojiMappings;
