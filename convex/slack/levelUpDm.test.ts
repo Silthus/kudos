@@ -159,11 +159,12 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     const alice = await memberOf(t, "U_ALICE");
     await t.run(async (ctx) => {
       for (const drop of await ctx.db.query("drops").withIndex("by_member", (q) => q.eq("member", alice)).collect()) await ctx.db.delete(drop._id);
+      for (const item of await ctx.db.query("items").withIndex("by_member_turned", (q) => q.eq("member", alice)).collect()) await ctx.db.delete(item._id);
     });
 
     const lines = await t.query(internal.feedback.notify.linesStillWanted, { member: alice, notification: { kind: "level-reached", level: 2, skillPoints: 0, xpToNextLevel: 80, ready: [] } });
 
-    expect(lines, "the DM's lines while the drops have not committed").toContainEqual({ link: { url: `${siteUrl}/book#level-up/2`, label: "Reveal your three new hoggies" } });
+    expect(lines, "the DM's lines while the follower has not committed").toContainEqual({ link: { url: `${siteUrl}/book#level-up/2`, label: "Reveal your three new hoggies" } });
   });
 
   test.each([
@@ -191,6 +192,20 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
       await switchFlags(t, ...revealOn, "hidden-items");
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(levelUpDms()).toHaveLength(2);
+    expect(levelUpDms().at(-1)).toEqual({ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/|See your level on the web>` });
+  });
+
+  test("a DM Slack held back while level-up-reveal went on links to the member's level when it is sent again, since its level dropped nothing", async () => {
+    const t = await websiteWorkspaceWith(...revealOn.filter((flag) => flag !== "level-up-reveal"));
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await switchFlags(t, ...revealOn);
       slack.answering("chat.postMessage", rateLimitedFor(30));
     });
 

@@ -27,7 +27,7 @@ export const earnLevelUpHoggies = internalMutation({
   },
 });
 
-async function levelUpEarned(ctx: QueryCtx, member: MemberId, level: number): Promise<boolean> {
+export async function levelUpEarned(ctx: QueryCtx, member: MemberId, level: number): Promise<boolean> {
   return (await earnedItemOf(ctx, member, "hoggie", levelUpCrateKeyOf(level, 1))) !== null;
 }
 
