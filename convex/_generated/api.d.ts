@@ -215,6 +215,7 @@ import type * as progression_effects from "../progression/effects.js";
 import type * as progression_firstThanks from "../progression/firstThanks.js";
 import type * as progression_gainsView from "../progression/gainsView.js";
 import type * as progression_gate from "../progression/gate.js";
+import type * as progression_hugRewards from "../progression/hugRewards.js";
 import type * as progression_levels from "../progression/levels.js";
 import type * as progression_perks from "../progression/perks.js";
 import type * as progression_progress from "../progression/progress.js";
@@ -608,6 +609,7 @@ declare const fullApi: ApiFromModules<{
   "progression/firstThanks": typeof progression_firstThanks;
   "progression/gainsView": typeof progression_gainsView;
   "progression/gate": typeof progression_gate;
+  "progression/hugRewards": typeof progression_hugRewards;
   "progression/levels": typeof progression_levels;
   "progression/perks": typeof progression_perks;
   "progression/progress": typeof progression_progress;

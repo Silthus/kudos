@@ -57,8 +57,6 @@ const allowed: string[] = [
   "convex/groups/reconcile.ts table:members",
   "convex/album/hoggies/boughtCrates.ts spend",
   "convex/album/hoggies/drops.ts applyGain",
-  "convex/hugs/hugs.ts recordReward",
-  "convex/hugs/people.ts recordReward",
   "convex/album/items/fill.ts table:members",
   "convex/leaderboard/newGivers.ts table:thoughtfulBoardTallies",
   "convex/mondayDm/mondayDm.ts table:questStarts",
