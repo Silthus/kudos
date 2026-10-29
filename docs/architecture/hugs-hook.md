@@ -43,7 +43,7 @@ Rung 2, modules and seams:
 - 🧑 **Hugs decides every reaction: hug, hype or nothing.** It publishes `hugGiven` once per hug, `hugReceived` once per person, and `hypeReacted` for a hype emoji the giver doesn't hold.
 - 🧑 **`Progression` owns every XP rule.** Hug XP, the day and week bonuses, and a finished quest's XP. A quest's XP and its hoggie become two keyed writes in two subscribers ([ADR-0015](../adr/0015-quest-rewards-follow-the-finish.md)).
 - 🧑 **Leaderboard owns every count.** One row per member and period: kudos given, kudos received, hugs given, hugs received ([ADR-0016](../adr/0016-leaderboard-owns-every-recognition-count.md)).
-- 🧑 **`Album` is the one collection module.** Items' ledger and `Hoggies`' draw and forge become parts behind `Album`'s seam ([ADR-0017](../adr/0017-album-owns-collecting.md)). `Welcome`'s hoggie, Achievements' hoggies and the forge's own `earnItem` stay on the allowlist as a follow-up.
+- 🧑 **`Album` is the one collection module.** Items' ledger and `Hoggies`' draw and forge become parts behind `Album`'s seam ([ADR-0017](../adr/0017-album-owns-collecting.md)). `Welcome`'s hoggie and Achievements' hoggies stay on the allowlist as a follow-up; the forge's own `earnItem` is inside `Album` since the move.
 - 🧑 **Quests counts recognition facts.** Two adapters turn `kudosGiven` and `hugGiven` into one fact. Quests publishes `questFinished` and pays nothing.
 - 🧑 **A count lands in the member's own week,** in their own time zone, for what they give and for what they receive.
 - 🧑 **The nudge reads `Album`'s `nudgesFor`.** Monday DM asks `Album` for the "give X a kudos to collect their hype emoji" lines.
@@ -89,7 +89,7 @@ The page is [hugs-hook/modules.html](hugs-hook/modules.html), and its spec is [h
 - `Album`'s import of 8 Leaderboard symbols from 2 files (`convex/album/boards.ts`, `convex/album/thoughtfulGivers.ts`).
 - `Album`'s thoughtful boards, and `getThoughtfulBoards` (`convex/website/album.ts:379`).
 
-Why Items and `Hoggies` didn't follow the bus: earning was never put on it. Seven files call `earnItem` directly (`album/opening.ts:81`, `album/packs.ts:108`, `items/welcome.ts:19`, `quests/finish.ts:28`, `items/achievements.ts:19`, `unlocks/levelUpHoggies.ts:28`, `hoggies/forge.ts:24`), and Unlocks calls `Hoggies`' `dropFor` itself (`unlocks/levelUpHoggies.ts:34`). ADR-0010 needs only the turn to be a direct call, not the earn.
+Why Items and `Hoggies` didn't follow the bus: earning was never put on it. Seven files call `earnItem` directly (`album/opening.ts:81`, `album/packs.ts:108`, `album/items/welcome.ts:19`, `quests/finish.ts:28`, `album/items/achievements.ts:19`, `unlocks/levelUpHoggies.ts:28`, `album/hoggies/forge.ts:24`), and Unlocks calls `Hoggies`' `dropFor` itself (`unlocks/levelUpHoggies.ts:34`). ADR-0010 needs only the turn to be a direct call, not the earn.
 
 ## Rung 3: call paths
 
@@ -103,7 +103,7 @@ Convex retries a scheduled mutation only on its own transient errors, never on a
 
 ## Rung 4: contracts
 
-Each locked seam is TypeScript in the repo's idiom. Existing types are reused: `MemberId` (`convex/workspace/directory.ts`), `DayKey` (`convex/engine/allowance.ts:4`), `MessageRef` (`convex/engine/messageEvent.ts`), `Period` and `PeriodKey` (`convex/leaderboard/periods.ts:6,10`), `Earning` (`convex/items/records.ts:34`), `HugReaction` (`convex/hugs/reaction.ts`).
+Each locked seam is TypeScript in the repo's idiom. Existing types are reused: `MemberId` (`convex/workspace/directory.ts`), `DayKey` (`convex/engine/allowance.ts:4`), `MessageRef` (`convex/engine/messageEvent.ts`), `Period` and `PeriodKey` (`convex/leaderboard/periods.ts:6,10`), `Earning` (`convex/album/items/records.ts:34`), `HugReaction` (`convex/hugs/reaction.ts`).
 
 ### Bus: the facts (`convex/bus/events.ts`)
 
@@ -280,7 +280,7 @@ export const earnQuestHoggie = internalMutation({ args: { event: questFinishedEv
 ```
 
 - **`hypeEmojiFor`.** It resolves the emoji through the emoji registry (`emojiNames`), never by its `-hype` suffix. It answers `null` when no member owns the emoji. `held` is `hypeEarnedBy`'s answer for the giver (`convex/album/earnedEmojis.ts:286-289`). It replaces `holdsEarnedEmojiNamed` on the reaction path.
-- **`earnHugFind`.** It follows `hugGiven`, not `hugReceived`: `spec/hugs-hook.md` (HH35) amends this capture, because the giver is the one forming the habit and a hug on a kudos message would otherwise fan finds out to every recipient. It decides from the hug's own key whether the giver finds, and earns the find face down with `earnItem`, keyed `hug-find:{day}` of the giver's day under a `hug` crate kind, so a member finds at most once a day. The draw at the turn uses `floor` and a new `cap` of rare (`convex/hoggies/draw.ts:14`), so a hug find is never epic or above, and the forge stops at rare (HH43). The chance is in the spec's numbers table.
+- **`earnHugFind`.** It follows `hugGiven`, not `hugReceived`: `spec/hugs-hook.md` (HH35) amends this capture, because the giver is the one forming the habit and a hug on a kudos message would otherwise fan finds out to every recipient. It decides from the hug's own key whether the giver finds, and earns the find face down with `earnItem`, keyed `hug-find:{day}` of the giver's day under a `hug` crate kind, so a member finds at most once a day. The draw at the turn uses `floor` and a new `cap` of rare (`convex/album/hoggies/draw.ts:14`), so a hug find is never epic or above, and the forge stops at rare (HH43). The chance is in the spec's numbers table.
 - **`recordHypeReaction`.** It writes one row per giver, owner and message in a `hypeReactions` table indexed by giver and owner, and a duplicate does nothing. What the rows unlock belongs to the collecting rule, ten reactions on the owner's messages. `nudgesFor` reads them beside the packs, one index range per owner it names.
 - **`earnLevelUpHoggies`.** It moves from `convex/unlocks/levelUpHoggies.ts` with its keys (`levelUpCrateKeyOf(level, slot)`) unchanged.
 - **`earnQuestHoggie`.** It acts only when `rewardKey` is present and earns under `questItemKeyOf(rewardKey)`, today's key (`convex/quests/finish.ts:20-22`).

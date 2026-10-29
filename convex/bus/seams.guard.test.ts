@@ -3,19 +3,17 @@ import schema from "../schema";
 
 const sources = import.meta.glob<string>(["/convex/**/*.ts", "!/convex/_generated/**", "!/convex/**/*.test.ts"], { query: "?raw", import: "default", eager: true });
 
-const modulesThatWriteRewards = ["progression", "wallet", "items", "hoggies"];
+const placesThatWriteRewards = ["progression", "wallet", "album/items", "album/hoggies"];
 
 const tablesOf: Record<string, string[]> = {
   achievements: ["bookLaunches", "ladderCounts", "ladderMarks", "countedAwards", "bookBatches", "bookReplays", "bookReplayCursors", "earnedTiers"],
-  album: ["thoughtfulGiverCounts", "thoughtfulPacks", "trayItems", "grantRecords", "grantsTold", "thoughtfulTallies", "thoughtfulBoardTallies", "boardCountedAwards", "albumStickers", "teamStickers", "milestoneTiers", "emojiNames", "secondEmojiNames", "emojiNameNumbers", "seenEmojis", "kudosEmojiPicks", "emojiClasses", "randomEmojiDrops", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs"],
+  album: ["thoughtfulGiverCounts", "thoughtfulPacks", "trayItems", "grantRecords", "grantsTold", "thoughtfulTallies", "thoughtfulBoardTallies", "boardCountedAwards", "albumStickers", "teamStickers", "milestoneTiers", "emojiNames", "secondEmojiNames", "emojiNameNumbers", "seenEmojis", "kudosEmojiPicks", "emojiClasses", "randomEmojiDrops", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "items", "drops", "hoggieTallies", "dropTallies", "trayDrops", "hoggieAvatars", "petHoggies", "boughtCrates"],
   analytics: ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"],
   companyProfiles: ["companyProfiles", "companyTeams", "companyFaces", "companyProfileLinks"],
   engine: ["kudosMessages", "kudosTexts", "wordDeletionRequests", "spotlightDraws", "awards", "kudosTotals", "allowanceSpending"],
   feedback: ["welcomeNudges", "indicators", "privateReplies", "oneReplies", "publicReplies", "tierNotices", "tierSummaries", "homes", "homeSelections", "sentNotices", "grantReplies", "celebratedLevels"],
   groups: ["userGroupDepartures", "groupCountingChanges", "memberGroups", "groupSettings", "primaryGroupHistory", "attributions"],
-  hoggies: ["drops", "hoggieTallies", "dropTallies", "trayDrops", "hoggieAvatars", "petHoggies", "boughtCrates"],
   hugs: ["hugWeeks", "hugWeekMessages", "hugCounts", "hugs", "hugPeople", "hugsReceived"],
-  items: ["items"],
   leaderboard: ["countedKudosGiven", "givenByDay", "attributedTotals", "attributedGroupTotals", "countedAttributions", "givenTotals", "mondayPostSettings", "mondayPostClaims", "featuredNewGivers", "leaderboardSettings"],
   messageSettings: ["progressSettings", "messageSettings"],
   mondayDm: ["mondayDms"],
@@ -36,15 +34,6 @@ const allowed: string[] = [
   "convex/achievements/tierCoins.ts recordReward",
   "convex/achievements/tierEmoji.ts recordReward",
   "convex/album/emojiWizard.ts table:memberProgress",
-  "convex/album/milestones.ts earnTierItem",
-  "convex/album/opening.ts dropFor",
-  "convex/album/opening.ts dropOf",
-  "convex/album/opening.ts earnItem",
-  "convex/album/opening.ts markTurned",
-  "convex/album/packs.ts earnItem",
-  "convex/album/putIn.ts markTurned",
-  "convex/album/putIn.ts putDropIn",
-  "convex/album/teamStickers.ts earnTeamItem",
   "convex/commands/commands.ts buyCrate",
   "convex/commands/commands.ts buyPerk",
   "convex/commands/commands.ts openCrate",
@@ -65,18 +54,11 @@ const allowed: string[] = [
   "convex/feedback/welcomeNudge.ts table:users",
   "convex/groups/groups.ts table:userGroups",
   "convex/groups/reconcile.ts table:members",
-  "convex/hoggies/boughtCrates.ts spend",
-  "convex/hoggies/drops.ts applyGain",
-  "convex/hoggies/forge.ts earnItem",
+  "convex/album/hoggies/boughtCrates.ts spend",
+  "convex/album/hoggies/drops.ts applyGain",
   "convex/hugs/hugs.ts recordReward",
   "convex/hugs/people.ts recordReward",
-  "convex/items/fill.ts table:members",
-  "convex/items/fill.ts table:thoughtfulPacks",
-  "convex/items/fill.ts table:trayItems",
-  "convex/items/finds.ts table:thoughtfulPacks",
-  "convex/items/turn.ts dropFor",
-  "convex/items/turn.ts dropForged",
-  "convex/items/turn.ts dropOf",
+  "convex/album/items/fill.ts table:members",
   "convex/leaderboard/newGivers.ts table:thoughtfulBoardTallies",
   "convex/mondayDm/mondayDm.ts table:questStarts",
   "convex/progression/perks.ts coinsShownTo",
@@ -126,21 +108,21 @@ describe("HH16: writes cross modules as bus facts", () => {
   });
 
   test.each([
-    ["a named import", `import { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
-    ["a renamed import over lines", `import {\n  type Earning,\n  earnItem as earn,\n} from '../items/ledger';`, ["convex/stickers/stickers.ts earnItem"]],
-    ["a namespace import of another module, whatever it uses", `import * as ledger from "../items/ledger.ts";\nconst { earnItem } = ledger;`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
-    ["a named import with its extension", `import { earnItem } from "../items/ledger.ts";`, ["convex/stickers/stickers.ts earnItem"]],
-    ["a re-export", `export { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a named import", `import { earnItem } from "../album/items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a renamed import over lines", `import {\n  type Earning,\n  earnItem as earn,\n} from '../album/items/ledger';`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a namespace import of another module, whatever it uses", `import * as ledger from "../album/items/ledger.ts";\nconst { earnItem } = ledger;`, ["convex/stickers/stickers.ts namespace:convex/album/items/ledger"]],
+    ["a named import with its extension", `import { earnItem } from "../album/items/ledger.ts";`, ["convex/stickers/stickers.ts earnItem"]],
+    ["a re-export", `export { earnItem } from "../album/items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a query in single quotes", `await ctx.db.query('items').collect();`, ["convex/stickers/stickers.ts table:items"]],
     ["a query spaced from its table", `await ctx.db.query ( "items" ).collect();`, ["convex/stickers/stickers.ts table:items"]],
-    ["a star re-export of another module", `export * from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
-    ["a named star re-export of another module", `export * as ledger from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
-    ["a namespace import beside a default import", `import ledger, * as all from "../items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
-    ["a wrapper of a write in a module that writes rewards", `import { earnWelcomeItem } from "../items/welcome";`, ["convex/stickers/stickers.ts earnWelcomeItem"]],
+    ["a star re-export of another module", `export * from "../album/items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/album/items/ledger"]],
+    ["a named star re-export of another module", `export * as ledger from "../album/items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/album/items/ledger"]],
+    ["a namespace import beside a default import", `import ledger, * as all from "../album/items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/album/items/ledger"]],
+    ["a wrapper of a write in a module that writes rewards", `import { earnWelcomeItem } from "../album/items/welcome";`, ["convex/stickers/stickers.ts earnWelcomeItem"]],
     ["a read of a module that writes rewards", `import { standingOf } from "../progression/progression";`, []],
     ["a query with a type argument", `await ctx.db.query<"items">("items").collect();`, ["convex/stickers/stickers.ts table:items"]],
     ["a query whose table the guard can't read", `await ctx.db.query(tableName).collect();`, ["convex/stickers/stickers.ts query:tableName"]],
-    ["a type-only import", `import type { earnItem } from "../items/ledger";`, []],
+    ["a type-only import", `import type { earnItem } from "../album/items/ledger";`, []],
     ["the module's own write and table", `import { insertSticker } from "./records";\nawait ctx.db.query("stickers").collect();`, []],
   ])("finds %s", (_, source, crossings) => {
     expect(crossingsOf("/convex/stickers/stickers.ts", source)).toEqual(crossings);
@@ -177,15 +159,20 @@ function crossingsOf(path: string, source: string) {
 function writesImportedBy(path: string, source: string) {
   return namedImportsOf(source)
     .filter(({ from }) => isAnotherModule(path, from))
-    .flatMap(({ names, from }) => names.filter((name) => writeFunctionsOf(moduleOf(resolved(path, from))).includes(name)))
+    .flatMap(({ names, from }) => names.filter((name) => writeFunctionsOf(resolved(path, from)).includes(name)))
     .map((name) => `${fileOf(path)} ${name}`);
 }
 
-function writeFunctionsOf(module: string) {
-  if (!modulesThatWriteRewards.includes(module)) return [];
+function writeFunctionsOf(target: string) {
+  const place = placeThatWritesRewardsOf(target);
+  if (place === undefined) return [];
   return Object.entries(sources)
-    .filter(([path]) => moduleOf(path) === module)
+    .filter(([path]) => placeThatWritesRewardsOf(path) === place)
     .flatMap(([, source]) => writeFunctionsIn(source));
+}
+
+function placeThatWritesRewardsOf(path: string) {
+  return placesThatWriteRewards.find((place) => path.startsWith(`/convex/${place}/`));
 }
 
 type Exported = { name: string; local: string | null };
