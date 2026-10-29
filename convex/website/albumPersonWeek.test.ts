@@ -324,13 +324,13 @@ describe("AL48: getAlbumWeek reads one week's issue from its week tally", { time
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", week: "2026-10-19", weeks: [{ week: theWeek }], issue: null });
   });
 
-  test("a kudos a giver east of the member sent on their Monday shows in its week's tab while it is still Sunday for the member", async () => {
+  test("a first kudos a giver east of the member sent on their Monday lists its giver in that week's tab and counts in the member's own week, still Sunday for them (HH30)", async () => {
     await aMember(t, carol.user, "member", "T1", "Pacific/Auckland");
     vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
     clock = Date.now();
     await thanks(carol, why, alice);
 
-    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [{ week: "2026-10-19" }], issue: null });
+    expect(await weekOf(alice)).toMatchObject({ kind: "week", week: theWeek, thisWeek: theWeek, weeks: [{ week: "2026-10-19" }, { week: theWeek }], issue: { kudosReceived: 1, thankedBy: { people: [], more: 0 } } });
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ thisWeek: theWeek });
     expect(await weekOf(alice, "2026-10-19")).toMatchObject({ kind: "week", issue: { thankedBy: { people: [{ person: await memberOf(carol) }] } } });
   });

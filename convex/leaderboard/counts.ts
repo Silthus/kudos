@@ -23,6 +23,8 @@ type Total = Doc<"givenTotals">;
 
 const keptBesideKudosGiven = ["kudosReceived", "hugsGiven", "hugsReceived"] as const;
 
+const weekKeys = { from: "week:", to: "week;" };
+
 export const countedKeys = {
   kudosReceived: (award: AwardId) => `kudos-received:${award}`,
   hugGiven: (giver: MemberId, { conversation, message }: MessageRef) => `hug-given:${giver}:${conversation}:${message}`,
@@ -57,6 +59,14 @@ export async function noteGivingDay(ctx: MutationCtx, { member, day }: Landing) 
 
 export async function totalsOf(ctx: QueryCtx, member: MemberId, period: PeriodKey): Promise<PeriodTotals> {
   return periodTotalsOf(await periodRowOf(ctx, member, period));
+}
+
+export async function firstCountedWeekOf(ctx: QueryCtx, member: MemberId): Promise<DayKey | null> {
+  const first = await ctx.db
+    .query("givenTotals")
+    .withIndex("by_member_period", (q) => q.eq("member", member).gte("period", weekKeys.from).lt("period", weekKeys.to))
+    .first();
+  return first === null ? null : first.period.slice(weekKeys.from.length);
 }
 
 export async function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<MemberTotals[]> {

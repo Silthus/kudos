@@ -1,7 +1,7 @@
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import type { DayKey } from "../engine/allowance";
-import { totalsOf, type RecognitionCounts } from "../leaderboard/counts";
+import { firstCountedWeekOf, totalsOf, type RecognitionCounts } from "../leaderboard/counts";
 import { keyOf } from "../leaderboard/periods";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
@@ -26,11 +26,12 @@ export async function weekEditionOf(ctx: QueryCtx, member: MemberId, asked: DayK
   const week = asked ?? thisWeek;
   const [first, newest] = [await weekRows(ctx, member).first(), await weekRows(ctx, member).order("desc").first()];
   if (first === null || newest === null) return { week, thisWeek, weeks: [], issue: null };
+  const firstWeek = earlierOf(first.week, (await firstCountedWeekOf(ctx, member)) ?? first.week);
   const newestShown = laterOf(thisWeek, newest.week);
-  const oldestShown = laterOf(first.week, weeksBefore(newestShown, weeksShown - 1));
+  const oldestShown = laterOf(firstWeek, weeksBefore(newestShown, weeksShown - 1));
   const shown = new Map((await weekRowsBetween(ctx, member, oldestShown, newestShown)).map((row) => [row.week, row]));
   const weeks = weeksBetween(oldestShown, newestShown).map((each) => ({ week: each, days: shown.get(each)?.days ?? anEmptyWeek().days }));
-  const hasAnIssue = isAWeek(week) && week >= first.week && week <= newestShown;
+  const hasAnIssue = isAWeek(week) && week >= firstWeek && week <= newestShown;
   return { week, thisWeek, weeks, issue: hasAnIssue ? await issueOf(ctx, member, week, shown.get(week) ?? (await weekRowOf(ctx, member, week))) : null };
 }
 
@@ -50,6 +51,10 @@ function isAWeek(day: DayKey) {
 
 function laterOf(one: DayKey, other: DayKey) {
   return one > other ? one : other;
+}
+
+function earlierOf(one: DayKey, other: DayKey) {
+  return one < other ? one : other;
 }
 
 function weeksBefore(week: DayKey, weeks: number): DayKey {
