@@ -246,6 +246,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   over: websiteLinkOf while the website is open, for every page, the Leaderboard's three periods, and the targets a link drops: a perk, a quest, a feature's crate, the Journey's crate, an earlier week's weekly crate and group crate, a bought crate, the crate offer and the inventory panel; `/settings` with no section and with each of its three sections; a level up's page; each of the seven surfaces; and urlOf on the `/sign-in` entry
   via: SW11: one function builds every website link
   refuted: routeOf answered an unlisted page's own path instead of the root -> the three unlisted pages linked to /quests, /skills and /book (2026-10-14)
+  refuted: linkFrom returned the URL without setting src -> every link lost its surface, 38 of 38 tests red (2026-10-29)
   because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link through one function, which names the album address each page lands on once the old shell is gone, so a link needs no rewrite and Slack's older links still land through the router's old-URL map (SW11, SW13, AL44, AL67)
   kinds: output
   checklist: destination-confinement dismissed: the origin is the deployment's own SITE_URL and the path is one of the fixed album addresses in convex/website/routes.ts; no part of the URL is taken from input
