@@ -494,6 +494,17 @@ describe("HH93: a page view names where the visit came from", () => {
     expect(pageviewSources()).toEqual([{ page: "book", source: "direct" }]);
   });
 
+  it("a browser that refuses to store the source still names it on this visit's first page view, not an older visit's", async () => {
+    sessionStorage.setItem("hedgehug.visitSource", "recap");
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("storage is full", "QuotaExceededError");
+    });
+    await loadTheSite("/leaderboard?src=monday-dm", ann);
+    await capturing();
+
+    expect(pageviewSources()).toEqual([{ page: "leaderboard", source: "monday-dm" }]);
+  });
+
   it("the source outlives the sign-in round trip, and the next visit without one is direct again", async () => {
     await loadTheSite("/sign-in/book?src=welcome#milestones", { kind: "signed-out" });
     cleanup();

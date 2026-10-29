@@ -6,6 +6,8 @@ const storageKey = "hedgehug.visitSource";
 
 let addressRead = false;
 
+let sourceOfThisLoad: VisitSource | undefined;
+
 let sourceSent = false;
 
 export function keepTheVisitSource() {
@@ -14,6 +16,7 @@ export function keepTheVisitSource() {
   const address = new URL(window.location.href);
   const source = visitSourceIn(address.searchParams.get(visitSourceParam));
   if (address.searchParams.has(visitSourceParam)) withoutTheSourceInTheAddress(address);
+  sourceOfThisLoad = source;
   if (source !== undefined) remember(source);
   else if (!backFromSignIn(address)) forget();
 }
@@ -21,7 +24,7 @@ export function keepTheVisitSource() {
 export function sourceOfTheFirstPageview(): { source?: PageviewSource } {
   if (sourceSent) return {};
   sourceSent = true;
-  const source = remembered() ?? "direct";
+  const source = sourceOfThisLoad ?? remembered() ?? "direct";
   forget();
   return { source };
 }
