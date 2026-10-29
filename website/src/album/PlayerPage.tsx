@@ -171,7 +171,7 @@ function RankStrip({ page: { own, card } }: { page: Page }) {
               No. {place.rank}
               {place.tied ? " tied" : ""} this week
             </strong>{" "}
-            <span className="al-pp-quiet">· {place.thoughtful} kudos</span>
+            <span className="al-pp-quiet">· {place.kudosGiven} kudos</span>
           </>
         )}
       </span>

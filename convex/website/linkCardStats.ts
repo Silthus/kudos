@@ -1,5 +1,4 @@
 import type { QueryCtx } from "../_generated/server";
-import { allTimeBoardsIn, type AllTimeBoards } from "../album/boards";
 import { emojiArtPictureOf } from "../album/emojiCatalogue";
 import { teamEmojiOf } from "../album/earnedEmojis";
 import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie, type AlbumHoggies } from "../album/albumHoggies";
@@ -10,13 +9,12 @@ import type { PersonTeam } from "../album/personPage";
 import type { Rarity } from "../album/hoggies/catalogue";
 import { hoggiesShownTo } from "../album/hoggies/flag";
 import { hoggieSharePictureOf } from "../album/items/shareArt";
+import { boardsOf, type BoardPlace, type Boards, type Standing } from "../leaderboard/boards";
 import { standingOf } from "../progression/progression";
 import { xpToReach } from "../progression/levels";
 import type { MemberId } from "../workspace/directory";
 
 export type CardHoggie = { hoggie: string; name: string; rarity: Rarity; picture: string };
-
-export type BoardPlace = { rank: number; tied: boolean; thoughtful: number };
 
 export type LevelWay = { level: number; share: number };
 
@@ -33,7 +31,7 @@ type CompanyTeamRow = { team: string; people: number[] };
 export type CardReads = {
   workspace: string;
   origin: string;
-  boards: () => Promise<AllTimeBoards>;
+  boards: () => Promise<Boards>;
   holders: () => Promise<Map<number, StoredHolder>>;
   hoggiesOf: (member: MemberId) => Promise<AlbumHoggies | null>;
 };
@@ -43,7 +41,7 @@ const mostPictures = 9;
 const mostCollectionsReadPerMessage = 20;
 
 export function cardReadsOf(ctx: QueryCtx, workspace: string, origin: string): CardReads {
-  let boards: Promise<AllTimeBoards> | undefined;
+  let boards: Promise<Boards> | undefined;
   let holders: Promise<Map<number, StoredHolder>> | undefined;
   const collections = new Map<MemberId, Promise<AlbumHoggies | null>>();
   const hoggiesOf = (member: MemberId) => {
@@ -52,7 +50,11 @@ export function cardReadsOf(ctx: QueryCtx, workspace: string, origin: string): C
     if (collections.size >= mostCollectionsReadPerMessage) return Promise.resolve(null);
     return collections.set(member, shownHoggiesOf(ctx, member)).get(member)!;
   };
-  return { workspace, origin, boards: () => (boards ??= allTimeBoardsIn(ctx, workspace)), holders: () => (holders ??= storedHoldersIn(ctx, workspace)), hoggiesOf };
+  return { workspace, origin, boards: () => (boards ??= allTimeBoardsOf(ctx, workspace)), holders: () => (holders ??= storedHoldersIn(ctx, workspace)), hoggiesOf };
+}
+
+function allTimeBoardsOf(ctx: QueryCtx, workspace: string): Promise<Boards> {
+  return boardsOf(ctx, { workspace, member: null }, { period: "all", team: null });
 }
 
 async function shownHoggiesOf(ctx: QueryCtx, member: MemberId): Promise<AlbumHoggies | null> {
@@ -65,7 +67,7 @@ export async function personStatsOf(ctx: QueryCtx, { workspace, origin, boards, 
     person,
     teams: await cardTeamsOf(ctx, workspace, teams),
     way: level === null ? null : await levelWayOf(ctx, person, level),
-    place: placeOf((await boards()).people.find(({ member }) => member === person)),
+    place: kudosGivenPlaceOf((await boards()).people.kudosGiven.find(({ member }) => member === person)),
     hoggies: hoggies === null ? null : { found: hoggies.found, total: hoggies.total },
     rarest: cardHoggiesOf(hoggies?.hoggies ?? [], origin),
     people: (await peopleHeldBy(ctx, person)).size,
@@ -77,8 +79,8 @@ export async function teamStatsOf(reads: CardReads, team: CompanyTeamRow): Promi
   const { origin, boards } = reads;
   const { people, teams } = await boards();
   return {
-    place: placeOf(teams.find((row) => row.team === team.team)),
-    saidThanks: people.filter((giver) => giver.teams.includes(team.team)).length,
+    place: kudosGivenPlaceOf(teams.kudosGiven.find((row) => row.team === team.team)),
+    saidThanks: people.kudosGiven.filter((giver) => giver.teams.includes(team.team)).length,
     rarest: cardHoggiesOf(await foundByTheTeam(reads, team), origin),
     asOf: Date.now(),
   };
@@ -104,8 +106,8 @@ async function levelWayOf(ctx: QueryCtx, person: MemberId, level: number): Promi
   return { level, share: Math.min(1, Math.max(0, (xp - startsAt) / (nextAt - startsAt))) };
 }
 
-function placeOf(row: { rank: number | null; tied: boolean; thoughtful: number } | undefined): BoardPlace | null {
-  return row === undefined || row.rank === null ? null : { rank: row.rank, tied: row.tied, thoughtful: row.thoughtful };
+function kudosGivenPlaceOf(row: (Standing & { counts: { kudosGiven: number } }) | undefined): BoardPlace | null {
+  return row === undefined ? null : { rank: row.rank, tied: row.tied, kudosGiven: row.counts.kudosGiven };
 }
 
 async function foundByTheTeam({ holders, hoggiesOf }: CardReads, team: CompanyTeamRow): Promise<Found[]> {
