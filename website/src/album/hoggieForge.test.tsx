@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { catalogue } from "../../../convex/album/hoggies/catalogue";
+import { catalogue, type Rarity } from "../../../convex/album/hoggies/catalogue";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "../test/systemTheme";
@@ -46,7 +46,7 @@ function withCopies(answer: AlbumHoggies, copies: Record<string, number>): Album
   return { ...answer, hoggies };
 }
 
-function visit(path: string, answer: AlbumHoggies & { forge?: true }, forgeHoggie: Forge = async () => forgedCake, { turnItem = async () => cakeTurned, album = withNoItems }: { turnItem?: Turn; album?: Album } = {}) {
+function visit(path: string, answer: AlbumHoggies, forgeHoggie: Forge = async () => forgedCake, { turnItem = async () => cakeTurned, album = withNoItems }: { turnItem?: Turn; album?: Album } = {}) {
   window.history.replaceState(null, "", path);
   let shownAlbum = album;
   const view = renderAlbum(memberWithTheAlbum, (asking) => (asking ? shownAlbum : undefined), { hoggies: fixedHoggies(answer), commands: { forgeHoggie, turnItem } });
@@ -61,8 +61,8 @@ async function theFaceDownItem(name = asleepCard) {
   return within(await screen.findByRole("group", { name: "Forged" }, { timeout: arrival })).findByRole("button", { name }, { timeout: arrival });
 }
 
-function forgeOn(copies: Record<string, number>) {
-  return { ...withCopies(hoggiesFixtures.midway, copies), forge: true as const };
+function forgeOn(copies: Record<string, number>, upTo: Rarity = "legendary"): AlbumHoggies {
+  return { ...withCopies(hoggiesFixtures.midway, copies), forge: { upTo } };
 }
 
 function goTo(path: string) {
@@ -122,6 +122,26 @@ describe("HF8: a found hoggie's entry says what its spares forge into", { timeou
 
     const shown = await entry();
     expect(shown.getByText("Copies").nextSibling).toHaveTextContent("4 copies");
+    expect(shown.queryByText(/forge/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("HH43: while rarity-caps is on, the forge stops at rare", { timeout: 60_000 }, () => {
+  it("an uncommon's four copies still offer Forge 3 into a Rare", async () => {
+    visit("/book#hoggies/cake", forgeOn({ cake: 4 }, "rare"));
+
+    const shown = await entry();
+    expect(shown.getByRole("button", { name: "Forge 3 into a Rare" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["a rare", "ape"],
+    ["an epic", "angel"],
+  ])("%s says nothing about forging, however many copies the member holds", async (_, hoggie) => {
+    visit(`/book#hoggies/${hoggie}`, forgeOn({ [hoggie]: 5 }, "rare"));
+
+    const shown = await entry();
+    expect(shown.getByText("Copies").nextSibling).toHaveTextContent("5 copies");
     expect(shown.queryByText(/forge/i)).not.toBeInTheDocument();
   });
 });

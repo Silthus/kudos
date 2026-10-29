@@ -1,5 +1,5 @@
-import { exposed, memberDecision, type Flag } from "../../analytics/flags";
-import type { MutationCtx } from "../../_generated/server";
+import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from "../../analytics/flags";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import type { MemberId } from "../../workspace/directory";
 import type { MilestoneTier } from "../records";
 import type { Rarity, WeightsName } from "./catalogue";
@@ -36,6 +36,12 @@ export const questHoggieRarities: SourceRarities = { today: {}, capped: cappedAt
 export const featureOpeningRarities: SourceRarities = { today: {}, capped: cappedAtRare };
 
 export const boughtCrateRarities: SourceRarities = { today: {}, capped: cappedAtRare };
+
+const forgedUpTo = { today: "legendary", capped: "rare" } as const satisfies { today: Rarity; capped: Rarity };
+
+export async function highestForgedFor(ctx: QueryCtx, member: MemberId): Promise<Rarity> {
+  return (await memberDecisionWithoutWriting(ctx, rarityCapsFlag, member)) ? forgedUpTo.capped : forgedUpTo.today;
+}
 
 export async function rarityRangeFor(ctx: MutationCtx, member: MemberId, { today, capped }: SourceRarities): Promise<RarityRange> {
   const caps = await memberDecision(ctx, rarityCapsFlag, member);

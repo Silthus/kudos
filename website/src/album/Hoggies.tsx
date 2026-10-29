@@ -43,7 +43,7 @@ function HoggiesPage({ answer: answered, place, address, makePet, forging: forgi
   const chosen = answer.hoggies.find(({ hoggie }) => hoggie === place.hoggie) ?? null;
   const open: Open = (hoggie) => address.open(hoggie.hoggie);
   const picking = usePetPick(answer.pet, makePet);
-  const forging = answer.forge === true ? forgingAnywhere : null;
+  const forging = answer.forge !== undefined ? forgingAnywhere : null;
   return (
     <article className="al-page-body al-hoggies">
       <Header answer={answer} />

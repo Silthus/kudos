@@ -1,4 +1,4 @@
-import { hoggiesOfRarity, packBands, rarities, weightsNamed, type CatalogueHoggie, type Rarity, type WeightsName } from "./catalogue";
+import { hoggiesOfRarity, packBands, rankOf, rarities, weightsNamed, type CatalogueHoggie, type Rarity, type WeightsName } from "./catalogue";
 import { kindOf, type CrateKey } from "./crateKey";
 
 export type DrawInput = { secret: string; member: string; crate: string; version: number; floor?: Rarity; cap?: Rarity; weights?: WeightsName; owned?: ReadonlySet<string> };
@@ -49,10 +49,6 @@ function fractionAt(digest: DataView, offset: number) {
 
 function poolsBetween(floor: Rarity, cap: Rarity, weights: WeightsName = "base"): Pool[] {
   return weightsNamed[weights].filter(({ rarity }) => rankOf(rarity) >= rankOf(floor) && rankOf(rarity) <= rankOf(cap)).map(({ rarity, weight }) => ({ rarity, weight, hoggies: hoggiesOfRarity(rarity) }));
-}
-
-function rankOf(rarity: Rarity) {
-  return rarities.findIndex((entry) => entry.rarity === rarity);
 }
 
 function skippingOwnedRarities(pools: Pool[], owned: ReadonlySet<string>): Pool[] {
