@@ -146,7 +146,7 @@ export async function storedKudosWeightOf(ctx: QueryCtx, message: MessageRef): P
 
 export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, hugs }: KudosWeight) {
   if ((await talliedAwardOf(ctx, award.award)) !== null) return;
-  await ctx.db.insert("talliedAwards", { award: award.award });
+  await ctx.db.insert("talliedAwards", { award: award.award, everyKudos: true });
   const { message, giver, recipient, kudos, day, at } = award;
   const week = givingWeekOf(day);
   const pick = { message, hugs, words, at };
