@@ -17,9 +17,8 @@ import { reportHomeOpened } from "./appHome";
 import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
 import { hugReactionValidator } from "../hugs/reaction";
-import { giveHug } from "../hugs/hugs";
+import { decideReaction } from "../hugs/hugs";
 import { linkSharingValidator } from "./linkPreviews";
-import { withoutSkinTone } from "../workspace/slackEmoji";
 
 type Receipt = { workspace: string; eventId: string };
 
@@ -45,7 +44,7 @@ export const receiveReaction = internalMutation({
     const receipt = { workspace: reaction.workspace, eventId };
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    const decision = await giveHug(ctx, reaction, withoutSkinTone(reaction.emoji));
+    const decision = await decideReaction(ctx, reaction);
     if (decision.kind === "unknown-people") await ctx.scheduler.runAfter(0, internal.slack.hugLookups.lookUpHugPeople, { reaction, users: decision.users });
   },
 });

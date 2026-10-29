@@ -269,7 +269,7 @@ export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
 }
 
 export function projectHugGiven(event: HugGivenEvent): ProductEvent {
-  return { event: "hug given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos } };
+  return { event: "hug given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos, ...(event.reaction !== undefined && { reaction: event.reaction }) } };
 }
 
 export function projectTeamPagesCompleted({ member, teams, at, told }: TeamPagesCompletedEvent): ProductEvent[] {

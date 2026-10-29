@@ -64,6 +64,8 @@ export const subscribers: Registry = {
     internal.album.tallies.tallyHugGiven,
     internal.analytics.subscribers.recordHugGiven,
   ],
+  hugReceived: [],
+  hypeReacted: [],
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
   thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned, internal.feedback.albumReplies.replyAfterTheGrant],

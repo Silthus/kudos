@@ -131,10 +131,10 @@ describe("SR21: hugs are dark where the flag is off, at the Slack and website bo
     const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEveryone(hugs)]));
 
     expect(apartFromSR21sList(walk.seen)).not.toEqual(apartFromSR21sList(withoutHugs.seen));
-    expect(walk.hugs.hugs.map(({ giver }) => giver).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>", "<member U_DANA>", "<member U_ERIN>"]);
+    expect(walk.hugs.hugs.map(({ giver }) => giver).sort()).toEqual(["<member U_ALICE>", "<member U_BOB>", "<member U_CAROL>", "<member U_DANA>", "<member U_ERIN>"]);
     expect(recapsTo(bob)).toHaveLength(1);
     expect(timelineKinds(walk, carol)).toContain("hugReceived");
-    expect(hugExposures(walk)).toEqual([{ member: alice.user, value: true }, ...exposuresOfTheWalksHugReactionsAt(true)]);
+    expect(hugExposures(walk)).toEqual(exposuresOfTheWalksHugReactionsAt(true));
   });
 
   test("with hugs on for one member's email only, only that member's reactions are hugs, they pay people whose flag is off, and those people's timelines, settings and recaps stay unchanged", async () => {
@@ -166,6 +166,7 @@ describe("SR21: hugs are dark where the flag is off, at the Slack and website bo
     expect(walk.seen.settingsTabs[dana.user]).not.toEqual(withoutHugs.seen.settingsTabs[dana.user]);
     expect(recapsTo(dana)).toEqual([expect.stringContaining("You reacted :taco: and gave 1 hug (+1 XP).")]);
     expect(hugExposures(walk)).toEqual([
+      { member: alice.user, value: false },
       { member: bob.user, value: false },
       { member: carol.user, value: false },
       { member: dana.user, value: true },
@@ -221,7 +222,7 @@ function asTheShipCreatesIt(): FlagDefinition {
 type Exposure = { member: string; value: boolean };
 
 function exposuresOfTheWalksHugReactionsAt(value: boolean): Exposure[] {
-  return [bob, carol, dana, erin].map(({ user }) => ({ member: user, value }));
+  return [alice, bob, carol, dana, erin].map(({ user }) => ({ member: user, value }));
 }
 
 async function aliceBobCarolAndDanaInAnts(flag: FlagDefinition[], turnOff?: () => void): Promise<Backend> {
