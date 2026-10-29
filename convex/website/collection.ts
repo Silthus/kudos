@@ -1,9 +1,9 @@
 import { companyFaceOfProfile } from "../companyProfiles/faces";
 import { teamPagesShownTo } from "../companyProfiles/flag";
-import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
-import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../hoggies/collection";
-import { crateStoreShownTo, crestsShownTo, hoggiesShownTo, packsShownTo } from "../hoggies/flag";
-import { waitingPacksOf, type WaitingPacks } from "../hoggies/waitingPacks";
+import { crateStoreOf, waitingCratesOf, type CrateStore } from "../album/hoggies/boughtCrates";
+import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../album/hoggies/collection";
+import { crateStoreShownTo, crestsShownTo, hoggiesShownTo, packsShownTo } from "../album/hoggies/flag";
+import { waitingPacksOf, type WaitingPacks } from "../album/hoggies/waitingPacks";
 import { groupsShownTo } from "../groups/groups";
 import type { QueryCtx } from "../_generated/server";
 import { albumsOf, type Album } from "../stickers/albums";

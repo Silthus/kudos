@@ -6,7 +6,7 @@ import { emoji, mention, section, text, type ReactionOptions } from "../../testi
 import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import { catalogue } from "../hoggies/catalogue";
+import { catalogue } from "../album/hoggies/catalogue";
 import type { MemberId } from "../workspace/directory";
 import type { Activity, ActivityEntry, Person } from "./activity";
 

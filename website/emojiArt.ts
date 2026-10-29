@@ -6,7 +6,7 @@ import type { Plugin } from "vite";
 import { emojiArtPictureOf, emojiArt as catalogue, hypeEmblemPicture, milestoneTierArtOf, milestoneTierEmojis, teamEmblemPicture } from "../convex/album/emojiCatalogue";
 import type { MilestoneId } from "../convex/album/milestoneCatalogue";
 import type { MilestoneTier } from "../convex/album/records";
-import { hoggieSharePictureOf, sharedHoggies } from "../convex/items/shareArt";
+import { hoggieSharePictureOf, sharedHoggies } from "../convex/album/items/shareArt";
 
 type Picture = { path: string; svg: () => string };
 

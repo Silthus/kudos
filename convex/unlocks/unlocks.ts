@@ -6,7 +6,7 @@ import { publish } from "../bus/publish";
 import type { Surface } from "../commands/surface";
 import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { republish } from "../feedback/homes";
-import { dropFor } from "../hoggies/drops";
+import { dropFor } from "../album/hoggies/drops";
 import { dropLevelUpHoggies } from "./levelUpHoggies";
 import { notifyLevelReached } from "../feedback/notify";
 import { xpLevelsOnFor } from "../progression/xpLevels";

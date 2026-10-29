@@ -4,7 +4,7 @@ import { aCutout, FakePostHogCom, type TeamPage } from "../../testing/fakePostHo
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace } from "../../testing/website";
 import { internal } from "../_generated/api";
-import { catalogue } from "../hoggies/catalogue";
+import { catalogue } from "../album/hoggies/catalogue";
 import { companyTeamsOf } from "./teams";
 
 const wren = { id: 11, firstName: "Wren", lastName: "Halloway", colour: "lilac", cutout: aCutout("wren"), role: "Product Engineer" };

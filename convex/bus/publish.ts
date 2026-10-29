@@ -2,7 +2,7 @@ import type { FunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { journeyStepOpenedBy } from "../quests/step";
-import { crateKindOf } from "../hoggies/crateKey";
+import { crateKindOf } from "../album/hoggies/crateKey";
 import { isTheFirstThanks } from "../welcome/firstThanks";
 import type { DomainEvent } from "./events";
 

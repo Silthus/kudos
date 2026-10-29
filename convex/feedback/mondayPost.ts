@@ -5,7 +5,7 @@ import type { QuotedKudos, QuotedPerson, TopKudosPost } from "../leaderboard/top
 import { publicPictureOf } from "./albumSlack";
 import { asWritten } from "./groupCopy";
 import { medalOf } from "./leaderboard";
-import type { Find } from "../items/finds";
+import type { Find } from "../album/items/finds";
 import type { Line } from "./segments";
 import { personPageOf } from "../website/linkPreviews";
 import type { MemberId } from "../workspace/directory";

@@ -1,4 +1,4 @@
-import { catalogue, rarities, type CatalogueHoggie } from "../../../convex/hoggies/catalogue";
+import { catalogue, rarities, type CatalogueHoggie } from "../../../convex/album/hoggies/catalogue";
 import type { AlbumHoggie, AlbumHoggies, HoggiesRead, HoggiesShown } from "./answer";
 
 const hour = 3_600_000;

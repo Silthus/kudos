@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { catalogue, hoggieNamed } from "../../../convex/hoggies/catalogue";
+import { catalogue, hoggieNamed } from "../../../convex/album/hoggies/catalogue";
 
 const [member, out, firstN, ...hoggies] = process.argv.slice(2);
 if (!member || !out || !firstN || hoggies.length === 0) throw new Error("usage: seedMore.mts <member id> <out dir> <first drop number> <hoggie>...");

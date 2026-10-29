@@ -1,7 +1,7 @@
 import type { GenericMutationCtx, WithoutSystemFields } from "convex/server";
 import type { DataModel, Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { earnWelcomeItem } from "../items/welcome";
+import { earnWelcomeItem } from "../album/items/welcome";
 import { allowedSignIn } from "../slack/signIn";
 import { verifyLater } from "../slack/verifyMember";
 import { lookup, type MemberFacts } from "../workspace/directory";

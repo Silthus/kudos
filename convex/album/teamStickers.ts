@@ -1,5 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { earnTeamItem } from "../items/achievements";
+import { earnTeamItem } from "./items/achievements";
 import { teamEmojiNameOf } from "./emojiNames";
 import { recordMilestonesOf } from "./milestones";
 import type { Instants } from "./packs";
