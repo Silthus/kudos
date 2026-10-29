@@ -125,6 +125,18 @@ describe("R34 R35: a level-up DM is tried at most 3 times", () => {
     expect(levelUpDms()).toHaveLength(2);
     expect(retry! - first!).toBeGreaterThanOrEqual(30_000);
   });
+  test("a rate-limited DM that never waited for a follower is held back with only the arguments the previous version takes", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.answering("chat.postMessage", rateLimitedFor(30));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    const deliveries = await dmDeliveryArgs(t);
+    expect(deliveries.map(({ attempt }) => attempt ?? 1)).toEqual([1, 2]);
+    for (const delivery of deliveries) expect(delivery).not.toHaveProperty("followerWaits");
+  });
+
   test("a DM Slack held back is not sent once the member turned DMs off", async () => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
@@ -315,6 +327,10 @@ function dmDeliveryRan(t: Backend): Promise<boolean> {
 
 async function dmDeliveryRuns(t: Backend): Promise<number> {
   return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name }) => name.includes("deliverDirectMessage")).length);
+}
+
+async function dmDeliveryArgs(t: Backend): Promise<Array<Record<string, unknown>>> {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name }) => name.includes("deliverDirectMessage")).map(({ args }) => args[0] as Record<string, unknown>));
 }
 
 function levelUpDms() {
