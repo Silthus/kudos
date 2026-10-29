@@ -3,11 +3,12 @@ import type { MutationCtx } from "../../_generated/server";
 import type { PageOwner } from "../teamPages";
 import { earnedItemOf, earnItem } from "../items/ledger";
 import type { MemberId } from "../../workspace/directory";
-import { catalogue, hoggieNamed, hoggiesOfRarity, rarityAbove, sparesForged, type CatalogueHoggie } from "./catalogue";
+import { catalogue, forgedRarityOf, hoggieNamed, hoggiesOfRarity, sparesForged, type CatalogueHoggie, type Rarity } from "./catalogue";
 import { talliesOf } from "./collection";
 import type { CrateKey } from "./crateKey";
 import { pickOf } from "./draw";
 import { drawSecret, droppedIn, recordFind, tallyOf } from "./drops";
+import { highestForgedFor } from "./rarityCaps";
 
 const requestShape = /^[\w-]{1,64}$/;
 
@@ -19,13 +20,13 @@ export async function forge(ctx: MutationCtx, owner: PageOwner, hoggie: string, 
 
 async function forgeAnew(ctx: MutationCtx, { workspace, member }: PageOwner, hoggie: string, key: CrateKey, at: number): Promise<Id<"items"> | null> {
   const spent = await tallyOf(ctx, member, hoggie);
-  if (spent === null || spent.count - 1 < sparesForged || forgedRarityOf(hoggie) === null) return null;
+  if (spent === null || spent.count - 1 < sparesForged || forgedFrom(hoggie, await highestForgedFor(ctx, member)) === null) return null;
   await ctx.db.patch(spent._id, { count: spent.count - sparesForged });
   return earnItem(ctx, { workspace, member, source: "hoggie", key, reason: { kind: "forge", hoggie }, earnedAt: at });
 }
 
 export async function dropForged(ctx: MutationCtx, member: MemberId, crate: CrateKey, from: string, at: number): Promise<void> {
-  const rarity = forgedRarityOf(from);
+  const rarity = forgedFrom(from, "legendary");
   if (rarity === null || (await droppedIn(ctx, member, crate))) return;
   const forged = await pickOf({ secret: drawSecret(), member, crate, version: catalogue.version, among: await forgeableAmong(ctx, member, hoggiesOfRarity(rarity)) });
   await recordFind(ctx, member, crate, forged, at, { surface: "website" });
@@ -37,7 +38,7 @@ async function forgeableAmong(ctx: MutationCtx, member: MemberId, ofTheRarity: C
   return unheld.length > 0 ? unheld : ofTheRarity;
 }
 
-function forgedRarityOf(hoggie: string) {
+function forgedFrom(hoggie: string, upTo: Rarity) {
   const rarity = hoggieNamed(hoggie)?.rarity;
-  return rarity === undefined ? null : rarityAbove(rarity);
+  return rarity === undefined ? null : forgedRarityOf(rarity, upTo);
 }

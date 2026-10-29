@@ -284,7 +284,16 @@ export function rarityWord(rarity: Rarity): string {
 }
 
 export function rarityAbove(rarity: Rarity): Rarity | null {
-  return rarities[rarities.findIndex((entry) => entry.rarity === rarity) + 1]?.rarity ?? null;
+  return rarities[rankOf(rarity) + 1]?.rarity ?? null;
+}
+
+export function forgedRarityOf(rarity: Rarity, upTo: Rarity): Rarity | null {
+  const into = rarityAbove(rarity);
+  return into !== null && rankOf(into) <= rankOf(upTo) ? into : null;
+}
+
+export function rankOf(rarity: Rarity): number {
+  return rarities.findIndex((entry) => entry.rarity === rarity);
 }
 
 export function hoggiesOfRarity(rarity: Rarity): CatalogueHoggie[] {

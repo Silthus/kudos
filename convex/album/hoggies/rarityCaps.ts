@@ -1,6 +1,6 @@
-import { exposed, memberDecision, type Flag } from "../../analytics/flags";
+import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from "../../analytics/flags";
 import type { Id } from "../../_generated/dataModel";
-import type { MutationCtx } from "../../_generated/server";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { earnedItemOf, earnItem } from "../items/ledger";
 import type { Earning } from "../items/records";
 import type { MemberId } from "../../workspace/directory";
@@ -41,6 +41,12 @@ export const questHoggieRarities: SourceRarities = { today: {}, capped: cappedAt
 export const featureOpeningRarities: SourceRarities = { today: {}, capped: cappedAtRare };
 
 export const boughtCrateRarities: SourceRarities = { today: {}, capped: cappedAtRare };
+
+const forgedUpTo = { today: "legendary", capped: "rare" } as const satisfies { today: Rarity; capped: Rarity };
+
+export async function highestForgedFor(ctx: QueryCtx, member: MemberId): Promise<Rarity> {
+  return (await memberDecisionWithoutWriting(ctx, rarityCapsFlag, member)) ? forgedUpTo.capped : forgedUpTo.today;
+}
 
 export async function earnHoggieItem(ctx: MutationCtx, earning: HoggieEarning, rarities: SourceRarities): Promise<Id<"items">> {
   const earned = await earnedItemOf(ctx, earning.member, "hoggie", earning.key);

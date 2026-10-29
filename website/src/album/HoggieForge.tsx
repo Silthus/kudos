@@ -13,7 +13,7 @@ type Phase = "fuse" | "flash" | "down";
 const phaseEnds: Record<Exclude<Phase, "down">, { after: number; next: Phase }> = { fuse: { after: 600, next: "flash" }, flash: { after: 200, next: "down" } };
 
 export function ForgeOfferLine({ hoggie, answer, forging }: { hoggie: AlbumHoggie; answer: AlbumHoggies; forging: Forging }) {
-  const offer = forgeOfferOf(hoggie, answer);
+  const offer = forgeOfferOf(hoggie, answer, isUnansweredFor(hoggie, forging));
   if (offer === null) return null;
   if (offer.kind === "ready" || isPendingFor(hoggie, forging)) return <ForgeButton hoggie={hoggie} offer={offer} forging={forging} />;
   return <p className="al-entry-forge-note">{`${sparesForged + 1} copies forge into ${aRarityWordOf(offer.into)}${offer.full ? "" : " you don't have yet"}.`}</p>;
@@ -21,6 +21,10 @@ export function ForgeOfferLine({ hoggie, answer, forging }: { hoggie: AlbumHoggi
 
 function isPendingFor({ hoggie }: AlbumHoggie, { sending, problems }: Forging) {
   return sending === hoggie || problems[hoggie] !== undefined;
+}
+
+function isUnansweredFor({ hoggie }: AlbumHoggie, { sending, problems }: Forging) {
+  return sending === hoggie || problems[hoggie] === "unreachable";
 }
 
 function ForgeButton({ hoggie, offer, forging }: { hoggie: AlbumHoggie; offer: ForgeOffer; forging: Forging }) {

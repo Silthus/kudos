@@ -1,3 +1,4 @@
+import type { Rarity } from "../album/hoggies/catalogue";
 import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
 import { hypesHeldFor } from "../album/items/hypes";
@@ -20,6 +21,7 @@ import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import type { Id } from "../_generated/dataModel";
 import { hoggieForgeShownTo, hoggiesShownTo, petHoggieShownTo } from "../album/hoggies/flag";
+import { highestForgedFor } from "../album/hoggies/rarityCaps";
 import { forge } from "../album/hoggies/forge";
 import { makePetOf, petOf, petsIn, type Pet } from "../album/hoggies/pet";
 import { hiddenItemsShownTo } from "../album/items/flag";
@@ -127,7 +129,9 @@ export type AlbumWeekRead = { kind: "off" } | AlbumWeekAnswer;
 
 export type AlbumProfileRead = { kind: "off" } | AlbumProfileAnswer;
 
-export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies & { pet?: string | null; forge?: true };
+export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies & { pet?: string | null; forge?: ForgeOffered };
+
+export type ForgeOffered = { upTo: Rarity };
 
 export type PetAnswer = { kind: "picked"; pet: string } | { kind: "refused" };
 
@@ -342,7 +346,7 @@ export const makePet = memberMutation({
 });
 
 async function forgeOfferOf(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumHoggiesAnswer, "forge">> {
-  return (await forgeShownTo(ctx, me.member)) ? { forge: true } : {};
+  return (await forgeShownTo(ctx, me.member)) ? { forge: { upTo: await highestForgedFor(ctx, me.member) } } : {};
 }
 
 export const forgeHoggie = memberMutation({
