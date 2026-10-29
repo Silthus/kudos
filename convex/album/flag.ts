@@ -38,6 +38,12 @@ export function ownHypePickShownTo(ctx: QueryCtx, member: MemberId): Promise<boo
   return memberDecisionWithoutWriting(ctx, ownHypePickFlag, member);
 }
 
+export const adminHypeEmojisFlag = { key: "admin-hype-emojis", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function adminHypeEmojisShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, adminHypeEmojisFlag, member);
+}
+
 export const kudosEmojiPicksFlag = { key: "kudos-emoji-picks", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
 export function kudosEmojiPicksShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
