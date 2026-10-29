@@ -5,10 +5,10 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, switchWebsite } from "../../testing/website";
 import { fromTheNewestDecided } from "../engine/awards";
-import { catalogue, type Rarity } from "../hoggies/catalogue";
-import { drawOf } from "../hoggies/draw";
-import { collectionOf } from "../hoggies/collection";
-import { dropsByDecision } from "../hoggies/drops";
+import { catalogue, type Rarity } from "../album/hoggies/catalogue";
+import { drawOf } from "../album/hoggies/draw";
+import { collectionOf } from "../album/hoggies/collection";
+import { dropsByDecision } from "../album/hoggies/drops";
 import { standingOf } from "../progression/progression";
 import type { MemberId } from "../workspace/directory";
 

@@ -7,8 +7,8 @@ import { hugGivenEventValidator, kudosGivenEventValidator, questFinishedEventVal
 import { publish } from "../bus/publish";
 import { requestWelcome } from "../feedback/welcome";
 import { hugOf } from "../hugs/records";
-import { earnWelcomeItem } from "../items/welcome";
-import { onboardingShownTo } from "../items/onboardingFlag";
+import { earnWelcomeItem } from "../album/items/welcome";
+import { onboardingShownTo } from "../album/items/onboardingFlag";
 import { saysWhy } from "../progression/gate";
 import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";

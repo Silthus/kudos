@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { awardIdValidator } from "../engine/awards";
 import { messageRefValidator } from "../engine/messageEvent";
-import { rarityValidator } from "../hoggies/catalogue";
+import { rarityValidator } from "./hoggies/catalogue";
 
 export const grantOutcomeValidator = v.union(v.literal("new"), v.literal("held"), v.literal("waiting"), v.literal("nextWeek"));
 

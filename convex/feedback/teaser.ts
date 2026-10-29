@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { kudosDecidedAfter } from "../engine/awards";
-import { hiddenItemsShownTo, teasersShownTo } from "../items/flag";
-import { waitingCountOf, type WaitingCount } from "../items/ledger";
+import { hiddenItemsShownTo, teasersShownTo } from "../album/items/flag";
+import { waitingCountOf, type WaitingCount } from "../album/items/ledger";
 import { lastVisitOf } from "../website/lastVisit";
 import type { MemberId } from "../workspace/directory";
 

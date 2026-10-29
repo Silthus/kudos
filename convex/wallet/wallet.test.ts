@@ -7,7 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace } from "../../testing/website";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { buyCrate } from "../hoggies/boughtCrates";
+import { buyCrate } from "../album/hoggies/boughtCrates";
 import { recordReward } from "../progression/progression";
 import type { RewardRecord } from "../progression/rewards";
 import { openQuestCrate } from "../quests/open";

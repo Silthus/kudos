@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ReachedTier } from "../../../convex/album/milestones";
-import { hoggieNamed } from "../../../convex/hoggies/catalogue";
+import { hoggieNamed } from "../../../convex/album/hoggies/catalogue";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { NamedEmoji } from "../Emoji";

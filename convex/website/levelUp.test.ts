@@ -5,8 +5,8 @@ import { testBackend, type Backend } from "../../testing/slackBackend";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import { catalogue, hoggieNamed, type Rarity } from "../hoggies/catalogue";
-import { drawOf } from "../hoggies/draw";
+import { catalogue, hoggieNamed, type Rarity } from "../album/hoggies/catalogue";
+import { drawOf } from "../album/hoggies/draw";
 import type { LevelUpAnswer } from "../album/levelUp";
 import type { MemberId } from "../workspace/directory";
 

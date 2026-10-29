@@ -1,4 +1,4 @@
-import { catalogue as hoggieCatalogue } from "../hoggies/catalogue";
+import { catalogue as hoggieCatalogue } from "./hoggies/catalogue";
 import { milestoneCatalogue, type MilestoneId } from "./milestoneCatalogue";
 import type { MilestoneTier } from "./records";
 

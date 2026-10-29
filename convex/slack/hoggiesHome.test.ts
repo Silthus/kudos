@@ -7,15 +7,15 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, publishedHome, publishedHomeBlocks, staleButtonOf } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import { catalogue, hoggieNamed, type Rarity } from "../hoggies/catalogue";
-import { drawOf } from "../hoggies/draw";
+import { catalogue, hoggieNamed, type Rarity } from "../album/hoggies/catalogue";
+import { drawOf } from "../album/hoggies/draw";
 import type { Feature } from "../unlocks/feature";
 
 const planned = vi.hoisted(() => new Map<string, string>());
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
-  const { hoggieNamed } = await import("../hoggies/catalogue");
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
+  const { hoggieNamed } = await import("../album/hoggies/catalogue");
   return {
     ...actual,
     drawOf: vi.fn(async (input: Parameters<typeof actual.drawOf>[0]) => {

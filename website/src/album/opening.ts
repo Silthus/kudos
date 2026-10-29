@@ -1,4 +1,4 @@
-import { hoggieNamed } from "../../../convex/hoggies/catalogue";
+import { hoggieNamed } from "../../../convex/album/hoggies/catalogue";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Rarity } from "../shell";
 import type { Album, AlbumEmoji, AlbumPerson, CardHoggie, PackOpenAnswer, Thanked, WaitingPack } from "./answer";

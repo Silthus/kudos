@@ -1,11 +1,11 @@
 import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { Rarity } from "../hoggies/catalogue";
-import type { CrateKey } from "../hoggies/crateKey";
-import { dropFor, droppedIn, foundIn, type Drop } from "../hoggies/drops";
-import { crestsShownTo } from "../hoggies/flag";
-import { hiddenItemsShownTo } from "../items/flag";
-import { earnItem, markTurned } from "../items/ledger";
+import type { Rarity } from "../album/hoggies/catalogue";
+import type { CrateKey } from "../album/hoggies/crateKey";
+import { dropFor, droppedIn, foundIn, type Drop } from "../album/hoggies/drops";
+import { crestsShownTo } from "../album/hoggies/flag";
+import { hiddenItemsShownTo } from "../album/items/flag";
+import { earnItem, markTurned } from "../album/items/ledger";
 import type { MemberId } from "../workspace/directory";
 
 export const levelUpRevealFlag = { key: "level-up-reveal", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;

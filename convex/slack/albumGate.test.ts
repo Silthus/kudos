@@ -10,7 +10,7 @@ import { publishedHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { aSession, aSignedInSession } from "../../testing/website";
-import { catalogue } from "../hoggies/catalogue";
+import { catalogue } from "../album/hoggies/catalogue";
 import { api, internal } from "../_generated/api";
 import { albumFlag, albumShownTo } from "../album/flag";
 import { xpToReach } from "../progression/levels";
@@ -69,8 +69,8 @@ vi.mock("../website/seen", async (importOriginal) => {
   return { ...actual, seenKeyOf: vi.fn((member: Parameters<typeof actual.seenKeyOf>[0], crate: string) => actual.seenKeyOf(named(member) as typeof member, crate.replace(/[^:]+/g, named))) };
 });
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
   return { ...actual, drawOf: vi.fn((input: Parameters<typeof actual.drawOf>[0]) => actual.drawOf({ ...input, member: namedIds.get(input.member) ?? input.member })) };
 });
 

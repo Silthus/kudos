@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
-import { avatarShownOn } from "../hoggies/avatar";
+import { avatarShownOn } from "../album/hoggies/avatar";
 import { renderLookUpFailed, renderNotAMember, renderProfileCard, renderProfileCardUsage } from "../feedback/profileCard";
 import type { Line } from "../feedback/segments";
 import { isProfileCardShownTo } from "../profileCard/flag";
