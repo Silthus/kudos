@@ -1,7 +1,7 @@
 import { IconSearch } from "@posthog/icons";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
-import type { LoopLesson } from "../../../convex/items/welcome";
+import type { LoopLesson } from "../../../convex/album/items/welcome";
 import { AppLink } from "../AppLink";
 import { NamedEmoji } from "../Emoji";
 import type { Album, AlbumEmoji, PickKudosEmoji } from "./answer";

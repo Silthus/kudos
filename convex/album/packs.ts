@@ -5,8 +5,8 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { isSameMessage, type MessageRef } from "../engine/messageEvent";
-import type { CrateKey } from "../hoggies/crateKey";
-import { earnItem } from "../items/ledger";
+import type { CrateKey } from "./hoggies/crateKey";
+import { earnItem } from "./items/ledger";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
 import { nameHypeEmojiOf } from "./emojiNames";

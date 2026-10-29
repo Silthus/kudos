@@ -1,8 +1,8 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
-import { putDropIn } from "../hoggies/drops";
-import { markTurned } from "../items/ledger";
+import { putDropIn } from "./hoggies/drops";
+import { markTurned } from "./items/ledger";
 import type { MemberId } from "../workspace/directory";
 import { recordMilestonesOf } from "./milestones";
 import { shownTrayItem, trayKeyOf, type TrayItem } from "./opening";

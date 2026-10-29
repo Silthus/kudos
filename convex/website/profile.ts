@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { albumOnProfileOf } from "../album/flag";
 import { homeFacts } from "../engine/home";
-import { avatarShownOn, type Avatar } from "../hoggies/avatar";
+import { avatarShownOn, type Avatar } from "../album/hoggies/avatar";
 import { groupsShownTo } from "../groups/groups";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
@@ -19,7 +19,7 @@ import { skillPointsOf } from "./skillTree";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
 
 export type { Face } from "./faces";
-export type { Avatar } from "../hoggies/avatar";
+export type { Avatar } from "../album/hoggies/avatar";
 export type { FeatureCard, FeaturePage, PageWaits } from "./unlockPath";
 export type { JourneyStep } from "./quests";
 export type { InventoryItem, ItemSource, MemberInventory } from "./inventory";

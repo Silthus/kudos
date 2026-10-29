@@ -22,8 +22,8 @@ import type { MemberId } from "../workspace/directory";
 
 const thePacks = vi.hoisted(() => ({ removed: false }));
 
-vi.mock("../hoggies/flag", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/flag")>();
+vi.mock("../album/hoggies/flag", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/flag")>();
   return {
     ...actual,
     packsShownTo: vi.fn((...args: Parameters<typeof actual.packsShownTo>) => (thePacks.removed ? Promise.resolve(false) : actual.packsShownTo(...args))),
@@ -41,8 +41,8 @@ vi.mock("../website/seen", async (importOriginal) => {
   return { ...actual, seenKeyOf: vi.fn((member: Parameters<typeof actual.seenKeyOf>[0], crate: string) => actual.seenKeyOf((namedIds.get(member) ?? member) as typeof member, crate)) };
 });
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
   const named = <T extends { member: string; crate: string }>(input: T): T => ({ ...input, member: namedIds.get(input.member) ?? input.member, crate: withNamedIds(input.crate) });
   return {
     ...actual,

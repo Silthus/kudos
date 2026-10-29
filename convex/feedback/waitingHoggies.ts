@@ -1,4 +1,4 @@
-import type { WaitingCount } from "../items/ledger";
+import type { WaitingCount } from "../album/items/ledger";
 
 const spelledOut = ["", "An", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 

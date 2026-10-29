@@ -1,5 +1,5 @@
-import type { Avatar } from "../hoggies/avatar";
-import { rarityLabel } from "../hoggies/catalogue";
+import type { Avatar } from "../album/hoggies/avatar";
+import { rarityLabel } from "../album/hoggies/catalogue";
 
 export function avatarText(avatar: Avatar) {
   return `Avatar: ${hoggieLabel(avatar)}`;

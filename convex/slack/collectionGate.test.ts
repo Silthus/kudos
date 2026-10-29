@@ -16,8 +16,8 @@ import type { Feature } from "../unlocks/feature";
 
 const theCollection = vi.hoisted(() => ({ removed: false }));
 
-vi.mock("../hoggies/flag", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/flag")>();
+vi.mock("../album/hoggies/flag", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/flag")>();
   return {
     ...actual,
     hoggiesShownTo: vi.fn((...args: Parameters<typeof actual.hoggiesShownTo>) => (theCollection.removed ? Promise.resolve(false) : actual.hoggiesShownTo(...args))),

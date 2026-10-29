@@ -8,8 +8,8 @@ import { blockActions, buttonInHome, publishedHome, publishedHomeBlocks, publish
 import { appHomeOpened } from "../../testing/slackMessages";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, switchWebsite } from "../../testing/website";
-import { catalogue, hoggieNamed, rarityLabel } from "../hoggies/catalogue";
-import { drawOf } from "../hoggies/draw";
+import { catalogue, hoggieNamed, rarityLabel } from "../album/hoggies/catalogue";
+import { drawOf } from "../album/hoggies/draw";
 import { recordReward } from "../progression/progression";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
