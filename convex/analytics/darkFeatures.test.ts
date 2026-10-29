@@ -668,8 +668,15 @@ async function rowsOf(t: Backend, table: Table): Promise<Row[]> {
   return t.run(async (ctx) => (await ctx.db.query(table).collect()) as unknown as Row[]);
 }
 
+const writtenByConcurrentFollowers: Table[] = ["items", "levelUps"];
+
 function withStableIds(stored: Record<string, Row[]>) {
-  return withLabelledIds(withDrawPositionsHidden(stored));
+  return withLabelledIds(withDrawPositionsHidden(withConcurrentWritesInContentOrder(stored)));
+}
+
+function withConcurrentWritesInContentOrder(stored: Record<string, Row[]>): Record<string, Row[]> {
+  const content = ({ _id: _labelled, _creationTime: _timed, ...row }: Row) => serialized(row);
+  return { ...stored, ...Object.fromEntries(writtenByConcurrentFollowers.filter((table) => stored[table]).map((table) => [table, stored[table]!.toSorted((one, other) => content(one).localeCompare(content(other)))])) };
 }
 
 function withDrawPositionsHidden(stored: Record<string, Row[]>): Record<string, Row[]> {
