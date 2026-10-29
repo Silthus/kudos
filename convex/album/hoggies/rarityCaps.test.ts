@@ -175,7 +175,7 @@ describe("HH41 HH42: each source stores its cap under rarity-caps", { timeout: 1
     expect(await dropIn(member, crateKeyOf(pack)), "the pack's drop").toEqual(await drawn(member, crateKeyOf(pack), range));
   });
 
-  test("over 10,000 crate keys, a kudos-weighted draw lands on each rarity within one percentage point of the numbers table", async () => {
+  test("over 10,000 crate keys, a kudos-weighted draw lands on each rarity within four standard deviations of the numbers table", async () => {
     const counts = new Map<Rarity, number>();
     for (let n = 0; n < 10_000; n++) {
       const { rarity } = await drawOf({ secret: "kudos-weights", member: "m", crate: `thoughtful:${n}`, version: catalogue.version, weights: "kudos" });
@@ -183,9 +183,14 @@ describe("HH41 HH42: each source stores its cap under rarity-caps", { timeout: 1
     }
 
     const shares = Object.fromEntries([...counts].map(([rarity, count]) => [rarity, count / 100]));
-    for (const [rarity, percent] of Object.entries({ common: 50, uncommon: 28, rare: 18, epic: 3.5, legendary: 0.5 })) expect(Math.abs((shares[rarity] ?? 0) - percent), `${rarity}'s share`).toBeLessThanOrEqual(1);
+    for (const [rarity, percent] of Object.entries({ common: 50, uncommon: 28, rare: 18, epic: 3.5, legendary: 0.5 })) expect(Math.abs((shares[rarity] ?? 0) - percent), `${rarity}'s share`).toBeLessThanOrEqual(fourStandardDeviationsOf(percent, 10_000));
   });
 });
+
+function fourStandardDeviationsOf(percent: number, draws: number) {
+  const share = percent / 100;
+  return 4 * Math.sqrt((share * (1 - share)) / draws) * 100;
+}
 
 async function aMemberWith(...flags: string[]) {
   await switchWebsite(t, postHog, true, ...flags);
