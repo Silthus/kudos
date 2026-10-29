@@ -84,7 +84,7 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
 
     await turnTheFirstItem(user);
 
-    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 and say why.");
+    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 in a message.");
   });
 
   it("shows a custom kudos emoji as its picture", async () => {
@@ -144,7 +144,7 @@ describe("LP49: with full motion and another item still waiting, the board that 
     await screen.findByRole("dialog", { name: "Your items" });
 
     await turnOnFakeTime(theFaceDownItemsNow()[0]!);
-    expect(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("note", { name: "How the next item comes" })).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 and say why.");
+    expect(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("note", { name: "How the next item comes" })).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 in a message.");
 
     await turnOnFakeTime(theFaceDownItemsNow()[0]!);
     expect(theLesson()).toBeNull();

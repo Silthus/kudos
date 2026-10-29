@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { feasibility, questPool, type DrawFacts, type PoolQuest } from "./pool";
+import { feasibility, mondayQuestPool, questOf, questPool, type DrawFacts, type PoolQuest } from "./pool";
 
 const lastDayWithOneTeammateAlreadyThanked: DrawFacts = { daysLeft: 1, kudosLeftToday: 3, dailyAllowance: 3, peopleLeft: { anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 0 } };
 
@@ -22,6 +22,34 @@ describe("P83: every quest in the pool keeps the guardrails", () => {
   test("each quest has its own stable ID", () => {
     expect(new Set(questPool.quests.map(({ quest }) => quest)).size).toBe(questPool.quests.length);
   });
+
+  describe("HH13: the Monday path draws from the kudos pool", () => {
+    test("its quests are the kudos pool's, and none asks to say why", () => {
+      expect(mondayQuestPool.quests.map(({ quest, goal }) => [quest, goal])).toEqual([
+        ["kudos-once", "Give a kudos to someone."],
+        ["kudos-two-days", "Thank someone on two different days."],
+        ["three-in-a-day", "Thank 3 people in one day."],
+        ["someone-new", "Thank someone you haven't thanked before."],
+        ["two-new", "Thank 2 people you haven't thanked before."],
+        ["not-in-30-days", "Thank someone you haven't thanked in the last 30 days."],
+      ]);
+      expect(mondayQuestPool.quests.filter(({ progress }) => progress.given.saysWhy).map(({ quest }) => quest), "the quests that ask to say why").toEqual([]);
+    });
+
+    test.each(mondayQuestPool.quests.map((quest) => [quest.quest, quest] as const))("%s keeps the guardrails", (_, quest) => {
+      expect(breachesOf(quest)).toEqual([]);
+    });
+
+    test("kudos-once needs nothing but the member and stays feasible on the last day of the week with one teammate", () => {
+      const fallbacks = mondayQuestPool.quests.filter((quest) => quest.progress.given.to === "anyone" && feasibility(quest, lastDayWithOneTeammateAlreadyThanked) !== null);
+
+      expect(fallbacks.map(({ quest }) => quest)).toEqual(["kudos-once"]);
+    });
+
+    test("the unlock path's pool keeps its quests", () => {
+      expect(questPool.quests.map(({ quest }) => quest)).toEqual(["say-why", "say-why-twice", "say-why-three-times", "say-why-two-days", "say-why-three-days", "someone-new", "two-new", "not-in-30-days"]);
+    });
+  });
 });
 
 describe("P83: the guardrails catch a quest that breaks them", () => {
@@ -33,6 +61,25 @@ describe("P83: the guardrails catch a quest that breaks them", () => {
     ["asks to resend", { goal: "Thank someone and say why, then send it again." }],
   ] as const)("a quest that %s breaks them", (_, change) => {
     expect(breachesOf({ ...questPool.quests[0], ...change } as PoolQuest)).not.toEqual([]);
+  });
+});
+
+describe("HH13: three-in-a-day is feasible while the daily allowance holds 3 and a day with 3 kudos remains", () => {
+  const threeInADay = questOf("three-in-a-day");
+  const plenty: DrawFacts = { daysLeft: 7, kudosLeftToday: 3, dailyAllowance: 3, peopleLeft: { anyone: 5, "someone-new": 5, "someone-not-thanked-in-30-days": 5 } };
+
+  test("it needs a daily allowance of at least 3", () => {
+    expect(feasibility(threeInADay, plenty)).toEqual({ peopleLeft: 5, recognitionsLeft: 21 });
+    expect(feasibility(threeInADay, { ...plenty, kudosLeftToday: 2, dailyAllowance: 2 })).toBeNull();
+  });
+
+  test("with fewer than 3 kudos left today it needs another day", () => {
+    expect(feasibility(threeInADay, { ...plenty, daysLeft: 2, kudosLeftToday: 2 })).toEqual({ peopleLeft: 5, recognitionsLeft: 5 });
+    expect(feasibility(threeInADay, { ...plenty, daysLeft: 1, kudosLeftToday: 2 })).toBeNull();
+  });
+
+  test("it needs 3 people to thank", () => {
+    expect(feasibility(threeInADay, { ...plenty, peopleLeft: { ...plenty.peopleLeft, anyone: 2 } })).toBeNull();
   });
 });
 
@@ -81,7 +128,7 @@ describe("P80: a quest is feasible only when the member can finish it alone that
 });
 
 const kinds = ["breadth", "thoughtfulness", "participation"];
-const countable = ["recognitions", "people", "days"];
+const countable = ["recognitions", "people", "days", "people-in-a-day"];
 const unshippedNeeds = ["groups", "chime-ins", "recent-joiners"];
 
 function breachesOf({ kind, goal, progress, needs }: PoolQuest): string[] {
@@ -93,7 +140,7 @@ function breachesOf({ kind, goal, progress, needs }: PoolQuest): string[] {
   if (!countable.includes(progress.counts)) breaches.push(`counts ${progress.counts}, not recognitions, people or days`);
   if (Object.keys(progress).some((key) => key !== "given" && key !== "counts" && key !== "target")) breaches.push("depends on more than what the member gives");
   if (Object.keys(progress.given).some((key) => key !== "saysWhy" && key !== "to")) breaches.push("names or picks a person to thank");
-  if (!/^Thank (someone|\d people)\b/.test(goal)) breaches.push("names or picks whom to thank instead of someone or a number of people");
+  if (!/^(Thank (someone|\d people)|Give a kudos to someone)\b/.test(goal)) breaches.push("names or picks whom to thank instead of someone or a number of people");
   if (/receiv|thanks you|thanked by/i.test(goal)) breaches.push("depends on receiving");
   if (/thoughtful|resend|again|pad|longer/i.test(goal)) breaches.push("breaks P95's honest copy");
   if (progress.given.saysWhy && !goal.includes("say why")) breaches.push("asks to say why without saying so");

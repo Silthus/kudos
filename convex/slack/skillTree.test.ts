@@ -10,10 +10,9 @@ import { standingOf } from "../progression/progression";
 const now = new Date("2026-10-14T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 
-const sparkCopy = "+5 XP the first time each day you thank someone and say why.";
-const rhythmCopy = "+2 XP each time you thank someone and say why, once per person a day.";
-const circleCopy = "+5 XP the first time each week you thank a person and say why.";
-const condition = "context: Bonuses count when your message has 5 or more words besides mentions and emoji.";
+const sparkCopy = "+5 XP the first time each day you give a kudos.";
+const rhythmCopy = "+2 XP for each kudos you give, once per person a day.";
+const circleCopy = "+5 XP the first time each week you give a person a kudos.";
 
 let slack: FakeSlack;
 let sentMessages = 0;
@@ -49,7 +48,6 @@ describe("P19 P67 P94: a level-5 member buys a first-row perk from App Home's Sk
       `section: *Spark* · 1 skill point\n${sparkCopy} [button: Buy]`,
       `section: *Rhythm* · 1 skill point\n${rhythmCopy} [button: Buy]`,
       `section: *Circle* · 1 skill point\n${circleCopy} [button: Buy]`,
-      condition,
     ]);
 
     await clickButton(t, "U_ALICE", buyButtonOf("spark"));
@@ -64,7 +62,6 @@ describe("P19 P67 P94: a level-5 member buys a first-row perk from App Home's Sk
       "context: You need 1 skill point.",
       `section: *Circle* · 1 skill point\n${circleCopy}`,
       "context: You need 1 skill point.",
-      condition,
     ]);
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 600, level: 5, skillPoints: 0 });
     expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["spark"]);
@@ -108,7 +105,6 @@ describe("P19 P94: Buy asks before it spends, names its perk, and the points lin
       `section: ✅ *Spark* · Owned\n${sparkCopy}`,
       `section: ✅ *Rhythm* · Owned\n${rhythmCopy}`,
       `section: ✅ *Circle* · Owned\n${circleCopy}`,
-      condition,
     ]);
 
     await click(t, "U_ALICE", "Profile");
@@ -144,7 +140,7 @@ describe("P19: a refused Buy republishes App Home with the reason on that perk",
     await clickButton(t, "U_ALICE", buyCircle);
 
     expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["spark"]);
-    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual([`section: *Circle* · 1 skill point\n${circleCopy}`, "context: You need 1 skill point.", condition]);
+    expect(publishedHome(slack, "U_ALICE").slice(-2)).toEqual([`section: *Circle* · 1 skill point\n${circleCopy}`, "context: You need 1 skill point."]);
   });
 
   test("a Buy left on the Skill tree tab, clicked after the member moved to Profile and spent the point, shows the Skill tree tab with why", async () => {
@@ -159,7 +155,7 @@ describe("P19: a refused Buy republishes App Home with the reason on that perk",
     await clickButton(t, "U_ALICE", buyCircle);
 
     expect(publishedHome(slack, "U_ALICE").slice(0, 2)).toEqual(["actions: Profile | [Skill tree] | Settings", "header: Skill tree"]);
-    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual([`section: *Circle* · 1 skill point\n${circleCopy}`, "context: You need 1 skill point.", condition]);
+    expect(publishedHome(slack, "U_ALICE").slice(-2)).toEqual([`section: *Circle* · 1 skill point\n${circleCopy}`, "context: You need 1 skill point."]);
   });
 });
 

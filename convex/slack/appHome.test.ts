@@ -140,7 +140,7 @@ describe("R47: someone who isn't a member opens App Home", () => {
 
 describe("WS28: App Home links to the website while it is open", () => {
   const siteUrl = "https://kudos-site.test";
-  const websiteLink = "section: <https://kudos-site.test/|Open HedgeHug on the web>";
+  const websiteLink = "section: <https://kudos-site.test/?src=app-home|Open HedgeHug on the web>";
   const homeWithoutLink = [
     "header: Your kudos",
     "section: You have *3* kudos left today. You get *3* more at midnight.",
@@ -187,7 +187,7 @@ describe("WS28: App Home links to the website while it is open", () => {
       "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
       "context: To add me to a channel, type `/hedgehug` there.",
     ]);
-    expect(websiteButtonsOf("U_BOB")).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/` }]);
+    expect(websiteButtonsOf("U_BOB")).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/?src=app-home` }]);
   });
 
   test("with the Everyone board, Profile's buttons and the Settings tab's closing link lead to the site, the tab App Home reopens on included", async () => {
@@ -203,8 +203,8 @@ describe("WS28: App Home links to the website while it is open", () => {
 
     expect(profileTab.slice(0, 2)).toEqual(["actions: [Profile] | Settings", "header: Your kudos"]);
     expect(profileButtons).toEqual([
-      { label: "Open HedgeHug", url: `${siteUrl}/` },
-      { label: "Leaderboard", url: `${siteUrl}/leaderboard` },
+      { label: "Open HedgeHug", url: `${siteUrl}/?src=app-home` },
+      { label: "Leaderboard", url: `${siteUrl}/leaderboard?src=app-home` },
     ]);
     expect([settingsTab, reopened].map((home) => [home[1], home.slice(-2)])).toEqual([
       ["header: Settings", ["divider", websiteLink]],
@@ -219,7 +219,7 @@ describe("WS28: App Home links to the website while it is open", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(websiteButtonsOf("U_BOB")).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/` }]);
+    expect(websiteButtonsOf("U_BOB")).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/?src=app-home` }]);
   });
 
   const closed: Array<{ condition: string; flags: string[]; env?: Record<string, string> }> = [

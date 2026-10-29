@@ -199,11 +199,26 @@ function profileOf(row: Doc<"members">): MemberProfile {
 }
 
 export async function currentMembersOf(ctx: QueryCtx, workspace: string): Promise<MemberId[]> {
-  const people = await ctx.db
-    .query("members")
-    .withIndex("by_user", (q) => q.eq("workspace", workspace))
-    .collect();
-  return people.filter(({ kind }) => kind === "member").map(({ _id }) => _id);
+  return (await currentMemberRowsIn(ctx, workspace)).map(({ _id }) => _id);
+}
+
+export type NamedMember = { member: MemberId; fullName: string };
+
+export async function currentMembersNamedIn(ctx: QueryCtx, workspace: string): Promise<NamedMember[]> {
+  return (await currentMemberRowsIn(ctx, workspace)).map((row) => ({ member: row._id, fullName: fullNameIn(row) }));
+}
+
+export async function fullNameOf(ctx: QueryCtx, member: MemberId): Promise<string> {
+  const row = await ctx.db.get(member);
+  return row?.kind === "member" ? fullNameIn(row) : "";
+}
+
+function fullNameIn(row: Doc<"members">): string {
+  return row.realName ?? row.name ?? "";
+}
+
+async function currentMemberRowsIn(ctx: QueryCtx, workspace: string): Promise<MemberRows> {
+  return (await memberRowsIn(ctx, workspace)).filter(({ kind }) => kind === "member");
 }
 
 export type Person = { user: ChatUserId; name: string | undefined; picture: string | null; former: boolean };

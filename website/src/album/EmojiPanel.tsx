@@ -65,7 +65,7 @@ function UseTheseNow({ album, howTo }: { album: Album; howTo: LoopLesson }) {
           </>
         ) : (
           <>
-            React with any of them or put them in a kudos. Each one counts like <NamedEmoji name={howTo.kudosEmoji} image={howTo.kudosEmojiImage ?? undefined} />: XP for you both, and an item when you say why.
+            React with any of them or put them in a kudos. Each one counts like <NamedEmoji name={howTo.kudosEmoji} image={howTo.kudosEmojiImage ?? undefined} />: XP for you both, and an item when it's in a kudos.
           </>
         )}
       </p>
@@ -130,7 +130,7 @@ function HypeToUnlock() {
         <img src={hypeEmblemPicture} alt="" width={36} height={36} loading="lazy" decoding="async" />
       </span>
       <span className="al-emoji-words">
-        <span className="al-emoji-why">Thank someone and say why: unlock their hype emoji</span>
+        <span className="al-emoji-why">Give someone a kudos: unlock their hype emoji</span>
         <span className="al-emoji-bar" aria-hidden="true">
           <span style={{ width: "4%" }} />
         </span>
