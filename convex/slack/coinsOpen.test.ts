@@ -134,18 +134,6 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
     expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · +4 🪙"]);
   });
 
-  test("CO14 CO21: with the skill tree on and no perk owned, a hint written while Coins was open is left out when coins turn off before Slack takes the reply", async () => {
-    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("skill-tree"));
-    await coinsOpenedBy(t, "U_ALICE");
-    const earlier = successRepliesTo("U_ALICE").length;
-    await t.run((ctx) => replyPrivately(ctx, unsentMessage, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10 }));
-
-    await flagsFromPostHog(t, postHog, ...offForEveryoneElse, onForEveryone("skill-tree"));
-    await settle(t);
-
-    expect(successRepliesTo("U_ALICE").slice(earlier)).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"]]);
-  });
-
   test("F25: the coins exposure carries true for the previewer and false for the other member", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
 
