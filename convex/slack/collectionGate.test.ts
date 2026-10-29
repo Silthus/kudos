@@ -281,7 +281,7 @@ function orderFree<T>(rows: T[]): T[] {
 }
 
 const convexTestId = /^\d+[a-zA-Z]+$/;
-const keyedId = /^([a-z]+):(\d+[a-zA-Z]+)$/;
+const keyedId = /^([a-z-]+):(\d+[a-zA-Z]+)$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const positioned = new Set(["cursor", "seen", "eventId", "position"]);
 const activityPosition = /^\d+(\.\d+)?_\d_[\d.]+$/;
