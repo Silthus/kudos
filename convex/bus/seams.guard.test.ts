@@ -176,13 +176,16 @@ describe("HH16: writes cross modules as bus facts", () => {
     expect(crossingsOf("/convex/stickers/stickers.ts", `import { earn } from "../album/rewardSeam";`, files)).toEqual(["convex/stickers/stickers.ts earn"]);
   });
 
-  test("reads a write whose context is an alias another file exports", () => {
-    const files = {
-      "/convex/album/items/contexts.ts": `export type WriteCtx = GenericMutationCtx<DataModel>;`,
-      "/convex/album/items/bonus.ts": `import type { WriteCtx } from "./contexts";\nexport function earnBonus(ctx: WriteCtx) {}`,
-    };
+  test.each([
+    ["an alias another file exports", { contexts: `export type WriteCtx = GenericMutationCtx<DataModel>;`, bonus: `import type { WriteCtx } from "./contexts";\nexport function earnBonus(ctx: WriteCtx) {}` }],
+    ["an alias repeated across a union", { bonus: `type WriteCtx = MutationCtx;\ntype OtherWriteCtx = WriteCtx;\nexport function earnBonus(ctx: WriteCtx | OtherWriteCtx) {}` }],
+    ["an alias another file exports in a list", { contexts: `import type { MutationCtx as LocalCtx } from "../../_generated/server";\nexport type { LocalCtx as WriteCtx };`, bonus: `import type { WriteCtx } from "./contexts";\nexport function earnBonus(ctx: WriteCtx) {}` }],
+    ["an alias a barrel passes on with a star", { contexts: `export type WriteCtx = MutationCtx;`, barrel: `export * from "./contexts";`, bonus: `import type { WriteCtx } from "./barrel";\nexport function earnBonus(ctx: WriteCtx) {}` }],
+    ["an alias read through a namespace import", { contexts: `export type WriteCtx = MutationCtx;`, bonus: `import type * as contexts from "./contexts";\nexport function earnBonus(ctx: contexts.WriteCtx) {}` }],
+  ])("finds a write whose context is %s", (_, written: Record<string, string>) => {
+    const files = Object.fromEntries(Object.entries(written).map(([name, source]) => [`/convex/album/items/${name}.ts`, source]));
 
-    expect(writesOfFile(files, "/convex/album/items/bonus.ts")).toEqual(["earnBonus"]);
+    expect(crossingsOf("/convex/stickers/stickers.ts", `import { earnBonus } from "../album/items/bonus";`, files)).toEqual(["convex/stickers/stickers.ts earnBonus"]);
   });
 
   test("reads a write of files that re-export each other as a write from either file", () => {
@@ -433,18 +436,19 @@ function isInAPlaceThatWritesRewards({ path }: ParsedFile) {
   return placeThatWritesRewardsOf(path) !== undefined;
 }
 
-function typeNeedsAMutationCtx(parsed: ParsedFile, type: ts.TypeNode, typeParameters: readonly ts.TypeParameterDeclaration[], seen: Set<string>): boolean {
-  const needs = (inner: ts.TypeNode) => typeNeedsAMutationCtx(parsed, inner, typeParameters, seen);
+function typeNeedsAMutationCtx(parsed: ParsedFile, type: ts.TypeNode, typeParameters: readonly ts.TypeParameterDeclaration[], active: Set<string>): boolean {
+  const needs = (inner: ts.TypeNode) => typeNeedsAMutationCtx(parsed, inner, typeParameters, active);
   if (ts.isParenthesizedTypeNode(type)) return needs(type.type);
   if (ts.isUnionTypeNode(type)) return unionNeedsAMutationCtx(type, needs);
   if (ts.isIntersectionTypeNode(type)) return type.types.some(needs);
   if (ts.isIndexedAccessTypeNode(type)) return needs(type.objectType);
   if (ts.isTypeLiteralNode(type)) return type.members.some((member) => ts.isPropertySignature(member) && member.type !== undefined && needs(member.type));
   if (!ts.isTypeReferenceNode(type)) return false;
-  const name = ts.isIdentifier(type.typeName) ? type.typeName.text : type.typeName.right.text;
+  if (ts.isQualifiedName(type.typeName)) return qualifiedNameMeansAMutationCtx(parsed, type.typeName, active) || (type.typeArguments ?? []).some(needs);
+  const name = type.typeName.text;
   const constraint = typeParameters.find((parameter) => parameter.name.text === name)?.constraint;
   if (constraint !== undefined) return needs(constraint);
-  return typeNameMeansAMutationCtx(parsed, name, seen) || (type.typeArguments ?? []).some(needs);
+  return typeNameMeansAMutationCtx(parsed, name, active) || (type.typeArguments ?? []).some(needs);
 }
 
 function unionNeedsAMutationCtx(union: ts.UnionTypeNode, needs: (member: ts.TypeNode) => boolean) {
@@ -452,32 +456,64 @@ function unionNeedsAMutationCtx(union: ts.UnionTypeNode, needs: (member: ts.Type
   return somethings.length > 0 && somethings.every(needs);
 }
 
-function typeNameMeansAMutationCtx(parsed: ParsedFile, name: string, seen: Set<string>): boolean {
+const contextNamesByFiles = new WeakMap<Files, Map<string, boolean>>();
+
+function typeNameMeansAMutationCtx(parsed: ParsedFile, name: string, active: Set<string>): boolean {
   if (name.endsWith("MutationCtx")) return true;
+  const known = contextNamesByFiles.get(parsed.files) ?? contextNamesByFiles.set(parsed.files, new Map()).get(parsed.files)!;
   const key = `${parsed.path} ${name}`;
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return parsed.file.statements.some((statement) => statementNamesAMutationCtx(parsed, statement, name, seen));
+  const answer = known.get(key);
+  if (answer !== undefined) return answer;
+  if (active.has(key)) return false;
+  active.add(key);
+  const means = parsed.file.statements.some((statement) => statementNamesAMutationCtx(parsed, statement, name, active));
+  active.delete(key);
+  known.set(key, means);
+  return means;
 }
 
-function statementNamesAMutationCtx(parsed: ParsedFile, statement: ts.Statement, name: string, seen: Set<string>) {
-  if (ts.isTypeAliasDeclaration(statement)) return statement.name.text === name && typeNeedsAMutationCtx(parsed, statement.type, statement.typeParameters ?? [], seen);
-  if (ts.isInterfaceDeclaration(statement)) return statement.name.text === name && (statement.heritageClauses ?? []).some(({ types }) => types.some(({ expression }) => typeNameMeansAMutationCtx(parsed, lastNameOf(expression), seen)));
-  if (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) return bindingNamesAMutationCtx(parsed, statement, name, seen);
+function qualifiedNameMeansAMutationCtx(parsed: ParsedFile, { left, right }: ts.QualifiedName, active: Set<string>) {
+  if (right.text.endsWith("MutationCtx")) return true;
+  const target = ts.isIdentifier(left) ? namespaceTargetOf(parsed, left.text) : undefined;
+  return target !== undefined && typeNameMeansAMutationCtx(parsedFileOf(parsed.files, target), right.text, active);
+}
+
+function namespaceTargetOf(parsed: ParsedFile, name: string) {
+  const statement = parsed.file.statements.find(
+    (candidate): candidate is ts.ImportDeclaration =>
+      ts.isImportDeclaration(candidate) && candidate.importClause?.namedBindings !== undefined && ts.isNamespaceImport(candidate.importClause.namedBindings) && candidate.importClause.namedBindings.name.text === name,
+  );
+  return statement === undefined ? undefined : relativeTargetOf(parsed, specifierOf(statement));
+}
+
+function relativeTargetOf(parsed: ParsedFile, from: string) {
+  return from.startsWith(".") ? sourcePathOf(parsed.files, resolved(parsed.path, from)) : undefined;
+}
+
+function statementNamesAMutationCtx(parsed: ParsedFile, statement: ts.Statement, name: string, active: Set<string>) {
+  if (ts.isTypeAliasDeclaration(statement)) return statement.name.text === name && typeNeedsAMutationCtx(parsed, statement.type, statement.typeParameters ?? [], active);
+  if (ts.isInterfaceDeclaration(statement)) return statement.name.text === name && (statement.heritageClauses ?? []).some(({ types }) => types.some(({ expression }) => typeNameMeansAMutationCtx(parsed, lastNameOf(expression), active)));
+  if (ts.isExportDeclaration(statement) && statement.exportClause === undefined) return starExportNamesAMutationCtx(parsed, statement, name, active);
+  if (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) return bindingNamesAMutationCtx(parsed, statement, name, active);
   return false;
+}
+
+function starExportNamesAMutationCtx(parsed: ParsedFile, statement: ts.ExportDeclaration, name: string, active: Set<string>) {
+  const target = relativeTargetOf(parsed, specifierOf(statement));
+  return target !== undefined && typeNameMeansAMutationCtx(parsedFileOf(parsed.files, target), name, active);
 }
 
 function lastNameOf(expression: ts.Expression) {
   return ts.isPropertyAccessExpression(expression) ? expression.name.text : expression.getText();
 }
 
-function bindingNamesAMutationCtx(parsed: ParsedFile, statement: ts.ImportDeclaration | ts.ExportDeclaration, name: string, seen: Set<string>) {
+function bindingNamesAMutationCtx(parsed: ParsedFile, statement: ts.ImportDeclaration | ts.ExportDeclaration, name: string, active: Set<string>) {
   const element = namedElementsOf(statement).find((candidate) => candidate.name.text === name);
   if (element === undefined) return false;
   const original = (element.propertyName ?? element.name).text;
-  const from = specifierOf(statement);
-  const target = from.startsWith(".") ? sourcePathOf(parsed.files, resolved(parsed.path, from)) : undefined;
-  return target === undefined ? original.endsWith("MutationCtx") : typeNameMeansAMutationCtx(parsedFileOf(parsed.files, target), original, seen);
+  if (ts.isExportDeclaration(statement) && statement.moduleSpecifier === undefined) return original !== name && typeNameMeansAMutationCtx(parsed, original, active);
+  const target = relativeTargetOf(parsed, specifierOf(statement));
+  return target === undefined ? original.endsWith("MutationCtx") : typeNameMeansAMutationCtx(parsedFileOf(parsed.files, target), original, active);
 }
 
 function namedElementsOf(statement: ts.ImportDeclaration | ts.ExportDeclaration): readonly (ts.ImportSpecifier | ts.ExportSpecifier)[] {
@@ -485,7 +521,7 @@ function namedElementsOf(statement: ts.ImportDeclaration | ts.ExportDeclaration)
     const bindings = statement.importClause?.namedBindings;
     return bindings !== undefined && ts.isNamedImports(bindings) ? bindings.elements : [];
   }
-  return statement.moduleSpecifier !== undefined && statement.exportClause !== undefined && ts.isNamedExports(statement.exportClause) ? statement.exportClause.elements : [];
+  return statement.exportClause !== undefined && ts.isNamedExports(statement.exportClause) ? statement.exportClause.elements : [];
 }
 
 function isNothing(type: ts.TypeNode) {
