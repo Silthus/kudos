@@ -8,6 +8,7 @@ import { profileCardOf, type Medal } from "../profileCard/profileCard";
 import { isAPersonOf, lookup, nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { cardReadsOf, personStatsOf, teamStatsOf, type CardReads, type PersonStats, type TeamStats } from "./linkCardStats";
 import { siteOriginFor } from "./link";
+import { linkFrom, visitSourceValidator, type VisitSource } from "./visitSource";
 
 export const linkPreviewsFlag = { key: "link-previews", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
@@ -21,7 +22,7 @@ export type LinkPreview = PersonPreview | TeamPreview;
 
 type LinkedPage = { kind: "person"; person: string } | { kind: "team"; team: string };
 
-type Unfolding = CardReads & { rich: boolean };
+type Unfolding = CardReads & { rich: boolean; source: VisitSource };
 
 const bookPath = "/book";
 
@@ -34,7 +35,7 @@ export const linkPreviewsOf = internalQuery({
   handler: async (ctx, { workspace, sharer, links }): Promise<LinkPreview[]> => {
     const origin = siteOriginFor(workspace);
     if (origin === null || !(await sharerDecisionOf(ctx, workspace, sharer, linkPreviewsFlag))) return [];
-    const unfolding = { ...cardReadsOf(ctx, workspace, origin), rich: await sharerDecisionOf(ctx, workspace, sharer, richLinkCardsFlag) };
+    const unfolding = { ...cardReadsOf(ctx, workspace, origin), rich: await sharerDecisionOf(ctx, workspace, sharer, richLinkCardsFlag), source: "link-card" as const };
     const previews: LinkPreview[] = [];
     for (const url of links) {
       const preview = await previewOf(ctx, unfolding, url);
@@ -45,16 +46,16 @@ export const linkPreviewsOf = internalQuery({
 });
 
 export const personCardOf = internalQuery({
-  args: { workspace: v.string(), person: v.id("members") },
-  handler: async (ctx, { workspace, person }): Promise<PersonPreview | null> => {
+  args: { workspace: v.string(), person: v.id("members"), source: visitSourceValidator },
+  handler: async (ctx, { workspace, person, source }): Promise<PersonPreview | null> => {
     const origin = siteOriginFor(workspace);
     if (origin === null) return null;
-    return personPreviewOf(ctx, { ...cardReadsOf(ctx, workspace, origin), rich: true }, personPageOf(origin, person), person);
+    return personPreviewOf(ctx, { ...cardReadsOf(ctx, workspace, origin), rich: true, source }, personPageOf(origin, person, source), person);
   },
 });
 
-export function personPageOf(origin: string, person: MemberId) {
-  return pageUrlOf(origin, "people", person);
+export function personPageOf(origin: string, person: MemberId, source: VisitSource) {
+  return pageUrlOf(origin, "people", person, source);
 }
 
 export const emojisUnlockedOf = internalQuery({
@@ -85,12 +86,12 @@ function pageLinkedBy(url: string, origin: string): LinkedPage | null {
 }
 
 async function personPreviewOf(ctx: QueryCtx, unfolding: Unfolding, url: string, key: string): Promise<PersonPreview | null> {
-  const { workspace, origin, rich } = unfolding;
+  const { workspace, origin, rich, source } = unfolding;
   const person = ctx.db.normalizeId("members", key);
   if (person === null || !(await isAPersonOf(ctx, workspace, person))) return null;
   const { name, level, medals } = await profileCardOf(ctx, person, { own: false, viewer: null });
   const teams = await personTeamsOf(ctx, workspace, person);
-  const preview: PersonPreview = { kind: "person", url, page: pageUrlOf(origin, "people", person), name, picture: await pictureOf(ctx, workspace, person), teams: teams.map((team) => team.name), level, medals };
+  const preview: PersonPreview = { kind: "person", url, page: pageUrlOf(origin, "people", person, source), name, picture: await pictureOf(ctx, workspace, person), teams: teams.map((team) => team.name), level, medals };
   return rich ? { ...preview, stats: await personStatsOf(ctx, unfolding, person, level, teams) } : preview;
 }
 
@@ -105,13 +106,13 @@ async function teamPreviewOf(ctx: QueryCtx, unfolding: Unfolding, url: string, k
     .withIndex("by_team", (q) => q.eq("team", key))
     .first();
   if (team === null) return null;
-  const { origin, rich } = unfolding;
-  const preview: TeamPreview = { kind: "team", url, page: pageUrlOf(origin, "teams", team.team), name: team.name, picture: team.crestImage ?? null, people: team.people.length };
+  const { origin, rich, source } = unfolding;
+  const preview: TeamPreview = { kind: "team", url, page: pageUrlOf(origin, "teams", team.team, source), name: team.name, picture: team.crestImage ?? null, people: team.people.length };
   return rich ? { ...preview, stats: await teamStatsOf(unfolding, team) } : preview;
 }
 
-function pageUrlOf(origin: string, section: "people" | "teams", key: string) {
-  return `${origin}${bookPath}#${section}/${encodeURIComponent(key)}`;
+function pageUrlOf(origin: string, section: "people" | "teams", key: string, source: VisitSource) {
+  return linkFrom(source, `${origin}${bookPath}#${section}/${encodeURIComponent(key)}`);
 }
 
 function addressOrNull(url: string) {

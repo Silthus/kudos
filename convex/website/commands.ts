@@ -6,7 +6,8 @@ import { republish, type HomeMember } from "../feedback/homes";
 import { countingGroupsOf, groupsShownTo, primaryGroupOf } from "../groups/groups";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
-import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSettings";
+import { placesChosenFrom } from "../messageSettings/kinds";
+import { kindAppliesTo, placeOf } from "../messageSettings/messageSettings";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { avatarOf, type Avatar } from "../album/hoggies/avatar";
 import { boughtCrateOpened, crateStoreOf, openedCrateDropOf } from "../album/hoggies/boughtCrates";
@@ -407,7 +408,7 @@ async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMembe
 
 async function placeOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, kind: MessageKind, place: MessagePlace) {
   if (!(await messageSettingsOnFor(ctx, me.member)) || !(await kindAppliesTo(ctx, me.member, kind))) return false;
-  return (await placesOf(ctx, me.member, kind)).includes(place) && (await noLaunchWaitsFor(ctx, me));
+  return placesChosenFrom[kind].includes(place) && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function groupOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, group: string) {

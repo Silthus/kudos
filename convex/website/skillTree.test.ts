@@ -23,9 +23,9 @@ const levelSix = 1000;
 const levelSeven = 1500;
 const levelNine = xpToReach(9);
 
-const spark = { perk: "spark", name: "Spark", copy: "+5 XP the first time each day you thank someone and say why.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
-const rhythm = { perk: "rhythm", name: "Rhythm", copy: "+2 XP each time you thank someone and say why, once per person a day.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
-const circle = { perk: "circle", name: "Circle", copy: "+5 XP the first time each week you thank a person and say why.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const spark = { perk: "spark", name: "Spark", copy: "+5 XP the first time each day you give a kudos.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const rhythm = { perk: "rhythm", name: "Rhythm", copy: "+2 XP for each kudos you give, once per person a day.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const circle = { perk: "circle", name: "Circle", copy: "+5 XP the first time each week you give a person a kudos.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
 const flame = { perk: "flame", name: "Flame", copy: "Spark gives +8 XP instead of +5.", cost: { skillPoints: 1, coins: 150 }, requires: "Spark", upgrades: "spark" } as const;
 const cadence = { perk: "cadence", name: "Cadence", copy: "Rhythm gives +3 XP instead of +2.", cost: { skillPoints: 1, coins: 200 }, requires: "Rhythm", upgrades: "rhythm" } as const;
 const bridge = {
@@ -36,7 +36,7 @@ const bridge = {
   requires: "Circle",
   upgrades: "circle",
 } as const;
-const treasurer = { perk: "treasurer", name: "Treasurer", copy: "+2 🪙 each time you thank someone and say why, once per person a day.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const treasurer = { perk: "treasurer", name: "Treasurer", copy: "+2 🪙 for each kudos you give, once per person a day.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
 const banker = { perk: "banker", name: "Banker", copy: "Treasurer gives +4 🪙 instead of +2.", cost: { skillPoints: 2, coins: 250 }, requires: "Treasurer", upgrades: "treasurer" } as const;
 const available = { state: "available", reason: null, ownedAt: null } as const;
 

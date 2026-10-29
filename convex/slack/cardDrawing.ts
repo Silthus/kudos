@@ -184,7 +184,7 @@ function rankStripOf({ place }: DrawnCard): Node {
     { alignItems: "center", gap: 16, padding: "16px 22px", borderRadius: 18, fontSize: 28, border: `2px solid ${ranked ? "rgba(245,179,1,0.5)" : "rgba(255,122,69,0.3)"}`, backgroundColor: ranked ? "rgba(245,179,1,0.12)" : "rgba(255,122,69,0.1)" },
     iconOf(ranked ? crown : heart, ranked ? ink.gold : ink.accentInk),
     h("span", { fontWeight: 700 }, placeWordsOf(place)),
-    ranked ? h("span", { color: ink.quiet }, `· ${counted(place.thoughtful, "thoughtful kudos", "thoughtful kudos")}`) : null,
+    ranked ? h("span", { color: ink.quiet }, `· ${place.thoughtful} kudos`) : null,
   );
 }
 

@@ -158,7 +158,7 @@ describe("AL35 AL36: with every flag AL33 retires off, the Everyone board shows 
     const homeAtLevelOne = publishedHome(slack, "U_ALICE");
     const coinsAtLevelOne = await coinsOf(t, "U_ALICE");
     await xpOf(t, "U_ALICE", xpToReach(6) - 1);
-    await giveKudos(t, "U_ALICE", "U_BOB", 1, "thanks for untangling the release notes today");
+    await giveKudos(t, "U_ALICE", "U_CAROL", 1);
     await openHome(t, "U_ALICE");
 
     expect(rowsOf(atLevelOne.text)).toEqual(["🥇 <@U_ALICE> · 1 kudos"]);

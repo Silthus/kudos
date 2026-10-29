@@ -180,7 +180,7 @@ describe("MQ37 MQ39: after onboarding the panel lists this week's drawn quests",
     expect(panel.getByText("This week · 1 of 3")).toBeInTheDocument();
     expect(panel.getByRole("heading", { name: "Your quests this week, Sam" })).toBeInTheDocument();
     expect(panel.getAllByRole("listitem").map((row) => row.getAttribute("aria-label"))).toEqual([
-      "Thank someone and say why, 3 times: not yet, +20 XP and an unidentified hoggie",
+      "Thank 3 people in one day: not yet, +20 XP and an unidentified hoggie",
       "Thank 2 people you haven't thanked before: not yet, +20 XP and an unidentified hoggie",
       "Thank someone you haven't thanked in the last 30 days: done, won 20 XP and a hoggie",
     ]);

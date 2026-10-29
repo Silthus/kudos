@@ -224,12 +224,13 @@ describe("LP27 LP28: getXpMoment plays what happened since the last visit", { ti
     expect((await theMomentOf(asAlice)).excerpts.map(({ entry }) => entry.at), "ten minutes on").toEqual([held.at]);
   });
 
-  test("LP40 LP41: the moment carries this week's thoughtful givers where xp-moments is on, with teasers off, and none below three", async () => {
+  test("LP40 LP41 HH11: the moment carries this week's givers of any kudos where xp-moments is on, with teasers off, and none below three", async () => {
     const asAlice = await aReturningMember(alice);
     await thanks(alice, bob);
     expect((await theMomentOf(asAlice)).thoughtfulGivers).toBeNull();
+    later();
 
-    await thanks(carol, bob);
+    await kudosSentAt(Date.now(), "ty", carol, bob);
 
     expect((await theMomentOf(asAlice)).thoughtfulGivers).toBe(3);
   });
@@ -650,14 +651,9 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
 
   test("answers each drawn quest that moved without finishing, from where it stood at the last visit to now", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
-    await thanks(alice, bob);
-    await thanks(alice, carol);
-    vi.setSystemTime(Date.now() + dayMs);
-    await thanks(alice, bob);
-    await thanks(alice, bob);
+    await aWeekDrawnAsTheJourneyEnds(alice);
     await arrive(await signedIn(alice), null);
     const atTheVisit = await weekOf(alice);
-    vi.setSystemTime(Date.now() + dayMs);
 
     await thanks(alice, bob);
     const asAlice = await signedIn(alice);
@@ -673,14 +669,9 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
 
   test("a kudos whose quests aren't judged yet waits out of the moment, and its drawn quests move from the last visit once they are", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
-    await thanks(alice, bob);
-    await thanks(alice, carol);
-    vi.setSystemTime(Date.now() + dayMs);
-    await thanks(alice, bob);
-    await thanks(alice, bob);
+    await aWeekDrawnAsTheJourneyEnds(alice);
     await arrive(await signedIn(alice), null);
     const atTheVisit = await weekOf(alice);
-    vi.setSystemTime(Date.now() + dayMs);
     const held = await thanksWhileHeldBack(followingQuests, alice, bob);
     const asAlice = await signedIn(alice);
 
@@ -696,7 +687,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest"), "the next moment's drawn quests").toEqual(moved);
   });
 
-  test("answers the Thoughtful milestone moving toward its next tier by the thoughtful kudos given since the last visit", async () => {
+  test("answers the kudos milestone moving toward its next tier by the kudos given since the last visit", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);
@@ -707,13 +698,36 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 4, of: 25 }]);
   });
 
+  test("HH9: a short kudos given since the last visit moves the kudos milestone", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    later();
+
+    await kudosSentAt(Date.now(), "ty", alice, carol);
+
+    expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
+  });
+
+  test("HH9: the kudos milestone moves by what its count took in: a thoughtful kudos tallied before HH9, not a short one, and a short kudos since", async () => {
+    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
+    await thanks(alice, bob);
+    const asAlice = await aReturningMember(alice);
+    await thanks(alice, carol);
+    await asTalliedBeforeHH9(alice, { counted: true });
+    later();
+    await kudosSentAt(Date.now(), "ty", alice, bob);
+    await asTalliedBeforeHH9(alice, { counted: false });
+    later();
+
+    await kudosSentAt(Date.now(), "ty", alice, carol);
+
+    expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 3, of: 25 }]);
+  });
+
   test("a kudos sent before the last visit and decided after it moves the drawn quests and the milestone since the visit", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
-    await thanks(alice, bob);
-    await thanks(alice, carol);
-    vi.setSystemTime(Date.now() + dayMs);
-    await thanks(alice, bob);
-    await thanks(alice, bob);
+    await aWeekDrawnAsTheJourneyEnds(alice);
     await signedIn(alice);
     later();
     const sentBeforeTheVisit = Date.now();
@@ -728,7 +742,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
       return slot.progress > from && slot.finishedAt === null ? [{ kind: "quest", name: slot.goal.replace(/\.$/, ""), from, to: slot.progress, of: slot.target }] : [];
     });
     expect(drawnMoved, "the drawn quests that moved without finishing").not.toEqual([]);
-    expect((await theMomentOf(asAlice)).progressed).toEqual([...drawnMoved, { kind: "milestone", name: "Generous soul", from: 4, to: 5, of: 25 }]);
+    expect((await theMomentOf(asAlice)).progressed).toEqual([...drawnMoved, { kind: "milestone", name: "Generous soul", from: 3, to: 4, of: 25 }]);
   });
 
   test("MQ46: a kudos that doesn't say why, sent before the last visit and decided after it, moves the two-days quest since the visit", async () => {
@@ -746,11 +760,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
 
   test("a kudos on last week's draw moves no quest once a new week has begun", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
-    await thanks(alice, bob);
-    await thanks(alice, carol);
-    vi.setSystemTime(Date.now() + dayMs);
-    await thanks(alice, bob);
-    await thanks(alice, bob);
+    await aWeekDrawnAsTheJourneyEnds(alice);
     await arrive(await signedIn(alice), null);
     const atTheVisit = await weekOf(alice);
     vi.setSystemTime(new Date("2026-10-17T10:00:00Z"));
@@ -764,7 +774,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed.filter(({ kind }) => kind === "quest")).toEqual([]);
   });
 
-  test("a thoughtful kudos whose tally waits stays out of the moment, and the milestone moves from where it stood once it is tallied", async () => {
+  test("a kudos whose tally waits stays out of the moment, and the milestone moves from where it stood once it is tallied", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);
@@ -780,7 +790,7 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed, "the next moment").toEqual([{ kind: "milestone", name: "Generous soul", from: 2, to: 3, of: 25 }]);
   });
 
-  test("a thoughtful kudos whose tally never runs moves the milestone in no moment, once the moment stops waiting on it", async () => {
+  test("a kudos whose tally never runs moves the milestone in no moment, once the moment stops waiting on it", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);
@@ -853,14 +863,9 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
 
   test("a drawn quest with more than 50 counted kudos this week answers no progress", async () => {
     await switchWebsite(t, postHog, true, ...onTheMondayPath, "progress-beats");
-    await thanks(alice, bob);
-    await thanks(alice, carol);
-    vi.setSystemTime(Date.now() + dayMs);
-    await thanks(alice, bob);
-    await thanks(alice, bob);
+    await aWeekDrawnAsTheJourneyEnds(alice);
     await arrive(await signedIn(alice), null);
     const atTheVisit = await weekOf(alice);
-    vi.setSystemTime(Date.now() + dayMs);
     await thanks(alice, bob);
     const now = await weekOf(alice);
     const movedIndex = now.slots.findIndex((slot, index) => slot.progress > atTheVisit.slots[index]!.progress && slot.finishedAt === null);
@@ -919,6 +924,17 @@ async function thanks(giver: Person, ...recipients: Person[]) {
 
 async function thanksSentAt(at: number, giver: Person, ...recipients: Person[]) {
   return kudosSentAt(at, why, giver, ...recipients);
+}
+
+async function asTalliedBeforeHH9(giver: Person, { counted }: { counted: boolean }) {
+  await t.run(async (ctx) => {
+    const newest = (await ctx.db.query("talliedAwards").order("desc").first())!;
+    await ctx.db.replace(newest._id, { award: newest.award });
+    if (counted) return;
+    const member = (await ctx.db.query("members").collect()).find(({ user }) => user === giver.user)!;
+    const week = (await ctx.db.query("weekTallies").withIndex("by_member_week", (q) => q.eq("member", member._id)).order("desc").first())!;
+    await ctx.db.patch(week._id, { thoughtfulGiven: week.thoughtfulGiven - 1 });
+  });
 }
 
 async function kudosSentAt(at: number, words: string, giver: Person, ...recipients: Person[]) {
@@ -1057,6 +1073,14 @@ async function stickerItemOf(giver: Person, thanked: Person): Promise<Id<"items"
   const item = items.find((row) => row.source === "sticker" && row.reason.kind === "thanks" && row.reason.person === person);
   if (item === undefined) throw new Error(`no sticker item for thanking ${thanked.name}`);
   return item._id;
+}
+
+async function aWeekDrawnAsTheJourneyEnds(someone: Person) {
+  await thanks(someone, bob);
+  await thanks(someone, carol);
+  vi.setSystemTime(Date.now() + dayMs);
+  await thanks(someone, bob);
+  await t.mutation(internal.quests.weekly.drawNewWeek, { member: await memberOf(someone) });
 }
 
 async function weekOf(someone: Person) {

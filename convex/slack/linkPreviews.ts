@@ -148,7 +148,7 @@ function richTeamCardOf(preview: TeamPreview, stats: TeamStats) {
   const fields = placeFieldsOf(stats.place, "team leaderboard");
   const saidThanks = stats.saidThanks === 0 || preview.people === 0 ? [] : [`${barOf(stats.saidThanks / preview.people)}  *${stats.saidThanks} of ${preview.people}* have said thanks`];
   const quiet = saidThanks.length === 0 && stats.rarest.length === 0;
-  const lines = [nameLineOf(preview), peopleCountOf(preview.people), ...saidThanks, ...(quiet ? [`🌱 No thoughtful kudos yet. The first one puts ${escaped(preview.name)} on the board.`] : [])];
+  const lines = [nameLineOf(preview), peopleCountOf(preview.people), ...saidThanks, ...(quiet ? [`🌱 No kudos yet. The first one puts ${escaped(preview.name)} on the board.`] : [])];
   return [headOf(preview, lines), ...statBlocksOf(fields, stats.rarest), datedFootOf(preview, stats.asOf)];
 }
 
@@ -176,7 +176,7 @@ function barOf(share: number) {
 
 function placeFieldsOf(place: BoardPlace | null, board: string) {
   if (place === null) return [];
-  return [`🏆 *No. ${place.rank}${place.tied ? ", tied" : ""}* on the all-time ${board}`, `💛 *${place.thoughtful}* thoughtful kudos given`];
+  return [`🏆 *No. ${place.rank}${place.tied ? ", tied" : ""}* on the all-time ${board}`, `💛 *${place.thoughtful}* kudos given`];
 }
 
 function statBlocksOf(fields: string[], rarest: CardHoggie[]) {

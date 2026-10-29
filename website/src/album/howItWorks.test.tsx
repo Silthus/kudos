@@ -150,7 +150,7 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
     await turnTheFirstItem(user);
 
     expect(theCard()).toBeNull();
-    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 and say why.");
+    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 in a message.");
   });
 
   it("LP49: where getAlbum answers no card, nothing holds the items at arrival", async () => {
