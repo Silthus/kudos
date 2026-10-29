@@ -1,0 +1,46 @@
+sequenceDiagram
+  autonumber
+  actor M as Member in Slack
+  participant S as Slack adapter
+  participant H as Hugs
+  participant B as Bus
+  participant P as Progression
+  participant L as Leaderboard
+  participant Q as Quests
+  participant A as Album
+  M->>S: reacts with an emoji
+  S->>H: mayReactWith(giver, emoji) query, via hypeEmojiFor (Q4)
+  Note over S,B: no hype or kudos emoji: stop before any mutation
+  S->>H: receiveReaction(reaction)
+  H->>H: decide: hug, hype or nothing
+  alt hug: giver holds the emoji, within budget and a day
+    H->>H: insert the hug (one per giver and message)
+    H->>B: hugGiven {giver, message, day, first}
+    par one mutation per subscriber
+      B->>P: hugGiven: hug XP, keyed hug-given:msg (Q1)
+      P->>P: first-of-day bonus, keyed hug-day:giver:day (Q1)
+    and
+      B->>L: hugGiven: hugs given +1 in the giver's week
+    and
+      B->>Q: hugGiven to fact {source: hug, action, people}
+      Q-->>B: questFinished (when a quest completes)
+    and
+      B->>H: payHugPeople, 100 people a page (Q2)
+      loop each person on the page
+        H->>B: hugReceived {person, giver, message, week}
+      end
+    end
+    par per person
+      B->>P: hugReceived: hug XP + first-of-week bonus, keyed (Q1)
+    and
+      B->>L: hugReceived: hugs received +1 in the person's week
+    and
+      B->>A: hugReceived: a face-down find, floor ≤ rare, keyed hug:giver:msg (Q3)
+    end
+  else hype: names a hype emoji the giver doesn't hold
+    H->>B: hypeReacted {giver, owner, message}
+    B->>A: hypeReacted: one row per giver, owner, message (Q4)
+    Note over Q,A: the 10th row collects the emoji
+  else nothing
+    H-->>S: nothing, no write
+  end
