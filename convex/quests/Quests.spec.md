@@ -652,3 +652,17 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   checklist: resumption-coverage dismissed: a skipped week schedules no chain, and a chain queued before the flag turned off stops at its next job with the week mark
   checklist: declared-target-coverage dismissed: the sweep is the one entrance that starts a tally, a draw and its catch-up
   checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
+
+- a quest finish is recorded in Quests' own finish record: When finishMondayQuest records a quest's reward, or finishQuest records a Journey step's reward on the unlock path, it also writes one questFinishes row, keyed by member and reward key, with the quest's XP, its catalogue version, the finish's time and the kudos that caused it; a second finish of the same key writes nothing (HH24). The reward record still answers whether the quest is finished until the readers switch to this record.
+  over: a first kudos on the Monday path, the same kudosGiven delivered three times to both subscribers, and a first kudos that says why on the unlock path, at the Slack boundary, read through the member's questFinishes rows
+  via: MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first onboarding quest
+  because: Quests' finish record becomes the one answer to "is this quest finished" (HH24), so it has to hold every Monday-path finish and every Journey step's finish from the moment the seed has run, and a finish written in the same mutation as its reward record can't be missing from it
+  refuted: finishMondayQuest no longer wrote the finish row -> the finish record case and the replayed finish case failed: the member had no finish row (2026-10-29)
+  kinds: state
+
+- the finish seed writes each Journey and Monday-path finish once and publishes nothing: seedQuestFinishes reads one page of the reward records through rewardsPage and writes a questFinishes row for each Journey step's reward record, on either path, and each Monday-path weekly quest's (catalogue version `monday-1`) that has none, copying its member, key, XP, catalogue version, time and cause; it writes nothing for another quest's or another reward's record, leaves a finish row that exists as it is, publishes nothing and schedules nothing, so a second run seeds nothing (HH24).
+  over: Monday-path Journey and weekly finishes, a Journey finish and a weekly finish on the unlock path, a group quest's and a hug's reward record, in pages of 2 and of 100, and a finish the finisher had already recorded
+  via: HH24: a one-off seed writes Quests' finish record for every Journey step and Monday-path weekly quest already finished
+  because: the finishes made before the finish record existed must be in it before its readers switch to it, and onboarding counts a Journey step finished on the unlock path as finished, and a seed that published questFinished again would pay the XP and the hoggie a second time through the followers
+  refuted: the seed took every quest's reward record -> the paged case failed: the unlock path's weekly finish and the group quest's got finish rows (2026-10-29)
+  kinds: state
