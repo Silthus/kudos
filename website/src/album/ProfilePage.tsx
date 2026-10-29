@@ -184,7 +184,7 @@ function Rank({ standing }: { standing: Standing }) {
   return (
     <section className="al-profile-rank" aria-labelledby={heading}>
       <h2 id={heading} className="al-eyebrow">
-        This week's thoughtful kudos
+        This week's kudos
       </h2>
       <YourPlace standing={standing} />
       {standing.team !== null && (
@@ -205,11 +205,11 @@ function YourPlace({ standing: { me, onTheBoards } }: { standing: Standing }) {
         You're off the boards by choice. Switch on "Show me on the leaderboards" in <AppLink href={hrefOf({ kind: "settings" })}>Settings</AppLink> to come back.
       </p>
     );
-  if (me === null || me.rank === null) return <p className="al-profile-rank-line">Give a thoughtful kudos to join this week's board.</p>;
+  if (me === null || me.rank === null) return <p className="al-profile-rank-line">Give a kudos to join this week's board.</p>;
   return (
     <>
       <p className="al-profile-rank-number">{rankWords({ rank: me.rank, tied: me.tied })}</p>
-      <p className="al-profile-rank-line">{me.thoughtful} thoughtful kudos given</p>
+      <p className="al-profile-rank-line">{me.thoughtful} kudos given</p>
     </>
   );
 }

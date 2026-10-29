@@ -12,9 +12,9 @@ import { setLeaderboardVisibility } from "../leaderboard/visibility";
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const lastSaturday = Date.parse("2026-10-10T10:00:00Z");
 const siteUrl = "https://kudos-site.test";
-const saysWhy = "thanks for untangling the release notes today";
+const words = "thanks for untangling the release notes today";
 const normOn = ["website", "xp-levels", "teasers"];
-const normLine = (givers: number) => `section: ${givers} teammates gave thoughtful kudos this week`;
+const normLine = (givers: number) => `section: ${givers} teammates gave kudos this week`;
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -42,8 +42,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("LP40 LP41: the norm line counts this week's thoughtful givers on App Home's front door", { timeout: 60_000 }, () => {
-  test("three teammates who gave thoughtful kudos this week, one of them off the boards, read under the level line, naming nobody, and a second thoughtful kudos from one of them counts them once", async () => {
+describe("LP40 LP41: the norm line counts this week's givers on App Home's front door", { timeout: 60_000 }, () => {
+  test("three teammates who gave kudos this week, one of them off the boards, read under the level line, naming nobody, and a second kudos from one of them counts them once", async () => {
     await aWorkspace(normOn.map(onForEveryone));
     await offTheBoards("U_BOB");
 
@@ -58,7 +58,7 @@ describe("LP40 LP41: the norm line counts this week's thoughtful givers on App H
     expect(home.join("\n")).not.toMatch(/Alice|Bob|Carol|U_ALICE|U_BOB|U_CAROL/);
   });
 
-  test("two thoughtful givers this week beside a short kudos and last week's thoughtful givers leave the line hidden, and a third this week shows it", async () => {
+  test("HH11: two givers this week beside last week's givers leave the line hidden, and a short kudos from a third this week shows it", async () => {
     await aWorkspace(normOn.map(onForEveryone));
     weekStart = lastSaturday;
     await thanks("U_DANA", "U_ALICE");
@@ -67,11 +67,10 @@ describe("LP40 LP41: the norm line counts this week's thoughtful givers on App H
 
     await thanks("U_ALICE", "U_DANA");
     await thanks("U_BOB", "U_DANA");
-    await thanks("U_CAROL", "U_DANA", "thanks!");
     await opensHome("U_DANA");
-    expect(publishedHome(slack, "U_DANA").join("\n")).not.toContain("gave thoughtful kudos");
+    expect(publishedHome(slack, "U_DANA").join("\n")).not.toContain("gave kudos");
 
-    await thanks("U_CAROL", "U_ERIN");
+    await thanks("U_CAROL", "U_ERIN", "thanks!");
     await opensHome("U_DANA");
     expect(publishedHome(slack, "U_DANA")).toContain(normLine(3));
   });
@@ -79,7 +78,7 @@ describe("LP40 LP41: the norm line counts this week's thoughtful givers on App H
   test.each([
     { condition: "with teasers off", flags: [...normOn.filter((key) => key !== "teasers").map(onForEveryone), offForEveryone("teasers")] },
     { condition: "with teasers on for someone else's email only", flags: [...normOn.filter((key) => key !== "teasers").map(onForEveryone), onForEmails("teasers", "alice@example.com")] },
-  ])("$condition, a walk of three thoughtful givers and App Home opened makes every Slack call the same walk makes with no teasers flag", async ({ flags }) => {
+  ])("$condition, a walk of three givers and App Home opened makes every Slack call the same walk makes with no teasers flag", async ({ flags }) => {
     const withoutTheFlag = await walkWith(normOn.filter((key) => key !== "teasers").map(onForEveryone));
 
     const walk = await walkWith(flags);
@@ -110,11 +109,11 @@ async function aWorkspace(flags: FlagDefinition[]) {
 
 let weekStart = tuesday;
 
-async function thanks(giver: string, recipient: string, words = saysWhy) {
+async function thanks(giver: string, recipient: string, said = words) {
   sent += 1;
   vi.setSystemTime(weekStart + sent * 600_000);
   const ts = `${Math.floor(Date.now() / 1000)}.${String(sent).padStart(6, "0")}`;
-  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), text(` ${words} `), emoji("taco"))], { user: giver, ts })));
+  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), text(` ${said} `), emoji("taco"))], { user: giver, ts })));
   await settle(t);
 }
 
