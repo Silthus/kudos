@@ -211,6 +211,20 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(await heldRepliesTo(alice), "Alice's replies still held").toBe(1);
   });
 
+  test("Quests delivered twice for a kudos that finished two quests keeps both in its reply", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    const held = holdingKudosGiven();
+    const dayOne = Date.now() + minuteMs;
+    vi.setSystemTime(dayOne + dayMs);
+    await posts(alice, saysWhy, bob);
+    await postsAt(dayOne, alice, saysWhy, carol);
+    const sentLater = held[1]!;
+
+    await deliverOnly(sentLater, [questsJob, questsJob, grantJob]);
+
+    expect(blockTextsOf(messagesTo(alice)[0]!), "the reply").toEqual(expect.arrayContaining([" Give a kudos to someone", " Thank someone on two different days"]));
+  });
+
   test("an item section longer than one Slack text is cut short", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
     await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").first())!._id, { baseAllowance: 20 }));
@@ -302,8 +316,12 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
 
 async function posts(giver: Person, words: string, ...recipients: Person[]) {
   vi.setSystemTime(Date.now() + minuteMs);
+  await postsAt(Date.now(), giver, words, ...recipients);
+}
+
+async function postsAt(at: number, giver: Person, words: string, ...recipients: Person[]) {
   messages += 1;
-  const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
+  const ts = `${at / 1000}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${words} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settleForASecond();
 }
