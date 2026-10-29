@@ -148,6 +148,7 @@ describe("HH16: writes cross modules as bus facts", () => {
     ["a read", `export async function standingOf(ctx: QueryCtx, member: MemberId) {}`, []],
     ["a read that also takes a mutation's context", `export function xpLevelsShownIn(ctx: QueryCtx | MutationCtx, workspace: string) {}`, []],
     ["a constant", `export const hugXp = 1;\nfunction earn(ctx: MutationCtx) {}`, []],
+    ["a constant that may be missing", `export const noReward: null | undefined = null;\nexport function skip(ctx: undefined | void) {}`, []],
     ["a read exported in a list", `function standingOf(ctx: QueryCtx) {}\nexport { standingOf, type Standing };`, []],
     ["a type-only list", `export type { Earning } from "./ledger";`, []],
     ["a re-export of an imported write under another name", `import { earnItem } from "./ledger";\nexport { earnItem as earnBonus };`, ["earnBonus"]],
@@ -406,7 +407,7 @@ function functionNeedsAMutationCtx(fn: ts.SignatureDeclaration) {
 
 function typeNeedsAMutationCtx(type: ts.TypeNode, typeParameters: readonly ts.TypeParameterDeclaration[]): boolean {
   if (ts.isParenthesizedTypeNode(type)) return typeNeedsAMutationCtx(type.type, typeParameters);
-  if (ts.isUnionTypeNode(type)) return type.types.filter((member) => !isNothing(member)).every((member) => typeNeedsAMutationCtx(member, typeParameters));
+  if (ts.isUnionTypeNode(type)) return unionNeedsAMutationCtx(type, typeParameters);
   if (ts.isIntersectionTypeNode(type)) return type.types.some((member) => typeNeedsAMutationCtx(member, typeParameters));
   if (ts.isIndexedAccessTypeNode(type)) return typeNeedsAMutationCtx(type.objectType, typeParameters);
   if (ts.isTypeLiteralNode(type)) return type.members.some((member) => ts.isPropertySignature(member) && member.type !== undefined && typeNeedsAMutationCtx(member.type, typeParameters));
@@ -416,6 +417,11 @@ function typeNeedsAMutationCtx(type: ts.TypeNode, typeParameters: readonly ts.Ty
   const constraint = typeParameters.find((parameter) => parameter.name.text === name)?.constraint;
   if (constraint !== undefined) return typeNeedsAMutationCtx(constraint, typeParameters);
   return (type.typeArguments ?? []).some((argument) => typeNeedsAMutationCtx(argument, typeParameters));
+}
+
+function unionNeedsAMutationCtx(union: ts.UnionTypeNode, typeParameters: readonly ts.TypeParameterDeclaration[]) {
+  const somethings = union.types.filter((member) => !isNothing(member));
+  return somethings.length > 0 && somethings.every((member) => typeNeedsAMutationCtx(member, typeParameters));
 }
 
 function isNothing(type: ts.TypeNode) {
