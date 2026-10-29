@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { AnswerPage } from "../pages/AnswerPage";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -9,12 +9,12 @@ import type { AlbumTeam, BoardPeriod, BoardPerson, BoardTeam, Standing, Thoughtf
 import type { BoardsOfPeriod } from "./boardPeriods";
 import { findYourselfHref, hrefOf } from "./place";
 
-type LeaderboardAnswerProps = { boards: BoardsOfPeriod; teams: AlbumTeam[]; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
+type LeaderboardAnswerProps = { boards: BoardsOfPeriod; teams: AlbumTeam[]; homeTeam: string | null; onViewed: (period: BoardPeriod) => void; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards: { shown, shownPeriod, period, loading, choose }, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
+export function LeaderboardAnswerPage({ boards: { shown, shownPeriod, period, loading, choose }, teams, homeTeam, onViewed, ...answers }: LeaderboardAnswerProps) {
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "boards") return <AnswerPage answer={shown} {...answers} />;
-  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} shownPeriod={shownPeriod} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
+  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} shownPeriod={shownPeriod} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} onViewed={onViewed} />;
 }
 
 type TeamRows = { listed: BoardTeam[]; unscored: BoardTeam[] };
@@ -44,9 +44,21 @@ const quietOffers: Record<BoardPeriod, BoardPeriod | null> = { week: "last-week"
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: TeamRows; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
+type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: TeamRows; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null; onViewed: (period: BoardPeriod) => void };
 
-function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
+function useViewedOncePerPeriodShown(shownPeriod: BoardPeriod, onViewed: (period: BoardPeriod) => void) {
+  const reported = useRef<BoardPeriod | null>(null);
+  const latest = useRef(onViewed);
+  latest.current = onViewed;
+  useEffect(() => {
+    if (reported.current === shownPeriod) return;
+    reported.current = shownPeriod;
+    latest.current(shownPeriod);
+  }, [shownPeriod]);
+}
+
+function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onChoosePeriod, homeTeam, onViewed }: LeaderboardPageProps) {
+  useViewedOncePerPeriodShown(shownPeriod, onViewed);
   const [picked, setPicked] = useState<BoardTeam | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
   const foldToggle = useRef<HTMLButtonElement>(null);

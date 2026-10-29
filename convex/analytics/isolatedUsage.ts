@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
-import { periodValidator } from "../leaderboard/periods";
+import { boardPeriodValidator } from "../album/boards";
 import { messageKindValidator, messagePlaceValidator } from "../messageSettings/kinds";
 import { mondayDmSectionValidator } from "../mondayDm/records";
 import { welcomePathValidator } from "../welcome/welcomedAs";
@@ -13,8 +13,8 @@ const leaderboardViewValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
   board: v.union(v.literal("everyone"), v.literal("groups"), v.literal("my-group")),
-  period: periodValidator,
-  surface: v.union(v.literal("app-home"), v.literal("command")),
+  period: boardPeriodValidator,
+  surface: v.union(v.literal("app-home"), v.literal("command"), v.literal("website")),
   at: v.number(),
 });
 

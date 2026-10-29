@@ -220,6 +220,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const endXpMoment = useSentOnce(api.website.xpMoment.endXpMoment);
   const closeHowItWorks = useSentOnce(api.website.onboarding.closeHowItWorks);
   const viewQuests = useSentOnce(api.website.quests.viewQuests);
+  const viewLeaderboard = useSentOnce(api.website.album.viewLeaderboard);
   return useMemo(
     () => ({
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
@@ -247,6 +248,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       endXpMoment: (from, until, skipped, played) => answerWithin(commandAnswerBudgetMs, endXpMoment({ from, until, skipped, played })),
       closeHowItWorks: (triedSlack) => answerWithin(commandAnswerBudgetMs, closeHowItWorks({ triedSlack })),
       viewQuests: (surface) => answerWithin(commandAnswerBudgetMs, viewQuests({ surface })),
+      viewLeaderboard: (period) => answerWithin(commandAnswerBudgetMs, viewLeaderboard({ period })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -254,7 +256,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, pickKudosEmoji, turnItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, viewQuests, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, pickKudosEmoji, turnItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, viewQuests, viewLeaderboard, onSignInFailure],
   );
 }
 

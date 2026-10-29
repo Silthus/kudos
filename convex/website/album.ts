@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
 import { hypesHeldFor } from "../items/hypes";
+import { reportLeaderboardViewed } from "../analytics/isolatedUsage";
 import { kudosEmojiPicksOf, pickKudosEmoji as pickKudosEmojiOf, type KudosEmojiPick } from "../album/kudosEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
@@ -383,6 +384,17 @@ export const getThoughtfulBoards = memberQuery({
     await followTheClock(ctx);
     const { people, teams, pinned, onTheBoards } = await thoughtfulBoardsOf(ctx, me, { whoGave: team ?? null, period: period ?? "week" });
     return { kind: "boards", people: people.map(personRowOf), teams, pinned: { me: pinned.me === null ? null : personRowOf(pinned.me), teams: pinned.teams }, onTheBoards };
+  },
+});
+
+export type LeaderboardViewAnswer = { kind: "viewed" } | { kind: "refused" };
+
+export const viewLeaderboard = memberMutation({
+  args: { period: boardPeriodValidator },
+  handler: async (ctx, me, _person, { period }): Promise<LeaderboardViewAnswer> => {
+    if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
+    await reportLeaderboardViewed(ctx, { workspace: me.workspace, member: me.member, board: "everyone", period, surface: "website", at: Date.now() });
+    return { kind: "viewed" };
   },
 });
 

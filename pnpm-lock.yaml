@@ -245,6 +245,9 @@ importers:
       convex:
         specifier: 1.46.0
         version: 1.46.0(react@19.3.0)
+      is-network-error:
+        specifier: 1.3.2
+        version: 1.3.2
       posthog-js:
         specifier: 1.438.12
         version: 1.438.12(@types/react@19.3.0)(preact-render-to-string@6.5.11)(react@19.3.0)
