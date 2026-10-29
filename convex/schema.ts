@@ -727,11 +727,19 @@ export default defineSchema({
     message: v.string(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
+  countedRecognitions: defineTable({
+    workspace: v.string(),
+    key: v.string(),
+  }).index("by_key", ["workspace", "key"]),
+
   givenByDay: defineTable({
     workspace: v.string(),
     member: v.id("members"),
     day: v.string(),
     kudos: v.number(),
+    kudosReceived: v.optional(v.number()),
+    hugsGiven: v.optional(v.number()),
+    hugsReceived: v.optional(v.number()),
   })
     .index("by_member_day", ["member", "day"])
     .index("by_workspace_day", ["workspace", "day"]),
@@ -766,6 +774,10 @@ export default defineSchema({
     member: v.id("members"),
     period: v.string(),
     kudos: v.number(),
+    kudosReceived: v.optional(v.number()),
+    hugsGiven: v.optional(v.number()),
+    hugsReceived: v.optional(v.number()),
+    firstDay: v.optional(v.string()),
     runningTotal: v.optional(v.array(v.number())),
   })
     .index("by_period", ["workspace", "period"])

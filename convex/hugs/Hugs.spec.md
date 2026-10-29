@@ -29,7 +29,7 @@ Hugs: a light thank-you by reaction (SR1–SR10, SR12–SR16, SR20, SR21, SR24),
   checklist: worker-fencing dismissed: no worker holds the budget; each reaction's mutation counts and records on its own
   checklist: commit-ordered-effects dismissed: a hug past the budget writes and sends nothing; a hug within it commits its record and hugGiven together, and its XP follows hugGiven
   checklist: resumption-coverage dismissed: no batch counts the budget; a looked-up hug is decided again in one mutation as at its time
-- a hug is never an award: A hug changes no award, board, kudos total, allowance, coin, quest, Journey step, sticker or gate decision; it writes only its own records, reward records and XP, its flag's exposure, and in the album's pair and week tallies the hug counts, the hugged lists, the day counts and the kudos-of-the-week ranking hugs decide, never their kudos counts.
+- a hug is never an award: A hug changes no award, board, kudos total, allowance, coin, quest, Journey step, sticker or gate decision; it writes only its own records, reward records and XP, its flag's exposure, Leaderboard's hugs given and hugs received beside the kudos it ranks (HH26), and in the album's pair and week tallies the hug counts, the hugged lists, the day counts and the kudos-of-the-week ranking hugs decide, never their kudos counts.
   over: three hugs, on a Given kudos message and on ordinary messages, by members who each gave and got kudos, with every feature on, compared table by table with the state before them
   via: SR2 SR23: a hug is never an award
   refuted: recordHug paid the giver's hug reward 1 coin instead of none -> three givers' wallets each read 1 coin above the state before the hugs (2026-10-16)
