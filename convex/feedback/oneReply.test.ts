@@ -72,7 +72,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
       {
         channel: "C1",
         user: alice.user,
-        text: "<@U_BOB> got 1 kudos from you · +10 XP\n2 kudos left today\nDone: Thank someone and say why · +50 XP and an unidentified Hoggie\nSay why on 2 different days · 🟩⬜ 1 of 2 days\n🎁 *An item for thanking Bob*",
+        text: "<@U_BOB> got 1 kudos from you · +10 XP\n2 kudos left today\nDone: Give a kudos to someone · +50 XP and an unidentified Hoggie\nThank someone on two different days · 🟩⬜ 1 of 2 days\n🎁 *An item for thanking Bob*",
         blocks: [
           { type: "section", text: { type: "mrkdwn", text: "*<@U_BOB> got 1 kudos from you* · +10 XP" } },
           { type: "context", elements: [{ type: "mrkdwn", text: "2 kudos left today" }] },
@@ -86,11 +86,11 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
                 elements: [
                   {
                     type: "rich_text_section",
-                    elements: [doneMark, { type: "text", text: " Thank someone and say why", style: { bold: false, strike: true } }, { type: "text", text: "  +50 XP and an unidentified Hoggie", style: { italic: true } }],
+                    elements: [doneMark, { type: "text", text: " Give a kudos to someone", style: { bold: false, strike: true } }, { type: "text", text: "  +50 XP and an unidentified Hoggie", style: { italic: true } }],
                   },
                   {
                     type: "rich_text_section",
-                    elements: [movedMark, { type: "text", text: " Say why on 2 different days", style: { bold: true, strike: false } }, { type: "text", text: "  🟩⬜ 1 of 2 days", style: { italic: true } }],
+                    elements: [movedMark, { type: "text", text: " Thank someone on two different days", style: { bold: true, strike: false } }, { type: "text", text: "  🟩⬜ 1 of 2 days", style: { italic: true } }],
                   },
                 ],
               },
@@ -121,7 +121,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     await deliverInOrder(held[0]!, order);
 
     expect(messagesTo(alice).map(({ text }) => text), "the messages Alice got").toHaveLength(1);
-    expect(blockTextsOf(messagesTo(alice)[0]!), "the one message").toEqual(expect.arrayContaining([" Thank someone and say why", "🎁 *An item for thanking Bob*"]));
+    expect(blockTextsOf(messagesTo(alice)[0]!), "the one message").toEqual(expect.arrayContaining([" Give a kudos to someone", "🎁 *An item for thanking Bob*"]));
   });
 
   test("when the item never comes, the reply goes out after 10 seconds without it, and a later grant is told on its own", async () => {
@@ -140,8 +140,8 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(messagesTo(alice), "the messages Alice got after the grant").toHaveLength(2);
   });
 
-  test("a quick thanks from a giver without hidden items moves no quest and shows who got kudos, the kudos left and one button to the progress", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath.filter((flag) => flag !== "hidden-items"), oneReply);
+  test("a quick thanks from a giver off the Monday path and without hidden items moves no quest and shows who got kudos, the kudos left and one button to the progress", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath.filter((flag) => flag !== "hidden-items" && flag !== "monday-quest"), oneReply);
 
     await thanks(alice, "thanks", bob);
 
@@ -209,6 +209,20 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
 
     expect(messagesTo(alice), "the messages Alice got while the item is pending").toEqual([]);
     expect(await heldRepliesTo(alice), "Alice's replies still held").toBe(1);
+  });
+
+  test("Quests delivered twice for a kudos that finished two quests keeps both in its reply", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
+    const held = holdingKudosGiven();
+    const dayOne = Date.now() + minuteMs;
+    vi.setSystemTime(dayOne + dayMs);
+    await posts(alice, saysWhy, bob);
+    await postsAt(dayOne, alice, saysWhy, carol);
+    const sentLater = held[1]!;
+
+    await deliverOnly(sentLater, [questsJob, questsJob, grantJob]);
+
+    expect(blockTextsOf(messagesTo(alice)[0]!), "the reply").toEqual(expect.arrayContaining([" Give a kudos to someone", " Thank someone on two different days"]));
   });
 
   test("an item section longer than one Slack text is cut short", async () => {
@@ -289,7 +303,7 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     await thanks(alice, saysWhy, bob);
 
     expect(messagesTo(alice).map(({ text }) => text), "the messages Alice got").toEqual([
-      "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.\n+10 XP · <https://kudos-site.test/|See your progress on the web>\nQuest done: Thank someone and say why · +50 XP and an unidentified Hoggie for your collection\n<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
+      "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.\n+10 XP · <https://kudos-site.test/|See your progress on the web>\nQuest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection\n<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.",
       "An item for thanking Bob",
     ]);
   });
@@ -302,8 +316,12 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
 
 async function posts(giver: Person, words: string, ...recipients: Person[]) {
   vi.setSystemTime(Date.now() + minuteMs);
+  await postsAt(Date.now(), giver, words, ...recipients);
+}
+
+async function postsAt(at: number, giver: Person, words: string, ...recipients: Person[]) {
   messages += 1;
-  const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
+  const ts = `${at / 1000}.${String(messages).padStart(6, "0")}`;
   await post(t, [section(text(`${words} `), ...recipients.flatMap(({ user }) => [mention(user), text(" ")]), emoji("taco"))], { user: giver.user, ts });
   await settleForASecond();
 }
