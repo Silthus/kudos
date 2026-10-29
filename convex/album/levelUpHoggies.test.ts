@@ -163,8 +163,11 @@ async function failedFollowerOf(event: LevelReachedEvent) {
   const missingFunction = vi.spyOn(crypto, "randomUUID").mockImplementation(() => {
     throw new Error("the previous version has no such function");
   });
-  await settle(t);
-  missingFunction.mockRestore();
+  try {
+    await settle(t);
+  } finally {
+    missingFunction.mockRestore();
+  }
   const state = await t.run(async (ctx) => (await ctx.db.system.get(job))?.state.kind);
   expect(state, "the follower's job before the replay").toBe("failed");
   return job;
