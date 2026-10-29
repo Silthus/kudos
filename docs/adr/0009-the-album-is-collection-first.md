@@ -7,3 +7,5 @@ We chose this over today's game of coins, a store, quests, a Journey, a skill tr
 Packs are recorded from the first deploy, whatever the `album` flag says, as earnings are ([ADR-0006](0006-unlocks-gate-what-members-see-not-what-they-earn.md)). A pack is never taken back by an edit or a deletion ([ADR-0001](0001-awards-are-permanent.md)). Each earned emoji's name is stored once in a per-workspace registry and never moves, because a member adds it to Slack by hand under that name.
 
 Settled on [#627](https://github.com/Silthus/kudos/issues/627) and map [#624](https://github.com/Silthus/kudos/issues/624) (Q1–Q15) under the product owner's full-autonomy grant of 2026-10-18. The rules are AL1–AL73 in `spec/album.md` on `docs/album`. Brought into the code with [#645](https://github.com/Silthus/kudos/issues/645). Coherence journal decision: `d-3791fb97`.
+
+Amended by [ADR-0017](0017-album-owns-collecting.md): `Items` and `Hoggies` become parts of `Album`.

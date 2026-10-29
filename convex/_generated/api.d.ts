@@ -101,6 +101,7 @@ import type * as analytics_usage from "../analytics/usage.js";
 import type * as auth from "../auth.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
+import type * as bus_replay from "../bus/replay.js";
 import type * as commands_commands from "../commands/commands.js";
 import type * as commands_surface from "../commands/surface.js";
 import type * as companyProfiles_admin from "../companyProfiles/admin.js";
@@ -492,6 +493,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
+  "bus/replay": typeof bus_replay;
   "commands/commands": typeof commands_commands;
   "commands/surface": typeof commands_surface;
   "companyProfiles/admin": typeof companyProfiles_admin;
