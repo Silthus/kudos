@@ -16,6 +16,7 @@ const sundayNoon = new Date("2026-10-18T12:00:00Z");
 const hourMs = 60 * 60 * 1000;
 const kudosTs = slackTs(sundayNoon.getTime() - hourMs);
 const carolsTs = slackTs(sundayNoon.getTime() - 2 * hourMs);
+const bobsKudosTs = slackTs(sundayNoon.getTime() - 3 * hourMs);
 const nothing = { kudosGiven: 0, kudosReceived: 0, hugsGiven: 0, hugsReceived: 0, firstDay: null };
 
 let slack: FakeSlack;
@@ -36,17 +37,18 @@ afterEach(() => {
 });
 
 describe("HH26: Leaderboard counts every kudos and hug, each in the member's own day, week and month", () => {
-  test("Alice's kudos to Carol and Dana and Bob's hug on Carol's message count for all four, Carol's in her Monday", async () => {
+  test("Alice's kudos to Carol and Dana, Bob's two to Dana and Bob's hug on Carol's message count for all four, Carol's in her Monday", async () => {
     const t = await workspace();
 
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
+    await kudos(t, "U_BOB", ["U_DANA"], { each: 2, ts: bobsKudosTs });
     await hug(t, "U_BOB", "U_CAROL", carolsTs);
 
     expect(await totalsOfEveryone(t, "week:2026-10-12")).toEqual({
       U_ALICE: { ...nothing, kudosGiven: 2, firstDay: "2026-10-18" },
-      U_BOB: { ...nothing, hugsGiven: 1, firstDay: "2026-10-18" },
+      U_BOB: { ...nothing, kudosGiven: 2, hugsGiven: 1, firstDay: "2026-10-18" },
       U_CAROL: nothing,
-      U_DANA: { ...nothing, kudosReceived: 1 },
+      U_DANA: { ...nothing, kudosReceived: 3 },
     });
     expect(await totalsOfEveryone(t, "week:2026-10-19"), "Carol's Sunday noon in UTC is Monday in Kiritimati").toEqual({
       U_ALICE: nothing,
@@ -56,19 +58,21 @@ describe("HH26: Leaderboard counts every kudos and hug, each in the member's own
     });
     expect(await totalsOfEveryone(t, "month:2026-10")).toEqual({
       U_ALICE: { ...nothing, kudosGiven: 2, firstDay: "2026-10-18" },
-      U_BOB: { ...nothing, hugsGiven: 1, firstDay: "2026-10-18" },
+      U_BOB: { ...nothing, kudosGiven: 2, hugsGiven: 1, firstDay: "2026-10-18" },
       U_CAROL: { ...nothing, kudosReceived: 1, hugsReceived: 1 },
-      U_DANA: { ...nothing, kudosReceived: 1 },
+      U_DANA: { ...nothing, kudosReceived: 3 },
     });
     expect(await totalsOfEveryone(t, "all")).toEqual(await totalsOfEveryone(t, "month:2026-10"));
     expect(await dayOf(t, "U_CAROL", "2026-10-19")).toEqual({ kudos: 0, kudosReceived: 1, hugsReceived: 1 });
     expect(await dayOf(t, "U_DANA", "2026-10-18")).toEqual({ kudos: 0, kudosReceived: 1 });
-    expect(await dayOf(t, "U_BOB", "2026-10-18")).toEqual({ kudos: 0, hugsGiven: 1 });
+    expect(await dayOf(t, "U_DANA", "2026-10-17"), "Bob's 09:00 UTC is Saturday night in Pago Pago").toEqual({ kudos: 0, kudosReceived: 2 });
+    expect(await dayOf(t, "U_BOB", "2026-10-18")).toEqual({ kudos: 2, hugsGiven: 1 });
   });
 
   test("each follower delivered again counts nothing twice", async () => {
     const t = await workspace();
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
+    await kudos(t, "U_BOB", ["U_DANA"], { each: 2, ts: bobsKudosTs });
     await hug(t, "U_BOB", "U_CAROL", carolsTs);
     const counted = { thisWeek: await totalsOfEveryone(t, "week:2026-10-12"), nextWeek: await totalsOfEveryone(t, "week:2026-10-19"), all: await totalsOfEveryone(t, "all") };
 
@@ -132,8 +136,8 @@ async function workspace() {
   return flagsLoaded(t);
 }
 
-async function kudos(t: Backend, giver: string, recipients: string[]) {
-  await post(t, [section(...recipients.map((user) => mention(user)), emoji("taco"))], { user: giver, ts: kudosTs });
+async function kudos(t: Backend, giver: string, recipients: string[], { each = 1, ts = kudosTs } = {}) {
+  await post(t, [section(...recipients.map((user) => mention(user)), ...Array.from({ length: each }, () => emoji("taco")))], { user: giver, ts });
   await settle(t);
 }
 
