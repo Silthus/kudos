@@ -54,8 +54,8 @@ export function hoggieLabelOf(hoggie: AlbumHoggie) {
 
 export type ForgeOffer = { kind: "ready" | "short"; into: Rarity; full: boolean };
 
-export function forgeOfferOf(hoggie: AlbumHoggie, answer: AlbumHoggies): ForgeOffer | null {
-  const into = answer.forge === undefined ? null : forgedRarityOf(hoggie.rarity, answer.forge.upTo);
+export function forgeOfferOf(hoggie: AlbumHoggie, answer: AlbumHoggies, pending: boolean): ForgeOffer | null {
+  const into = answer.forge === undefined ? null : forgedRarityOf(hoggie.rarity, pending ? "legendary" : answer.forge.upTo);
   if (!hoggie.found || into === null) return null;
   const full = answer.hoggies.every((other) => other.rarity !== into || other.found);
   return { kind: hoggie.spares >= sparesForged ? "ready" : "short", into, full };
