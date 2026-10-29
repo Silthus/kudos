@@ -1,11 +1,12 @@
 import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { Rarity } from "../album/hoggies/catalogue";
-import type { CrateKey } from "../album/hoggies/crateKey";
-import { dropFor, droppedIn, foundIn, type Drop } from "../album/hoggies/drops";
-import { crestsShownTo } from "../album/hoggies/flag";
-import { hiddenItemsShownTo } from "../album/items/flag";
-import { earnItem, markTurned } from "../album/items/ledger";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { levelReachedEventValidator } from "../bus/events";
+import type { Rarity } from "./hoggies/catalogue";
+import type { CrateKey } from "./hoggies/crateKey";
+import { dropFor, droppedIn, foundIn, type Drop } from "./hoggies/drops";
+import { crestsShownTo } from "./hoggies/flag";
+import { hiddenItemsShownTo } from "./items/flag";
+import { earnedItemOf, earnItem, markTurned } from "./items/ledger";
 import type { MemberId } from "../workspace/directory";
 
 export const levelUpRevealFlag = { key: "level-up-reveal", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -17,6 +18,18 @@ export function levelUpCrateKeyOf(level: number, slot: number): CrateKey {
 }
 
 export type LevelUp = { workspace: string; member: MemberId; level: number; at: number };
+
+export const earnLevelUpHoggies = internalMutation({
+  args: { event: levelReachedEventValidator },
+  handler: async (ctx, { event: { workspace, member, level, at } }) => {
+    if (await levelUpEarned(ctx, member, level)) return;
+    await dropLevelUpHoggies(ctx, { workspace, member, level, at });
+  },
+});
+
+export async function levelUpEarned(ctx: QueryCtx, member: MemberId, level: number): Promise<boolean> {
+  return (await earnedItemOf(ctx, member, "hoggie", levelUpCrateKeyOf(level, 1))) !== null;
+}
 
 export async function dropLevelUpHoggies(ctx: MutationCtx, levelUp: LevelUp): Promise<void> {
   await earnLevelUpItems(ctx, levelUp);

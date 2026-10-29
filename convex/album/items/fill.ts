@@ -4,7 +4,7 @@ import type { Doc } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../../_generated/server";
 import { earnTrayItem } from "../opening";
 import { earnPackItemsOf } from "../packs";
-import { dropLevelUpHoggies, type LevelUp } from "../../unlocks/levelUpHoggies";
+import { dropLevelUpHoggies, type LevelUp } from "../levelUpHoggies";
 import type { MemberId } from "../../workspace/directory";
 import { waitingPageOf } from "./ledger";
 

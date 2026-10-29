@@ -72,6 +72,16 @@ describe("LP6 LP7: a level up earns its three hoggies as items", { timeout: 60_0
     expect((await itemsOf(alice)).map(({ key }) => key)).toEqual(["level:2:1", "level:2:2", "level:2:3", "level:3:1", "level:3:2", "level:3:3"]);
   });
 
+  test("Album's follower of levelReached, delivered the same level twice, earns the level's three items once", async () => {
+    const member = await memberOf(await joined(alice));
+    const event = levelReachedOf(member, 2);
+
+    await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event });
+    await t.mutation(internal.album.levelUpHoggies.earnLevelUpHoggies, { event });
+
+    expect((await boardOf(await signedIn(alice))).items.map(({ reason }) => reason), "the board after two deliveries").toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
+  });
+
   test("with hidden-items off, the level up drops its three as today and marks their items turned, so none waits once hidden-items turns on", async () => {
     await switchWebsite(t, postHog, true, ...oldReveal);
     await kudos(alice, bob, 2);
@@ -183,6 +193,10 @@ describe("LP6 LP24: with hidden-items back off, fillItems reveals every waiting 
     expect((await boardOf(await signedIn(alice))).items.map(({ reason }) => reason), "the board once hidden-items turns on").toEqual(Array.from({ length: 3 }, () => ({ kind: "levelUp", level: 2 })));
   });
 });
+
+function levelReachedOf(member: MemberId, level: number) {
+  return { type: "levelReached" as const, workspace: "T1", member, level, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, at: Date.now() };
+}
 
 function hoggieDrawnBy(answer: Awaited<ReturnType<typeof turn>>) {
   return answer.kind === "turned" && answer.face.kind === "hoggie" ? answer.face.drop : null;

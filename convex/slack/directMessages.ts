@@ -9,6 +9,7 @@ import { buttonOf, mrkdwn } from "./blocks";
 import { attemptArgs, besideValidator, sendBesideOrAsDirectMessage, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
 
 const directMessageArgs = { member: v.id("members"), workspace: v.string(), user: v.string(), notification: notificationValidator, kudos: v.optional(messageRefValidator) };
+const followerWaitMs = 1000;
 
 export const deliverDirectMessage = observedAction({
   args: { ...directMessageArgs, ...attemptArgs },
@@ -16,6 +17,11 @@ export const deliverDirectMessage = observedAction({
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
+        const followersAwaitedUntil = await ctx.runQuery(internal.feedback.notify.followersAwaitedUntil, { member: message.member, notification: message.notification });
+        if (followersAwaitedUntil !== null && Date.now() < followersAwaitedUntil) {
+          await ctx.scheduler.runAfter(followerWaitMs, internal.slack.directMessages.deliverDirectMessage, { ...message, attempt });
+          return null;
+        }
         const lines = await ctx.runQuery(internal.feedback.notify.linesStillWanted, { member: message.member, notification: message.notification });
         if (lines === null) return null;
         const content = messageOf(lines, message.workspace);

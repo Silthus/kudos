@@ -5,12 +5,14 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, switchWebsite } from "../../testing/website";
 import { fromTheNewestDecided } from "../engine/awards";
-import { catalogue, type Rarity } from "../album/hoggies/catalogue";
-import { drawOf } from "../album/hoggies/draw";
-import { collectionOf } from "../album/hoggies/collection";
-import { dropsByDecision } from "../album/hoggies/drops";
+import { catalogue, type Rarity } from "./hoggies/catalogue";
+import { drawOf } from "./hoggies/draw";
+import { collectionOf } from "./hoggies/collection";
+import { dropsByDecision } from "./hoggies/drops";
 import { standingOf } from "../progression/progression";
 import type { MemberId } from "../workspace/directory";
+import { internal } from "../_generated/api";
+import type { LevelReachedEvent } from "../bus/events";
 
 const now = new Date("2026-10-20T10:00:00Z");
 const rareOrRarer: Rarity[] = ["rare", "epic", "legendary"];
@@ -102,6 +104,17 @@ describe("a level up drops a hoggie from each of three crates", () => {
     expect(await copiesHeldBy(member), "copies in the collection").toBe(3);
   });
 
+  test("a level-up first delivered while level-up-reveal was off drops nothing when replayed after it turns on", async () => {
+    const member = await aMemberWith("collection");
+    await reachesLevel(t, member, 3);
+    await switchWebsite(t, postHog, true, "level-up-reveal", "collection");
+
+    await reachesLevel(t, member, 3);
+
+    expect(await cratesOf(member)).toEqual([]);
+    expect(await copiesHeldBy(member), "copies in the collection").toBe(0);
+  });
+
   test("the hoggies pay no pack bonus, so they never level the member up again", async () => {
     const member = await aMemberWith("level-up-reveal", "collection", "packs");
     const before = await t.run((ctx) => standingOf(ctx, member));
@@ -126,3 +139,36 @@ describe("a level up drops a hoggie from each of three crates", () => {
     expect(await copiesHeldBy(member), "copies in the collection").toBe(0);
   });
 });
+
+describe("HH17: a follower stranded by a rollback earns its level when replayed", () => {
+  test("a level up whose follower failed after Unlocks recorded it earns its three hoggies once, however often the failed job is replayed", async () => {
+    const member = await aMemberWith("level-up-reveal", "collection");
+    const event = { type: "levelReached" as const, workspace: "T1", member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, at: now.getTime() };
+    await t.mutation(internal.unlocks.unlocks.makeReady, { event });
+    const stranded = await failedFollowerOf(event);
+
+    expect(await t.mutation(internal.bus.replay.replay, { job: stranded })).toBe("replayed");
+    await settle(t);
+    expect(await t.mutation(internal.bus.replay.replay, { job: stranded })).toBe("already replayed");
+    await settle(t);
+
+    expect(await cratesOf(member)).toEqual(["level:3:1", "level:3:2", "level:3:3"]);
+    expect(await copiesHeldBy(member), "copies in the collection").toBe(3);
+  });
+});
+
+async function failedFollowerOf(event: LevelReachedEvent) {
+  await settle(t);
+  const job = await t.run((ctx) => ctx.scheduler.runAfter(0, internal.album.levelUpHoggies.earnLevelUpHoggies, { event }));
+  const missingFunction = vi.spyOn(crypto, "randomUUID").mockImplementation(() => {
+    throw new Error("the previous version has no such function");
+  });
+  try {
+    await settle(t);
+  } finally {
+    missingFunction.mockRestore();
+  }
+  const state = await t.run(async (ctx) => (await ctx.db.system.get(job))?.state.kind);
+  expect(state, "the follower's job before the replay").toBe("failed");
+  return job;
+}

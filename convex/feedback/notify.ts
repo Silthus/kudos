@@ -2,7 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
-import { levelUpRevealedTo } from "../album/levelUp";
+import { levelUpFollowerAwaitedUntil, levelUpRevealedTo } from "../album/levelUp";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { recordedRewardsOf, tierRewardsRecordedFor, type TierRewardsRecorded } from "../achievements/tierRewards";
 import { laddersShownTo } from "../achievements/shown";
@@ -132,6 +132,11 @@ export const linesStillWanted = internalQuery({
     const footer = await settingsFooterFor(ctx, member);
     return [...lines, ...(link === null ? [] : [{ link }]), ...(footer === null ? [] : [{ footer }])];
   },
+});
+
+export const followersAwaitedUntil = internalQuery({
+  args: { member: v.id("members"), notification: notificationValidator },
+  handler: async (ctx, { member, notification }): Promise<number | null> => (notification.kind === "level-reached" ? await levelUpFollowerAwaitedUntil(ctx, member, notification.level) : null),
 });
 
 export const purchaseReplyStillWanted = internalQuery({
