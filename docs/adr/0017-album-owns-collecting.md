@@ -1,0 +1,7 @@
+# `Album` owns collecting, with Items and `Hoggies` as its parts
+
+Everything a member collects is earned and revealed inside `Album`: packs, stickers, earned and hype emojis, the item ledger, and the hoggie draw and forge. Items and `Hoggies` move under `convex/album/` and leave the public surface. Other modules reach them only through `Album`'s seam (`albumOf`, `turn`, `hypeEmojiFor`, `nudgesFor`), and the earns follow the bus: `hugReceived` for hug finds, `hypeReacted` for the reactions that count toward a hype emoji, `levelReached` for level-up hoggies, and `questFinished` for quest hoggies. This amends who owns the ledger in [ADR-0009](0009-the-album-is-collection-first.md) and [ADR-0010](0010-hidden-items-are-a-ledger-drawn-at-the-turn.md). Their rules (collection first, a ledger drawn at the turn) stand.
+
+Items and `Album` imported each other's internals in both directions, and Items read `Album`'s tables, so every new way to earn bounced across three modules. We chose one deep module over three shallow ones that call each other. `Welcome`'s and Achievements' hoggies keep their direct `earnItem` calls on the guard test's allowlist ([ADR-0014](0014-writes-cross-modules-as-bus-facts.md)) until they follow the bus.
+
+Shaped in [docs/architecture/hugs-hook.md](../architecture/hugs-hook.md).

@@ -1,0 +1,585 @@
+{
+ "rows": [
+  {
+   "modules": [
+    {
+     "id": "adapter",
+     "name": "Slack adapter",
+     "used": 14,
+     "seam": [
+      "receiveReaction",
+      "receive"
+     ]
+    },
+    {
+     "id": "monday",
+     "name": "Monday DM",
+     "note": "every weekly DM",
+     "used": 13,
+     "change": "changed",
+     "seam": [
+      "startMondayDm"
+     ],
+     "chips": [
+      {
+       "text": "sends the recap too",
+       "followUp": true,
+       "q": "Q9"
+      }
+     ]
+    },
+    {
+     "id": "reads",
+     "name": "Website reads",
+     "used": 36,
+     "change": "changed",
+     "seam": [
+      {
+       "name": "getBoards",
+       "change": "added"
+      },
+      "getAlbum",
+      {
+       "name": "getThoughtfulBoards",
+       "change": "removed"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "modules": [
+    {
+     "id": "engine",
+     "name": "Engine",
+     "note": "decides a kudos",
+     "used": 102,
+     "seam": [
+      "observe",
+      "receivedOn"
+     ]
+    },
+    {
+     "id": "hugs",
+     "name": "Hugs",
+     "note": "decides a reaction",
+     "used": 27,
+     "change": "changed",
+     "seam": [
+      "giveHug",
+      "hugsSectionFor"
+     ],
+     "chips": [
+      {
+       "id": "hugs-rules",
+       "text": "hug, hype or nothing",
+       "change": "changed",
+       "q": "Q2"
+      },
+      {
+       "text": "people pages"
+      },
+      {
+       "text": "recap delivery \u2194 Monday DM",
+       "cycle": true
+      }
+     ]
+    },
+    {
+     "id": "quests",
+     "name": "Quests",
+     "used": 103,
+     "change": "changed",
+     "seam": [
+      "questsSectionFor"
+     ],
+     "chips": [
+      {
+       "text": "recognition facts",
+       "change": "added",
+       "q": "Q6"
+      },
+      {
+       "id": "quests-finish",
+       "text": "pool, progress, finish"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "gap": 50,
+   "bus": {
+    "name": "Bus",
+    "note": "writes travel here as facts \u00b7 reads call a seam (Q1)"
+   }
+  },
+  {
+   "gap": 84,
+   "modules": [
+    {
+     "id": "progression",
+     "name": "Progression",
+     "note": "every XP rule",
+     "used": 63,
+     "change": "changed",
+     "seam": [
+      "progressOf"
+     ],
+     "chips": [
+      {
+       "id": "prog-xp",
+       "text": "kudos XP, levels"
+      },
+      {
+       "text": "hug XP + day/week bonus",
+       "change": "added",
+       "q": "Q3"
+      },
+      {
+       "text": "quest XP",
+       "change": "added",
+       "q": "Q3"
+      }
+     ]
+    },
+    {
+     "id": "album",
+     "name": "Album",
+     "note": "everything a member collects",
+     "used": 168,
+     "flex": 1.5,
+     "change": "changed",
+     "seam": [
+      "albumOf",
+      "turn",
+      "holdsEarnedEmojiNamed",
+      {
+       "name": "nudgesFor",
+       "change": "added"
+      }
+     ],
+     "chips": [
+      {
+       "text": "packs: any kudos",
+       "change": "changed"
+      },
+      {
+       "text": "hype: a kudos or 10 reactions",
+       "change": "added",
+       "q": "Q5"
+      },
+      {
+       "text": "hug finds \u2264 rare",
+       "change": "added",
+       "q": "Q5"
+      },
+      {
+       "id": "album-book",
+       "text": "Book, stickers, earned emojis"
+      },
+      {
+       "id": "album-items",
+       "text": "Items: ledger, turn",
+       "change": "changed",
+       "q": "Q5"
+      },
+      {
+       "id": "album-hoggies",
+       "text": "Hoggies: draw, forge",
+       "change": "changed",
+       "q": "Q5"
+      },
+      {
+       "id": "album-boards",
+       "text": "thoughtful boards",
+       "change": "removed"
+      }
+     ]
+    },
+    {
+     "id": "board",
+     "name": "Leaderboard",
+     "note": "every count",
+     "used": 51,
+     "change": "changed",
+     "seam": [
+      {
+       "name": "boardsOf",
+       "change": "added"
+      },
+      "topKudosPostOf"
+     ],
+     "chips": [
+      {
+       "id": "board-totals",
+       "text": "kudos + hugs, given + received",
+       "change": "changed",
+       "q": "Q4"
+      },
+      {
+       "text": "boards, Monday post"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "wires": [
+  {
+   "from": "adapter",
+   "to": "engine-seam",
+   "fromAt": 0.3,
+   "toAt": 0.4,
+   "label": "observe",
+   "labelAlign": "end",
+   "labelOffset": [
+    -6,
+    0
+   ]
+  },
+  {
+   "from": "adapter",
+   "to": "hugs-seam",
+   "fromAt": 0.75,
+   "toAt": 0.15,
+   "label": "giveHug",
+   "labelAt": 0.5,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ]
+  },
+  {
+   "from": "monday",
+   "to": "hugs-seam",
+   "fromAt": 0.5,
+   "toAt": 0.7,
+   "label": "hugsSectionFor",
+   "labelAt": 0.5,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ]
+  },
+  {
+   "from": "monday",
+   "to": "quests-seam",
+   "fromAt": 0.85,
+   "toAt": 0.3,
+   "label": "questsSectionFor",
+   "labelAt": 0.5,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ]
+  },
+  {
+   "from": "monday",
+   "fromSide": "left",
+   "fromAt": 0.9,
+   "to": "album-seam",
+   "toAt": 0.06,
+   "change": "added",
+   "q": "Q8",
+   "label": "nudgesFor",
+   "bend": 20,
+   "labelAt": 0.85,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ]
+  },
+  {
+   "from": "reads",
+   "fromSide": "right",
+   "fromAt": 0.7,
+   "to": "board-seam",
+   "toSide": "right",
+   "toAt": 0.5,
+   "change": "added",
+   "label": "boardsOf",
+   "bend": 12,
+   "labelAt": 0.5,
+   "labelAlign": "end",
+   "labelOffset": [
+    -6,
+    0
+   ]
+  },
+  {
+   "from": "engine",
+   "to": "bus",
+   "fromAt": 0.4,
+   "straight": "from",
+   "kind": "bus",
+   "label": "pub kudosGiven",
+   "bend": 15,
+   "labelAlign": "start",
+   "labelOffset": [
+    5,
+    0
+   ]
+  },
+  {
+   "from": "hugs",
+   "to": "bus",
+   "fromAt": 0.2,
+   "straight": "from",
+   "kind": "bus",
+   "label": "pub hugGiven",
+   "bend": 15,
+   "labelAt": 0.4,
+   "labelAlign": "start",
+   "labelOffset": [
+    5,
+    0
+   ]
+  },
+  {
+   "from": "hugs",
+   "to": "bus",
+   "fromAt": 0.8,
+   "straight": "from",
+   "kind": "bus",
+   "change": "added",
+   "q": "Q2",
+   "label": "pub hugReceived, hypeReacted",
+   "bend": 15,
+   "labelAt": 0.7,
+   "labelAlign": "end",
+   "labelOffset": [
+    -5,
+    0
+   ]
+  },
+  {
+   "from": "quests",
+   "to": "bus",
+   "fromAt": 0.85,
+   "straight": "from",
+   "kind": "bus",
+   "label": "pub questFinished",
+   "bend": 15,
+   "labelAt": 0.4,
+   "labelAlign": "end",
+   "labelOffset": [
+    -5,
+    0
+   ]
+  },
+  {
+   "from": "bus",
+   "fromSide": "top",
+   "to": "quests",
+   "toSide": "bottom",
+   "toAt": 0.15,
+   "straight": "to",
+   "kind": "bus",
+   "change": "added",
+   "q": "Q6",
+   "label": "sub hugGiven",
+   "bend": 15,
+   "labelAt": 0.7,
+   "labelAlign": "start",
+   "labelOffset": [
+    5,
+    0
+   ]
+  },
+  {
+   "from": "hugs",
+   "fromSide": "left",
+   "fromAt": 0.92,
+   "to": "progression-seam",
+   "toAt": 0.7,
+   "change": "removed",
+   "label": "recordReward",
+   "bend": 40,
+   "labelAt": 0.2,
+   "labelAlign": "end",
+   "labelOffset": [
+    -6,
+    0
+   ],
+   "crossAt": 0.35
+  },
+  {
+   "from": "bus",
+   "to": "progression",
+   "toAt": 0.12,
+   "straight": "to",
+   "kind": "bus",
+   "change": "added",
+   "q": "Q3",
+   "label": "sub hugGiven, hugReceived, questFinished",
+   "bend": 15,
+   "labelAt": 0.25,
+   "labelAlign": "start",
+   "labelOffset": [
+    5,
+    0
+   ]
+  },
+  {
+   "from": "progression",
+   "fromSide": "top",
+   "fromAt": 0.92,
+   "to": "bus",
+   "toSide": "bottom",
+   "straight": "from",
+   "kind": "bus",
+   "label": "pub levelReached",
+   "bend": 15,
+   "labelAt": 0.5,
+   "labelAlign": "end",
+   "labelOffset": [
+    -5,
+    0
+   ]
+  },
+  {
+   "from": "bus",
+   "to": "album",
+   "toAt": 0.2,
+   "straight": "to",
+   "kind": "bus",
+   "change": "added",
+   "q": "Q5",
+   "label": "sub hugReceived, hypeReacted, levelReached, questFinished",
+   "bend": 15,
+   "labelAt": 0.75,
+   "labelAlign": "start",
+   "labelOffset": [
+    5,
+    0
+   ]
+  },
+  {
+   "from": "bus",
+   "to": "board",
+   "toAt": 0.15,
+   "straight": "to",
+   "kind": "bus",
+   "change": "added",
+   "q": "Q4",
+   "label": "sub hugGiven, hugReceived",
+   "bend": 15,
+   "labelAt": 0.5,
+   "labelAlign": "end",
+   "labelOffset": [
+    -5,
+    0
+   ]
+  },
+  {
+   "from": "quests-finish",
+   "to": "album-items",
+   "toSide": "right",
+   "change": "removed",
+   "label": "earnItem",
+   "bend": 60,
+   "labelAt": 0.75,
+   "labelAlign": "start",
+   "labelOffset": [
+    10,
+    0
+   ],
+   "crossAt": 0.22
+  },
+  {
+   "from": "board",
+   "to": "album-boards",
+   "toSide": "right",
+   "kind": "leak",
+   "change": "removed",
+   "fromAt": 0.3,
+   "label": "1 table",
+   "todayLabel": "1 table, 1 file",
+   "bend": 40,
+   "labelAt": 0.45,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ],
+   "crossAt": 0.7
+  },
+  {
+   "from": "album-book",
+   "fromSide": "right",
+   "to": "board",
+   "toAt": 0.7,
+   "toSide": "bottom",
+   "change": "removed",
+   "label": "8 symbols, 2 files",
+   "bend": 50,
+   "labelAt": 0.6,
+   "labelAlign": "start",
+   "labelOffset": [
+    6,
+    0
+   ],
+   "crossAt": 0.3
+  }
+ ],
+ "untouched": [
+  {
+   "name": "Unlocks",
+   "seam": [
+    "makeReady",
+    "openedAtOf"
+   ],
+   "used": 38,
+   "note": "sub levelReached; its level-up hoggies move to Album (Q5)"
+  },
+  {
+   "name": "Achievements",
+   "seam": [
+    "countKudosGiven",
+    "achievementsApplyIn"
+   ],
+   "used": 37,
+   "note": "sub kudosGiven"
+  },
+  {
+   "name": "Activity",
+   "seam": [
+    "mentionsOfOnePage",
+    "permalinkOfMessage"
+   ],
+   "used": 35
+  },
+  {
+   "name": "Welcome",
+   "seam": [
+    "welcomeOnHug",
+    "welcomeNewMembers"
+   ],
+   "used": 14,
+   "note": "sub hugGiven (first), kudosGiven"
+  },
+  {
+   "name": "Feedback",
+   "seam": [
+    "renderTopKudosPost",
+    "nudgeTheHugged"
+   ],
+   "used": 97,
+   "note": "sub hugGiven, kudosGiven"
+  },
+  {
+   "name": "Analytics",
+   "seam": [
+    "recordHugGiven",
+    "recordKudosGiven"
+   ],
+   "used": 43,
+   "note": "sub every event"
+  }
+ ]
+}

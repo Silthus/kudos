@@ -1,0 +1,22 @@
+sequenceDiagram
+  autonumber
+  participant H as Hugs
+  participant B as Bus
+  participant P as Progression
+  participant A as Album
+  participant X as Failed-jobs sweep
+  participant R as Replay (Q9)
+  H->>B: hugReceived {person, giver, message, week}
+  par each subscriber in its own mutation
+    B->>P: pay hug XP + week bonus
+    P-->>B: recorded
+  and
+    B->>A: earn the hug find
+    A--xB: throws (a bug, or a limit)
+  end
+  Note over B,X: Convex retries transient errors, never a throw
+  Note over P,X: the find is lost, the XP stays paid
+  X->>X: every 15 min: reports it to error tracking
+  R->>A: re-runs the failed subscriber with the stored event
+  A->>A: earnItem keyed hug:giver:msg, recorded once
+  Note over B,R: a replay to Progression answers already recorded
