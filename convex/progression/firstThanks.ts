@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { firstDecidedOf, oldestAwardGivenBy, type AwardWithId } from "../engine/awards";
-import { onboardingShownTo } from "../items/onboardingFlag";
+import { onboardingShownTo } from "../album/items/onboardingFlag";
 import { onboardingQuestXpOf } from "../quests/onboarding";
 import type { MemberId } from "../workspace/directory";
 import { isRecorded, progressionWaitedFor } from "./effects";

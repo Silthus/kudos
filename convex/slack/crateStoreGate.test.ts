@@ -16,8 +16,8 @@ import schema from "../schema";
 
 const theCrateStore = vi.hoisted(() => ({ removed: false }));
 
-vi.mock("../hoggies/flag", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/flag")>();
+vi.mock("../album/hoggies/flag", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/flag")>();
   return {
     ...actual,
     crateStoreShownTo: vi.fn((...args: Parameters<typeof actual.crateStoreShownTo>) => (theCrateStore.removed ? Promise.resolve(false) : actual.crateStoreShownTo(...args))),

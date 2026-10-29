@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { milestoneTierValidator } from "../album/records";
 import { productName } from "../feedback/naming";
-import { rarityValidator, rarityWord } from "../hoggies/catalogue";
+import { rarityValidator, rarityWord } from "../album/hoggies/catalogue";
 import type { PersonPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn, slackDayOf } from "./blocks";
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import type { Unlocked } from "../../../convex/items/turn";
+import type { Unlocked } from "../../../convex/album/items/turn";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { ItemBoard, LoopLesson, TurnedFaceShown } from "../../../convex/website/album";

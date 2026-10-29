@@ -2,7 +2,7 @@ import type { MutationCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
-import { earnItem } from "../items/ledger";
+import { earnItem } from "../album/items/ledger";
 import { recordReward } from "../progression/progression";
 import { rewardOf } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";

@@ -6,8 +6,8 @@ import { hugGivenEventValidator, kudosGivenEventValidator, type KudosGivenEvent 
 import { wordsOf } from "../engine/kudosText";
 import { messageRefValidator, type ChatUserId, type MessageRef, type WordSegment } from "../engine/messageEvent";
 import { hugOf, hugPeoplePageOf } from "../hugs/records";
-import { earnWelcomeItem } from "../items/welcome";
-import { welcomeItemShownTo } from "../items/welcomeFlag";
+import { earnWelcomeItem } from "../album/items/welcome";
+import { welcomeItemShownTo } from "../album/items/welcomeFlag";
 import { websiteOriginFor } from "../website/link";
 import { signInEntry } from "../website/routes";
 import { chatUserOf, type MemberId } from "../workspace/directory";

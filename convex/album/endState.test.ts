@@ -16,8 +16,8 @@ import { setMondayPost } from "../leaderboard/mondayPost";
 import { xpToReach } from "../progression/levels";
 import { openUnlock } from "../unlocks/unlocks";
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+vi.mock("./hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./hoggies/draw")>();
   const named = (id: string) => namedIds.get(id) ?? id;
   const pinned = <Input extends { member: string; crate: string }>(input: Input): Input => ({ ...input, member: named(input.member), crate: input.crate.replace(/[^:]+/g, named) });
   return {

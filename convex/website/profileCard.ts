@@ -1,4 +1,4 @@
-import { avatarShownOn, type AvatarShown } from "../hoggies/avatar";
+import { avatarShownOn, type AvatarShown } from "../album/hoggies/avatar";
 import { groupNameOnCard, profileCardOf, type ProfileCard } from "../profileCard/profileCard";
 import { profileCardOpenTo } from "../profileCard/flag";
 import { memberQuery } from "./memberQuery";

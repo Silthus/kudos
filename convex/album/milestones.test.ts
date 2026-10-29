@@ -8,7 +8,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import { catalogue } from "../hoggies/catalogue";
+import { catalogue } from "./hoggies/catalogue";
 import { recordReward } from "../progression/progression";
 import { membersPerMilestonePage } from "./milestones";
 import type { AlbumAnswer, AlbumRead } from "../website/album";

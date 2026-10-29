@@ -1,4 +1,4 @@
-import type { AvatarShown } from "../hoggies/avatar";
+import type { AvatarShown } from "../album/hoggies/avatar";
 import { avatarText } from "./avatar";
 import type { Medal, ProfileCard } from "../profileCard/profileCard";
 import { asWritten } from "./groupCopy";
