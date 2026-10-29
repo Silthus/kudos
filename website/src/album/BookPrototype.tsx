@@ -3,7 +3,8 @@
 // the next five milestones on the Book profile, a locked team page that says how to unlock its
 // sticker and what it pays, and a sidebar with Hoggies and Milestones above the teams.
 // Reward numbers are placeholders ("+?? XP"): they come to Michael once, in the spec park.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { Medal } from "../book/Medal";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -113,17 +114,35 @@ function ThinBar({ count, goal }: { count: number; goal: number }) {
   );
 }
 
+const hoverGrace = 150;
+
 function useSwirl() {
   const [pinned, setPinned] = useState(false);
   const [hovered, setHovered] = useState(false);
   const spot = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const leaving = useRef<number | undefined>(undefined);
+  useOutside(pinned, [spot, card], () => setPinned(false));
+  const hover = {
+    onMouseEnter: () => {
+      window.clearTimeout(leaving.current);
+      setHovered(true);
+    },
+    onMouseLeave: () => {
+      leaving.current = window.setTimeout(() => setHovered(false), hoverGrace);
+    },
+  };
+  return { spot, card, open: pinned || hovered, toggle: () => setPinned((was) => !was), hover };
+}
+
+function useOutside(on: boolean, inside: React.RefObject<HTMLElement | null>[], close: () => void) {
   useEffect(() => {
-    if (!pinned) return;
+    if (!on) return;
     const away = (event: MouseEvent) => {
-      if (!spot.current?.contains(event.target as Node)) setPinned(false);
+      if (!inside.some((element) => element.current?.contains(event.target as Node))) close();
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPinned(false);
+      if (event.key === "Escape") close();
     };
     document.addEventListener("mousedown", away);
     document.addEventListener("keydown", escape);
@@ -131,8 +150,54 @@ function useSwirl() {
       document.removeEventListener("mousedown", away);
       document.removeEventListener("keydown", escape);
     };
-  }, [pinned]);
-  return { spot, open: pinned || hovered, pinned, toggle: () => setPinned((was) => !was), hover: { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) } };
+  }, [on, inside, close]);
+}
+
+type Placement = { top: number; left: number; side: "above" | "below" };
+
+const gap = 8;
+
+function viewportRoom() {
+  const top = (document.querySelector(".al-top")?.getBoundingClientRect().bottom ?? 0) + gap;
+  const switcher = document.querySelector(".proto-switch")?.getBoundingClientRect().top ?? window.innerHeight;
+  return { top, bottom: Math.min(window.innerHeight, switcher) - gap };
+}
+
+function placementOf(anchor: DOMRect, card: HTMLElement): Placement {
+  const room = viewportRoom();
+  const height = card.offsetHeight;
+  const width = card.offsetWidth;
+  const spaceBelow = room.bottom - anchor.bottom - gap;
+  const spaceAbove = anchor.top - gap - room.top;
+  const side = height <= spaceBelow || spaceBelow >= spaceAbove ? "below" : "above";
+  const wanted = side === "below" ? anchor.bottom + gap : anchor.top - gap - height;
+  const top = Math.max(room.top, Math.min(wanted, room.bottom - height));
+  const left = Math.max(gap, Math.min(anchor.left + anchor.width / 2 - width / 2, window.innerWidth - width - gap));
+  return { top, left, side };
+}
+
+function Floating({ anchor, card, hover, children }: { anchor: HTMLElement | null; card: React.RefObject<HTMLDivElement | null>; hover?: { onMouseEnter: () => void; onMouseLeave: () => void }; children: ReactNode }) {
+  const [placement, setPlacement] = useState<Placement | null>(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (anchor === null || card.current === null) return;
+      setPlacement(placementOf(anchor.getBoundingClientRect(), card.current));
+    };
+    measure();
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [anchor, card]);
+  const host = document.querySelector(".al-shell") ?? document.body;
+  return createPortal(
+    <div ref={card} className="proto-floating" data-side={placement?.side} style={{ top: placement?.top ?? 0, left: placement?.left ?? 0, visibility: placement === null ? "hidden" : undefined }} {...hover}>
+      {children}
+    </div>,
+    host,
+  );
 }
 
 function MilestoneStrip({ steps }: { steps: Step[] }) {
@@ -160,6 +225,7 @@ function StripTile({ step }: { step: Step }) {
           <ThinBar count={step.count} goal={step.goal} />
         </button>
         {swirl.open && (
+          <Floating anchor={swirl.spot.current} card={swirl.card} hover={swirl.hover}>
           <div className="proto-swirl" role="dialog" aria-label={`${step.name}: how to get it`}>
             <p className="proto-swirl-metal">
               {step.metal !== null && <Medal tier={step.metal} earned={false} size={16} />} {step.kind}
@@ -173,6 +239,7 @@ function StripTile({ step }: { step: Step }) {
               {step.action} in Slack
             </SlackLink>
           </div>
+          </Floating>
         )}
       </div>
     </li>
@@ -275,7 +342,7 @@ function teamPays(team: AlbumTeam) {
   return ["a rare hoggie", `:team-${team.team}:`, xpPlaceholder];
 }
 
-function TeamProgress({ team, onClick, expanded }: { team: AlbumTeam; onClick?: () => void; expanded?: boolean }) {
+function TeamProgress({ team, onClick, expanded }: { team: AlbumTeam; onClick?: (event: React.MouseEvent<HTMLElement>) => void; expanded?: boolean }) {
   const words = `${team.held} of ${team.total} collected · ${team.total - team.held} to go`;
   const body = (
     <>
@@ -334,13 +401,20 @@ function UnlockCard({ team, missing, focus, onClose }: { team: AlbumTeam; missin
   );
 }
 
+type Opened = { focus: AlbumPerson | null; anchor: HTMLElement };
+
 function SwirlTeam({ team, people, missing }: TeamProps) {
-  const [open, setOpen] = useState<{ focus: AlbumPerson | null } | null>(null);
+  const [open, setOpen] = useState<Opened | null>(null);
+  const card = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(null), []);
-  useEscape(open !== null, close);
+  useOutside(open !== null, [card], close);
+  const openFrom = (focus: AlbumPerson | null) => (event: React.MouseEvent<HTMLElement>) => {
+    const anchor = event.currentTarget;
+    setOpen((was) => (was?.anchor === anchor ? null : { focus, anchor }));
+  };
   return (
     <>
-      <TeamProgress team={team} onClick={() => setOpen(open === null ? { focus: null } : null)} expanded={open !== null} />
+      <TeamProgress team={team} onClick={openFrom(null)} expanded={open !== null} />
       <figure className="al-team-photo" aria-label={`${team.name} team photo`}>
         <ul className="al-photo" data-size={people.length > 5 ? "many" : "few"}>
           {people.map((person) => (
@@ -351,7 +425,7 @@ function SwirlTeam({ team, people, missing }: TeamProps) {
                   <span className="al-photo-name ph-no-capture">{person.name}</span>
                 </AppLink>
               ) : (
-                <button type="button" className="al-photo-link proto-locked" onClick={() => setOpen({ focus: person })} aria-label={`${person.name}, not in your album yet: how to get them`}>
+                <button type="button" className="al-photo-link proto-locked" onClick={openFrom(person)} aria-label={`${person.name}, not in your album yet: how to get them`}>
                   <PersonPicture face={person.face} name={person.name} collected={false} frame="al-photo-sticker" className="al-photo-face" />
                   <span className="al-photo-name ph-no-capture">{person.name}</span>
                   <span className="proto-locked-hint">How to get</span>
@@ -361,19 +435,19 @@ function SwirlTeam({ team, people, missing }: TeamProps) {
           ))}
         </ul>
         <div className="al-seal-spot">
-          <button type="button" className="al-seal proto-seal-button" data-state="progress" aria-label={`${team.name} sticker, ${team.held} of ${team.total}: how to unlock it`} onClick={() => setOpen(open === null ? { focus: null } : null)}>
+          <button type="button" className="al-seal proto-seal-button" data-state="progress" aria-label={`${team.name} sticker, ${team.held} of ${team.total}: how to unlock it`} onClick={openFrom(null)}>
             <SealArt team={team} coloured={false} size={128} />
             <span className="proto-seal-lock" aria-hidden="true">
               ?
             </span>
           </button>
         </div>
-        {open !== null && (
-          <div className="proto-swirl-anchor">
-            <UnlockCard team={team} missing={missing} focus={open.focus} onClose={close} />
-          </div>
-        )}
       </figure>
+      {open !== null && (
+        <Floating key={open.anchor.className + (open.focus?.person ?? "")} anchor={open.anchor} card={card}>
+          <UnlockCard team={team} missing={missing} focus={open.focus} onClose={close} />
+        </Floating>
+      )}
     </>
   );
 }
