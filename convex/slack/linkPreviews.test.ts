@@ -4,14 +4,15 @@ import { FakeSlack, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { kudosCounted } from "../../testing/leaderboard";
 import { linkSharedEvent, type LinkSharedOptions } from "../../testing/slackMessages";
 import type { LadderId, TierId } from "../achievements/ladders";
 import { allowanceDay } from "../engine/allowance";
-import { keyOf } from "../leaderboard/periods";
 import type { MemberId } from "../workspace/directory";
 import { xpToReach } from "../progression/levels";
 
 const now = new Date("2026-10-21T10:00:00Z");
+const monthsAgo = "2026-08-04";
 const site = "https://hedgehug.example";
 const previewsFlag = "link-previews";
 const everyFlag = ["xp-levels", "unlocks", "achievements", previewsFlag];
@@ -531,6 +532,35 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
   });
 });
 
+describe("HH29: a rich card's place is the all-time Leaderboard's by kudos given", { timeout: 30_000 }, () => {
+  test("an award worth 2 kudos counts 2, sharing its place with two awards of 1, for the person and each of their teams", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
+    await thanked(t, { [juno]: 2 });
+    await thanked(t, { [bram]: 1 });
+    await thanked(t, { [bram]: 1 });
+    const [person, team] = [`${site}/book#people/${juno}`, `${site}/book#teams/lanterns`];
+
+    await shared(t, [person, team]);
+
+    expect(blocksOf(person)[1]).toEqual({
+      type: "section",
+      fields: [
+        { type: "mrkdwn", text: "🏆 *No. 1, tied* on the all-time leaderboard" },
+        { type: "mrkdwn", text: "💛 *2* kudos given" },
+      ],
+    });
+    expect(textLinesOf(team)).toContain("▰▰▰▰▰▰▰▰▰▰  *1 of 1* have said thanks");
+    expect(blocksOf(team)[1]).toEqual({
+      type: "section",
+      fields: [
+        { type: "mrkdwn", text: "🏆 *No. 1, tied* on the all-time team leaderboard" },
+        { type: "mrkdwn", text: "💛 *2* kudos given" },
+      ],
+    });
+  });
+});
+
 describe("LP84 LP85: a rich card stays within Convex's limits", { timeout: 120_000 }, () => {
   test("a message linking a big team, its people and their full collections unfolds every card under Convex's transaction limits", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone), transactionLimits: true });
@@ -909,16 +939,22 @@ function hoggiePicture(hoggie: string, name: string) {
   return { type: "image", image_url: `${site}/share/${hoggie}.png`, alt_text: name };
 }
 
-async function thanked(t: Backend, givers: Record<string, number>) {
-  await t.run(async (ctx) => {
-    for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: giver as MemberId, awards });
-  });
+async function thanked(t: Backend, givers: Record<string, number>, day = monthsAgo) {
+  const recipient = await thankedPersonOf(t);
+  for (const [giver, kudos] of Object.entries(givers)) await kudosCounted(t, giver as MemberId, recipient, { kudos, day });
 }
 
 async function thankedThisWeek(t: Backend, givers: Record<string, number>) {
-  const thisWeek = keyOf("week", allowanceDay(Date.now(), undefined));
-  await t.run(async (ctx) => {
-    for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: thisWeek, giver: giver as MemberId, awards });
+  await thanked(t, givers, allowanceDay(Date.now(), undefined));
+}
+
+async function thankedPersonOf(t: Backend): Promise<MemberId> {
+  return t.run(async (ctx) => {
+    const thanked = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", "U_THANKED"))
+      .unique();
+    return thanked?._id ?? ctx.db.insert("members", { workspace: "T1", user: "U_THANKED", kind: "member", name: "Thanked" });
   });
 }
 
@@ -947,12 +983,12 @@ async function teamWithEveryHoggie(t: Backend, team: string, size: number, first
       await t.run(async (ctx) => {
         const member = await ctx.db.insert("members", { workspace: "T1", user: `U_TEAM${profile}`, kind: "member", name: `Teammate ${profile}` });
         await ctx.db.insert("companyFaces", { workspace: "T1", member, face: null, profile });
-        await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: member, awards: 1 });
         for (const [index, { hoggie }] of catalogue.hoggies.entries()) await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: index, firstN: index + 1 });
         return member;
       }),
     );
   }
+  await thanked(t, Object.fromEntries(people.map((member) => [member, 1])));
   await t.run((ctx) => ctx.db.insert("companyTeams", { team, name: team, leads: [], people: profiles, asOf: 0 }));
   return people;
 }
@@ -964,13 +1000,16 @@ async function collected(t: Backend, member: MemberId, ...people: MemberId[]) {
 }
 
 async function boardOf(t: Backend, givers: number) {
-  await t.run(async (ctx) => {
+  const board = await t.run(async (ctx) => {
+    const kudosByGiver: Record<string, number> = {};
     for (let index = 0; index < givers; index += 1) {
       const member = await ctx.db.insert("members", { workspace: "T1", user: `U_BOARD${index}`, kind: "member", name: `Giver on the board ${index}` });
       await ctx.db.insert("companyFaces", { workspace: "T1", member, face: null, profile: 5000 + index });
-      await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: member, awards: 1 + (index % 7) });
+      kudosByGiver[member] = 1 + (index % 7);
     }
+    return kudosByGiver;
   });
+  await thanked(t, board);
 }
 
 async function peopleWhoUnlockedEveryHype(t: Backend, givers: number, people: number, drops: number): Promise<MemberId[]> {

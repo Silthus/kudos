@@ -3,11 +3,14 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { kudosCounted } from "../../testing/leaderboard";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
+import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import type { MemberId } from "../workspace/directory";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
+const today = "2026-10-13";
 const minuteMs = 60_000;
 const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
@@ -60,7 +63,7 @@ describe("LP94 LP95 LP98: getPlayerCard answers one card model for your own page
         name: bob.name,
         face: { kind: "initials", initials: "BO" },
         level: { level: expect.any(Number), xp: expect.any(Number), startsAt: expect.any(Number), nextAt: expect.any(Number) },
-        place: { rank: 1, tied: false, thoughtful: 2 },
+        place: { rank: 1, tied: false, kudosGiven: 2 },
         people: { held: 2, newest: expect.arrayContaining([expect.objectContaining({ person: await memberOf(alice) }), expect.objectContaining({ person: await memberOf(carol) })]) },
         hoggies: { found: expect.any(Number), total: expect.any(Number) },
         medals: { count: expect.any(Number), best: expect.any(Array) },
@@ -113,7 +116,7 @@ describe("LP94 LP95 LP98: getPlayerCard answers one card model for your own page
 
     const answer = await cardOf(alice, alice);
 
-    expect(answer).toMatchObject({ kind: "card", card: { person: await memberOf(alice), place: { rank: 1, thoughtful: 1 } } });
+    expect(answer).toMatchObject({ kind: "card", card: { person: await memberOf(alice), place: { rank: 1, kudosGiven: 1 } } });
     expect(answer).not.toHaveProperty("week");
   });
 
@@ -155,21 +158,44 @@ describe("LP94: a card's medals and place follow the album and the board", { tim
     expect(await cardOf(dana, bob)).toMatchObject({ kind: "card", card: { medals: { count: held.length } } });
   });
 
-  test("the card of the last of 1,400 givers this week reads in one query, sharing its place with a giver on equal awards", async () => {
+  test("the card of the last of 1,400 givers this week reads in one query, sharing its place with a giver on equal kudos given", async () => {
     const givers = 1400;
-    const last = await t.run(async (ctx) => {
-      const members: MemberId[] = [];
-      for (let n = 1; n <= givers; n += 1) {
-        const member = await ctx.db.insert("members", { workspace: "T1", user: `U${n}`, kind: "member", asOf: 0, name: `Giver ${n}` });
-        await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "week:2026-10-12", giver: member, awards: Math.max(2, n) });
-        members.push(member);
-      }
-      return members[0]!;
+    const thanked = await memberOf(dana);
+    const members = await t.run(async (ctx) => {
+      const inserted: MemberId[] = [];
+      for (let n = 1; n <= givers; n += 1) inserted.push(await ctx.db.insert("members", { workspace: "T1", user: `U${n}`, kind: "member", asOf: 0, name: `Giver ${n}` }));
+      return inserted;
     });
+    for (const [index, giver] of members.entries()) await kudosCounted(t, giver, thanked, { kudos: Math.max(2, index + 1), day: today });
 
-    const answer = await (await signedIn(alice)).query(api.website.playerCard.getPlayerCard, { person: last });
+    const answer = await (await signedIn(alice)).query(api.website.playerCard.getPlayerCard, { person: members[0]! });
 
-    expect(answer).toMatchObject({ kind: "card", card: { place: { rank: givers - 1, tied: true, thoughtful: 2 } } });
+    expect(answer).toMatchObject({ kind: "card", card: { place: { rank: givers - 1, tied: true, kudosGiven: 2 } } });
+  });
+});
+
+describe("HH29: the card's place is this week's Leaderboard place by kudos given", { timeout: 120_000 }, () => {
+  test("an award worth 2 kudos shows 2", async () => {
+    await thanksWorth(2, bob, why, alice);
+
+    expect(await cardOf(dana, bob)).toMatchObject({ kind: "card", card: { place: { rank: 1, tied: false, kudosGiven: 2 } } });
+  });
+
+  test("a member who left the boards has no place, however much they gave", async () => {
+    await thanksWorth(2, bob, why, alice);
+    const bobsId = await memberOf(bob);
+    await t.run((ctx) => setLeaderboardVisibility(ctx, bobsId, false));
+
+    expect(await cardOf(dana, bob)).toMatchObject({ kind: "card", card: { place: null } });
+  });
+
+  test("givers of equal kudos share their place, however many awards each gave", async () => {
+    await thanksWorth(2, bob, why, alice);
+    await thanks(carol, why, alice);
+    await thanks(carol, "Thanks for reviewing the long migration plan so carefully", dana);
+
+    expect(await cardOf(dana, bob)).toMatchObject({ kind: "card", card: { place: { rank: 1, tied: true, kudosGiven: 2 } } });
+    expect(await cardOf(dana, carol)).toMatchObject({ kind: "card", card: { place: { rank: 1, tied: true, kudosGiven: 2 } } });
   });
 });
 
@@ -234,8 +260,12 @@ function atOf(ts: string) {
 }
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
+  return thanksWorth(1, giver, words, ...recipients);
+}
+
+async function thanksWorth(kudos: number, giver: Person, words: string, ...recipients: Person[]) {
   const ts = nextTs();
-  await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
+  await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), ...Array.from({ length: kudos }, () => emoji("taco")))], { user: giver.user, ts });
   await settle(t);
   return ts;
 }

@@ -30,6 +30,18 @@ export function hugsInWorkspace(ctx: QueryCtx, workspace: string, page: Paginati
     .paginate(page);
 }
 
+export function hugsInCreationOrder(ctx: QueryCtx, page: PaginationOptions): Promise<PaginationResult<Hug>> {
+  return ctx.db.query("hugs").paginate(page);
+}
+
+export type PaidHug = { hug: Hug; person: MemberId };
+
+export async function paidHugsInCreationOrder(ctx: QueryCtx, page: PaginationOptions): Promise<PaginationResult<PaidHug>> {
+  const result = await ctx.db.query("hugPeople").paginate(page);
+  const paid = await Promise.all(result.page.map(async ({ hug, member }) => ({ hug: await ctx.db.get(hug), person: member })));
+  return { ...result, page: paid.filter((paidHug): paidHug is PaidHug => paidHug.hug !== null) };
+}
+
 export type HugPeoplePage = { people: MemberId[]; next: string | null };
 
 export async function hugPeoplePageOf(ctx: QueryCtx, hug: Hug, cursor: string | null, numItems: number): Promise<HugPeoplePage> {

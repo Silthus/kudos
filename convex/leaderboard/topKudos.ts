@@ -1,7 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { teamEmojiOf, type ShownEmoji } from "../album/earnedEmojis";
 import { grantedKudosBetween, type GrantedKudos, type Instants } from "../album/packs";
-import { teamStickersUnlockedIn } from "../album/teamStickers";
+import { teamsUnlockedIn, type UnlockedTeam } from "../album/teamStickers";
 import type { Segment } from "../activity/entries";
 import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf, type Mentions } from "../activity/kudos";
 import type { DayKey } from "../engine/allowance";
@@ -29,15 +28,13 @@ export type QuotedPerson = { member: MemberId; name: string };
 
 export type QuotedKudos = { giver: QuotedPerson; recipients: QuotedPerson[]; moreRecipients: number; words: Segment[]; permalink: string | null; find: Find | null };
 
-export type UnlockedTeam = { name: string; count: number; emoji: ShownEmoji | null };
-
 export type TopKudosPost = { kind: "topKudos"; kudos: QuotedKudos[]; teams: UnlockedTeam[]; origin: string | null; newGivers?: NewGiver[] };
 
 type Ranked = GrantedKudos & { hugs: number };
 
 export async function topKudosPostOf(ctx: QueryCtx, workspace: string, week: Instants, postWeek: DayKey): Promise<TopKudosPost> {
   const highlights = await weeklyHighlightsApplyTo(ctx, workspace);
-  const post: TopKudosPost = { kind: "topKudos", kudos: await topKudosOf(ctx, workspace, week, highlights ? topKudosHighlighted : kudosQuoted), teams: await teamsUnlockedOf(ctx, workspace, week), origin: await websiteOrigin(ctx, workspace) };
+  const post: TopKudosPost = { kind: "topKudos", kudos: await topKudosOf(ctx, workspace, week, highlights ? topKudosHighlighted : kudosQuoted), teams: await teamsUnlockedIn(ctx, workspace, week, mostTeamStickersRead), origin: await websiteOrigin(ctx, workspace) };
   return highlights ? { ...post, newGivers: await newGiversOf(ctx, workspace, postWeek) } : post;
 }
 
@@ -84,12 +81,6 @@ function quotedSegmentsOf(segments: WordSegment[]): WordSegment[] {
 
 function isBlank(segment: WordSegment) {
   return segment.kind === "break" || (segment.kind === "text" && segment.text.trim() === "");
-}
-
-async function teamsUnlockedOf(ctx: QueryCtx, workspace: string, week: Instants): Promise<UnlockedTeam[]> {
-  const teams: UnlockedTeam[] = [];
-  for (const unlocked of await teamStickersUnlockedIn(ctx, workspace, week, mostTeamStickersRead)) teams.push({ name: unlocked.name, count: unlocked.count, emoji: await teamEmojiOf(ctx, workspace, unlocked) });
-  return teams;
 }
 
 async function quotedPersonOf(ctx: QueryCtx, member: MemberId): Promise<QuotedPerson> {

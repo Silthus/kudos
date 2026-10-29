@@ -269,7 +269,7 @@ describe("SR5 SR23: a member hugs a message at most once", { timeout: 60_000 }, 
 });
 
 describe("SR2 SR23: a hug is never an award", { timeout: 120_000 }, () => {
-  test("with every feature on, hugs change nothing but their own records, XP and the flag's exposure: boards, kudos totals, coins, quests, the Journey and the allowance stay as they were", async () => {
+  test("with every feature on, hugs change nothing but their own records, XP, Leaderboard's hug counts and the flag's exposure: boards, kudos totals, coins, quests, the Journey and the allowance stay as they were", async () => {
     const t = await everyFeatureOn();
     await kudos(t, "U_ALICE", ["U_CAROL"]);
     await kudos(t, "U_BOB", ["U_ALICE"], slackTs(now.getTime() - hourMs + 1_000));
@@ -283,7 +283,7 @@ describe("SR2 SR23: a hug is never an award", { timeout: 120_000 }, () => {
     await hug(t, { user: "U_ALICE", itemUser: "U_DANA", ts: slackTs(now.getTime() - 2 * hourMs) });
 
     expect(hugsGiven()).toHaveLength(3);
-    expect(withoutTheAlbumsHugCounts(await everythingStored(t, { except: writtenByAHug }))).toEqual(withoutHugs);
+    expect(withoutLeaderboardsHugCounts(withoutTheAlbumsHugCounts(await everythingStored(t, { except: writtenByAHug })))).toEqual(withoutHugs);
   });
 });
 
@@ -308,7 +308,7 @@ async function workspace({ transactionLimits = false } = {}) {
 
 const everyFeature = ["hugs", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
 
-const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
+const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "countedRecognitions", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
 
 function withoutTheAlbumsHugCounts(rows: Array<Record<string, unknown>>) {
   const thanked = (row: Record<string, unknown>) => row.kudosGiven !== 0 || row.kudosReceived !== 0;
@@ -323,6 +323,14 @@ function withoutTheAlbumsHugCounts(rows: Array<Record<string, unknown>>) {
     }
     if ("list" in row) return row.list === "hugged" || row.list === "huggedBy" ? [] : [row];
     return [row];
+  });
+}
+
+function withoutLeaderboardsHugCounts(rows: Array<Record<string, unknown>>) {
+  return rows.map((row) => {
+    if (!("period" in row || "day" in row) || !("kudos" in row)) return row;
+    const { hugsGiven, hugsReceived, ...kudos } = row;
+    return kudos;
   });
 }
 
