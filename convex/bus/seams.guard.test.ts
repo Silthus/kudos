@@ -97,7 +97,8 @@ describe("HH16: writes cross modules as bus facts", () => {
   test.each([
     ["a named import", `import { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a renamed import over lines", `import {\n  type Earning,\n  earnItem as earn,\n} from '../items/ledger';`, ["convex/stickers/stickers.ts earnItem"]],
-    ["a namespace import of a module's writes", `import * as ledger from "../items/ledger";\nconst { earnItem } = ledger;`, ["convex/stickers/stickers.ts earnItem", "convex/stickers/stickers.ts markTurned"]],
+    ["a namespace import of another module, whatever it uses", `import * as ledger from "../items/ledger.ts";\nconst { earnItem } = ledger;`, ["convex/stickers/stickers.ts namespace:convex/items/ledger"]],
+    ["a named import with its extension", `import { earnItem } from "../items/ledger.ts";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a re-export", `export { earnItem } from "../items/ledger";`, ["convex/stickers/stickers.ts earnItem"]],
     ["a query in single quotes", `await ctx.db.query('items').collect();`, ["convex/stickers/stickers.ts table:items"]],
     ["a type-only import", `import type { earnItem } from "../items/ledger";`, []],
@@ -112,16 +113,25 @@ function everyCrossing() {
 }
 
 function crossingsOf(path: string, source: string) {
-  return [...writesImportedBy(path, source), ...tablesQueriedBy(path, source)];
+  return [...writesImportedBy(path, source), ...namespacesImportedBy(path, source), ...tablesQueriedBy(path, source)];
 }
 
 function writesImportedBy(path: string, source: string) {
-  return importsOf(source)
-    .map(({ names, from }) => ({ from: resolved(path, from), names }))
-    .filter(({ from }) => from.startsWith("/convex/") && moduleOf(from) !== moduleOf(path))
-    .map(({ from, names }) => ({ names: names ?? writesExportedBy(from) }))
+  return namedImportsOf(source)
+    .filter(({ from }) => isAnotherModule(path, from))
     .flatMap(({ names }) => names.filter((name) => writeFunctions.includes(name)))
     .map((name) => `${fileOf(path)} ${name}`);
+}
+
+function namespacesImportedBy(path: string, source: string) {
+  return [...source.matchAll(/import\s+\*\s+as\s+\w+\s+from\s*["']([^"']+)["']/g)]
+    .map(([, from = ""]) => from)
+    .filter((from) => isAnotherModule(path, from))
+    .map((from) => `${fileOf(path)} namespace:${fileOf(resolved(path, from))}`);
+}
+
+function isAnotherModule(path: string, from: string) {
+  return from.startsWith(".") && moduleOf(resolved(path, from)) !== moduleOf(path);
 }
 
 function tablesQueriedBy(path: string, source: string) {
@@ -131,24 +141,11 @@ function tablesQueriedBy(path: string, source: string) {
     .map((table) => `${fileOf(path)} table:${table}`);
 }
 
-function importsOf(source: string) {
-  return [...namedImportsOf(source), ...namespaceImportsOf(source)];
-}
-
 function namedImportsOf(source: string) {
   return [...source.matchAll(/(?:import|export)\s+(type\s+)?\{([^}]*)\}\s*from\s*["']([^"']+)["']/g)].map(([, typeOnly, names = "", from = ""]) => ({
     names: typeOnly === undefined ? names.split(",").flatMap(valueNameOf) : [],
     from,
   }));
-}
-
-function namespaceImportsOf(source: string) {
-  return [...source.matchAll(/import\s+\*\s+as\s+\w+\s+from\s*["']([^"']+)["']/g)].map(([, from = ""]) => ({ names: undefined, from }));
-}
-
-function writesExportedBy(file: string) {
-  const source = sources[`${file}.ts`] ?? "";
-  return writeFunctions.filter((name) => new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${name}\\b`).test(source));
 }
 
 function valueNameOf(specifier: string) {
@@ -161,13 +158,12 @@ function ownerOf(table: string) {
 }
 
 function resolved(path: string, from: string) {
-  if (!from.startsWith(".")) return from;
   const parts = path.split("/").slice(0, -1);
   for (const part of from.split("/")) {
     if (part === "..") parts.pop();
     else if (part !== ".") parts.push(part);
   }
-  return parts.join("/");
+  return parts.join("/").replace(/\.ts$/, "");
 }
 
 function moduleOf(path: string) {
