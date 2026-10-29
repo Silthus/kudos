@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { post, react, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, post, react, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
@@ -14,6 +14,7 @@ const dayMs = 24 * 60 * minuteMs;
 const alice = { user: "U_ALICE", name: "Alice Marchetti", givenName: "Alice" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo", givenName: "Bob" };
 const carol = { user: "U_CAROL", name: "Carol Lindqvist", givenName: "Carol" };
+const dave = { user: "U_DAVE", name: "Dave Achterberg", givenName: "Dave" };
 const saysWhy = "thanks for untangling the flaky migration today";
 const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items", "onboarding", "hugs"];
 const mondayPath = [...todaysFlags, "monday-quest"];
@@ -110,6 +111,7 @@ describe("MQ37 MQ38: on the Monday path the quests read answers the Getting star
 describe("MQ37 MQ9: once the three quests are finished, the read answers this week's drawn quests", { timeout: 60_000 }, () => {
   test("the journey gives way to three drawn quests at 20 XP, with the days left in the week", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
 
     await finishOnboarding();
     await theHourlySweep();
@@ -190,6 +192,11 @@ describe("MQ41: viewing the quests records quests viewed", { timeout: 60_000 }, 
     expect(questsViewed()).toEqual([]);
   });
 });
+
+async function aTeammateNotThankedYet(person: Person) {
+  slack.withMember(person.user, { real_name: person.name });
+  await memberChanged(t, "team_join", { id: person.user, profile: { real_name: person.name } });
+}
 
 async function finishOnboarding() {
   await thanks(alice, saysWhy, bob);

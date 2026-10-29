@@ -200,9 +200,9 @@ describe("O36: the leaderboard command records the exposures it decides by", () 
 const levelSixDmOfferingRowFive = [
   "section: 🎉 You reached level 6! You have 2 skill points to spend.",
   "section: Level 7 is 500 XP away.",
-  "section: *Spark* · 1 skill point\n+5 XP the first time each day you thank someone and say why. [button: Buy]",
-  "section: *Rhythm* · 1 skill point\n+2 XP each time you thank someone and say why, once per person a day. [button: Buy]",
-  "section: *Circle* · 1 skill point\n+5 XP the first time each week you thank a person and say why. [button: Buy]",
+  "section: *Spark* · 1 skill point\n+5 XP the first time each day you give a kudos. [button: Buy]",
+  "section: *Rhythm* · 1 skill point\n+2 XP for each kudos you give, once per person a day. [button: Buy]",
+  "section: *Circle* · 1 skill point\n+5 XP the first time each week you give a person a kudos. [button: Buy]",
 ];
 
 function dmsTo(user: string) {

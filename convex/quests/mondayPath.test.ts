@@ -39,7 +39,6 @@ const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items"
 const mondayPath = [...todaysFlags, "monday-quest"];
 const drawnReward = { xp: 20, coins: 0, item: null };
 const drawnPaid = { xp: 20, coins: 0 };
-const saysWhyGoal = "Thank someone and say why";
 const firstThanksDone = "Quest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection";
 const someoneNewDone = "Quest done: Thank someone new · +50 XP and an unidentified Hoggie for your collection";
 
@@ -431,6 +430,7 @@ describe("MQ4: the quests message kind applies on the Monday path", { timeout: 6
 describe("MQ9: drawn quests come once the three onboarding quests are finished", { timeout: 60_000 }, () => {
   test("nothing is drawn before the third onboarding quest, nor by the kudos that finishes it; the next sweep draws three", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
     await thanks(alice, saysWhy, bob);
     await thanks(alice, "thanks", carol);
     await sweepForANewWeek();
@@ -496,10 +496,11 @@ describe("MQ9: drawn quests come once the three onboarding quests are finished",
 
   test("the next kudos after onboarding draws this week's quests and counts toward them", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
     await finishOnboarding();
     const onboarded = Date.now();
 
-    await thanks(alice, saysWhy, bob);
+    await thanks(alice, saysWhy, dave);
 
     const week = await weekOf(alice);
     expect(week?.drawnAt, "when the quests were drawn").toBeGreaterThan(onboarded);
@@ -522,9 +523,31 @@ describe("MQ9: drawn quests come once the three onboarding quests are finished",
   });
 });
 
+describe("HH13: the Monday path draws its quests from the kudos pool", { timeout: 60_000 }, () => {
+  const kudosPool = ["kudos-once", "kudos-two-days", "three-in-a-day", "someone-new", "two-new", "not-in-30-days"];
+
+  test("every week's three quests come from the kudos pool, and a short kudos counts toward each", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
+    await finishOnboarding();
+    const drawn = new Set<string>();
+    for (let week = 0; week < 6; week += 1) {
+      vi.setSystemTime(new Date(Date.parse("2026-10-19T09:00:00Z") + week * 7 * dayMs));
+      await sweepForANewWeek();
+      for (const { quest } of (await weekOf(alice))?.slots ?? []) drawn.add(quest);
+    }
+
+    await thanks(alice, "thanks", dave);
+
+    expect([...drawn].filter((quest) => !kudosPool.includes(quest)), "the quests drawn from outside the kudos pool").toEqual([]);
+    expect((await weekOf(alice))?.slots.map(({ progress }) => progress), "each quest's progress after a short kudos to someone new").toEqual([1, 1, 1]);
+  });
+});
+
 describe("MQ8 MQ10 MQ12: a drawn quest on the Monday path pays 20 XP and a Hoggie, never coins, with no swap", { timeout: 60_000 }, () => {
   test("each drawn quest promises 20 XP and no coins, and none can be swapped", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
     await finishOnboarding();
     await sweepForANewWeek();
 
@@ -539,16 +562,16 @@ describe("MQ8 MQ10 MQ12: a drawn quest on the Monday path pays 20 XP and a Hoggi
 
   test("finishing drawn quests records 20 XP and no coins each, lays a Hoggie each, and the reply says so with no finish DM", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
     await finishOnboarding();
 
-    for (let day = 0; day < 3; day += 1) {
-      if (day > 0) vi.setSystemTime(Date.now() + dayMs);
-      await thanks(alice, saysWhy, bob);
-    }
+    await thanks(alice, "thanks", dave, bob, carol);
+    vi.setSystemTime(Date.now() + dayMs);
+    await thanks(alice, "thanks", dave, bob, carol);
 
     expect(await weeklyRewardsOf(alice), "the drawn quests' reward records").toEqual([drawnPaid, drawnPaid, drawnPaid]);
     expect((await questItemsOf(alice)).filter(({ quest }) => quest.kind === "weekly"), "the drawn quests' items").toHaveLength(3);
-    expect(replyTo(alice).filter((line) => line.startsWith("Quest done:")), "the last reply's finish lines").toEqual([expect.stringMatching(/^Quest done: Thank someone and say why[^.]* · \+20 XP and an unidentified Hoggie for your collection$/)]);
+    expect(finishLinesTo(alice), "the replies' finish lines").toEqual([1, 2, 3].map(() => expect.stringMatching(/^Quest done: [^·]+ · \+20 XP and an unidentified Hoggie for your collection$/)));
     expect(finishDmsTo(alice), "a finish DM").toEqual([]);
   });
 });
@@ -593,7 +616,8 @@ describe("MQ4 MQ10: with the unlock path on too, the Monday path's quests pay on
 
     expect(await weeklyRewardsOf(alice), "the drawn quests' reward records").toContainEqual(drawnPaid);
     expect(await packsWaitingFor(alice), "the packs waiting in the collection").not.toContainEqual(expect.stringMatching(/^weekly:/));
-    expect(opensInHome(alice).filter((line) => line?.includes(saysWhyGoal)), "the drawn quest's line with an Open on App Home").toEqual([]);
+    const goals = (await weekOf(alice))!.slots.map(({ goal }) => goal.slice(0, -1));
+    expect(opensInHome(alice).filter((line) => goals.some((goal) => line?.includes(goal))), "the drawn quests' lines with an Open on App Home").toEqual([]);
   });
 
   test("a week drawn on the unlock path is left as it is on the Monday path, paying no coins", async () => {
@@ -631,6 +655,11 @@ async function finishOnboarding() {
   await thanks(alice, "thanks", carol);
   vi.setSystemTime(Date.now() + dayMs);
   await thanks(alice, saysWhy, bob);
+}
+
+async function aTeammateNotThankedYet(person: Person) {
+  slack.withMember(person.user, { real_name: person.name });
+  await joins(person);
 }
 
 async function finishedOnTheUnlockPath(person: Person, ...steps: string[]) {
@@ -761,6 +790,13 @@ async function deliverInOrder(event: KudosGivenEvent, first: string[]) {
 
 function replyTo(person: Person): string[] {
   return String(slack.ephemeralsTo(person.user).findLast(({ text }) => String(text).includes("kudos from you"))?.text ?? "").split("\n");
+}
+
+function finishLinesTo(person: Person): string[] {
+  return slack
+    .ephemeralsTo(person.user)
+    .flatMap(({ text }) => String(text).split("\n"))
+    .filter((line) => line.startsWith("Quest done:") && !line.includes("+50 XP"));
 }
 
 function finishDmsTo(person: Person) {

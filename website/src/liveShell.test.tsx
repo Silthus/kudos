@@ -452,7 +452,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
 
     await user.click(screen.getByRole("tab", { name: /^Last week/ }));
 
-    expect(await screen.findByText("A quiet week. Thank someone in Slack and say why, and it shows here.")).toBeInTheDocument();
+    expect(await screen.findByText("A quiet week. Give someone a kudos in Slack, and it shows here.")).toBeInTheDocument();
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbumWeek")).toEqual([{ query: "website/album:getAlbumWeek", args: { week: "2026-10-05" } }]);
   });
 

@@ -1,6 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { websiteOrigin } from "../website/link";
 import { listed, urlOf, type Page } from "../website/routes";
+import { websiteAt, type VisitSource, type Website } from "../website/visitSource";
 import { openTheWebsite } from "./naming";
 
 export type DeepLink = { url: string; label: string };
@@ -23,11 +24,11 @@ export function levelUpRevealOf(level: number): Destination {
   return { page: { page: "levelUp", level }, label: "Reveal your three new hoggies" };
 }
 
-export async function deepLinkOf(ctx: QueryCtx, workspace: string, destination: Destination): Promise<DeepLink | null> {
-  return deepLinkFrom(await websiteOrigin(ctx, workspace), destination);
+export async function deepLinkOf(ctx: QueryCtx, workspace: string, destination: Destination, source: VisitSource): Promise<DeepLink | null> {
+  return deepLinkFrom(websiteAt(await websiteOrigin(ctx, workspace), source), destination);
 }
 
-export function deepLinkFrom(website: string | null, { page, label }: Destination): DeepLink | null {
+export function deepLinkFrom(website: Website | null, { page, label }: Destination): DeepLink | null {
   if (website === null) return null;
-  return { url: urlOf(website, page), label: listed(page) ? label : openTheWebsite };
+  return { url: urlOf(website.origin, page, website.source), label: listed(page) ? label : openTheWebsite };
 }

@@ -259,12 +259,9 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
     expect((await albumOf(asAlice)).emojiPage).toBe("https://hedgehug-sandbox.slack.com/customize/emoji");
   });
 
-  test("a sticker the album's history brought earns no hype emoji, and thanking that person thoughtfully once more does", async () => {
-    await thanks(alice, "ty", lanterns[0]!);
-    vi.setSystemTime(Date.now() + minuteMs);
-    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
-    await settle(t);
+  test("a sticker the album's history brought earns no hype emoji, and thanking that person once more does", async () => {
     await thanks(bruno, why, lanterns[1]!);
+    await aStickerTheHistoryBrought(alice, lanterns[0]!);
     const asAlice = await signedIn(alice);
     expect((await emojisOf(asAlice)).filter(({ kind }) => kind === "hype"), "a history sticker").toEqual([]);
 
@@ -688,4 +685,9 @@ function everyTable() {
     for (const table of Object.keys(schema.tables) as Array<keyof typeof schema.tables>) rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
+}
+
+async function aStickerTheHistoryBrought(member: Person, person: Person) {
+  const [memberId, personId] = [await memberOf(member), await memberOf(person)];
+  await t.run((ctx) => ctx.db.insert("albumStickers", { member: memberId, person: personId, from: "history", at: Date.now() }));
 }

@@ -76,7 +76,7 @@ function EmojiMapping({ mappings, mapSlackEmoji }: { mappings: EmojiMappings; ma
   const more = found.length - shown;
   return (
     <Panel id="emoji-mapping" label={sectionLabel}>
-      <p className="text-sm text-muted-foreground">{mappings.randomDrops ? `${mappingWords} Random drops come from thoughtful packs, now and then.` : mappingWords.replace(", a level or the random drops.", " or a level.")}</p>
+      <p className="text-sm text-muted-foreground">{mappings.randomDrops ? `${mappingWords} Random drops come from packs, now and then.` : mappingWords.replace(", a level or the random drops.", " or a level.")}</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <SearchField label="Find a Slack emoji" value={search} onChange={setSearch} />
         <label className="flex flex-col gap-1 text-sm font-medium">

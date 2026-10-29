@@ -61,7 +61,7 @@ export async function awardsInWeekNewestDaysFirst(ctx: QueryCtx, member: MemberI
   return newest.map(({ workspace, conversation, message, giver, recipient, at }) => ({ message: { workspace, conversation, message }, giver, recipient, at }));
 }
 
-export type EarlierAward = { recipient: MemberId; day: DayKey; annotations: Annotations };
+export type EarlierAward = Pick<AwardRow, "recipient" | "day">;
 
 export async function givenEarlierInWeek(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week, before: AwardId): Promise<EarlierAward[]> {
   const cutoff = (await ctx.db.get(before))?._creationTime ?? Infinity;
@@ -69,8 +69,7 @@ export async function givenEarlierInWeek(ctx: QueryCtx, giver: MemberId, { monda
     .query("awards")
     .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", monday).lte("day", sunday))
     .collect();
-  const earlier = await withStoredAnnotations(ctx, awards.filter(({ _creationTime }) => _creationTime < cutoff));
-  return earlier.map(({ award, annotations }) => ({ recipient: award.recipient, day: award.day, annotations }));
+  return awards.filter(({ _creationTime }) => _creationTime < cutoff).map(({ recipient, day }) => ({ recipient, day }));
 }
 
 async function withStoredAnnotations(ctx: QueryCtx, awards: AwardRow[]): Promise<Array<{ award: AwardRow; annotations: Annotations }>> {

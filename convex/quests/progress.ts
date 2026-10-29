@@ -16,7 +16,7 @@ export const movedQuestValidator = v.object({ goal: v.string(), progress: questP
 
 export type MovedQuest = Infer<typeof movedQuestValidator>;
 
-const progressUnits: Record<PoolQuest["progress"]["counts"], QuestProgress["unit"]> = { recognitions: "kudos", people: "people", days: "days" };
+const progressUnits: Record<PoolQuest["progress"]["counts"], QuestProgress["unit"]> = { recognitions: "kudos", people: "people", days: "days", "people-in-a-day": "people" };
 
 export function progressUnitOf({ progress: { counts } }: PoolQuest): QuestProgress["unit"] {
   return progressUnits[counts];
@@ -33,10 +33,18 @@ export function counts({ progress: { given } }: PoolQuest, award: QuestAward): b
 }
 
 export function questProgress({ progress: { counts, target } }: PoolQuest, counted: CountedAward[]): number {
-  const distinct = (key: (award: CountedAward) => string) => new Set(counted.map(key)).size;
-  const qualifyingRecognitions = () => distinct(({ recipient, day }) => `${recipient}:${day}`);
-  const progress = counts === "recognitions" ? qualifyingRecognitions() : counts === "people" ? distinct(({ recipient }) => recipient) : distinct(({ day }) => day);
-  return Math.min(progress, target);
+  return Math.min(countedBy[counts](counted), target);
+}
+
+const countedBy: Record<PoolQuest["progress"]["counts"], (counted: CountedAward[]) => number> = {
+  recognitions: (counted) => distinct(counted, ({ recipient, day }) => `${recipient}:${day}`),
+  people: (counted) => distinct(counted, ({ recipient }) => recipient),
+  days: (counted) => distinct(counted, ({ day }) => day),
+  "people-in-a-day": (counted) => Math.max(0, ...[...new Set(counted.map(({ day }) => day))].map((day) => distinct(counted.filter((award) => award.day === day), ({ recipient }) => recipient))),
+};
+
+function distinct(counted: CountedAward[], key: (award: CountedAward) => string): number {
+  return new Set(counted.map(key)).size;
 }
 
 export function isRecipient(to: Recipient, lastThanked: number | null, at: number): boolean {

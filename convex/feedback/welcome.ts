@@ -14,6 +14,7 @@ import { everyoneBoardOnFor } from "../leaderboard/flag";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { readyFromTheStart, scheduled } from "../unlocks/schedule";
 import { websiteOriginFor } from "../website/link";
+import { websiteAt } from "../website/visitSource";
 import { welcomedAsValidator, type WelcomedAs } from "../welcome/welcomedAs";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { countsFor, noLongerYours, pickQuestion } from "./groupCopy";
@@ -149,12 +150,11 @@ function capitalized(words: string) {
 }
 
 function stepOf({ welcomed }: Welcome, kudosEmoji: string): Line {
-  const sayWhy = "Say why you're thanking them: it means more.";
-  if (welcomed?.as === "giver") return [{ text: `👉 *Next step:* thank two more teammates this week. ${sayWhy}` }];
-  return [{ text: `👉 *Your first step:* thank someone who helped you lately. Mention them and add :${kudosEmoji}: to your message in any channel I'm in. ${sayWhy}` }];
+  if (welcomed?.as === "giver") return [{ text: "👉 *Next step:* thank two more teammates this week." }];
+  return [{ text: `👉 *Your first step:* thank someone who helped you lately. Mention them and add :${kudosEmoji}: to your message in any channel I'm in.` }];
 }
 
 async function websiteOf(ctx: QueryCtx, workspace: string, member: MemberId | undefined): Promise<WelcomeMessage["website"]> {
-  const link = deepLinkFrom(await websiteOriginFor(ctx, workspace, member), deepLinks.welcome);
+  const link = deepLinkFrom(websiteAt(await websiteOriginFor(ctx, workspace, member), "welcome"), deepLinks.welcome);
   return link === null ? null : { line: `The ${productName} website shows your kudos and progress in one place.`, link };
 }

@@ -49,19 +49,18 @@ afterEach(() => {
 });
 
 describe("AL52: getAlbumProfile reads the profile's kind note and newest people", { timeout: 120_000 }, () => {
-  test("the kind note is the last thoughtful kudos someone sent you, with its giver, words and Slack link, past any briefer kudos since", async () => {
-    await thanks(carol, "Thanks for the thorough onboarding notes you wrote", alice);
-    const kind = await thanks(bob, why, alice);
-    await thanks(dana, "ty", alice);
+  test("HH11: the kind note is the newest kudos someone sent you whose words can show, a short one as much as a longer one, never one you gave", async () => {
+    await thanks(bob, why, alice);
+    const newest = await thanks(dana, "ty", alice);
     await thanks(alice, "Thanks for pairing on the stubborn cache invalidation", bob);
 
     expect(await profileOf(alice)).toMatchObject({
       kind: "profile",
       note: {
-        giver: { person: await memberOf(bob), name: bob.name, face: { kind: "initials", initials: "BO" } },
-        message: { kind: "text", segments: expect.arrayContaining([expect.objectContaining({ kind: "text", text: expect.stringContaining("flaky migration") })]), edited: false },
-        permalink: permalinkOf(kind),
-        at: atOf(kind),
+        giver: { person: await memberOf(dana), name: dana.name, face: { kind: "initials", initials: "DF" } },
+        message: { kind: "text", segments: expect.arrayContaining([expect.objectContaining({ kind: "text", text: expect.stringContaining("ty") })]), edited: false },
+        permalink: permalinkOf(newest),
+        at: atOf(newest),
       },
     });
   });
@@ -78,7 +77,7 @@ describe("AL52: getAlbumProfile reads the profile's kind note and newest people"
     ]);
   });
 
-  test("a kind note whose words are gone, deleted in Slack, gives way to the thoughtful kudos before it", async () => {
+  test("a kind note whose words are gone, deleted in Slack, gives way to the kudos before it", async () => {
     const kept = await thanks(bob, why, alice);
     const deleted = await thanks(carol, "Thanks for the thorough onboarding notes you wrote", alice);
     await deleteMessage(t, { user: carol.user, ts: deleted, previous: thanksBlocks("Thanks for the thorough onboarding notes you wrote", alice) });
@@ -105,8 +104,8 @@ describe("AL52: getAlbumProfile reads the profile's kind note and newest people"
     ]);
   });
 
-  test("a member nobody thanked with a why, whose album holds nobody yet, reads no note and no newest people", async () => {
-    await thanks(bob, "ty", alice);
+  test("a member nobody thanked, who gave a kudos but put nobody in yet, reads no note and no newest people", async () => {
+    await thanks(alice, "ty", bob);
 
     expect(await profileOf(alice)).toEqual({ kind: "profile", note: null, newest: [] });
   });

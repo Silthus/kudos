@@ -47,7 +47,7 @@ export const mondayWelcomeOf = internalQuery({
 
 async function mondayWelcomeFor(ctx: QueryCtx, workspace: string, member: MemberId, cause: MondayWelcomeCause, journey: OnboardingQuest[]): Promise<MondayWelcome> {
   const next = journey.find(({ finished }) => !finished)?.step ?? null;
-  const links = await dmLinksFor(ctx, workspace, member);
+  const links = await dmLinksFor(ctx, workspace, member, "welcome");
   return {
     kudosEmoji: (await settingsOf(ctx, workspace)).kudosEmoji,
     opening: await openingOf(ctx, member, cause),

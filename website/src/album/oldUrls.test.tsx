@@ -3,6 +3,7 @@ import type { GenericValidator } from "convex/values";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { pageValidator } from "../../../convex/website/link";
 import { routeList, signInEntry, urlOf, type Page } from "../../../convex/website/routes";
+import { visitSourceParam } from "../../../convex/website/visitSource";
 import { activityHref } from "../route";
 import { bookHref, categories } from "../book/categories";
 import { rarestFirst, spreadHrefOf, type Spread } from "../book/spread/spreads";
@@ -28,7 +29,7 @@ type Landing = { address: string; title: string; rarity?: Rarity };
 const home: Landing = { address: "/book#me", title: "Sam Example" };
 const milestones: Landing = { address: "/book#milestones", title: "Milestones" };
 const hoggies: Landing = { address: "/book#hoggies", title: "Hoggies" };
-const leaderboard: Landing = { address: "/leaderboard", title: "Who said thanks, and why" };
+const leaderboard: Landing = { address: "/leaderboard", title: "Who said thanks" };
 const activity: Landing = { address: "/activity", title: "Weekly edition" };
 const settings: Landing = { address: "/settings", title: "Settings" };
 
@@ -322,9 +323,15 @@ const linksSlackAlreadySent: [string, Landing][] = [
 
 const linksBuiltNow = [
   ...new Map(
-    (samplesOf(pageValidator) as Page[]).flatMap((page) => doors.map((door) => [urlOf(door, page).slice(site.length), albumPageFor(page)] as const)),
+    (samplesOf(pageValidator) as Page[]).flatMap((page) => doors.map((door) => [linkBuiltFor(door, page), albumPageFor(page)] as const)),
   ).entries(),
 ];
+
+function linkBuiltFor(door: string, page: Page) {
+  const link = new URL(urlOf(door, page, "reply"));
+  link.searchParams.delete(visitSourceParam);
+  return link.toString().slice(site.length);
+}
 
 function withoutTheDoor(link: string) {
   return link.startsWith(signInEntry) ? link.slice(signInEntry.length) : link;
@@ -484,7 +491,7 @@ describe("AL67: every link the backend builds is the album address it lands on",
   });
 
   it("a sign-in link to a Book page keeps its hash and the one-time code Convex Auth adds", async () => {
-    const link = urlOf(`${site}${signInEntry}`, { page: "bookEarned" }).slice(site.length);
+    const link = urlOf(`${site}${signInEntry}`, { page: "bookEarned" }, "reply").slice(site.length);
     const withTheCode = new URL(link, site);
     withTheCode.searchParams.set("code", "one-time");
 

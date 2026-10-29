@@ -27,7 +27,7 @@ function halfwayJourney(): GettingStartedStep[] {
 
 function drawnWeek(): DrawnQuest[] {
   return [
-    { quest: "say-why-three-times", goal: "Thank someone and say why, 3 times", progress: { done: 2, target: 3 }, done: false, reward: { xp: 20 }, item: null },
+    { quest: "three-in-a-day", goal: "Thank 3 people in one day", progress: { done: 2, target: 3 }, done: false, reward: { xp: 20 }, item: null },
     { quest: "two-new", goal: "Thank 2 people you haven't thanked before", progress: { done: 0, target: 2 }, done: false, reward: { xp: 20 }, item: null },
     { quest: "not-in-30-days", goal: "Thank someone you haven't thanked in the last 30 days", progress: finishedOnce, done: true, reward: { xp: 20 }, item: "waiting" },
   ];

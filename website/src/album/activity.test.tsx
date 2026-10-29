@@ -66,7 +66,7 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     const panel = await issue();
     expect(panel.getByRole("heading", { level: 2, name: "This week in your album" })).toBeInTheDocument();
     expect(panel.getByText("12–18 Oct")).toBeInTheDocument();
-    expect(tallies(panel)).toEqual(["people you thanked | 4 | 6 kudos, 4 said why", "thanked you | 3 | 4 kudos, 2 said why", "packs opened | 3 | 2 new faces in your album", "hugs | 8 | 3 given · 5 received"]);
+    expect(tallies(panel)).toEqual(["people you thanked | 4 | 6 kudos", "thanked you | 3 | 4 kudos", "packs opened | 3 | 2 new faces in your album", "hugs | 8 | 3 given · 5 received"]);
 
     const lead = section("The kudos of the week");
     expect(lead.getByText("You untangled the release notes at midnight and saved the launch.")).toBeInTheDocument();
@@ -145,8 +145,8 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     await user.click((await weekTabs()).getByRole("tab", { name: /^Last week/ }));
 
     const panel = await issue();
-    expect(tallies(panel)).toEqual(["people you thanked | 0 | 0 kudos, 0 said why", "thanked you | 0 | 0 kudos, 0 said why", "packs opened | 0 | no new faces", "hugs | 0 | 0 given · 0 received"]);
-    expect(panel.getByText("A quiet week. Thank someone in Slack and say why, and it shows here.")).toBeInTheDocument();
+    expect(tallies(panel)).toEqual(["people you thanked | 0 | 0 kudos", "thanked you | 0 | 0 kudos", "packs opened | 0 | no new faces", "hugs | 0 | 0 given · 0 received"]);
+    expect(panel.getByText("A quiet week. Give someone a kudos in Slack, and it shows here.")).toBeInTheDocument();
     expect(panel.queryByRole("region")).not.toBeInTheDocument();
   });
 
@@ -162,7 +162,7 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(section("New in your album").getByText("and 3 more")).toBeInTheDocument();
     expect(section("Hoggies from your packs").getAllByRole("listitem")).toHaveLength(12);
     expect(section("Hoggies from your packs").getByText("and 3 more")).toBeInTheDocument();
-    expect(tallies(await issue())[0]).toBe("people you thanked | 21 | 23 kudos, 21 said why");
+    expect(tallies(await issue())[0]).toBe("people you thanked | 21 | 23 kudos");
   });
 
   it("quotes a kudos's words unless they were edited or are no longer readable", async () => {
@@ -197,7 +197,7 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(lead.queryByRole("link")).not.toBeInTheDocument();
     expect(saidLines(section("Everyone else you thanked"))).toEqual(["Ada Quill · Tue | Thanks for the warm welcome on my first day."]);
     expect(screen.queryByRole("region", { name: "Said to you" })).not.toBeInTheDocument();
-    expect(section("New in your album").getByText("No new faces this week. A thoughtful kudos to someone new brings their card.")).toBeInTheDocument();
+    expect(section("New in your album").getByText("No new faces this week. A kudos to someone new brings their card.")).toBeInTheDocument();
   });
 
   it("a member with no week yet gets no tabs and no issue, and is told when the first one comes", async () => {

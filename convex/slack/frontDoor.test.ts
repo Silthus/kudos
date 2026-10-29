@@ -25,12 +25,12 @@ const threeTimes = "Thank someone and say why, 3 times.";
 const twoDays = "Thank someone and say why on 2 different days.";
 const sayingWhyThreeWays: QuestId[] = ["say-why", "say-why-twice", "say-why-three-times"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "skill-tree"];
-const openOnTheWeb = (path: string) => `[link: Open ${siteUrl}${path}]`;
-const swapOnTheWeb = (slot: number) => `[link: Swap ${siteUrl}/]`;
+const openOnTheWeb = (path: string) => `[link: Open ${fromAppHome(`${siteUrl}${path}`)}]`;
+const swapOnTheWeb = (slot: number) => `[link: Swap ${siteUrl}/?src=app-home]`;
 const onTheWebLine = "You can change this on the web, too.";
-const sectionOnTheWeb = (label: string, section: string, entry = "") => `section: ${onTheWebLine} [link: ${label} ${siteUrl}${entry}/settings?section=${section}]`;
+const sectionOnTheWeb = (label: string, section: string, entry = "") => `section: ${onTheWebLine} [link: ${label} ${siteUrl}${entry}/settings?section=${section}&src=app-home]`;
 const inventoryLine = "Your inventory is on the web, too.";
-const inventoryOnTheWeb = `section: ${inventoryLine} [link: Inventory ${siteUrl}/]`;
+const inventoryOnTheWeb = `section: ${inventoryLine} [link: Inventory ${siteUrl}/?src=app-home]`;
 const sayingWhyCounts = "context: Saying why counts when your message has 5 or more words besides mentions and emoji.";
 const hints = [
   "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
@@ -91,9 +91,9 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       {
         type: "actions",
         elements: [
-          { type: "button", text: { type: "plain_text", text: "Open HedgeHug" }, url: `${siteUrl}/`, action_id: "website-link-0" },
-          { type: "button", text: { type: "plain_text", text: "Leaderboard" }, url: `${siteUrl}/leaderboard`, action_id: "website-link-1" },
-          { type: "button", text: { type: "plain_text", text: "Quests" }, url: `${siteUrl}/`, action_id: "website-link-2" },
+          { type: "button", text: { type: "plain_text", text: "Open HedgeHug" }, url: `${siteUrl}/?src=app-home`, action_id: "website-link-0" },
+          { type: "button", text: { type: "plain_text", text: "Leaderboard" }, url: `${siteUrl}/leaderboard?src=app-home`, action_id: "website-link-1" },
+          { type: "button", text: { type: "plain_text", text: "Quests" }, url: `${siteUrl}/?src=app-home`, action_id: "website-link-2" },
         ],
       },
     ]);
@@ -107,7 +107,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     expect(home).toContain(`section: *Leaderboard* is ready. ${openOnTheWeb("/leaderboard")}`);
     expect(home).not.toContain("actions: [Profile] | Leaderboard | Settings");
-    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE"))).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/` }]);
+    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE"))).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/?src=app-home` }]);
   });
 
   test("before unlocks apply, the Leaderboard counts as open while the Everyone board is shown, and the summary has no level line", async () => {
@@ -124,7 +124,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "divider",
       ...hints,
     ]);
-    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE")).map(({ url }) => url)).toEqual([`${siteUrl}/`, `${siteUrl}/leaderboard`]);
+    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE")).map(({ url }) => url)).toEqual([`${siteUrl}/?src=app-home`, `${siteUrl}/leaderboard?src=app-home`]);
   });
 
   test("from level 5 the level line names the skill points to spend while the skill tree ships", async () => {
@@ -168,11 +168,11 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
     expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE"))).toEqual([
-      { label: "Open HedgeHug", url: `${siteUrl}/` },
-      { label: "Book", url: `${siteUrl}/` },
-      { label: "Leaderboard", url: `${siteUrl}/leaderboard` },
-      { label: "Quests", url: `${siteUrl}/` },
-      { label: "Skill tree", url: `${siteUrl}/` },
+      { label: "Open HedgeHug", url: `${siteUrl}/?src=app-home` },
+      { label: "Book", url: `${siteUrl}/?src=app-home` },
+      { label: "Leaderboard", url: `${siteUrl}/leaderboard?src=app-home` },
+      { label: "Quests", url: `${siteUrl}/?src=app-home` },
+      { label: "Skill tree", url: `${siteUrl}/?src=app-home` },
     ]);
   });
 
@@ -204,7 +204,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Admin")));
     const admin = publishedHome(slack, "U_ALICE");
 
-    const websiteLink = `section: <${siteUrl}/|Open HedgeHug on the web>`;
+    const websiteLink = `section: <${siteUrl}/?src=app-home|Open HedgeHug on the web>`;
     expect(settings).toEqual([
       "actions: Profile | [Settings] | Admin",
       "header: Settings",
@@ -233,7 +233,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(accessoryBeside(onTheWebLine)).toEqual({
       type: "button",
       text: { type: "plain_text", text: "Leaderboards" },
-      url: `${siteUrl}/settings?section=visibility`,
+      url: `${siteUrl}/settings?section=visibility&src=app-home`,
       action_id: "website-link:settings:visibility",
       accessibility_label: "Change whether you show on the leaderboards on HedgeHug's Settings page",
     });
@@ -267,7 +267,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     const home = publishedHome(slack, "U_ALICE");
     expect(areaOf(home, "section: *Show me on the leaderboards*").at(-1)).toBe(sectionOnTheWeb("Leaderboards", "visibility"));
     expect(areaOf(home, "section: *What I send you*").at(-1)).toBe(sectionOnTheWeb("Messages", "messages"));
-    expect(accessoryOf(`${siteUrl}/settings?section=messages`)).toMatchObject({ action_id: "website-link:settings:messages", accessibility_label: "Change what I send you on HedgeHug's Settings page" });
+    expect(accessoryOf(`${siteUrl}/settings?section=messages&src=app-home`)).toMatchObject({ action_id: "website-link:settings:messages", accessibility_label: "Change what I send you on HedgeHug's Settings page" });
   });
 
   test("while the primary-group picker shows, it ends with a link to the Settings page's group section", async () => {
@@ -280,7 +280,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     const home = publishedHome(slack, "U_ALICE");
     const picker = home.findIndex((line) => line.startsWith("section: Which group do you count for on the leaderboard?"));
     expect(home.slice(picker + 1, picker + 3)).toEqual([sectionOnTheWeb("Your group", "group"), "divider"]);
-    expect(accessoryOf(`${siteUrl}/settings?section=group`)).toMatchObject({ action_id: "website-link:settings:group", accessibility_label: "Change the group you count for on HedgeHug's Settings page" });
+    expect(accessoryOf(`${siteUrl}/settings?section=group&src=app-home`)).toMatchObject({ action_id: "website-link:settings:group", accessibility_label: "Change the group you count for on HedgeHug's Settings page" });
   });
 
   test("a setting whose section the website's Settings page hides gets no link: the group of a member in one group, and the leaderboards before the member opens the Leaderboard", async () => {
@@ -308,7 +308,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
       "divider",
-      `section: <${siteUrl}/|Open HedgeHug on the web>`,
+      `section: <${siteUrl}/?src=app-home|Open HedgeHug on the web>`,
     ]);
   });
 
@@ -341,7 +341,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(accessoryBeside(inventoryLine)).toEqual({
       type: "button",
       text: { type: "plain_text", text: "Inventory" },
-      url: `${siteUrl}/`,
+      url: `${siteUrl}/?src=app-home`,
       action_id: "website-link:inventory",
       accessibility_label: "Open your inventory on HedgeHug's home page",
     });
@@ -546,7 +546,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(accessoryBeside("*Quests* is ready.")).toEqual({
       type: "button",
       text: { type: "plain_text", text: "Open" },
-      url: `${siteUrl}/`,
+      url: `${siteUrl}/?src=app-home`,
       action_id: "website-link:quests",
       accessibility_label: "Open on HedgeHug's Quests page",
     });
@@ -561,7 +561,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     await openHome(t, "U_ALICE");
 
     expect(publishedHome(slack, "U_ALICE")).toContain(`section: *Skill tree* is ready. ${openOnTheWeb("/")}`);
-    expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ url: `${siteUrl}/`, action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's Skill tree page" });
+    expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's Skill tree page" });
   });
 
   test("a Journey step's crate links to the Journey's crate on the home, this week's quest crate to its quest's card on the Quests page, and an earlier week's to its own waiting crate there", async () => {
@@ -571,10 +571,10 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     await waitingFromAnEarlierWeek(t, "U_ALICE", 1);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(accessoryBeside("*Week of Oct 5:*")).toMatchObject({ url: `${siteUrl}/`, action_id: "website-link:weekly:2026-10-05:0", accessibility_label: "Open on HedgeHug's Quests page" });
+    expect(accessoryBeside("*Week of Oct 5:*")).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:weekly:2026-10-05:0", accessibility_label: "Open on HedgeHug's Quests page" });
 
-    expect(accessoryBeside(`✅ ${sayWhy}`)).toMatchObject({ url: `${siteUrl}/`, action_id: "website-link:weekly:2026-10-12:0", accessibility_label: "Open on HedgeHug's Quests page" });
-    expect(accessoryBeside("✅ Give a kudos that says why.")).toMatchObject({ url: `${siteUrl}/`, action_id: "website-link:journey:first-thanks", accessibility_label: "Open on HedgeHug's home page" });
+    expect(accessoryBeside(`✅ ${sayWhy}`)).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:weekly:2026-10-12:0", accessibility_label: "Open on HedgeHug's Quests page" });
+    expect(accessoryBeside("✅ Give a kudos that says why.")).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:journey:first-thanks", accessibility_label: "Open on HedgeHug's home page" });
   });
 
   test("each of this week's quest crates links to its own quest's card on the Quests page, by its slot", async () => {
@@ -587,7 +587,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     }
 
     expect([sayWhy, twice, threeTimes].map((goal) => accessoryBeside(`✅ ${goal}`))).toMatchObject(
-      [0, 1, 2].map((slot) => ({ url: `${siteUrl}/`, action_id: `website-link:weekly:2026-10-12:${slot}`, accessibility_label: "Open on HedgeHug's Quests page" })),
+      [0, 1, 2].map((slot) => ({ url: `${siteUrl}/?src=app-home`, action_id: `website-link:weekly:2026-10-12:${slot}`, accessibility_label: "Open on HedgeHug's Quests page" })),
     );
   });
 
@@ -627,7 +627,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     const t = await workspace(...everyFlag, onForEmails("website", alicesEmail));
     await levelThreeWithQuestsDrawn(t);
 
-    expect(accessoryBeside("*Quests* is ready.")).toMatchObject({ url: `${siteUrl}/sign-in/`, action_id: "website-link:quests" });
+    expect(accessoryBeside("*Quests* is ready.")).toMatchObject({ url: `${siteUrl}/sign-in/?src=app-home`, action_id: "website-link:quests" });
   });
 
   test("clicking a link button runs no command and publishes App Home no more", async () => {
@@ -660,7 +660,7 @@ describe("each quest's Swap in Slack links to its card on the Quests page while 
     expect(accessoryBeside(twice)).toEqual({
       type: "button",
       text: { type: "plain_text", text: "Swap" },
-      url: `${siteUrl}/`,
+      url: `${siteUrl}/?src=app-home`,
       action_id: "website-link:swap:weekly:2026-10-12:1",
       accessibility_label: "Swap on HedgeHug's Quests page",
     });
@@ -696,7 +696,7 @@ describe("each quest's Swap in Slack links to its card on the Quests page while 
     await levelThreeWithQuestsDrawn(t);
     await openReadyFeatures(t);
 
-    expect(accessoryBeside(twice)).toMatchObject({ url: `${siteUrl}/sign-in/`, action_id: "website-link:swap:weekly:2026-10-12:1" });
+    expect(accessoryBeside(twice)).toMatchObject({ url: `${siteUrl}/sign-in/?src=app-home`, action_id: "website-link:swap:weekly:2026-10-12:1" });
   });
 
   test("while the website flag is off, Swap is today's command and swaps its quest", async () => {
@@ -872,4 +872,10 @@ async function send(t: Backend, interaction: string) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
   await settle(t);
   return response;
+}
+
+function fromAppHome(url: string) {
+  const link = new URL(url);
+  link.searchParams.set("src", "app-home");
+  return link.toString();
 }

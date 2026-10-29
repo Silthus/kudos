@@ -386,6 +386,114 @@ describe("the maintainer lists every app emoji, mapped or not", { timeout: 180_0
   });
 });
 
+describe("AL80: behind admin-hype-emojis, the maintainer lists every current member's hype emoji, named or not", { timeout: 180_000 }, () => {
+  test("a member nobody has thanked yet is listed not mapped, under the name their hype emoji takes, and the maintainer's mapping names it at once for whoever earns it later", async () => {
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    await slackHas("alice-wave");
+    const asOwner = await signedIn(owner);
+
+    const unnamed = emojiNamed(await appEmojisOf(asOwner), "alice-marchetti-hype");
+    expect(unnamed).toEqual({ key: expect.any(String), kind: "hype", name: "alice-marchetti-hype", from: alice.name, picture: expect.any(String), holders: 0, slack: null, place: { kind: "hype", person: expect.any(String) } });
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "alice-wave", to: unnamed.place })).toEqual({ kind: "mapped" });
+
+    expect(emojiNamed(await appEmojisOf(asOwner), "alice-wave")).toMatchObject({ key: unnamed.key, slack: { image: slackPicture("alice-wave"), setBy: { by: "maintainer", name: owner.name } } });
+    await collects(bruno, alice);
+    expect(await emojiWithId(await signedIn(bruno), `hype:${await memberOf(alice)}`)).toMatchObject({ name: "alice-wave", inSlack: true });
+  });
+
+  test("an unnamed row stays not mapped though Slack has an emoji under its name, until the maintainer maps that emoji to it", async () => {
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    await slackHas("alice-marchetti-hype");
+    const asOwner = await signedIn(owner);
+
+    const unnamed = emojiNamed(await appEmojisOf(asOwner), "alice-marchetti-hype");
+    expect(unnamed.slack, "before the mapping").toBeNull();
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "alice-marchetti-hype", to: unnamed.place })).toEqual({ kind: "mapped" });
+
+    expect(emojiNamed(await appEmojisOf(asOwner), "alice-marchetti-hype").slack, "after the mapping").toEqual({ image: slackPicture("alice-marchetti-hype"), setBy: { by: "maintainer", name: owner.name } });
+  });
+
+  test("an unnamed row shows the name the member's first thoughtful kudos gives their hype emoji, a name without Latin letters included", async () => {
+    const lei = { user: "U_LI_LEI", name: "李雷" };
+    slack.withMember(lei.user, { profile: { display_name: lei.name, real_name: lei.name } });
+    await memberChanged(t, "team_join", slackUser(lei));
+    await settle(t);
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    const listed = (await appEmojisOf(await signedIn(owner))).emojis;
+    const shownFor = (someone: Person) => listed.find(({ kind, from }) => kind === "hype" && from === someone.name)?.name;
+    const shown = { alice: shownFor(alice), lei: shownFor(lei) };
+
+    await collects(bruno, alice, lei);
+
+    const asBruno = await signedIn(bruno);
+    expect((await emojiWithId(asBruno, `hype:${await memberOf(alice)}`))?.name, alice.name).toBe(shown.alice);
+    expect((await emojiWithId(asBruno, `hype:${await memberOf(lei)}`))?.name, lei.name).toBe(shown.lei);
+  });
+
+  test("namesakes of a member whose hype emoji is named each show the free name their first thoughtful kudos gives them", async () => {
+    const namesakes = [{ user: "U_ALICE_TWO", name: alice.name }, { user: "U_ALICE_THREE", name: alice.name }];
+    const sortsBetweenTheirNames = { user: "U_ALICE_BELL", name: `${alice.name} Bell` };
+    await collects(bruno, alice);
+    for (const namesake of [...namesakes, sortsBetweenTheirNames]) {
+      slack.withMember(namesake.user, { profile: { display_name: namesake.name, real_name: namesake.name } });
+      await memberChanged(t, "team_join", slackUser(namesake));
+    }
+    await settle(t);
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    const listed = (await appEmojisOf(await signedIn(owner))).emojis;
+    const shown = new Set(listed.filter(({ kind, from }) => kind === "hype" && from === alice.name).map(({ name }) => name));
+
+    await collects(bruno, ...namesakes);
+
+    const asBruno = await signedIn(bruno);
+    const given = await Promise.all([alice, ...namesakes].map(async (someone) => (await emojiWithId(asBruno, `hype:${await memberOf(someone)}`))?.name));
+    expect(shown).toEqual(new Set(given));
+    expect(shown.size).toBe(3);
+    const unheld = listed.filter(({ holders }) => holders === 0).map(({ name }) => name);
+    expect(unheld).toEqual(unheld.toSorted((one, other) => one.localeCompare(other)));
+  });
+
+  test("a former member's hype emoji stays off the list, named or not", async () => {
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    await aliceCollects(lanterns[0]!);
+    for (const left of [lanterns[0]!, lanterns[1]!]) await memberChanged(t, "user_change", { id: left.user, team_id: "T1", deleted: true });
+    await settle(t);
+
+    const names = (await appEmojisOf(await signedIn(owner))).emojis.map(({ name }) => name);
+
+    expect(names).toContain("bruno-castellane-hype");
+    expect(names).not.toContain("lantern-wickfield1-hype");
+    expect(names).not.toContain("lantern-wickfield2-hype");
+  });
+
+  test("with admin-hype-emojis off, only the hype emojis already named are listed", async () => {
+    await aliceCollects(otters[0]!);
+
+    const names = (await appEmojisOf(await signedIn(owner))).emojis.filter(({ kind }) => kind === "hype").map(({ name }) => name);
+
+    expect(names).toEqual(["otter-quillfeather1-hype"]);
+  });
+
+  test.each([
+    { crowd: "distinct names", nameOf: (index: number) => `Crowd ${index}` },
+    { crowd: "one shared name", nameOf: () => "Crowd" },
+    { crowd: "names without Latin letters", nameOf: () => "李雷" },
+  ])(`thousands of unnamed members with $crowd still answer at most ${mostAppEmojisListed} app emojis, the most held first, within Convex's limits`, async ({ nameOf }) => {
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    await aliceCollects(otters[0]!);
+    for (let batch = 0; batch < crowdRows / crowdBatch; batch++)
+      await t.run(async (ctx) => {
+        for (let index = batch * crowdBatch; index < (batch + 1) * crowdBatch; index++) await ctx.db.insert("members", { workspace: "T1", user: `U_CROWD_${index}`, kind: "member", name: nameOf(index) });
+      });
+
+    const { emojis, more } = await appEmojisOf(await signedIn(owner));
+
+    expect(emojis).toHaveLength(mostAppEmojisListed);
+    expect(more).toBe(true);
+    expect(emojiNamed({ kind: "app-emojis", emojis, more, emojiPage: null }, "otter-quillfeather1-hype")).toMatchObject({ holders: 1 });
+  });
+});
+
 describe("#736: with emoji-mapping-in-place on, the maintainer maps app emojis where they show and members map none", { timeout: 120_000 }, () => {
   beforeEach(async () => {
     await switchWebsite(t, postHog, true, ...wizardOpen, "emoji-mapping-in-place");

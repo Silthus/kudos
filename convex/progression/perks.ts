@@ -1,13 +1,11 @@
 import { v } from "convex/values";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
-import type { Annotations } from "../engine/messageEvent";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { coinsShownTo, coinsVisibleTo, isCoinsOpenFor } from "../wallet/visibility";
 import { balanceOf, spend } from "../wallet/wallet";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
-import { gateDecisionOf } from "./gate";
 import { spendSkillPoints, standingOf } from "./progression";
 import type { PurchaseOutcome, Refusal } from "./purchases";
 import { ownedPerksOf, skillTreeAppliesIn, type OwnedPerk } from "./skillTree";
@@ -18,24 +16,6 @@ export type PerkState = "buyable" | Refusal;
 export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Array<Perk & { state: PerkState; boughtAt: number | null }> };
 
 type TreePerk = MemberPerks["perks"][number];
-
-export async function couldEarnMoreBySayingWhy(ctx: QueryCtx, member: MemberId, annotations: Annotations): Promise<boolean> {
-  if (gateDecisionOf(annotations)?.thoughtful !== false) return false;
-  return sayingWhyEarnsMore(ctx, member);
-}
-
-export async function sayingWhyEarnsMore(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return (await coinsVisibleTo(ctx, member)) || (await ownedPerksPayIn(ctx, member));
-}
-
-async function ownedPerksPayIn(ctx: QueryCtx, member: MemberId) {
-  const { workspace } = await chatUserOf(ctx, member);
-  return (await skillTreeAppliesIn(ctx, workspace)) && (await ownsAPerkPayingXp(ctx, member));
-}
-
-async function ownsAPerkPayingXp(ctx: QueryCtx, member: MemberId) {
-  return (await ownedPerksOf(ctx, member)).some(({ perk }) => !paysCoins(perk));
-}
 
 export async function buyPerk(ctx: MutationCtx, member: MemberId, perk: PerkId, idempotencyKey: string): Promise<PurchaseOutcome | null> {
   const { workspace } = await chatUserOf(ctx, member);
