@@ -642,9 +642,7 @@ export default defineSchema({
 
   boughtCrates: defineTable(boughtCrateValidator).index("by_member_crate", ["member", "crate"]).index("by_member_n", ["member", "n"]).index("by_member_opened", ["member", "openedAt", "n"]),
 
-  questFinishes: defineTable(questFinishValidator)
-    .index("by_member_key", ["member", "key"])
-    .index("by_member_cause", ["member", "cause.workspace", "cause.conversation", "cause.message"]),
+  questFinishes: defineTable(questFinishValidator).index("by_member_key", ["member", "key"]),
 
   pendingCratesBackfill: defineTable({
     cursor: v.union(v.string(), v.null()),

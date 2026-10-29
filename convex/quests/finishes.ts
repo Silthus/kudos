@@ -1,6 +1,6 @@
 import { v, type Infer } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
+import { messageRefValidator } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 import { journeyQuestOfRewardKey, weeklyQuestOfRewardKey } from "./crates";
 import { isPaidOnTheMondayPath } from "./mondayCatalogue";
@@ -21,13 +21,6 @@ export function questFinishOf(ctx: QueryCtx, member: MemberId, key: string) {
     .query("questFinishes")
     .withIndex("by_member_key", (q) => q.eq("member", member).eq("key", key))
     .unique();
-}
-
-export function questFinishesCausedBy(ctx: QueryCtx, member: MemberId, { workspace, conversation, message }: MessageRef) {
-  return ctx.db
-    .query("questFinishes")
-    .withIndex("by_member_cause", (q) => q.eq("member", member).eq("cause.workspace", workspace).eq("cause.conversation", conversation).eq("cause.message", message))
-    .collect();
 }
 
 export async function recordQuestFinish(ctx: MutationCtx, finish: QuestFinish): Promise<"recorded" | "already recorded"> {
