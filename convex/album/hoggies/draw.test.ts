@@ -44,4 +44,20 @@ describe("HH39 HH40 HH42: a draw has a cap, and ownership never moves the odds",
     expect(new Set((await drawsOver({ floor: "rare", cap: "rare", weights: "base", owned: new Set(owned) })).map(({ hoggie }) => hoggie)), "owning every rare but one").toEqual(new Set([unowned]));
     expect(new Set((await drawsOver({ floor: "rare", cap: "rare", weights: "base", owned: everyRare })).map(({ hoggie }) => hoggie)), "owning every rare").toEqual(everyRare);
   });
+
+  test("HH41: over 10,000 crate keys, a kudos-weighted draw lands on each rarity within four standard deviations of the kudos weights", async () => {
+    const counts = new Map<Rarity, number>();
+    for (let n = 0; n < 10_000; n++) {
+      const { rarity } = await drawOf({ secret: "kudos-weights", member: "m", crate: `thoughtful:${n}`, version: catalogue.version, weights: "kudos" });
+      counts.set(rarity, (counts.get(rarity) ?? 0) + 1);
+    }
+
+    const shares = Object.fromEntries([...counts].map(([rarity, count]) => [rarity, count / 100]));
+    for (const [rarity, percent] of Object.entries({ common: 50, uncommon: 28, rare: 18, epic: 3.5, legendary: 0.5 })) expect(Math.abs((shares[rarity] ?? 0) - percent), `${rarity}'s share`).toBeLessThanOrEqual(fourStandardDeviationsOf(percent, 10_000));
+  });
 });
+
+function fourStandardDeviationsOf(percent: number, draws: number) {
+  const share = percent / 100;
+  return 4 * Math.sqrt((share * (1 - share)) / draws) * 100;
+}
