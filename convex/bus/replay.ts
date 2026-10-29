@@ -8,13 +8,6 @@ import { subscribers } from "./publish";
 
 export type Replayed = "replayed" | "not failed" | "not a subscriber" | "already replayed";
 
-const sendsItsMessageAgainWhenDeliveredTwice = [
-  internal.welcome.welcome.welcomeOnHug,
-  internal.feedback.coins.tellCoinsOpened,
-  internal.feedback.albumReplies.replyAfterTheGrant,
-  internal.feedback.publicReplies.celebrateLevel,
-].map(getFunctionName);
-
 const finishesTheDeliveryOfASubscriber = [
   internal.album.tallies.tallyHug,
   internal.album.milestones.recordMilestonesOfStickerHolders,
@@ -38,8 +31,7 @@ export const replay = internalMutation({
 
 function replayableSubscribers() {
   return [...Object.values(subscribers).flat().map((subscription) => ("subscriber" in subscription ? subscription.subscriber : subscription)), ...finishesTheDeliveryOfASubscriber]
-    .map(getFunctionName)
-    .filter((name) => !sendsItsMessageAgainWhenDeliveredTwice.includes(name));
+    .map(getFunctionName);
 }
 
 async function wasReplayed(ctx: MutationCtx, job: Id<"_scheduled_functions">) {

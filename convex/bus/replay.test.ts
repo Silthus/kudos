@@ -63,12 +63,9 @@ describe("HH17: a failed subscriber is replayed by hand", () => {
     expect(await t.mutation(internal.bus.replay.replay, { job: failed })).toBe("replayed");
   });
 
-  test.each([
-    ["a function that is no subscriber", internal.feedback.homes.republishAdminsIn],
-    ["a subscriber that sends its message again when delivered twice", internal.welcome.welcome.welcomeOnHug],
-  ])("a failed job of %s is not replayed", async (_, fn) => {
+  test("a failed job of a function that is no subscriber is not replayed", async () => {
     const t = testBackend();
-    const failed = await failedJobOf(t, fn);
+    const failed = await failedJobOf(t, internal.feedback.homes.republishAdminsIn);
 
     expect(await t.mutation(internal.bus.replay.replay, { job: failed })).toBe("not a subscriber");
   });
