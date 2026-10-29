@@ -181,21 +181,23 @@ describe("LP68: the card shows a hug and a kudos as they look in Slack", () => {
     preferReducedMotion();
   });
 
-  it("plays the teammate's message with the member's kudos-emoji reaction and the hug chip, then the member's kudos with its chips, then what the first kudos unlocks", async () => {
+  it("plays the teammate's message with how to hug, the member's kudos-emoji reaction and the hug chip, then the member's kudos with how to give one and its chip, then what the first kudos unlocks", async () => {
     visit([]);
     const card = within(await screen.findByRole("dialog", { name: "How HedgeHug works" }));
 
     expect(card.getByText("How HedgeHug works")).toBeInTheDocument();
     expect(card.getByRole("heading", { name: "Two ways to thank someone" })).toBeInTheDocument();
     const [hug, kudos] = within(card.getByRole("list", { name: "Two Slack messages" })).getAllByRole("listitem");
+    expect(hug).toHaveTextContent("React to any message with 🌮");
     expect(hug).toHaveTextContent("Alex Lee");
     expect(hug).toHaveTextContent("Shipped the fix for the flaky deploy, should be green now.");
     expect(hug).toHaveTextContent("🌮 1");
     expect(hug).toHaveTextContent("Hug · +1 XP each");
+    expect(kudos).toHaveTextContent("Mention someone in a message with 🌮");
     expect(kudos).toHaveTextContent("You");
     expect(kudos).toHaveTextContent("🌮 @Alex Lee thanks for staying on the deploy fix, the release went out on time because of you.");
     expect(kudos).toHaveTextContent("Kudos · +10 XP");
-    expect(kudos).toHaveTextContent("said why · +1 item");
+    expect(card.getByRole("list", { name: "Two Slack messages" })).not.toHaveTextContent(/why|item/);
     expect(card.getByText("Your first kudos takes you to level 2. Items wait here for you to identify.")).toBeInTheDocument();
     expect(card.getByText(/Level 2 unlocks:/).closest("p")).toHaveTextContent("Level 2 unlocks: Leaderboard · 3 items · your next emoji");
   });
@@ -204,7 +206,7 @@ describe("LP68: the card shows a hug and a kudos as they look in Slack", () => {
     visit([], { ...newcomersCard, kudos: { kudosEmoji: "hoggo", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hoggo/1.png" } });
     const card = within(await screen.findByRole("dialog", { name: "How HedgeHug works" }));
 
-    expect(card.getAllByRole("img", { name: ":hoggo:" }).map((picture) => picture.getAttribute("src"))).toEqual(["https://emoji.slack-edge.com/T1/hoggo/1.png", "https://emoji.slack-edge.com/T1/hoggo/1.png"]);
+    expect(card.getAllByRole("img", { name: ":hoggo:" }).map((picture) => picture.getAttribute("src"))).toEqual(Array(4).fill("https://emoji.slack-edge.com/T1/hoggo/1.png"));
   });
 
   it("for a member already at level 2 or above, leaves out the first sentence and the level-2 row", async () => {

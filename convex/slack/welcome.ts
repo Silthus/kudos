@@ -118,18 +118,26 @@ function fallbackOf(opening: MondayWelcomeOpening) {
   }
 }
 
-function noteOf({ opening, waiting }: MondayWelcome, user: string) {
+function noteOf({ opening, waiting, kudosEmoji }: MondayWelcome, user: string) {
   const greeting = `Hey <@${user}> :wave::skin-tone-2:`;
   const waits = waitingHoggiesLineOf(waiting);
   const after = (separator: string) => (waits === null ? "" : `${separator}${waits}`);
   switch (opening.path) {
     case "hug":
-      return `${greeting} Nice, that was your first hug!\n\nA :${opening.emoji}: reaction is a quick thanks, and it just gave you and ${huggedPeopleOf(opening.hugged)} +1 XP. Want to really make someone's day? Thank them in a message and say why.${after("\n\n")}`;
+      return `${greeting} Nice, that was your first hug!\n\nA :${opening.emoji}: reaction is a hug, and it just gave you and ${huggedPeopleOf(opening.hugged)} +1 XP. The other way to thank someone is a kudos: ${howToGiveAKudos(kudosEmoji, "them")}.${after("\n\n")}`;
     case "thoughtful-given":
-      return `${greeting} Your first kudos just landed${recipientsOf(opening.recipients)}, and you said why. That's the one that counts! :tada:\n\nYou just completed the first step of your onboarding journey.${after(" ")}`;
+      return `${greeting} Your first kudos just landed${recipientsOf(opening.recipients)}! :tada: For a quick thanks, give a hug: ${howToHug(kudosEmoji)}.\n\nYou just completed the first step of your onboarding journey.${after(" ")}`;
     case "thoughtful-received":
-      return `${greeting} <@${opening.giver}> just thanked you with a kudos!${opening.quote === null ? "" : `\n> _${escaped(opening.quote)}_`}\n\nFeels good, right? :slightly_smiling_face:${after(" ")} Your first quest is to pass it on.`;
+      return `${greeting} <@${opening.giver}> just thanked you with a kudos!${opening.quote === null ? "" : `\n> _${escaped(opening.quote)}_`}\n\nFeels good, right? :slightly_smiling_face:${after(" ")} Your first quest is to pass it on: ${howToGiveAKudos(kudosEmoji, "someone")}. Or ${howToHug(kudosEmoji)} for a quick hug.`;
   }
+}
+
+function howToGiveAKudos(kudosEmoji: string, whom: "them" | "someone") {
+  return `mention ${whom} in a message with :${kudosEmoji}:`;
+}
+
+function howToHug(kudosEmoji: string) {
+  return `react to any message with :${kudosEmoji}:`;
 }
 
 function huggedPeopleOf(hugged: HuggedPeople) {
