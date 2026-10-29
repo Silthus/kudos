@@ -57,7 +57,7 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
         recipientsStep,
         allowance,
         websiteLine,
-        `<${siteUrl}/|See your progress>`,
+        `<${siteUrl}/?src=welcome|See your progress>`,
         `<${appHome}|Open App Home>`,
       ].join("\n"),
       blocks: [
@@ -70,7 +70,7 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
         {
           type: "actions",
           elements: [
-            { type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${siteUrl}/`, action_id: "welcome-website", style: "primary" },
+            { type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${siteUrl}/?src=welcome`, action_id: "welcome-website", style: "primary" },
             { type: "button", text: { type: "plain_text", text: "Open App Home" }, url: appHome, action_id: "welcome-app-home" },
           ],
         },
@@ -169,7 +169,7 @@ describe("QM8: the welcome's website line and See your progress follow the membe
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
-    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/`);
+    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/?src=welcome`);
     expect(readWelcomeTo("U_ALICE")).toContain(`section: ${websiteLine}`);
   });
 
@@ -180,7 +180,7 @@ describe("QM8: the welcome's website line and See your progress follow the membe
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
-    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/`);
+    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/?src=welcome`);
     expect(readWelcomeTo("U_ALICE")).toContain(`section: ${websiteLine}`);
     expect(websiteButtonOf("U_BOB")).toBeUndefined();
     expect(readWelcomeTo("U_BOB")).not.toContain(`section: ${websiteLine}`);
@@ -194,7 +194,7 @@ describe("QM8: the welcome's website line and See your progress follow the membe
     await post(t, [section(mention("U_ALICE"), emoji("taco"))], { user: "U_BOB" });
     await settleWithOtherSubscribersBehind(t);
 
-    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/`);
+    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/?src=welcome`);
   });
 
   test.each([
