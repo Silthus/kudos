@@ -46,6 +46,13 @@ export async function addCounts(ctx: MutationCtx, landing: Landing, added: Added
   for (const period of periods) await addToPeriod(ctx, landing, period, added);
 }
 
+export async function noteGivingDay(ctx: MutationCtx, { member, day }: Landing) {
+  for (const period of periods) {
+    const row = await periodRowOf(ctx, member, keyOf(period, day));
+    if (row !== null && !(row.firstDay !== undefined && row.firstDay <= day)) await ctx.db.patch(row._id, { firstDay: day });
+  }
+}
+
 export async function totalsOf(ctx: QueryCtx, member: MemberId, period: PeriodKey): Promise<PeriodTotals> {
   const row = await periodRowOf(ctx, member, period);
   return { ...countsOf(row), firstDay: row?.firstDay ?? null };
