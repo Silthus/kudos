@@ -263,23 +263,20 @@ describe("OR1: one private reply after a kudos shows what it gave, the quests it
     expect(items?.endsWith("…"), "the item section ends cut short").toBe(true);
   });
 
-  test("after onboarding, a kudos shows each drawn quest it moved with its bar, and the next one shows the quest it finished with its reward", async () => {
+  test("after onboarding, a kudos shows each drawn quest it finished with its reward and each it moved with its bar", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath, oneReply);
     await finishOnboarding();
 
     await thanks(alice, saysWhy, carol);
+    vi.setSystemTime(Date.now() + dayMs);
     await thanks(alice, saysWhy, bob);
 
-    const [moved, finished] = messagesTo(alice).slice(-2);
-    expect(checklistOf(moved!), "the quests the first kudos moved").toEqual([
-      ":point_right: Thank someone and say why, 3 times  🟩⬜⬜ 1 of 3 kudos",
-      ":point_right: Thank someone and say why on 2 different days  🟩⬜ 1 of 2 days",
-      ":point_right: Thank someone and say why, 2 times  🟩⬜ 1 of 2 kudos",
+    const [first, next] = messagesTo(alice).slice(-2);
+    expect(checklistOf(first!), "the quests the first kudos finished and moved").toEqual([
+      ":white_check_mark: Give a kudos to someone  +20 XP and an unidentified Hoggie",
+      ":point_right: Thank someone on two different days  🟩⬜ 1 of 2 days",
     ]);
-    expect(checklistOf(finished!), "the quests the next kudos finished and moved").toEqual([
-      ":white_check_mark: Thank someone and say why, 2 times  +20 XP and an unidentified Hoggie",
-      ":point_right: Thank someone and say why, 3 times  🟩🟩⬜ 2 of 3 kudos",
-    ]);
+    expect(checklistOf(next!), "the quest the next day's kudos finished").toEqual([":white_check_mark: Thank someone on two different days  +20 XP and an unidentified Hoggie"]);
   });
 
   test("a recipient's name adds no markup to the reply", async () => {

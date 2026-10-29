@@ -282,7 +282,7 @@ function Finds({ album, newest, hoggies }: { album: Album; newest: NewestPerson[
   return (
     <Section title="Coolest finds" more={hoggies !== null && <MoreLink href={hrefOf({ kind: "hoggies", hoggie: null })}>All your hoggies</MoreLink>}>
       {rarest.length === 0 && newest.length === 0 ? (
-        <p className="al-lede">Give a thoughtful kudos and open its pack: your first person and hoggie show here.</p>
+        <p className="al-lede">Give a kudos and open its pack: your first person and hoggie show here.</p>
       ) : (
         <div className="al-profile-finds">
           {rarest.length > 0 && (

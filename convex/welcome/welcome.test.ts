@@ -315,7 +315,7 @@ describe("MQ15 MQ43: off the Monday path, the first hug keeps its reply and send
 
     await hug(bob, alice);
 
-    expect(slack.callsTo("chat.postEphemeral").map(({ text }) => text)).toEqual(["That was a hug: +1 XP for you and Alice Marchetti. Thank them in a message and say why to earn an item."]);
+    expect(slack.callsTo("chat.postEphemeral").map(({ text }) => text)).toEqual(["That was a hug: +1 XP for you and Alice Marchetti. Thank them in a message with :taco: to earn an item."]);
     expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === bob.user)).toEqual([]);
   });
 

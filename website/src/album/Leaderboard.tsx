@@ -80,7 +80,7 @@ function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onCho
         <div className="al-leaderboard-title">
           <p className="al-eyebrow">Leaderboard · kudos given</p>
           <PageTitle tab="Leaderboard" size="hero">
-            Who said thanks, and why
+            Who said thanks
           </PageTitle>
         </div>
         <PeriodSwitch period={period} buttons={periodButtons.current} onChoose={onChoosePeriod} />
@@ -207,7 +207,7 @@ function QuietOffer({ period, onChoose }: { period: BoardPeriod; onChoose: (peri
 }
 
 function nobodyWords(subject: string, { span, past }: PeriodWords) {
-  return past ? `${subject} said thanks with a why${span}.` : `${subject} has said thanks with a why yet${span}.`;
+  return past ? `${subject} gave a kudos${span}.` : `${subject} has given a kudos yet${span}.`;
 }
 
 function nobodyInWords(team: string, { span, past }: PeriodWords) {
@@ -215,7 +215,7 @@ function nobodyInWords(team: string, { span, past }: PeriodWords) {
 }
 
 function quietStandingWords(words: PeriodWords) {
-  return words.past ? notGivenWords("You", words) : `${notGivenWords("You", words)} Thank someone and say why to lead the board.`;
+  return words.past ? notGivenWords("You", words) : `${notGivenWords("You", words)} Give a kudos to lead the board.`;
 }
 
 function notGivenWords(subject: string, { span, past }: PeriodWords) {

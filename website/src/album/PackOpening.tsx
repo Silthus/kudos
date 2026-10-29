@@ -215,7 +215,7 @@ function NoPacks({ onDone }: { onDone: () => void }) {
   return (
     <div className="al-opening-none">
       <h2 className="al-opening-title">No packs waiting</h2>
-      <p>Thank someone in Slack and say why. Each thoughtful kudos earns a pack, one per person a week.</p>
+      <p>Give someone a kudos in Slack. Each kudos earns a pack, one per person a week.</p>
       <button type="button" className="al-opening-button" data-primary="" onClick={onDone} autoFocus>
         Back to the album
       </button>

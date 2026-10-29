@@ -90,7 +90,7 @@ describe("every album place has one shareable address", () => {
 
     it("the brand and the member's face link to the member's own page URL", async () => {
       visit("/leaderboard");
-      await expectToLand({ address: "/leaderboard", title: "Who said thanks, and why" });
+      await expectToLand({ address: "/leaderboard", title: "Who said thanks" });
 
       expect(screen.getByRole("link", { name: "HedgeHug" })).toHaveAttribute("href", myPage);
       expect(screen.getByRole("link", { name: "Your profile, Sam Example" })).toHaveAttribute("href", myPage);
@@ -113,10 +113,10 @@ describe("every album place has one shareable address", () => {
       ["/book#hoggies", "Hoggies"],
       ["/book#milestones", "Milestones"],
       ["/book#level-up/7", "Level 7"],
-      ["/leaderboard", "Who said thanks, and why"],
-      ["/leaderboard?period=last-week", "Who said thanks, and why"],
-      ["/leaderboard?period=month", "Who said thanks, and why"],
-      ["/leaderboard?period=all", "Who said thanks, and why"],
+      ["/leaderboard", "Who said thanks"],
+      ["/leaderboard?period=last-week", "Who said thanks"],
+      ["/leaderboard?period=month", "Who said thanks"],
+      ["/leaderboard?period=all", "Who said thanks"],
       ["/activity", "Weekly edition"],
       ["/activity?week=2026-09-28", "Weekly edition"],
       ["/settings", "Settings"],
@@ -128,7 +128,7 @@ describe("every album place has one shareable address", () => {
 
     it("a period in the URL opens the Leaderboard on that period", async () => {
       const { boardsAsked } = visit("/leaderboard?period=month");
-      await expectToLand({ address: "/leaderboard?period=month", title: "Who said thanks, and why" });
+      await expectToLand({ address: "/leaderboard?period=month", title: "Who said thanks" });
 
       expect(within(screen.getByRole("group", { name: "Period" })).getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true");
       expect(boardsAsked).not.toContain("week");
@@ -136,7 +136,7 @@ describe("every album place has one shareable address", () => {
 
     it("choosing a period puts it in the URL without a history entry, and This week takes it out", async () => {
       const { user } = visit("/leaderboard");
-      await expectToLand({ address: "/leaderboard", title: "Who said thanks, and why" });
+      await expectToLand({ address: "/leaderboard", title: "Who said thanks" });
       const entries = window.history.length;
       const periods = within(screen.getByRole("group", { name: "Period" }));
 
@@ -151,12 +151,12 @@ describe("every album place has one shareable address", () => {
 
     it("an old Leaderboard link with a period keeps its period", async () => {
       visit("/sign-in/leaderboard?period=month&crate=leaderboard");
-      await expectToLand({ address: "/leaderboard?period=month", title: "Who said thanks, and why" });
+      await expectToLand({ address: "/leaderboard?period=month", title: "Who said thanks" });
     });
 
     it("a period the board doesn't know lands on this week", async () => {
       visit("/leaderboard?period=decade");
-      await expectToLand({ address: "/leaderboard", title: "Who said thanks, and why" });
+      await expectToLand({ address: "/leaderboard", title: "Who said thanks" });
     });
 
     it("a week in the URL opens Activity on that week's issue", async () => {
@@ -208,13 +208,13 @@ describe("every album place has one shareable address", () => {
 
     it("Back from a chosen period to another page and forward again keeps the period", async () => {
       const { user } = visit("/leaderboard?period=all");
-      await expectToLand({ address: "/leaderboard?period=all", title: "Who said thanks, and why" });
+      await expectToLand({ address: "/leaderboard?period=all", title: "Who said thanks" });
 
       await user.click(screen.getByRole("link", { name: "Your profile, Sam Example" }));
       await expectMyOwnPage();
       act(() => window.history.back());
 
-      await expectToLand({ address: "/leaderboard?period=all", title: "Who said thanks, and why" });
+      await expectToLand({ address: "/leaderboard?period=all", title: "Who said thanks" });
     });
   });
 
