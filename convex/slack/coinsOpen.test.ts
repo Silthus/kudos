@@ -7,7 +7,6 @@ import { deliverAgain, react, settle, settleInTimeOrder, testBackend, type Backe
 import { blockActions, buttonIn, publishedHome, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import { replyPrivately, type Given } from "../feedback/replies";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 
@@ -26,8 +25,6 @@ const xpAndUnlocksOn = [onForEveryone("xp-levels"), onForEveryone("unlocks")];
 const previewedByAlice = [...xpAndUnlocksOn, onForEmails(coins, alicesEmail)];
 const offForEveryoneElse = [...xpAndUnlocksOn, offForEveryone(coins)];
 const notCreated = xpAndUnlocksOn;
-const unsentMessage = { workspace: "T1", conversation: "C1", message: "1760349999.000100" };
-const givenToBob: Given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
