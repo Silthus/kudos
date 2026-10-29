@@ -43,8 +43,10 @@ export async function countGiven(ctx: MutationCtx, given: GivenMessage) {
   return true;
 }
 
-async function countReceived(ctx: MutationCtx, { workspace, at }: KudosGivenEvent, { award, recipient, kudos }: AwardWithId) {
-  if (await countOnce(ctx, workspace, countedKeys.kudosReceived(award))) await addCounts(ctx, await landingAt(ctx, workspace, recipient, at), { kudosReceived: kudos });
+export async function countReceived(ctx: MutationCtx, { workspace, at }: Pick<KudosGivenEvent, "workspace" | "at">, { award, recipient, kudos }: AwardWithId) {
+  if (!(await countOnce(ctx, workspace, countedKeys.kudosReceived(award)))) return false;
+  await addCounts(ctx, await landingAt(ctx, workspace, recipient, at), { kudosReceived: kudos });
+  return true;
 }
 
 export const everyoneBoard = internalQuery({
