@@ -1,7 +1,7 @@
-import { hoggiesOfRarity, packBands, rarities, type CatalogueHoggie, type Rarity } from "./catalogue";
+import { hoggiesOfRarity, packBands, rarities, weightsNamed, type CatalogueHoggie, type Rarity, type WeightsName } from "./catalogue";
 import { kindOf, type CrateKey } from "./crateKey";
 
-export type DrawInput = { secret: string; member: string; crate: string; version: number; floor?: Rarity; owned?: ReadonlySet<string> };
+export type DrawInput = { secret: string; member: string; crate: string; version: number; floor?: Rarity; cap?: Rarity; weights?: WeightsName; owned?: ReadonlySet<string> };
 
 export type Drawn = { rarity: Rarity; hoggie: string };
 
@@ -11,9 +11,10 @@ export type PackDrawInput = { secret: string; member: string; crate: CrateKey };
 
 export type PackBonus = { xp: number; coins: number };
 
-export async function drawOf({ secret, member, crate, version, floor = "common", owned = new Set() }: DrawInput): Promise<Drawn> {
+export async function drawOf({ secret, member, crate, version, floor = "common", cap = "legendary", weights, owned = new Set() }: DrawInput): Promise<Drawn> {
   const digest = await digestOf(`${secret}:${member}:${crate}:${version}`);
-  const { rarity, hoggies } = poolAt(fractionAt(digest, 0), poolsFrom(floor, owned));
+  const pools = poolsBetween(floor, cap, weights);
+  const { rarity, hoggies } = weights === undefined ? poolAt(fractionAt(digest, 0), skippingOwnedRarities(pools, owned)) : preferringUnowned(poolAt(fractionAt(digest, 0), pools), owned);
   return { rarity, hoggie: hoggies[pickAt(digest, 4, hoggies.length)]!.hoggie };
 }
 
@@ -46,10 +47,26 @@ function fractionAt(digest: DataView, offset: number) {
   return digest.getUint32(offset) / 2 ** 32;
 }
 
-function poolsFrom(floor: Rarity, owned: ReadonlySet<string>): Pool[] {
-  const every = rarities.slice(rarities.findIndex(({ rarity }) => rarity === floor)).map(({ rarity, weight }) => ({ rarity, weight, hoggies: hoggiesOfRarity(rarity) }));
-  const unowned = every.map((pool) => ({ ...pool, hoggies: pool.hoggies.filter(({ hoggie }) => !owned.has(hoggie)) })).filter(({ hoggies }) => hoggies.length > 0);
-  return unowned.length > 0 ? unowned : every;
+function poolsBetween(floor: Rarity, cap: Rarity, weights: WeightsName = "base"): Pool[] {
+  return weightsNamed[weights].filter(({ rarity }) => rankOf(rarity) >= rankOf(floor) && rankOf(rarity) <= rankOf(cap)).map(({ rarity, weight }) => ({ rarity, weight, hoggies: hoggiesOfRarity(rarity) }));
+}
+
+function rankOf(rarity: Rarity) {
+  return rarities.findIndex((entry) => entry.rarity === rarity);
+}
+
+function skippingOwnedRarities(pools: Pool[], owned: ReadonlySet<string>): Pool[] {
+  const unowned = pools.map((pool) => withoutOwned(pool, owned)).filter(({ hoggies }) => hoggies.length > 0);
+  return unowned.length > 0 ? unowned : pools;
+}
+
+function preferringUnowned(pool: Pool, owned: ReadonlySet<string>): Pool {
+  const unowned = withoutOwned(pool, owned);
+  return unowned.hoggies.length > 0 ? unowned : pool;
+}
+
+function withoutOwned(pool: Pool, owned: ReadonlySet<string>): Pool {
+  return { ...pool, hoggies: pool.hoggies.filter(({ hoggie }) => !owned.has(hoggie)) };
 }
 
 function poolAt(fraction: number, pools: Pool[]): Pool {
