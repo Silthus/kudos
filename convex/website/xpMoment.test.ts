@@ -719,18 +719,20 @@ describe("LP107: a quest or milestone that progressed since the last visit gets 
     expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
   });
 
-  test("HH9: a short kudos tallied before HH9 shipped leaves the kudos milestone where it counted, and a short kudos since moves it on", async () => {
+  test("HH9: the kudos milestone moves by what its count took in: a thoughtful kudos tallied before HH9, not a short one, and a short kudos since", async () => {
     await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "progress-beats");
     await thanks(alice, bob);
     const asAlice = await aReturningMember(alice);
+    await thanks(alice, carol);
+    await asTalliedBeforeHH9(alice, { counted: true });
     later();
     await kudosSentAt(Date.now(), "ty", alice, bob);
-    await asTalliedBeforeHH9(alice);
+    await asTalliedBeforeHH9(alice, { counted: false });
     later();
 
     await kudosSentAt(Date.now(), "ty", alice, carol);
 
-    expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 2, of: 25 }]);
+    expect((await theMomentOf(asAlice)).progressed).toEqual([{ kind: "milestone", name: "Generous soul", from: 1, to: 3, of: 25 }]);
   });
 
   test("a kudos sent before the last visit and decided after it moves the drawn quests and the milestone since the visit", async () => {
@@ -947,11 +949,12 @@ async function thanksSentAt(at: number, giver: Person, ...recipients: Person[]) 
   return kudosSentAt(at, why, giver, ...recipients);
 }
 
-async function asTalliedBeforeHH9(giver: Person) {
+async function asTalliedBeforeHH9(giver: Person, { counted }: { counted: boolean }) {
   await t.run(async (ctx) => {
-    const member = (await ctx.db.query("members").collect()).find(({ user }) => user === giver.user)!;
     const newest = (await ctx.db.query("talliedAwards").order("desc").first())!;
     await ctx.db.replace(newest._id, { award: newest.award });
+    if (counted) return;
+    const member = (await ctx.db.query("members").collect()).find(({ user }) => user === giver.user)!;
     const week = (await ctx.db.query("weekTallies").withIndex("by_member_week", (q) => q.eq("member", member._id)).order("desc").first())!;
     await ctx.db.patch(week._id, { thoughtfulGiven: week.thoughtfulGiven - 1 });
   });
