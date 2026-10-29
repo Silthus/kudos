@@ -6,7 +6,7 @@ import type { CrateKey } from "./hoggies/crateKey";
 import { dropFor, droppedIn, foundIn, type Drop } from "./hoggies/drops";
 import { crestsShownTo } from "./hoggies/flag";
 import { hiddenItemsShownTo } from "./items/flag";
-import { earnItem, markTurned } from "./items/ledger";
+import { earnedItemOf, earnItem, markTurned } from "./items/ledger";
 import type { MemberId } from "../workspace/directory";
 
 export const levelUpRevealFlag = { key: "level-up-reveal", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -21,8 +21,15 @@ export type LevelUp = { workspace: string; member: MemberId; level: number; at: 
 
 export const earnLevelUpHoggies = internalMutation({
   args: { event: levelReachedEventValidator },
-  handler: (ctx, { event: { workspace, member, level, at } }) => dropLevelUpHoggies(ctx, { workspace, member, level, at }),
+  handler: async (ctx, { event: { workspace, member, level, at } }) => {
+    if (await levelUpEarned(ctx, member, level)) return;
+    await dropLevelUpHoggies(ctx, { workspace, member, level, at });
+  },
 });
+
+async function levelUpEarned(ctx: QueryCtx, member: MemberId, level: number): Promise<boolean> {
+  return (await earnedItemOf(ctx, member, "hoggie", levelUpCrateKeyOf(level, 1))) !== null;
+}
 
 export async function dropLevelUpHoggies(ctx: MutationCtx, levelUp: LevelUp): Promise<void> {
   await earnLevelUpItems(ctx, levelUp);

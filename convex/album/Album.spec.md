@@ -431,6 +431,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   refuted: the level up's third crate drew among every rarity, with no rare floor -> over twenty level ups, level 4's third find was common (2026-10-20)
   refuted: the level up no longer returned before the old drop while hidden-items is on -> 1 of 8 tests failed: with hidden-items on, level 3 dropped its three crates (2026-10-21)
   refuted: Album's levelReached follower drew the third crate with no rare floor -> 1 of 8 tests failed: over twenty level ups, a third find was below rare (2026-10-29)
+  refuted: Album's levelReached follower dropped the hoggies again on a replay whose items were earned -> 1 of 9 tests failed: a level up first delivered while level-up-reveal was off dropped three hoggies when replayed after it turned on (2026-10-29)
   because: the product owner asked, 2026-10-20, that leveling up hand out three finds, one rare or rarer; a replay that dropped again would hand out extra finds, and a pack bonus on these would add XP that could level the member up again from inside their own level up
   kinds: storage, state
   checklist: scoped-reads dismissed: the drops are the member's own, written for the member the level up names

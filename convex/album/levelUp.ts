@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import type { Drop } from "./hoggies/drops";
+import { hoggiesShownTo } from "./hoggies/flag";
 import { hiddenItemsShownTo } from "./items/flag";
 import { levelUpHoggiesOf, levelUpRevealOnFor } from "./levelUpHoggies";
 import { levelUpAt, levelUpBefore } from "../unlocks/levelUps";
@@ -23,6 +24,6 @@ export async function levelUpRevealOf(ctx: QueryCtx, owner: PageOwner, level: nu
   return { kind: "levelUp", level, at, hoggies, emojis: await levelEmojisEarnedIn(ctx, owner, { above, upTo: level, at }) };
 }
 
-export async function levelUpRevealedTo(ctx: QueryCtx, member: MemberId, level: number): Promise<boolean> {
-  return (await levelUpRevealShownTo(ctx, member)) && (await levelUpHoggiesOf(ctx, member, level)).length > 0;
+export async function levelUpsRevealHoggiesTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await levelUpRevealShownTo(ctx, member)) && (await hoggiesShownTo(ctx, member));
 }

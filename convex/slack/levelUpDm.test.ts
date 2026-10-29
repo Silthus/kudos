@@ -153,6 +153,19 @@ describe("the level-up DM links to its reveal while its hoggies dropped", () => 
     expect(levelUpDms()).toEqual([{ channel: "U_ALICE", text: `🎉 You reached level 2!\nLevel 3 is 80 XP away.\n<${siteUrl}/book#level-up/2|Reveal your three new hoggies>` }]);
   });
 
+  test("a level-up DM read before Album has dropped the level's hoggies still links to their reveal", async () => {
+    const t = await websiteWorkspaceWith(...revealOn);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    const alice = await memberOf(t, "U_ALICE");
+    await t.run(async (ctx) => {
+      for (const drop of await ctx.db.query("drops").withIndex("by_member", (q) => q.eq("member", alice)).collect()) await ctx.db.delete(drop._id);
+    });
+
+    const lines = await t.query(internal.feedback.notify.linesStillWanted, { member: alice, notification: { kind: "level-reached", level: 2, skillPoints: 0, xpToNextLevel: 80, ready: [] } });
+
+    expect(lines, "the DM's lines while the drops have not committed").toContainEqual({ link: { url: `${siteUrl}/book#level-up/2`, label: "Reveal your three new hoggies" } });
+  });
+
   test.each([
     ["level-up-reveal is off", revealOn.filter((flag) => flag !== "level-up-reveal")],
     ["collection is off, so nothing dropped", revealOn.filter((flag) => flag !== "collection")],
