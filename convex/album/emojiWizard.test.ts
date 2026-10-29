@@ -401,6 +401,35 @@ describe("AL80: behind admin-hype-emojis, the maintainer lists every current mem
     expect(await emojiWithId(await signedIn(bruno), `hype:${await memberOf(alice)}`)).toMatchObject({ name: "alice-wave", inSlack: true });
   });
 
+  test("an unnamed row stays not mapped though Slack has an emoji under its name, until the maintainer maps that emoji to it", async () => {
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    await slackHas("alice-marchetti-hype");
+    const asOwner = await signedIn(owner);
+
+    const unnamed = emojiNamed(await appEmojisOf(asOwner), "alice-marchetti-hype");
+    expect(unnamed.slack, "before the mapping").toBeNull();
+    expect(await asOwner.mutation(api.website.emojiMappings.mapSlackEmoji, { emoji: "alice-marchetti-hype", to: unnamed.place })).toEqual({ kind: "mapped" });
+
+    expect(emojiNamed(await appEmojisOf(asOwner), "alice-marchetti-hype").slack, "after the mapping").toEqual({ image: slackPicture("alice-marchetti-hype"), setBy: { by: "maintainer", name: owner.name } });
+  });
+
+  test("an unnamed row shows the name the member's first thoughtful kudos gives their hype emoji, a name without Latin letters included", async () => {
+    const lei = { user: "U_LI_LEI", name: "李雷" };
+    slack.withMember(lei.user, { profile: { display_name: lei.name, real_name: lei.name } });
+    await memberChanged(t, "team_join", slackUser(lei));
+    await settle(t);
+    await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
+    const listed = (await appEmojisOf(await signedIn(owner))).emojis;
+    const shownFor = (someone: Person) => listed.find(({ kind, from }) => kind === "hype" && from === someone.name)?.name;
+    const shown = { alice: shownFor(alice), lei: shownFor(lei) };
+
+    await collects(bruno, alice, lei);
+
+    const asBruno = await signedIn(bruno);
+    expect((await emojiWithId(asBruno, `hype:${await memberOf(alice)}`))?.name, alice.name).toBe(shown.alice);
+    expect((await emojiWithId(asBruno, `hype:${await memberOf(lei)}`))?.name, lei.name).toBe(shown.lei);
+  });
+
   test("a former member's hype emoji stays off the list, named or not", async () => {
     await switchWebsite(t, postHog, true, ...wizardOpen, "admin-hype-emojis");
     await aliceCollects(lanterns[0]!);

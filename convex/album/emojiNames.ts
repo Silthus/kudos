@@ -27,8 +27,7 @@ export async function nameHypeEmojiOf(ctx: MutationCtx, workspace: string, perso
 }
 
 export function hypeEmojiNameFor(fullName: string): string {
-  const { slug, empty, suffix } = hypeNameShapeOf(fullName);
-  return `${slug === "" ? empty : slug}${suffix}`;
+  return firstCandidateOf(hypeNameShapeOf(fullName));
 }
 
 function hypeNameShapeOf(fullName: string): NameShape {
@@ -240,9 +239,14 @@ async function allocate(ctx: MutationCtx, workspace: string, emoji: EarnedEmojiI
 
 type AlsoTaken = (name: string) => Promise<boolean>;
 
-async function firstFreeName(ctx: MutationCtx, workspace: string, { slug, empty, suffix }: NameShape, alsoTaken: AlsoTaken = async () => false): Promise<string> {
+function firstCandidateOf({ slug, empty, suffix }: NameShape): string {
+  return slug === "" ? `${empty}-1${suffix}` : `${slug}${suffix}`;
+}
+
+async function firstFreeName(ctx: MutationCtx, workspace: string, shape: NameShape, alsoTaken: AlsoTaken = async () => false): Promise<string> {
+  const { slug, empty, suffix } = shape;
   const isFreeHere = async (name: string) => (await isFree(ctx, workspace, name)) && !(await alsoTaken(name));
-  const plain = `${slug}${suffix}`;
+  const plain = firstCandidateOf(shape);
   if (slug !== "" && (await isFreeHere(plain))) return plain;
   const stem = slug === "" ? empty : slug;
   const numbering = await numberingOf(ctx, workspace, `${stem}${suffix}`);
