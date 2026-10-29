@@ -153,6 +153,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   via: the level-up DM links to its reveal while its hoggies dropped
   refuted: levelUpRevealedTo checked only that the level up's crates dropped, not whether `album` and `level-up-reveal` show to the member -> the DM of a member with `album` off and a DM held back while `level-up-reveal` went off linked to the page, 2 of 5 tests red (2026-10-20)
   refuted: levelUpRevealShownTo no longer read hidden-items -> 1 of 7 tests failed: a DM held back while hidden-items went on linked to the reveal page instead of the album (2026-10-21)
+  refuted: the DM's link again required a drop record of the member -> 1 of 8 tests failed when run alone: a DM read before the follower dropped its finds linked to the member's level instead of the reveal (2026-10-29)
   because: the product owner decided, 2026-10-20, that the Slack link is the only way onto a level up's page for now, so the DM links there only when the page has finds to show and is open to the member, and every other member keeps today's link
   crossing: slack-request -> domain
   entrances: route POST /slack/events
