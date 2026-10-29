@@ -10,11 +10,18 @@ export async function levelFirstReachedAt(ctx: QueryCtx, member: MemberId, level
 }
 
 export async function levelUpAt(ctx: QueryCtx, member: MemberId, level: number): Promise<number | null> {
-  const reached = await ctx.db
+  return (await levelUpRowOf(ctx, member, level))?.at ?? null;
+}
+
+export async function levelUpRecordedAt(ctx: QueryCtx, member: MemberId, level: number): Promise<number | null> {
+  return (await levelUpRowOf(ctx, member, level))?._creationTime ?? null;
+}
+
+function levelUpRowOf(ctx: QueryCtx, member: MemberId, level: number) {
+  return ctx.db
     .query("levelUps")
     .withIndex("by_member_level", (q) => q.eq("member", member).eq("level", level))
     .first();
-  return reached?.at ?? null;
 }
 
 export async function levelUpBefore(ctx: QueryCtx, member: MemberId, level: number): Promise<number> {
