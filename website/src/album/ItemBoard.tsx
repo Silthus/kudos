@@ -150,7 +150,7 @@ export function NewLabel() {
 function LoopLine({ lesson: { kudosEmoji, kudosEmojiImage } }: { lesson: LoopLesson }) {
   return (
     <p role="note" aria-label="How the next item comes" className="ib-loop">
-      Your next item comes when you thank a teammate with <NamedEmoji name={kudosEmoji} image={kudosEmojiImage ?? undefined} /> and say why.
+      Your next item comes when you thank a teammate with <NamedEmoji name={kudosEmoji} image={kudosEmojiImage ?? undefined} /> in a message.
     </p>
   );
 }

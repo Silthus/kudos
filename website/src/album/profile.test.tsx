@@ -176,7 +176,7 @@ describe("AL52: the profile page shows you, your week and your album at a glance
   it("coolest finds say how to make the first one while you have none", async () => {
     visit({ album: albumFixtures.newcomer, profile: profileFixtures.quiet, hoggies: hoggiesFixtures.newcomer });
 
-    expect((await section("Coolest finds")).getByText("Give a thoughtful kudos and open its pack: your first person and hoggie show here.")).toBeInTheDocument();
+    expect((await section("Coolest finds")).getByText("Give a kudos and open its pack: your first person and hoggie show here.")).toBeInTheDocument();
   });
 
   it("best milestones show your highest medals, newest first within a metal, and the one you're closest to next", async () => {

@@ -146,7 +146,7 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
 
     const panel = await issue();
     expect(tallies(panel)).toEqual(["people you thanked | 0 | 0 kudos", "thanked you | 0 | 0 kudos", "packs opened | 0 | no new faces", "hugs | 0 | 0 given · 0 received"]);
-    expect(panel.getByText("A quiet week. Thank someone in Slack and say why, and it shows here.")).toBeInTheDocument();
+    expect(panel.getByText("A quiet week. Give someone a kudos in Slack, and it shows here.")).toBeInTheDocument();
     expect(panel.queryByRole("region")).not.toBeInTheDocument();
   });
 
@@ -197,7 +197,7 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(lead.queryByRole("link")).not.toBeInTheDocument();
     expect(saidLines(section("Everyone else you thanked"))).toEqual(["Ada Quill · Tue | Thanks for the warm welcome on my first day."]);
     expect(screen.queryByRole("region", { name: "Said to you" })).not.toBeInTheDocument();
-    expect(section("New in your album").getByText("No new faces this week. A thoughtful kudos to someone new brings their card.")).toBeInTheDocument();
+    expect(section("New in your album").getByText("No new faces this week. A kudos to someone new brings their card.")).toBeInTheDocument();
   });
 
   it("a member with no week yet gets no tabs and no issue, and is told when the first one comes", async () => {

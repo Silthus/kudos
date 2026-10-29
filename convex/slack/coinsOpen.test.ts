@@ -90,7 +90,7 @@ describe("CO13 CO16 CO17 CO18 CO26: coins previewed by one member's email", { ti
     await hugBobsMessage(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", buttonIn(blocksOf(levelUpDmTo("U_ALICE", 6)), "Open"), { inMessage: { channel: "U_ALICE", ts: "1760349700.000100" } }));
 
-    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins are open. You earn 🪙 when you thank someone and say why.");
+    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins are open. You earn 🪙 when you give a kudos.");
     expect(await walletOf(t, "U_ALICE")).toEqual({ balance: 0 });
   });
 

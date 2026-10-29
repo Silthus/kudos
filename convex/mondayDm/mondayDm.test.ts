@@ -23,11 +23,12 @@ const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
 const alicesEmail = "alice@example.com";
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
+const dave = { user: "U_DAVE", name: "Dave Achterberg" };
 const saysWhy = "thanks for untangling the flaky migration today";
 const todaysFlags = ["xp-levels", "album", "collection", "packs", "hidden-items", "onboarding", "hugs", "message-settings"];
 const mondayPath = [...todaysFlags, "monday-quest"];
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
-const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
+const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teammate with :taco:, earns much more XP.";
 const sendMondayDm = "slack/mondayDm:sendMondayDm";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
 const welcomeOnFirstThanks = "welcome/welcome:welcomeOnFirstThanks";
@@ -83,6 +84,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
 
   test("a member whose onboarding is done and who had no hugs gets this week's three drawn quests, drawn at the DM's start", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
     await finishOnboarding(alice);
 
     await mondayArrives();
@@ -97,6 +99,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
 
   test("with the website closed to the member, the DM counts no waiting hoggies it can't link to", async () => {
     await switchWebsite(t, postHog, false, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
     await finishOnboarding(alice);
 
     await mondayArrives();
@@ -595,6 +598,11 @@ async function welcomeLost(person: Person) {
       .unique();
     await ctx.db.delete(welcome!._id);
   });
+}
+
+async function aTeammateNotThankedYet(person: Person) {
+  slack.withMember(person.user, { real_name: person.name });
+  await memberChanged(t, "team_join", { id: person.user, profile: { real_name: person.name } });
 }
 
 async function finishOnboarding(person: Person) {
