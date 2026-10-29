@@ -56,27 +56,27 @@ function spokenTextOf(element: Element): string {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
-describe("AL49: the Leaderboard shows people and teams side by side by thoughtful kudos in the period picked", { timeout: 30_000 }, () => {
+describe("AL49: the Leaderboard shows people and teams side by side by kudos in the period picked", { timeout: 30_000 }, () => {
   it("ranks the givers and the teams in their own boards, ties sharing a rank", async () => {
     visit();
 
     expect(await screen.findByRole("heading", { level: 1, name: "Who said thanks, and why" }, arrival)).toBeInTheDocument();
     expect(rowsOf(await board("People"))).toEqual([
-      "Rank 1: Wren Alder Kettle Works 6 thoughtful kudos",
-      "Rank 2: Ines Okafor Lanterns, Kettle Works 5 thoughtful kudos",
-      "Rank 3, tied: Fen Marlowe Paper Moons 4 thoughtful kudos",
-      "Rank 3, tied: Perrin Holt Quiet Harbour 4 thoughtful kudos",
-      "Rank 5: Sam Example You Lanterns 3 thoughtful kudos",
-      "Rank 6: Oren Pike Salt and Sparrow 2 thoughtful kudos",
-      "Rank 7: Della Crane Brass Tidings 1 thoughtful kudos",
+      "Rank 1: Wren Alder Kettle Works 6 kudos",
+      "Rank 2: Ines Okafor Lanterns, Kettle Works 5 kudos",
+      "Rank 3, tied: Fen Marlowe Paper Moons 4 kudos",
+      "Rank 3, tied: Perrin Holt Quiet Harbour 4 kudos",
+      "Rank 5: Sam Example You Lanterns 3 kudos",
+      "Rank 6: Oren Pike Salt and Sparrow 2 kudos",
+      "Rank 7: Della Crane Brass Tidings 1 kudos",
     ]);
     expect(rowsOf(await board("Teams"))).toEqual([
-      "Rank 1: Kettle Works Who gave 11 thoughtful kudos",
-      "Rank 2: Lanterns Your team Who gave 8 thoughtful kudos",
-      "Rank 3, tied: Paper Moons Who gave 4 thoughtful kudos",
-      "Rank 3, tied: Quiet Harbour Who gave 4 thoughtful kudos",
-      "Rank 5: Salt and Sparrow Who gave 2 thoughtful kudos",
-      "Rank 6: Brass Tidings Who gave 1 thoughtful kudos",
+      "Rank 1: Kettle Works Who gave 11 kudos",
+      "Rank 2: Lanterns Your team Who gave 8 kudos",
+      "Rank 3, tied: Paper Moons Who gave 4 kudos",
+      "Rank 3, tied: Quiet Harbour Who gave 4 kudos",
+      "Rank 5: Salt and Sparrow Who gave 2 kudos",
+      "Rank 6: Brass Tidings Who gave 1 kudos",
     ]);
   });
 
@@ -90,13 +90,13 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     await user.click(more);
 
     expect(rowsOf(teams).slice(6)).toEqual([
-      "Not ranked: Amber Ledger Who gave 0 thoughtful kudos",
-      "Not ranked: Copper Kite Who gave 0 thoughtful kudos",
-      "Not ranked: Glass Meadow Who gave 0 thoughtful kudos",
-      "Not ranked: Nimble Lantern Who gave 0 thoughtful kudos",
-      "Not ranked: Tin Orchard Who gave 0 thoughtful kudos",
-      "Not ranked: Velvet Signal Who gave 0 thoughtful kudos",
-      "Not ranked: Willow Desk Who gave 0 thoughtful kudos",
+      "Not ranked: Amber Ledger Who gave 0 kudos",
+      "Not ranked: Copper Kite Who gave 0 kudos",
+      "Not ranked: Glass Meadow Who gave 0 kudos",
+      "Not ranked: Nimble Lantern Who gave 0 kudos",
+      "Not ranked: Tin Orchard Who gave 0 kudos",
+      "Not ranked: Velvet Signal Who gave 0 kudos",
+      "Not ranked: Willow Desk Who gave 0 kudos",
     ]);
     const fewer = teams.getByRole("button", { name: "Hide the 7 teams with nothing yet" });
     expect(fewer).toHaveAttribute("aria-expanded", "true");
@@ -116,11 +116,18 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     expect(teams.queryAllByRole("listitem"), "a quiet board starts folded").toHaveLength(0);
     fireEvent.click(teams.getByRole("button", { name: `${albumFixtures.teamless.teams.length} more teams with nothing yet` }));
     expect(rowsOf(teams)).toHaveLength(albumFixtures.teamless.teams.length);
-    expect(rowsOf(teams)[0]).toBe("Not ranked: Amber Ledger Who gave 0 thoughtful kudos");
+    expect(rowsOf(teams)[0]).toBe("Not ranked: Amber Ledger Who gave 0 kudos");
     expect(teams.queryByText("Your team")).not.toBeInTheDocument();
     const find = teams.getByRole("link", { name: "Find yourself on posthog.com" });
     expect(find).toHaveAttribute("href", "/settings?section=company-profile");
-    expect(find.closest("p")).toHaveTextContent("Your thoughtful kudos count for your team once you're matched to your profile. Find yourself on posthog.com");
+    expect(find.closest("p")).toHaveTextContent("Your kudos count for your team once you're matched to your profile. Find yourself on posthog.com");
+  });
+
+  it("HH6: says that only kudos count, never that a kudos has to say why", async () => {
+    visit();
+
+    await board("People");
+    expect(screen.getByRole("region", { name: "How it counts" })).toHaveTextContent("Only kudos count. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.");
   });
 
   it("names who leads each board and where the member and their team stand", async () => {
@@ -128,7 +135,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
     const people = await board("People");
     expect(people.getByText("Wren Alder leads with 6.")).toBeInTheDocument();
-    expect(people.getByText("25 thoughtful kudos given this week. You're No. 5 with 3.")).toBeInTheDocument();
+    expect(people.getByText("25 kudos given this week. You're No. 5 with 3.")).toBeInTheDocument();
     const teams = await board("Teams");
     expect(teams.getByText("Kettle Works leads with 11.")).toBeInTheDocument();
     expect(teams.getByText("Lanterns sits at No. 2.")).toBeInTheDocument();
@@ -169,17 +176,17 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
     const teams = await board("Teams");
     const mine = teams.getAllByText("Your team").map((tag) => spokenTextOf(tag.closest("li")!));
-    expect(mine).toEqual(["Rank 2: Lanterns Your team Who gave 8 thoughtful kudos", "Rank 5: Tin Orchard Your team Who gave 3 thoughtful kudos"]);
+    expect(mine).toEqual(["Rank 2: Lanterns Your team Who gave 8 kudos", "Rank 5: Tin Orchard Your team Who gave 3 kudos"]);
     expect(teams.getByText("Lanterns sits at No. 2. Tin Orchard sits at No. 5.")).toBeInTheDocument();
-    expect(spokenTextOf((await board("People")).getByText("Sam Example").closest("li")!)).toBe("Rank 5: Sam Example You Lanterns, Tin Orchard 3 thoughtful kudos");
+    expect(spokenTextOf((await board("People")).getByText("Sam Example").closest("li")!)).toBe("Rank 5: Sam Example You Lanterns, Tin Orchard 3 kudos");
   });
 
   it("pins one row per board, the member's own and their home team's, so two stuck rows never cover each other", async () => {
     visit(boardsFixtures.twoTeams);
 
     const pinnedIn = async (name: "People" | "Teams") => (await board(name)).getAllByRole("listitem").filter((row) => row.hasAttribute("data-pinned")).map(spokenTextOf);
-    expect(await pinnedIn("People")).toEqual(["Rank 5: Sam Example You Lanterns, Tin Orchard 3 thoughtful kudos"]);
-    expect(await pinnedIn("Teams")).toEqual(["Rank 2: Lanterns Your team Who gave 8 thoughtful kudos"]);
+    expect(await pinnedIn("People")).toEqual(["Rank 5: Sam Example You Lanterns, Tin Orchard 3 kudos"]);
+    expect(await pinnedIn("Teams")).toEqual(["Rank 2: Lanterns Your team Who gave 8 kudos"]);
   });
 
   it("clears focus past the stuck row by its height, and by nothing once the member's row leaves the board", async () => {
@@ -213,11 +220,11 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     const people = await board("People");
     expect(people.getByText("Nobody has said thanks with a why yet this week.")).toBeInTheDocument();
     expect(people.getByText("You haven't given one yet. Thank someone and say why to lead the board.")).toBeInTheDocument();
-    expect(rowsOf(people)).toEqual(["Not ranked: Sam Example You Lanterns, Tin Orchard 0 thoughtful kudos"]);
+    expect(rowsOf(people)).toEqual(["Not ranked: Sam Example You Lanterns, Tin Orchard 0 kudos"]);
     const teams = await board("Teams");
     expect(teams.getByText("No team has said thanks with a why yet this week.")).toBeInTheDocument();
     expect(teams.getByText("Lanterns hasn't given one yet. Tin Orchard hasn't given one yet.")).toBeInTheDocument();
-    expect(rowsOf(teams), "the member's own teams stay listed while the rest fold").toEqual(["Not ranked: Lanterns Your team Who gave 0 thoughtful kudos", "Not ranked: Tin Orchard Your team Who gave 0 thoughtful kudos"]);
+    expect(rowsOf(teams), "the member's own teams stay listed while the rest fold").toEqual(["Not ranked: Lanterns Your team Who gave 0 kudos", "Not ranked: Tin Orchard Your team Who gave 0 kudos"]);
     expect(teams.getByRole("button", { name: /more teams with nothing yet$/ })).toHaveAttribute("aria-expanded", "false");
     expect(teams.queryByRole("link", { name: "Find yourself on posthog.com" })).not.toBeInTheDocument();
   });
@@ -229,7 +236,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
     const people = await board("People");
     expect(people.getByText("Only Kettle Works")).toBeInTheDocument();
-    expect(rowsOf(people)).toEqual(["Rank 1: Wren Alder Kettle Works 6 thoughtful kudos", "Rank 2: Ines Okafor Lanterns, Kettle Works 5 thoughtful kudos", "Rank 5: Sam Example You Lanterns 3 thoughtful kudos"]);
+    expect(rowsOf(people)).toEqual(["Rank 1: Wren Alder Kettle Works 6 kudos", "Rank 2: Ines Okafor Lanterns, Kettle Works 5 kudos", "Rank 5: Sam Example You Lanterns 3 kudos"]);
     expect((await board("Teams")).getByRole("button", { name: "Who gave in Kettle Works" })).toHaveAttribute("aria-pressed", "true");
 
     await user.click(people.getByRole("button", { name: "Show everyone" }));
@@ -244,7 +251,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     const { user } = visit(boardsFixtures.twoTeams);
 
     await user.click((await board("Teams")).getByRole("button", { name: "Who gave in Tin Orchard" }));
-    expect(rowsOf(await board("People"))).toEqual(["Rank 5: Sam Example You Lanterns, Tin Orchard 3 thoughtful kudos"]);
+    expect(rowsOf(await board("People"))).toEqual(["Rank 5: Sam Example You Lanterns, Tin Orchard 3 kudos"]);
 
     await user.click((await board("Teams")).getByRole("button", { name: "Who gave in Tin Orchard" }));
     expect(rowsOf(await board("People"))).toHaveLength(7);
@@ -257,7 +264,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
     const people = await board("People");
     expect(people.getByText("Nobody in Tin Orchard has given one yet this week.")).toBeInTheDocument();
-    expect(rowsOf(people)).toEqual(["Not ranked: Sam Example You Lanterns, Tin Orchard 0 thoughtful kudos"]);
+    expect(rowsOf(people)).toEqual(["Not ranked: Sam Example You Lanterns, Tin Orchard 0 kudos"]);
   });
 
   it("Show me on the leaderboards switched off leaves the member's row off the people board, and says where to switch it back on", async () => {
@@ -265,7 +272,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
     const people = await board("People");
     expect(people.queryByText("Sam Example")).not.toBeInTheDocument();
-    expect(people.getByText("22 thoughtful kudos given this week.")).toBeInTheDocument();
+    expect(people.getByText("22 kudos given this week.")).toBeInTheDocument();
     const line = screen.getByText(/You're off the boards by choice/);
     expect(line).toHaveTextContent(`You're off the boards by choice. Switch on "Show me on the leaderboards" in Settings to come back.`);
     expect(within(line).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
@@ -288,21 +295,21 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
       ["This month", "false"],
       ["All time", "false"],
     ]);
-    expect(screen.getByText("Leaderboard · thoughtful kudos given")).toBeInTheDocument();
+    expect(screen.getByText("Leaderboard · kudos given")).toBeInTheDocument();
 
     await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
 
     expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
     expect(periodSwitch().getByRole("button", { name: "Last week" }), "focus stays on the switch").toHaveFocus();
-    expect(rowsOf(await board("People"))).toEqual(["Rank 1: Oren Pike Salt and Sparrow 4 thoughtful kudos", "Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
-    expect((await board("People")).getByText("6 thoughtful kudos given last week. You're No. 2 with 2.")).toBeInTheDocument();
+    expect(rowsOf(await board("People"))).toEqual(["Rank 1: Oren Pike Salt and Sparrow 4 kudos", "Rank 2: Sam Example You Lanterns 2 kudos"]);
+    expect((await board("People")).getByText("6 kudos given last week. You're No. 2 with 2.")).toBeInTheDocument();
     expect((await board("Teams")).getByText("Salt and Sparrow leads with 4.")).toBeInTheDocument();
 
     await user.click(periodSwitch().getByRole("button", { name: "This month" }));
-    expect((await board("People")).getByText("25 thoughtful kudos given this month. You're No. 5 with 3.")).toBeInTheDocument();
+    expect((await board("People")).getByText("25 kudos given this month. You're No. 5 with 3.")).toBeInTheDocument();
 
     await user.click(periodSwitch().getByRole("button", { name: "All time" }));
-    expect((await board("People")).getByText("22 thoughtful kudos given in all.")).toBeInTheDocument();
+    expect((await board("People")).getByText("22 kudos given in all.")).toBeInTheDocument();
     expect(new Set(asked)).toEqual(new Set(["week", "last-week", "month", "all"]));
   });
 
@@ -315,7 +322,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
     expect(periodSwitch().getByRole("button", { name: "Last week" })).toHaveAttribute("aria-pressed", "true");
     expect(periodSwitch().getByRole("button", { name: "Last week" }), "focus moves to the period the offer picked").toHaveFocus();
-    expect(rowsOf(await board("People"))).toEqual(["Rank 1: Oren Pike Salt and Sparrow 4 thoughtful kudos", "Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
+    expect(rowsOf(await board("People"))).toEqual(["Rank 1: Oren Pike Salt and Sparrow 4 kudos", "Rank 2: Sam Example You Lanterns 2 kudos"]);
   });
 
   it("a quiet past period says so in the past and offers all time, and a quiet all time offers nothing", async () => {
@@ -342,7 +349,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
 
     expect((await board("People")).getByText("Only Lanterns")).toBeInTheDocument();
-    expect(rowsOf(await board("People"))).toEqual(["Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
+    expect(rowsOf(await board("People"))).toEqual(["Rank 2: Sam Example You Lanterns 2 kudos"]);
   });
 
   it("Who gave on a team that gave nothing in the next period picked says nobody in it gave, until Show everyone", async () => {
@@ -354,7 +361,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     const people = await board("People");
     expect(people.getByText("Only Kettle Works")).toBeInTheDocument();
     expect(people.getByText("Nobody in Kettle Works gave one last week.")).toBeInTheDocument();
-    expect(rowsOf(people)).toEqual(["Rank 2: Sam Example You Lanterns 2 thoughtful kudos"]);
+    expect(rowsOf(people)).toEqual(["Rank 2: Sam Example You Lanterns 2 kudos"]);
 
     await user.click(people.getByRole("button", { name: "Show everyone" }));
 
@@ -416,7 +423,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     window.history.replaceState(null, "", "/leaderboard");
     const { user } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { boards, profile: fixedProfile(profileFixtures.noted), hoggies: fixedHoggies(hoggiesFixtures.glance) });
     await user.click(await screen.findByRole("button", { name: "All time" }, arrival));
-    await screen.findByText("22 thoughtful kudos given in all.");
+    await screen.findByText("22 kudos given in all.");
     reads.weekAnswered = false;
 
     await user.click(screen.getByRole("link", { name: /Your profile/ }));
@@ -429,7 +436,7 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     const asked: BoardPeriod[] = [];
     const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, all: boardsFixtures.hidden }, asked));
     await user.click(await screen.findByRole("button", { name: "All time" }, arrival));
-    await screen.findByText("22 thoughtful kudos given in all.");
+    await screen.findByText("22 kudos given in all.");
 
     await user.click(screen.getByRole("link", { name: /Activity/ }));
     await user.click(screen.getByRole("link", { name: /Leaderboard/ }));
@@ -483,7 +490,7 @@ describe("E2: each period the Leaderboard shows is reported as viewed once", { t
     expect(views(actions)).toEqual(["week"]);
 
     await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
-    await screen.findByText("6 thoughtful kudos given last week. You're No. 2 with 2.", {}, arrival);
+    await screen.findByText("6 kudos given last week. You're No. 2 with 2.", {}, arrival);
 
     expect(views(actions)).toEqual(["week", "last-week"]);
   });

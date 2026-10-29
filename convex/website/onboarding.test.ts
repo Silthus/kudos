@@ -136,10 +136,10 @@ describe("LP76: getAlbum answers the onboarding steps, each done from one read",
     expect((await albumOf(await signedIn(juno))).gettingStarted?.steps, "the hugged member's steps").toMatchObject({ hugged: false });
   });
 
-  test("a thoughtful kudos the member gave does Give a thoughtful kudos, and turning its item does Turn an item", async () => {
+  test("a kudos the member gave does the kudos step, and turning its item does Turn an item", async () => {
     await thanks(juno, saysWhy, bob);
     const asJuno = await signedIn(juno);
-    expect((await albumOf(asJuno)).gettingStarted?.steps, "after the thoughtful kudos").toMatchObject({ thoughtful: true, turned: false });
+    expect((await albumOf(asJuno)).gettingStarted?.steps, "after the kudos").toMatchObject({ thoughtful: true, turned: false });
 
     for (const { item } of (await albumOf(asJuno)).board?.items ?? []) await asJuno.mutation(api.website.album.turnItem, { item });
 
@@ -147,10 +147,11 @@ describe("LP76: getAlbum answers the onboarding steps, each done from one read",
     expect((await albumOf(await signedIn(bob))).gettingStarted?.steps, "the thanked member's steps").toMatchObject({ thoughtful: false });
   });
 
-  test("a kudos that says no why leaves Give a thoughtful kudos undone", async () => {
+  test("HH6: a short kudos the member gave does the kudos step too, and not the thanked member's", async () => {
     await thanks(juno, "ty", bob);
 
-    expect((await albumOf(await signedIn(juno))).gettingStarted?.steps).toMatchObject({ thoughtful: false });
+    expect((await albumOf(await signedIn(juno))).gettingStarted?.steps).toMatchObject({ thoughtful: true });
+    expect((await albumOf(await signedIn(bob))).gettingStarted?.steps, "the thanked member's steps").toMatchObject({ thoughtful: false });
   });
 
   test("reaching level 2 does Reach level 2", async () => {

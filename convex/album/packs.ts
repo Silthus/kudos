@@ -21,7 +21,7 @@ export type WaitingPack = { pack: Id<"thoughtfulPacks">; person: MemberId; earne
 
 export type Instants = { from: number; to: number };
 
-export type ThoughtfulKudos = { message: MessageRef; at: number; recipients: number };
+export type GrantedKudos = { message: MessageRef; at: number; recipients: number };
 
 type PackId = Id<"thoughtfulPacks">;
 
@@ -47,7 +47,7 @@ export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<{
   return { packs, more: oldestFirst.length > mostWaitingPacksShown };
 }
 
-export async function thoughtfulKudosBetween(ctx: QueryCtx, workspace: string, { from, to }: Instants, most: number): Promise<ThoughtfulKudos[]> {
+export async function grantedKudosBetween(ctx: QueryCtx, workspace: string, { from, to }: Instants, most: number): Promise<GrantedKudos[]> {
   const told = await ctx.db
     .query("grantsTold")
     .withIndex("by_workspace_at", (q) => q.eq("message.workspace", workspace).gte("at", from).lt("at", to))

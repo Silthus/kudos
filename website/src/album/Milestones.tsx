@@ -12,7 +12,7 @@ import { dateOf } from "./teamPage";
 import { useLanding } from "./useItemBoard";
 import "./milestones.css";
 
-const lede = "Earn medals as your album grows: the people and teams you collect, the hoggies you find and the thoughtful kudos you give. Every medal unlocks its own emoji for Slack.";
+const lede = "Earn medals as your album grows: the people and teams you collect, the hoggies you find and the kudos you give. Every medal unlocks its own emoji for Slack.";
 
 export function MilestonesPage({ album }: { album: Album }) {
   const started = album.milestones.length > 0;

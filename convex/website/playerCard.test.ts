@@ -88,12 +88,12 @@ describe("LP94 LP95 LP98: getPlayerCard answers one card model for your own page
     expect(JSON.stringify(answer)).not.toContain("flaky migration");
   });
 
-  test("a brief kudos is never a teammate's kudos of the week", async () => {
+  test("HH6: a short kudos can be a teammate's kudos of the week", async () => {
     await thanks(alice, "ty", bob);
 
     const answer = await cardOf(dana, bob);
 
-    expect(answer).toMatchObject({ kind: "card", week: { thankedBy: 1, kudosOfWeek: null } });
+    expect(answer).toMatchObject({ kind: "card", week: { thankedBy: 1, kudosOfWeek: { giver: expect.objectContaining({ person: await memberOf(alice) }), message: expect.objectContaining({ kind: "text" }) } } });
   });
 
   test("a quiet new member's card has no place, no finds and an empty week", async () => {

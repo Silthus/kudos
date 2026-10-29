@@ -165,8 +165,8 @@ function Tallies({ issue }: { issue: WeekIssue }) {
   const hugs = issue.hugsGiven + issue.hugsReceived;
   return (
     <dl className="al-issue-tallies">
-      <Tally term={thanked === 1 ? "person you thanked" : "people you thanked"} figure={thanked} note={`${issue.kudosGiven} kudos, ${issue.thoughtfulGiven} said why`} />
-      <Tally term="thanked you" figure={thankedBy} note={`${issue.kudosReceived} kudos, ${issue.thoughtfulReceived} said why`} />
+      <Tally term={thanked === 1 ? "person you thanked" : "people you thanked"} figure={thanked} note={`${issue.kudosGiven} kudos`} />
+      <Tally term="thanked you" figure={thankedBy} note={`${issue.kudosReceived} kudos`} />
       <Tally term={issue.packsOpened === 1 ? "pack opened" : "packs opened"} figure={issue.packsOpened} note={newFaces === 0 ? "no new faces" : `${plural(newFaces, "new face", "new faces")} in your album`} />
       <Tally term={hugs === 1 ? "hug" : "hugs"} figure={hugs} note={`${issue.hugsGiven} given · ${issue.hugsReceived} received`} />
     </dl>

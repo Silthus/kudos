@@ -164,14 +164,14 @@ function RankStrip({ page: { own, card } }: { page: Page }) {
       {place === null ? <IconHeart className="al-pp-rank-icon" /> : <IconCrown className="al-pp-rank-icon" />}
       <span className="al-pp-rank-words">
         {place === null ? (
-          <strong>{own ? "Give a thoughtful kudos to join this week's board" : "Not on this week's board yet"}</strong>
+          <strong>{own ? "Give a kudos to join this week's board" : "Not on this week's board yet"}</strong>
         ) : (
           <>
             <strong>
               No. {place.rank}
               {place.tied ? " tied" : ""} this week
             </strong>{" "}
-            <span className="al-pp-quiet">· {plural(place.thoughtful, "thoughtful kudos", "thoughtful kudos")}</span>
+            <span className="al-pp-quiet">· {place.thoughtful} kudos</span>
           </>
         )}
       </span>

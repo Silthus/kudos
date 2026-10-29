@@ -145,10 +145,13 @@ describe("AL39: the album is dark where album is off, shows only to the members 
       { period: "week", awards: 1 },
       { period: "month", awards: 1 },
       { period: "all", awards: 1 },
+      { period: "week", awards: 1 },
+      { period: "month", awards: 1 },
+      { period: "all", awards: 1 },
     ]);
-    expect(walk.albumRows.thoughtfulGiverCounts, "the week's two thoughtful givers").toEqual([expect.objectContaining({ givers: 2 })]);
+    expect(walk.albumRows.thoughtfulGiverCounts, "the week's three givers").toEqual([expect.objectContaining({ givers: 3 })]);
     expect(withoutTheAlbum.albumRows.milestoneTiers).toEqual([]);
-    expect(walk.albumRows.milestoneTiers, "each thoughtful giver's Kind words bronze").toEqual([expect.objectContaining({ milestone: "thoughtful", tier: "bronze" }), expect.objectContaining({ milestone: "thoughtful", tier: "bronze" })]);
+    expect(walk.albumRows.milestoneTiers, "each giver's kudos milestone bronze").toEqual(Array.from({ length: 3 }, () => expect.objectContaining({ milestone: "thoughtful", tier: "bronze" })));
     expect(Object.values(walk.boards).every((answer) => !(answer as object).hasOwnProperty("people"))).toBe(true);
     expect(Object.values(walk.boards)).toEqual(Object.values(withoutTheAlbum.boards));
     expect(walk.hoggies, "getAlbumHoggies after Alice opened and put in her first pack answers what getAlbum answers").toEqual(walk.albums);
@@ -187,9 +190,9 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(on.albums.U_BOB).toMatchObject({ kind: "album", packs: [{ person: "<member U_ALICE>" }] });
     expect(on.albums.U_CAROL).toMatchObject({ kind: "album", packs: [{ person: "<member U_BOB>" }] });
     expect(on.pages.U_ALICE).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, kudosReceived: 1 }, week: { kind: "week", issue: { kudosGiven: 2, kudosReceived: 1 } } });
-    expect(on.pages.U_CAROL).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, best: null }, week: { kind: "week", issue: { kudosGiven: 1, kudosReceived: 1 } } });
+    expect(on.pages.U_CAROL).toMatchObject({ person: { kind: "person", person: "<member U_BOB>", kudosGiven: 1, best: { message: expect.objectContaining({ kind: "text" }) } }, week: { kind: "week", issue: { kudosGiven: 1, kudosReceived: 1 } } });
     expect(Object.values(on.hoggies)).toEqual(members.map(() => expect.objectContaining({ kind: "hoggies", total: catalogue.hoggies.length })));
-    expect(on.boards.U_CAROL).toMatchObject({ kind: "boards", people: [{ name: alice.name, thoughtful: 2, rank: 1 }, { name: bob.name, thoughtful: 1, rank: 2 }], teams: [{ team: "lanterns", thoughtful: 3, rank: 1 }] });
+    expect(on.boards.U_CAROL).toMatchObject({ kind: "boards", people: [{ name: alice.name, thoughtful: 2, rank: 1 }, { name: bob.name, thoughtful: 1, rank: 2 }, { name: carol.name, thoughtful: 1, rank: 2 }], teams: [{ team: "lanterns", thoughtful: 3, rank: 1 }] });
     expect(albumExposures(on)).toEqual([]);
     expect(albumDecisions.length).toBeGreaterThan(0);
     expect(albumDecisions.filter(({ by }) => by === "exposed")).toEqual([]);
