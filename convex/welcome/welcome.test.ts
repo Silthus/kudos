@@ -66,7 +66,7 @@ describe("MQ14 MQ15 MQ19 MQ21 MQ22: a first hug on the Monday path is answered w
         text: "Nice, that was your first hug!",
         blocks: [
           sectionOf(
-            `Hey <@U_BOB> :wave::skin-tone-2: Nice, that was your first hug!\n\nA :taco: reaction is a quick thanks, and it just gave you and Alice Marchetti +1 XP. Want to really make someone's day? Thank them in a message and say why.\n\n${oneWaits}`,
+            `Hey <@U_BOB> :wave::skin-tone-2: Nice, that was your first hug!\n\nA :taco: reaction is a hug, and it just gave you and Alice Marchetti +1 XP. The other way to thank someone is a kudos: mention them in a message with :taco:.\n\n${oneWaits}`,
           ),
           { type: "divider" },
           sectionOf("*Your onboarding journey* · 0 of 3 done"),
@@ -148,7 +148,7 @@ describe("MQ14 MQ21 MQ46: a first kudos on the Monday path welcomes the giver at
     const [welcome] = welcomesTo(alice);
     expect(welcome?.text).toBe("You just completed the first step of your onboarding journey.");
     expect(readWelcome(welcome)).toEqual([
-      `section: Hey <@U_ALICE> :wave::skin-tone-2: Your first kudos just landed with <@U_BOB>, and you said why. That's the one that counts! :tada:\n\nYou just completed the first step of your onboarding journey. Six unidentified Hoggies for your collection are waiting for you.`,
+      `section: Hey <@U_ALICE> :wave::skin-tone-2: Your first kudos just landed with <@U_BOB>! :tada: For a quick thanks, give a hug: react to any message with :taco:.\n\nYou just completed the first step of your onboarding journey. Six unidentified Hoggies for your collection are waiting for you.`,
       "divider",
       "section: *Your onboarding journey* · 1 of 3 done",
       "rich_text: :white_check_mark: ~Give a kudos to someone~ | :point_right: *Thank someone new* | :white_circle: Thank someone on two different days _1 of 2 days_",
@@ -167,7 +167,7 @@ describe("MQ14 MQ21 MQ46: a first kudos on the Monday path welcomes the giver at
       const [welcome] = welcomesTo(recipient);
       expect(welcome?.text).toBe("<@U_ALICE> just thanked you with a kudos!");
       expect(readWelcome(welcome)).toEqual([
-        `section: Hey <@${recipient.user}> :wave::skin-tone-2: <@U_ALICE> just thanked you with a kudos!\n> _${saysWhy} @Bob Okonkwo @Carol Lindqvist :taco:_\n\nFeels good, right? :slightly_smiling_face: ${oneWaits} Your first quest is to pass it on.`,
+        `section: Hey <@${recipient.user}> :wave::skin-tone-2: <@U_ALICE> just thanked you with a kudos!\n> _${saysWhy} @Bob Okonkwo @Carol Lindqvist :taco:_\n\nFeels good, right? :slightly_smiling_face: ${oneWaits} Your first quest is to pass it on: mention someone in a message with :taco:. Or react to any message with :taco: for a quick hug.`,
         "divider",
         "section: *Your onboarding journey* · 0 of 3 done",
         "rich_text: :point_right: *Give a kudos to someone* | :white_circle: Thank someone new | :white_circle: Thank someone on two different days _0 of 2 days_",
