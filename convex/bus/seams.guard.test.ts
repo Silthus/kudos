@@ -90,20 +90,10 @@ describe("HH16: writes cross modules as bus facts", () => {
     expect(new Set(mapped).size, "tables owned twice").toBe(mapped.length);
   });
 
-  test("no file imports another module's write function or queries another module's table, beyond the allowlist", () => {
-    expect(crossingsOutside(allowed), "crossings not on the allowlist").toEqual([]);
-  });
-
-  test("the allowlist only shrinks: every allowlisted crossing still occurs", () => {
-    const crossings = everyCrossing();
-
-    expect(allowed.filter((crossing) => !crossings.includes(crossing)), "allowlisted crossings that no longer occur").toEqual([]);
+  test("the crossings of a module's write function or table are exactly the allowlist, so it only shrinks", () => {
+    expect(everyCrossing().toSorted(), "+ crossings not on the allowlist, - allowlisted crossings that no longer occur").toEqual(allowed.toSorted());
   });
 });
-
-function crossingsOutside(allowlist: string[]) {
-  return everyCrossing().filter((crossing) => !allowlist.includes(crossing));
-}
 
 function everyCrossing() {
   return [...new Set(Object.entries(sources).flatMap(([path, source]) => [...writesImportedBy(path, source), ...tablesQueriedBy(path, source)]))];

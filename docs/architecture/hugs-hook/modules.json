@@ -450,7 +450,7 @@
    "kind": "bus",
    "change": "added",
    "q": "Q5",
-   "label": "sub hugReceived, hypeReacted, levelReached, questFinished",
+   "label": "sub hugGiven, hypeReacted, levelReached, questFinished",
    "bend": 15,
    "labelAt": 0.75,
    "labelAlign": "start",

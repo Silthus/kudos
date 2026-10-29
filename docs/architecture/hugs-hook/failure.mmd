@@ -6,9 +6,9 @@ sequenceDiagram
   participant A as Album
   participant X as Failed-jobs sweep
   participant R as Replay (Q9)
-  H->>B: hugReceived {person, giver, message, week}
+  H->>B: hugGiven {giver, message, day, first}
   par each subscriber in its own mutation
-    B->>P: pay hug XP + week bonus
+    B->>P: pay hug XP + day bonus
     P-->>B: recorded
   and
     B->>A: earn the hug find
@@ -18,5 +18,5 @@ sequenceDiagram
   Note over P,X: the find is lost, the XP stays paid
   X->>X: every 15 min: reports it to error tracking
   R->>A: re-runs the failed subscriber with the stored event
-  A->>A: earnItem keyed hug:giver:msg, recorded once
+  A->>A: earnItem keyed hug-find:day, recorded once
   Note over B,R: a replay to Progression answers already recorded

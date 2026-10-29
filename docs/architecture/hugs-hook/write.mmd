@@ -22,6 +22,8 @@ sequenceDiagram
     and
       B->>L: hugGiven: hugs given +1 in the giver's week
     and
+      B->>A: hugGiven: a face-down find for the giver, ≤ rare, keyed hug-find:day (HH35)
+    and
       B->>Q: hugGiven to fact {source: hug, action, people}
       Q-->>B: questFinished (when a quest completes)
     and
@@ -34,8 +36,6 @@ sequenceDiagram
       B->>P: hugReceived: hug XP + first-of-week bonus, keyed (Q1)
     and
       B->>L: hugReceived: hugs received +1 in the person's week
-    and
-      B->>A: hugReceived: a face-down find, floor ≤ rare, keyed hug:giver:msg (Q3)
     end
   else hype: names a hype emoji the giver doesn't hold
     H->>B: hypeReacted {giver, owner, message}
