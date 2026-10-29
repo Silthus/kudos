@@ -3,7 +3,7 @@ import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../../_generated/server";
 import { earnTrayItem } from "../opening";
-import { earnPackItemsOf } from "../packs";
+import { earnItemsOfAPackGivenBeforeTheLedger } from "../packs";
 import { dropLevelUpHoggies, type LevelUp } from "../levelUpHoggies";
 import type { MemberId } from "../../workspace/directory";
 import { waitingPageOf } from "./ledger";
@@ -47,7 +47,7 @@ async function fillPacks(ctx: MutationCtx, { member, cursor }: FillStep): Promis
     .query("thoughtfulPacks")
     .withIndex("by_giver_opened_at", (q) => q.eq("giver", member).eq("openedAt", undefined))
     .paginate({ cursor: cursor ?? null, numItems: mostFilledOfAKind });
-  for (const pack of page) await earnPackItemsOf(ctx, pack);
+  for (const pack of page) await earnItemsOfAPackGivenBeforeTheLedger(ctx, pack);
   return { isDone, continueCursor };
 }
 

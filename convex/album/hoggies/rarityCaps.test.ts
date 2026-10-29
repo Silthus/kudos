@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { kudosGivenEventWithAward } from "../../../testing/busEvents";
 import { FakePostHog, routedFetch } from "../../../testing/fakePostHog";
 import { FakeSlack } from "../../../testing/fakeSlack";
 import { testBackend, type Backend } from "../../../testing/slackBackend";
 import { aDeploymentForWorkspace, aMember, switchWebsite } from "../../../testing/website";
+import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { finishMondayQuest } from "../../quests/finish";
@@ -13,7 +15,7 @@ import { earnTeamItem, earnTierItem } from "../items/achievements";
 import { earnWelcomeItem } from "../items/welcome";
 import { dropLevelUpHoggies } from "../levelUpHoggies";
 import { openThoughtfulPack } from "../opening";
-import { crateKeyOf, earnPackItemsOf } from "../packs";
+import { crateKeyOf } from "../packs";
 import { boughtCrateKeyOf, openCrate } from "./boughtCrates";
 import { catalogue, type Rarity, type WeightsName } from "./catalogue";
 import { drawOf, type Drawn } from "./draw";
@@ -26,7 +28,7 @@ const cappedAtRare = { cap: "rare", weights: "base" } as const;
 
 type Range = { floor?: Rarity; cap?: Rarity; weights?: WeightsName };
 type Stored = Range & { key: string };
-type ItemSource = { earns: (ctx: MutationCtx, member: MemberId) => Promise<unknown>; capped: Stored[]; today: Stored[] };
+type ItemSource = { earns: (member: MemberId) => Promise<unknown>; capped: Stored[]; today: Stored[] };
 
 let postHog: FakePostHog;
 let t: Backend;
@@ -48,29 +50,30 @@ afterEach(() => {
 
 const itemSources: Record<string, ItemSource> = {
   "a kudos pack": {
-    earns: async (ctx, member) => earnPackItemsOf(ctx, (await ctx.db.get(await aPackGivenBy(ctx, member)))!),
+    earns: (member) => grantAPackBy(member),
     capped: [{ key: "thoughtful:", weights: "kudos" }],
     today: [{ key: "thoughtful:" }],
   },
   "the welcome item": {
-    earns: (ctx, member) => earnWelcomeItem(ctx, "T1", member, Date.now()),
+    earns: (member) => t.run((ctx) => earnWelcomeItem(ctx, "T1", member, Date.now())),
     capped: [{ key: "welcome:first", ...exactlyRare }],
     today: [{ key: "welcome:first", floor: "rare" }],
   },
   "a level up": {
-    earns: (ctx, member) => dropLevelUpHoggies(ctx, { workspace: "T1", member, level: 2, at: Date.now() }),
+    earns: (member) => t.run((ctx) => dropLevelUpHoggies(ctx, { workspace: "T1", member, level: 2, at: Date.now() })),
     capped: [{ key: "level:2:1", ...cappedAtRare }, { key: "level:2:2", ...cappedAtRare }, { key: "level:2:3", ...exactlyRare }],
     today: [{ key: "level:2:1" }, { key: "level:2:2" }, { key: "level:2:3", floor: "rare" }],
   },
   "a completed team": {
-    earns: (ctx, member) => earnTeamItem(ctx, { workspace: "T1", member }, { team: "hogs", name: "Hogs" }, Date.now()),
+    earns: (member) => t.run((ctx) => earnTeamItem(ctx, { workspace: "T1", member }, { team: "hogs", name: "Hogs" }, Date.now())),
     capped: [{ key: "team:hogs", ...exactlyRare }],
     today: [{ key: "team:hogs", floor: "rare" }],
   },
   "the four milestone tiers": {
-    earns: async (ctx, member) => {
-      for (const tier of ["bronze", "silver", "gold", "diamond"] as const) await earnTierItem(ctx, { workspace: "T1", member }, { milestone: "people", tier }, Date.now());
-    },
+    earns: (member) =>
+      t.run(async (ctx) => {
+        for (const tier of ["bronze", "silver", "gold", "diamond"] as const) await earnTierItem(ctx, { workspace: "T1", member }, { milestone: "people", tier }, Date.now());
+      }),
     capped: [
       { key: "milestone:people:bronze", floor: "uncommon", cap: "rare", weights: "base" },
       { key: "milestone:people:diamond", ...exactlyRare },
@@ -85,7 +88,7 @@ const itemSources: Record<string, ItemSource> = {
     ],
   },
   "an onboarding quest's hoggie": {
-    earns: (ctx, member) => finishMondayQuest(ctx, "T1", member, { kind: "journey", step: "first-thanks" }, { reward: onboardingReward, catalogueVersion: mondayCatalogueVersion }, Date.now()),
+    earns: (member) => t.run((ctx) => finishMondayQuest(ctx, "T1", member, { kind: "journey", step: "first-thanks" }, { reward: onboardingReward, catalogueVersion: mondayCatalogueVersion }, Date.now())),
     capped: [{ key: "quest:", ...cappedAtRare }],
     today: [{ key: "quest:" }],
   },
@@ -95,7 +98,7 @@ describe("HH41 HH42: each source stores its cap under rarity-caps", { timeout: 1
   test.each(Object.entries(itemSources))("with rarity-caps on, %s stores the numbers table's floor, cap and weights", async (_, { earns, capped }) => {
     const member = await aMemberWith(...itemsOn, "rarity-caps");
 
-    await t.run((ctx) => earns(ctx, member));
+    await earns(member);
 
     expect(await storedRangesOf(member), "the stored items").toEqual(capped);
   });
@@ -103,9 +106,30 @@ describe("HH41 HH42: each source stores its cap under rarity-caps", { timeout: 1
   test.each(Object.entries(itemSources))("with rarity-caps off, %s stores today's floor and no cap or weights", async (_, { earns, today }) => {
     const member = await aMemberWith(...itemsOn);
 
-    await t.run((ctx) => earns(ctx, member));
+    await earns(member);
 
     expect(await storedRangesOf(member), "the stored items").toEqual(today);
+  });
+
+  test.each(Object.entries(itemSources))("%s earned again after rarity-caps turned on keeps the range it stored, and decides no rarity-caps", async (_, { earns, today }) => {
+    const member = await aMemberWith(...itemsOn);
+    await earns(member);
+    await switchWebsite(t, postHog, true, ...itemsOn, "rarity-caps");
+
+    await earns(member);
+
+    expect(await storedRangesOf(member), "the stored items").toEqual(today);
+    expect(await rarityCapsExposuresOf(member), "the rarity-caps exposures").toEqual([false]);
+  });
+
+  test("with rarity-caps on, fillItems earns a pack given before the item ledger with today's range, and decides no rarity-caps", async () => {
+    const member = await aMemberWith(...itemsOn, "rarity-caps");
+    await t.run((ctx) => aPackGivenBy(ctx, member));
+
+    await t.mutation(internal.album.items.fill.fillItems, {});
+
+    expect(await storedRangesOf(member), "the stored items").toEqual([{ key: "thoughtful:" }]);
+    expect(await rarityCapsExposuresOf(member), "the rarity-caps exposures").toEqual([]);
   });
 
   test("with rarity-caps on, a bought crate whose draw today would be above rare drops within the cap", async () => {
@@ -142,11 +166,8 @@ describe("HH41 HH42: each source stores its cap under rarity-caps", { timeout: 1
     ["off", collecting, {}],
   ] as const)("with rarity-caps %s when the pack was given, opening it draws with the weights its item stored", async (_, flags, range) => {
     const member = await aMemberWith(...flags);
-    const pack = await t.run(async (ctx) => {
-      const given = await aPackGivenBy(ctx, member);
-      await earnPackItemsOf(ctx, (await ctx.db.get(given))!);
-      return given;
-    });
+    await grantAPackBy(member);
+    const pack = await packGivenBy(member);
     await switchWebsite(t, postHog, true, ...collecting);
 
     await t.run((ctx) => openThoughtfulPack(ctx, member, pack, Date.now()));
@@ -174,9 +195,26 @@ async function aMemberWith(...flags: string[]) {
   return member;
 }
 
+async function grantAPackBy(giver: MemberId) {
+  const event = await t.run(async (ctx) => kudosGivenEventWithAward(ctx, giver, await thankedBy(ctx, giver), { at: Date.now() }));
+  await t.mutation(internal.album.packs.grantThoughtfulPacks, { event });
+}
+
+async function thankedBy(ctx: MutationCtx, giver: MemberId): Promise<MemberId> {
+  return (await ctx.db.query("members").collect()).find(({ _id }) => _id !== giver)!._id;
+}
+
+async function packGivenBy(giver: MemberId): Promise<Id<"thoughtfulPacks">> {
+  return t.run(async (ctx) => (await ctx.db.query("thoughtfulPacks").collect()).find((pack) => pack.giver === giver)!._id);
+}
+
+async function rarityCapsExposuresOf(member: MemberId): Promise<Array<string | boolean>> {
+  const exposures = await t.run((ctx) => ctx.db.query("flagExposures").collect());
+  return exposures.filter((exposure) => exposure.member === member && exposure.flag === "rarity-caps").map(({ value }) => value);
+}
+
 async function aPackGivenBy(ctx: MutationCtx, giver: MemberId): Promise<Id<"thoughtfulPacks">> {
-  const recipient = (await ctx.db.query("members").collect()).find(({ _id }) => _id !== giver)!._id;
-  return ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver, recipient, week: "2026-W44", message: { workspace: "T1", conversation: "C1", message: "1761732000.000100" }, holdsSticker: false, at: Date.now() });
+  return ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver, recipient: await thankedBy(ctx, giver), week: "2026-W44", message: { workspace: "T1", conversation: "C1", message: "1761732000.000100" }, holdsSticker: false, at: Date.now() });
 }
 
 async function storedRangesOf(member: MemberId): Promise<Stored[]> {

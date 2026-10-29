@@ -5,8 +5,8 @@ import type { CrateKey } from "./hoggies/crateKey";
 import { dropFor, droppedIn, foundIn, type Drop } from "./hoggies/drops";
 import { crestsShownTo } from "./hoggies/flag";
 import { hiddenItemsShownTo } from "./items/flag";
-import { earnedItemOf, earnItem, markTurned } from "./items/ledger";
-import { levelUpSlotRarities, levelUpThirdSlotRarities, rarityRangeFor, storedRangeOf, type RarityRange, type SourceRarities } from "./hoggies/rarityCaps";
+import { earnedItemOf, markTurned } from "./items/ledger";
+import { earnHoggieItem, levelUpSlotRarities, levelUpThirdSlotRarities, storedRangeOf, type RarityRange, type SourceRarities } from "./hoggies/rarityCaps";
 import type { MemberId } from "../workspace/directory";
 
 export const levelUpRevealFlag = { key: "level-up-reveal", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -47,7 +47,7 @@ async function earnLevelUpItems(ctx: MutationCtx, { workspace, member, level, at
   const items: LevelUpItem[] = [];
   for (const { slot, rarities } of slots) {
     const crate = levelUpCrateKeyOf(level, slot);
-    const item = await earnItem(ctx, { workspace, member, source: "hoggie", key: crate, ...(await rarityRangeFor(ctx, member, rarities)), reason: { kind: "levelUp", level }, earnedAt: at });
+    const item = await earnHoggieItem(ctx, { workspace, member, key: crate, reason: { kind: "levelUp", level }, earnedAt: at }, rarities);
     items.push({ crate, range: storedRangeOf((await ctx.db.get(item))!) });
   }
   return items;
