@@ -29,7 +29,7 @@ import type { BoardPeriod } from "../album/boards";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
-import { crateKindOf } from "../hoggies/crateKey";
+import { crateKindOf } from "../album/hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
 import type { WelcomePath } from "../welcome/welcomedAs";

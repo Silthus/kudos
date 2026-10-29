@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { earnWelcomeItem } from "../items/welcome";
+import { earnWelcomeItem } from "../album/items/welcome";
 import { readyFromTheStartOnceVerified } from "../website/flag";
 import { lookup } from "../workspace/directory";
 import { lookUpUser, type LookUp } from "./directory";

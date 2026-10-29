@@ -16,8 +16,8 @@ import { openUnlock } from "../unlocks/unlocks";
 
 const theAvatar = vi.hoisted(() => ({ removed: false }));
 
-vi.mock("../hoggies/flag", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/flag")>();
+vi.mock("../album/hoggies/flag", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/flag")>();
   return {
     ...actual,
     avatarShownTo: vi.fn((...args: Parameters<typeof actual.avatarShownTo>) => (theAvatar.removed ? Promise.resolve(false) : actual.avatarShownTo(...args))),

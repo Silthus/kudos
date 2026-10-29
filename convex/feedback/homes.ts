@@ -4,12 +4,12 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
-import { avatarChoiceOf, type AvatarChoice } from "../hoggies/avatar";
-import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
-import { hoggiesOf, type HoggiesHome } from "../hoggies/collection";
+import { avatarChoiceOf, type AvatarChoice } from "../album/hoggies/avatar";
+import { crateStoreOf, waitingCratesOf, type CrateStore } from "../album/hoggies/boughtCrates";
+import { hoggiesOf, type HoggiesHome } from "../album/hoggies/collection";
 import { teamsCompletedBy } from "../stickers/completionRecords";
 import { teamSpiritShownTo } from "../stickers/flag";
-import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../album/hoggies/flag";
 import { xpRecordedEventValidator } from "../bus/events";
 import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";

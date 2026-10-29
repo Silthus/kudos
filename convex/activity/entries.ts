@@ -1,4 +1,4 @@
-import type { Drop } from "../hoggies/drops";
+import type { Drop } from "../album/hoggies/drops";
 import type { PerkId } from "../progression/tree";
 import type { Face } from "../website/faces";
 

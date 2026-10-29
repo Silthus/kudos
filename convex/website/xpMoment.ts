@@ -4,8 +4,8 @@ import { activitySince, mostReadSince, newestDecidedTakenBackOrNotSince, positio
 import { ranks, type Position } from "../activity/position";
 import { thoughtfulGiversThisWeek } from "../album/thoughtfulGivers";
 import { reportXpMomentEnded } from "../analytics/isolatedUsage";
-import { hiddenItemsShownTo } from "../items/flag";
-import { waitingCountOf, type WaitingCount } from "../items/ledger";
+import { hiddenItemsShownTo } from "../album/items/flag";
+import { waitingCountOf, type WaitingCount } from "../album/items/ledger";
 import { firstThanksTopUpPaidTo, type FirstThanksTopUp } from "../progression/firstThanks";
 import { progressionWaitedFor } from "../progression/effects";
 import { levelOf, xpToReach } from "../progression/levels";

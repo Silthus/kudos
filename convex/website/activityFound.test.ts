@@ -7,7 +7,7 @@ import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { allowanceDay } from "../engine/allowance";
-import { catalogue, type Rarity } from "../hoggies/catalogue";
+import { catalogue, type Rarity } from "../album/hoggies/catalogue";
 import type { MemberId } from "../workspace/directory";
 import type { Activity, ActivityEntry } from "./activity";
 

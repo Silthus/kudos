@@ -1,9 +1,9 @@
-import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
+import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/albumHoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { OwnHypePick } from "../../../convex/album/emojiMappings";
 import type { KudosEmojiPick } from "../../../convex/album/kudosEmojis";
-import type { Drop } from "../../../convex/hoggies/drops";
-import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
+import type { Drop } from "../../../convex/album/hoggies/drops";
+import type { Pet as AlbumPet } from "../../../convex/album/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { ForgeAnswer, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
 import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";

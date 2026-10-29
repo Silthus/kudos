@@ -13,7 +13,7 @@ import crons from "../crons";
 import { finishQuest } from "../quests/finish";
 import { groupQuestPool } from "../quests/groupPool";
 import { achievementsLiveIn } from "../achievements/flag";
-import { hoggieNamed, rarityLabel } from "../hoggies/catalogue";
+import { hoggieNamed, rarityLabel } from "../album/hoggies/catalogue";
 import { keepOpen } from "../unlocks/unlocks";
 
 const lastTuesday = Date.parse("2026-10-13T10:00:00Z");

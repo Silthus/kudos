@@ -1,8 +1,8 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import type { Surface } from "../commands/surface";
-import { dropsAHoggie } from "../hoggies/crateKey";
-import { dropFor } from "../hoggies/drops";
+import { dropsAHoggie } from "../album/hoggies/crateKey";
+import { dropFor } from "../album/hoggies/drops";
 import { applyGain } from "../progression/progression";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
