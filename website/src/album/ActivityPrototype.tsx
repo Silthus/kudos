@@ -24,9 +24,9 @@ const slack = "slack://open";
 const emoji = "hedgehug";
 
 const variants: Choice[] = [
-  { key: "A", label: "(One next step)" },
-  { key: "B", label: "(Quest board)" },
-  { key: "C", label: "(Thanks feed)" },
+  { key: "A", label: "(One next step) · low use: week tabs" },
+  { key: "B", label: "(Quest board) · low use: week tabs" },
+  { key: "C", label: "(Thanks feed) · low use: week tabs" },
 ];
 
 const states: Choice[] = [
