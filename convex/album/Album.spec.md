@@ -59,7 +59,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   kinds: state
   checklist: revalidated-permission dismissed: counting an award needs no permission, since the awards were decided when they were given, and the read decides `album` for the signed-in member on every read
   checklist: separation-of-duties dismissed: no approval policy
-  checklist: legal-state-succession dismissed: a tally only grows, by the awards whose board count its page inserts in the same mutation
+  checklist: legal-state-succession dismissed: a tally only grows, by the awards whose tally mark its page inserts in the same mutation
   checklist: supersession-safety dismissed: every count adds to a tally and nothing displaces a later value; Convex retries a page whose read of an award's board count or the tally changed before it committed
   checklist: worker-fencing dismissed: no worker owns a tally; a tally page and a history page that meet one award conflict on its board count, so one retries and finds it counted
   checklist: commit-ordered-effects dismissed: counting issues no external effect

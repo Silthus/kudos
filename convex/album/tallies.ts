@@ -11,7 +11,7 @@ import { hugsOnTheMessage } from "../hugs/weeks";
 import { wordCountOf } from "../progression/gate";
 import { givingWeekOf } from "../progression/progress";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
-import { countOnTheBoardsOnce } from "./boards";
+import { countOnTheBoards } from "./boards";
 import { recordMilestonesOf } from "./milestones";
 import { pairTallyValidator, weekTallyValidator, type HoggieFound, type HugPick, type KudosPick, type WeekList } from "./records";
 
@@ -154,7 +154,7 @@ export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, h
   await changePair(ctx, recipient, giver, { kudosReceived: kudos });
   await changeWeek(ctx, giver, week, { kudosGiven: kudos, thoughtfulGiven: 1, listed: { list: "thanked", person: recipient }, pick, on: day });
   await changeWeek(ctx, recipient, week, { kudosReceived: kudos, thoughtfulReceived: 1, listed: { list: "thankedBy", person: giver }, pick, on: day });
-  await countOnTheBoardsOnce(ctx, { award: award.award, workspace: message.workspace, giver, day });
+  await countOnTheBoards(ctx, { workspace: message.workspace, giver, day });
 }
 
 export type HugPeopleTallied = { tallied: number; last: MemberId | null };
