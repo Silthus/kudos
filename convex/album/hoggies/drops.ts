@@ -6,10 +6,11 @@ import { decidedBelow, fromTheNewestDecided, type DecidedBelow } from "../../eng
 import { chatUserOf, type MemberId } from "../../workspace/directory";
 import { applyGain } from "../../progression/progression";
 import type { AppliedReward } from "../../progression/rewards";
-import { catalogue, crestNamed, crestWith, firstVersionWithCrests, hoggieNamed, type Rarity, type WeightsName } from "./catalogue";
+import { catalogue, crestNamed, crestWith, firstVersionWithCrests, hoggieNamed, type Rarity } from "./catalogue";
 import { drawOf, packBonusOf, type Drawn } from "./draw";
 import { crestsShownFor, crestsShownTo, hoggiesDropFor, packsPayFor } from "./flag";
 import { crateKindOf, type CrateKey } from "./crateKey";
+import { rarityRangeFor, type RarityRange, type SourceRarities } from "./rarityCaps";
 import type { DropRecord } from "./records";
 
 export type HoggieArt = { kind: "hoggie"; slug: string };
@@ -24,14 +25,15 @@ export type CrestsShown = { crests: boolean };
 
 export type DroppedAt = { at: number; n: number; decided: number; drop: Drop };
 
-export type DropContext = { surface?: Surface; floor?: Rarity; cap?: Rarity; weights?: WeightsName; unowned?: boolean; waits?: boolean };
+export type DropContext = RarityRange & { rarities?: SourceRarities; surface?: Surface; unowned?: boolean; waits?: boolean };
 
 export type FindContext = { surface?: Surface; waits?: boolean };
 
-export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { floor, cap, weights, unowned = false, ...context }: DropContext): Promise<void> {
+export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, { floor, cap, weights, rarities, unowned = false, ...context }: DropContext): Promise<void> {
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
+  const range = rarities === undefined ? { floor, cap, weights } : await rarityRangeFor(ctx, member, rarities);
   const owned = unowned ? await ownedBy(ctx, member) : undefined;
-  await recordFind(ctx, member, crate, await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, floor, cap, weights, owned }), at, context);
+  await recordFind(ctx, member, crate, await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version, ...range, owned }), at, context);
 }
 
 export async function recordFind(ctx: MutationCtx, member: MemberId, crate: CrateKey, { hoggie, rarity }: Drawn, at: number, { surface, waits = false }: FindContext): Promise<void> {

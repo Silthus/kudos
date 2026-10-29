@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { featureOpeningRarities } from "../album/hoggies/rarityCaps";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
@@ -41,7 +42,7 @@ export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Fe
   if ((await stateOf(ctx, member, feature)) !== "ready") return "refused";
   const opening = { workspace, member, at: Date.now() };
   if (!(await storeOpening(ctx, opening, feature))) return "done";
-  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at, { surface });
+  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at, { surface, rarities: featureOpeningRarities });
   await publishOpened(ctx, opening, feature);
   return "done";
 }

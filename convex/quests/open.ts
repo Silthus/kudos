@@ -1,4 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { questHoggieRarities } from "../album/hoggies/rarityCaps";
 import { publish } from "../bus/publish";
 import type { Surface } from "../commands/surface";
 import { dropsAHoggie } from "../album/hoggies/crateKey";
@@ -26,7 +27,7 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
   const applied = await appliedAtOpen(ctx, workspace, reward, at);
   await ctx.db.insert("crateOpenings", { member, key, at, ...(applied && { applied }) });
   await crateOpened(ctx, member, key);
-  if (dropsAHoggie(key)) await dropFor(ctx, member, key, at, { surface });
+  if (dropsAHoggie(key)) await dropFor(ctx, member, key, at, { surface, rarities: questHoggieRarities });
   await publish(ctx, { type: "questOpened", workspace, member, quest, ...(await poolQuestNamed(ctx, member, quest)), at });
   return "done";
 }
