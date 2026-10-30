@@ -51,6 +51,7 @@ import type * as album_hoggies_pet from "../album/hoggies/pet.js";
 import type * as album_hoggies_rarityCaps from "../album/hoggies/rarityCaps.js";
 import type * as album_hoggies_records from "../album/hoggies/records.js";
 import type * as album_hoggies_waitingPacks from "../album/hoggies/waitingPacks.js";
+import type * as album_hypeReactions from "../album/hypeReactions.js";
 import type * as album_hypes from "../album/hypes.js";
 import type * as album_items_achievementFlag from "../album/items/achievementFlag.js";
 import type * as album_items_achievements from "../album/items/achievements.js";
@@ -454,6 +455,7 @@ declare const fullApi: ApiFromModules<{
   "album/hoggies/rarityCaps": typeof album_hoggies_rarityCaps;
   "album/hoggies/records": typeof album_hoggies_records;
   "album/hoggies/waitingPacks": typeof album_hoggies_waitingPacks;
+  "album/hypeReactions": typeof album_hypeReactions;
   "album/hypes": typeof album_hypes;
   "album/items/achievementFlag": typeof album_items_achievementFlag;
   "album/items/achievements": typeof album_items_achievements;
