@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../../testing/fakePostHog";
 import { FakeSlack } from "../../../testing/fakeSlack";
-import { kudosReceived, memberChanged, post, settle, testBackend, type Backend } from "../../../testing/slackBackend";
+import { kudosReceived, memberChanged, post, react, settle, testBackend, type Backend } from "../../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../../testing/website";
 import { api, internal } from "../../_generated/api";
@@ -87,18 +87,24 @@ describe("LP14 LP19a: each milestone tier unlocks once, in the turn that brings 
     expect(emojiOf(after, firstThankYou)).toMatchObject({ earned: true, seen: true });
   });
 
-  test("a thoughtful tier reached in Slack gives no kudos with its emoji until the giver's next turn unlocks it", async () => {
+  test("a thoughtful tier reached in Slack gives no kudos and no hug with its emoji until the giver's next turn unlocks it", async () => {
+    await switchWebsite(t, postHog, true, ...itemsOn, "hugs");
     await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
     await thanks(alice, bob);
     const asAlice = await signedIn(alice);
 
     await thanksWith("first-thank-you", alice, bob);
-    const whileHeld = await kudosReceived(t, bob.user);
+    await hugsWith("first-thank-you", alice, bob);
+    const kudosWhileHeld = await kudosReceived(t, bob.user);
+    const hugsWhileHeld = await hugsCount();
     await turnTheItem(asAlice, "hoggie");
     await thanksWith("first-thank-you", alice, bob);
+    await hugsWith("first-thank-you", alice, bob);
 
-    expect(whileHeld, "kudos with First thank-you while the tier waits for its turn").toBe(1);
+    expect(kudosWhileHeld, "kudos with First thank-you while the tier waits for its turn").toBe(1);
+    expect(hugsWhileHeld, "hugs with First thank-you while the tier waits for its turn").toBe(0);
     expect(await kudosReceived(t, bob.user), "kudos with First thank-you after the turn").toBe(2);
+    expect(await hugsCount(), "hugs with First thank-you after the turn").toBe(1);
   });
 
   test("with hidden-items off a thoughtful tier reads earned at the thanks with its emoji unseen, as today", async () => {
@@ -129,6 +135,18 @@ async function thanksWith(kudosEmoji: string, giver: Person, ...recipients: Pers
   await post(t, [section(text(`${why} `), ...recipients.map(({ user }) => mention(user)), emoji(kudosEmoji))], { user: giver.user, ts });
   await settle(t);
   return at;
+}
+
+async function hugsWith(reaction: string, giver: Person, author: Person) {
+  messages += 1;
+  vi.setSystemTime(Date.now() + minuteMs);
+  const ts = `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`;
+  await react(t, { eventId: `EvHug${messages}`, user: giver.user, itemUser: author.user, reaction, ts });
+  await settle(t);
+}
+
+async function hugsCount() {
+  return (await t.run((ctx) => ctx.db.query("hugs").collect())).length;
 }
 
 function turn(reader: Reader, item: Id<"items">): Promise<TurnAnswer | Denial> {
