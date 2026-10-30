@@ -24,14 +24,16 @@ function stayBeside() {}
 export function TeamsAndPages({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
   const [search, setSearch] = useState("");
   const words = search.trim();
+  const pagesFirst = album.bookNext !== undefined;
   return (
     <>
+      {pagesFirst && <DeepPages album={album} place={place} onFollow={onFollow} first />}
       <label className="al-search">
         <IconSearch className="al-search-icon" />
         <input type="search" placeholder="Search teams and people" aria-label="Search teams and people" value={search} onChange={(event) => setSearch(event.target.value)} />
       </label>
       {words === "" ? <Browse album={album} place={place} onFollow={onFollow} /> : <Found album={album} words={words} place={place} onFollow={onFollow} />}
-      <DeepPages album={album} place={place} onFollow={onFollow} />
+      {!pagesFirst && <DeepPages album={album} place={place} onFollow={onFollow} first={false} />}
     </>
   );
 }
@@ -57,14 +59,19 @@ function Browse({ album, place, onFollow }: { album: Album; place: Place; onFoll
               Show {hidden} more
             </button>
           )}
-          {showingAll && others.length > shownAtFirst && (
-            <button type="button" className="al-more" onClick={() => setShowingAll(false)}>
-              Show fewer
-            </button>
-          )}
+          {showingAll && others.length > shownAtFirst && <ShowFewer sticky={album.bookNext !== undefined} onClick={() => setShowingAll(false)} />}
         </section>
       )}
     </>
+  );
+}
+
+function ShowFewer({ sticky, onClick }: { sticky: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className="al-more" data-sticky={sticky || undefined} onClick={onClick}>
+      Show fewer
+      {sticky && <span aria-hidden="true"> ▴</span>}
+    </button>
   );
 }
 
@@ -179,10 +186,10 @@ function PersonList({ people, place, onFollow }: { people: AlbumPerson[]; place:
   );
 }
 
-function DeepPages({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+function DeepPages({ album, place, onFollow, first }: { album: Album; place: Place; onFollow: () => void; first: boolean }) {
   const medals = medalsOf(album);
   return (
-    <ul className="al-pages" aria-label="More of your album">
+    <ul className="al-pages" data-first={first || undefined} aria-label="More of your album">
       <li>
         <AppLink href={hrefOf({ kind: "hoggies", hoggie: null })} className="al-page" aria-current={place.kind === "hoggies" ? "page" : undefined} data-slot="hoggies" onFollow={onFollow}>
           <span className="al-page-icon" aria-hidden="true">

@@ -20,7 +20,8 @@ import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
 import { NewLabelsProvider, newLabelsSinceOf } from "./newLabels";
 import { isWaitingForTheLevelUp, LevelUpAnswerPage } from "./LevelUp";
 import { LeaderboardAnswerPage } from "./Leaderboard";
-import { isWaitingForTheWeeksBoards, ThisWeekAnswerPage } from "../leaderboard/ThisWeek";
+import { isWaitingForTheWeeksBoards, useHugBoardsOfMeasure } from "../leaderboard/measures";
+import { ThisWeekAnswerPage } from "../leaderboard/ThisWeek";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
 import { isWaitingForThePlayer, PlayerAnswerPage, playerAskedAt } from "./PlayerPage";
 import { SharedEmojis } from "./SharedEmojis";
@@ -49,7 +50,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const leaderboardHugs = album?.kind === "album" && album.leaderboardHugs === true;
   const onLeaderboard = place.kind === "leaderboard" && !leaderboardHugs;
   const onThisWeeksLeaderboard = place.kind === "leaderboard" && leaderboardHugs;
-  const hugBoards = useHugBoards(onThisWeeksLeaderboard);
+  const hugBoards = useHugBoardsOfMeasure(useHugBoards, onThisWeeksLeaderboard);
   const player = album?.kind === "album" ? playerAskedAt(place, album) : null;
   const ownPlayer = album?.kind === "album" && player === album.me.person;
   const onProfile = place.kind === "profile" && player === null;
@@ -94,9 +95,9 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onThisWeeksLeaderboard && isWaitingForTheWeeksBoards(hugBoards)) || (onActivity && isWaitingForTheActivity(activityWeek, edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp)) || (player !== null && isWaitingForThePlayer(ownPlayer, playerReads))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onThisWeeksLeaderboard && isWaitingForTheWeeksBoards(hugBoards.shown)) || (onActivity && isWaitingForTheActivity(activityWeek, edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp)) || (player !== null && isWaitingForThePlayer(ownPlayer, playerReads))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
-        leaderboard={leaderboardHugs ? <ThisWeekAnswerPage shown={hugBoards} me={album.me} level={album.level} onViewed={() => actions.viewLeaderboard("week")} {...answers} /> : <LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} onViewed={actions.viewLeaderboard} {...answers} />}
+        leaderboard={leaderboardHugs ? <ThisWeekAnswerPage boards={hugBoards} me={album.me} level={album.level} onViewed={() => actions.viewLeaderboard("week")} {...answers} /> : <LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} onViewed={actions.viewLeaderboard} {...answers} />}
         activity={(inSight) => <ActivityAnswerPage week={activityWeek} edition={edition} quests={quests} me={album.me.person} inSight={inSight} onViewed={actions.viewActivity} {...answers} />}
         person={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
         profile={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}

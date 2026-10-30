@@ -93,7 +93,7 @@ export type AlbumTrayItem = Exclude<TrayItem, { kind: "sticker" }> | (Extract<Tr
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
-export type BoardReason = { kind: "thanks"; thanked: Thanked } | Exclude<ItemReason, { kind: "thanks" }>;
+export type BoardReason = { kind: "thanks"; person: MemberId; thanked: Thanked } | Exclude<ItemReason, { kind: "thanks" }>;
 
 export type BoardItem = Omit<FaceDown, "reason"> & { reason: BoardReason };
 
@@ -214,7 +214,7 @@ async function boardShownOf({ items, more }: Waiting, thanked: ThankedPeople): P
 }
 
 async function boardReasonOf(reason: ItemReason, thanked: ThankedPeople): Promise<BoardReason> {
-  return reason.kind === "thanks" ? { kind: "thanks", thanked: await thanked(reason.person) } : reason;
+  return reason.kind === "thanks" ? { kind: "thanks", person: reason.person, thanked: await thanked(reason.person) } : reason;
 }
 
 async function petsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "pets">> {

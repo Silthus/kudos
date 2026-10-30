@@ -4,7 +4,7 @@ import { placementOf, roomOnScreen, type Placement } from "./floatingCard";
 import type { FloatingCardState } from "./useFloatingCard";
 import "./floatingCard.css";
 
-export function FloatingCard({ state, label, children }: { state: FloatingCardState; label: string; children: ReactNode }) {
+export function FloatingCard({ state, titleId, children }: { state: FloatingCardState; titleId: string; children: ReactNode }) {
   const placement = usePlacement(state);
   useFocusWhenPinned(state, placement !== null);
   const host = document.querySelector(".al-shell") ?? document.body;
@@ -12,7 +12,7 @@ export function FloatingCard({ state, label, children }: { state: FloatingCardSt
     <div
       ref={state.card}
       role="dialog"
-      aria-label={label}
+      aria-labelledby={titleId}
       tabIndex={-1}
       className="al-floating"
       data-side={placement?.side}

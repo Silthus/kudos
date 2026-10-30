@@ -870,6 +870,10 @@
     {
       "name": "next step",
       "definition": "The one action a page offers a member, with exactly one button (HH63, HH72). On Activity while activity-next is on it is the first that holds: hug back the newest kudos received this week the member can still hug (posted less than 24 hours ago, not hugged by them, a hug left today), whose button opens that kudos in Slack; give your first hug, for a member who never gave one; else hug a message today. Not a quest: the week's quests are listed beside it."
+    },
+    {
+      "name": "people board",
+      "definition": "The Leaderboard's board of members ranked on the chosen measure (hugs given, hugged, kudos received, level or hoggies), with the member's own row always shown"
     }
   ],
   "retired": [
