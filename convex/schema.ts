@@ -813,6 +813,12 @@ export default defineSchema({
     place: v.number(),
   }).index("by_workspace_week", ["workspace", "week"]),
 
+  weekThankers: defineTable({
+    member: v.id("members"),
+    week: v.string(),
+    person: v.id("members"),
+  }).index("by_member_week_person", ["member", "week", "person"]),
+
   leaderboardSettings: defineTable({
     member: v.id("members"),
     visible: v.boolean(),
