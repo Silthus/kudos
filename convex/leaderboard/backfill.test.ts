@@ -8,7 +8,7 @@ import schema from "../schema";
 import { modules } from "../test.setup";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import type { BoardView } from "./board";
-import type { EveryoneBoardView } from "./totals";
+import type { EveryoneBoardView, GivenMeasure } from "./totals";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 
@@ -135,8 +135,10 @@ describe("HH80: running totals of hugs given for the totals counted before they 
     await huggedLive(t, "U1", { message: "5", day: "2026-10-13" });
 
     expect(await hugRunningTotalsOf(t, "U1")).toEqual({ "week:2026-10-12": [0, 1] });
+    expect((await everyoneBoard(t, "U1", "hugsGiven")).improvement).toEqual({ best: 3 });
 
     expect(await fillRunningTotals(t, { pageSize: 1 })).toMatchObject({ filled: 2 });
+    expect((await everyoneBoard(t, "U1", "hugsGiven")).improvement).toEqual({ best: 3 });
 
     expect(await hugRunningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [1, 2, 3], "month:2026-10": [0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 4], "week:2026-10-12": [0, 1] });
     expect(await fillRunningTotals(t)).toMatchObject({ filled: 0 });
@@ -235,8 +237,8 @@ async function interruptedAfterFirstPage(t: Backend) {
   await t.mutation(internal.leaderboard.backfill.countEarlierKudosPage, { cursor: null, pageSize: 1 });
 }
 
-function everyoneBoard(t: Backend, viewer: string): Promise<EveryoneBoardView> {
-  return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer });
+function everyoneBoard(t: Backend, viewer: string, measure?: GivenMeasure): Promise<EveryoneBoardView> {
+  return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer, ...(measure && { measure }) });
 }
 
 function shown(view: BoardView) {
