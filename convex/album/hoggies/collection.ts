@@ -29,9 +29,17 @@ export type CollectedCrest = { crest: string; collectedAt: number };
 
 export async function hoggiesOf(ctx: QueryCtx, member: MemberId, shown: CrestsShown, alsoHeld: string[] = []): Promise<HoggiesHome> {
   const tallies = await talliesOf(ctx, member);
-  const owned = catalogue.hoggies.filter(({ hoggie }) => tallies.has(hoggie)).length;
+  const owned = ownedIn(tallies);
   const crests = shown.crests ? new Set([...crestsCollectedIn(tallies).map(({ crest }) => crest), ...alsoHeld]).size : null;
   return { owned, total: catalogue.hoggies.length, lastFound: await lastFoundBy(ctx, member), crests };
+}
+
+export async function hoggiesOwnedBy(ctx: QueryCtx, member: MemberId): Promise<number> {
+  return ownedIn(await talliesOf(ctx, member));
+}
+
+function ownedIn(tallies: Tallies): number {
+  return catalogue.hoggies.filter(({ hoggie }) => tallies.has(hoggie)).length;
 }
 
 export async function crestsCollectedBy(ctx: QueryCtx, member: MemberId): Promise<CollectedCrest[]> {
