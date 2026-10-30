@@ -402,13 +402,24 @@ describe("MQ17: a welcome earns the welcome item, starts the quests and schedule
   test("the welcome counts the welcome item it owes as waiting before Album earns it, and once after", async () => {
     t = await workspace(mondayPath);
     const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member" }));
-    const waitingAtTheWelcome = async () => (await t.query(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: "T1", member, cause: { path: "thoughtful-given" }, journey: [] })).waiting;
+    const waitingAtTheWelcome = async () => (await t.query(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: "T1", member, cause: { path: "thoughtful-given" }, journey: [], owesTheWelcomeItem: true })).waiting;
 
     const beforeTheEarn = await waitingAtTheWelcome();
-    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, at: Date.now() } });
+    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, owesTheWelcomeItem: true, at: Date.now() } });
 
     expect(beforeTheEarn, "waiting before Album earns the welcome item").toBe(1);
     expect(await waitingAtTheWelcome(), "waiting once Album earned it").toBe(1);
+  });
+
+  test("a welcome that owed no welcome item counts none, even once welcome-item reads on", async () => {
+    t = await workspace(mondayPath);
+    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member" }));
+    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, owesTheWelcomeItem: false, at: Date.now() } });
+
+    const { waiting } = await t.query(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: "T1", member, cause: { path: "thoughtful-given" }, journey: [], owesTheWelcomeItem: false });
+
+    expect(waiting, "waiting after a greeting that owed nothing").toBe(0);
+    expect(await welcomeItemsOf(bob), "the welcome items Bob holds").toEqual([]);
   });
 
   test("the hug welcome starts Bob's quests", async () => {

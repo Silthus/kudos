@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
+import { welcomeItemOwedTo } from "../album/items/welcome";
 import { publish } from "../bus/publish";
 import { readyFromTheStartOnceVerified } from "../website/flag";
 import { lookup } from "../workspace/directory";
@@ -80,7 +81,7 @@ async function verified(ctx: MutationCtx, verification: Doc<"memberVerifications
   const person = await lookup(ctx, verification.workspace, verification.user);
   if (person?.kind !== "member") return;
   await readyFromTheStartOnceVerified(ctx, person.member);
-  if (wasFirstSignIn) await publish(ctx, { type: "memberGreeted", workspace: verification.workspace, member: person.member, at: Date.now() });
+  if (wasFirstSignIn) await publish(ctx, { type: "memberGreeted", workspace: verification.workspace, member: person.member, owesTheWelcomeItem: await welcomeItemOwedTo(ctx, person.member), at: Date.now() });
 }
 
 async function forgetFirstSignIn(ctx: MutationCtx, workspace: string, user: string): Promise<boolean> {

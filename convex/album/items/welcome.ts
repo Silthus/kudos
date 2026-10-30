@@ -1,5 +1,5 @@
 import type { Id } from "../../_generated/dataModel";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../../_generated/server";
+import { internalMutation, type QueryCtx } from "../../_generated/server";
 import { memberGreetedEventValidator } from "../../bus/events";
 import type { CrateKey } from "../hoggies/crateKey";
 import { customEmojiImageOf } from "../../workspace/customEmoji";
@@ -19,22 +19,22 @@ export const welcomeCrateKey: CrateKey = "welcome:first";
 
 export const earnWelcomeItemOnGreeting = internalMutation({
   args: { event: memberGreetedEventValidator },
-  handler: async (ctx, { event: { workspace, member, at } }): Promise<void> => {
-    await earnWelcomeItem(ctx, workspace, member, at);
+  handler: async (ctx, { event: { workspace, member, owesTheWelcomeItem, at } }): Promise<void> => {
+    if (owesTheWelcomeItem) await earnHoggieItem(ctx, { workspace, member, key: welcomeCrateKey, reason: { kind: "welcome" }, earnedAt: at }, welcomeRarities);
   },
 });
 
-async function earnWelcomeItem(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<void> {
-  if (!(await welcomeItemShownTo(ctx, member))) return;
-  await earnHoggieItem(ctx, { workspace, member, key: welcomeCrateKey, reason: { kind: "welcome" }, earnedAt: at }, welcomeRarities);
+export async function welcomeItemOwedTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await welcomeItemShownTo(ctx, member)) && !(await holdsTheWelcomeItem(ctx, member));
 }
 
-export async function shownWaitingHoggiesAtTheWelcomeOf(ctx: QueryCtx, member: MemberId, links: DmLinks | null): Promise<WaitingCount> {
-  return shownWaitingHoggiesOf(ctx, member, links, { notYetEarned: (await welcomeItemOwedTo(ctx, member)) ? 1 : 0 });
+export async function shownWaitingHoggiesAtTheWelcomeOf(ctx: QueryCtx, member: MemberId, links: DmLinks | null, owedAtTheWelcome: boolean): Promise<WaitingCount> {
+  const notYetEarned = owedAtTheWelcome && !(await holdsTheWelcomeItem(ctx, member)) ? 1 : 0;
+  return shownWaitingHoggiesOf(ctx, member, links, { notYetEarned });
 }
 
-async function welcomeItemOwedTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return (await welcomeItemShownTo(ctx, member)) && (await earnedItemOf(ctx, member, "hoggie", welcomeCrateKey)) === null;
+async function holdsTheWelcomeItem(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await earnedItemOf(ctx, member, "hoggie", welcomeCrateKey)) !== null;
 }
 
 export async function lessonAfter(ctx: QueryCtx, owner: { workspace: string; member: MemberId }, item: Id<"items">, { again }: Turned): Promise<Taught> {

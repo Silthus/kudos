@@ -105,7 +105,7 @@ describe("LP44 LP50: a member's first sign-in earns one welcome item", () => {
 
 describe("LP44: Album earns the welcome item from memberGreeted", () => {
   test("a greeting delivered twice earns one welcome item", async () => {
-    const event = { type: "memberGreeted" as const, workspace: allowedWorkspace, member: await memberOf(juno), at: Date.now() };
+    const event = { type: "memberGreeted" as const, workspace: allowedWorkspace, member: await memberOf(juno), owesTheWelcomeItem: true, at: Date.now() };
 
     await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event });
     await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event });

@@ -53,7 +53,7 @@ const itemSources: Record<string, ItemSource> = {
     today: [{ key: "thoughtful:" }],
   },
   "the welcome item": {
-    earns: (member) => t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, at: Date.now() } }),
+    earns: (member) => t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, owesTheWelcomeItem: true, at: Date.now() } }),
     capped: [{ key: "welcome:first", ...exactlyRare }],
     today: [{ key: "welcome:first", floor: "rare" }],
   },

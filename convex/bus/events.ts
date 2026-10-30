@@ -90,6 +90,7 @@ export const memberGreetedEventValidator = v.object({
   type: v.literal("memberGreeted"),
   workspace: v.string(),
   member: v.id("members"),
+  owesTheWelcomeItem: v.boolean(),
   at: v.number(),
 });
 
