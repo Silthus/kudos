@@ -1,3 +1,4 @@
+import type { PaginationOptions } from "convex/server";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
@@ -16,6 +17,20 @@ export async function countHugGiven(ctx: MutationCtx, hug: CountedHug) {
   const week = await weekRowOf(ctx, hug.workspace, hug.giver, weekOf(hug.day).monday);
   await ctx.db.patch(week._id, { given: week.given + 1, givenXp: week.givenXp + hugXp });
   await countHugOnTheMessage(ctx, hug);
+}
+
+export type HugWeeksPage = { weeks: HugWeek[]; next: string | null };
+
+export async function weeksOfTheMondayDmSince(ctx: QueryCtx, since: DayKey, page: PaginationOptions): Promise<HugWeeksPage> {
+  const { page: weeks, isDone, continueCursor } = await ctx.db
+    .query("hugWeeks")
+    .withIndex("by_week", (q) => q.gte("week", since))
+    .paginate(page);
+  return { weeks: weeks.filter(belongsToTheMondayDm), next: isDone ? null : continueCursor };
+}
+
+export function belongsToTheMondayDm({ recap, tries }: HugWeek): boolean {
+  return tries === 0 && (recap === "waiting" || recap === "scheduled" || recap === "monday-dm");
 }
 
 export async function weekOfPersonAt(ctx: QueryCtx, person: MemberId, at: number): Promise<DayKey> {

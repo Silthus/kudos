@@ -771,14 +771,14 @@ async function triesToUnlock(member: Person, team: string) {
   return unlocked.kind;
 }
 
-function recapSweep() {
-  const job = crons.crons["schedule each member's weekly hugs recap"];
-  if (job === undefined) throw new Error("no cron job schedules each member's weekly hugs recap");
+function mondayDmSweep() {
+  const job = crons.crons["ensure each member's coming Monday DM"];
+  if (job === undefined) throw new Error("no cron job ensures each member's coming Monday DM");
   return makeFunctionReference<"mutation">(job.name);
 }
 
 async function recapsSentOnMonday() {
-  await t.mutation(recapSweep(), {});
+  await t.mutation(mondayDmSweep(), {});
   await settleUpTo(t, mondayNine + hourMs);
 }
 
@@ -788,7 +788,7 @@ async function mondayPostSent() {
 }
 
 async function mondayComes() {
-  await t.mutation(recapSweep(), {});
+  await t.mutation(mondayDmSweep(), {});
   await mondayPostSwitchedOn();
   await settleUpTo(t, mondayNine + hourMs);
 }
