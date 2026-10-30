@@ -149,6 +149,28 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
     expect(contextOf(recapTo(alice)).at(-1)).toEqual({ type: "mrkdwn", text: "Emojis you earned last week: level-5" });
   });
 
+  test("with hidden items on, a milestone tier reached while its item lies face down is not on that week's recap, as the Book still holds it", async () => {
+    await fourMembers([onForEveryone(albumSlack), ...itemsOn]);
+    await thanks(alice, why, bob);
+    await hugs(alice, await says(dana, "Lunch is in the kitchen"));
+
+    await recapsSentOnMonday();
+
+    expect(emojiNamesIn(recapTo(alice))).not.toContain("first-thank-you");
+  });
+
+  test("with hidden items on, a milestone tier reached one week and unlocked by a turn the next is on the recap of the week it unlocked, as the Book shows it", async () => {
+    await fourMembers([onForEveryone(albumSlack), ...itemsOn], { startingAt: lastWeeksTuesday });
+    await thanks(alice, why, bob);
+    vi.setSystemTime(tuesday);
+    await turnsEverything(alice);
+    await hugs(alice, await says(dana, "Lunch is in the kitchen"));
+
+    await recapsSentOnMonday();
+
+    expect(emojiNamesIn(recapTo(alice))).toEqual(["first-face", "first-thank-you"]);
+  });
+
   test("a recap whose pictures Slack refuses goes once more without them, its emoji line as words", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     await thanks(alice, why, bob);
@@ -814,6 +836,11 @@ function recapTo(someone: Person): Posted | undefined {
 
 function contextOf(recap: Posted | undefined) {
   return recap?.blocks?.find(({ type }) => type === "context")?.elements ?? [];
+}
+
+function emojiNamesIn(recap: Posted | undefined) {
+  const line = String(recap?.text ?? "").split("\n").find((text) => text.startsWith("Emojis you earned last week: "));
+  return line === undefined ? [] : line.slice("Emojis you earned last week: ".length).split(", ");
 }
 
 function mondayPosts(): Posted[] {

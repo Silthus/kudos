@@ -38,7 +38,7 @@ export type AlbumShellProps = {
   album: Album;
   place: Place;
   settings: ReactNode;
-  leaderboard: ReactNode;
+  leaderboard: (inSight: boolean) => ReactNode;
   activity: (inSight: boolean) => ReactNode;
   person: ReactNode;
   profile: ReactNode;
@@ -118,7 +118,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     missedXpMoment.start();
     turns.show();
   };
-  const inSight = !(playing || covered || anEntryIsOpen);
+  const inSight = !(playing || covered || sinceTheLastVisit.waits || anEntryIsOpen);
   const shellQuests = shellQuestsOf(quests, { inSight, openBoard: turns.show, landing: questsLanding, viewQuests });
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
@@ -145,7 +145,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
             <LandingProvider value={turns.landing}>
               <ItemTurningProvider value={itemTurningOf(turns)}>
-                <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard} activity={activity(inSight)} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
+                <AlbumPage album={landed} place={place} settings={settings} leaderboard={leaderboard(inSight)} activity={activity(inSight)} person={person} profile={profile} hoggies={hoggies} levelUp={levelUp(emojiMoments.shownElsewhere, playing)} unlocking={unlocking} />
               </ItemTurningProvider>
             </LandingProvider>
           </ErrorBoundary>

@@ -43,7 +43,7 @@ const noXpMoment: XpMomentRead = (asking) => (asking ? { kind: "off" } : undefin
 
 const noPlayerCards: PlayerCardRead = (asking) => (asking ? { card: { kind: "off" }, emojis: { kind: "off" } } : { card: undefined, emojis: undefined });
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickKudosEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks" | "viewQuests" | "viewLeaderboard" | "viewActivity">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickKudosEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks" | "viewQuests" | "viewLeaderboard" | "viewThisWeek" | "viewActivity">>;
 
 const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useHugBoards: noHugBoards, useAlbumWeek: noWeeks, useActivityWeek: theWeeklyEdition, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment, usePlayerCard: noPlayerCards, useQuests: noQuests };
 
@@ -93,6 +93,7 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     closeHowItWorks: vi.fn(commands.closeHowItWorks ?? (async () => ({ kind: "closed" }) as const)),
     viewQuests: vi.fn(commands.viewQuests ?? (() => {})),
     viewLeaderboard: vi.fn(commands.viewLeaderboard ?? (() => {})),
+    viewThisWeek: vi.fn(commands.viewThisWeek ?? (() => {})),
     viewActivity: vi.fn(commands.viewActivity ?? (() => {})),
   };
   const user = userEvent.setup();

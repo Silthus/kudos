@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Highlight, HugBoards, Tallies } from "../../../convex/website/leaderboard";
+import type { Highlight, HugBoards, HugMeasure, Tallies } from "../../../convex/website/leaderboard";
 import type { AlbumLevel, AlbumMe } from "../album/answer";
 import { levelShareOf, plural, xpToNextOf } from "../album/facts";
 import { NamedEmoji } from "../Emoji";
@@ -14,22 +14,22 @@ import { PeopleBoard, TeamBoard, type MeasureChoice } from "./PeopleBoard";
 import { TeamsJoiningInBoard } from "./TeamsJoiningIn";
 import { WithinReach } from "./WithinReach";
 
-type ThisWeekAnswerProps = { boards: HugBoardsOfMeasure; me: AlbumMe; level: AlbumLevel; onViewed: () => void; onSignIn: () => void; onSignOut: () => void };
+type ThisWeekAnswerProps = { boards: HugBoardsOfMeasure; me: AlbumMe; level: AlbumLevel; inSight: boolean; onViewed: (measure: HugMeasure) => void; onSignIn: () => void; onSignOut: () => void };
 
-type ThisWeekProps = { boards: HugBoards; choice: MeasureChoice; me: AlbumMe; level: AlbumLevel; onViewed: () => void };
+type ThisWeekProps = { boards: HugBoards; choice: MeasureChoice; me: AlbumMe; level: AlbumLevel; inSight: boolean; onViewed: (measure: HugMeasure) => void };
 
 type Words = { headline: string; detail: string };
 
 const tallyTerms: Record<keyof Tallies, string> = { hugsGiven: "hugs given", hugsReceived: "hugs received", kudosReceived: "kudos received", hoggiesFound: "hoggies found" };
 
-export function ThisWeekAnswerPage({ boards: { shown, measure, choose }, me, level, onViewed, ...answers }: ThisWeekAnswerProps) {
+export function ThisWeekAnswerPage({ boards: { shown, measure, choose }, me, level, inSight, onViewed, ...answers }: ThisWeekAnswerProps) {
   if (isWaitingForTheWeeksBoards(shown)) return <LoadingPage shape="column" />;
   if (shown.kind !== "boards") return <AnswerPage answer={shown} {...answers} />;
-  return <ThisWeekPage boards={shown} choice={{ chosen: measure, choose }} me={me} level={level} onViewed={onViewed} />;
+  return <ThisWeekPage boards={shown} choice={{ chosen: measure, choose }} me={me} level={level} inSight={inSight} onViewed={onViewed} />;
 }
 
-function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
-  useViewedOnce(onViewed);
+function ThisWeekPage({ boards, choice, me, level, inSight, onViewed }: ThisWeekProps) {
+  useViewedOncePerMeasureInSight(choice.chosen, inSight, onViewed);
   const joiningIn = boards.joiningIn ?? null;
   return (
     <div className="al-page-body lb-week">
@@ -52,15 +52,15 @@ function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
   );
 }
 
-function useViewedOnce(onViewed: () => void) {
-  const viewed = useRef(false);
+function useViewedOncePerMeasureInSight(measure: HugMeasure, inSight: boolean, onViewed: (measure: HugMeasure) => void) {
+  const reported = useRef<HugMeasure | null>(null);
   const latest = useRef(onViewed);
   latest.current = onViewed;
   useEffect(() => {
-    if (viewed.current) return;
-    viewed.current = true;
-    latest.current();
-  }, []);
+    if (!inSight || reported.current === measure) return;
+    reported.current = measure;
+    latest.current(measure);
+  }, [measure, inSight]);
 }
 
 function YouCard({ boards, me, level }: { boards: HugBoards; me: AlbumMe; level: AlbumLevel }) {
