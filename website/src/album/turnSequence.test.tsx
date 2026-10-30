@@ -100,9 +100,9 @@ function hoggiesThatAnswerLater(answer: AlbumHoggies) {
   return { read, answers };
 }
 
-type Visit = { album?: Album; reply?: (item: string) => Promise<TurnReply>; after?: (album: Album, item: string) => Album; hoggies?: AlbumHoggies; hoggiesRead?: HoggiesRead };
+type Visit = { album?: Album; reply?: (item: string) => Promise<TurnReply>; after?: (album: Album, item: string) => Album; hoggies?: AlbumHoggies; hoggiesRead?: HoggiesRead; render?: typeof renderAlbum };
 
-function visit({ album = withItems, reply = async (item) => fixtureTurnOf(item), after = withTheHoggieTurned, hoggies = theDanceFound(), hoggiesRead = (asking) => (asking ? hoggies : undefined) }: Visit = {}) {
+function visit({ album = withItems, reply = async (item) => fixtureTurnOf(item), after = withTheHoggieTurned, hoggies = theDanceFound(), hoggiesRead = (asking) => (asking ? hoggies : undefined), render = renderAlbum }: Visit = {}) {
   window.history.replaceState(null, "", "/book#me");
   const live = anAlbumThatAnswers(album);
   const turnItem = vi.fn(async (item: string) => {
@@ -110,15 +110,36 @@ function visit({ album = withItems, reply = async (item) => fixtureTurnOf(item),
     if (answer.kind === "turned") live.answerNext(after(live.now(), item));
     return answer;
   });
-  const view = renderAlbum(shellFixtures.member, live.read, { hoggies: hoggiesRead, people: fixedPeople(withItems), commands: { turnItem } });
+  const view = render(shellFixtures.member, live.read, { hoggies: hoggiesRead, people: fixedPeople(withItems), commands: { turnItem } });
   return { ...view, turnItem, live };
+}
+
+async function anAlbumNotLoadedYet() {
+  vi.resetModules();
+  const { renderAlbum: renderAfterItLoads } = await import("../test/renderApp");
+  return renderAfterItLoads;
 }
 
 const arrival = { timeout: 10_000 };
 
+const anUnidentifiedItem = { name: "An unidentified item. Identify it" };
+
 async function theFirstItem() {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
-  return board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!;
+  return board.getAllByRole("button", anUnidentifiedItem)[0]!;
+}
+
+function theFirstItemTheMomentItShows() {
+  return new Promise<HTMLElement>((resolve) => {
+    const watching = new MutationObserver(() => {
+      const board = screen.queryByRole("dialog", { name: "Your items" });
+      const item = board === null ? undefined : within(board).queryAllByRole("button", anUnidentifiedItem)[0];
+      if (item === undefined) return;
+      watching.disconnect();
+      resolve(item);
+    });
+    watching.observe(document.body, { subtree: true, childList: true, attributes: true });
+  });
 }
 
 let clicked = 0;
@@ -235,6 +256,19 @@ describe("LP18 LP19 LP21: the Page-first turn sequence at 0.8×", { timeout: 30_
     expect(stage()).toBe("idle");
     expect(screen.getByRole("heading", { name: "2 unidentified items wait" })).toBeVisible();
     expect(turnItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps LP18's times for an item turned the moment the album first shows its board, before the album's first effects have run", async () => {
+    visit({ render: await anAlbumNotLoadedYet() });
+    await clickOnFakeTime(await theFirstItemTheMomentItShows());
+
+    await at(0.26);
+    expect(window.location.hash).toBe("#me");
+    expect(dark()).toBe(true);
+    await at(0.46);
+    expect(window.location.hash).toBe("#hoggies");
+    await at(1.8);
+    expect(stage()).toBe("hold");
   });
 
   it("keeps the hoggie off the page until it lands: the top of Hoggies names no new find and its plate waits empty and unmarked", async () => {

@@ -69,7 +69,16 @@ function useSkipWhileFlying(flying: boolean, clock: RefObject<TurnClock | null>)
 }
 
 function useSkipOnceGone(clock: RefObject<TurnClock | null>) {
-  useEffect(() => () => clock.current?.stop(), [clock]);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      queueMicrotask(() => {
+        if (!mounted.current) clock.current?.stop();
+      });
+    };
+  }, [clock]);
 }
 
 const skipKeys = new Set(["Enter", " ", "Escape"]);
