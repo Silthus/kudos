@@ -33,7 +33,7 @@ const lively: HugBoards = {
     rows: rowsOf(["wren-alder", "Wren Alder", 6, 1], ["ines-okafor", "Ines Okafor", 4, 2], [you, "Sam Example", 4, 2], ["fen-marlowe", "Fen Marlowe", 1, 4]),
     lastWeek: null,
   },
-  team: { name: "Lanterns", rows: rowsOf(["ines-okafor", "Ines Okafor", 4, 1], [you, "Sam Example", 4, 1], ["oona-vasquez", "Oona Vasquez", 0, null]), yetToJoin: 2 },
+  team: { name: "Lanterns", rows: rowsOf(["ines-okafor", "Ines Okafor", 4, 1], [you, "Sam Example", 4, 1], ["oona-vasquez", "Oona Vasquez", 0, null]), joinedIn: true, yetToJoin: 2 },
 };
 
 const quiet: HugBoards = {
@@ -46,7 +46,7 @@ const quiet: HugBoards = {
   kudosEmoji,
   measure: "hugsGiven",
   people: { rows: rowsOf(["wren-alder", "Wren Alder", 2, 1], [you, "Sam Example", 0, null]), lastWeek: null },
-  team: { name: "Lanterns", rows: rowsOf(["ines-okafor", "Ines Okafor", 1, 1], [you, "Sam Example", 0, null]), yetToJoin: 3 },
+  team: { name: "Lanterns", rows: rowsOf(["ines-okafor", "Ines Okafor", 1, 1], [you, "Sam Example", 0, null]), joinedIn: false, yetToJoin: 3 },
 };
 
 const empty: HugBoards = {
@@ -59,7 +59,7 @@ const empty: HugBoards = {
   kudosEmoji,
   measure: "hugsGiven",
   people: { rows: rowsOf([you, "Sam Example", 0, null]), lastWeek: rowsOf(["wren-alder", "Wren Alder", 9, 1], ["ines-okafor", "Ines Okafor", 6, 2], [you, "Sam Example", 6, 2]) },
-  team: { name: "Lanterns", rows: rowsOf([you, "Sam Example", 0, null]), yetToJoin: 4 },
+  team: { name: "Lanterns", rows: rowsOf([you, "Sam Example", 0, null]), joinedIn: false, yetToJoin: 4 },
 };
 
 export const hugBoardsFixtures = { lively, quiet, empty } satisfies Record<string, HugBoards>;
@@ -70,6 +70,14 @@ export function byLevel(boards: HugBoards): HugBoards {
     measure: "level",
     people: { rows: rowsOf(["wren-alder", "Wren Alder", 9, 1], ["ines-okafor", "Ines Okafor", 7, 2], [you, "Sam Example", 6, 3]), lastWeek: null },
     team: boards.team && { ...boards.team, rows: rowsOf(["ines-okafor", "Ines Okafor", 7, 1], [you, "Sam Example", 6, 2], ["oona-vasquez", "Oona Vasquez", 5, 3]), yetToJoin: 0 },
+  };
+}
+
+export function byKudosReceived(boards: HugBoards): HugBoards {
+  return {
+    ...boards,
+    measure: "kudosReceived",
+    team: boards.team && { ...boards.team, rows: rowsOf(["ines-okafor", "Ines Okafor", 1, 1], [you, "Sam Example", 0, null], ["oona-vasquez", "Oona Vasquez", 0, null]) },
   };
 }
 

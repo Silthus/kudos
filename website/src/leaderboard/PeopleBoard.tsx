@@ -8,14 +8,14 @@ import { AppLink } from "../AppLink";
 import { NamedEmoji } from "../Emoji";
 import { MemberFace } from "../Face";
 
-type Measure = { measure: HugMeasure; tab: string; unit: [one: string, many: string] | null; firstWays: ((emoji: ReactNode) => ReactNode) | null };
+type Measure = { measure: HugMeasure; tab: string; weekly: boolean; unit: [one: string, many: string] | null; firstWays: ((emoji: ReactNode) => ReactNode) | null };
 
 const measures: Measure[] = [
-  { measure: "hugsGiven", tab: "Hugs given", unit: ["hug", "hugs"], firstWays: (emoji) => <>React with {emoji} to any message to give the first hug of the week.</> },
-  { measure: "hugsReceived", tab: "Hugged", unit: ["hug", "hugs"], firstWays: () => "Hug a teammate's message and they're the first one here." },
-  { measure: "kudosReceived", tab: "Kudos received", unit: ["kudos", "kudos"], firstWays: (emoji) => <>Write {emoji} @name and what they did, and they lead this one.</> },
-  { measure: "level", tab: "Level", unit: null, firstWays: null },
-  { measure: "hoggies", tab: "Hoggies", unit: ["hoggie", "hoggies"], firstWays: null },
+  { measure: "hugsGiven", tab: "Hugs given", weekly: true, unit: ["hug", "hugs"], firstWays: (emoji) => <>React with {emoji} to any message to give the first hug of the week.</> },
+  { measure: "hugsReceived", tab: "Hugged", weekly: true, unit: ["hug", "hugs"], firstWays: () => "Hug a teammate's message and they're the first one here." },
+  { measure: "kudosReceived", tab: "Kudos received", weekly: true, unit: ["kudos", "kudos"], firstWays: (emoji) => <>Write {emoji} @name and what they did, and they lead this one.</> },
+  { measure: "level", tab: "Level", weekly: false, unit: null, firstWays: null },
+  { measure: "hoggies", tab: "Hoggies", weekly: false, unit: ["hoggie", "hoggies"], firstWays: null },
 ];
 
 export type MeasureChoice = { chosen: HugMeasure; choose: (measure: HugMeasure) => void };
@@ -62,7 +62,7 @@ export function TeamBoard({ team, measure: chosen }: { team: Team; measure: HugM
     <section className="lb-board" aria-label={`You in ${team.name}`}>
       <header className="lb-board-head">
         <h2 className="lb-board-title">You in {team.name}</h2>
-        <p className="lb-board-deck">{teamStandingWords(team, measure)}</p>
+        <TeamStanding team={team} measure={measure} />
       </header>
       <PersonRows rows={team.rows} measure={measure} />
       {team.yetToJoin > 0 && <p className="lb-board-deck">{plural(team.yetToJoin, "more teammate", "more teammates")} can still join in this week.</p>}
@@ -70,11 +70,17 @@ export function TeamBoard({ team, measure: chosen }: { team: Team; measure: HugM
   );
 }
 
-function teamStandingWords({ name, rows }: Team, { tab }: Measure): string {
+function TeamStanding({ team, measure }: { team: Team; measure: Measure }) {
+  const words = teamStandingWords(team, measure);
+  return words && <p className="lb-board-deck">{words}</p>;
+}
+
+function teamStandingWords({ name, rows, joinedIn }: Team, { tab, weekly }: Measure): string | null {
   const rank = rows.find(({ you }) => you)?.rank ?? null;
-  if (rank === null) return rows.some(({ you }) => !you) ? `Your first hug puts you on ${name}'s board.` : `Nobody in ${name} has started yet. Your first hug puts you at the top.`;
   if (rank === 1) return `You lead ${name} on ${tab.toLowerCase()} this week.`;
-  return `You're No. ${rank} of ${rows.length} in ${name} on ${tab.toLowerCase()} this week.`;
+  if (rank !== null) return `You're No. ${rank} of ${rows.length} in ${name} on ${tab.toLowerCase()} this week.`;
+  if (!weekly || joinedIn) return null;
+  return rows.some(({ you }) => !you) ? `Your first hug puts you on ${name}'s board.` : `Nobody in ${name} has started yet. Your first hug puts you at the top.`;
 }
 
 function PersonRows({ rows, measure }: { rows: PersonRow[]; measure: Measure }) {

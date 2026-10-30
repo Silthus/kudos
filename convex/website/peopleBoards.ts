@@ -19,7 +19,7 @@ export type PersonRow = { person: MemberId; rank: number | null; name: string; f
 
 export type PeopleBoard = { rows: PersonRow[]; lastWeek: PersonRow[] | null };
 
-export type TeamBoard = { name: string; rows: PersonRow[]; yetToJoin: number };
+export type TeamBoard = { name: string; rows: PersonRow[]; joinedIn: boolean; yetToJoin: number };
 
 export type PeopleBoards = { measure: HugMeasure; people: PeopleBoard; team: TeamBoard | null };
 
@@ -61,10 +61,16 @@ async function teamBoardOf(week: Week): Promise<TeamBoard | null> {
   const group = await countingPrimaryGroupOf(ctx, viewer.member);
   const members = group === null ? [] : await primaryMembersOf(ctx, group.group);
   if (group === null || members.length < fewestMembersListed) return null;
-  if (!isWeekly(week.measure)) return { name: group.name, rows: await rowsOf(await boardPeopleOf(ctx, viewer, members), figureOf(week)), yetToJoin: 0 };
-  const joined = week.people.filter((person) => members.includes(person.member) && !person.viewer && person.firstDay !== null);
-  const teammates = members.filter((member) => member !== viewer.member).length;
-  return { name: group.name, rows: await rowsOf(withPerson(joined, week.you), figureOf(week)), yetToJoin: teammates - joined.length };
+  const team = await boardPeopleOf(ctx, viewer, members);
+  const joinedIn = week.you !== null && hasJoinedIn(week.you);
+  if (!isWeekly(week.measure)) return { name: group.name, rows: await rowsOf(team, figureOf(week)), joinedIn, yetToJoin: 0 };
+  const joined = week.people.filter((person) => members.includes(person.member) && !person.viewer && hasJoinedIn(person));
+  const teammates = team.filter((person) => !person.viewer).length;
+  return { name: group.name, rows: await rowsOf(withPerson(joined, week.you), figureOf(week)), joinedIn, yetToJoin: teammates - joined.length };
+}
+
+function hasJoinedIn({ firstDay }: BoardPerson): boolean {
+  return firstDay !== null;
 }
 
 function figureOf({ ctx, measure }: Week): FigureOf {

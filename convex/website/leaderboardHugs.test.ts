@@ -346,6 +346,29 @@ describe("HH75: You in your team", () => {
     expect((await boardsOf(alice)).team).toMatchObject({ yetToJoin: 2 });
   });
 
+  test("the member's team says whether they joined in, whatever their figure on the chosen measure", async () => {
+    await inTheOtters(alice, bob, carol);
+    await thisWeek();
+    expect((await boardsOf(alice, "kudosReceived")).team, "before").toMatchObject({ joinedIn: false });
+
+    await hugsOn(alice, kiri);
+
+    expect((await boardsOf(alice, "kudosReceived")).team, "after a hug").toMatchObject({ joinedIn: true });
+  });
+
+  test("a teammate who left the boards is neither listed nor counted among those who can still join in", async () => {
+    await inTheOtters(alice, bob, carol, dana);
+    await thisWeek();
+    await hugsOn(bob, kiri);
+    await hugsOn(dana, kiri);
+    await leavesTheBoards(dana);
+
+    const { team } = await boardsOf(alice);
+
+    expect(team).toMatchObject({ yetToJoin: 1 });
+    expect(shown(team!.rows).map(({ name }) => name)).toEqual([bob.name, alice.name]);
+  });
+
   test("on level and hoggies it lists the whole team", async () => {
     await inTheOtters(alice, bob, carol);
     await thisWeek();

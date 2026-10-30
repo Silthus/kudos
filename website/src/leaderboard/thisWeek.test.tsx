@@ -7,7 +7,7 @@ import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import type { HugBoardsShown } from "../album/answer";
-import { byLevel, fixedHugBoards, hugBoardsFixtures } from "./thisWeekFixtures";
+import { byKudosReceived, byLevel, fixedHugBoards, hugBoardsFixtures } from "./thisWeekFixtures";
 
 const arrival = { timeout: 10_000 };
 
@@ -190,6 +190,14 @@ describe("HH75: You in your team", { timeout: 30_000 }, () => {
   it("when nobody in the team started, the first hug puts the member at the top", async () => {
     visit(hugBoardsFixtures.empty);
     expect((await board("You in Lanterns")).getByText("Nobody in Lanterns has started yet. Your first hug puts you at the top.")).toBeInTheDocument();
+  });
+
+  it("once the member joined in, a measure they have no figure on yet gives no first-hug line", async () => {
+    visit(byKudosReceived(hugBoardsFixtures.lively));
+    const team = await board("You in Lanterns");
+
+    expect(rowsIn(team)).toEqual(["1IOInes Okafor1 kudos", "–SESam ExampleYou0 kudos", "–OVOona Vasquez0 kudos"]);
+    expect(team.queryByText(/Your first hug|has started yet/)).not.toBeInTheDocument();
   });
 
   it("without a team there is no team board", async () => {
