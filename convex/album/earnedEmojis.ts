@@ -48,6 +48,8 @@ const mostEmojiNamesLookedUpOneByOne = 50;
 
 const unnamedPerson = "A teammate";
 
+const hypePrefix = "hype:";
+
 type Cause = { id: EarnedEmojiId; kind: EarnedEmojiKind; from: string; picture: string; earned: boolean; earnedAt: number | null; progress: EmojiProgress; byReactions?: true };
 
 type PackedPerson = { person: MemberId; unlockedAt: number; collected: boolean };
@@ -223,13 +225,34 @@ async function teamsUnlockedBetween(ctx: QueryCtx, member: MemberId, instants: I
 
 async function hypesEarnedBetween(ctx: QueryCtx, { workspace, member }: PageOwner, instants: Instants): Promise<EarnedCause[]> {
   const causes: EarnedCause[] = [];
-  for (const pack of await packsEarnedBetween(ctx, member, instants, mostPeoplePackedRead)) {
-    if ((await isFirstPackFor(ctx, pack)) && (await collectedBy(ctx, member, pack.recipient)) === null) causes.push(await hypeCauseOf(ctx, workspace, pack.recipient));
+  for (const person of await peopleWhoseHypeKudosUnlockedBetween(ctx, member, instants)) {
+    if ((await collectedBy(ctx, member, person)) === null) causes.push(await hypeCauseOf(ctx, workspace, person));
   }
   for (const { person, at } of await peopleCollectedBy(ctx, member, mostPeoplePackedRead)) {
     if (isWithin(instants, at)) causes.push(await hypeCauseOf(ctx, workspace, person));
   }
   return causes;
+}
+
+async function peopleWhoseHypeKudosUnlockedBetween(ctx: QueryCtx, member: MemberId, instants: Instants): Promise<MemberId[]> {
+  return (await hiddenItemsShownTo(ctx, member)) ? peopleWhoseHypeTurnedBetween(ctx, member, instants) : peopleFirstPackedBetween(ctx, member, instants);
+}
+
+async function peopleFirstPackedBetween(ctx: QueryCtx, member: MemberId, instants: Instants): Promise<MemberId[]> {
+  const people: MemberId[] = [];
+  for (const pack of await packsEarnedBetween(ctx, member, instants, mostPeoplePackedRead)) if (await isFirstPackFor(ctx, pack)) people.push(pack.recipient);
+  return people;
+}
+
+async function peopleWhoseHypeTurnedBetween(ctx: QueryCtx, member: MemberId, { from, to }: Instants): Promise<MemberId[]> {
+  const people: MemberId[] = [];
+  const seenThen = ctx.db.query("seenEmojis").withIndex("by_member_at", (q) => q.eq("member", member).gte("at", from).lt("at", to));
+  for await (const { emoji } of seenThen) {
+    const person = emoji.startsWith(hypePrefix) ? ctx.db.normalizeId("members", emoji.slice(hypePrefix.length)) : null;
+    if (person !== null && (await hasPackedFor(ctx, member, person))) people.push(person);
+    if (people.length === mostPeoplePackedRead) break;
+  }
+  return people;
 }
 
 async function hypeCauseOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<EarnedCause> {
