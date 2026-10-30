@@ -94,7 +94,7 @@ describe("HH86: a team page still collecting explains how to complete it", { tim
   it("opens a card for a missing teammate that says what their kudos does for the team", async () => {
     visit("salt-and-sparrow");
 
-    await userEvent.click((await photo()).getByRole("button", { name: "Ivo Lark, not in your album yet: how to get them" }));
+    await userEvent.click((await photo()).getByRole("button", { name: "Ivo Lark Not in your album yet: how to get them" }));
 
     const card = within(screen.getByRole("dialog", { name: "Ivo isn't in your album yet" }));
     expect(card.getByText("Give Ivo a kudos: their sticker joins your album, and the team is 2 more from complete.")).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("HH86: a team page still collecting explains how to complete it", { tim
   it("says the last missing teammate completes the team", async () => {
     visit("paper-moons", { ...withBookNext, packs: [] });
 
-    await userEvent.click((await photo()).getByRole("button", { name: "Rook Dale, not in your album yet: how to get them" }));
+    await userEvent.click((await photo()).getByRole("button", { name: "Rook Dale Not in your album yet: how to get them" }));
 
     expect(screen.getByRole("dialog", { name: "Rook isn't in your album yet" })).toHaveTextContent("Give Rook a kudos: their sticker joins your album, and the team is complete.");
   });

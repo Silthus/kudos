@@ -53,8 +53,8 @@ export function MissingTeammate({ album, team, bookNext, person, children }: Loc
     <li ref={card.spot} className="al-photo-person" data-out="">
       <button type="button" className="al-photo-link al-photo-missing" aria-expanded={card.open} onClick={card.toggle}>
         <PersonPicture face={person.face} name={person.name} collected={false} frame="al-photo-sticker" className="al-photo-face" />
-        <span className="al-photo-name ph-no-capture">{person.name}</span>
-        <span className="al-unseen">, not in your album yet: how to get them</span>
+        <span className="al-photo-name ph-no-capture">{person.name}</span>{" "}
+        <span className="sr-only">Not in your album yet: how to get them</span>
         <span className="al-photo-hint" aria-hidden="true">
           How to get
         </span>
