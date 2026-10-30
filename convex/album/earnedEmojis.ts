@@ -1,4 +1,3 @@
-import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
@@ -246,15 +245,15 @@ async function tiersUnlockedBetween(ctx: QueryCtx, member: MemberId, instants: I
   const heldForTheirTurn = await hiddenItemsShownTo(ctx, member);
   const unlocked = new Set<EarnedEmojiId>();
   for (const tier of await milestoneTiersOf(ctx, member)) {
-    const unlockedAt = heldForTheirTurn ? await unlockedWithItsTurnAt(ctx, member, tier) : tier.at;
+    const unlockedAt = heldForTheirTurn ? await tierUnlockedAt(ctx, member, tier, tier.at) : tier.at;
     if (unlockedAt !== null && isWithin(instants, unlockedAt)) unlocked.add(tierEmojiIdOf(tier));
   }
   return tierCausesAmong(unlocked);
 }
 
-async function unlockedWithItsTurnAt(ctx: QueryCtx, member: MemberId, tier: Doc<"milestoneTiers">): Promise<number | null> {
+export async function tierUnlockedAt(ctx: QueryCtx, member: MemberId, tier: ReachedTier, reachedAt: number): Promise<number | null> {
   const seenAt = await seenAtOf(ctx, member, tierEmojiIdOf(tier));
-  return seenAt === null ? null : Math.max(tier.at, seenAt);
+  return seenAt === null ? null : Math.max(reachedAt, seenAt);
 }
 
 function milestoneTiersOf(ctx: QueryCtx, member: MemberId) {
@@ -270,7 +269,7 @@ function tierCausesAmong(ids: Set<EarnedEmojiId>): EarnedCause[] {
     .map(({ milestone, tier }) => ({ id: tierEmojiIdOf({ milestone, tier }), picture: emojiArtPictureOf("milestone", milestoneTierArtOf(milestone, tier)) }));
 }
 
-function tierEmojiIdOf({ milestone, tier }: ReachedTier): EarnedEmojiId {
+export function tierEmojiIdOf({ milestone, tier }: ReachedTier): EarnedEmojiId {
   return `milestone:${milestone}:${tier}`;
 }
 
