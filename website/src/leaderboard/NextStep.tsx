@@ -14,8 +14,8 @@ export function NextStep({ step, emoji, slack, team }: NextStepProps) {
   return (
     <section className="lb-next" aria-label="Your next step">
       <span className="al-way-chip">{way === "hug" ? "Hug · a reaction" : "Kudos · a message"}</span>
-      <h2 className="lb-next-title">{title}</h2>
-      <p className="lb-next-why">{why}</p>
+      <h2 className="lb-next-title ph-no-capture">{title}</h2>
+      <p className="lb-next-why ph-no-capture">{why}</p>
       <SlackLink chatUrl={href} variant="primary" size="default">
         {button}
       </SlackLink>

@@ -12,7 +12,7 @@ export function WithinReach({ reachable }: { reachable: Reachable }) {
       <h2 className="lb-board-title">Emojis within your reach</h2>
       <ul className="lb-reach">
         {rows.map((row) => (
-          <li key={row.name} className="lb-reach-row">
+          <li key={row.name} className="lb-reach-row ph-no-capture">
             <img src={row.picture} alt="" width={32} height={32} className="lb-reach-picture" />
             <span className="lb-reach-words">
               <span className="lb-reach-what">
