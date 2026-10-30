@@ -1,5 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import { markEmojiSeen, seenAtOf } from "../earnedEmojis";
+import { markEmojiSeen, seenAtOf, tierEmojiIdOf, tierUnlockedAt } from "../earnedEmojis";
 import { recordMilestonesOf, tiersEarnedBy, type MilestoneAnswer, type ReachedTier } from "../milestones";
 import type { MilestoneId } from "../milestoneCatalogue";
 import type { PageOwner } from "../teamPages";
@@ -11,7 +11,7 @@ type AnsweredTier = MilestoneAnswer["tiers"][number];
 export async function unlockMilestoneTiers(ctx: MutationCtx, owner: PageOwner, at: number): Promise<ReachedTier[]> {
   await recordMilestonesOf(ctx, owner, at);
   const unlocked: ReachedTier[] = [];
-  for (const tier of await tiersEarnedBy(ctx, owner.member)) if (await markEmojiSeen(ctx, owner.member, tierEmojiOf(tier), at)) unlocked.push(tier);
+  for (const tier of await tiersEarnedBy(ctx, owner.member)) if (await markEmojiSeen(ctx, owner.member, tierEmojiIdOf(tier), at)) unlocked.push(tier);
   return unlocked;
 }
 
@@ -19,7 +19,7 @@ export async function tiersTurnedBy(ctx: QueryCtx, member: MemberId): Promise<Re
   const earned = await tiersEarnedBy(ctx, member);
   if (!(await hiddenItemsShownTo(ctx, member))) return earned;
   const turned: ReachedTier[] = [];
-  for (const tier of earned) if ((await seenAtOf(ctx, member, tierEmojiOf(tier))) !== null) turned.push(tier);
+  for (const tier of earned) if ((await seenAtOf(ctx, member, tierEmojiIdOf(tier))) !== null) turned.push(tier);
   return turned;
 }
 
@@ -37,10 +37,6 @@ async function tiersHeldOf(ctx: QueryCtx, member: MemberId, { id, tiers }: Miles
 
 async function heldUntilSeen(ctx: QueryCtx, member: MemberId, milestone: MilestoneId, tier: AnsweredTier): Promise<AnsweredTier> {
   if (tier.earnedAt === null) return tier;
-  const seenAt = await seenAtOf(ctx, member, tierEmojiOf({ milestone, tier: tier.tier }));
-  return seenAt === null ? { ...tier, earnedAt: null } : { ...tier, unlockedAt: Math.max(tier.earnedAt, seenAt) };
-}
-
-function tierEmojiOf({ milestone, tier }: ReachedTier) {
-  return `milestone:${milestone}:${tier}`;
+  const unlockedAt = await tierUnlockedAt(ctx, member, { milestone, tier: tier.tier }, tier.earnedAt);
+  return unlockedAt === null ? { ...tier, earnedAt: null } : { ...tier, unlockedAt };
 }
