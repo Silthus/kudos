@@ -28,13 +28,13 @@ export function useFloatingCard<Spot extends HTMLElement>() {
   };
   useEffect(() => () => window.clearTimeout(leaving.current), []);
   useClosingOutside(open, spot, card, close);
-  return { open, spot, card, hover, close, toggle: () => setPinned((was) => !was) };
+  return { open, pinned, spot, card, hover, close, toggle: () => setPinned((was) => !was) };
 }
 
 function useClosingOutside(open: boolean, spot: React.RefObject<HTMLElement | null>, card: React.RefObject<HTMLElement | null>, close: () => void) {
   useEffect(() => {
     if (!open) return;
-    const closeOutside = (event: PointerEvent) => {
+    const closeAway = (event: Event) => {
       const target = event.target as Node;
       if (!spot.current?.contains(target) && !card.current?.contains(target)) close();
     };
@@ -43,10 +43,12 @@ function useClosingOutside(open: boolean, spot: React.RefObject<HTMLElement | nu
       spot.current?.querySelector("button")?.focus();
       close();
     };
-    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("pointerdown", closeAway);
     document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("focusin", closeAway);
     return () => {
-      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("focusin", closeAway);
+      document.removeEventListener("pointerdown", closeAway);
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [open, spot, card, close]);
