@@ -147,6 +147,16 @@ export async function* hugsReceivedByDecision(ctx: QueryCtx, member: MemberId, b
   for await (const version of versions) if (isLiveAt(version, snapshot)) yield receivedHugsOf(version);
 }
 
+export async function newestHugsPaidTo(ctx: QueryCtx, member: MemberId, since: number, atMost: number): Promise<Hug[]> {
+  const paid = await ctx.db
+    .query("hugPeople")
+    .withIndex("by_member_at", (q) => q.eq("member", member).gte("at", since))
+    .order("desc")
+    .take(atMost);
+  const hugs = await Promise.all(paid.map(({ hug }) => ctx.db.get(hug)));
+  return hugs.filter((hug): hug is Hug => hug !== null);
+}
+
 export async function hugsOnTheMessageAsOf(ctx: QueryCtx, member: MemberId, { workspace, conversation, message }: MessageRef, at: number): Promise<number> {
   const version = await ctx.db
     .query("hugsReceived")

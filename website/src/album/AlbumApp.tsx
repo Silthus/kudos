@@ -10,7 +10,7 @@ import { useSectionOnceLanded } from "../linkTarget";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import { rememberSignInStarted } from "../signInAttempt";
-import type { Album, BoardPeriod, HoggiesShown } from "./answer";
+import type { ActivityWeekShown, Album, BoardPeriod, HoggiesShown } from "./answer";
 import { ActivityAnswerPage, isWaitingForTheActivity } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
@@ -69,7 +69,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const playerReads = { cards: playerCards, week: ownWeek, together: person };
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
-  const activityWeek = useActivityWeek(onActivity);
+  const activityWeek = editionAtAnAddressedWeek(useActivityWeek(onActivity), place);
   const edition = useWeekEdition(useAlbumWeek, onActivity && activityWeek?.kind === "edition", viewAddress && weekAddressedIn(place, viewAddress));
   const expectArrival = useTitleFocusOnArrival(arrivals);
   useTitleFocusAfterChange(album === undefined ? "loading" : album.kind);
@@ -159,6 +159,10 @@ function periodAddressedIn(place: Place, viewAddress: (place: Place) => void): A
     chosen: (place.kind === "leaderboard" && place.period) || "week",
     choose: (period) => viewAddress(period === "week" ? { kind: "leaderboard" } : { kind: "leaderboard", period }),
   };
+}
+
+function editionAtAnAddressedWeek(week: ActivityWeekShown | undefined, place: Place): ActivityWeekShown | undefined {
+  return week?.kind === "week" && place.kind === "activity" && place.week !== undefined ? { kind: "edition" } : week;
 }
 
 function weekAddressedIn(place: Place, viewAddress: (place: Place) => void): AddressedChoice<string | undefined> {

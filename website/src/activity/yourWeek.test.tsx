@@ -9,7 +9,7 @@ import { fixtureWeeks } from "../album/weekFixtures";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
-import { activityWeekFixtures, fensKudos, fixedActivityWeek, slackOfTheWorkspace, theWeeklyEdition } from "./activityWeekFixtures";
+import { activityWeekFixtures, fensKudos, fixedActivityWeek, junosMessage, slackOfTheWorkspace, theWeeklyEdition } from "./activityWeekFixtures";
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -31,6 +31,10 @@ function checksIn(box: ReturnType<typeof within>) {
 
 async function questsBox() {
   return within(await screen.findByRole("region", { name: "This week's quests" }));
+}
+
+async function thankedBox() {
+  return within(await screen.findByRole("region", { name: "Who thanked you this week" }));
 }
 
 async function nextStep() {
@@ -145,6 +149,77 @@ describe("HH62 HH65: the week's quests sit under the step, one checkbox row each
 
     expect(await screen.findByRole("complementary", { name: "Quests" }, { timeout: 10_000 })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "This week's quests" })).not.toBeInTheDocument();
+  });
+});
+
+describe("HH66: who thanked you this week sits beside the quests", { timeout: 30_000 }, () => {
+  it("lists every hug and kudos, newest first, with the sender, the way, the day and a kudos's words", async () => {
+    visit(fixedActivityWeek(activityWeekFixtures.thanked));
+
+    const box = await thankedBox();
+    expect(box.getByRole("heading", { level: 2, name: "Who thanked you this week" })).toBeInTheDocument();
+    expect(box.getAllByRole("listitem").map(spokenTextOf)).toEqual([
+      "Fen Marlowe gave you a kudos · Wed The demo today was brilliant, the way you explained the data model clicked for everyone.",
+      "Ines Duarte hugged your kudos back · Tue Thanks for pairing on the webhook queue.",
+      "Juno Park hugged a kudos you got · Tue Great write-up on the retry fix.",
+      "Juno Park hugged your message (opens in a new tab) · Tue",
+    ]);
+  });
+
+  it("links a hug on an ordinary message to that message in Slack, never showing its words", async () => {
+    visit(fixedActivityWeek(activityWeekFixtures.thanked));
+
+    const box = await thankedBox();
+    expect(box.getAllByRole("link").map((link) => [spokenTextOf(link), link.getAttribute("href")])).toEqual([["hugged your message (opens in a new tab)", junosMessage]]);
+  });
+
+  it("names a hug on an ordinary message without a link when Slack's address of it is unknown", async () => {
+    visit(fixedActivityWeek(activityWeekFixtures.hugUnlinked));
+
+    const box = await thankedBox();
+    expect(box.getAllByRole("listitem").map(spokenTextOf)).toEqual(["Juno Park hugged your message · Tue"]);
+    expect(box.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("draws each sender's face", async () => {
+    visit(fixedActivityWeek(activityWeekFixtures.thanked));
+
+    const box = await thankedBox();
+    expect(box.getAllByRole("listitem").map((row: HTMLElement) => row.querySelector("[aria-hidden='true']")?.textContent)).toEqual(["FM", "ID", "JP", "JP"]);
+  });
+
+  it("says who shows here while nobody has thanked the member yet", async () => {
+    visit(fixedActivityWeek(activityWeekFixtures.quiet));
+
+    const box = await thankedBox();
+    expect(box.getByText("Nobody yet. Hugs and kudos you get show here, with who sent them.")).toBeInTheDocument();
+    expect(box.queryByRole("listitem")).not.toBeInTheDocument();
+  });
+});
+
+describe("HH67: one line on last week opens its weekly issue", { timeout: 30_000 }, () => {
+  it("says what the member gave and got last week", async () => {
+    visit(fixedActivityWeek(activityWeekFixtures.thanked));
+
+    expect((await screen.findByText(/^Last week you gave/)).textContent).toBe("Last week you gave 2 hugs and 1 kudos, and got 1 hug. Read last week");
+  });
+
+  it("opens the weekly issue of last week from Read last week", async () => {
+    const { user } = visit(fixedActivityWeek(activityWeekFixtures.thanked), () => {}, { ...albumFixtures.midway, shareableUrls: true });
+
+    await user.click(await screen.findByRole("link", { name: "Read last week" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Weekly edition" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Last week in your album" })).toBeInTheDocument();
+    expect(window.location.search).toBe("?week=2026-10-05");
+  });
+
+  it("shows no line for a member with no history", async () => {
+    visit(fixedActivityWeek(activityWeekFixtures.empty));
+    await nextStep();
+
+    expect(screen.queryByText(/^Last week you gave/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Read last week" })).not.toBeInTheDocument();
   });
 });
 
