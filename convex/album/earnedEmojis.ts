@@ -50,8 +50,6 @@ const unnamedPerson = "A teammate";
 
 const hypePrefix = "hype:";
 
-const afterHypePrefix = "hype;";
-
 type Cause = { id: EarnedEmojiId; kind: EarnedEmojiKind; from: string; picture: string; earned: boolean; earnedAt: number | null; progress: EmojiProgress; byReactions?: true };
 
 type PackedPerson = { person: MemberId; unlockedAt: number; collected: boolean };
@@ -246,20 +244,15 @@ async function peopleFirstPackedBetween(ctx: QueryCtx, member: MemberId, instant
   return people;
 }
 
-async function peopleWhoseHypeTurnedBetween(ctx: QueryCtx, member: MemberId, instants: Instants): Promise<MemberId[]> {
+async function peopleWhoseHypeTurnedBetween(ctx: QueryCtx, member: MemberId, { from, to }: Instants): Promise<MemberId[]> {
   const people: MemberId[] = [];
-  for (const { emoji, at } of await hypesSeenBy(ctx, member)) {
-    const person = ctx.db.normalizeId("members", emoji.slice(hypePrefix.length));
-    if (person !== null && isWithin(instants, at) && (await hasPackedFor(ctx, member, person))) people.push(person);
+  const seenThen = ctx.db.query("seenEmojis").withIndex("by_member_at", (q) => q.eq("member", member).gte("at", from).lt("at", to));
+  for await (const { emoji } of seenThen) {
+    const person = emoji.startsWith(hypePrefix) ? ctx.db.normalizeId("members", emoji.slice(hypePrefix.length)) : null;
+    if (person !== null && (await hasPackedFor(ctx, member, person))) people.push(person);
+    if (people.length === mostPeoplePackedRead) break;
   }
   return people;
-}
-
-function hypesSeenBy(ctx: QueryCtx, member: MemberId) {
-  return ctx.db
-    .query("seenEmojis")
-    .withIndex("by_member_emoji", (q) => q.eq("member", member).gte("emoji", hypePrefix).lt("emoji", afterHypePrefix))
-    .take(mostPeoplePackedRead);
 }
 
 async function hypeCauseOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<EarnedCause> {

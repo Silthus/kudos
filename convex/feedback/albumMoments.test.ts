@@ -171,6 +171,19 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
     expect(emojiNamesIn(recapTo(alice))).toEqual(["bob-okonkwo-hype", "first-face", "first-thank-you"]);
   });
 
+  test("with hidden items on, a teammate's hype emoji unlocked last week is on the recap however many hype emojis the member saw before", async () => {
+    await fourMembers([onForEveryone(albumSlack), ...itemsOn], { startingAt: lastWeeksTuesday });
+    await seenHypeEmojisBefore(alice, 500, lastWeeksTuesday);
+    await thanks(alice, why, bob);
+    vi.setSystemTime(tuesday);
+    await turnsEverything(alice);
+    await hugs(alice, await says(dana, "Lunch is in the kitchen"));
+
+    await recapsSentOnMonday();
+
+    expect(emojiNamesIn(recapTo(alice))).toContain("bob-okonkwo-hype");
+  });
+
   test("a recap whose pictures Slack refuses goes once more without them, its emoji line as words", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     await thanks(alice, why, bob);
@@ -606,6 +619,13 @@ function newGiverLinesOf(posted: Posted | undefined) {
 function cardsIn(posted: Posted | undefined) {
   const blocks = posted?.blocks ?? [];
   return blocks.flatMap(({ type, text }, index) => (type === "section" && text?.text.startsWith("*<") && !text.text.includes(" thanked ") ? [{ after: blocks[index - 1]?.text?.text, name: text.text.split("\n")[0] }] : []));
+}
+
+async function seenHypeEmojisBefore(someone: Person, count: number, at: number) {
+  const member = await memberIdOf(someone);
+  await t.run(async (ctx) => {
+    for (let index = 0; index < count; index += 1) await ctx.db.insert("seenEmojis", { member, emoji: `hype:!${String(index).padStart(3, "0")}`, at });
+  });
 }
 
 async function memberIdOf(someone: Person) {
