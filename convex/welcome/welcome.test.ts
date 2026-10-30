@@ -381,6 +381,14 @@ describe("MQ17: a welcome earns the welcome item, starts the quests and schedule
     expect(noteTo(bob)).toContain(oneWaits);
   });
 
+  test("the hug welcome earns Bob exactly one welcome item", async () => {
+    t = await workspace(mondayPath);
+
+    await hug(bob, alice);
+
+    expect(await welcomeItemsOf(bob)).toEqual([{ source: "hoggie", key: "welcome:first", floor: "rare", reason: { kind: "welcome" } }]);
+  });
+
   test("with welcome-item off no item waits: no waiting line, and See your quests is the primary button alone", async () => {
     t = await workspace(mondayPath.filter((flag) => flag !== "welcome-item"));
 
@@ -595,6 +603,12 @@ function dmsSent() {
 async function questStartOfPerson(person: Person) {
   const member = await memberOf(person);
   return t.run((ctx) => questStartOf(ctx, member));
+}
+
+async function welcomeItemsOf(person: Person) {
+  const member = await memberOf(person);
+  const items = await t.run((ctx) => ctx.db.query("items").collect());
+  return items.filter((item) => item.member === member && item.reason.kind === "welcome").map(({ source, key, floor, reason }) => ({ source, key, floor, reason }));
 }
 
 async function memberOf(person: Person): Promise<MemberId> {
