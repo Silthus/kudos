@@ -59,7 +59,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: getAlbumWeek in convex/website/album.ts
   trust: browser
 
-- query getActivityWeek: a browser asks for the signed-in member's own Activity week while activity-next is on, its next step first, with no arguments
+- query getActivityWeek: a browser asks for the signed-in member's own Activity week while activity-next and hugs are on, its next step first, with no arguments
   handler: getActivityWeek in convex/website/activity.ts
   trust: browser
 

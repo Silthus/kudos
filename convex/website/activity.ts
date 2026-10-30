@@ -6,6 +6,7 @@ import { spotlightOf } from "../activity/spotlight";
 import { albumShownTo } from "../album/flag";
 import { reportActivityViewed } from "../analytics/isolatedUsage";
 import { activityStateValidator } from "../analytics/projections";
+import { hugsShownTo } from "../hugs/flag";
 import { activityNextOnAndExposedFor, activityNextShownTo } from "./activityNextFlag";
 import { activityWeekOf, type ActivityWeek } from "./activityWeek";
 import { followTheClock } from "./clock";
@@ -62,7 +63,7 @@ export const getSpotlight = memberQuery({
 
 export const getActivityWeek = memberQuery(async (ctx, me): Promise<ActivityWeekRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
-  if (!(await activityNextShownTo(ctx, me.member))) return { kind: "edition" };
+  if (!(await hugsShownTo(ctx, me.member)) || !(await activityNextShownTo(ctx, me.member))) return { kind: "edition" };
   await followTheClock(ctx);
   return activityWeekOf(ctx, me, Date.now());
 });
@@ -70,7 +71,7 @@ export const getActivityWeek = memberQuery(async (ctx, me): Promise<ActivityWeek
 export const viewActivity = memberMutation({
   args: { state: activityStateValidator },
   handler: async (ctx, me, _person, { state }): Promise<ActivityViewAnswer> => {
-    if (!(await albumShownTo(ctx, me.member)) || !(await activityNextOnAndExposedFor(ctx, me.member))) return { kind: "refused" };
+    if (!(await albumShownTo(ctx, me.member)) || !(await hugsShownTo(ctx, me.member)) || !(await activityNextOnAndExposedFor(ctx, me.member))) return { kind: "refused" };
     await reportActivityViewed(ctx, { workspace: me.workspace, member: me.member, state, at: Date.now() });
     return { kind: "viewed" };
   },

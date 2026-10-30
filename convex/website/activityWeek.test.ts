@@ -52,6 +52,13 @@ describe("HH68: while activity-next is off, Activity is today's weekly edition",
     expect(await activityWeekOf(alice)).toEqual({ kind: "edition" });
   });
 
+  test("while hugs is off it answers the edition, since every step asks for a hug", async () => {
+    await switchWebsite(t, postHog, true, ...albumFlags.filter((flag) => flag !== "hugs"), "activity-next");
+    await thanks(fen, "thanks for the demo", alice);
+
+    expect(await activityWeekOf(alice)).toEqual({ kind: "edition" });
+  });
+
   test("with the album off it answers off", async () => {
     await switchWebsite(t, postHog, true, "activity-next");
     await thanks(fen, "thanks for the demo", alice);
@@ -184,6 +191,18 @@ describe("HH91: viewActivity records activity viewed with the page's state", { t
     await settle(t);
 
     expect(activityViewed()).toEqual([]);
+  });
+
+  test("while hugs is off a view is refused, records nothing and exposes nothing", async () => {
+    await switchWebsite(t, postHog, true, ...albumFlags.filter((flag) => flag !== "hugs"), "activity-next");
+    await thanks(alice, "thanks for the review", fen);
+    const asAlice = await signedIn(alice);
+
+    expect(await asAlice.mutation(api.website.activity.viewActivity, { state: "empty" })).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(activityViewed()).toEqual([]);
+    expect(await exposuresOf("activity-next")).toEqual([]);
   });
 });
 
