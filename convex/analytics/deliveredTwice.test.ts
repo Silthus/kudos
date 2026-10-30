@@ -93,12 +93,12 @@ describe("a fact is recorded once however often the bus delivers it", () => {
     await onlyAnalyticsScheduled(t);
 
     await deliverBeforeItsJobRuns(t, subscriber);
+    const firstRecording = await outboxUuids(t);
     await settle(t);
-    const recorded = postHog.productEvents();
     await deliverAgain(t, subscriber);
 
-    expect(recorded, "the product events of a fact delivered again while its outbox rows were pending").not.toHaveLength(0);
-    expect(postHog.productEvents(), "the product events after delivering it again once the outbox drained").toEqual(recorded);
+    expect(firstRecording, "the outbox rows of the first delivery").not.toHaveLength(0);
+    expect(sentUuids(), "the product events PostHog received after the fact was delivered again before and after the drain").toEqual(firstRecording);
   });
 
   test("a fact delivered while capture is off is recorded once capture is on", async () => {
@@ -162,6 +162,14 @@ async function onlyAnalyticsScheduled(t: Backend) {
       if (job.state.kind === "pending" && !job.name.startsWith("analytics/")) await ctx.scheduler.cancel(job._id);
     }
   });
+}
+
+async function outboxUuids(t: Backend) {
+  return (await t.run((ctx) => ctx.db.query("analyticsOutbox").collect())).map(({ uuid }) => uuid).sort();
+}
+
+function sentUuids() {
+  return postHog.productEvents().map(({ uuid }) => uuid).sort();
 }
 
 async function deliverBeforeItsJobRuns(t: Backend, subscriber: string) {
