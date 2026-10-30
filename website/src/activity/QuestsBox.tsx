@@ -1,3 +1,4 @@
+import { IconCheck } from "@posthog/icons";
 import type { MondayQuests } from "../../../convex/website/quests";
 import { doneOf } from "../album/QuestsPanel";
 
@@ -22,7 +23,9 @@ export function QuestsBox({ quests }: { quests: MondayQuests }) {
 function QuestCheck({ check: { goal, how, done, reward } }: { check: Check }) {
   return (
     <li className="al-check" data-done={done ? "" : undefined}>
-      <span className="al-check-box" role="img" aria-label={done ? "Done" : "Not done"} />
+      <span className="al-check-box" role="img" aria-label={done ? "Done" : "Not done"}>
+        {done && <IconCheck />}
+      </span>
       <span className="al-check-words">
         <span className="al-check-goal">{goal}</span>
         {how !== null && <span className="al-check-note">{how}</span>}

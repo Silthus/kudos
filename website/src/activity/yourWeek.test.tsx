@@ -115,6 +115,14 @@ describe("HH62 HH65: the week's quests sit under the step, one checkbox row each
     expect(box.queryByText(/Say why|Reach out|Join in/)).not.toBeInTheDocument();
   });
 
+  it("draws a tick in a finished quest's box, so done never rests on color alone", async () => {
+    visitWithQuests(fixedActivityWeek(activityWeekFixtures.quiet), fixedQuests(questsFixtures.week));
+
+    const box = await questsBox();
+    const ticked = box.getAllByRole("img").map((checkBox: HTMLElement) => `${checkBox.getAttribute("aria-label")}: ${checkBox.querySelector("svg") === null ? "empty" : "ticked"}`);
+    expect(ticked).toEqual(["Not done: empty", "Not done: empty", "Done: ticked"]);
+  });
+
   it("shows how to do each getting-started step, and no reward where a step has none", async () => {
     visitWithQuests(fixedActivityWeek(activityWeekFixtures.empty), fixedQuests(questsFixtures.beforeTheFirstHug));
 
