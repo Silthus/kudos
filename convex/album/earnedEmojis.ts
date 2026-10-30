@@ -173,6 +173,11 @@ export async function teamEmojiOf(ctx: QueryCtx, workspace: string, { team, art 
   return name === null ? null : shownEmojiOf(ctx, workspace, teamPictureOf(art), name);
 }
 
+export async function levelEmojiOf(ctx: QueryCtx, workspace: string, level: number): Promise<ShownEmoji | null> {
+  const name = await emojiNameOf(ctx, workspace, `level:${level}`);
+  return name === null ? null : shownEmojiOf(ctx, workspace, levelEmojiPictureOf(level), name);
+}
+
 export async function markEmojisSeenBy(ctx: MutationCtx, member: MemberId, ids: string[], at: number): Promise<string[] | null> {
   if (ids.length > mostEmojisSeenAtOnce) return null;
   const seen = await seenBy(ctx, member);

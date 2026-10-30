@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import { albumShownTo } from "../album/flag";
+import { nudgesFor, type Nudge } from "../album/hypeReactions";
 import { loopLessonIn, type LoopLesson } from "../album/items/welcome";
 import { hoggiesFoundIn, teammatesThankedBy } from "../album/weekThanks";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
@@ -16,10 +17,12 @@ import { workspaceLink } from "../slack/workspaceLink";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
 import { followTheClock } from "./clock";
 import { signInFaceOf, teammateOf, type Face } from "./faces";
+import { boardsNextStepOf, type BoardsNextStep } from "./leaderboardNextStep";
 import { memberQuery, type Denial } from "./memberQuery";
 import { hugMeasureValidator, peopleBoardsOf, type PeopleBoards } from "./peopleBoards";
 import { teamsJoiningInOf, type TeamsJoiningIn } from "./teamsJoiningIn";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
+import { withinReachOf, type WithinReach } from "./withinReach";
 
 export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean; climbed: number | null };
 
@@ -77,7 +80,11 @@ export type { HugMeasure, PersonRow } from "./peopleBoards";
 
 export type { JoiningTeam, TeamsJoiningIn } from "./teamsJoiningIn";
 
-export type HugBoards = { kind: "boards"; you: YouThisWeek; kudosEmoji: LoopLesson; joiningIn: TeamsJoiningIn | null } & PeopleBoards;
+export type { BoardsNextStep } from "./leaderboardNextStep";
+
+export type { WithinReach } from "./withinReach";
+
+export type HugBoards = { kind: "boards"; you: YouThisWeek; kudosEmoji: LoopLesson; joiningIn: TeamsJoiningIn | null; next: BoardsNextStep; withinReach: WithinReach; slack: string } & PeopleBoards;
 
 export type HugBoardsAnswer = { kind: "off" } | HugBoards;
 
@@ -94,15 +101,24 @@ export const getBoards = memberQuery({
     await followTheClock(ctx);
     const weeks = await weeksOf(ctx, me.member);
     const viewer = { workspace: me.workspace, member: me.member };
+    const nudge = await firstNudgeFor(ctx, me.member);
     return {
       kind: "boards",
       you: await youThisWeekOf(ctx, me.member, weeks),
       kudosEmoji: await loopLessonIn(ctx, me.workspace),
       ...(await peopleBoardsOf(ctx, viewer, measure, weeks)),
       joiningIn: await teamsJoiningInOf(ctx, viewer, weeks),
+      next: await boardsNextStepOf(ctx, me, weekOf(weeks.today), nudge),
+      withinReach: await withinReachOf(ctx, viewer, nudge),
+      slack: workspaceLink(me.workspace),
     };
   },
 });
+
+async function firstNudgeFor(ctx: QueryCtx, member: MemberId): Promise<Nudge | null> {
+  const [first] = await nudgesFor(ctx, member, 1);
+  return first ?? null;
+}
 
 async function weeksOf(ctx: QueryCtx, member: MemberId): Promise<Weeks> {
   const today = allowanceDay(Date.now(), (await timeZoneOf(ctx, member)) ?? undefined);
