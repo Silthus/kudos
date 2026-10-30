@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardsNextStep, Highlight, HugBoards, HugMeasure, WithinReach } from "../../../convex/website/leaderboard";
 import { albumFixtures, fixedAlbum } from "../album/albumFixtures";
@@ -6,7 +6,8 @@ import { boardsFixtures, fixedBoards } from "../album/boardsFixtures";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
-import type { HugBoardsShown } from "../album/answer";
+import type { Album, HugBoardsShown, XpMomentRead, XpMomentShown } from "../album/answer";
+import { xpMomentFixture } from "../album/xpMomentFixtures";
 import { byHoggies, byKudosReceived, byLevel, fixedHugBoards, hugBoardsFixtures, junosKudos, nextSteps, offTheBoards, slackOfTheWorkspace, withinReach } from "./thisWeekFixtures";
 
 const arrival = { timeout: 10_000 };
@@ -18,10 +19,10 @@ beforeEach(() => {
 
 type Measured = (measure: HugMeasure) => HugBoardsShown | undefined;
 
-function visit(boards: HugBoards | Measured = hugBoardsFixtures.lively, { leaderboardHugs = true } = {}) {
+function visit(boards: HugBoards | Measured = hugBoardsFixtures.lively, { leaderboardHugs = true, shown = albumFixtures.midway, xpMoment }: { leaderboardHugs?: boolean; shown?: Album; xpMoment?: XpMomentRead } = {}) {
   window.history.replaceState(null, "", "/leaderboard");
-  const album = leaderboardHugs ? { ...albumFixtures.midway, leaderboardHugs: true as const } : albumFixtures.midway;
-  return renderAlbum(shellFixtures.member, fixedAlbum(album), { hugBoards: fixedHugBoards(boards), boards: fixedBoards(boardsFixtures.week) });
+  const album = leaderboardHugs ? { ...shown, leaderboardHugs: true as const } : shown;
+  return renderAlbum(shellFixtures.member, fixedAlbum(album), { hugBoards: fixedHugBoards(boards), boards: fixedBoards(boardsFixtures.week), xpMoment });
 }
 
 async function board(name: string) {
@@ -77,13 +78,6 @@ describe("HH69: while leaderboard-hugs is on, the Leaderboard is this week's", {
     expect(screen.queryByRole("group", { name: "Period" })).not.toBeInTheDocument();
   });
 
-  it("records one leaderboard view for this week", async () => {
-    const { actions } = visit();
-    await youCard();
-
-    expect(actions.viewLeaderboard.mock.calls).toEqual([["week"]]);
-  });
-
   it("HH81: with the flag off it is the kudos boards, as before", async () => {
     visit(hugBoardsFixtures.lively, { leaderboardHugs: false });
 
@@ -91,6 +85,64 @@ describe("HH69: while leaderboard-hugs is on, the Leaderboard is this week's", {
     expect(screen.queryByRole("region", { name: "You this week" })).not.toBeInTheDocument();
   });
 });
+
+describe("HH92: the page records leaderboard viewed with its measure", { timeout: 30_000 }, () => {
+  function onEachMeasure(measure: HugMeasure) {
+    return { ...hugBoardsFixtures.lively, measure };
+  }
+
+  it("records one view with the first measure once the page shows, and a rerender records nothing more", async () => {
+    const { actions, showVisitor } = visit(onEachMeasure);
+    await youCard();
+
+    act(() => showVisitor({ ...shellFixtures.member }));
+    await youCard();
+
+    expect(measuresViewed(actions)).toEqual(["hugsGiven"]);
+    expect(actions.viewLeaderboard).not.toHaveBeenCalled();
+  });
+
+  it("records one more view each time the member picks another measure", async () => {
+    const { actions, user } = visit(onEachMeasure);
+    const people = await board("People");
+
+    await user.click(people.getByRole("button", { name: "Level" }));
+    await user.click(people.getByRole("button", { name: "Level" }));
+    await user.click(people.getByRole("button", { name: "Hugs given" }));
+
+    expect(measuresViewed(actions)).toEqual(["hugsGiven", "level", "hugsGiven"]);
+  });
+
+  it("records nothing while the item board covers the page, and one view once it is put away", async () => {
+    const { actions, user } = visit(onEachMeasure, { shown: albumFixtures.withItems });
+    const items = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
+
+    expect(measuresViewed(actions)).toEqual([]);
+    await user.click(items.getByRole("button", { name: "Later" }));
+
+    await waitFor(() => expect(measuresViewed(actions)).toEqual(["hugsGiven"]));
+  });
+
+  it("records nothing while the XP moment since the last visit is still read or plays, and one view once it is skipped", async () => {
+    let moment: XpMomentShown | undefined;
+    const returning = { ...albumFixtures.midway, level: xpMomentFixture.climb.to, lastVisit: xpMomentFixture.since };
+    const { actions, user, showVisitor } = visit(onEachMeasure, { shown: returning, xpMoment: (asking) => (asking ? moment : undefined) });
+    await youCard();
+
+    expect(measuresViewed(actions), "while the moment is read").toEqual([]);
+    moment = xpMomentFixture;
+    act(() => showVisitor({ ...shellFixtures.member }));
+    const skip = await screen.findByRole("button", { name: "Skip" }, arrival);
+    expect(measuresViewed(actions), "while it plays").toEqual([]);
+    await user.click(skip);
+
+    await waitFor(() => expect(measuresViewed(actions)).toEqual(["hugsGiven"]));
+  });
+});
+
+function measuresViewed(actions: { viewThisWeek: ReturnType<typeof vi.fn> }) {
+  return actions.viewThisWeek.mock.calls.map(([measure]) => measure);
+}
 
 describe("HH70: the you card", { timeout: 30_000 }, () => {
   it("shows the member's face, name, level and the XP to the next level", async () => {

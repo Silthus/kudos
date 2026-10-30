@@ -26,6 +26,7 @@ import type {
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import type { BoardPeriod } from "../album/boards";
+import type { HugMeasure } from "../website/peopleBoards";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
@@ -88,7 +89,7 @@ export type ProductEvent = {
 export type UsageFact =
   | { kind: "appHomeOpened"; workspace: string; member: MemberId; at: number }
   | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
-  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: BoardPeriod; surface: LeaderboardSurface; at: number }
+  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: BoardPeriod; surface: LeaderboardSurface; measure?: HugMeasure; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; via?: "dm-button"; at: number }
@@ -125,7 +126,7 @@ export type ActivityState = Infer<typeof activityStateValidator>;
 
 export type PickSurface = "welcome" | "settings" | "website";
 
-export type ViewedBoard = "everyone" | "groups" | "my-group";
+export type ViewedBoard = "everyone" | "groups" | "my-group" | "people";
 
 export type LeaderboardSurface = "app-home" | "command" | "website";
 
@@ -315,7 +316,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
     case "commandUsed":
       return { event: "command used", subject, at: fact.at, properties: { command: "hedgehug", alias: fact.alias, result: commandResultNames[fact.result] } };
     case "leaderboardViewed":
-      return { event: "leaderboard viewed", subject, at: fact.at, properties: { board: fact.board, period: fact.period, surface: surfaceNames[fact.surface] } };
+      return { event: "leaderboard viewed", subject, at: fact.at, properties: { board: fact.board, period: fact.period, surface: surfaceNames[fact.surface], ...(fact.measure !== undefined && { measure: fact.measure }) } };
     case "leaderboardVisibilityChanged":
       return { event: fact.visible ? "leaderboard joined" : "leaderboard left", subject, at: fact.at, properties: {} };
     case "primaryGroupPicked":

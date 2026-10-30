@@ -4,6 +4,7 @@ import { internalMutation, type MutationCtx } from "../_generated/server";
 import { boardPeriodValidator } from "../album/boards";
 import { messageKindValidator, messagePlaceValidator } from "../messageSettings/kinds";
 import { sentMondayDmSectionValidator } from "../mondayDm/records";
+import { hugMeasureValidator } from "../website/peopleBoards";
 import { welcomePathValidator } from "../welcome/welcomedAs";
 import { failuresLogged } from "./failures";
 import { activityStateValidator, dmKindValidator, dmLinkDestinationValidator, hugsRecapCarrierValidator, questsSurfaceValidator } from "./projections";
@@ -12,9 +13,10 @@ import { recordUsage, usageNotRecorded } from "./usage";
 const leaderboardViewValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
-  board: v.union(v.literal("everyone"), v.literal("groups"), v.literal("my-group")),
+  board: v.union(v.literal("everyone"), v.literal("groups"), v.literal("my-group"), v.literal("people")),
   period: boardPeriodValidator,
   surface: v.union(v.literal("app-home"), v.literal("command"), v.literal("website")),
+  measure: v.optional(hugMeasureValidator),
   at: v.number(),
 });
 
