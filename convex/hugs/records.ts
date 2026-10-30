@@ -68,12 +68,11 @@ export async function hugsGivenOn(ctx: QueryCtx, giver: MemberId, day: DayKey, a
 
 export type HuggedPerson = { person: MemberId; at: number };
 
-export async function peopleHuggedIn(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week, atMost: number): Promise<HuggedPerson[]> {
+export async function peopleHuggedIn(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week): Promise<HuggedPerson[]> {
   const hugs = await ctx.db
     .query("hugs")
     .withIndex("by_giver_day", (q) => q.eq("giver", giver).gte("day", monday).lte("day", sunday))
-    .order("desc")
-    .take(atMost);
+    .collect();
   const hugged = await Promise.all(hugs.map(async (hug) => (await peopleOf(ctx, hug)).map((person) => ({ person, at: hug.at }))));
   return hugged.flat();
 }

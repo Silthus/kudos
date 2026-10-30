@@ -4,7 +4,7 @@ import { emojiNameOf } from "../album/emojiNames";
 import { rarityCapsShownTo } from "../album/hoggies/rarityCaps";
 import type { Nudge } from "../album/hypeReactions";
 import type { Week } from "../engine/allowance";
-import { awardsInWeekNewestDaysFirst } from "../engine/awards";
+import { givenInWeek } from "../engine/awards";
 import { hugRewardsShownTo } from "../hugs/flag";
 import { peopleHuggedIn } from "../hugs/records";
 import { totalsOf } from "../leaderboard/counts";
@@ -18,8 +18,6 @@ export type BoardsNextStep =
   | { kind: "lively"; teammate: AlbumPersonFace; collectsHype: boolean; epicHoggiesByKudos: boolean }
   | { kind: "quiet"; giver: AlbumPersonFace; permalink: string; at: number }
   | { kind: "empty"; firstHugPaysExtra: boolean };
-
-export const thanksReadForTheNextStep = 100;
 
 type Thanked = { person: MemberId; at: number };
 
@@ -43,8 +41,8 @@ async function gaveIn(ctx: QueryCtx, member: MemberId, { monday }: Week): Promis
 }
 
 async function mostThankedIn(ctx: QueryCtx, member: MemberId, week: Week): Promise<MemberId | null> {
-  const hugged = await peopleHuggedIn(ctx, member, week, thanksReadForTheNextStep);
-  const thanked = (await awardsInWeekNewestDaysFirst(ctx, member, "given", week, thanksReadForTheNextStep)).map(({ recipient, at }) => ({ person: recipient, at }));
+  const hugged = await peopleHuggedIn(ctx, member, week);
+  const thanked = (await givenInWeek(ctx, member, week)).map(({ recipient, at }) => ({ person: recipient, at }));
   for (const person of mostThankedFirst([...hugged, ...thanked].filter(({ person }) => person !== member))) {
     if (await isMember(ctx, person)) return person;
   }

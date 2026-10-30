@@ -29,9 +29,9 @@ export async function countGivenHug(ctx: MutationCtx, { workspace, giver, messag
 }
 
 export async function countReceivedHug(ctx: MutationCtx, { workspace, giver, person, message, at }: ReceivedHug) {
-  if (!(await countOnce(ctx, workspace, countedKeys.hugReceived(person, giver, message)))) return false;
   const landing = await landingAt(ctx, workspace, person, at);
-  await addCounts(ctx, landing, { hugsReceived: 1 });
   await noteThanker(ctx, landing, giver);
+  if (!(await countOnce(ctx, workspace, countedKeys.hugReceived(person, giver, message)))) return false;
+  await addCounts(ctx, landing, { hugsReceived: 1 });
   return true;
 }

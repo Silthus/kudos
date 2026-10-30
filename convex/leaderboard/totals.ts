@@ -45,10 +45,10 @@ export async function countGiven(ctx: MutationCtx, given: GivenMessage) {
 }
 
 export async function countReceived(ctx: MutationCtx, { workspace, giver, at }: Pick<KudosGivenEvent, "workspace" | "giver" | "at">, { award, recipient, kudos }: AwardWithId) {
-  if (!(await countOnce(ctx, workspace, countedKeys.kudosReceived(award)))) return false;
   const landing = await landingAt(ctx, workspace, recipient, at);
-  await addCounts(ctx, landing, { kudosReceived: kudos });
   await noteThanker(ctx, landing, giver);
+  if (!(await countOnce(ctx, workspace, countedKeys.kudosReceived(award)))) return false;
+  await addCounts(ctx, landing, { kudosReceived: kudos });
   return true;
 }
 

@@ -9,6 +9,7 @@ import { api, internal } from "../_generated/api";
 import { firstHypeEmojiNameFor } from "../album/emojiNames";
 import { catalogue } from "../album/hoggies/catalogue";
 import { xpToReach } from "../progression/levels";
+import { allowanceRange } from "../workspace/settingsBounds";
 import type { BoardsNextStep, HugBoardsRead, HugMeasure, Highlight, PersonRow, JoiningTeam, Tallies, WithinReach } from "./leaderboard";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -545,6 +546,20 @@ describe("HH72: one next step beside the you card", () => {
     expect((await boardsOf(carol)).next).toEqual<BoardsNextStep>({ kind: "lively", teammate: await faceOf(dana), collectsHype: false, epicHoggiesByKudos: false });
   });
 
+  test("the teammate thanked most counts the whole week, however many teammates were thanked since", { timeout: 60_000 }, async () => {
+    await withTheLargestAllowance();
+    const crowd = await moreTeammates(allowanceRange.most * 5);
+    await thisWeek();
+    await thanks(carol, why, dana);
+    await thanks(carol, why, dana);
+    for (let day = 0; day < 5; day += 1) {
+      vi.setSystemTime(Date.now() + dayMs);
+      await thanks(carol, why, ...crowd.slice(day * allowanceRange.most, (day + 1) * allowanceRange.most));
+    }
+
+    expect((await boardsOf(carol)).next).toMatchObject({ kind: "lively", teammate: { name: dana.name } });
+  });
+
   test("it says the kudos collects the teammate's hype emoji only while the member doesn't hold it yet", async () => {
     await thisWeek();
     await thanks(alice, why, bob);
@@ -735,8 +750,19 @@ async function owns(person: Person, hoggies: number) {
   });
 }
 
+function withTheLargestAllowance() {
+  return t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("workspaces")
+      .withIndex("by_workspace", (q) => q.eq("workspace", "T1"))
+      .unique();
+    if (row === null) await ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: allowanceRange.most });
+    else await ctx.db.patch(row._id, { baseAllowance: allowanceRange.most });
+  });
+}
+
 async function moreTeammates(count: number): Promise<Person[]> {
-  const crowd = Array.from({ length: count }, (_, index) => ({ user: `U_CROWD${String(index).padStart(2, "0")}`, name: `Crowd Member ${String(index).padStart(2, "0")}` }));
+  const crowd = Array.from({ length: count }, (_, index) => ({ user: `U_CROWD${String(index).padStart(3, "0")}`, name: `Crowd Member ${String(index).padStart(3, "0")}` }));
   for (const person of crowd) {
     slack.withMember(person.user, slackUserOf(person));
     await memberChanged(t, "team_join", { id: person.user, ...slackUserOf(person) });
