@@ -148,3 +148,14 @@ export const talliedAwardValidator = v.object({ award: awardIdValidator, everyKu
 export const boardCountedAwardValidator = v.object({ award: awardIdValidator });
 
 export const talliedHugValidator = v.object({ hug: v.id("hugs"), person: v.id("members") });
+
+export const hypeReactionValidator = v.object({
+  workspace: v.string(),
+  giver: v.id("members"),
+  owner: v.id("members"),
+  author: v.id("members"),
+  emoji: v.string(),
+  conversation: v.string(),
+  message: v.string(),
+  at: v.number(),
+});
