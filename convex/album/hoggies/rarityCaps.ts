@@ -46,8 +46,12 @@ export const hugFindRarities: RarityRange = cappedAtRare;
 
 const forgedUpTo = { today: "legendary", capped: "rare" } as const satisfies { today: Rarity; capped: Rarity };
 
+export function rarityCapsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, rarityCapsFlag, member);
+}
+
 export async function highestForgedFor(ctx: QueryCtx, member: MemberId): Promise<Rarity> {
-  return (await memberDecisionWithoutWriting(ctx, rarityCapsFlag, member)) ? forgedUpTo.capped : forgedUpTo.today;
+  return (await rarityCapsShownTo(ctx, member)) ? forgedUpTo.capped : forgedUpTo.today;
 }
 
 export async function earnHoggieItem(ctx: MutationCtx, earning: HoggieEarning, rarities: SourceRarities): Promise<Id<"items">> {
