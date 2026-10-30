@@ -1,6 +1,8 @@
 import { useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { hoggieNamed } from "../../../convex/album/hoggies/catalogue";
+import type { ActivityState } from "../../../convex/website/activity";
 import { KudosMessage } from "../activity/KudosMessage";
+import { YourWeekPage } from "../activity/YourWeek";
 import { AnswerPage } from "../pages/AnswerPage";
 import { AppLink } from "../AppLink";
 import { hoggiePictureOf } from "../crates/Hoggie";
@@ -9,15 +11,28 @@ import { PageTitle } from "../PageTitle";
 import type { Message } from "../shell";
 import { LoadingPage } from "../pages/LoadingPage";
 import { SlackLink } from "../SlackLink";
-import type { AlbumWeek, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
+import type { ActivityWeekShown, AlbumWeek, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
 import { plural } from "./facts";
 import { rarityWordOf } from "./opening";
 import { hrefOf } from "./place";
-import type { WeekEdition } from "./weekEdition";
+import { isWaitingForTheWeek, type WeekEdition } from "./weekEdition";
 
-type ActivityAnswerProps = { edition: WeekEdition; me: string; onSignIn: () => void; onSignOut: () => void };
+type ActivityAnswerProps = { week: ActivityWeekShown | undefined; edition: WeekEdition; me: string; inSight: boolean; onViewed: (state: ActivityState) => void; onSignIn: () => void; onSignOut: () => void };
 
-export function ActivityAnswerPage({ edition, me, ...answers }: ActivityAnswerProps) {
+export function ActivityAnswerPage({ week, edition, me, inSight, onViewed, ...answers }: ActivityAnswerProps) {
+  if (week === undefined || week.kind === "off") return <LoadingPage shape="column" />;
+  if (week.kind === "week") return <YourWeekPage week={week} inSight={inSight} onViewed={onViewed} />;
+  if (week.kind !== "edition") return <AnswerPage answer={week} {...answers} />;
+  return <WeeklyEditionAnswerPage edition={edition} me={me} {...answers} />;
+}
+
+export function isWaitingForTheActivity(week: ActivityWeekShown | undefined, edition: WeekEdition) {
+  return week === undefined || week.kind === "off" || (week.kind === "edition" && isWaitingForTheWeek(edition));
+}
+
+type WeeklyEditionAnswerProps = { edition: WeekEdition; me: string; onSignIn: () => void; onSignOut: () => void };
+
+function WeeklyEditionAnswerPage({ edition, me, ...answers }: WeeklyEditionAnswerProps) {
   const { shown } = edition;
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "week") return <AnswerPage answer={shown} {...answers} />;

@@ -1259,6 +1259,51 @@
   max-width: 64rem;
 }
 
+.al-your-week {
+  max-width: 64rem;
+  gap: 1.25rem;
+}
+
+.al-next-step {
+  display: grid;
+  align-items: center;
+  gap: 2rem;
+  border: 2px solid var(--al-accent);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, var(--al-accent-soft), transparent 70%), var(--card);
+  padding: 1.75rem 2rem;
+}
+
+.al-next-step-words {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.al-way-chip {
+  border-radius: 999px;
+  background: var(--al-accent-soft);
+  padding: 0.125rem 0.625rem;
+  color: var(--al-accent-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.al-next-step-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.al-next-step-why {
+  margin: 0;
+  max-width: 28rem;
+}
+
 .al-week-tabs {
   position: relative;
   display: flex;

@@ -19,7 +19,7 @@ const tablesOf: Record<string, string[]> = {
   hugs: ["hugWeeks", "hugWeekMessages", "hugCounts", "hugs", "hugPeople", "hugsReceived"],
   leaderboard: ["countedKudosGiven", "countedRecognitions", "givenByDay", "attributedTotals", "attributedGroupTotals", "countedAttributions", "givenTotals", "mondayPostSettings", "mondayPostClaims", "featuredNewGivers", "leaderboardSettings"],
   messageSettings: ["progressSettings", "messageSettings"],
-  mondayDm: ["mondayDms"],
+  mondayDm: ["mondayDms", "mondayDmNudges"],
   progression: ["effectsRecords", "rewardRecords", "receivingGivers", "effectsBackfill", "memberProgress", "perksOwned", "perkPurchases"],
   quests: ["journeySteps", "questStarts", "journeyLaunches", "questDraws", "questSwaps", "questProgress", "groupQuestLaunches", "groupQuestWeeks", "groupQuests", "groupQuestContributions", "crateOpenings", "pendingCrates", "questsJudged", "questFinishes", "pendingCratesBackfill"],
   slack: ["memberVerifications", "firstSignIns", "slackReceipts", "placedReactions", "slackRateLimits", "cardPictures"],

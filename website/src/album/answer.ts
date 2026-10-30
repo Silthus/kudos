@@ -8,6 +8,7 @@ import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { ForgeAnswer, ForgeOffered, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
 import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";
 import type { Denial } from "../../../convex/website/memberQuery";
+import type { MyActivityWeek } from "../../../convex/website/activity";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
 import type { QuestsAnswer } from "../../../convex/website/quests";
 import type { AppliedReward } from "../../../convex/progression/rewards";
@@ -153,6 +154,10 @@ export type AlbumWeek = { kind: "week"; week: string; thisWeek: string; weeks: W
 export type WeekShown = AlbumWeek | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type WeekRead = (asking: boolean, week: string | undefined) => WeekShown | undefined;
+
+export type ActivityWeekShown = MyActivityWeek | { kind: "connecting" } | { kind: "broken" };
+
+export type ActivityWeekRead = (asking: boolean) => ActivityWeekShown | undefined;
 
 export type TeamSticker = { team: string; name: string; art: TeamArt; emoji: string; at: number };
 
