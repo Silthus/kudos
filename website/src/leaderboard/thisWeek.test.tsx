@@ -277,6 +277,14 @@ describe("HH76 HH77: teams joining in", { timeout: 30_000 }, () => {
 
     expect(screen.queryByRole("region", { name: "Teams joining in" })).not.toBeInTheDocument();
   });
+
+  it("an answer from functions deployed before teams joining in shows the page without it", async () => {
+    const { joiningIn: _, ...answerFromBefore } = hugBoardsFixtures.lively;
+    visit(answerFromBefore as HugBoards);
+    await board("People");
+
+    expect(screen.queryByRole("region", { name: "Teams joining in" })).not.toBeInTheDocument();
+  });
 });
 
 describe("HH79: rows are links", { timeout: 30_000 }, () => {

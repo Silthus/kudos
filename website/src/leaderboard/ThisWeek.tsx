@@ -27,6 +27,7 @@ export function ThisWeekAnswerPage({ boards: { shown, measure, choose }, me, lev
 
 function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
   useViewedOnce(onViewed);
+  const joiningIn = boards.joiningIn ?? null;
   return (
     <div className="al-page-body lb-week">
       <p className="al-eyebrow">Leaderboard · this week</p>
@@ -36,10 +37,10 @@ function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
       <YouCard boards={boards} me={me} level={level} />
       <div className="lb-grid">
         <PeopleBoard boards={boards} choice={choice} />
-        {(boards.team !== null || boards.joiningIn !== null) && (
+        {(boards.team !== null || joiningIn !== null) && (
           <div className="lb-side">
             {boards.team !== null && <TeamBoard team={boards.team} measure={boards.measure} />}
-            {boards.joiningIn !== null && <TeamsJoiningInBoard joiningIn={boards.joiningIn} />}
+            {joiningIn !== null && <TeamsJoiningInBoard joiningIn={joiningIn} />}
           </div>
         )}
       </div>
