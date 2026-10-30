@@ -130,6 +130,24 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     expect(exposedIn(container)).toEqual([]);
   });
 
+  it("AL56: a locked team page keeps every missing teammate's name in blocks, on the photo and in their cards", async () => {
+    const album = { ...albumFixtures.midway, packs: [{ pack: "pack-ivo", person: "ivo-lark", earnedAt: 0, thanked: { name: "Ivo Lark", face: null } }], bookNext: { chatUrl: "https://app.slack.com/client/T1", rarityCaps: true } };
+    window.history.replaceState(null, "", "/book#teams/salt-and-sparrow");
+    const { container } = renderAlbum(shellFixtures.member, fixedAlbum(album), { people: fixedPeople(album) });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /^Unlock the Salt and Sparrow sticker/ }, { timeout: 10_000 }));
+    expect(namesExposedIn(container, ["Ivo", "Mara", "Teo"])).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: /^Ivo Lark/ }));
+    expect(screen.getByRole("dialog", { name: "Ivo isn't in your album yet" })).toHaveTextContent("Ivo's pack is waiting");
+    expect(namesExposedIn(container, ["Ivo"])).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: /^Mara Fenn/ }));
+    expect(screen.getByRole("dialog", { name: "Mara isn't in your album yet" })).toHaveTextContent("Give Mara a kudos");
+    expect(namesExposedIn(container, ["Mara"])).toEqual([]);
+  });
+
   it("AL56: the pack opening, sealed and opened from the fixture build, keeps every face, name and Slack picture in blocks", async () => {
     window.history.replaceState(null, "", "/");
     const { container } = render(<Root fixture="album" />);
@@ -222,6 +240,22 @@ function teamEmojiChipIn(card: HTMLElement) {
   const chip = within(within(card).getByRole("list", { name: "What the sticker pays" })).getByText((_, element) => element?.tagName === "LI" && element.textContent?.endsWith(":team-lanterns:") === true);
   expect(chip.querySelector("img, svg")).not.toBeNull();
   return chip;
+}
+
+function namesExposedIn(root: Element, names: string[]): string[] {
+  const named = (text: string) => names.some((name) => text.includes(name));
+  const exposed: string[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    if (named(node.textContent ?? "") && !blocked(node.parentElement)) exposed.push(`text "${node.textContent}"`);
+  }
+  for (const element of root.querySelectorAll("*")) {
+    for (const name of checkedAttributes) {
+      const value = element.getAttribute(name);
+      if (value !== null && named(value) && !blocked(element)) exposed.push(`<${element.tagName.toLowerCase()} ${name}="${value}">`);
+    }
+  }
+  return exposed;
 }
 
 function isPrivate(text: string) {
