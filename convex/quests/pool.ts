@@ -47,6 +47,15 @@ const reachingOut = [
   thanking("not-in-30-days", "Thank someone you haven't thanked in the last 30 days.", "someone-not-thanked-in-30-days", 1),
 ];
 
+const earlierPoolQuests: readonly PoolQuest[] = [
+  sayingWhy("say-why", "Thank someone and say why.", "recognitions", 1),
+  sayingWhy("say-why-twice", "Thank someone and say why, 2 times.", "recognitions", 2),
+  sayingWhy("say-why-three-times", "Thank someone and say why, 3 times.", "recognitions", 3),
+  sayingWhy("say-why-two-days", "Thank someone and say why on 2 different days.", "days", 2),
+  sayingWhy("say-why-three-days", "Thank someone and say why on 3 different days.", "days", 3),
+  ...reachingOut,
+];
+
 export const mondayQuestPool = {
   version: mondayCatalogueVersion,
   quests: [
@@ -62,7 +71,7 @@ export function withoutFullStop(goal: string): string {
 }
 
 export function questOf(quest: QuestId): PoolQuest {
-  return mondayQuestPool.quests.find((entry) => entry.quest === quest)!;
+  return [...earlierPoolQuests, ...mondayQuestPool.quests].find((entry) => entry.quest === quest)!;
 }
 
 export function feasibility({ progress }: PoolQuest, facts: DrawFacts): FeasibleBecause | null {
@@ -77,6 +86,10 @@ export function feasibility({ progress }: PoolQuest, facts: DrawFacts): Feasible
 
 function aDayHolds(target: number, people: number, { dailyAllowance, kudosLeftToday, daysLeft }: DrawFacts): boolean {
   return dailyAllowance >= target && (Math.min(kudosLeftToday, people) >= target || daysLeft > 1);
+}
+
+function sayingWhy(quest: QuestId, goal: string, counts: "recognitions" | "days", target: number): PoolQuest {
+  return { quest, kind: "thoughtfulness", goal, progress: { counts, target, given: { saysWhy: true, to: "anyone" } }, needs: [], reward: personalReward };
 }
 
 function givingKudos(quest: QuestId, goal: string, counts: "recognitions" | "days" | "people-in-a-day", target: number): PoolQuest {
