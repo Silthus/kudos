@@ -1,7 +1,7 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { nudgesFor } from "../album/hypeReactions";
-import { memberDecision, type Flag } from "../analytics/flags";
+import { exposed, memberDecision, type Flag } from "../analytics/flags";
 import { hypeNudgeLineOf } from "../feedback/hypeNudge";
 import type { MemberId } from "../workspace/directory";
 
@@ -9,8 +9,14 @@ export const hypeNudgeFlag = { key: "hype-nudge", safeDefault: false, values: [f
 
 export async function hypeNudgeFor(ctx: MutationCtx, member: MemberId): Promise<string | null> {
   const [nudge] = await nudgesFor(ctx, member, 1);
-  if (nudge === undefined || !(await memberDecision(ctx, hypeNudgeFlag, member))) return null;
+  if (nudge === undefined || !(await isNudgedWithExposure(ctx, member))) return null;
   return hypeNudgeLineOf(ctx, nudge);
+}
+
+async function isNudgedWithExposure(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const nudged = await memberDecision(ctx, hypeNudgeFlag, member);
+  await exposed(ctx, hypeNudgeFlag, member, nudged);
+  return nudged;
 }
 
 export async function keepHypeNudge(ctx: MutationCtx, dm: Id<"mondayDms">, line: string | null): Promise<void> {

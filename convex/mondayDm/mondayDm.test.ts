@@ -216,6 +216,7 @@ describe("HH58 HH59 HH60: while hype-nudge is on, the Monday DM names one teamma
       `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book?src=monday-dm) | See your quests (dm-link:monday:quests → ${siteUrl}/book?src=monday-dm#me/quests) | Stop Monday quests`,
     ]);
     expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["quests,nudge"]);
+    expect(hypeNudgeExposures(), "one exposure, for Alice alone, since Bob's DM names nobody").toEqual([true]);
   });
 
   test("with hype-nudge off, the same member's DM carries no nudge and dm sent names only its sections", async () => {
@@ -233,6 +234,7 @@ describe("HH58 HH59 HH60: while hype-nudge is on, the Monday DM names one teamma
       `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book?src=monday-dm) | See your quests (dm-link:monday:quests → ${siteUrl}/book?src=monday-dm#me/quests) | Stop Monday quests`,
     ]);
     expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["quests"]);
+    expect(hypeNudgeExposures(), "one exposure, for Alice alone").toEqual([false]);
   });
 
   test("a member with a nudge but no hugs and no quests gets nothing that Monday", async () => {
@@ -852,6 +854,13 @@ function linkClicks() {
 
 function settingChanges() {
   return productEvents("message setting changed").map(({ properties: { kind, on, via } }) => ({ kind, on, via }));
+}
+
+function hypeNudgeExposures() {
+  return postHog
+    .events()
+    .filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === "hype-nudge")
+    .map(({ properties }) => properties.$feature_flag_response);
 }
 
 function productEvents(event: string) {
