@@ -260,6 +260,27 @@ describe("HH85: the card floats, opens on hover or click, and closes on Escape, 
     expect(card("Bridge builder")).toBeInTheDocument();
   });
 
+  it("takes the focus into the card a click opens, so the keyboard reaches its Slack button", async () => {
+    const dialog = await opened("Bridge builder");
+
+    expect(dialog).toHaveFocus();
+    await userEvent.tab();
+    expect(within(dialog).getByRole("button", { name: "Close" })).toHaveFocus();
+    await userEvent.tab();
+    expect(within(dialog).getByRole("link", { name: /^Give a kudos in Slack/ })).toHaveFocus();
+  });
+
+  it("closes when the focus moves away, so the keyboard opens one card at a time", async () => {
+    await opened("Bridge builder");
+
+    act(() => screen.getByRole("button", { name: /^Collector/ }).focus());
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.keyboard("{Enter}");
+
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(card("Collector")).toBeInTheDocument();
+  });
+
   it("stays open once a click pinned it, when the pointer leaves", async () => {
     visit("/book#me");
     const bridge = await tile("Bridge builder");
