@@ -18,6 +18,7 @@ import { followTheClock } from "./clock";
 import { signInFaceOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
 import { hugMeasureValidator, peopleBoardsOf, type PeopleBoards } from "./peopleBoards";
+import { teamsJoiningInOf, type TeamsJoiningIn } from "./teamsJoiningIn";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
 export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean; climbed: number | null };
@@ -74,13 +75,15 @@ export type YouThisWeek = { tallies: Tallies; lastWeek: Tallies; highlight: High
 
 export type { HugMeasure, PersonRow } from "./peopleBoards";
 
-export type HugBoards = { kind: "boards"; you: YouThisWeek; kudosEmoji: LoopLesson } & PeopleBoards;
+export type { JoiningTeam, TeamsJoiningIn } from "./teamsJoiningIn";
+
+export type HugBoards = { kind: "boards"; you: YouThisWeek; kudosEmoji: LoopLesson; joiningIn: TeamsJoiningIn | null } & PeopleBoards;
 
 export type HugBoardsAnswer = { kind: "off" } | HugBoards;
 
 export type HugBoardsRead = Denial | HugBoardsAnswer;
 
-type Weeks = { thisWeek: DayKey; lastWeek: DayKey };
+type Weeks = { today: DayKey; thisWeek: DayKey; lastWeek: DayKey };
 
 type HugWeeks = Map<DayKey, RecognitionCounts>;
 
@@ -90,13 +93,20 @@ export const getBoards = memberQuery({
     if (!(await albumShownTo(ctx, me.member)) || !(await leaderboardHugsShownTo(ctx, me.member))) return { kind: "off" };
     await followTheClock(ctx);
     const weeks = await weeksOf(ctx, me.member);
-    return { kind: "boards", you: await youThisWeekOf(ctx, me.member, weeks), kudosEmoji: await loopLessonIn(ctx, me.workspace), ...(await peopleBoardsOf(ctx, { workspace: me.workspace, member: me.member }, measure, weeks)) };
+    const viewer = { workspace: me.workspace, member: me.member };
+    return {
+      kind: "boards",
+      you: await youThisWeekOf(ctx, me.member, weeks),
+      kudosEmoji: await loopLessonIn(ctx, me.workspace),
+      ...(await peopleBoardsOf(ctx, viewer, measure, weeks)),
+      joiningIn: await teamsJoiningInOf(ctx, viewer, weeks),
+    };
   },
 });
 
 async function weeksOf(ctx: QueryCtx, member: MemberId): Promise<Weeks> {
   const today = allowanceDay(Date.now(), (await timeZoneOf(ctx, member)) ?? undefined);
-  return { thisWeek: weekOf(today).monday, lastWeek: lastPeriodUpToTheSameDay("week", today).first };
+  return { today, thisWeek: weekOf(today).monday, lastWeek: lastPeriodUpToTheSameDay("week", today).first };
 }
 
 async function youThisWeekOf(ctx: QueryCtx, member: MemberId, weeks: Weeks): Promise<YouThisWeek> {

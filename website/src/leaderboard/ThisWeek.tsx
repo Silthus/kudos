@@ -9,6 +9,7 @@ import { LoadingPage } from "../pages/LoadingPage";
 import "./leaderboard.css";
 import { isWaitingForTheWeeksBoards, type HugBoardsOfMeasure } from "./measures";
 import { PeopleBoard, TeamBoard, type MeasureChoice } from "./PeopleBoard";
+import { TeamsJoiningInBoard } from "./TeamsJoiningIn";
 
 type ThisWeekAnswerProps = { boards: HugBoardsOfMeasure; me: AlbumMe; level: AlbumLevel; onViewed: () => void; onSignIn: () => void; onSignOut: () => void };
 
@@ -26,6 +27,7 @@ export function ThisWeekAnswerPage({ boards: { shown, measure, choose }, me, lev
 
 function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
   useViewedOnce(onViewed);
+  const joiningIn = boards.joiningIn ?? null;
   return (
     <div className="al-page-body lb-week">
       <p className="al-eyebrow">Leaderboard · this week</p>
@@ -35,9 +37,10 @@ function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
       <YouCard boards={boards} me={me} level={level} />
       <div className="lb-grid">
         <PeopleBoard boards={boards} choice={choice} />
-        {boards.team !== null && (
+        {(boards.team !== null || joiningIn !== null) && (
           <div className="lb-side">
-            <TeamBoard team={boards.team} measure={boards.measure} />
+            {boards.team !== null && <TeamBoard team={boards.team} measure={boards.measure} />}
+            {joiningIn !== null && <TeamsJoiningInBoard joiningIn={joiningIn} />}
           </div>
         )}
       </div>
