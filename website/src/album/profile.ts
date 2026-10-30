@@ -15,6 +15,8 @@ export const bestMedalsShown = 3;
 
 export const rarestShown = 4;
 
+export const nextMilestonesShown = 5;
+
 export function peopleGlanceOf(album: Album) {
   return { held: album.people.filter(({ held }) => held).length, total: album.people.length, unlocked: album.teams.filter(({ state }) => state === "unlocked").length, teams: album.teams.length };
 }
@@ -44,6 +46,10 @@ export function closestNextOf(album: Album): NextMedal | null {
   return medalsInReachOf(album, null)[0] ?? null;
 }
 
+export function nextMilestonesOf(album: Album): NextMedal[] {
+  return medalsInReachOf(album, null).slice(0, nextMilestonesShown);
+}
+
 export function medalsInReachOf(album: Album, inPlace: ReachedTier | null): NextMedal[] {
   return album.milestones
     .flatMap((milestone) => {
@@ -61,6 +67,10 @@ export function earnedMedalsOf(album: Album): BestMedal[] {
   return album.milestones
     .flatMap((milestone) => milestone.tiers.filter((tier): tier is BestMedal["tier"] => tier.earnedAt !== null).map((tier) => ({ milestone, tier })))
     .toSorted((one, other) => other.tier.earnedAt - one.tier.earnedAt);
+}
+
+export function toGoOf({ milestone, tier }: NextMedal) {
+  return Math.max(0, tier.at - milestone.count);
 }
 
 export function shareOf({ milestone, tier }: NextMedal) {
