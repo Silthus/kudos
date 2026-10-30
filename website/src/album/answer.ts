@@ -35,7 +35,7 @@ export type TrayItem = { item: string; kind: "sticker"; person: string; thanked:
 
 export type EarnedEmojiKind = "team" | "milestone" | "level" | "hype" | "random";
 
-export type AlbumEmoji = { id: string; kind: EarnedEmojiKind; name: string; from: string; picture: string; earned: boolean; earnedAt: number | null; seen: boolean; inSlack: boolean; progress: { have: number; need: number } | null };
+export type AlbumEmoji = { id: string; kind: EarnedEmojiKind; name: string; from: string; picture: string; earned: boolean; earnedAt: number | null; seen: boolean; inSlack: boolean; progress: { have: number; need: number } | null; byReactions?: true };
 
 export type SharedEmoji = Pick<AlbumEmoji, "id" | "kind" | "name" | "from" | "picture" | "inSlack">;
 
@@ -190,7 +190,7 @@ export type PersonPage = {
   hugsReceived: number;
   best: AlbumKudos | null;
   teams: PersonTeam[];
-  hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean };
+  hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean; reactions?: { have: number; need: number }; byReactions?: true };
   slackProfile: string | null;
   hypePick?: true;
 };
