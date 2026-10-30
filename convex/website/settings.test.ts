@@ -325,6 +325,7 @@ describe("a website command never launches unlocks", () => {
   test("WS335 P77: with unlocks on and no unlocks launch, the message setting answers refused and launches nothing", async () => {
     const { asSignedIn } = await signedInWith(messageSettings, ...unlocksFlags);
     const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
 
     expect(await setMessageSetting(asSignedIn, "kudos-reply", "dm")).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);

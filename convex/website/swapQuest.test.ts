@@ -201,6 +201,7 @@ describe("a website command never launches unlocks", () => {
     await flagsOn(t, ...questsFlags);
     const { asSignedIn } = await aSwappableWeekWrittenDirectlyIn(await aTeamIn(t));
     const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
 
     expect(await swapQuest(asSignedIn)).toEqual({ kind: "refused" });
 

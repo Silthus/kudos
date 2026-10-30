@@ -151,6 +151,7 @@ describe("a website command never launches unlocks", () => {
     await switchWebsite(t, postHog, true, ...unlocksFlags);
     const { asSignedIn } = await signedIn();
     const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
 
     expect(await setBoardVisibility(asSignedIn, false)).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);

@@ -48,13 +48,13 @@ export const updateWelcome = observedAction({
 });
 
 export const deliverMondayWelcome = observedAction({
-  args: { workspace: v.string(), user: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator, ...attemptArgs },
+  args: { workspace: v.string(), user: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator, owesTheWelcomeItem: v.optional(v.boolean()), ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...welcome }) => {
     let delivered = false;
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
-        const message = await ctx.runQuery(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: welcome.workspace, member: welcome.member, cause: welcome.cause, journey: welcome.journey });
+        const message = await ctx.runQuery(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: welcome.workspace, member: welcome.member, cause: welcome.cause, journey: welcome.journey, owesTheWelcomeItem: welcome.owesTheWelcomeItem });
         const sent = await attemptCall(ctx, welcome.workspace, "chat.postMessage", { channel: welcome.user, ...mondayWelcomeMessageOf(message, welcome.user) });
         if (sent.kind === "held" || sent.kind === "failed") return retryAfter(sent, attempt);
         delivered = sent.kind === "delivered";
