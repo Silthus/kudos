@@ -160,17 +160,16 @@ type PackRoute = {
   crate: CrateKey;
   command: Command;
   isOpenableBy: (ctx: QueryCtx, me: VerifiedMember) => Promise<boolean>;
-  openingOf: (ctx: QueryCtx, me: VerifiedMember) => Promise<{ held?: AppliedReward } | null>;
+  isOpenedFor: (ctx: QueryCtx, me: VerifiedMember) => Promise<boolean>;
 };
 
 async function openPack(ctx: MutationCtx, me: VerifiedMember, person: HomeMember, crate: string): Promise<CrateOpenAnswer> {
   const route = packRouteOf(crate);
   if (route === null || !(await route.isOpenableBy(queryOnly(ctx), me))) return refused;
   await runFromWebsite(ctx, me, person, route.command, openCrateKeyOf(me, crate));
-  const opening = await route.openingOf(queryOnly(ctx), me);
-  if (opening === null) return refused;
+  if (!(await route.isOpenedFor(queryOnly(ctx), me))) return refused;
   await republish(ctx, me.member);
-  const applied = await appliedShownTo(queryOnly(ctx), me, await wholeOpenOf(ctx, me, route.crate, opening.held));
+  const applied = await appliedShownTo(queryOnly(ctx), me, await packOf(ctx, me.member, route.crate));
   return { kind: "opened", applied, drop: await dropOf(ctx, me.member, route.crate) };
 }
 
@@ -186,7 +185,7 @@ function featureCrateRoute(feature: Feature): PackRoute {
     crate: featureCrateKeyOf(feature),
     command: { type: "openUnlock", feature },
     isOpenableBy: async (ctx, me) => (await launchesRecordedFor(ctx, me)) && isReadyOrOpen(await stateOf(ctx, me.member, feature)),
-    openingOf: async (ctx, me) => ((await stateOf(ctx, me.member, feature)) === "open" ? {} : null),
+    isOpenedFor: async (ctx, me) => (await stateOf(ctx, me.member, feature)) === "open",
   };
 }
 
@@ -195,7 +194,7 @@ function boughtCrateRoute(crate: CrateKey): PackRoute {
     crate,
     command: { type: "openCrate", crate },
     isOpenableBy: async () => true,
-    openingOf: async (ctx, me) => ((await boughtCrateOpened(ctx, me.member, crate)) ? {} : null),
+    isOpenedFor: (ctx, me) => boughtCrateOpened(ctx, me.member, crate),
   };
 }
 
@@ -240,12 +239,6 @@ async function dropShownTo(ctx: MutationCtx, me: VerifiedMember, crate: string):
 async function packAppliedShownTo(ctx: MutationCtx, me: VerifiedMember, crate: string): Promise<{ applied?: AppliedReward | null }> {
   if (!(await packsShownTo(ctx, me.member))) return {};
   return { applied: await appliedShownTo(queryOnly(ctx), me, await packOf(ctx, me.member, crate)) };
-}
-
-async function wholeOpenOf(ctx: MutationCtx, me: VerifiedMember, crate: string, held: AppliedReward | undefined): Promise<AppliedReward | undefined> {
-  const pack = (await packsShownTo(ctx, me.member)) ? await packOf(ctx, me.member, crate) : null;
-  if (pack === null) return held;
-  return held === undefined ? pack : { xp: held.xp + pack.xp, coins: held.coins + pack.coins, from: held.from, to: pack.to };
 }
 
 export async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | null | undefined): Promise<AppliedReward | null> {

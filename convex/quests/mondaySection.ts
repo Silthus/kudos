@@ -6,7 +6,7 @@ import { onboardingQuestsOf } from "./onboarding";
 import { questOf, withoutFullStop } from "./pool";
 import { progressUnitOf, type QuestProgress } from "./progress";
 import { questStartOf } from "./start";
-import { isMondayDraw, thisWeeksQuestsOf, type WeeklySlot } from "./weekly";
+import { thisWeeksQuestsOf, type WeeklySlot } from "./weekly";
 
 export type SectionQuest = { goal: string; finished: boolean; progress: QuestProgress | null };
 
@@ -19,7 +19,7 @@ export async function questsSectionFor(ctx: MutationCtx, member: MemberId, at: n
     return { kind: "onboarding", done: onboarding.filter(({ finished }) => finished).length, quests: onboarding.map(({ goal, finished, progress }) => ({ goal, finished, progress })) };
   }
   const week = await thisWeeksQuestsOf(ctx, member, at);
-  return week === null || !isMondayDraw(week) ? null : { kind: "drawn", quests: week.slots.map(drawnQuestOf) };
+  return week === null ? null : { kind: "drawn", quests: week.slots.map(drawnQuestOf) };
 }
 
 async function mondayQuestsWantedBy(ctx: MutationCtx, member: MemberId) {

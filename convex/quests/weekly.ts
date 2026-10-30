@@ -116,7 +116,7 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
 
 export async function mondayQuestsMovedSince(ctx: QueryCtx, member: MemberId, { since, until, mostAwards }: ProgressRead): Promise<Moved[]> {
   const draw = await thisWeeksDrawOf(ctx, member, Date.now());
-  if (draw === null || !isMondayDraw(draw)) return [];
+  if (draw === null) return [];
   const moved: Moved[] = [];
   for (const slot of draw.slots) {
     const pooled = questOf(slot.quest);
@@ -139,7 +139,8 @@ export async function drawnWeekOf(ctx: QueryCtx, member: MemberId, at: number): 
 }
 
 async function thisWeeksDrawOf(ctx: QueryCtx, member: MemberId, at: number) {
-  return drawOf(ctx, member, weekKeyOf(at, await timeZoneOf(ctx, member)));
+  const draw = await drawOf(ctx, member, weekKeyOf(at, await timeZoneOf(ctx, member)));
+  return draw !== null && isMondayDraw(draw) ? draw : null;
 }
 
 async function weeklySlotsOf(ctx: QueryCtx, draw: Draw): Promise<WeeklySlot[]> {
