@@ -296,6 +296,7 @@ export const hugGivenEventValidator = v.object({
   day: v.string(),
   first: v.optional(v.boolean()),
   reaction: v.optional(v.string()),
+  rewards: v.optional(v.boolean()),
 });
 
 export type HugGivenEvent = Infer<typeof hugGivenEventValidator>;
@@ -308,6 +309,7 @@ export const hugReceivedEventValidator = v.object({
   message: messageRefValidator,
   at: v.number(),
   week: v.string(),
+  rewards: v.optional(v.boolean()),
 });
 
 export type HugReceivedEvent = Infer<typeof hugReceivedEventValidator>;

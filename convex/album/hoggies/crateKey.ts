@@ -1,4 +1,4 @@
-const droppingKinds = ["weekly", "journey", "group", "unlock", "bought", "thoughtful", "level", "welcome", "team", "milestone", "forge", "quest"] as const;
+const droppingKinds = ["weekly", "journey", "group", "unlock", "bought", "thoughtful", "level", "welcome", "team", "milestone", "forge", "quest", "hug-find"] as const;
 
 export type CrateKind = (typeof droppingKinds)[number];
 
