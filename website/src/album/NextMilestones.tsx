@@ -64,7 +64,7 @@ function MilestoneCard({ album, bookNext, medal }: { album: Album; bookNext: Boo
         <Medal tier={tier.tier} earned={false} size={16} />
         {milestoneNameOf(milestone.id)} · {tierWordOf(tier.tier)}
       </p>
-      <h4 className="al-next-card-title">{tier.name}</h4>
+      <h4 className="al-floating-title">{tier.name}</h4>
       <p className="al-floating-label">How to get it</p>
       <p>{howToGetWords(milestone.id, toGoOf(medal))}</p>
       <p className="al-floating-label">What it pays</p>

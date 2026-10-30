@@ -4,12 +4,13 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { PageTitle } from "../PageTitle";
 import { MapInPlace, NotInSlack, useMapsInPlace, useSlackWay } from "./findInSlack";
-import type { Album, AlbumEmoji, AlbumPet, AlbumTeam } from "./answer";
+import type { Album, AlbumEmoji, AlbumPet, AlbumTeam, BookNext } from "./answer";
 import { plural } from "./facts";
 import { PersonPicture } from "./PersonPicture";
 import { PetHoggie, petOf, petOwnerWordsOf } from "./PetHoggie";
 import { hrefOf } from "./place";
-import { SealArt } from "./Seal";
+import { LockedSeal, MissingTeammate, TeamProgressBar } from "./LockedTeam";
+import { SealArt, sealSize } from "./Seal";
 import { ShareLink } from "./ShareLink";
 import { Silhouette } from "./Silhouette";
 import { dateOf, nameOnThePhoto, onThePhotoOf, teamEmojiOf, teamEmojiUseWords, type OnThePhoto } from "./teamPage";
@@ -19,14 +20,13 @@ import { landedMarksOf, useBroughtIntoViewOnLanding, useLandedSticker, useLandin
 import { NewSinceTheLastVisit, useNewSinceTheLastVisit } from "./newLabels";
 import "./team.css";
 
-const sealSize = 128;
-
 export function TeamPage({ album, team, unlocking }: { album: Album; team: AlbumTeam; unlocking: TeamUnlocking }) {
   const onThePhoto = onThePhotoOf(album, team);
   const emoji = teamEmojiOf(album, team.team);
   const mapsInPlace = useMapsInPlace();
   const unlocked = team.state === "unlocked";
   const emojiShown = unlocked || mapsInPlace;
+  const locked = lockedOf(album, team);
   return (
     <article className="al-page-body al-team-page">
       <header>
@@ -37,13 +37,14 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
         <p className="al-lede">{plural(onThePhoto.length, "person", "people")}</p>
         <ShareLink album={album} page={{ kind: "team", team: team.team }} cardOf={`the ${team.name}`} />
       </header>
+      {locked !== null && <TeamProgressBar album={album} team={team} bookNext={locked} />}
       <figure className="al-team-photo" aria-label={`${team.name} team photo`}>
         <ul className="al-photo" data-size={onThePhoto.length > 5 ? "many" : "few"}>
           {onThePhoto.map((shown) => (
-            <PhotoPerson key={shown.kind === "person" ? shown.person.person : `unmatched:${shown.name}`} shown={shown} pet={petShownWith(album, shown)} />
+            <PhotoPerson key={shown.kind === "person" ? shown.person.person : `unmatched:${shown.name}`} shown={shown} pet={petShownWith(album, shown)} locked={locked === null ? null : { album, team, bookNext: locked }} />
           ))}
         </ul>
-        <Seal team={team} emoji={emoji} unlocking={unlocking} />
+        {locked === null ? <Seal team={team} emoji={emoji} unlocking={unlocking} /> : <LockedSeal album={album} team={team} bookNext={locked} />}
       </figure>
       <p role="status" aria-label="Unlocking the sticker" className="al-unlock-problem">
         {team.state === "ready" && unlocking.problem?.team === team.team ? problemWordsOf(unlocking.problem.reason, team) : ""}
@@ -53,7 +54,13 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
   );
 }
 
+function lockedOf(album: Album, team: AlbumTeam): BookNext | null {
+  return team.state === "progress" ? (album.bookNext ?? null) : null;
+}
+
 type ShownPet = { pet: AlbumPet; owner: string };
+
+type LockedPhoto = { album: Album; team: AlbumTeam; bookNext: BookNext };
 
 function petShownWith(album: Album, shown: OnThePhoto): ShownPet | null {
   if (shown.kind !== "person") return null;
@@ -61,7 +68,14 @@ function petShownWith(album: Album, shown: OnThePhoto): ShownPet | null {
   return pet === null ? null : { pet, owner: petOwnerWordsOf(album, shown.person.person, shown.person.name) };
 }
 
-function PhotoPerson({ shown, pet }: { shown: OnThePhoto; pet: ShownPet | null }) {
+function PhotoPerson({ shown, pet, locked }: { shown: OnThePhoto; pet: ShownPet | null; locked: LockedPhoto | null }) {
+  if (shown.kind === "person" && locked !== null && !shown.person.held) {
+    return (
+      <MissingTeammate {...locked} person={shown.person}>
+        {pet !== null && <PetHoggie pet={pet.pet} owner={pet.owner} className="al-photo-pet" />}
+      </MissingTeammate>
+    );
+  }
   if (shown.kind === "person") return <PersonOnThePhoto person={shown.person} pet={pet} />;
   return (
       <li className="al-photo-person" data-out="">

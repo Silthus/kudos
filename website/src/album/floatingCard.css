@@ -39,6 +39,12 @@
   cursor: pointer;
 }
 
+.al-floating-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
 .al-floating-label {
   margin-top: 0.625rem !important;
   color: var(--al-quiet);

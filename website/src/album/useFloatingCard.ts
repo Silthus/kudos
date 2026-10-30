@@ -40,7 +40,7 @@ function useClosingOutside(open: boolean, spot: React.RefObject<HTMLElement | nu
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      spot.current?.querySelector("button")?.focus();
+      openerIn(spot.current)?.focus();
       close();
     };
     document.addEventListener("pointerdown", closeOutside);
@@ -50,4 +50,8 @@ function useClosingOutside(open: boolean, spot: React.RefObject<HTMLElement | nu
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [open, spot, card, close]);
+}
+
+function openerIn(spot: HTMLElement | null) {
+  return spot?.matches("button") ? spot : spot?.querySelector("button");
 }

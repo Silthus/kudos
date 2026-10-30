@@ -49,6 +49,23 @@ export function newTeamEmojiWords(emoji: AlbumEmoji | undefined, way: SlackWay) 
   return way === "find" ? `Your new team emoji. Find it in Slack, then ${howToUseIt}.` : `Your new team emoji. Add it to Slack from this page, then ${howToUseIt}.`;
 }
 
+export function teamHoggiePaidWords(rarityCaps: boolean) {
+  return rarityCaps ? "A rare hoggie" : "A rare hoggie or rarer";
+}
+
+export function teamEmojiNameOf(album: Album, team: string) {
+  return teamEmojiOf(album, team)?.name ?? `team-${team}`;
+}
+
+export function missingFrom(album: Album, team: AlbumTeam): AlbumPerson[] {
+  return team.people.map((person) => personIn(album, person)).filter(({ held }) => !held);
+}
+
+export function oneMoreKudosWords(team: AlbumTeam, name: string) {
+  const left = team.total - team.held - 1;
+  return `Give ${firstNameOf(name)} a kudos: their sticker joins your album, and the team is ${left === 0 ? "complete" : `${left} more from complete`}.`;
+}
+
 export function firstNameOf(name: string) {
   return name.split(/\s+/, 1)[0] ?? name;
 }
