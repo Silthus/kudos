@@ -48,7 +48,7 @@ const friendsOf: Record<string, [string, string, string]> = { U_ALICE: ["U_BOB",
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
-let sentMessages = 0;
+let sent: { giver: string; ts: string }[] = [];
 
 beforeEach(() => {
   vi.useFakeTimers({ now: tuesday });
@@ -252,7 +252,7 @@ async function othersSideOfBothWalks(definitions: FlagDefinition[]) {
   await walkEveryStorePath(t, "U_BOB");
   const calls = [...slackCallsAbout("U_BOB"), ...slackCallsAbout("U_CAROL")];
   const saidInPublic = slack.calls.filter(({ method, args }) => method === "chat.postMessage" && String(args.channel).startsWith("C")).flatMap(readCall);
-  return { calls: calls.map((call) => JSON.stringify(withoutTimestamps(call))).sort(), told: calls.flatMap(readCall), saidInPublic, kudos: await kudosMessagesOf(t, "U_BOB"), collection: (await storeRowsOf(t, "U_BOB")).collection };
+  return { calls: calls.map((call) => JSON.stringify(withoutTimestamps(call))).sort(), told: calls.flatMap(readCall), saidInPublic, kudos: await whichMessagesAreKudos(t, "U_BOB"), collection: (await storeRowsOf(t, "U_BOB")).collection };
 }
 
 async function workspaceDeciding(...definitions: FlagDefinition[]) {
@@ -261,7 +261,7 @@ async function workspaceDeciding(...definitions: FlagDefinition[]) {
     .withMember("U_BOB", { profile: { email: "bob@example.com" } })
     .withMember("U_CAROL", { profile: { email: "carol@example.com" } })
     .withMember("U_DANA", { profile: { email: "dana@example.com" } });
-  sentMessages = 0;
+  sent = [];
   postHog = postHogDeciding("sandbox");
   vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
   const t = testBackend();
@@ -273,8 +273,8 @@ async function workspaceDeciding(...definitions: FlagDefinition[]) {
 }
 
 async function giveKudos(t: Backend, giver: string, recipients: string[], words: string, emojiNames = ["taco"]) {
-  sentMessages += 1;
-  const ts = `${Math.floor(Date.now() / 1000) + sentMessages}.000100`;
+  const ts = `${Math.floor(Date.now() / 1000) + sent.length + 1}.000100`;
+  sent.push({ giver, ts });
   const blocks = [section(...recipients.flatMap((recipient) => [mention(recipient), text(" ")]), text(`${words} `), ...emojiNames.map((name) => emoji(name)))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts })));
   await settleInTimeOrder(t);
@@ -347,6 +347,11 @@ async function kudosMessagesOf(t: Backend, user: string) {
   const member = await memberOf(t, user);
   const awards = await t.run(async (ctx) => (await ctx.db.query("awards").collect()).filter(({ giver }) => giver === member));
   return [...new Set(awards.map(({ message }) => message))].sort();
+}
+
+async function whichMessagesAreKudos(t: Backend, user: string) {
+  const kudos = await kudosMessagesOf(t, user);
+  return sent.filter(({ giver }) => giver === user).map(({ ts }) => kudos.includes(ts));
 }
 
 async function goalsInActivityOf(t: Backend, user: string) {
