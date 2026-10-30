@@ -21,6 +21,8 @@ type Counted = Doc<"givenByDay"> | Doc<"givenTotals">;
 
 type Total = Doc<"givenTotals">;
 
+export type RunningTotalField = "runningTotal" | "hugsRunningTotal";
+
 const keptBesideKudosGiven = ["kudosReceived", "hugsGiven", "hugsReceived"] as const;
 
 const weekKeys = { from: "week:", to: "week;" };
@@ -131,7 +133,7 @@ async function addToDay(ctx: MutationCtx, { workspace, member, day }: Landing, a
 async function addToPeriod(ctx: MutationCtx, { workspace, member, day }: Landing, period: Period, added: Added) {
   const key = keyOf(period, day);
   const row = await periodRowOf(ctx, member, key);
-  const counts = { ...withAdded(row, added), ...firstDayAdding(row, day, added), ...runningTotalAdding(period, row, day, added.kudosGiven ?? 0) };
+  const counts = { ...withAdded(row, added), ...firstDayAdding(row, day, added), ...runningTotalsAdding(period, row, day, added) };
   if (row === null) await ctx.db.insert("givenTotals", { workspace, member, period: key, ...counts });
   else await ctx.db.patch(row._id, counts);
 }
@@ -149,8 +151,13 @@ function firstDayAdding(row: Total | null, day: DayKey, { kudosGiven = 0, hugsGi
   return { firstDay: firstDay !== undefined && firstDay < day ? firstDay : day };
 }
 
-function runningTotalAdding(period: Period, row: Total | null, day: DayKey, kudos: number) {
-  if (period === "all" || (row !== null && kudos === 0)) return {};
-  const runningTotal = row === null ? [] : row.runningTotal;
-  return runningTotal === undefined ? {} : { runningTotal: withKudosOn(runningTotal, dayOfPeriod(period, day), kudos) };
+function runningTotalsAdding(period: Period, row: Total | null, day: DayKey, { kudosGiven = 0, hugsGiven = 0 }: Added) {
+  if (period === "all") return {};
+  return { ...runningTotalAdding("runningTotal", row, dayOfPeriod(period, day), kudosGiven), ...runningTotalAdding("hugsRunningTotal", row, dayOfPeriod(period, day), hugsGiven) };
+}
+
+function runningTotalAdding(field: RunningTotalField, row: Total | null, day: number, added: number) {
+  if (row !== null && added === 0) return {};
+  const runningTotal = row === null ? [] : row[field];
+  return runningTotal === undefined ? {} : { [field]: withKudosOn(runningTotal, day, added) };
 }

@@ -123,6 +123,26 @@ describe("GB35: running totals for the totals counted before they shipped", () =
   });
 });
 
+describe("HH80: running totals of hugs given for the totals counted before they shipped", () => {
+  test("filling counts each day's hugs given once, a hug counted live before the fill included, keeps the kudos running totals, and filling again changes nothing", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"]);
+    await givenLive(t, "U1", { "U2": 2 }, { message: "1", day: "2026-10-05" });
+    await huggedLive(t, "U1", { message: "2", day: "2026-10-05" });
+    await huggedLive(t, "U1", { message: "3", day: "2026-10-07" });
+    await countedBeforeHugRunningTotalsShipped(t);
+    await huggedLive(t, "U1", { message: "4", day: "2026-10-06" });
+    await huggedLive(t, "U1", { message: "5", day: "2026-10-13" });
+
+    expect(await fillRunningTotals(t, { pageSize: 1 })).toMatchObject({ filled: 4 });
+
+    expect(await runningTotalsOf(t, "U1", "hugsRunningTotal")).toEqual({ "week:2026-10-05": [1, 2, 3], "month:2026-10": [0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 4], "week:2026-10-12": [0, 1] });
+    expect(await runningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [2], "month:2026-10": [0, 0, 0, 0, 2], "week:2026-10-12": [0, 0] });
+    expect(await fillRunningTotals(t)).toMatchObject({ filled: 0 });
+    expect(await runningTotalsOf(t, "U1", "hugsRunningTotal")).toEqual({ "week:2026-10-05": [1, 2, 3], "month:2026-10": [0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 4], "week:2026-10-12": [0, 1] });
+  });
+});
+
 type Person = [user: string, name: string];
 
 async function members(t: Backend, ...people: Person[]) {
@@ -180,16 +200,28 @@ async function fillRunningTotals(t: Backend, args: { pageSize?: number } = {}) {
   return t.action(internal.leaderboard.backfill.fillRunningTotals, args);
 }
 
+async function huggedLive(t: Backend, giverUser: string, { message, day }: Given) {
+  const giver = await memberId(t, giverUser);
+  const event = { type: "hugGiven" as const, workspace: "T1", giver, message: { workspace: "T1", conversation: "C1", message }, onKudos: false, at: Date.parse(`${day}T12:00:00Z`), day };
+  await t.mutation(internal.leaderboard.hugs.countHugGiven, { event });
+}
+
+async function countedBeforeHugRunningTotalsShipped(t: Backend) {
+  await t.run(async (ctx) => {
+    for (const { hugsRunningTotal: _, ...total } of await ctx.db.query("givenTotals").collect()) await ctx.db.replace(total._id, total);
+  });
+}
+
 async function countedBeforeRunningTotalsShipped(t: Backend) {
   await t.run(async (ctx) => {
     for (const total of await ctx.db.query("givenTotals").collect()) await ctx.db.replace(total._id, { workspace: total.workspace, member: total.member, period: total.period, kudos: total.kudos });
   });
 }
 
-async function runningTotalsOf(t: Backend, user: string) {
+async function runningTotalsOf(t: Backend, user: string, field: "runningTotal" | "hugsRunningTotal" = "runningTotal") {
   const member = await memberId(t, user);
   const rows = await t.run((ctx) => ctx.db.query("givenTotals").collect());
-  return Object.fromEntries(rows.filter((row) => row.member === member && row.runningTotal !== undefined).map((row) => [row.period, row.runningTotal]));
+  return Object.fromEntries(rows.filter((row) => row.member === member && row[field] !== undefined).map((row) => [row.period, row[field]]));
 }
 
 async function interruptedAfterFirstPage(t: Backend) {

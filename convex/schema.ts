@@ -787,6 +787,7 @@ export default defineSchema({
     hugsReceived: v.optional(v.number()),
     firstDay: v.optional(v.string()),
     runningTotal: v.optional(v.array(v.number())),
+    hugsRunningTotal: v.optional(v.array(v.number())),
   })
     .index("by_period", ["workspace", "period"])
     .index("by_member_period", ["member", "period"]),

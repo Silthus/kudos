@@ -676,6 +676,17 @@ describe("HH80 HH81: Slack ranks Everyone by hugs given while leaderboard-hugs i
     expect(await leaderboardSays(alice)).toEqual(["🥇 <@U_ALICE> · 3 hugs", "🥈 <@U_BOB> · 1 hug", "▲ 2 more hugs than this time last week · ▲ 1 place"]);
   });
 
+  test("the improvement line counts last week's hugs only up to the same weekday", async () => {
+    await lastWeek();
+    await hugsOn(alice, carol);
+    vi.setSystemTime(tuesday.getTime() - weekMs + 2 * dayMs);
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
+    await thisWeek();
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
+
+    expect(await leaderboardSays(alice)).toEqual(["🥇 <@U_ALICE> · 2 hugs", "▲ 1 more hug than this time last week"]);
+  });
+
   test.each([
     { period: "month", says: ["🥇 <@U_ALICE> · 2 hugs", "🥈 <@U_BOB> · 1 hug", "▲ 2 more hugs than this time last month"] },
     { period: "all", says: ["🥇 <@U_ALICE> · 2 hugs", "🥈 <@U_BOB> · 1 hug"] },
