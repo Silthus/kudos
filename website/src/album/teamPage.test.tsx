@@ -496,6 +496,20 @@ describe("AL46: the person page", () => {
     expect(within(screen.getByRole("list", { name: "Your history together" })).getByText("Not yet")).toBeInTheDocument();
   });
 
+  it("counts your reactions with their hype emoji on their messages beside the kudos way to unlock it", async () => {
+    visit("/book#people/juno-park", { people: personWithHype({ earned: false, name: "juno-park-hype", reactions: { have: 3, need: 10 } }) });
+
+    expect(await screen.findByText("Give Juno a kudos to unlock their hype emoji")).toBeInTheDocument();
+    expect(screen.getByText("Or react with it on 10 of their messages: 3 of 10")).toBeInTheDocument();
+  });
+
+  it("names your reactions as the way their hype emoji was unlocked", async () => {
+    visit("/book#people/juno-park", { people: personWithHype({ earned: true, name: "juno-park-hype", reactions: { have: 10, need: 10 }, byReactions: true }) });
+
+    expect(await screen.findByText("Unlocked by your reactions on 10 of Juno's messages")).toBeInTheDocument();
+    expect(screen.queryByText(/Or react with it/)).not.toBeInTheDocument();
+  });
+
   it("someone not in your album yet with a picture shows it greyed out, on their photo and in their hype emoji still to unlock", async () => {
     visit("/book#people/juno-park", { people: (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), face: junoFace } : undefined) });
 
@@ -595,3 +609,7 @@ describe("LP58: a member's pet shows in colour beside their sticker on team page
     expect(screen.queryByRole("img", { name: /'s pet, / })).not.toBeInTheDocument();
   });
 });
+
+function personWithHype(hype: PersonPage["hype"]): PersonRead {
+  return (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(midway, person) as PersonPage), hype } : undefined);
+}

@@ -191,5 +191,6 @@ async function holdersIn(ctx: QueryCtx, currentMembers: Set<string>): Promise<Ma
   for (const { member, milestone, tier } of await ctx.db.query("milestoneTiers").take(mostHoldingsCounted)) holds(member, `milestone:${milestone}:${tier}`);
   for (const { member, xp } of await ctx.db.query("memberProgress").take(mostHoldingsCounted)) for (const reward of everyEmojiLevel.filter((level) => levelOf(xp) >= level)) holds(member, `level:${reward}`);
   for (const { giver, recipient } of await ctx.db.query("thoughtfulPacks").take(mostHoldingsCounted)) holds(giver, `hype:${recipient}`);
+  for (const { member, person } of await ctx.db.query("hypesCollected").take(mostHoldingsCounted)) holds(member, `hype:${person}`);
   return new Map([...holdings].map(([emoji, members]) => [emoji, members.size]));
 }
