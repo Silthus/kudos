@@ -30,6 +30,11 @@ function halfwayJourney(): GettingStartedStep[] {
   return [hug!, { ...firstThanks!, progress: finishedOnce, done: true, item: "turned" }, { ...turn!, progress: finishedOnce, done: true }, someoneNew!, { ...twoDays!, progress: { done: 1, target: 2 } }];
 }
 
+function awaitingTheDrawJourney(): GettingStartedStep[] {
+  const [hug, firstThanks, turn, someoneNew, twoDays] = firstThanksJourney();
+  return [hug!, firstThanks!, turn!, { ...someoneNew!, progress: finishedOnce, done: true, item: "waiting" }, { ...twoDays!, progress: { done: 2, target: 2 }, done: true, item: "waiting" }];
+}
+
 function drawnWeek(): DrawnQuest[] {
   return [
     { quest: "three-in-a-day", goal: "Thank 3 people in one day", progress: { done: 2, target: 3 }, done: false, reward: { xp: 20 }, item: null },
@@ -43,6 +48,7 @@ export const questsFixtures = {
   newcomer: { kind: "monday", firstName: "Sam", next: "first-thanks", daysLeft: 5, quests: { kind: "journey", steps: newcomerJourney() } },
   firstThanks: { kind: "monday", firstName: "Sam", next: "someone-new", daysLeft: 5, quests: { kind: "journey", steps: firstThanksJourney() } },
   halfway: { kind: "monday", firstName: "Sam", next: "someone-new", daysLeft: 5, quests: { kind: "journey", steps: halfwayJourney() } },
+  awaitingTheDraw: { kind: "monday", firstName: "Sam", next: null, daysLeft: 5, quests: { kind: "journey", steps: awaitingTheDrawJourney() } },
   week: { kind: "monday", firstName: "Sam", next: null, daysLeft: 3, quests: { kind: "drawn", quests: drawnWeek() } },
 } as const satisfies Record<string, MondayQuests>;
 

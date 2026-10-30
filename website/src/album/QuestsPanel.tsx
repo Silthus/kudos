@@ -9,7 +9,7 @@ import "./quests.css";
 
 export type ShellQuests = { quests: MondayQuests; inSight: boolean; openBoard: () => void; landing: QuestsLanding; view: (surface: QuestsSurface) => void };
 
-type Row = { goal: string; hint: string | null; howToOpen: boolean; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
+type Row = { goal: string; hint: string | null; howToOpen: boolean; next: boolean; progress: { done: number; target: number }; done: boolean; reward: { xp: number } | null; boardLink: boolean };
 
 export function mondayQuestsIn(shown: QuestsShown | undefined): MondayQuests | null {
   return shown?.kind === "monday" ? shown : null;
@@ -97,24 +97,23 @@ function Footer({ quests }: { quests: MondayQuests }) {
   return <footer className="al-quests-foot">{quests.quests.kind === "drawn" ? `${daysLeftWords(quests.daysLeft)} · new quests Monday at 9:00` : "Once these are done, three new quests arrive every Monday."}</footer>;
 }
 
-function QuestList({ quests: { quests }, openBoard, howTo = null }: { quests: MondayQuests; openBoard: () => void; howTo?: string | null }) {
+function QuestList({ quests: { quests, next }, openBoard, howTo = null }: { quests: MondayQuests; openBoard: () => void; howTo?: string | null }) {
   if (quests.kind === "drawn") return <Checklist rows={quests.quests.map(drawnRowOf)} openBoard={openBoard} />;
-  return <Journey rows={quests.steps.map((step) => journeyRowOf(step, step.step === howTo))} openBoard={openBoard} />;
+  return <Journey rows={quests.steps.map((step) => journeyRowOf(step, { howToOpen: step.step === howTo, next: step.step === next }))} openBoard={openBoard} />;
 }
 
 function Journey({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) {
-  const next = rows.find(({ done }) => !done);
   return (
     <ol className="al-quests-journey">
       {rows.map((row, index) => (
-        <li key={row.goal} className="al-quests-step" data-done={row.done ? "" : undefined} data-next={row === next ? "" : undefined} aria-label={rowLabelOf(row, row === next)}>
+        <li key={row.goal} className="al-quests-step" data-done={row.done ? "" : undefined} data-next={row.next ? "" : undefined} aria-label={rowLabelOf(row)}>
           <span className="al-quests-ring" aria-hidden="true">
             {row.done ? <IconCheck /> : index + 1}
           </span>
           <div className="al-quests-words">
-            {row === next && <span className="al-quests-next">Next</span>}
+            {row.next && <span className="al-quests-next">Next</span>}
             <span className="al-quests-goal">{row.goal}</span>
-            {(row === next || row.howToOpen) && row.hint !== null && <span className="al-quests-hint">{row.hint}</span>}
+            {(row.next || row.howToOpen) && row.hint !== null && <span className="al-quests-hint">{row.hint}</span>}
             {row.progress.target > 1 && !row.done && <Progress row={row} />}
             {row.boardLink && <BoardLink openBoard={openBoard} />}
           </div>
@@ -129,7 +128,7 @@ function Checklist({ rows, openBoard }: { rows: Row[]; openBoard: () => void }) 
   return (
     <ul className="al-quests-list">
       {rows.map((row) => (
-        <li key={row.goal} className="al-quests-row" data-done={row.done ? "" : undefined} aria-label={rowLabelOf(row, false)}>
+        <li key={row.goal} className="al-quests-row" data-done={row.done ? "" : undefined} aria-label={rowLabelOf(row)}>
           <span className="al-quests-mark" aria-hidden="true">
             {row.done && <IconCheck />}
           </span>
@@ -194,15 +193,15 @@ function DoneRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-function journeyRowOf({ goal, hint, progress, done, reward, item }: GettingStartedStep, howToOpen: boolean): Row {
-  return { goal, hint, howToOpen, progress, done, reward, boardLink: item === "waiting" };
+function journeyRowOf({ goal, hint, progress, done, reward, item }: GettingStartedStep, { howToOpen, next }: { howToOpen: boolean; next: boolean }): Row {
+  return { goal, hint, howToOpen, next, progress, done, reward, boardLink: item === "waiting" };
 }
 
 function drawnRowOf({ goal, progress, done, reward, item }: DrawnQuest): Row {
-  return { goal, hint: null, howToOpen: false, progress, done, reward, boardLink: item === "waiting" };
+  return { goal, hint: null, howToOpen: false, next: false, progress, done, reward, boardLink: item === "waiting" };
 }
 
-function rowLabelOf({ goal, done, reward }: Row, next: boolean) {
+function rowLabelOf({ goal, done, next, reward }: Row) {
   const state = done ? "done" : next ? "next" : "not yet";
   if (reward === null) return `${goal}: ${state}`;
   return `${goal}: ${state}, ${done ? `won ${reward.xp} XP and a hoggie` : `+${reward.xp} XP and an unidentified hoggie`}`;
