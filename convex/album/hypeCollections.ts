@@ -2,10 +2,9 @@ import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { HypeReactedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
+import { reactionsToCollect } from "./emojiCatalogue";
 import { hypeByReactionsCollectFor } from "./flag";
 import { recordReactionsSticker } from "./stickers";
-
-export const reactionsToCollect = 10;
 
 export type ReactionsToward = { have: number; need: number };
 

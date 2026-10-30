@@ -1,4 +1,4 @@
-import { levelTwoEmoji } from "../../../convex/album/emojiCatalogue";
+import { levelTwoEmoji, reactionsToCollect } from "../../../convex/album/emojiCatalogue";
 import { milestoneCatalogue, type MilestoneId } from "../../../convex/album/milestoneCatalogue";
 import type { Album, AlbumEmoji, EarnedEmojiKind, MilestoneTierId } from "./answer";
 import { metalOrder, milestoneNameOf, tierWordOf } from "./milestones";
@@ -137,7 +137,7 @@ export function teamOf(emoji: Pick<AlbumEmoji, "kind" | "id">) {
   return emoji.kind === "team" ? causeOf(emoji.id) : null;
 }
 
-export function earnedFromWords(emoji: Pick<AlbumEmoji, "kind" | "id" | "from">): string {
+export function earnedFromWords(emoji: Pick<AlbumEmoji, "kind" | "id" | "from" | "byReactions">): string {
   switch (emoji.kind) {
     case "team":
       return `The ${emoji.from} team sticker`;
@@ -146,7 +146,7 @@ export function earnedFromWords(emoji: Pick<AlbumEmoji, "kind" | "id" | "from">)
     case "level":
       return `Reaching ${emoji.from.toLowerCase()}`;
     case "hype":
-      return `Your first pack for ${emoji.from}`;
+      return emoji.byReactions === true ? `Your reactions on ${reactionsToCollect} of ${emoji.from}'s messages` : `Your first pack for ${emoji.from}`;
     case "random":
       return `A random drop in your pack for ${emoji.from}`;
   }
@@ -162,7 +162,7 @@ export function whyWords(emoji: AlbumEmoji): string {
     case "level":
       return `You reached ${emoji.from.toLowerCase()}`;
     case "hype":
-      return `From your first pack for ${emoji.from}${when}`;
+      return emoji.byReactions === true ? `From your reactions on ${reactionsToCollect} of ${emoji.from}'s messages${when}` : `From your first pack for ${emoji.from}${when}`;
     case "random":
       return `A random drop in your pack for ${emoji.from}${when}`;
   }

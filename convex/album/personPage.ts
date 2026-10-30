@@ -41,7 +41,7 @@ async function hypeEmojiOf(ctx: QueryCtx, { workspace, member }: PageOwner, pers
 }
 
 async function collectingByReactionsOf(ctx: QueryCtx, member: MemberId, person: MemberId, earned: boolean): Promise<Pick<HypeEmoji, "reactions" | "byReactions">> {
-  if (member === person || !(await hypeByReactionsShownTo(ctx, member))) return {};
-  const reactions = await reactionsToward(ctx, member, person);
-  return earned && (await hypeUnlockedByReactions(ctx, member, person)) ? { reactions, byReactions: true } : { reactions };
+  if (member === person) return {};
+  const byReactions = earned && (await hypeUnlockedByReactions(ctx, member, person)) ? { byReactions: true as const } : {};
+  return (await hypeByReactionsShownTo(ctx, member)) ? { reactions: await reactionsToward(ctx, member, person), ...byReactions } : byReactions;
 }

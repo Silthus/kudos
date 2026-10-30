@@ -146,6 +146,12 @@ describe("a teammate's hype emoji is collected by reactions on 10 of their messa
     expect((await personPageOf(bruno, carol)).hype).toMatchObject({ earned: true, byReactions: true });
   });
 
+  test("the Book's emojis name the reactions as where the hype emoji came from", async () => {
+    await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
+
+    expect(await hypeEmojiInTheBookOf(bruno, carol)).toMatchObject({ kind: "hype", earned: true, byReactions: true });
+  });
+
   test("the person page of the member themself shows no reactions", async () => {
     expect((await personPageOf(carol, carol)).hype).not.toHaveProperty("reactions");
   });
@@ -161,7 +167,25 @@ describe("collecting by reactions is dark where hype-by-reactions is off", { tim
     expect(await inAlbum(bruno, carol)).toBe(false);
     expect((await personPageOf(bruno, carol)).hype).toEqual({ earned: false, name: carol.hype, picture: expect.any(String), inSlack: false });
   });
+
+  test("with the flag off after collecting, the person page counts nothing but still names the reactions as the way it was unlocked", async () => {
+    await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
+    await switchWebsite(t, postHog, true, ...websiteOn);
+
+    const { hype } = await personPageOf(bruno, carol);
+
+    expect(hype).toMatchObject({ earned: true, byReactions: true });
+    expect(hype).not.toHaveProperty("reactions");
+  });
 });
+
+async function hypeEmojiInTheBookOf(reader: Person, someone: Person) {
+  const { asSignedIn } = await aSignedInSession(t, { user: reader.user, name: reader.name });
+  const album = await asSignedIn.query(api.website.album.getAlbum, {});
+  if (album.kind !== "album") throw new Error(`expected an album, got ${album.kind}`);
+  const person = await memberOf(someone);
+  return album.emojis.find(({ id }) => id === `hype:${person}`);
+}
 
 async function reactOnMessagesOf(author: Person, { by, messages: count, emoji = author.hype }: { by: Person; messages: number; emoji?: string }): Promise<string> {
   let ts = "";
