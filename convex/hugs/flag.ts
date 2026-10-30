@@ -1,4 +1,4 @@
-import { exposed, memberDecision, type Flag } from "../analytics/flags";
+import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
@@ -16,6 +16,10 @@ export async function hugRewardsOnAndExposedFor(ctx: MutationCtx, member: Member
   const on = await memberDecision(ctx, hugRewardsFlag, member);
   await exposed(ctx, hugRewardsFlag, member, on);
   return on;
+}
+
+export function hugRewardsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, hugRewardsFlag, member);
 }
 
 export function hugsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {

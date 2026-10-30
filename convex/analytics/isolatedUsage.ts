@@ -6,7 +6,7 @@ import { messageKindValidator, messagePlaceValidator } from "../messageSettings/
 import { sentMondayDmSectionValidator } from "../mondayDm/records";
 import { welcomePathValidator } from "../welcome/welcomedAs";
 import { failuresLogged } from "./failures";
-import { dmKindValidator, dmLinkDestinationValidator, hugsRecapCarrierValidator, questsSurfaceValidator } from "./projections";
+import { activityStateValidator, dmKindValidator, dmLinkDestinationValidator, hugsRecapCarrierValidator, questsSurfaceValidator } from "./projections";
 import { recordUsage, usageNotRecorded } from "./usage";
 
 const leaderboardViewValidator = v.object({
@@ -229,5 +229,25 @@ export const recordQuestsViewed = internalMutation({
   args: questsViewValidator,
   handler: async (ctx, view): Promise<void> => {
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "questsViewed", ...view }));
+  },
+});
+
+const activityViewValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  state: activityStateValidator,
+  at: v.number(),
+});
+
+export type ActivityView = Infer<typeof activityViewValidator>;
+
+export async function reportActivityViewed(ctx: MutationCtx, view: ActivityView) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordActivityViewed, view);
+}
+
+export const recordActivityViewed = internalMutation({
+  args: activityViewValidator,
+  handler: async (ctx, view): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "activityViewed", ...view }));
   },
 });

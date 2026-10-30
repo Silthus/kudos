@@ -82,7 +82,7 @@ async function hugForOf(ctx: MutationCtx, ref: MessageRef, giver: MemberId, auth
   return (await receivedOn(ctx, ref, giver)) ? { onKudos: false, author } : { onKudos: true };
 }
 
-async function hugsLeftOf(ctx: MutationCtx, giver: MemberId, workspace: string, day: string) {
+export async function hugsLeftOf(ctx: QueryCtx, giver: MemberId, workspace: string, day: string) {
   const budget = await hugBudgetOf(ctx, workspace);
   return budget - (await hugsGivenOn(ctx, giver, day, budget));
 }

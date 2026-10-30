@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
-import type { AlbumRead, BoardsRead, HoggiesRead, LevelUpRead, PersonRead, PlayerCardRead, ProfileRead, QuestsRead, WeekRead, XpMomentRead } from "./album/answer";
+import type { ActivityWeekRead, AlbumRead, BoardsRead, HoggiesRead, LevelUpRead, PersonRead, PlayerCardRead, ProfileRead, QuestsRead, WeekRead, XpMomentRead } from "./album/answer";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import { AlbumWaits } from "./pages/AlbumWaits";
@@ -18,7 +18,7 @@ import { forgetSignInStarted, rememberSignInStarted, useSignInOutcome, useSignIn
 
 export type AppReads = Omit<AppProps, "visitor" | "actions">;
 
-export type AppProps = { visitor: ShellState; actions: ShellActions; useSettings: SettingsRead; useEmojiMappings: EmojiMappingsRead; useSlackEmojiMatches: SlackEmojiMatchesRead; useAppEmojis: AppEmojisRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead; useLevelUp: LevelUpRead; useXpMoment: XpMomentRead; usePlayerCard: PlayerCardRead; useQuests: QuestsRead };
+export type AppProps = { visitor: ShellState; actions: ShellActions; useSettings: SettingsRead; useEmojiMappings: EmojiMappingsRead; useSlackEmojiMatches: SlackEmojiMatchesRead; useAppEmojis: AppEmojisRead; useAlbum: AlbumRead; useThoughtfulBoards: BoardsRead; useAlbumWeek: WeekRead; useActivityWeek: ActivityWeekRead; useAlbumPerson: PersonRead; useAlbumProfile: ProfileRead; useAlbumHoggies: HoggiesRead; useLevelUp: LevelUpRead; useXpMoment: XpMomentRead; usePlayerCard: PlayerCardRead; useQuests: QuestsRead };
 
 const AlbumApp = lazy(() => import("./album/AlbumApp"));
 
