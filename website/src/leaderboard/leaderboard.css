@@ -281,21 +281,10 @@ a.lb-row:hover {
   font-weight: 500;
 }
 
-.lb-share {
-  display: block;
+.lb-row .lb-share {
   width: 5rem;
-  height: 0.375rem;
+  min-width: 0;
   flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--muted);
-}
-
-.lb-share-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--al-accent);
 }
 
 .lb-gain {
@@ -336,5 +325,11 @@ a.lb-row:hover {
 
   .lb-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .lb-row .lb-share {
+    width: 2.5rem;
   }
 }
