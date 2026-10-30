@@ -93,7 +93,14 @@ describe("HH61 HH63: getActivityWeek answers one next step", { timeout: 60_000 }
     await switchWebsite(t, postHog, true, ...activityNext);
     const kudos = await thanks(fen, "the demo was brilliant", alice);
 
-    expect(await nextStepOf(alice)).toEqual({ kind: "thanked", giver: expect.objectContaining({ person: await memberOf(fen), name: fen.name }), permalink: permalinkOf(kudos), at: atOf(kudos) });
+    expect(await nextStepOf(alice)).toEqual({ kind: "thanked", giver: expect.objectContaining({ person: await memberOf(fen), name: fen.name }), words: expect.objectContaining({ kind: "text" }), permalink: permalinkOf(kudos), at: atOf(kudos) });
+  });
+
+  test("the thanked step carries the kudos's words, which the Slack picture beside it draws", async () => {
+    await switchWebsite(t, postHog, true, ...activityNext);
+    await thanks(fen, "the demo was brilliant", alice);
+
+    expect(await nextStepOf(alice)).toMatchObject({ kind: "thanked", words: { kind: "text", segments: expect.arrayContaining([expect.objectContaining({ kind: "text", text: expect.stringContaining("the demo was brilliant") })]) } });
   });
 
   test("the newest kudos received comes first", async () => {

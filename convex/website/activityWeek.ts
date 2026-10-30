@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { permalinkOfMessage } from "../activity/kudos";
+import type { Message } from "../activity/entries";
+import { kudosWordsOf, mentionsOfOnePage, permalinkOfMessage } from "../activity/kudos";
 import { loopLessonIn, type LoopLesson } from "../album/items/welcome";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
 import { newestReceivedBy, type NewestReceived } from "../engine/awards";
@@ -12,7 +13,7 @@ import { isMember, timeZoneOf } from "../workspace/directory";
 import { faceIn, type AlbumPersonFace } from "./albumPages";
 import type { VerifiedMember } from "./memberQuery";
 
-export type NextStep = { kind: "thanked"; giver: AlbumPersonFace; permalink: string; at: number } | { kind: "empty" } | { kind: "quiet"; firstHugPaysExtra: boolean };
+export type NextStep = { kind: "thanked"; giver: AlbumPersonFace; words: Message; permalink: string; at: number } | { kind: "empty" } | { kind: "quiet"; firstHugPaysExtra: boolean };
 
 export type ActivityWeek = { kind: "week"; next: NextStep; kudos: LoopLesson; slack: string };
 
@@ -49,7 +50,8 @@ async function newestHugBackOf(ctx: QueryCtx, me: VerifiedMember, today: Today):
 async function hugBackOf(ctx: QueryCtx, me: VerifiedMember, { message, giver, at }: NewestReceived): Promise<HugBack | null> {
   if (!(await isMember(ctx, giver)) || (await hugOf(ctx, message, me.member)) !== null || (await takenBackInSlack(ctx, message))) return null;
   const permalink = await permalinkOfMessage(ctx, message);
-  return permalink === null ? null : { kind: "thanked", giver: await faceIn(ctx, me.workspace, giver), permalink, at };
+  if (permalink === null) return null;
+  return { kind: "thanked", giver: await faceIn(ctx, me.workspace, giver), words: await kudosWordsOf(ctx, mentionsOfOnePage(ctx), message), permalink, at };
 }
 
 function isStillHuggable({ message }: NewestReceived, { now }: Today) {
