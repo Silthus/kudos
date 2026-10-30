@@ -1,12 +1,13 @@
-import { screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
-import type { Highlight } from "../../../convex/website/leaderboard";
+import { act, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Highlight, HugBoards, HugMeasure } from "../../../convex/website/leaderboard";
 import { albumFixtures, fixedAlbum } from "../album/albumFixtures";
 import { boardsFixtures, fixedBoards } from "../album/boardsFixtures";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
-import { fixedHugBoards, hugBoardsFixtures } from "./thisWeekFixtures";
+import type { HugBoardsShown } from "../album/answer";
+import { byLevel, fixedHugBoards, hugBoardsFixtures } from "./thisWeekFixtures";
 
 const arrival = { timeout: 10_000 };
 
@@ -15,10 +16,20 @@ beforeEach(() => {
   preferWideScreen();
 });
 
-function visit(boards = hugBoardsFixtures.lively, { leaderboardHugs = true } = {}) {
+type Measured = (measure: HugMeasure) => HugBoardsShown | undefined;
+
+function visit(boards: HugBoards | Measured = hugBoardsFixtures.lively, { leaderboardHugs = true } = {}) {
   window.history.replaceState(null, "", "/leaderboard");
   const album = leaderboardHugs ? { ...albumFixtures.midway, leaderboardHugs: true as const } : albumFixtures.midway;
   return renderAlbum(shellFixtures.member, fixedAlbum(album), { hugBoards: fixedHugBoards(boards), boards: fixedBoards(boardsFixtures.week) });
+}
+
+async function board(name: string) {
+  return within(await screen.findByRole("region", { name }, arrival));
+}
+
+function rowsIn(region: ReturnType<typeof within>) {
+  return region.getAllByRole("listitem").map((row: HTMLElement) => row.textContent);
 }
 
 async function youCard() {
@@ -87,5 +98,113 @@ describe("HH71: the you card leads with a positive highlight", { timeout: 30_000
     const line = card.getByText(headline).closest("p")!;
     expect(line).toHaveTextContent(`${headline}${detail}`);
     expect(line).toHaveTextContent(/^▲/);
+  });
+});
+
+describe("HH73: the People board", { timeout: 30_000 }, () => {
+  it("offers the measures Hugs given, Hugged, Kudos received, Level and Hoggies, with Hugs given chosen", async () => {
+    visit();
+    const people = await board("People");
+
+    const chips = within(people.getByRole("group", { name: "Rank by" })).getAllByRole("button");
+    expect(chips.map((chip) => chip.textContent)).toEqual(["Hugs given", "Hugged", "Kudos received", "Level", "Hoggies"]);
+    expect(chips.map((chip) => chip.getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false", "false"]);
+  });
+
+  it("ranks each person with their face, name and figure, equal figures sharing a rank, and tags the member's row You", async () => {
+    visit();
+    const people = await board("People");
+
+    expect(rowsIn(people)).toEqual(["1WAWren Alder6 hugs", "2IOInes Okafor4 hugs", "2SESam ExampleYou4 hugs", "4FMFen Marlowe1 hug"]);
+  });
+
+  it("shows a dash for the member's rank before they have a figure", async () => {
+    visit(hugBoardsFixtures.quiet);
+    const people = await board("People");
+
+    expect(rowsIn(people)).toEqual(["1WAWren Alder2 hugs", "–SESam ExampleYou0 hugs"]);
+  });
+
+  it("asks for the chosen measure and keeps this board until its answer arrives", async () => {
+    const asked = vi.fn<Measured>();
+    let levelArrived = false;
+    asked.mockImplementation((measure) => (measure === "level" && !levelArrived ? undefined : measure === "level" ? byLevel(hugBoardsFixtures.lively) : hugBoardsFixtures.lively));
+    const { user, showVisitor } = visit(asked);
+    const people = await board("People");
+
+    await user.click(people.getByRole("button", { name: "Level" }));
+
+    expect(people.getByRole("button", { name: "Level" })).toHaveAttribute("aria-pressed", "true");
+    expect(asked).toHaveBeenCalledWith("level");
+    expect(rowsIn(people)[0]).toBe("1WAWren Alder6 hugs");
+    levelArrived = true;
+    act(() => showVisitor(shellFixtures.member));
+    expect(rowsIn(await board("People"))).toEqual(["1WAWren AlderLv 9", "2IOInes OkaforLv 7", "3SESam ExampleYouLv 6"]);
+  });
+});
+
+describe("HH74: a fresh week", { timeout: 30_000 }, () => {
+  it("says the week starts fresh, how to be first, and last week's top three", async () => {
+    visit(hugBoardsFixtures.empty);
+    const people = await board("People");
+
+    expect(people.getByText(/This week starts fresh/)).toHaveTextContent("This week starts fresh. React with 🌮 to any message to give the first hug of the week.");
+    expect(people.getByText("Last week")).toBeInTheDocument();
+    expect(rowsIn(people)).toEqual(["1WAWren Alder9 hugs", "2IOInes Okafor6 hugs", "2SESam ExampleYou6 hugs"]);
+  });
+
+  it.each<[HugMeasure, string]>([
+    ["hugsReceived", "Hug a teammate's message and they're the first one here."],
+    ["kudosReceived", "Write 🌮 @name and what they did, and they lead this one."],
+  ])("on %s it tells how to be first there", async (measure, how) => {
+    visit({ ...hugBoardsFixtures.empty, measure });
+
+    expect((await board("People")).getByText(/This week starts fresh/)).toHaveTextContent(`This week starts fresh. ${how}`);
+  });
+});
+
+describe("HH75: You in your team", { timeout: 30_000 }, () => {
+  it("ranks the member among the teammates who joined in and says how many more can still join in", async () => {
+    visit();
+    const team = await board("You in Lanterns");
+
+    expect(team.getByRole("heading", { level: 2, name: "You in Lanterns" })).toBeInTheDocument();
+    expect(team.getByText("You lead Lanterns on hugs given this week.")).toBeInTheDocument();
+    expect(rowsIn(team)).toEqual(["1IOInes Okafor4 hugs", "1SESam ExampleYou4 hugs", "–OVOona Vasquez0 hugs"]);
+    expect(team.getByText("2 more teammates can still join in this week.")).toBeInTheDocument();
+  });
+
+  it("gives the member's place below the top, on the chosen measure", async () => {
+    visit(byLevel(hugBoardsFixtures.lively));
+    const team = await board("You in Lanterns");
+
+    expect(team.getByText("You're No. 2 of 3 in Lanterns on level this week.")).toBeInTheDocument();
+    expect(team.queryByText(/can still join in/)).not.toBeInTheDocument();
+  });
+
+  it("before the member joins in, their first hug puts them on the team's board, or at the top when nobody started", async () => {
+    visit(hugBoardsFixtures.quiet);
+    expect((await board("You in Lanterns")).getByText("Your first hug puts you on Lanterns's board.")).toBeInTheDocument();
+  });
+
+  it("when nobody in the team started, the first hug puts the member at the top", async () => {
+    visit(hugBoardsFixtures.empty);
+    expect((await board("You in Lanterns")).getByText("Nobody in Lanterns has started yet. Your first hug puts you at the top.")).toBeInTheDocument();
+  });
+
+  it("without a team there is no team board", async () => {
+    visit({ ...hugBoardsFixtures.lively, team: null });
+    await board("People");
+
+    expect(screen.queryByRole("region", { name: /^You in/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("HH79: rows are links", { timeout: 30_000 }, () => {
+  it("every person row opens their person page", async () => {
+    visit();
+    const people = await board("People");
+
+    expect(people.getByRole("link", { name: /Wren Alder/ })).toHaveAttribute("href", "/book#people/wren-alder");
   });
 });

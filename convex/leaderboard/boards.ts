@@ -51,6 +51,14 @@ export async function boardsOf(ctx: QueryCtx, reader: BoardReader, { period, tea
   };
 }
 
+export async function peopleIn(ctx: QueryCtx, reader: BoardReader, period: Period, day: DayKey): Promise<BoardPerson[]> {
+  return peopleOf(ctx, reader, await totalsIn(ctx, reader.workspace, keyOf(period, day)), await companyTeamsOf(ctx));
+}
+
+export async function boardPeopleOf(ctx: QueryCtx, reader: BoardReader, members: MemberId[]): Promise<BoardPerson[]> {
+  return peopleOf(ctx, reader, members.map(nothingCountedBy), await companyTeamsOf(ctx));
+}
+
 async function pinnedViewerOf(ctx: QueryCtx, viewer: BoardViewer, people: BoardPerson[], companyTeams: CompanyTeam[]): Promise<BoardPerson | null> {
   return people.find(({ viewer: isViewer }) => isViewer) ?? (await personOf(ctx, viewer, nothingCountedBy(viewer.member), companyTeams));
 }
