@@ -1,30 +1,30 @@
 import { useEffect, useRef } from "react";
 import type { Highlight, HugBoards, Tallies } from "../../../convex/website/leaderboard";
-import type { AlbumLevel, AlbumMe, HugBoardsShown } from "../album/answer";
+import type { AlbumLevel, AlbumMe } from "../album/answer";
 import { levelShareOf, plural, xpToNextOf } from "../album/facts";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { AnswerPage } from "../pages/AnswerPage";
 import { LoadingPage } from "../pages/LoadingPage";
 import "./leaderboard.css";
+import { isWaitingForTheWeeksBoards, type HugBoardsOfMeasure } from "./measures";
+import { PeopleBoard, TeamBoard, type MeasureChoice } from "./PeopleBoard";
 
-type ThisWeekAnswerProps = { shown: HugBoardsShown | undefined; me: AlbumMe; level: AlbumLevel; onViewed: () => void; onSignIn: () => void; onSignOut: () => void };
+type ThisWeekAnswerProps = { boards: HugBoardsOfMeasure; me: AlbumMe; level: AlbumLevel; onViewed: () => void; onSignIn: () => void; onSignOut: () => void };
+
+type ThisWeekProps = { boards: HugBoards; choice: MeasureChoice; me: AlbumMe; level: AlbumLevel; onViewed: () => void };
 
 type Words = { headline: string; detail: string };
 
 const tallyTerms: Record<keyof Tallies, string> = { hugsGiven: "hugs given", hugsReceived: "hugs received", kudosReceived: "kudos received", hoggiesFound: "hoggies found" };
 
-export function ThisWeekAnswerPage({ shown, me, level, onViewed, ...answers }: ThisWeekAnswerProps) {
+export function ThisWeekAnswerPage({ boards: { shown, measure, choose }, me, level, onViewed, ...answers }: ThisWeekAnswerProps) {
   if (isWaitingForTheWeeksBoards(shown)) return <LoadingPage shape="column" />;
   if (shown.kind !== "boards") return <AnswerPage answer={shown} {...answers} />;
-  return <ThisWeekPage boards={shown} me={me} level={level} onViewed={onViewed} />;
+  return <ThisWeekPage boards={shown} choice={{ chosen: measure, choose }} me={me} level={level} onViewed={onViewed} />;
 }
 
-export function isWaitingForTheWeeksBoards(shown: HugBoardsShown | undefined): shown is undefined | { kind: "off" } {
-  return shown === undefined || shown.kind === "off";
-}
-
-function ThisWeekPage({ boards, me, level, onViewed }: { boards: HugBoards; me: AlbumMe; level: AlbumLevel; onViewed: () => void }) {
+function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
   useViewedOnce(onViewed);
   return (
     <div className="al-page-body lb-week">
@@ -33,6 +33,14 @@ function ThisWeekPage({ boards, me, level, onViewed }: { boards: HugBoards; me: 
         Who's thanking who
       </PageTitle>
       <YouCard boards={boards} me={me} level={level} />
+      <div className="lb-grid">
+        <PeopleBoard boards={boards} choice={choice} />
+        {boards.team !== null && (
+          <div className="lb-side">
+            <TeamBoard team={boards.team} measure={boards.measure} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

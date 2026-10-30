@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex/server";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { HugMeasure } from "../../convex/website/leaderboard";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
@@ -50,7 +51,7 @@ function LiveApp() {
       useAppEmojis={(asking) => useLiveAppEmojis(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking, period) => useLiveThoughtfulBoards(asking, period, unreachable)}
-      useHugBoards={(asking) => useLiveHugBoards(asking, unreachable)}
+      useHugBoards={(asking, measure) => useLiveHugBoards(asking, measure, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
       useActivityWeek={(asking) => useLiveActivityWeek(asking, unreachable)}
@@ -80,8 +81,8 @@ function useLiveThoughtfulBoards(asking: boolean, period: BoardPeriod, unreachab
   return boards;
 }
 
-function useLiveHugBoards(asking: boolean, unreachable: boolean): HugBoardsShown | undefined {
-  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.leaderboard.getBoards, args: {} } } : {}), [asking]);
+function useLiveHugBoards(asking: boolean, measure: HugMeasure, unreachable: boolean): HugBoardsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.leaderboard.getBoards, args: { measure } } } : {}), [asking, measure]);
   const { boards } = useQueries(request);
   if (boards instanceof Error) return { kind: "broken" };
   if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;
