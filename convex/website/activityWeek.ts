@@ -29,7 +29,7 @@ export const thanksListed = 30;
 
 const dayMs = 24 * 60 * 60 * 1000;
 
-type HugBack = Extract<NextStep, { kind: "thanked" }>;
+export type HugBack = Extract<NextStep, { kind: "thanked" }>;
 
 type Today = { now: number; day: DayKey; timeZone: string | undefined; weekBegan: number };
 
@@ -40,6 +40,10 @@ type Thanked = { giver: MemberId; at: number; facts: ThanksFacts };
 export async function activityWeekOf(ctx: QueryCtx, me: VerifiedMember, now: number): Promise<ActivityWeek> {
   const today = await todayOf(ctx, me, now);
   return { kind: "week", next: await nextStepOf(ctx, me, today), thanked: await thankedThisWeek(ctx, me, today), lastWeek: await lastWeekOf(ctx, me, today), kudos: await loopLessonIn(ctx, me.workspace), slack: workspaceLink(me.workspace) };
+}
+
+export async function hugBackThisWeekOf(ctx: QueryCtx, me: VerifiedMember, now: number): Promise<HugBack | null> {
+  return newestHugBackOf(ctx, me, await todayOf(ctx, me, now));
 }
 
 async function todayOf(ctx: QueryCtx, me: VerifiedMember, now: number): Promise<Today> {
