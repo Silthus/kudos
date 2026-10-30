@@ -71,6 +71,7 @@ export type Album = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
+  bookNext?: true;
   leaderboardHugs?: true;
 };
 

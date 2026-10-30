@@ -65,3 +65,9 @@ export const personPageDFlag = { key: "person-page-d", safeDefault: false, value
 export function personPageDShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecisionWithoutWriting(ctx, personPageDFlag, member);
 }
+
+export const bookNextFlag = { key: "book-next", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function bookNextShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, bookNextFlag, member);
+}
