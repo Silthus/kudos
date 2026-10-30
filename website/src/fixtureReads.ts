@@ -43,6 +43,8 @@ const withTheWeeksLeaderboard = "album-leaderboard-hugs";
 
 const withAFreshWeeksLeaderboard = "album-leaderboard-hugs-fresh";
 
+const withAQuietWeeksLeaderboard = "album-leaderboard-hugs-quiet";
+
 const fixturePeople = fixedPeople(albumFixtures.midway);
 const fixtureWeek = fixtureWeeks();
 
@@ -52,15 +54,21 @@ const fixtureHoggies = fixedHoggies(hoggiesFixtures.midway);
 
 const fixtureLevelUp = fixedLevelUp(levelUpFixtures.levelFive);
 
+function hugBoardsOf(fixture?: string) {
+  if (fixture === withAFreshWeeksLeaderboard) return hugBoardsFixtures.empty;
+  if (fixture === withAQuietWeeksLeaderboard) return hugBoardsFixtures.quiet;
+  return hugBoardsFixtures.lively;
+}
+
 export function fixtureReadsFor(fixture?: string): AppReads {
   return {
     useSettings: fixture === "album-maintainer" || fixture === withTheEmojiWizard ? fixtureMaintainerSettings : fixtureSettings,
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
     useSlackEmojiMatches: fixtureSlackEmojiMatches,
     useAppEmojis: fixture === withTheEmojiWizard ? fixtureAppEmojis : (asking) => (asking ? { kind: "off" } : undefined),
-    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === withAnXpMoment ? fixedAlbum(xpMomentAlbum) : fixture === withPersonPageD ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true }) : fixture === withTheWeeksLeaderboard || fixture === withAFreshWeeksLeaderboard ? fixedAlbum({ ...albumFixtures.midway, leaderboardHugs: true }) : fixture === withQuests || fixture === withThisWeeksQuests ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true, gettingStarted: null }) : fixture?.startsWith(activityNextFixture) ? fixedAlbum({ ...albumFixtures.trayed, shareableUrls: true }) : fixtureAlbum,
+    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === withAnXpMoment ? fixedAlbum(xpMomentAlbum) : fixture === withPersonPageD ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true }) : fixture === withTheWeeksLeaderboard || fixture === withAFreshWeeksLeaderboard || fixture === withAQuietWeeksLeaderboard ? fixedAlbum({ ...albumFixtures.midway, leaderboardHugs: true }) : fixture === withQuests || fixture === withThisWeeksQuests ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true, gettingStarted: null }) : fixture?.startsWith(activityNextFixture) ? fixedAlbum({ ...albumFixtures.trayed, shareableUrls: true }) : fixtureAlbum,
     useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
-    useHugBoards: fixedHugBoards(measuredBy(fixture === withAFreshWeeksLeaderboard ? hugBoardsFixtures.empty : hugBoardsFixtures.lively)),
+    useHugBoards: fixedHugBoards(measuredBy(hugBoardsOf(fixture))),
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
     useActivityWeek: activityWeekOf(fixture),

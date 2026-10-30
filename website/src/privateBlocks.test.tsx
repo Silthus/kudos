@@ -12,6 +12,7 @@ import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/s
 const pages: { path: string; fixtures: string[] }[] = [
   ...["/", "/book#teams/paper-moons", "/book#teams/kettle-works", "/book#teams/quiet-harbour", "/book#people/ines-okafor", "/book#people/juno-park", "/book#me", "/book#hoggies", "/book#hoggies/asleep", "/book#milestones", "/book#packs", "/activity", "/leaderboard", "/settings"].map((path) => ({ path, fixtures: ["album"] })),
   { path: "/settings", fixtures: ["album-maintainer"] },
+  { path: "/leaderboard", fixtures: ["album-leaderboard-hugs", "album-leaderboard-hugs-quiet", "album-leaderboard-hugs-fresh"] },
 ];
 
 const slackHost = /(?:^|[/.@])(?:[a-z0-9-]+\.)*(?:slack\.com|slack-edge\.com|gravatar\.com)\b/i;
@@ -128,6 +129,14 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     await user.click(screen.getAllByRole("button", { name: /how to get them$/ })[0]!);
     expect(teamEmojiChipIn(screen.getByRole("dialog", { name: /isn't in your album yet$/ }))).toSatisfy(blocked);
     expect(exposedIn(container)).toEqual([]);
+  });
+
+  it.each(["album-leaderboard-hugs", "album-leaderboard-hugs-quiet"])("HH72, HH78: the Leaderboard for %s keeps the next step's teammate and the emojis within reach in blocks", async (fixture) => {
+    window.history.replaceState(null, "", "/leaderboard");
+    const { container } = render(<Root fixture={fixture} />);
+    await screen.findByRole("region", { name: "Emojis within your reach" }, { timeout: 10_000 });
+
+    expect(namesExposedIn(container, ["Wren", "Juno", "wren-alder-hype", "team-lanterns", "level-10"])).toEqual([]);
   });
 
   it("AL56: a locked team page keeps every missing teammate's name in blocks, on the photo and in their cards", async () => {

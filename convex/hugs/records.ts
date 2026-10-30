@@ -1,6 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { DayKey } from "../engine/allowance";
+import type { DayKey, Week } from "../engine/allowance";
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import { awardsOfMessage, decidedBelow, recipientsAfter, recipientsPageOf, type DecidedBelow } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
@@ -64,6 +64,17 @@ export async function hugsGivenOn(ctx: QueryCtx, giver: MemberId, day: DayKey, a
     .withIndex("by_giver_day", (q) => q.eq("giver", giver).eq("day", day))
     .take(atMost);
   return given.length;
+}
+
+export type HuggedPerson = { person: MemberId; at: number };
+
+export async function peopleHuggedIn(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week): Promise<HuggedPerson[]> {
+  const hugs = await ctx.db
+    .query("hugs")
+    .withIndex("by_giver_day", (q) => q.eq("giver", giver).gte("day", monday).lte("day", sunday))
+    .collect();
+  const hugged = await Promise.all(hugs.map(async (hug) => (await peopleOf(ctx, hug)).map((person) => ({ person, at: hug.at }))));
+  return hugged.flat();
 }
 
 export async function hasHuggedBefore(ctx: QueryCtx, giver: MemberId): Promise<boolean> {
