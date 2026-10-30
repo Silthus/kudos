@@ -50,7 +50,7 @@ const unnamedPerson = "A teammate";
 
 type Cause = { id: EarnedEmojiId; kind: EarnedEmojiKind; from: string; picture: string; earned: boolean; earnedAt: number | null; progress: EmojiProgress; byReactions?: true };
 
-type PackedPerson = { person: MemberId; firstPackAt: number; collected: boolean; byReactions: boolean };
+type PackedPerson = { person: MemberId; unlockedAt: number; collected: boolean };
 
 type EarnedCause = Pick<Cause, "id" | "picture">;
 
@@ -222,7 +222,7 @@ async function hypesEarnedBetween(ctx: QueryCtx, { workspace, member }: PageOwne
     if ((await isFirstPackFor(ctx, pack)) && !(await isCollectedBefore(ctx, member, pack.recipient, pack.at))) causes.push(await hypeCauseOf(ctx, workspace, pack.recipient));
   }
   for (const { person, at } of await peopleCollectedBy(ctx, member, mostPeoplePackedRead)) {
-    if (isWithin(instants, at) && !(await isPackedBefore(ctx, member, person, at))) causes.push(await hypeCauseOf(ctx, workspace, person));
+    if (isWithin(instants, at)) causes.push(await hypeCauseOf(ctx, workspace, person));
   }
   return causes;
 }
@@ -234,11 +234,6 @@ async function hypeCauseOf(ctx: QueryCtx, workspace: string, person: MemberId): 
 async function isCollectedBefore(ctx: QueryCtx, member: MemberId, person: MemberId, at: number): Promise<boolean> {
   const collected = await collectedBy(ctx, member, person);
   return collected !== null && collected.at < at;
-}
-
-async function isPackedBefore(ctx: QueryCtx, member: MemberId, person: MemberId, at: number): Promise<boolean> {
-  const first = await firstPackFor(ctx, member, person);
-  return first !== null && first.at <= at;
 }
 
 async function tiersReachedBetween(ctx: QueryCtx, member: MemberId, instants: Instants): Promise<EarnedCause[]> {
@@ -290,10 +285,10 @@ async function hypeCausesOf(ctx: QueryCtx, { workspace, member }: PageOwner, see
   const people = [...pickedPeople, ...unseenFirst(await peopleWithHypeOf(ctx, member, mostPeoplePackedRead), seen).filter((packed) => !isPicked(packed))];
   const causes: Cause[] = [];
   for (const packed of people.slice(0, mostHypeEmojisShown)) {
-    const { person, firstPackAt, byReactions } = packed;
+    const { person, unlockedAt, collected } = packed;
     const { name, picture } = await hypeFaceOf(ctx, workspace, person);
     const earned = !isHeldForItsItem(packed, seen, held);
-    causes.push({ id: `hype:${person}`, kind: "hype", from: name, picture, earned, earnedAt: earned ? firstPackAt : null, progress: { have: earned ? 1 : 0, need: 1 }, ...(byReactions && { byReactions: true as const }) });
+    causes.push({ id: `hype:${person}`, kind: "hype", from: name, picture, earned, earnedAt: earned ? unlockedAt : null, progress: { have: earned ? 1 : 0, need: 1 }, ...(collected && { byReactions: true as const }) });
   }
   return { causes, more: people.length > mostHypeEmojisShown };
 }
@@ -314,10 +309,7 @@ async function hypeEarnedByKudos(ctx: QueryCtx, member: MemberId, person: Member
 
 async function peopleWithHypeOf(ctx: QueryCtx, member: MemberId, most: number): Promise<PackedPerson[]> {
   const people = new Map((await peoplePackedBy(ctx, member, most)).map((packed) => [packed.person, packed]));
-  for (const { person, at } of await peopleCollectedBy(ctx, member, most)) {
-    const packed = people.get(person);
-    people.set(person, { person, firstPackAt: Math.min(at, packed?.firstPackAt ?? at), collected: true, byReactions: packed === undefined || at < packed.firstPackAt });
-  }
+  for (const { person, at } of await peopleCollectedBy(ctx, member, most)) people.set(person, { person, unlockedAt: at, collected: true });
   return [...people.values()];
 }
 
@@ -338,15 +330,14 @@ async function pickedPeoplePackedBy(ctx: QueryCtx, giver: MemberId, picked: stri
 }
 
 async function personWithHypeOf(ctx: QueryCtx, giver: MemberId, person: MemberId): Promise<PackedPerson | null> {
-  const pack = await firstPackFor(ctx, giver, person);
   const collected = await collectedBy(ctx, giver, person);
-  if (collected !== null) return { person, firstPackAt: Math.min(collected.at, pack?.at ?? collected.at), collected: true, byReactions: pack === null || collected.at < pack.at };
-  return pack === null ? null : { person, firstPackAt: pack.at, collected: false, byReactions: false };
+  if (collected !== null) return { person, unlockedAt: collected.at, collected: true };
+  const pack = await firstPackFor(ctx, giver, person);
+  return pack === null ? null : { person, unlockedAt: pack.at, collected: false };
 }
 
 export async function hypeUnlockedByReactions(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
-  const collected = await collectedBy(ctx, member, person);
-  return collected !== null && !(await isPackedBefore(ctx, member, person, collected.at));
+  return (await collectedBy(ctx, member, person)) !== null;
 }
 
 async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Promise<PackedPerson[]> {
@@ -358,7 +349,7 @@ async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Pro
       .withIndex("by_giver_recipient_week", (q) => (last === null ? q.eq("giver", giver) : q.eq("giver", giver).gt("recipient", last)))
       .first();
     if (pack === null) break;
-    people.push({ person: pack.recipient, firstPackAt: pack.at, collected: false, byReactions: false });
+    people.push({ person: pack.recipient, unlockedAt: pack.at, collected: false });
     after = pack.recipient;
   }
   return people;

@@ -164,6 +164,21 @@ describe("a teammate's hype emoji is collected by reactions on 10 of their messa
     expect((await personPageOf(bruno, carol)).hype).toMatchObject({ earned: true, byReactions: true });
   });
 
+  test("a kudos whose pack still waits face down leaves the hype emoji locked, so reactions that collect it are the way, dated when they collected", async () => {
+    await switchWebsite(t, postHog, true, ...hypeByReactionsOn, "hidden-items");
+    await thanks(bruno, carol);
+    const packedAt = Date.now();
+
+    expect((await personPageOf(bruno, carol)).hype, "the hype emoji while its pack waits face down").toMatchObject({ earned: false });
+
+    await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
+
+    expect((await personPageOf(bruno, carol)).hype, "the person page once the reactions collected it").toMatchObject({ earned: true, byReactions: true });
+    const inTheBook = await hypeEmojiInTheBookOf(bruno, carol);
+    expect(inTheBook, "the Book's hype emoji once the reactions collected it").toMatchObject({ earned: true, byReactions: true });
+    expect(inTheBook?.earnedAt, "the Book's earning date").toBeGreaterThan(packedAt);
+  });
+
   test("the Book's emojis name the reactions as where the hype emoji came from", async () => {
     await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
 
