@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../../testing/fakePostHog";
 import { FakeSlack } from "../../../testing/fakeSlack";
-import { memberChanged, post, settle, testBackend, type Backend } from "../../../testing/slackBackend";
+import { kudosReceived, memberChanged, post, settle, testBackend, type Backend } from "../../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../../testing/website";
-import { api } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { AlbumAnswer, AlbumRead, TurnAnswer } from "../../website/album";
 import type { Denial } from "../../website/memberQuery";
@@ -87,6 +87,20 @@ describe("LP14 LP19a: each milestone tier unlocks once, in the turn that brings 
     expect(emojiOf(after, firstThankYou)).toMatchObject({ earned: true, seen: true });
   });
 
+  test("a thoughtful tier reached in Slack gives no kudos with its emoji until the giver's next turn unlocks it", async () => {
+    await t.mutation(internal.album.emojiNames.reserveSharedEmojiNames, { workspace: "T1" });
+    await thanks(alice, bob);
+    const asAlice = await signedIn(alice);
+
+    await thanksWith("first-thank-you", alice, bob);
+    const whileHeld = await kudosReceived(t, bob.user);
+    await turnTheItem(asAlice, "hoggie");
+    await thanksWith("first-thank-you", alice, bob);
+
+    expect(whileHeld, "kudos with First thank-you while the tier waits for its turn").toBe(1);
+    expect(await kudosReceived(t, bob.user), "kudos with First thank-you after the turn").toBe(2);
+  });
+
   test("with hidden-items off a thoughtful tier reads earned at the thanks with its emoji unseen, as today", async () => {
     await switchWebsite(t, postHog, true, ...albumOpen);
     const thanked = await thanks(alice, bob);
@@ -103,12 +117,16 @@ function person(first: string, last: string): Person {
   return { user: `U_${first}_${last}`.toUpperCase(), name: `${first} ${last}` };
 }
 
-async function thanks(giver: Person, ...recipients: Person[]) {
+function thanks(giver: Person, ...recipients: Person[]) {
+  return thanksWith("taco", giver, ...recipients);
+}
+
+async function thanksWith(kudosEmoji: string, giver: Person, ...recipients: Person[]) {
   messages += 1;
   vi.setSystemTime(Date.now() + minuteMs);
   const at = Date.now();
   const ts = `${at / 1000}.${String(messages).padStart(6, "0")}`;
-  await post(t, [section(text(`${why} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
+  await post(t, [section(text(`${why} `), ...recipients.map(({ user }) => mention(user)), emoji(kudosEmoji))], { user: giver.user, ts });
   await settle(t);
   return at;
 }
