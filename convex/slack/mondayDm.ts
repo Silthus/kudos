@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MondayDm, MondayQuests } from "../mondayDm/mondayDm";
 import type { MondayDmContent } from "../mondayDm/records";
 import type { HugsSection } from "../hugs/recap";
-import { buttonOf, mrkdwn, urlButtonOf } from "./blocks";
+import { buttonOf, escaped, mrkdwn, urlButtonOf } from "./blocks";
 import { checklistBlockOf } from "./checklist";
 import { attemptArgs, attemptCall, isRateLimited, retryAfter, sendOnce, tryAtMostThreeTimes, type Attempt } from "./delivery";
 import { emojiLineBlockOf, footerOf, lineTextOf, postRecap } from "./hugsRecap";
@@ -79,7 +79,7 @@ function blocksOf({ dm, workspace, hugs, nudge, footer }: Omit<MondayDm, "user">
     ...(hugs === null ? [] : hugsBlocksOf(hugs)),
     { type: "section", text: mrkdwn(quests.heading) },
     checklistBlockOf(quests.checklist),
-    ...(nudge === null ? [] : [{ type: "section", text: mrkdwn(nudge) }]),
+    ...(nudge === null ? [] : [{ type: "section", text: mrkdwn(escaped(nudge)) }]),
     { type: "actions", elements: buttonsOf(dm, quests) },
     ...footerBlocksOf(workspace, footer),
   ];

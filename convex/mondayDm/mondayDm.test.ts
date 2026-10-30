@@ -219,6 +219,19 @@ describe("HH58 HH59 HH60: while hype-nudge is on, the Monday DM names one teamma
     expect(hypeNudgeExposures(), "one exposure, for Alice alone, since Bob's DM names nobody").toEqual([true]);
   });
 
+  test("a teammate whose Slack name carries markup is named as plain text", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "hype-nudge");
+    await thanks(alice, saysWhy, bob);
+    await thanks(bob, saysWhy, carol);
+    await hypeReaction(alice, carol, carolsHype);
+    await memberChanged(t, "user_change", { id: carol.user, team_id: "T1", profile: { real_name: "<https://example.org|Carol>" } });
+
+    await mondayArrives();
+
+    const [dm] = dmsTo(alice).map(seen);
+    expect(dm?.filter((line) => line.includes("a kudos to collect"))).toEqual([`section: Give &lt;https://example.org|Carol&gt; a kudos to collect :${carolsHype}:.`]);
+  });
+
   test("with hype-nudge off, the same member's DM carries no nudge and dm sent names only its sections", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
