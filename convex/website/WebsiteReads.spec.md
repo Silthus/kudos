@@ -59,6 +59,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: getAlbumWeek in convex/website/album.ts
   trust: browser
 
+- query getActivityWeek: a browser asks for the signed-in member's own Activity week while activity-next and hugs are on, its next step first, with no arguments
+  handler: getActivityWeek in convex/website/activity.ts
+  trust: browser
+
 - query getAlbumProfile: a browser asks for the kind note and the newest people of the signed-in member's own profile page, with no arguments
   handler: getAlbumProfile in convex/website/album.ts
   trust: browser
@@ -285,7 +289,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   via: website reads pass one guard
   because: the shell is public and a JWT outlives sign-out and membership, so every read must recheck the live session, the workspace, the directory and the flag, or a closed site, a signed-out browser or a former member would read a member's kudos; the flag comes last because a member's own decision can open the site while the workspace decision keeps it closed, and anyone the directory doesn't know gets the workspace decision (WS3, WS9, WS11, WS14, F19, F27)
   crossing: browser -> domain
-  entrances: query getMyProfile, query getMyFace, query getLeaderboard, query getGroupBoards, query getQuests, query getSkillTree, query getBook, query getCollection, query getAlbum, query getAlbumHoggies, query getAlbumPerson, query getAlbumWeek, query getAlbumProfile, query getThoughtfulBoards, query getProfileCard, query getActivity, query getRecentKudos, query getSpotlight, query getSettings, query getBrowserAnalytics, query getEmojiMappings, query getXpMoment
+  entrances: query getMyProfile, query getMyFace, query getLeaderboard, query getGroupBoards, query getQuests, query getSkillTree, query getBook, query getCollection, query getAlbum, query getAlbumHoggies, query getAlbumPerson, query getAlbumWeek, query getActivityWeek, query getAlbumProfile, query getThoughtfulBoards, query getProfileCard, query getActivity, query getRecentKudos, query getSpotlight, query getSettings, query getBrowserAnalytics, query getEmojiMappings, query getXpMoment
   refuted: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID -> the leftover session after SLACK_WORKSPACE_ID changes read member instead of signed-out (2026-10-13)
   kinds: read, identity
   checklist: scoped-reads declared as website reads pass one guard

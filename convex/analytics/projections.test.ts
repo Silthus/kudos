@@ -363,4 +363,8 @@ describe("MQ34: the DM and quests usage facts", () => {
   test.each(["panel", "profile"] as const)("quests viewed on the %s carries its surface", (surface) => {
     expect(projectUsage({ kind: "questsViewed", workspace: "T1", member: bob, surface, at })).toEqual({ event: "quests viewed", subject: { member: bob }, at, properties: { surface } });
   });
+
+  test.each(["thanked", "empty", "quiet"] as const)("activity viewed in the %s state carries it (HH91)", (state) => {
+    expect(projectUsage({ kind: "activityViewed", workspace: "T1", member: bob, state, at })).toEqual({ event: "activity viewed", subject: { member: bob }, at, properties: { state } });
+  });
 });
