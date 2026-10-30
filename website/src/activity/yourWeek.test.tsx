@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ActivityState } from "../../../convex/website/activity";
 import { albumFixtures, fixedAlbum } from "../album/albumFixtures";
@@ -14,9 +14,9 @@ beforeEach(() => {
   preferWideScreen();
 });
 
-function visit(activity: ActivityWeekRead, viewActivity: (state: ActivityState) => void = () => {}) {
+function visit(activity: ActivityWeekRead, viewActivity: (state: ActivityState) => void = () => {}, album = albumFixtures.midway) {
   window.history.replaceState(null, "", "/activity");
-  return renderAlbum(shellFixtures.member, fixedAlbum(albumFixtures.midway), { activity, weeks: fixtureWeeks(), commands: { viewActivity } });
+  return renderAlbum(shellFixtures.member, fixedAlbum(album), { activity, weeks: fixtureWeeks(), commands: { viewActivity } });
 }
 
 async function nextStep() {
@@ -95,6 +95,17 @@ describe("HH91: the page records activity viewed once it shows", { timeout: 30_0
     await nextStep();
 
     expect(viewed).toEqual([state]);
+  });
+
+  it("records nothing while the item board covers the page, and one view once it is put away", async () => {
+    const viewed: ActivityState[] = [];
+    const { user } = visit(fixedActivityWeek(activityWeekFixtures.thanked), (shown) => viewed.push(shown), albumFixtures.withItems);
+    const board = within(await screen.findByRole("dialog", { name: "Your items" }, { timeout: 10_000 }));
+
+    expect(viewed).toEqual([]);
+    await user.click(board.getByRole("button", { name: "Later" }));
+
+    await waitFor(() => expect(viewed).toEqual(["thanked"]));
   });
 
   it("records nothing while the page shows the weekly edition", async () => {

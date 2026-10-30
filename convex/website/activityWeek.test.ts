@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api } from "../_generated/api";
@@ -109,6 +109,35 @@ describe("HH61 HH63: getActivityWeek answers one next step", { timeout: 60_000 }
     await switchWebsite(t, postHog, true, ...activityNext);
     await thanks(fen, "the demo was brilliant", alice);
     later(24 * hourMs);
+
+    expect(await nextStepOf(alice)).toEqual({ kind: "empty" });
+  });
+
+  test("a kudos whose giver has left can't be hugged back, so the one before it is offered", async () => {
+    await switchWebsite(t, postHog, true, ...activityNext);
+    await thanks(juno, "thanks for the docs", alice);
+    await thanks(fen, "the demo was brilliant", alice);
+    await memberChanged(t, "user_change", { id: fen.user, deleted: true });
+
+    expect(await nextStepOf(alice)).toMatchObject({ kind: "thanked", giver: { name: juno.name } });
+  });
+
+  test("the newest kudos of the member's own week comes first, whatever day it was where its giver sits", async () => {
+    slack.withMember(juno.user, { real_name: juno.name, tz: "Pacific/Kiritimati" }).withMember(fen.user, { real_name: fen.name, tz: "America/Los_Angeles" });
+    vi.setSystemTime(new Date("2026-10-18T23:00:00Z"));
+    await switchWebsite(t, postHog, true, ...activityNext);
+    await thanks(juno, "thanks for the docs", alice);
+    vi.setSystemTime(new Date("2026-10-19T00:30:00Z"));
+    const newest = await thanks(fen, "the demo was brilliant", alice);
+
+    expect(await nextStepOf(alice)).toMatchObject({ kind: "thanked", giver: { name: fen.name }, permalink: permalinkOf(newest) });
+  });
+
+  test("a kudos from before the member's week began isn't offered, though it is still under 24 hours old", async () => {
+    vi.setSystemTime(new Date("2026-10-18T23:00:00Z"));
+    await switchWebsite(t, postHog, true, ...activityNext);
+    await thanks(fen, "the demo was brilliant", alice);
+    vi.setSystemTime(new Date("2026-10-19T00:30:00Z"));
 
     expect(await nextStepOf(alice)).toEqual({ kind: "empty" });
   });

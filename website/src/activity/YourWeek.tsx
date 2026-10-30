@@ -3,10 +3,10 @@ import type { ActivityState, ActivityWeek, NextStep } from "../../../convex/webs
 import { PageTitle } from "../PageTitle";
 import { NextStepCard } from "./NextStepCard";
 
-type YourWeekPageProps = { week: ActivityWeek; onViewed: (state: ActivityState) => void };
+type YourWeekPageProps = { week: ActivityWeek; inSight: boolean; onViewed: (state: ActivityState) => void };
 
-export function YourWeekPage({ week, onViewed }: YourWeekPageProps) {
-  useViewedOnceShown(week.next.kind, onViewed);
+export function YourWeekPage({ week, inSight, onViewed }: YourWeekPageProps) {
+  useViewedOnceInSight(week.next.kind, inSight, onViewed);
   return (
     <div className="al-page-body al-your-week">
       <p className="al-eyebrow">Activity</p>
@@ -18,13 +18,13 @@ export function YourWeekPage({ week, onViewed }: YourWeekPageProps) {
   );
 }
 
-function useViewedOnceShown(state: NextStep["kind"], onViewed: (state: ActivityState) => void) {
+function useViewedOnceInSight(state: NextStep["kind"], inSight: boolean, onViewed: (state: ActivityState) => void) {
   const viewed = useRef(false);
   const latest = useRef({ state, onViewed });
   latest.current = { state, onViewed };
   useEffect(() => {
-    if (viewed.current) return;
+    if (viewed.current || !inSight) return;
     viewed.current = true;
     latest.current.onViewed(latest.current.state);
-  }, []);
+  }, [inSight]);
 }
