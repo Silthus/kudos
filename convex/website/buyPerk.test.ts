@@ -239,6 +239,7 @@ describe("a website command never launches unlocks", () => {
     await flagsOn(...treeFlags);
     const { asSignedIn } = await signedInMember();
     const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
 
     expect(await buyPerk(asSignedIn)).toEqual({ kind: "refused", reason: null });
     expect(await everythingWritten()).toEqual(before);
