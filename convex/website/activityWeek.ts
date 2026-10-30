@@ -3,11 +3,11 @@ import type { Message } from "../activity/entries";
 import { kudosWordsOf, kudosWordsStillInSlack, mentionsOfOnePage, permalinkOfMessage, type Mentions } from "../activity/kudos";
 import { loopLessonIn, type LoopLesson } from "../album/items/welcome";
 import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowance";
-import { authorOfGiven, awardsReceivedByDecision, fromTheNewestDecided, newestReceivedBy, type NewestReceived } from "../engine/awards";
+import { authorOfGiven, awardsReceivedNewestFirst, fromTheNewest, newestReceivedBy, type NewestReceived } from "../engine/awards";
 import { takenBackInSlack } from "../engine/kudosText";
 import { hugRewardsShownTo } from "../hugs/flag";
 import { hugsLeftOf } from "../hugs/hugs";
-import { hasHuggedBefore, hugOf, hugsReceivedByDecision, type ReceivedHugs } from "../hugs/records";
+import { hasHuggedBefore, hugOf, newestHugsReceivedSince, type ReceivedHugs } from "../hugs/records";
 import { firstCountedWeekOf, totalsOf } from "../leaderboard/counts";
 import { keyOf } from "../leaderboard/periods";
 import { workspaceLink } from "../slack/workspaceLink";
@@ -89,11 +89,9 @@ async function thankedThisWeek(ctx: QueryCtx, me: VerifiedMember, today: Today):
 
 async function hugsThisWeek(ctx: QueryCtx, me: VerifiedMember, { weekBegan }: Today, mentions: Mentions): Promise<Thanked[]> {
   const thanked: Thanked[] = [];
-  let messages = 0;
-  for await (const received of hugsReceivedByDecision(ctx, me.member, { ...fromTheNewestDecided, above: weekBegan }, undefined)) {
+  for (const received of await newestHugsReceivedSince(ctx, me.member, weekBegan, thanksListed)) {
     const facts = await hugFactsOf(ctx, me, mentions, received);
     for (const { giver, at } of received.givers) if (at >= weekBegan) thanked.push({ giver, at, facts });
-    if (++messages === thanksListed) break;
   }
   return thanked;
 }
@@ -106,9 +104,9 @@ async function hugFactsOf(ctx: QueryCtx, me: VerifiedMember, mentions: Mentions,
 
 async function kudosThisWeek(ctx: QueryCtx, me: VerifiedMember, { weekBegan }: Today, mentions: Mentions): Promise<Thanked[]> {
   const thanked: Thanked[] = [];
-  for await (const { giver, at, message } of awardsReceivedByDecision(ctx, me.member, { ...fromTheNewestDecided, above: weekBegan })) {
-    if (at >= weekBegan) thanked.push({ giver, at, facts: { way: "gave-you-a-kudos", words: await kudosWordsStillInSlack(ctx, mentions, message) } });
-    if (thanked.length === thanksListed) break;
+  for await (const { giver, at, message } of awardsReceivedNewestFirst(ctx, me.member, fromTheNewest)) {
+    if (at < weekBegan || thanked.length === thanksListed) break;
+    thanked.push({ giver, at, facts: { way: "gave-you-a-kudos", words: await kudosWordsStillInSlack(ctx, mentions, message) } });
   }
   return thanked;
 }

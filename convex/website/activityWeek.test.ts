@@ -8,6 +8,7 @@ import { api } from "../_generated/api";
 import type { Message } from "../activity/entries";
 import type { MemberId } from "../workspace/directory";
 import type { LastWeek, MyActivityWeek, NextStep, Thanks } from "./activity";
+import { thanksListed } from "./activityWeek";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
@@ -215,6 +216,16 @@ describe("HH66: getActivityWeek lists who thanked the member this week", { timeo
     expect(seen(await thanksOf(alice))).toEqual([`Juno Park hugged-your-message ${permalinkOf(message)}`, `Fen Marlowe hugged-your-message ${permalinkOf(message)}`]);
   });
 
+  test("the newest thanks of the week come first even when older ones reached HedgeHug after them", async () => {
+    await switchWebsite(t, postHog, true, ...activityNext);
+    await thanks(fen, "the demo was brilliant", alice);
+    for (let older = 0; older < thanksListed; older += 1) await thanksAt(juno, `thanks for review ${older}`, earlierThisWeek(older), alice);
+
+    const listed = await thanksOf(alice);
+    expect(listed).toHaveLength(thanksListed);
+    expect(seen(listed.slice(0, 1))).toEqual(["Fen Marlowe gave-you-a-kudos: the demo was brilliant"]);
+  });
+
   test("thanks from before the member's week began aren't listed", async () => {
     vi.setSystemTime(new Date("2026-10-18T22:00:00Z"));
     await switchWebsite(t, postHog, true, ...activityNext);
@@ -365,9 +376,18 @@ function permalinkOf(ts: string) {
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
   const ts = nextTs();
+  await thanksAt(giver, words, ts, ...recipients);
+  return ts;
+}
+
+async function thanksAt(giver: Person, words: string, ts: string, ...recipients: Person[]) {
   await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
   await settle(t);
-  return ts;
+}
+
+function earlierThisWeek(index: number) {
+  messages += 1;
+  return `${Date.parse("2026-10-12T08:00:00Z") / 1000 + index * 60}.${String(messages).padStart(6, "0")}`;
 }
 
 async function aMessageBy() {
