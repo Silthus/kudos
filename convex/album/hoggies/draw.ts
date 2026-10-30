@@ -11,6 +11,10 @@ export type PackDrawInput = { secret: string; member: string; crate: CrateKey };
 
 export type PackBonus = { xp: number; coins: number };
 
+export type HugFindInput = { secret: string; member: string; hug: string };
+
+const hugFindChance = 0.2;
+
 export async function drawOf({ secret, member, crate, version, floor = "common", cap = "legendary", weights, owned = new Set() }: DrawInput): Promise<Drawn> {
   const digest = await digestOf(`${secret}:${member}:${crate}:${version}`);
   const pools = poolsBetween(floor, cap, weights);
@@ -33,6 +37,10 @@ export async function packBonusOf({ secret, member, crate }: PackDrawInput): Pro
   const digest = await digestOf(`${secret}:${member}:${crate}:pack:${version}`);
   const xpSteps = (xp.most - xp.least) / xp.step + 1;
   return { xp: xp.least + xp.step * pickAt(digest, 0, xpSteps), coins: coins.least + pickAt(digest, 4, coins.most - coins.least + 1) };
+}
+
+export async function findsOnHug({ secret, member, hug }: HugFindInput): Promise<boolean> {
+  return fractionAt(await digestOf(`${secret}:${member}:hug-find:${hug}`), 0) < hugFindChance;
 }
 
 async function digestOf(input: string) {

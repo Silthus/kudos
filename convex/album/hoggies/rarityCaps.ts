@@ -42,6 +42,8 @@ export const featureOpeningRarities: SourceRarities = { today: {}, capped: cappe
 
 export const boughtCrateRarities: SourceRarities = { today: {}, capped: cappedAtRare };
 
+export const hugFindRarities: RarityRange = cappedAtRare;
+
 const forgedUpTo = { today: "legendary", capped: "rare" } as const satisfies { today: Rarity; capped: Rarity };
 
 export async function highestForgedFor(ctx: QueryCtx, member: MemberId): Promise<Rarity> {
