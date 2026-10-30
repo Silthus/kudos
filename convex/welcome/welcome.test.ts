@@ -4,7 +4,7 @@ import { FakeSlack, landsButTimesOut, networkFailure, rateLimitedFor, slackError
 import { flagsFromPostHog, flagsOnForEveryone, onForEveryone } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
-import { deliverAgain, post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
+import { convexStops, deliverAgain, post, react, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aSignedInSession } from "../../testing/website";
 import { internal } from "../_generated/api";
@@ -26,6 +26,7 @@ const dan = { user: "U_DAN", name: "Dan Halvorsen" };
 const quests = `${siteUrl}/book?src=welcome#me/quests`;
 const book = `${siteUrl}/book?src=welcome`;
 const oneWaits = "An unidentified Hoggie for your collection is waiting for you.";
+const welcomeItemFollower = "album/items/welcome:earnWelcomeItemOnGreeting";
 const firstThanksUpNext = "section: *Up next: give a kudos to someone.*\nMention them in a message and add :taco:.";
 
 type Person = { user: string; name: string };
@@ -399,27 +400,32 @@ describe("MQ17: a welcome earns the welcome item, starts the quests and schedule
     expect(readWelcome(welcome).at(-1)).toBe("actions: [See your quests]");
   });
 
-  test("the welcome counts the welcome item it owes as waiting before Album earns it, and once after", async () => {
+  test("a welcome sent before Album earns the welcome item it owes counts it as waiting, and Album earns it once after", async () => {
     t = await workspace(mondayPath);
-    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member" }));
-    const waitingAtTheWelcome = async () => (await t.query(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: "T1", member, cause: { path: "thoughtful-given" }, journey: [], owesTheWelcomeItem: true })).waiting;
 
-    const beforeTheEarn = await waitingAtTheWelcome();
-    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, owesTheWelcomeItem: true, at: Date.now() } });
+    await hugWhileAlbumWaits(bob, alice);
+    const [welcome] = welcomesTo(bob);
+    await deliverAgain(t, welcomeItemFollower);
 
-    expect(beforeTheEarn, "waiting before Album earns the welcome item").toBe(1);
-    expect(await waitingAtTheWelcome(), "waiting once Album earned it").toBe(1);
+    expect(noteTo(bob)).toContain(oneWaits);
+    expect(readWelcome(welcome).at(-1)).toBe("actions: [Identify it now] | See your quests");
+    expect(await welcomeItemsOf(bob)).toEqual([{ source: "hoggie", key: "welcome:first", floor: "rare", reason: { kind: "welcome" } }]);
   });
 
-  test("a welcome that owed no welcome item counts none, even once welcome-item reads on", async () => {
-    t = await workspace(mondayPath);
-    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member" }));
-    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, owesTheWelcomeItem: false, at: Date.now() } });
+  test("a welcome that owed no welcome item shows none waiting, even when welcome-item turns on before its held DM goes out", async () => {
+    t = await workspace(mondayPath.filter((flag) => flag !== "welcome-item"));
+    slack.answeringIn("chat.postMessage", bob.user, rateLimitedFor(30));
+    await react(t, { user: bob.user, itemUser: alice.user, ts: messageAgo(hourMs) });
+    await settleUpTo(t, Date.now() + 10_000);
 
-    const { waiting } = await t.query(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: "T1", member, cause: { path: "thoughtful-given" }, journey: [], owesTheWelcomeItem: false });
+    await flagsFromPostHog(t, postHog, ...mondayPath.map(onForEveryone));
+    await settleUpTo(t, Date.now() + hourMs);
 
-    expect(waiting, "waiting after a greeting that owed nothing").toBe(0);
-    expect(await welcomeItemsOf(bob), "the welcome items Bob holds").toEqual([]);
+    const welcomes = welcomesTo(bob);
+    expect(welcomes, "the try the rate limit held, then the one that went out").toHaveLength(2);
+    expect(readWelcome(welcomes.at(-1))[0]).not.toContain("waiting for you");
+    expect(readWelcome(welcomes.at(-1)).at(-1)).toBe("actions: [See your quests]");
+    expect(await welcomeItemsOf(bob)).toEqual([]);
   });
 
   test("the hug welcome starts Bob's quests", async () => {
@@ -505,6 +511,16 @@ async function workspace(flags: string[]) {
 async function hug(giver: Person, author: Person, { ts = messageAgo(hourMs) } = {}) {
   await react(t, { user: giver.user, itemUser: author.user, ts });
   await settle(t);
+}
+
+async function hugWhileAlbumWaits(giver: Person, author: Person) {
+  await react(t, { user: giver.user, itemUser: author.user, ts: messageAgo(hourMs) });
+  for (let fired = 0; fired < 10_000; fired += 1) {
+    await t.finishInProgressScheduledFunctions();
+    await convexStops(t, welcomeItemFollower);
+    if (vi.getTimerCount() === 0) return;
+    vi.advanceTimersToNextTimer();
+  }
 }
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
