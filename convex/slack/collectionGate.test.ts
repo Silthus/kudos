@@ -16,8 +16,8 @@ import type { Feature } from "../unlocks/feature";
 
 const theCollection = vi.hoisted(() => ({ removed: false }));
 
-vi.mock("../hoggies/flag", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/flag")>();
+vi.mock("../album/hoggies/flag", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/flag")>();
   return {
     ...actual,
     hoggiesShownTo: vi.fn((...args: Parameters<typeof actual.hoggiesShownTo>) => (theCollection.removed ? Promise.resolve(false) : actual.hoggiesShownTo(...args))),
@@ -281,7 +281,7 @@ function orderFree<T>(rows: T[]): T[] {
 }
 
 const convexTestId = /^\d+[a-zA-Z]+$/;
-const keyedId = /^([a-z]+):(\d+[a-zA-Z]+)$/;
+const keyedId = /^([a-z-]+):(\d+[a-zA-Z]+)$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const positioned = new Set(["cursor", "seen", "eventId", "position"]);
 const activityPosition = /^\d+(\.\d+)?_\d_[\d.]+$/;

@@ -2,7 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
-import { levelUpRevealedTo } from "../album/levelUp";
+import { levelUpFollowerAwaitedUntil, levelUpRevealedTo } from "../album/levelUp";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { recordedRewardsOf, tierRewardsRecordedFor, type TierRewardsRecorded } from "../achievements/tierRewards";
 import { laddersShownTo } from "../achievements/shown";
@@ -28,6 +28,7 @@ import { storeShownTo, storeVisibleTo } from "../store/visibility";
 import { namedFor, readyFromTheStart, scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOriginFor } from "../website/link";
+import { websiteAt, type Website } from "../website/visitSource";
 import { coinsApplyTo, coinsVisibleTo } from "../wallet/visibility";
 import { isCoinPerk, perkOf } from "../progression/tree";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
@@ -124,13 +125,18 @@ export const linesStillWanted = internalQuery({
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsOnFor(ctx, member)) || !(await wantsNotification(ctx, member, notification))) return null;
     const told = await stillToldOf(ctx, workspace, member, notification);
-    const website = await websiteOriginFor(ctx, workspace, member);
+    const website = websiteAt(await websiteOriginFor(ctx, workspace, member), "reply");
     const lines = told === null ? [] : renderNotification(told, await deliveryFactsOf(ctx, workspace, member, told, website));
     if (lines.length === 0) return null;
     const link = deepLinkFrom(website, await linkedPageOf(ctx, member, notification));
     const footer = await settingsFooterFor(ctx, member);
     return [...lines, ...(link === null ? [] : [{ link }]), ...(footer === null ? [] : [{ footer }])];
   },
+});
+
+export const followersAwaitedUntil = internalQuery({
+  args: { member: v.id("members"), notification: notificationValidator },
+  handler: async (ctx, { member, notification }): Promise<number | null> => (notification.kind === "level-reached" ? await levelUpFollowerAwaitedUntil(ctx, member, notification.level) : null),
 });
 
 export const purchaseReplyStillWanted = internalQuery({
@@ -148,7 +154,7 @@ async function linkedPageOf(ctx: QueryCtx, member: MemberId, notification: Notif
   return linkedPages[notification.kind];
 }
 
-type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null; waiting: ReadonlySet<string>; thisWeek: WeekKey };
+type DeliveryFacts = { website: Website | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null; waiting: ReadonlySet<string>; thisWeek: WeekKey };
 
 function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith, waiting, thisWeek }: DeliveryFacts): NotificationLine[] {
   const waits = (quest: Quest) => waiting.has(rewardKeyOf(quest));
@@ -175,7 +181,7 @@ function skillPointsTold(level: number, skillPoints: number | null, openTree: Me
   return skillPoints !== null && level >= skillTreeLevel ? ` You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : "";
 }
 
-function perkOffersOf(openTree: MemberPerks | null, website: string | null): NotificationLine[] {
+function perkOffersOf(openTree: MemberPerks | null, website: Website | null): NotificationLine[] {
   return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map((perk) => perkOfferOf(perk, website));
 }
 
@@ -217,7 +223,7 @@ async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: Membe
 
 type QuestNotification = Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }>;
 
-async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification, website: string | null): Promise<DeliveryFacts> {
+async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification, website: Website | null): Promise<DeliveryFacts> {
   return {
     website,
     openTree: await openTreeOf(ctx, workspace, member, told),

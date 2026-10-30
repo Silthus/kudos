@@ -7,15 +7,15 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, publishedHome, publishedHomeBlocks, staleButtonOf } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import { catalogue, hoggieNamed, type Rarity } from "../hoggies/catalogue";
-import { drawOf } from "../hoggies/draw";
+import { catalogue, hoggieNamed, type Rarity } from "../album/hoggies/catalogue";
+import { drawOf } from "../album/hoggies/draw";
 import type { Feature } from "../unlocks/feature";
 
 const planned = vi.hoisted(() => new Map<string, string>());
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
-  const { hoggieNamed } = await import("../hoggies/catalogue");
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
+  const { hoggieNamed } = await import("../album/hoggies/catalogue");
   return {
     ...actual,
     drawOf: vi.fn(async (input: Parameters<typeof actual.drawOf>[0]) => {
@@ -118,15 +118,15 @@ describe("CL16: App Home names the hoggies found while collection is on and the 
       "section: You have *9* kudos left today. You get *10* more at midnight.",
       "section: Level 4 · 300 XP to level 5",
       "divider",
-      `section: *Leaderboard* is ready. [link: Open ${siteUrl}/leaderboard]`,
+      `section: *Leaderboard* is ready. [link: Open ${siteUrl}/leaderboard?src=app-home]`,
       "divider",
-      `${await lastFoundLine(t, 1, "unlock:book")} [link: View ${siteUrl}/book#hoggies]`,
+      `${await lastFoundLine(t, 1, "unlock:book")} [link: View ${siteUrl}/book?src=app-home#hoggies]`,
       "divider",
       `actions: Open HedgeHug | Book`,
       "divider",
       ...hints,
     ]);
-    expect(hoggiesAccessory()).toMatchObject({ url: `${siteUrl}/book#hoggies`, action_id: "website-link:hoggies", accessibility_label: "View your hoggies on HedgeHug's Collection page" });
+    expect(hoggiesAccessory()).toMatchObject({ url: `${siteUrl}/book?src=app-home#hoggies`, action_id: "website-link:hoggies", accessibility_label: "View your hoggies on HedgeHug's Collection page" });
   });
 
   test("the front door's summary with no drop yet links to the Collection page too", async () => {
@@ -137,7 +137,7 @@ describe("CL16: App Home names the hoggies found while collection is on and the 
 
     await openHome(t, "U_ALICE");
 
-    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`${noDropYet} [link: View ${siteUrl}/book#hoggies]`]);
+    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`${noDropYet} [link: View ${siteUrl}/book?src=app-home#hoggies]`]);
   });
 
   test("CL13: there's no line while the Book is closed, even with hoggies found", async () => {
@@ -195,7 +195,7 @@ describe("CL25: App Home's hoggies line counts the crests collected while crests
 
     await openFromAppHome(t, "book");
 
-    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`section: Hoggies: 1 of 151 · 0 crests · last found: Roller Coaster (🟦 Rare) [link: View ${siteUrl}/book#hoggies]`]);
+    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`section: Hoggies: 1 of 151 · 0 crests · last found: Roller Coaster (🟦 Rare) [link: View ${siteUrl}/book?src=app-home#hoggies]`]);
   });
 
   test("a member with no drop yet sees no crest beside every crate dropping one", async () => {

@@ -1,4 +1,4 @@
-import type { Drop } from "../hoggies/drops";
+import type { Drop } from "../album/hoggies/drops";
 import type { PerkId } from "../progression/tree";
 import type { Face } from "../website/faces";
 
@@ -18,7 +18,11 @@ export type Message = { kind: "text"; segments: Segment[]; edited: boolean } | {
 
 export type Channel = { visibility: "public" | "private" | "unknown" };
 
-export type QuestDone = { kind: "weekly"; goal: string; xp: number; waiting: boolean } | { kind: "journey"; goal: string; xp: number; waiting: boolean };
+export type QuestDone = { kind: "weekly" | "journey"; goal: string; xp: number; waiting: boolean; hoggie: boolean };
+
+export function questXpOf(quests: QuestDone[]): number {
+  return quests.filter(({ waiting }) => !waiting).reduce((sum, { xp }) => sum + xp, 0);
+}
 
 export type BonusEarned = { perk: { id: PerkId; name: string }; why: string; xp: number };
 

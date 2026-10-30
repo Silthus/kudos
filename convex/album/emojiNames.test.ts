@@ -40,11 +40,11 @@ afterEach(() => {
 });
 
 describe("an earned emoji's name never moves", () => {
-  test("the first thoughtful kudos reserves the level, every milestone tier's and the company team names before it names the hype emoji of the person it thanked", async () => {
+  test("the first kudos, short or not, reserves the level, every milestone tier's and the company team names before it names the hype emoji of the person it thanked", async () => {
     await companyTeams(team("lanterns", "Lanterns"), team("kites", "Kites"));
     const wren = await aMember({ user: "U_WREN", name: "Wren Halloway" });
 
-    await thanks(wren);
+    await thanks(wren, "ty");
 
     expect(await namesOf("level:5", "level:10", "level:15", "level:20", "level:25")).toEqual(["level-5", "level-10", "level-15", "level-20", "level-25"]);
     expect(await namesOf("milestone:people:bronze", "milestone:people:silver", "milestone:people:gold", "milestone:people:diamond")).toEqual(["first-face", "familiar-faces", "full-of-friends", "everyone-s-album"]);
@@ -52,16 +52,6 @@ describe("an earned emoji's name never moves", () => {
     expect(await namesOf("milestone:hoggies:bronze", "milestone:thoughtful:diamond")).toEqual(["curious", "patron-of-praise"]);
     expect(await namesOf("team:lanterns", "team:kites")).toEqual(["team-lanterns", "team-kites"]);
     expect(await hypeNameOf(wren)).toBe("wren-halloway-hype");
-  });
-
-  test("before any thoughtful kudos nothing is named, and a short kudos names nothing", async () => {
-    await companyTeams(team("lanterns", "Lanterns"));
-    const wren = await aMember({ user: "U_WREN", name: "Wren Halloway" });
-
-    await thanks(wren, "ty");
-
-    expect(await namesOf("level:5", "team:lanterns")).toEqual([null, null]);
-    expect(await hypeNameOf(wren)).toBeNull();
   });
 
   test("two namesakes get the name and its first free number, and a namesake who joins and leaves after the first was named moves nothing", async () => {
@@ -191,6 +181,37 @@ describe("an earned emoji's name never moves", () => {
     expect([await hypeNameOf(friends), await hypeNameOf(long)]).toEqual(["unicode-friends-hype", `${"a".repeat(79)}-hype`]);
   });
 });
+
+describe("an earned emoji's second name", () => {
+  test("a team the next sync adds, named like a milestone tier's second name, takes the next number, and the tier keeps its first name", async () => {
+    await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
+    expect(await giveASecondName("milestone:thoughtful:bronze", "team-kites")).toBe(true);
+
+    await companyTeams(team("kites", "Kites"));
+
+    expect(await namesOf("team:kites", "milestone:thoughtful:bronze")).toEqual(["team-kites-2", "first-thank-you"]);
+  });
+
+  test("a name another emoji holds, a classed name, another second name and an emoji the registry hasn't named are refused, writing nothing", async () => {
+    await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
+    await giveASecondName("milestone:thoughtful:bronze", "heart-hog");
+    await t.run((ctx) => ctx.db.insert("emojiClasses", { workspace: "T1", name: "party-parrot", class: "random" }));
+    const before = await t.run((ctx) => ctx.db.query("secondEmojiNames").collect());
+
+    for (const [emoji, name] of [
+      ["milestone:thoughtful:bronze", "level-5"],
+      ["milestone:thoughtful:bronze", "party-parrot"],
+      ["milestone:people:bronze", "heart-hog"],
+      ["team:nobody", "nobodys-heart"],
+    ] as const) expect(await giveASecondName(emoji, name), `${emoji} as ${name}`).toBe(false);
+
+    expect(await t.run((ctx) => ctx.db.query("secondEmojiNames").collect())).toEqual(before);
+  });
+});
+
+function giveASecondName(emoji: string, name: string) {
+  return t.mutation(internal.album.emojiNames.giveEmojiASecondName, { workspace: "T1", emoji, name });
+}
 
 function team(slug: string, name: string): TeamPage {
   return { slug, name, profiles: [{ id: slug.length, firstName: "Pat", lastName: name, colour: "teal" }] };

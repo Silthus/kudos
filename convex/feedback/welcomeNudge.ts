@@ -6,13 +6,16 @@ import { hugGivenEventValidator, kudosGivenEventValidator, type KudosGivenEvent 
 import { wordsOf } from "../engine/kudosText";
 import { messageRefValidator, type ChatUserId, type MessageRef, type WordSegment } from "../engine/messageEvent";
 import { hugOf, hugPeoplePageOf } from "../hugs/records";
-import { earnWelcomeItem } from "../items/welcome";
-import { welcomeItemShownTo } from "../items/welcomeFlag";
+import { earnWelcomeItem } from "../album/items/welcome";
+import { welcomeItemShownTo } from "../album/items/welcomeFlag";
 import { websiteOriginFor } from "../website/link";
 import { signInEntry } from "../website/routes";
+import { linkFrom } from "../website/visitSource";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { saveWelcomeNudge, settingsOf, welcomeNudgeOn } from "../workspace/settings";
 import { isTheMaintainer } from "../workspace/workspaceSettings";
+import { isWelcomed } from "../welcome/welcome";
+import { onTheMondayPath } from "../quests/flag";
 import { quoteOf } from "./mondayPost";
 
 const recipientsNudgedPerMutation = 50;
@@ -28,7 +31,7 @@ export const nudgeTheThanked = internalMutation({
   handler: async (ctx, { event, from = 0 }): Promise<void> => {
     const recipients = recipientsOf(event);
     const next = from + recipientsNudgedPerMutation;
-    for (const recipient of recipients.slice(from, next)) await nudge(ctx, recipient, { kind: "thanks", giver: event.giver, message: event.message }, event.at);
+    for (const recipient of recipients.slice(from, next)) await nudge(ctx, recipient, { kind: "thanks", giver: event.giver, message: event.message }, event.at, true);
     if (next < recipients.length) await ctx.scheduler.runAfter(0, internal.feedback.welcomeNudge.nudgeTheThanked, { event, from: next });
   },
 });
@@ -40,7 +43,7 @@ export const nudgeTheHugged = internalMutation({
     if (hug === null) return;
     const cause: WelcomeNudgeCause = { kind: hug.author === undefined ? "kudosHug" : "hug", giver: event.giver, message: event.message };
     const { people, next } = await hugPeoplePageOf(ctx, hug, cursor ?? null, recipientsNudgedPerMutation);
-    for (const person of people) if (person !== event.giver) await nudge(ctx, person, cause, event.at);
+    for (const person of people) if (person !== event.giver) await nudge(ctx, person, cause, event.at, false);
     if (next !== null) await ctx.scheduler.runAfter(0, internal.feedback.welcomeNudge.nudgeTheHugged, { event, cursor: next });
   },
 });
@@ -48,7 +51,7 @@ export const nudgeTheHugged = internalMutation({
 export const welcomeNudgeMessage = internalQuery({
   args: { workspace: v.string(), member: v.id("members"), cause: welcomeNudgeCauseValidator },
   handler: async (ctx, { workspace, member, cause }): Promise<WelcomeNudgeMessage | null> => {
-    if (!(await welcomeItemShownTo(ctx, member)) || !(await welcomeNudgeOn(ctx, workspace))) return null;
+    if (!(await welcomeItemShownTo(ctx, member)) || !(await welcomeNudgeOn(ctx, workspace)) || (await isWelcomedOnTheMondayPath(ctx, member, false))) return null;
     const album = await albumLinkFor(ctx, workspace, member);
     if (album === null) return null;
     const { kudosEmoji } = await settingsOf(ctx, workspace);
@@ -68,9 +71,9 @@ export async function setWelcomeNudge(ctx: MutationCtx, workspace: string, membe
   return true;
 }
 
-async function nudge(ctx: MutationCtx, member: MemberId, cause: WelcomeNudgeCause, at: number) {
+async function nudge(ctx: MutationCtx, member: MemberId, cause: WelcomeNudgeCause, at: number, causeWelcomes: boolean) {
   const { workspace, user } = await chatUserOf(ctx, member);
-  if (!(await isNudgedWelcome(ctx, workspace, user, member))) return;
+  if (!(await isNudgedWelcome(ctx, workspace, user, member)) || (await isWelcomedOnTheMondayPath(ctx, member, causeWelcomes))) return;
   await ctx.db.insert("welcomeNudges", { member, at });
   await earnWelcomeItem(ctx, workspace, member, at);
   await ctx.scheduler.runAfter(0, internal.slack.welcomeNudge.deliverWelcomeNudge, { workspace, user, member, cause });
@@ -84,6 +87,10 @@ async function isNudgedWelcome(ctx: QueryCtx, workspace: string, user: ChatUserI
     (await welcomeNudgeOn(ctx, workspace)) &&
     (await albumLinkFor(ctx, workspace, member)) !== null
   );
+}
+
+async function isWelcomedOnTheMondayPath(ctx: QueryCtx, member: MemberId, causeWelcomes: boolean) {
+  return (await onTheMondayPath(ctx, member)) && (causeWelcomes || (await isWelcomed(ctx, member)));
 }
 
 async function wasNudged(ctx: QueryCtx, member: MemberId) {
@@ -107,7 +114,7 @@ async function hasSignedIn(ctx: QueryCtx, workspace: string, user: ChatUserId) {
 async function albumLinkFor(ctx: QueryCtx, workspace: string, member: MemberId): Promise<string | null> {
   const origin = await websiteOriginFor(ctx, workspace, member);
   if (origin === null) return null;
-  return origin.endsWith(signInEntry) ? origin : `${origin}/book`;
+  return linkFrom("welcome", origin.endsWith(signInEntry) ? origin : `${origin}/book`);
 }
 
 export async function publicQuoteOf(ctx: QueryCtx, message: MessageRef, quoted: (segments: WordSegment[]) => WordSegment[] = (segments) => segments): Promise<string | null> {

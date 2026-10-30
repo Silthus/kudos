@@ -3,13 +3,16 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { reportHugsRecapSent } from "../analytics/isolatedUsage";
+import type { HugsRecapCarrier } from "../analytics/projections";
 import { wallClockAt, type DayKey } from "../engine/allowance";
 import { threadRootOf } from "../engine/engine";
 import { emojiLineOf, type RecapEmojiLine } from "../feedback/albumRecap";
 import { settingsFooterFor, type SettingsFooter } from "../feedback/settingsFooter";
 import { teaserOf } from "../feedback/teaser";
 import { placeOf } from "../messageSettings/messageSettings";
+import { hugXpOf, type HugWeekXp } from "../progression/hugXp";
 import { xpLevelsOnFor } from "../progression/xpLevels";
+import { hasMondayDm } from "../mondayDm/rows";
 import { permalinkOf } from "../slack/permalink";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
@@ -22,11 +25,12 @@ export type RecapLine = string | { text: string; link: { url: string; label: str
 
 export type Recap = { workspace: string; user: string; lines: RecapLine[]; emojiLine: RecapEmojiLine | null; footer: SettingsFooter | null };
 
+export type HugsSection = { lines: RecapLine[]; closing: RecapLine[]; emojiLine: RecapEmojiLine | null };
+
 const recapsPerSweep = 100;
 const recapHour = 9;
 const triesAtMost = 3;
 const dayMs = 24 * 60 * 60 * 1000;
-const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
 
 export const sweep = internalMutation({
   args: {},
@@ -57,15 +61,30 @@ export const startRecap = internalMutation({
       await scheduleTry(ctx, row, dueAt, attempt);
       return null;
     }
+    if (attempt === 1 && (await hasMondayDm(ctx, row.member, mondayAfter(row.week)))) {
+      await ctx.db.patch(week, { recap: "monday-dm" });
+      return null;
+    }
     if (!(await recapWantedBy(ctx, row.member))) {
       await ctx.db.patch(week, { recap: "skipped" });
       return null;
     }
     await ctx.db.patch(week, { tries: attempt, dueAt: Date.now() });
     const { workspace, user } = await chatUserOf(ctx, row.member);
-    return { workspace, user, lines: await recapLinesOf(ctx, row), emojiLine: await emojiLineOf(ctx, row, await weekInstantsOf(ctx, row)), footer: await settingsFooterFor(ctx, row.member) };
+    const { lines, closing, emojiLine } = await hugsSectionOf(ctx, row);
+    return { workspace, user, lines: [...lines, ...closing], emojiLine, footer: await settingsFooterFor(ctx, row.member) };
   },
 });
+
+export async function hugsSectionFor(ctx: MutationCtx, member: MemberId, monday: DayKey): Promise<HugsSection | null> {
+  const week = await claimedForTheMondayDm(ctx, member, mondayBefore(monday));
+  return week !== null && (await recapWantedBy(ctx, member)) ? hugsSectionOf(ctx, week) : null;
+}
+
+export async function hugsSentInTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey) {
+  const week = await hugWeekOf(ctx, member, mondayBefore(monday));
+  if (week !== null) await reportHugsRecapSent(ctx, await recapSentOf(ctx, week, "monday"));
+}
 
 export const recapLater = internalMutation({
   args: { ...tryArgs, retry: v.object({ at: v.number(), attempt: v.number() }) },
@@ -82,9 +101,33 @@ export const recapEnded = internalMutation({
     const row = await awaitingTry(ctx, week, attempt);
     if (row === null) return;
     await ctx.db.patch(week, { recap: sent ? "sent" : "failed" });
-    if (sent) await reportHugsRecapSent(ctx, { workspace: row.workspace, member: row.member, given: row.given, received: row.received, xp: row.givenXp + row.receivedXp, at: Date.now() });
+    if (sent) await reportHugsRecapSent(ctx, await recapSentOf(ctx, row, "recap"));
   },
 });
+
+async function recapSentOf(ctx: QueryCtx, { workspace, member, week }: HugWeek, via: HugsRecapCarrier) {
+  const { given, received, givenXp, receivedXp } = await hugXpOf(ctx, member, week);
+  return { workspace, member, given, received, xp: givenXp + receivedXp, via, at: Date.now() };
+}
+
+async function claimedForTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey): Promise<HugWeek | null> {
+  const week = await hugWeekOf(ctx, member, monday);
+  if (week === null || week.recap === "monday-dm") return week;
+  if ((week.recap !== "waiting" && week.recap !== "scheduled") || week.tries > 0) return null;
+  await ctx.db.patch(week._id, { recap: "monday-dm" });
+  return week;
+}
+
+function hugWeekOf(ctx: QueryCtx, member: MemberId, week: DayKey) {
+  return ctx.db
+    .query("hugWeeks")
+    .withIndex("by_member_week", (q) => q.eq("member", member).eq("week", week))
+    .unique();
+}
+
+async function hugsSectionOf(ctx: QueryCtx, week: HugWeek): Promise<HugsSection> {
+  return { ...(await recapLinesOf(ctx, week)), emojiLine: await emojiLineOf(ctx, week, await weekInstantsOf(ctx, week)) };
+}
 
 async function scheduleRecap(ctx: MutationCtx, week: HugWeek) {
   await scheduleTry(ctx, week, Math.max(await recapDueAtOf(ctx, week), Date.now()), 1);
@@ -120,16 +163,20 @@ async function recapWantedBy(ctx: MutationCtx, member: MemberId) {
   return (await placeOf(ctx, member, "hugs-recap")) === "dm" && (await hugsOnAndExposedFor(ctx, member));
 }
 
-async function recapLinesOf(ctx: QueryCtx, week: HugWeek): Promise<RecapLine[]> {
+async function recapLinesOf(ctx: QueryCtx, week: HugWeek): Promise<Omit<HugsSection, "emojiLine">> {
   const { kudosEmoji } = await settingsOf(ctx, week.workspace);
   const reacted = `reacted :${kudosEmoji}:`;
   const url = await workspaceUrlOf(ctx, week.workspace);
   const mostHugged = week.mostHugged === undefined || url === null ? [] : [await mostHuggedLineOf(ctx, url, reacted, week.workspace, week.mostHugged)];
   const teaser = await teaserOf(ctx, week.member);
-  return [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(week, reacted), ...mostHugged, ...(teaser === null ? [] : [teaser]), nudge];
+  return { lines: [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(await hugXpOf(ctx, week.member, week.week), reacted), ...mostHugged], closing: [...(teaser === null ? [] : [teaser]), kudosNudgeWith(kudosEmoji)] };
 }
 
-function countLinesOf({ given, givenXp, received, receivedXp }: HugWeek, reacted: string): string[] {
+function kudosNudgeWith(kudosEmoji: string) {
+  return `Hugs are a quick thanks. A kudos, a message that mentions a teammate with :${kudosEmoji}:, earns much more XP.`;
+}
+
+function countLinesOf({ given, givenXp, received, receivedXp }: HugWeekXp, reacted: string): string[] {
   const givenLine = given === 0 ? [] : [`You ${reacted} and gave ${hugsOf(given)} (+${givenXp} XP).`];
   const receivedLine = received === 0 ? [] : [`Teammates ${reacted} on your messages and gave you ${hugsOf(received)} (+${receivedXp} XP).`];
   return [...givenLine, ...receivedLine];
@@ -148,6 +195,14 @@ function hugsOf(count: number) {
   return count === 1 ? "1 hug" : `${count} hugs`;
 }
 
-function mondayAfter(week: DayKey): DayKey {
-  return new Date(Date.parse(`${week}T00:00:00Z`) + 7 * dayMs).toISOString().slice(0, 10);
+export function mondayAfter(week: DayKey): DayKey {
+  return mondayShiftedBy(week, 7);
+}
+
+function mondayBefore(monday: DayKey): DayKey {
+  return mondayShiftedBy(monday, -7);
+}
+
+function mondayShiftedBy(monday: DayKey, days: number): DayKey {
+  return new Date(Date.parse(`${monday}T00:00:00Z`) + days * dayMs).toISOString().slice(0, 10);
 }

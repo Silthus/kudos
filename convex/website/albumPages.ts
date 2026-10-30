@@ -9,7 +9,8 @@ import { weekEditionOf, type Issue, type WeekTab } from "../album/weekIssue";
 import type { WeekKudos, WeekKudosList } from "../album/weekKudos";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { givenFactsOf } from "../engine/awards";
-import { publicThoughtfulKudosOf } from "../engine/spotlight";
+import { takenBackInSlack } from "../engine/kudosText";
+import { publicKudosOf } from "../engine/spotlight";
 import type { DayKey } from "../engine/allowance";
 import type { MessageRef } from "../engine/messageEvent";
 import { profileLinkOf } from "../slack/permalink";
@@ -72,7 +73,7 @@ export async function albumPersonOf(ctx: QueryCtx, me: VerifiedMember, person: M
     kind: "person",
     ...(await faceIn(ctx, me.workspace, person)),
     ...history,
-    best: best === null ? null : await kudosShown(ctx, mentions, best.message, best.at),
+    best: best === null || (await takenBackInSlack(ctx, best.message)) ? null : await kudosShown(ctx, mentions, best.message, best.at),
     slackProfile: await slackProfileOf(ctx, me.workspace, person),
     ...(await hypePickOn(ctx, me, person)),
   };
@@ -125,13 +126,13 @@ async function issueShown(ctx: QueryCtx, workspace: string, { kudosOfWeek, thank
 }
 
 export async function publicKudosOfTheWeekShown(ctx: QueryCtx, workspace: string, pick: NonNullable<Issue["kudosOfWeek"]>): Promise<AlbumIssue["kudosOfWeek"]> {
-  if ((await publicThoughtfulKudosOf(ctx, pick.message)) === null) return null;
+  if ((await publicKudosOf(ctx, pick.message)) === null) return null;
   return kudosOfTheWeekShown(ctx, workspace, mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked"), pick);
 }
 
 async function kudosOfTheWeekShown(ctx: QueryCtx, workspace: string, mentions: Mentions, { message, hugs, at }: NonNullable<Issue["kudosOfWeek"]>): Promise<AlbumIssue["kudosOfWeek"]> {
   const given = await givenFactsOf(ctx, message);
-  if (given === null) return null;
+  if (given === null || (await takenBackInSlack(ctx, message))) return null;
   return { giver: await faceIn(ctx, workspace, given.giver), ...(await kudosShown(ctx, mentions, message, at)), hugs };
 }
 

@@ -124,7 +124,7 @@ function HypeEmoji({ person, first, picker, emojiPage }: { person: Person; first
       <PersonPicture face={person.face} name={person.name} collected={earned} frame="al-hype-frame" className="al-hype-face" />
       <p>
         {name !== null && <code>:{name}:</code>}
-        <span>{earned ? `Unlocked by your first thoughtful kudos to ${first}` : `Give ${first} a thoughtful kudos to unlock their hype emoji`}</span>
+        <span>{earned ? `Unlocked by your first kudos to ${first}` : `Give ${first} a kudos to unlock their hype emoji`}</span>
       </p>
       {person.hypePick ? <OwnHypePick emoji={ownHypeEmojiOf(person)} emojiPage={emojiPage} {...picker} /> : name !== null && <HypeInSlack emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} earned={earned} />}
     </div>
@@ -165,7 +165,7 @@ function BestMessage({ person, first }: { person: Person; first: string }) {
   return (
     <figure className="al-quote">
       <blockquote>
-        <KudosMessage message={person.best.message} clamped={false} />
+        <KudosMessage message={person.best.message} />
       </blockquote>
       <figcaption>
         <span>

@@ -36,6 +36,8 @@ const busyReturn: XpMoment = {
   moments: 16,
   xp: 178,
   climb: { from: { level: 6, xp: 1462, startsAt: 1000, nextAt: 1500 }, to: { level: 7, xp: 1640, startsAt: 1500, nextAt: 2100 } },
+  quests: [],
+  progressed: [],
   waiting: 3,
   thoughtfulGivers: 4,
   timeZone: "UTC",
@@ -137,7 +139,7 @@ async function inAnother(seconds: number) {
 async function collectAt(seconds: number) {
   await at(seconds);
   started = Date.now();
-  await act(async () => fireEvent.click(theCanvas()!));
+  await act(async () => fireEvent.click(theOrb()));
 }
 
 function theCanvas() {
@@ -145,7 +147,11 @@ function theCanvas() {
 }
 
 function theCards() {
-  return [...(theCanvas()?.querySelectorAll<HTMLElement>(".xpm-card") ?? [])];
+  return [...(theCanvas()?.querySelectorAll<HTMLElement>(".xpm-card[data-shown]") ?? [])];
+}
+
+function theColumns() {
+  return [...theCanvas()!.querySelectorAll<HTMLElement>(".xpm-column")].map((column) => [...column.querySelectorAll<HTMLElement>(".xpm-card")].map((card) => within(card).queryByRole("article")?.getAttribute("aria-label") ?? card.textContent));
 }
 
 function theOrb() {
@@ -168,16 +174,21 @@ function theLevelPill() {
   return theTopBar().getByText(/^Level \d+$/, { selector: ".al-level" });
 }
 
+function earnedInTheTopBar() {
+  const label = theTopBar().getByRole("button", { name: /^Your emojis, \d+ earned/, hidden: true }).getAttribute("aria-label")!;
+  return Number(/(\d+) earned/.exec(label)![1]);
+}
+
+function earnedOf(emojis: Album["emojis"]) {
+  return emojis.filter(({ earned }) => earned).length;
+}
+
+function theEmojiOnItsWay() {
+  return document.querySelector<HTMLElement>("body > .al-emoji-copy");
+}
+
 function theItemBoard() {
   return screen.queryByRole("dialog", { name: "Your items" });
-}
-
-function px(card: HTMLElement, property: "left" | "top") {
-  return Number.parseFloat(card.style[property]);
-}
-
-function degreesOf(card: HTMLElement) {
-  return Number.parseFloat(card.style.getPropertyValue("--rot"));
 }
 
 const canvasArrival = 0.6;
@@ -205,13 +216,13 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
     expect(xpWords(), "the bar holds the standing before the moment's XP").toBe("38 XP to level 7");
   });
 
-  it("shows each kind as a Slack-style excerpt with its own XP chip, senders as initials on a colour, HedgeHug's own message with the sitting hedgehog, and the fold line with its XP", async () => {
+  it("shows each kind as a Slack message under its own label and XP chip, senders as initials on a colour, HedgeHug's own message with the sitting hedgehog, and the fold line with its XP", async () => {
     await returnTo();
     await at(arrivedAndRead);
 
     const [fromInes, hugs, given, fromBram, level] = theCards().map((card) => within(card));
     expect(fromInes!.getByRole("article", { name: "Kudos for you" })).toHaveTextContent("Ines Okafor");
-    expect(fromInes!.getByText("IO", { selector: ".xpm-avatar" })).toHaveAttribute("data-tone");
+    expect(fromInes!.getByText("IO", { selector: ".xpm-slack-avatar" })).toHaveAttribute("data-tone");
     expect(fromInes!.getByText("thank you for pairing on the flaky deploy")).toBeInTheDocument();
     expect(fromInes!.getByText("+10 XP")).toBeInTheDocument();
     expect(hugs!.getByRole("article", { name: "3 hugs on your message" })).toHaveTextContent("+3 XP");
@@ -219,32 +230,50 @@ describe("LP29 LP30: the XP moment plays on the dim canvas out of the mystery or
     expect(given!.getByText("+15 XP")).toBeInTheDocument();
     expect(fromBram!.getByRole("article", { name: "Kudos for you" })).toHaveTextContent("Bram Teller");
     expect(level!.getByRole("article", { name: "Level up" })).toHaveTextContent("You reached level 7!");
-    expect(level!.getByRole("article", { name: "Level up" }).querySelector(".xpm-avatar-app img")).not.toBeNull();
+    expect(level!.getByRole("article", { name: "Level up" }).querySelector(".xpm-slack-avatar-app img")).not.toBeNull();
     expect(level!.queryByText(/XP$/)).toBeNull();
     expect(theCards()[5]).toHaveTextContent("+12 more kudos and hugs+140 XP");
     expect(theCards()[0]).toHaveTextContent("Mon 09:22");
   });
 
-  it("rings the orb on a desktop: 370 by 196 px around its centre, each excerpt tilted up to 7°", async () => {
+  it("shows a sender's Slack picture in place of their initials, and every message in full with its Slack marks", async () => {
+    const thanks = { kind: "text" as const, segments: [{ kind: "person" as const, name: "Sam Example", person: "sam-example" }, { kind: "text" as const, text: ` ${"thank you for pairing on the flaky deploy, ".repeat(8)}the end` }], edited: true };
+    const [fromInes] = busyReturn.excerpts as [XpMoment["excerpts"][number]];
+    const pictured = { ...fromInes, entry: { ...fromInes.entry, giver: { name: "Ines Okafor", face: { kind: "slack" as const, image: "https://avatars.example/ines.png", initials: "IO" } }, message: thanks } } as XpMoment["excerpts"][number];
+    await returnTo({ moment: { ...busyReturn, excerpts: [pictured, ...busyReturn.excerpts.slice(1)] } });
+    await at(arrivedAndRead);
+
+    const fromInesNow = within(theCards()[0]!);
+    expect(fromInesNow.queryByText("IO")).toBeNull();
+    expect(theCards()[0]!.querySelector(".xpm-slack-avatar img")).toHaveAttribute("src", "https://avatars.example/ines.png");
+    expect(fromInesNow.getByText("@Sam Example")).toHaveAttribute("data-mention", "loud");
+    expect(fromInesNow.getByTestId("kudos-message-words")).toHaveTextContent(/the end \(edited\)$/);
+    expect(fromInesNow.queryAllByRole("link")).toEqual([]);
+  });
+
+  it("on a desktop stacks the excerpts in two columns either side of the orb, in the order they happened", async () => {
     await returnTo();
     await at(arrivedAndRead);
 
-    const orb = { x: px(theOrb(), "left"), y: px(theOrb(), "top") };
-    const reaches = theCards().map((card) => Math.hypot((px(card, "left") - orb.x) / 370, (px(card, "top") - orb.y) / 196));
-    expect(Math.min(...reaches)).toBeGreaterThan(0.9);
-    expect(Math.max(...reaches)).toBeLessThan(1.1);
-    expect(theCards().every((card) => Math.abs(degreesOf(card)) <= 7)).toBe(true);
-    expect(new Set(theCards().map((card) => Math.sign(px(card, "left") - orb.x))).size).toBeGreaterThan(1);
+    expect(theColumns()).toEqual([
+      ["Kudos for you", "3 hugs on your message", "Kudos you gave"],
+      ["Kudos for you", "Level up", "+12 more kudos and hugs+140 XP"],
+    ]);
   });
 
-  it("on a phone the orb sits under the excerpts", async () => {
+  it("flies every excerpt out from the orb, the first one too", async () => {
+    await returnTo();
+    await at(arrivedAndRead);
+
+    expect(theCards().map((card) => card.style.getPropertyValue("--from-x"))).toEqual(["0px", "0px", "0px", "0px", "0px", "0px"]);
+  });
+
+  it("on a phone stacks the excerpts in one column over the orb", async () => {
     await returnTo({ screenSize: phone });
     await at(arrivedAndRead);
 
     expect(theCanvas()).toHaveAttribute("data-narrow");
-    const lowestCard = Math.max(...theCards().map((card) => px(card, "top")));
-    expect(px(theOrb(), "top")).toBeGreaterThan(lowestCard);
-    expect(px(theOrb(), "left")).toBe(phone.width / 2);
+    expect(theColumns()).toEqual([["Kudos for you", "3 hugs on your message", "Kudos you gave", "Kudos for you", "Level up", "+12 more kudos and hugs+140 XP"]]);
   });
 });
 
@@ -303,18 +332,20 @@ describe("LP29 LP33: the canvas covers the page in both themes and on a phone", 
 });
 
 describe("LP31 LP32: collecting streams the XP into the bar and the canvas becomes the item board", { timeout: 30_000 }, () => {
-  it("collects on its own after 2 s plus 0.7 s per excerpt once they are out: 6.2 s for six", async () => {
+  it("waits for the member with no countdown: nothing collects on its own, nor on a click beside the orb", async () => {
     await returnTo();
+    await at(arrivedAndRead);
 
-    await at(arrivedAndRead + 6.2 - 0.1);
+    expect(theOrb().querySelector("svg")).toBeNull();
+    await act(async () => fireEvent.click(theCards()[0]!));
+    await act(async () => fireEvent.click(theCanvas()!));
+    await at(arrivedAndRead + 120);
     expect(theOrbSays()).toBe("?");
+    expect(theCards()).toHaveLength(6);
     expect(theCards().some((card) => card.hasAttribute("data-dissolving"))).toBe(false);
-    await at(arrivedAndRead + 6.2 + 0.05);
-    expect(theOrbSays()).toBe("+0");
-    expect(theCards()[0]).toHaveAttribute("data-dissolving");
   });
 
-  it("a click anywhere collects: the excerpts dissolve 140 ms apart over 720 ms while the orb counts up from +0 to the total", async () => {
+  it("a click on the orb collects: the excerpts dissolve 140 ms apart over 720 ms while the orb counts up from +0 to the total", async () => {
     await returnTo();
     await collectAt(arrivedAndRead);
 
@@ -364,12 +395,12 @@ describe("LP31 LP32: collecting streams the XP into the bar and the canvas becom
     expect(theCanvas()).toBeNull();
     const board = within(theItemBoard()!);
     expect(board.getByText(/from 16 moments since/)).toHaveTextContent("+178 XP from 16 moments since Mon 09:12");
-    expect(board.getByText("4 teammates gave thoughtful kudos this week")).toBeInTheDocument();
-    expect(board.getAllByRole("button", { name: "A face-down item. Turn it over" })).toHaveLength(3);
+    expect(board.getByText("4 teammates gave kudos this week")).toBeInTheDocument();
+    expect(board.getAllByRole("button", { name: "An unidentified item. Identify it" })).toHaveLength(3);
     expect(board.getByRole("button", { name: "Later" })).toBeInTheDocument();
     expect(document.querySelector(".al-shell")).not.toHaveAttribute("data-xp-moment");
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
     expect(actions.arrive).not.toHaveBeenCalled();
   });
 
@@ -378,7 +409,7 @@ describe("LP31 LP32: collecting streams the XP into the bar and the canvas becom
     await act(async () => fireEvent.keyDown(window, { key: "Escape" }));
 
     expect(within(theItemBoard()!).getByText(/from 16 moments since/)).toBeInTheDocument();
-    expect(screen.queryByText(/teammates gave thoughtful kudos/)).toBeNull();
+    expect(screen.queryByText(/teammates gave kudos/)).toBeNull();
   });
 
   it("with no items waiting it reads the summary on the canvas with All caught up, then leaves", async () => {
@@ -404,7 +435,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     expect(theCanvas()).toBeNull();
     expect(xpWords()).toBe("460 XP to level 8");
     expect(within(theItemBoard()!).getByText(/from 16 moments since/)).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
   });
 
   it("Esc lands everything at once too", async () => {
@@ -415,7 +446,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
 
     expect(theCanvas()).toBeNull();
     expect(theItemBoard()).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
   });
 
   it("reduced motion shows the end state at once", async () => {
@@ -425,7 +456,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     expect(theCanvas()).toBeNull();
     expect(xpWords()).toBe("460 XP to level 8");
     expect(within(theItemBoard()!).getByText(/from 16 moments since/)).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
   });
 
   it("reduced motion keeps that end state when the member turns the last item: All caught up never pops over what landed", async () => {
@@ -438,7 +469,7 @@ describe("LP33 LP26: skip, reduced motion, quiet visits and one arrival per visi
     };
     await returnTo({ album: lastOne, read: live.read, turnItem });
 
-    await act(async () => fireEvent.click(within(theItemBoard()!).getByRole("button", { name: "A face-down item. Turn it over" })));
+    await act(async () => fireEvent.click(within(theItemBoard()!).getByRole("button", { name: "An unidentified item. Identify it" })));
 
     for (const seconds of [0.5, 1, 2, 3]) {
       await at(seconds);
@@ -577,11 +608,12 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(takeover.getByRole("heading", { name: "You reached level 7!" })).toBeInTheDocument();
     const items = takeover.getByRole("listitem", { name: "3 new items unlocked" });
     expect(items.querySelectorAll(".ib-back")).toHaveLength(3);
+    expect(items).toHaveTextContent("3 new items unlockedwaiting to be identified");
     expect(takeover.getByText("Level 8 is 460 XP away")).toBeInTheDocument();
     expect(takeover.getAllByRole("listitem")).toHaveLength(1);
     expect(theTakeover()).not.toHaveTextContent(/skill point|emblem/i);
     expect(xpWords()).toBe("460 XP to level 8");
-    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, false, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
 
     await at(collectedAndStreamed + 30);
     expect(theTakeover()).toBeInTheDocument();
@@ -592,7 +624,7 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theCanvas()).toBeNull();
     const board = within(theItemBoard()!);
     expect(board.getByText(/from 16 moments since/)).toBeInTheDocument();
-    const levelItems = board.getAllByRole("button", { name: "A face-down item from level 7. Turn it over" });
+    const levelItems = board.getAllByRole("button", { name: "An unidentified item from level 7. Identify it" });
     expect(levelItems).toHaveLength(3);
     expect(levelItems.map((item) => within(item).getByText("Level 7"))).toHaveLength(3);
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
@@ -613,6 +645,53 @@ describe("LP34: the level-up takeover in the XP moment", { timeout: 30_000 }, ()
     expect(theItemBoard()).toBeInTheDocument();
     expect(theEmojiPopUp()).toBeNull();
     expect(actions.markEmojisSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it("springs the level's emoji in, then sends it up into the emoji button, which counts it only once it lands", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+    const all = earnedOf(levelTenEarned);
+
+    expect(earnedInTheTopBar(), "while it springs in").toBe(all - 1);
+    expect(theEmojiOnItsWay()).toBeNull();
+    await inAnother(2.6);
+    expect(theEmojiOnItsWay(), "on its way up").toHaveAttribute("data-kind", "level");
+    expect(earnedInTheTopBar(), "while on its way").toBe(all - 1);
+    await inAnother(0.8);
+    expect(theEmojiOnItsWay()).toBeNull();
+    expect(earnedInTheTopBar(), "once it lands").toBe(all);
+    expect(theTakeover(), "the takeover still waits for a click").toBeInTheDocument();
+  });
+
+  it("keeps the level's emoji out of the top bar's count from the return through the XP filling the bar, so the count never runs ahead of its flight", async () => {
+    await returnTo({ moment: toLevelTen, album: atLevelTen });
+    const all = earnedOf(levelTenEarned);
+    expect(earnedInTheTopBar(), "on arrival").toBe(all - 1);
+
+    await collectAt(arrivedAndRead);
+    expect(earnedInTheTopBar(), "as the XP is collected").toBe(all - 1);
+    await at(collectedAndStreamed - 0.1);
+    expect(earnedInTheTopBar(), "as the bar crosses the level").toBe(all - 1);
+    await at(collectedAndStreamed + 0.02);
+    expect(earnedInTheTopBar(), "as the takeover drops in").toBe(all - 1);
+  });
+
+  it("counts the level's emoji at once when Continue comes before it lands", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+
+    await act(async () => fireEvent.click(within(theTakeover()!).getByRole("button", { name: "Continue" })));
+
+    expect(earnedInTheTopBar()).toBe(earnedOf(levelTenEarned));
+  });
+
+  it("takes the emoji on its way up along with the takeover when Continue comes mid-flight", async () => {
+    await crossTheLevel({ moment: toLevelTen, album: atLevelTen });
+    await inAnother(2.6);
+    expect(theEmojiOnItsWay(), "on its way up").not.toBeNull();
+
+    await act(async () => fireEvent.click(within(theTakeover()!).getByRole("button", { name: "Continue" })));
+
+    expect(theEmojiOnItsWay()).toBeNull();
+    expect(earnedInTheTopBar()).toBe(earnedOf(levelTenEarned));
   });
 
   it("LP72: while onboarding is on, shows the level's emoji Slack has as :name: unlocked with how to use it, naming the workspace's kudos emoji", async () => {
@@ -719,7 +798,7 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
 
     await act(async () => fireEvent.click(within(theHowItWorksCard()!).getByRole("button", { name: "Got it" })));
     expect(theHowItWorksCard()).toBeNull();
-    expect(within(theItemBoard()!).getAllByRole("button", { name: "A face-down item from level 7. Turn it over" })).toHaveLength(3);
+    expect(within(theItemBoard()!).getAllByRole("button", { name: "An unidentified item from level 7. Identify it" })).toHaveLength(3);
   });
 
   it("with nothing waiting, opens once All caught up has left", async () => {
@@ -748,7 +827,7 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
 const cameInLater: XpMoment = { ...quietReturn, since: busyReturn.until, until: busyReturn.until + 10 * minute };
 
 function theGlow() {
-  return theTopBar().queryByRole("button", { name: /^(Collect XP|\d+\+? items? waits?)$/ });
+  return theTopBar().queryByRole("button", { name: /^(Collect XP|\d+\+? unidentified items? waits?)$/ });
 }
 
 async function closeTheBoard() {
@@ -763,9 +842,9 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
 
     await closeTheBoard();
 
-    expect(theGlow()).toHaveAccessibleName("3 items wait");
+    expect(theGlow()).toHaveAccessibleName("3 unidentified items wait");
     expect(theGlow()!.closest(".al-xp"), "beside the level bar").not.toBeNull();
-    expect(screen.getAllByRole("button", { name: "3 items wait" }), "one control, no pill under the top bar").toEqual([theGlow()]);
+    expect(screen.getAllByRole("button", { name: "3 unidentified items wait" }), "one control, no pill under the top bar").toEqual([theGlow()]);
     await act(async () => fireEvent.click(theGlow()!));
     expect(theItemBoard()).toBeInTheDocument();
     expect(theGlow(), "once the board is open again").toBeNull();
@@ -793,7 +872,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     expect(theCanvas()).toBeNull();
     expect(actions.arrive).toHaveBeenCalledTimes(1);
     expect(actions.endXpMoment).toHaveBeenCalledTimes(1);
-    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false, { shown: cameInLater.excerpts.length, folded: cameInLater.fold?.count ?? 0 });
     expect(theGlow(), "the moment it collected, while the read still answers it").toBeNull();
   });
 
@@ -801,7 +880,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     const { actions, answerWith } = await returnTo();
     await act(async () => fireEvent.keyDown(window, { key: "Escape" }));
     await closeTheBoard();
-    expect(theGlow(), "the visit's own moment").toHaveAccessibleName("3 items wait");
+    expect(theGlow(), "the visit's own moment").toHaveAccessibleName("3 unidentified items wait");
 
     await act(async () => answerWith(cameInLater));
     expect(theGlow()).toHaveAccessibleName("Collect XP");
@@ -813,7 +892,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     expect(theCanvas()).toBeNull();
     expect(within(theItemBoard()!).getByText(/from 1 moment since/)).toHaveTextContent("+10 XP from 1 moment since");
     expect(actions.endXpMoment).toHaveBeenCalledTimes(2);
-    expect(actions.endXpMoment).toHaveBeenLastCalledWith(cameInLater.since, cameInLater.until, true);
+    expect(actions.endXpMoment).toHaveBeenLastCalledWith(cameInLater.since, cameInLater.until, true, { shown: cameInLater.excerpts.length, folded: cameInLater.fold?.count ?? 0 });
   });
 
   it("reduced motion shows the moment's end state at once when pressed", async () => {
@@ -826,7 +905,7 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
 
     expect(theCanvas()).toBeNull();
     expect(within(theItemBoard()!).getByText(/from 1 moment since/)).toBeInTheDocument();
-    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(cameInLater.since, cameInLater.until, false, { shown: cameInLater.excerpts.length, folded: cameInLater.fold?.count ?? 0 });
   });
 
   it("with nothing waiting there is no glow", async () => {
@@ -841,9 +920,246 @@ describe("LP61: a glow beside the level bar starts what did not play", { timeout
     await closeTheBoard();
 
     expect(theGlow()).toBeNull();
-    const pill = screen.getByRole("button", { name: "3 items wait" });
+    const pill = screen.getByRole("button", { name: "3 unidentified items wait" });
     expect(pill.closest("header")).toBeNull();
     await act(async () => fireEvent.click(pill));
     expect(theItemBoard()).toBeInTheDocument();
+  });
+});
+
+const saidWhy = { kind: "journey", goal: "Give a kudos to someone", xp: 50, waiting: false, hoggie: true } as const;
+
+const twoNew = { kind: "weekly", goal: "Thank 2 people you haven't thanked before.", xp: 20, waiting: false, hoggie: true } as const;
+
+const twoQuestsDone: XpMoment = { ...busyReturn, quests: [saidWhy, twoNew], climb: { from: standingAt(1392), to: busyReturn.climb.to } };
+
+const questsStart = collectedAndStreamed;
+
+const firstBurst = questsStart + 1.4;
+
+const firstReward = firstBurst + 0.6 + 0.7;
+
+const secondStart = firstReward + 1.1;
+
+const secondBurst = secondStart + 0.7;
+
+const secondReward = secondBurst + 0.6 + 0.7;
+
+const questsLanded = secondReward + 1.1;
+
+function theQuest() {
+  return theCanvas() === null ? null : within(theCanvas()!).queryByRole("article", { name: /^(A quest finished|Quest complete)/ });
+}
+
+async function finishQuests(visit: Visit = {}) {
+  const view = await returnTo({ moment: twoQuestsDone, album: withLevelSevenItems, ...visit });
+  await collectAt(arrivedAndRead);
+  return view;
+}
+
+describe("LP104: each quest finished since the last visit gets its own beat", { timeout: 30_000 }, () => {
+  it("after the excerpts' XP fills the bar, a sealed quest charges up giving nothing away, then bursts open with Quest complete, its goal and its bonus XP", async () => {
+    await finishQuests();
+
+    await at(questsStart - 0.1);
+    expect(theQuest()).toBeNull();
+    await at(questsStart + 0.02);
+    expect(xpWords(), "the excerpts' XP landed").toBe("530 XP to level 8");
+    expect(theTakeover()).toBeNull();
+    expect(theQuest()).toHaveAccessibleName("A quest finished");
+    expect(theQuest()).toHaveAttribute("data-stage", "charge");
+    expect(theQuest()).not.toHaveTextContent(/says why|XP/);
+    await at(firstBurst - 0.05);
+    expect(theQuest()).toHaveAttribute("data-stage", "charge");
+    await at(firstBurst + 0.06);
+    expect(theQuest()).toHaveAccessibleName("Quest complete: Give a kudos to someone");
+    expect(theQuest()).toHaveTextContent("+50 XP");
+    expect(xpWords(), "nothing streamed yet").toBe("530 XP to level 8");
+  });
+
+  it("streams its bonus XP into the bar on its own, then the hoggie it earned comes out of it face down, and the next quest follows quickly", async () => {
+    await finishQuests();
+
+    await at(firstBurst + 0.6 + 0.4);
+    expect(xpWords(), "halfway through the quest's stream").toBe("505 XP to level 8");
+    await at(firstReward + 0.06);
+    expect(xpWords()).toBe("480 XP to level 8");
+    expect(theQuest()).toHaveAttribute("data-stage", "reward");
+    expect(within(theQuest()!).getByText("An unidentified hoggie")).toBeInTheDocument();
+    expect(theQuest()!.querySelector(".ib-back")).not.toBeNull();
+
+    await at(secondStart + 0.06);
+    expect(theQuest()).toHaveAccessibleName("A quest finished");
+    await at(secondBurst + 0.06);
+    expect(theQuest()).toHaveAccessibleName("Quest complete: Thank 2 people you haven't thanked before.");
+    await at(secondReward + 0.06);
+    expect(xpWords()).toBe("460 XP to level 8");
+  });
+
+  it("after the last quest the level-up takeover plays", async () => {
+    await finishQuests();
+
+    await at(questsLanded - 0.1);
+    expect(theTakeover()).toBeNull();
+    await at(questsLanded + 0.06);
+    expect(theQuest()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+  });
+
+  it("a quest whose XP alone crosses the level plays the takeover after its beat", async () => {
+    const crossedByTheQuest: XpMoment = { ...busyReturn, quests: [saidWhy], climb: { from: standingAt(1460), to: standingAt(1520) } };
+    await returnTo({ moment: crossedByTheQuest, album: { ...withLevelSevenItems, level: crossedByTheQuest.climb.to } });
+    await collectAt(arrivedAndRead);
+
+    await at(firstBurst + 0.06);
+    expect(xpWords(), "the excerpts' XP stays below level 7").toBe("30 XP to level 7");
+    await at(firstReward + 0.06);
+    expect(xpWords(), "the quest's XP crossed it").toBe("580 XP to level 8");
+    expect(theTakeover()).toBeNull();
+    await at(secondStart + 0.06);
+    expect(theTakeover()).toHaveAccessibleName("You reached level 7");
+  });
+
+  it("a moment answered without quests or progress, as by the backend before them during a revert, plays as before", async () => {
+    const { quests: _, progressed: __, ...answeredBeforeQuests } = busyReturn;
+    await returnTo({ moment: answeredBeforeQuests as XpMoment, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(collectedAndStreamed + 0.02);
+    expect(theQuest()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+    await act(async () => fireEvent.click(theTakeover()!));
+    expect(within(theItemBoard()!).queryAllByRole("listitem", { name: /^Quest complete|progressed/ })).toEqual([]);
+  });
+
+  it("a quest whose reward waits in its crate streams no XP and says its reward waits there", async () => {
+    await returnTo({ moment: { ...busyReturn, quests: [{ ...twoNew, waiting: true }] }, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(firstReward + 0.06);
+    expect(theQuest()).toHaveTextContent("+20 XP");
+    expect(within(theQuest()!).getByText("Its reward waits in your crate")).toBeInTheDocument();
+    expect(theQuest()!.querySelector(".ib-back")).toBeNull();
+    expect(xpWords()).toBe("460 XP to level 8");
+  });
+
+  it("Skip and Esc land every quest's XP at once, end the moment as skipped and list the quests under the summary", async () => {
+    for (const land of [() => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })), () => fireEvent.keyDown(window, { key: "Escape" })]) {
+      const { actions, unmount } = await finishQuests();
+      await at(firstBurst + 0.06);
+
+      await act(async () => land());
+
+      expect(theCanvas()).toBeNull();
+      expect(xpWords()).toBe("460 XP to level 8");
+      expect(within(theItemBoard()!).getAllByRole("listitem", { name: /^Quest complete/ }).map((quest) => quest.textContent)).toEqual(["Quest complete: Give a kudos to someone+50 XP", "Quest complete: Thank 2 people you haven't thanked before.+20 XP"]);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it("reduced motion shows the end state at once with each quest listed under the summary and no beat", async () => {
+    preferReducedMotion();
+    await returnTo({ moment: { ...twoQuestsDone, quests: [saidWhy, { ...twoNew, waiting: true }] } });
+
+    expect(theCanvas()).toBeNull();
+    expect(within(theItemBoard()!).getAllByRole("listitem", { name: /^Quest complete/ }).map((quest) => quest.textContent)).toEqual(["Quest complete: Give a kudos to someone+50 XP", "Quest complete: Thank 2 people you haven't thanked before.+20 XP waits in your crate"]);
+  });
+
+  it("with no quest finished the summary lists none and the takeover follows the bar as before", async () => {
+    await returnTo({ album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(collectedAndStreamed + 0.02);
+    expect(theQuest()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+    await act(async () => fireEvent.click(theTakeover()!));
+    expect(within(theItemBoard()!).queryAllByRole("listitem", { name: /^Quest complete/ })).toEqual([]);
+  });
+});
+
+const twoNewMoved = { kind: "quest", name: "Thank 2 people you haven't thanked before", from: 0, to: 1, of: 2 } as const;
+
+const generousSoul = { kind: "milestone", name: "Generous soul", from: 7, to: 9, of: 25 } as const;
+
+const progressStart = collectedAndStreamed;
+
+const progressFilled = progressStart + 0.3;
+
+const secondProgressStart = progressStart + 1.7;
+
+const progressLanded = secondProgressStart + 1.7;
+
+function theProgress() {
+  return theCanvas() === null ? null : within(theCanvas()!).queryByRole("article", { name: /progressed/ });
+}
+
+function theProgressBar() {
+  return within(theProgress()!).getByRole("progressbar");
+}
+
+describe("LP107: each quest or milestone that progressed since the last visit gets its own beat", { timeout: 30_000 }, () => {
+  it("after the bar fills, each plays a short beat whose bar moves from where it stood at the last visit to now, and the takeover follows the last", async () => {
+    await returnTo({ moment: { ...busyReturn, progressed: [twoNewMoved, generousSoul] }, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(progressStart - 0.1);
+    expect(theProgress()).toBeNull();
+    await at(progressStart + 0.06);
+    expect(theProgress()).toHaveAccessibleName("Quest progressed: Thank 2 people you haven't thanked before");
+    expect(theProgressBar()).toHaveAttribute("aria-valuenow", "0");
+    expect(theProgressBar()).toHaveAttribute("aria-valuemax", "2");
+    expect(theProgress()).toHaveTextContent("0 of 2");
+    expect(theTakeover()).toBeNull();
+    await at(progressFilled + 0.06);
+    expect(theProgressBar()).toHaveAttribute("aria-valuenow", "1");
+    expect(theProgress()).toHaveTextContent("1 of 2");
+
+    await at(secondProgressStart + 0.06);
+    expect(theProgress()).toHaveAccessibleName("Milestone progressed: Generous soul");
+    expect(theProgress()).toHaveTextContent("7 of 25");
+    await at(secondProgressStart + 0.3 + 0.06);
+    expect(theProgress()).toHaveTextContent("9 of 25");
+
+    await at(progressLanded - 0.1);
+    expect(theTakeover()).toBeNull();
+    await at(progressLanded + 0.06);
+    expect(theProgress()).toBeNull();
+    expect(theTakeover()).toBeInTheDocument();
+  });
+
+  it("plays after the quests that finished", async () => {
+    await returnTo({ moment: { ...twoQuestsDone, progressed: [twoNewMoved] }, album: withLevelSevenItems });
+    await collectAt(arrivedAndRead);
+
+    await at(questsLanded - 0.1);
+    expect(theProgress()).toBeNull();
+    await at(questsLanded + 0.06);
+    expect(theQuest()).toBeNull();
+    expect(theProgress()).toHaveAccessibleName("Quest progressed: Thank 2 people you haven't thanked before");
+  });
+
+  it("Skip and Esc land everything and list what progressed under the summary, as reduced motion shows at once", async () => {
+    const listed = () => within(theItemBoard()!).getAllByRole("listitem", { name: /progressed/ }).map((moved) => moved.textContent);
+    const shownUnderTheSummary = ["Thank 2 people you haven't thanked before · 1 of 2", "Generous soul · 9 of 25"];
+    for (const land of [() => fireEvent.click(within(theCanvas()!).getByRole("button", { name: "Skip" })), () => fireEvent.keyDown(window, { key: "Escape" })]) {
+      const { actions, unmount } = await returnTo({ moment: { ...busyReturn, progressed: [twoNewMoved, generousSoul] }, album: withLevelSevenItems });
+      await collectAt(arrivedAndRead);
+      await at(progressFilled + 0.06);
+
+      await act(async () => land());
+
+      expect(theCanvas()).toBeNull();
+      expect(listed()).toEqual(shownUnderTheSummary);
+      expect(actions.endXpMoment).toHaveBeenCalledWith(busyReturn.since, busyReturn.until, true, { shown: busyReturn.excerpts.length, folded: busyReturn.fold!.count });
+      unmount();
+      vi.useRealTimers();
+    }
+
+    preferReducedMotion();
+    await returnTo({ moment: { ...busyReturn, progressed: [twoNewMoved, generousSoul] } });
+    expect(theCanvas()).toBeNull();
+    expect(listed()).toEqual(shownUnderTheSummary);
   });
 });

@@ -65,7 +65,7 @@ function visit(items: BoardItem[], teaches: LoopLesson = tacoLesson) {
 
 async function turnTheFirstItem(user: ReturnType<typeof visit>["user"]) {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }));
-  await user.click(board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+  await user.click(board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!);
   await screen.findByRole("heading", { level: 1, name: "Hoggies" });
 }
 
@@ -84,7 +84,7 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
 
     await turnTheFirstItem(user);
 
-    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 and say why.");
+    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 in a message.");
   });
 
   it("shows a custom kudos emoji as its picture", async () => {
@@ -120,7 +120,7 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
     await turnTheFirstItem(user);
     expect(theLesson()).not.toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "1 item waits" }));
+    await user.click(screen.getByRole("button", { name: "1 unidentified item waits" }));
     await turnTheFirstItem(user);
 
     expect(theLesson()).toBeNull();
@@ -128,7 +128,7 @@ describe("LP49: after the welcome item turns, one line teaches the loop", () => 
 });
 
 function theFaceDownItemsNow() {
-  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "A face-down item. Turn it over" });
+  return within(screen.getByRole("dialog", { name: "Your items" })).getAllByRole("button", { name: "An unidentified item. Identify it" });
 }
 
 async function turnOnFakeTime(item: HTMLElement) {
@@ -144,7 +144,7 @@ describe("LP49: with full motion and another item still waiting, the board that 
     await screen.findByRole("dialog", { name: "Your items" });
 
     await turnOnFakeTime(theFaceDownItemsNow()[0]!);
-    expect(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("note", { name: "How the next item comes" })).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 and say why.");
+    expect(within(screen.getByRole("dialog", { name: "Your items" })).getByRole("note", { name: "How the next item comes" })).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 in a message.");
 
     await turnOnFakeTime(theFaceDownItemsNow()[0]!);
     expect(theLesson()).toBeNull();

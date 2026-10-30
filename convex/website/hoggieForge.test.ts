@@ -7,7 +7,7 @@ import { memberChanged, settleInTimeOrder, testBackend, type Backend } from "../
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { hoggiesOfRarity } from "../hoggies/catalogue";
+import { hoggiesOfRarity } from "../album/hoggies/catalogue";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 
@@ -200,7 +200,7 @@ describe("HF11: hoggie-forge is read for the member without an exposure", { time
     await signedIn(ann);
     const before = await everyTable();
 
-    expect(await hoggiesOf(ann)).toHaveProperty("forge", true);
+    expect(await hoggiesOf(ann)).toHaveProperty("forge", { upTo: "legendary" });
 
     expect(await everyTable()).toEqual(before);
   });
@@ -225,6 +225,50 @@ describe("HF11: hoggie-forge is read for the member without an exposure", { time
   });
 });
 
+describe("HH43: while rarity-caps is on, the forge stops at rare", { timeout: 60_000 }, () => {
+  test("four copies of a common and of an uncommon forge, while four of a rare and of an epic are refused and write nothing", async () => {
+    await serving(...[...albumFlags, "hoggie-forge", "rarity-caps"].map(onForEveryone));
+    await holds(t, await aTeammate(ann), ...fourOf("banana"), ...fourOf("cake"), ...fourOf("ape"), ...fourOf("angel"));
+
+    expect(await forges(ann, "banana"), "the common").toEqual({ kind: "forged", item: expect.any(String) });
+    expect(await forges(ann, "cake"), "the uncommon").toEqual({ kind: "forged", item: expect.any(String) });
+    const before = await everyTable();
+    expect(await forges(ann, "ape"), "the rare").toEqual({ kind: "refused" });
+    expect(await forges(ann, "angel"), "the epic").toEqual({ kind: "refused" });
+
+    expect(await everyTable()).toEqual(before);
+  });
+
+  test("with rarity-caps off, four copies of a rare and of an epic forge as before", async () => {
+    await holds(t, await aTeammate(ann), ...fourOf("ape"), ...fourOf("angel"));
+
+    expect(await forges(ann, "ape"), "the rare").toEqual({ kind: "forged", item: expect.any(String) });
+    expect(await forges(ann, "angel"), "the epic").toEqual({ kind: "forged", item: expect.any(String) });
+  });
+
+  test.each([
+    ["on", "rare", ["rarity-caps"]],
+    ["off", "legendary", []],
+  ] as const)("with rarity-caps %s, the Hoggies page offers forges up to %s, and reading it exposes nothing", async (_, upTo, caps) => {
+    await serving(...[...albumFlags, "hoggie-forge", ...caps].map(onForEveryone));
+    await holds(t, await aTeammate(ann), "banana");
+    await signedIn(ann);
+    const before = await everyTable();
+
+    expect(await hoggiesOf(ann)).toHaveProperty("forge", { upTo });
+
+    expect(await everyTable()).toEqual(before);
+  });
+
+  test("a rare forged before rarity-caps turned on still turns into an epic, as it was promised", async () => {
+    await holds(t, await aTeammate(ann), ...fourOf("ape"));
+    const forged = itemOf(await forges(ann, "ape"));
+    await serving(...[...albumFlags, "hoggie-forge", "rarity-caps"].map(onForEveryone));
+
+    expect(await turns(ann, forged)).toMatchObject({ kind: "turned", face: { kind: "hoggie", drop: { rarity: "epic" } } });
+  });
+});
+
 describe("website commands pass one guard", { timeout: 60_000 }, () => {
   test("WS61: with the website flag off, a forge answers closed and writes nothing at all", async () => {
     await holds(t, await aTeammate(ann), "banana", "banana", "banana", "banana");
@@ -246,6 +290,10 @@ describe("website commands pass one guard", { timeout: 60_000 }, () => {
     expect(await everyTable()).toEqual(before);
   });
 });
+
+function fourOf(hoggie: string) {
+  return [hoggie, hoggie, hoggie, hoggie];
+}
 
 function everyTable() {
   return t.run(async (ctx) => {

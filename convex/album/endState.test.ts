@@ -16,8 +16,8 @@ import { setMondayPost } from "../leaderboard/mondayPost";
 import { xpToReach } from "../progression/levels";
 import { openUnlock } from "../unlocks/unlocks";
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+vi.mock("./hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./hoggies/draw")>();
   const named = (id: string) => namedIds.get(id) ?? id;
   const pinned = <Input extends { member: string; crate: string }>(input: Input): Input => ({ ...input, member: named(input.member), crate: input.crate.replace(/[^:]+/g, named) });
   return {
@@ -131,9 +131,9 @@ function expectTheAlbumsWholeLoop({ album, moments, albumEvents }: Walk) {
   expect(alices.hoggies).toMatchObject({ kind: "hoggies" });
   expect(album.U_CAROL_LINDQVIST!.boards).toMatchObject({ kind: "boards", people: expect.arrayContaining([expect.objectContaining({ name: alice.name })]) });
   expect([alices.person, alices.week, album.U_BOB_OKONKWO!.profile, alices.mappings].map((read) => (read as { kind: string }).kind)).toEqual(["person", "week", "profile", "mappings"]);
-  expect(moments.threadReplies.map(({ text }) => text), "a thread reply after each thoughtful kudos").toEqual(["Bob is new in your album · Carol is new in your album", "Alice is new in your album", "Bob is new in your album"]);
+  expect(moments.threadReplies.map(({ text }) => text), "a thread reply after each kudos").toEqual(["Bob is new in your album · Carol is new in your album", "Alice is new in your album", "Bob is new in your album", "Bob is new in your album"]);
   expect(moments.recaps.find(({ channel: to }) => to === alice.user)?.text, "Alice's recap line").toContain("Emojis you earned last week: :lantern-glow:, bob-okonkwo-hype, carol-lindqvist-hype");
-  expect(moments.weeklyPosts.map(({ text }) => text.split("\n")[0]), "the weekly post").toEqual(["🏆 Last week's top thoughtful kudos"]);
+  expect(moments.weeklyPosts.map(({ text }) => text.split("\n")[0]), "the weekly post").toEqual(["🏆 Last week's top kudos"]);
   expect(new Set(albumEvents.map(({ event }) => event))).toEqual(new Set(["app home opened", "member welcomed", "kudos given", "kudos received", "packs earned", "person collected", "hoggie dropped", "album sticker collected", "hug given", "hugs recap sent"]));
 }
 

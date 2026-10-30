@@ -4,6 +4,7 @@ import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { boardsFixtures } from "./album/boardsFixtures";
 import { Root } from "./Root";
 import { settingsFixtures } from "./settingsFixtures";
 import { shellFixtures } from "./shell";
@@ -27,7 +28,7 @@ vi.mock("convex/browser", async (importOriginal) => ({
       this.token = token;
     }
     mutation(mutation: FunctionReference<"mutation">, args: unknown) {
-      return sentOverHttp({ address: this.address, token: this.token, mutation: getFunctionName(mutation), args });
+      return Promise.resolve(sentOverHttp({ address: this.address, token: this.token, mutation: getFunctionName(mutation), args }));
     }
   },
 }));
@@ -203,6 +204,15 @@ describe("WS5: a sign-in started on a deep link comes back to it", () => {
 
     expect(authActions.signIn).toHaveBeenCalledWith("slack", { redirectTo: address });
   });
+
+  it("MQ22 MQ28: asks Convex Auth to bring a member who opened a DM link at /sign-in/book#me/quests back to /book#me/quests", async () => {
+    window.history.replaceState(null, "", "/sign-in/book#me/quests");
+    profileRead.mockReturnValue(shellFixtures.signedOut);
+    authActions.signIn.mockResolvedValue({ signingIn: false });
+    renderLiveSite();
+
+    await waitFor(() => expect(authActions.signIn).toHaveBeenCalledWith("slack", { redirectTo: "/book#me/quests" }));
+  });
 });
 
 describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait", () => {
@@ -338,6 +348,32 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     boardRead.mockImplementation((query: string, args: unknown) => (query === "website/album:getAlbum" ? album : otherReads(query, args)));
   }
 
+  it("E2: the Leaderboard sends its view of this week as one viewLeaderboard over HTTP with the session's token", async () => {
+    showTheAlbum(albumV1, (query) => (query === "website/album:getThoughtfulBoards" ? boardsFixtures.week : undefined));
+    sentOverHttp.mockResolvedValue({ kind: "viewed" });
+    window.history.replaceState(null, "", "/leaderboard");
+
+    renderLiveSite();
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:viewLeaderboard", args: { period: "week" } }));
+  });
+
+  it("E2: a Leaderboard view the network drops is let go, leaving no unhandled rejection", async () => {
+    const unhandled: unknown[] = [];
+    const keep = (reason: unknown) => void unhandled.push(reason);
+    process.on("unhandledRejection", keep);
+    showTheAlbum(albumV1, (query) => (query === "website/album:getThoughtfulBoards" ? boardsFixtures.week : undefined));
+    sentOverHttp.mockRejectedValue(new TypeError("Failed to fetch"));
+    window.history.replaceState(null, "", "/leaderboard");
+
+    renderLiveSite();
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledOnce());
+    await new Promise((settled) => setTimeout(settled, 0));
+    process.off("unhandledRejection", keep);
+    expect(unhandled).toEqual([]);
+  });
+
   it("a member getMyProfile says album for gets the album from one getAlbum subscription, with what the read doesn't answer yet left empty", async () => {
     showTheAlbum(albumV1);
     window.history.replaceState(null, "", "/");
@@ -366,7 +402,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
 
     const bar = within((await screen.findAllByRole("banner"))[0]!);
     await user.click(await bar.findByRole("button", { name: "Your emojis, 2 earned" }));
-    expect(within(screen.getByRole("region", { name: "Levels 1 of 2" })).getAllByRole("listitem")[0]).toHaveTextContent(":level-5:You reached level-5");
+    expect(within(screen.getByRole("region", { name: "Levels 1 of 2" })).getAllByRole("listitem")[0]).toHaveTextContent(/^:level-5:(New)?You reached level-5/);
   });
 
   it("AL49: /leaderboard reads the boards from one getThoughtfulBoards subscription, which no other album page opens", async () => {
@@ -403,7 +439,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     const thisWeek = { kind: "week", week: "2026-10-12", thisWeek: "2026-10-12", weeks, issue: { ...quiet, kudosGiven: 1, thoughtfulGiven: 1, days: weeks[0]!.days, thanked: { people: [ines], more: 0 }, given: { kudos: [thanksToInes], more: false } } };
     const lastWeek = { kind: "week", week: "2026-10-05", thisWeek: "2026-10-12", weeks, issue: quiet };
     const weekAnswer = (args: { week?: string }) => (args.week === "2026-10-05" ? lastWeek : thisWeek);
-    showTheAlbum(albumV1, (query, args) => (query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : undefined));
+    showTheAlbum(albumV1, (query, args) => (query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : query === "website/activity:getActivityWeek" ? { kind: "edition" } : undefined));
     window.history.replaceState(null, "", "/book#milestones");
     const { user } = renderLiveSite();
     await screen.findByRole("heading", { level: 1, name: "Milestones" });
@@ -416,8 +452,23 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
 
     await user.click(screen.getByRole("tab", { name: /^Last week/ }));
 
-    expect(await screen.findByText("A quiet week. Thank someone in Slack and say why, and it shows here.")).toBeInTheDocument();
+    expect(await screen.findByText("A quiet week. Give someone a kudos in Slack, and it shows here.")).toBeInTheDocument();
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbumWeek")).toEqual([{ query: "website/album:getAlbumWeek", args: { week: "2026-10-05" } }]);
+  });
+
+  it("HH61: while activity-next is on, /activity reads getActivityWeek alone and leads with the next step", async () => {
+    const nextStep = { kind: "week", next: { kind: "empty" }, kudos: { kudosEmoji: "hedgehug", kudosEmojiImage: null }, slack: "https://app.slack.com/client/T1" };
+    showTheAlbum(albumV1, (query) => (query === "website/activity:getActivityWeek" ? nextStep : undefined));
+    window.history.replaceState(null, "", "/book#milestones");
+    const { user } = renderLiveSite();
+    await screen.findByRole("heading", { level: 1, name: "Milestones" });
+    expect([...subscriptions].map(({ query }) => query)).not.toContain("website/activity:getActivityWeek");
+
+    await user.click(within((await screen.findAllByRole("banner"))[0]!).getByRole("link", { name: "Activity" }));
+
+    expect(within(await screen.findByRole("region", { name: "Your next step" })).getByRole("heading", { level: 2, name: "Give your first hug" })).toBeInTheDocument();
+    expect([...subscriptions].filter(({ query }) => query === "website/activity:getActivityWeek")).toEqual([{ query: "website/activity:getActivityWeek", args: {} }]);
+    expect([...subscriptions].map(({ query }) => query)).not.toContain("website/album:getAlbumWeek");
   });
 
   it("the people getAlbum holds are found in the sidebar, before their teams are answered", async () => {
@@ -458,7 +509,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     renderLiveSite();
 
     expect(await screen.findByRole("link", { name: "Omar Siddiqui Not in your album yet" })).toHaveAttribute("href", "/book#people/m-omar");
-    expect(screen.getByRole("figure", { name: "Left to right Ines Okafor, Omar Siddiqui" })).toBeInTheDocument();
+    expect(screen.getByRole("figure", { name: "Lanterns team photo" })).toBeInTheDocument();
   });
 
   it("AL46: a person page subscribes to getAlbumPerson for the person in its address, and only there", async () => {

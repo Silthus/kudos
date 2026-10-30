@@ -1,8 +1,15 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures } from "./shell";
-import { albumFixtures, fixedAlbum } from "./album/albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople } from "./album/albumFixtures";
+import type { Album } from "./album/answer";
+import { boardsFixtures, fixedBoards } from "./album/boardsFixtures";
+import { fixedHoggies, hoggiesFixtures } from "./album/hoggiesFixtures";
+import { fixedPlayerCards } from "./album/playerCardFixtures";
+import { fixedProfile, profileFixtures } from "./album/profileFixtures";
+import { fixedQuests, questsFixtures } from "./album/questsFixtures";
+import { fixtureWeeks } from "./album/weekFixtures";
 import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import { findTheAlbum, renderAlbum, renderApp, renderSettingsPage } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
@@ -216,6 +223,58 @@ describe("F28: a link from Slack that asks to sign in", () => {
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(actions.signIn).not.toHaveBeenCalled();
+  });
+});
+
+describe("MQ22 MQ28: a DM link keeps its quests through sign-in", { timeout: 30_000 }, () => {
+  const arrival = { timeout: 10_000 };
+
+  function openAsAMember(address: string) {
+    window.history.replaceState(null, "", address);
+    const album: Album = { ...albumFixtures.midway, personPageD: true, linkPreviews: true };
+    return renderAlbum(shellFixtures.member, fixedAlbum(album), {
+      quests: fixedQuests(questsFixtures.newcomer),
+      playerCards: fixedPlayerCards(),
+      weeks: fixtureWeeks(),
+      people: fixedPeople(album),
+      boards: fixedBoards(boardsFixtures.week),
+      profile: fixedProfile(profileFixtures.noted),
+      hoggies: fixedHoggies(hoggiesFixtures.glance),
+    });
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each([
+    { visitor: shellFixtures.signedOut, address: "/book#me/quests" },
+    { visitor: shellFixtures.signedOut, address: "/book#me/quests/someone-new" },
+    { visitor: shellFixtures.closed, address: "/book#me/quests" },
+  ])("a $visitor.kind visitor opening /sign-in$address goes to Slack to come back to $address", async ({ visitor, address }) => {
+    window.history.replaceState(null, "", `/sign-in${address}`);
+    const { actions } = renderApp(visitor);
+
+    await waitFor(() => expect(actions.signIn).toHaveBeenCalledWith(address));
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe(address);
+  });
+
+  it.each([
+    { address: "/sign-in/book#me/quests", page: "/book" },
+    { address: "/book#me/quests", page: "/book" },
+    { address: "/book?code=12345678#me/quests", page: "/book?code=12345678" },
+  ])("a member opening $address lands with the quests panel open, at $page", async ({ address, page }) => {
+    const { actions } = openAsAMember(address);
+
+    expect(await screen.findByRole("complementary", { name: "Quests" }, arrival)).toBeInTheDocument();
+    expect(window.location.pathname + window.location.search).toBe(page);
+    expect(actions.signIn).not.toHaveBeenCalled();
+  });
+
+  it("a member back from Slack with /book#me/quests/someone-new lands with the step's how-to open", async () => {
+    openAsAMember("/book?code=12345678#me/quests/someone-new");
+
+    const panel = within(await screen.findByRole("complementary", { name: "Quests" }, arrival));
+    const step = within(panel.getByRole("listitem", { name: /^Thank someone new:/ }));
+    expect(await step.findByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
   });
 });
 

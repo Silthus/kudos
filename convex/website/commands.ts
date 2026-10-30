@@ -6,13 +6,14 @@ import { republish, type HomeMember } from "../feedback/homes";
 import { countingGroupsOf, groupsShownTo, primaryGroupOf } from "../groups/groups";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
-import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSettings";
+import { placesChosenFrom } from "../messageSettings/kinds";
+import { kindAppliesTo, placeOf } from "../messageSettings/messageSettings";
 import { isOnTheBoards } from "../leaderboard/visibility";
-import { avatarOf, type Avatar } from "../hoggies/avatar";
-import { boughtCrateOpened, crateStoreOf, openedCrateDropOf } from "../hoggies/boughtCrates";
-import { crateKindOf, dropsAHoggie, type CrateKey } from "../hoggies/crateKey";
-import { dropOf, packOf, type Drop } from "../hoggies/drops";
-import { avatarShownTo, hoggiesShownTo, packsShownTo } from "../hoggies/flag";
+import { avatarOf, type Avatar } from "../album/hoggies/avatar";
+import { boughtCrateOpened, crateStoreOf, openedCrateDropOf } from "../album/hoggies/boughtCrates";
+import { crateKindOf, dropsAHoggie, type CrateKey } from "../album/hoggies/crateKey";
+import { dropOf, packOf, type Drop } from "../album/hoggies/drops";
+import { avatarShownTo, hoggiesShownTo, packsShownTo } from "../album/hoggies/flag";
 import { crateOpeningOf, questOfRewardKey, rewardKeyOf } from "../quests/crates";
 import type { Refusal } from "../progression/purchases";
 import { rewardOf, type AppliedReward, type StandingWithCoins } from "../progression/rewards";
@@ -20,7 +21,7 @@ import { perkValidator } from "../progression/tree";
 import { questsApplyTo } from "../quests/flag";
 import { questValidator, weeklyQuestValidator, type Quest } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
-import type { CrateRefusal } from "../hoggies/records";
+import type { CrateRefusal } from "../album/hoggies/records";
 import type { ItemRefusal } from "../store/rows";
 import { storeVisibleTo } from "../store/visibility";
 import { featureCrateKeyOf, featureOfCrateKey, featureValidator, type Feature } from "../unlocks/feature";
@@ -407,7 +408,7 @@ async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMembe
 
 async function placeOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, kind: MessageKind, place: MessagePlace) {
   if (!(await messageSettingsOnFor(ctx, me.member)) || !(await kindAppliesTo(ctx, me.member, kind))) return false;
-  return (await placesOf(ctx, me.member, kind)).includes(place) && (await noLaunchWaitsFor(ctx, me));
+  return placesChosenFrom[kind].includes(place) && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function groupOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, group: string) {

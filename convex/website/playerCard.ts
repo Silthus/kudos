@@ -1,16 +1,18 @@
 import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
-import { weekPlaceOf, type BoardPlace } from "../album/boards";
 import { emojiStackOf, type EmojiStack } from "../album/earnedEmojis";
 import { albumShownTo, personPageDShownTo } from "../album/flag";
-import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie } from "../album/hoggies";
+import { albumHoggiesOf, rarestFindsIn, type AlbumHoggie } from "../album/albumHoggies";
 import { personTeamsOf, type PersonTeam } from "../album/personPage";
 import { newestStickersOf } from "../album/profile";
 import type { MilestoneId, MilestoneTier } from "../album/records";
 import { peopleHeldBy } from "../album/stickers";
 import { anEmptyWeek, weekAt, weekRowOf, weekTallyIn } from "../album/tallies";
-import { hoggiesShownTo } from "../hoggies/flag";
-import { tiersTurnedBy } from "../items/milestoneUnlocks";
+import { hoggiesShownTo } from "../album/hoggies/flag";
+import { tiersTurnedBy } from "../album/items/milestoneUnlocks";
+import { placeOf, type BoardPlace } from "../leaderboard/boards";
+import { totalsOf } from "../leaderboard/counts";
+import { keyOf } from "../leaderboard/periods";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { isAPersonOf, type MemberId } from "../workspace/directory";
 import { levelOf, type AlbumAnswer } from "./album";
@@ -77,7 +79,7 @@ export async function playerCardOf(ctx: QueryCtx, workspace: string, person: Mem
     ...(await faceIn(ctx, workspace, person)),
     team,
     level: (await xpLevelsShownIn(ctx, workspace)) ? await levelOf(ctx, person) : null,
-    place: await weekPlaceOf(ctx, { workspace, member: person }),
+    place: await placeOf(ctx, { workspace, member: person }, "week"),
     people: await peopleOf(ctx, workspace, person),
     hoggies: await hoggiesOf(ctx, person),
     medals: await medalsOf(ctx, person),
@@ -112,8 +114,10 @@ async function medalsOf(ctx: QueryCtx, person: MemberId): Promise<PlayerCard["me
 }
 
 async function cardWeekOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<CardWeek> {
-  const row = await weekRowOf(ctx, person, await weekAt(ctx, person, Date.now()));
-  const { days, thanked, thankedBy, packsOpened = 0, hugsGiven, hugsReceived, kudosOfWeek } = row === null ? anEmptyWeek() : weekTallyIn(row);
+  const week = await weekAt(ctx, person, Date.now());
+  const row = await weekRowOf(ctx, person, week);
+  const { days, thanked, thankedBy, packsOpened = 0, kudosOfWeek } = row === null ? anEmptyWeek() : weekTallyIn(row);
+  const { hugsGiven, hugsReceived } = await totalsOf(ctx, person, keyOf("week", week));
   return {
     days,
     thanked: thanked.people.length + thanked.more,

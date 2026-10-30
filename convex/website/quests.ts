@@ -1,7 +1,9 @@
 import type { QueryCtx } from "../_generated/server";
+import { reportQuestsViewed } from "../analytics/isolatedUsage";
+import { questsSurfaceValidator } from "../analytics/projections";
 import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
-import { questsApplyTo } from "../quests/flag";
+import { onTheMondayPath, questsApplyTo, questsFor } from "../quests/flag";
 import { earlierGroupCratesOf, groupQuestAppliesTo, groupQuestFor, type WaitingGroupCrate } from "../quests/groupQuest";
 import { projectedJourneyOf, type ProjectedJourneyStep, type Reward } from "../quests/journey";
 import { journeyCopyFor } from "../quests/journeyCopy";
@@ -14,7 +16,9 @@ import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
 import { coinsVisibleTo } from "../wallet/visibility";
 import { followTheClock } from "./clock";
+import { memberMutation } from "./memberMutation";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
+import { mondayQuestsOf, type MondayQuests } from "./mondayQuests";
 import { seenKeyOf } from "./seen";
 import { unlockPathOf } from "./unlockPath";
 
@@ -52,7 +56,9 @@ export type GroupQuestCard = {
 
 export type WeekSwap = { used: boolean; available: boolean };
 
-export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; swap: WeekSwap; group: GroupQuestCard | null; waiting: WaitingCrate[]; bonus: JourneyStep | null; chatUrl: string };
+export type { DrawnQuest, GettingStartedStep, MondayQuests, QuestItemState } from "./mondayQuests";
+
+export type QuestsAnswer = MondayQuests | { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; swap: WeekSwap; group: GroupQuestCard | null; waiting: WaitingCrate[]; bonus: JourneyStep | null; chatUrl: string };
 
 export type JourneyStep = {
   step: JourneyQuest["step"];
@@ -72,8 +78,12 @@ type Shown = { me: VerifiedMember; coins: boolean };
 
 const kindLabels: Record<PoolQuest["kind"], QuestKind> = { thoughtfulness: "Say why", breadth: "Reach out", participation: "Join in" };
 
+export type QuestsViewAnswer = { kind: "viewed" } | { kind: "refused" };
+
 export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
-  if (!(await questsApplyTo(ctx, me.member))) return { kind: "not-found" };
+  const path = await questsFor(ctx, me.member);
+  if (path === "monday") return mondayQuestsOf(ctx, me);
+  if (path === null) return { kind: "not-found" };
   const quests = (await unlockPathOf(ctx, me))?.find(({ feature }) => feature === "quests");
   if (quests === undefined) return { kind: "not-found" };
   if (quests.state === "locked") return { kind: "locked", level: scheduled("quests").level };
@@ -91,6 +101,15 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
     bonus: await bonusStepOf(ctx, shown),
     chatUrl: workspaceLink(me.workspace),
   };
+});
+
+export const viewQuests = memberMutation({
+  args: { surface: questsSurfaceValidator },
+  handler: async (ctx, me, _person, { surface }): Promise<QuestsViewAnswer> => {
+    if (!(await onTheMondayPath(ctx, me.member))) return { kind: "refused" };
+    await reportQuestsViewed(ctx, { workspace: me.workspace, member: me.member, surface, at: Date.now() });
+    return { kind: "viewed" };
+  },
 });
 
 export async function journeyStepsOf(ctx: QueryCtx, me: VerifiedMember): Promise<JourneyStep[] | null> {

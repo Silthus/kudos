@@ -1,10 +1,10 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { earnTeamItem } from "../items/achievements";
+import { earnTeamItem } from "./items/achievements";
 import { teamEmojiNameOf } from "./emojiNames";
 import { recordMilestonesOf } from "./milestones";
 import type { Instants } from "./packs";
 import type { TeamSticker } from "./records";
-import { markEmojiSeen } from "./earnedEmojis";
+import { markEmojiSeen, teamEmojiOf, type ShownEmoji } from "./earnedEmojis";
 import { teamPagesOf, type PageOwner, type TeamPage } from "./teamPages";
 
 export async function unlockTeamStickerOf(ctx: MutationCtx, owner: PageOwner, team: string, at: number): Promise<TeamSticker | null> {
@@ -31,9 +31,17 @@ async function insertTeamSticker(ctx: MutationCtx, owner: PageOwner, { team, nam
   return sticker;
 }
 
-export type TeamStickersUnlocked = Pick<TeamSticker, "team" | "name" | "art"> & { count: number };
+type TeamStickersUnlocked = Pick<TeamSticker, "team" | "name" | "art"> & { count: number };
 
-export async function teamStickersUnlockedIn(ctx: QueryCtx, workspace: string, { from, to }: Instants, most: number): Promise<TeamStickersUnlocked[]> {
+export type UnlockedTeam = Pick<TeamSticker, "name"> & { count: number; emoji: ShownEmoji | null };
+
+export async function teamsUnlockedIn(ctx: QueryCtx, workspace: string, week: Instants, most: number): Promise<UnlockedTeam[]> {
+  const teams: UnlockedTeam[] = [];
+  for (const unlocked of await teamStickersUnlockedIn(ctx, workspace, week, most)) teams.push({ name: unlocked.name, count: unlocked.count, emoji: await teamEmojiOf(ctx, workspace, unlocked) });
+  return teams;
+}
+
+async function teamStickersUnlockedIn(ctx: QueryCtx, workspace: string, { from, to }: Instants, most: number): Promise<TeamStickersUnlocked[]> {
   const unlocked = await ctx.db
     .query("teamStickers")
     .withIndex("by_workspace_at", (q) => q.eq("workspace", workspace).gte("at", from).lt("at", to))

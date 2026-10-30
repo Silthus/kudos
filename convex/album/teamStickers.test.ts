@@ -178,11 +178,9 @@ describe("AL19: unlocking a team sticker", { timeout: 60_000 }, () => {
     expect(await everyTable()).toEqual(before);
   });
 
-  test("a page completed from the album's history alone, before any thoughtful pack opened the emoji name registry, unlocks with its team's name reserved in the registry's order", async () => {
+  test("a page completed from the album's history alone, before any pack opened the emoji name registry, unlocks with its team's name reserved in the registry's order", async () => {
     await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(...otters) }, { slug: "lanterns", name: "Lanterns", profiles: profilesOf(...lanterns) });
-    await thanks(alice, "ty", ...otters);
-    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
-    await settle(t);
+    for (const otter of otters) await aStickerTheHistoryBrought(alice, otter);
     const asAlice = await signedIn(alice);
     expect(await emojiNamesIn("T1"), "no name before the unlock").toEqual([]);
 
@@ -408,4 +406,9 @@ function everyTable() {
     for (const table of Object.keys(schema.tables) as Array<keyof typeof schema.tables>) rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
+}
+
+async function aStickerTheHistoryBrought(member: Person, person: Person) {
+  const [memberId, personId] = [await memberOf(member), await memberOf(person)];
+  await t.run((ctx) => ctx.db.insert("albumStickers", { member: memberId, person: personId, from: "history", at: Date.now() }));
 }

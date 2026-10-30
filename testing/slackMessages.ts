@@ -224,6 +224,24 @@ export function channelCreatedEvent(channel: string, options: { team?: string; e
   return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000) });
 }
 
+export function channelSharedEvent(channel: string, options: { team?: string; eventId?: string } = {}) {
+  return channelEventCallback({ type: "channel_shared", connected_team_id: "T_PARTNER", channel, event_ts: "1760349600.000100" }, options);
+}
+
+export function channelRenameEvent(channel: string, name: string, options: { team?: string; eventId?: string; isPrivate?: boolean } = {}) {
+  return channelEventCallback({ type: options.isPrivate === true ? "group_rename" : "channel_rename", channel: { id: channel, name, created: Math.floor(Date.now() / 1000) } }, options);
+}
+
+export function memberJoinedChannelEvent(channel: string, user: string, options: { team?: string; eventId?: string; isPrivate?: boolean } = {}) {
+  return channelEventCallback({ type: "member_joined_channel", user, channel, channel_type: options.isPrivate === true ? "G" : "C", team: options.team ?? "T1", inviter: "U_ALICE" }, options);
+}
+
+function channelEventCallback(event: object, options: { team?: string; eventId?: string }) {
+  eventCounter += 1;
+  const team = options.team ?? "T1";
+  return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000), authorizations: [{ team_id: team, user_id: kudosAppBotUser, is_bot: true }] });
+}
+
 export type LinkSharedOptions = { team?: string; user?: string; channel?: string; messageTs?: string; eventId?: string; source?: "conversations_history" | "composer"; unfurlId?: string; externallyShared?: boolean | "unsaid" };
 
 export function linkSharedEvent(urls: string[], options: LinkSharedOptions = {}) {

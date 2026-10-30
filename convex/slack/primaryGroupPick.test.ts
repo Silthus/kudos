@@ -29,11 +29,10 @@ const form = { contentType: "application/x-www-form-urlencoded" };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const welcomeLine = "Welcome to HedgeHug, where we thank each other for the help that usually goes unnoticed.";
-const sayWhy = "Say why you're thanking them: it means more.";
 const greetingOf = {
-  U_ANN: ["🎉 *Your first kudos just landed with <@U_BOB>!*", welcomeLine, `👉 *Next step:* thank two more teammates this week. ${sayWhy}`],
-  U_BOB: ["🎉 *<@U_ANN> just thanked you with a kudos!*", welcomeLine, `👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in. ${sayWhy}`],
-  U_DAN: ["🎉 *<@U_ANN> just thanked you with a kudos!*", welcomeLine, `👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in. ${sayWhy}`],
+  U_ANN: ["🎉 *Your first kudos just landed with <@U_BOB>!*", welcomeLine, `👉 *Next step:* thank two more teammates this week.`],
+  U_BOB: ["🎉 *<@U_ANN> just thanked you with a kudos!*", welcomeLine, `👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in.`],
+  U_DAN: ["🎉 *<@U_ANN> just thanked you with a kudos!*", welcomeLine, `👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in.`],
 };
 type Welcomed = keyof typeof greetingOf;
 const allowance = "You have 3 kudos a day, and they refill at midnight your time.";

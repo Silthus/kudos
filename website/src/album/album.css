@@ -249,6 +249,29 @@
   margin-inline-start: 0.375rem;
 }
 
+.al-emojis-new {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.375rem;
+  z-index: 2;
+  border-radius: 999px;
+  background: var(--al-accent-ink);
+  padding: 0 0.375rem;
+  box-shadow: 0 0 0 2px var(--card);
+  color: var(--al-count-ink);
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.125rem;
+  pointer-events: none;
+}
+
+.al-emoji-copy {
+  position: fixed;
+  z-index: 70;
+  margin: 0;
+  pointer-events: none;
+}
+
 .al-tray-count {
   border-radius: 999px;
   background: var(--al-accent-ink);
@@ -729,7 +752,7 @@
   height: 0.75rem;
 }
 
-.al-page-body {
+:where(.al-page-body) {
   display: flex;
   max-width: 52rem;
   flex-direction: column;
@@ -1234,6 +1257,148 @@
 
 .al-activity {
   max-width: 64rem;
+}
+
+.al-your-week {
+  max-width: 64rem;
+  gap: 1.25rem;
+}
+
+.al-next-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 2rem;
+  border: 2px solid var(--al-accent);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, var(--al-accent-soft), transparent 70%), var(--card);
+  padding: 1.75rem 2rem;
+}
+
+.al-next-step-words {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.al-way-chip {
+  border-radius: 999px;
+  background: var(--al-accent-soft);
+  padding: 0.125rem 0.625rem;
+  color: var(--al-accent-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.al-next-step-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.al-next-step-why {
+  margin: 0;
+  max-width: 28rem;
+}
+
+.al-hug-picture {
+  transform: rotate(-1.5deg);
+}
+
+.al-hug-picture .xpm-slack {
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.15), 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.al-your-week-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.al-week-box {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  padding: 1.25rem;
+}
+
+.al-week-box-title {
+  margin: 0;
+  color: var(--al-quiet);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.al-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.al-check {
+  display: grid;
+  grid-template-columns: 1.125rem minmax(0, 1fr);
+  gap: 0.625rem;
+}
+
+.al-check-box {
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  border: 2px solid var(--al-quiet);
+  border-radius: 0.3125rem;
+}
+
+.al-check[data-done] .al-check-box {
+  border-color: var(--al-done);
+  background: var(--al-done);
+  color: var(--al-done-ink);
+}
+
+.al-check-box svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.al-check-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.al-check-goal {
+  font-weight: 700;
+}
+
+.al-check-note {
+  color: var(--al-quiet);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 48rem) {
+  .al-next-step,
+  .al-your-week-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .al-next-step {
+    padding: 1.25rem;
+  }
 }
 
 .al-week-tabs {

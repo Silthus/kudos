@@ -102,8 +102,8 @@ describe("AT25: what each given kudos earned", () => {
     expect(finishing?.earned).toEqual({
       xp: 20,
       questsDone: [
-        { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false },
-        { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: false },
+        { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false, hoggie: false },
+        { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: false, hoggie: false },
       ],
       bonuses: [],
     });
@@ -117,7 +117,7 @@ describe("AT25: what each given kudos earned", () => {
 
     expect(givenEntries(await activityOf(alice, { filter: "given" })).map(({ earned }) => earned)).toEqual([
       { xp: 10, questsDone: [], bonuses: [] },
-      { xp: 10, questsDone: [{ kind: "journey", goal: "Give a kudos that says why.", xp: 10, waiting: false }], bonuses: [] },
+      { xp: 10, questsDone: [{ kind: "journey", goal: "Give a kudos that says why.", xp: 10, waiting: false, hoggie: false }], bonuses: [] },
     ]);
   });
 
@@ -142,15 +142,15 @@ describe("CR12: a quest's reward finished while crate-rewards is on waits in the
     await thank([bob, carol], saysWhy);
 
     expect(await questsDoneByLatestKudosOf(alice)).toEqual([
-      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: true },
-      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true },
+      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: true, hoggie: false },
+      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true, hoggie: false },
     ]);
 
     await openQuestCrateFromSlack(alice, { kind: "weekly", week: "2026-10-12", slot: 0 });
 
     expect(await questsDoneByLatestKudosOf(alice)).toEqual([
-      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false },
-      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true },
+      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false, hoggie: false },
+      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true, hoggie: false },
     ]);
   });
 });
@@ -163,9 +163,9 @@ describe("AT25: the perk bonuses each given kudos earned", () => {
 
     const [given] = givenEntries(await activityOf(alice, { filter: "given" }));
     expect(given?.earned?.bonuses).toEqual([
-      { perk: { id: "spark", name: "Spark" }, why: "your first kudos of the day that said why", xp: 5 },
-      { perk: { id: "rhythm", name: "Rhythm" }, why: "saying why to each person, once a day", xp: 4 },
-      { perk: { id: "circle", name: "Circle" }, why: "your first kudos of the week that said why, to each person", xp: 10 },
+      { perk: { id: "spark", name: "Spark" }, why: "your first kudos of the day", xp: 5 },
+      { perk: { id: "rhythm", name: "Rhythm" }, why: "a kudos to each person, once a day", xp: 4 },
+      { perk: { id: "circle", name: "Circle" }, why: "your first kudos of the week to each person", xp: 10 },
     ]);
     expect(gainsLinesTo(alice)).toEqual([`+20 XP · ${bonusPartsOf(given!).join(" · ")}`]);
   });

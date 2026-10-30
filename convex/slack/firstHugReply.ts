@@ -11,17 +11,19 @@ type Hugged = Infer<typeof huggedValidator>;
 export const deliverFirstHugReply = observedAction({
   args: { workspace: v.string(), user: v.string(), conversation: v.string(), hugged: huggedValidator, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...reply }) => {
-    const ephemeral = { channel: reply.conversation, user: reply.user, text: firstHugReplyText(reply.hugged) };
     await tryAtMostThreeTimes(
       attempt,
-      (attempt) => sendAtMostOnce(ctx, reply.workspace, "chat.postEphemeral", ephemeral, attempt),
+      async (attempt) => {
+        const { kudosEmoji } = await ctx.runQuery(internal.welcome.mondayWelcome.howToOf, { workspace: reply.workspace });
+        return sendAtMostOnce(ctx, reply.workspace, "chat.postEphemeral", { channel: reply.conversation, user: reply.user, text: firstHugReplyText(reply.hugged, kudosEmoji) }, attempt);
+      },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.firstHugReply.deliverFirstHugReply, { ...reply, attempt: retry.attempt }),
     );
   },
 });
 
-function firstHugReplyText(hugged: Hugged) {
-  return `That was a hug: +1 XP for you and ${huggedPeopleOf(hugged)}. Thank them in a message and say why to earn an item.`;
+function firstHugReplyText(hugged: Hugged, kudosEmoji: string) {
+  return `That was a hug: +1 XP for you and ${huggedPeopleOf(hugged)}. Thank them in a message with :${kudosEmoji}: to earn an item.`;
 }
 
 function huggedPeopleOf(hugged: Hugged) {

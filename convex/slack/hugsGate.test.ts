@@ -39,8 +39,8 @@ vi.mock("../website/seen", async (importOriginal) => {
   return { ...actual, seenKeyOf: vi.fn((member: Parameters<typeof actual.seenKeyOf>[0], crate: string) => actual.seenKeyOf((namedIds.get(member) ?? member) as typeof member, crate)) };
 });
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
   return { ...actual, drawOf: vi.fn((input: Parameters<typeof actual.drawOf>[0]) => actual.drawOf({ ...input, member: namedIds.get(input.member) ?? input.member })) };
 });
 
@@ -131,10 +131,10 @@ describe("SR21: hugs are dark where the flag is off, at the Slack and website bo
     const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEveryone(hugs)]));
 
     expect(apartFromSR21sList(walk.seen)).not.toEqual(apartFromSR21sList(withoutHugs.seen));
-    expect(walk.hugs.hugs.map(({ giver }) => giver).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>", "<member U_DANA>", "<member U_ERIN>"]);
+    expect(walk.hugs.hugs.map(({ giver }) => giver).sort()).toEqual(["<member U_ALICE>", "<member U_BOB>", "<member U_CAROL>", "<member U_DANA>", "<member U_ERIN>"]);
     expect(recapsTo(bob)).toHaveLength(1);
     expect(timelineKinds(walk, carol)).toContain("hugReceived");
-    expect(hugExposures(walk)).toEqual([{ member: alice.user, value: true }, ...exposuresOfTheWalksHugReactionsAt(true)]);
+    expect(hugExposures(walk)).toEqual(exposuresOfTheWalksHugReactionsAt(true));
   });
 
   test("with hugs on for one member's email only, only that member's reactions are hugs, they pay people whose flag is off, and those people's timelines, settings and recaps stay unchanged", async () => {
@@ -166,6 +166,7 @@ describe("SR21: hugs are dark where the flag is off, at the Slack and website bo
     expect(walk.seen.settingsTabs[dana.user]).not.toEqual(withoutHugs.seen.settingsTabs[dana.user]);
     expect(recapsTo(dana)).toEqual([expect.stringContaining("You reacted :taco: and gave 1 hug (+1 XP).")]);
     expect(hugExposures(walk)).toEqual([
+      { member: alice.user, value: false },
       { member: bob.user, value: false },
       { member: carol.user, value: false },
       { member: dana.user, value: true },
@@ -221,7 +222,7 @@ function asTheShipCreatesIt(): FlagDefinition {
 type Exposure = { member: string; value: boolean };
 
 function exposuresOfTheWalksHugReactionsAt(value: boolean): Exposure[] {
-  return [bob, carol, dana, erin].map(({ user }) => ({ member: user, value }));
+  return [alice, bob, carol, dana, erin].map(({ user }) => ({ member: user, value }));
 }
 
 async function aliceBobCarolAndDanaInAnts(flag: FlagDefinition[], turnOff?: () => void): Promise<Backend> {
@@ -320,6 +321,10 @@ function isHugsExposure({ event, properties }: { event?: unknown; properties?: u
   return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === hugs;
 }
 
+function isHugRewardsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
+  return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === "hug-rewards";
+}
+
 function isLookUpOf(person: Person, call: string) {
   const { method, args } = JSON.parse(call) as { method: string; args: { user?: string } };
   return method === "users.info" && args.user === person.user;
@@ -345,7 +350,7 @@ function messagesTo(seen: Seen, person: Person) {
 }
 
 function postHogEventsOf(seen: Seen, person: Person) {
-  return seen.postHogEvents.filter((event) => event.distinct_id === `<analytics ID of ${person.user}>` && !isHugsExposure(event));
+  return seen.postHogEvents.filter((event) => event.distinct_id === `<analytics ID of ${person.user}>` && !isHugsExposure(event) && !isHugRewardsExposure(event));
 }
 
 function timelineKinds(walk: Walk, person: Person) {
@@ -432,7 +437,7 @@ function orderFree<T>(rows: T[]): T[] {
 }
 
 const convexTestId = /^\d+[a-zA-Z_]+$/;
-const keyedId = /^([a-z]+):(\d+[a-zA-Z_]+)$/;
+const keyedId = /^([a-z-]+):(\d+[a-zA-Z_]+)$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const createdInTheSameMillisecond = /(\d{13})\.\d+$/;
 const opaque = new Set(["cursor", "eventId"]);

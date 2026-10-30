@@ -1,5 +1,5 @@
 import { IconX } from "@posthog/icons";
-import { rarityAbove } from "../../../convex/hoggies/catalogue";
+import { rarityAbove } from "../../../convex/album/hoggies/catalogue";
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 import type { AlbumHoggie, AlbumHoggies } from "./answer";
 import { keepFocusIn } from "./focusTrap";
@@ -132,7 +132,7 @@ function petProblemWordsOf({ reason }: PetProblem, hoggie: AlbumHoggie) {
 function StillHidden({ hoggie, answer }: { hoggie: AlbumHoggie; answer: AlbumHoggies }) {
   return (
     <>
-      <p className="al-entry-hint">Still out there. Every thoughtful kudos you give can earn a pack, and every pack rolls one hoggie.</p>
+      <p className="al-entry-hint">Still out there. Every kudos you give earns a hoggie, one per person you thank each week.</p>
       <dl className="al-entry-facts">
         <dt>Odds</dt>
         <dd>{oddsWords(hoggie, answer)}</dd>

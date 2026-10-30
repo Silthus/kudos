@@ -35,13 +35,12 @@ const theGrants = vi.hoisted(() => ({ seen: [] as unknown[] }));
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
   actual.subscribers.kudosGiven = actual.subscribers.kudosGiven.map((subscription) => {
-    if (!("subscriber" in subscription) || getFunctionName(subscription.subscriber) !== grantJob) return subscription;
-    const { subscriber, only } = subscription;
+    if ("subscriber" in subscription || getFunctionName(subscription) !== grantJob) return subscription;
     return {
-      subscriber,
+      subscriber: subscription,
       only: (event: KudosGivenEvent) => {
-        if (only(event)) theGrants.seen.push(event);
-        return only(event);
+        theGrants.seen.push(event);
+        return true;
       },
     };
   });
@@ -80,8 +79,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("AL49: the thoughtful boards rank thoughtful kudos awards given in the period asked", () => {
-  test("the people board ranks each giver by the thoughtful kudos awards they gave this week, never by kudos received, short kudos or hugs", async () => {
+describe("AL49: the boards rank kudos awards given in the period asked", () => {
+  test("HH6: the people board ranks each giver by the kudos awards they gave this week, a short kudos as much as one that says more, never by kudos received or hugs", async () => {
     const first = await thanks(dana, why, alice, bob);
     await thanks(dana, "Thanks again for pairing on the stubborn rollback", bob);
     await thanks(alice, "Thanks for the careful review of the billing export", carol, erin);
@@ -92,13 +91,14 @@ describe("AL49: the thoughtful boards rank thoughtful kudos awards given in the 
     const boards = await boardsOf(carol);
 
     expect(peopleOn(boards)).toEqual([
-      { name: dana.name, rank: 1, tied: false, thoughtful: 3, teams: ["otters"] },
-      { name: alice.name, rank: 2, tied: false, thoughtful: 2, teams: ["lanterns"] },
-      { name: bob.name, rank: 3, tied: false, thoughtful: 1, teams: ["lanterns"] },
+      { name: carol.name, rank: 1, tied: true, thoughtful: 3, teams: ["otters"] },
+      { name: dana.name, rank: 1, tied: true, thoughtful: 3, teams: ["otters"] },
+      { name: alice.name, rank: 3, tied: false, thoughtful: 2, teams: ["lanterns"] },
+      { name: bob.name, rank: 4, tied: false, thoughtful: 1, teams: ["lanterns"] },
     ]);
   });
 
-  test("the team board sums its matched members' thoughtful kudos awards, ties sharing a rank, and a team nobody gave for is off it", async () => {
+  test("the team board sums its matched members' kudos awards, ties sharing a rank, and a team nobody gave for is off it", async () => {
     await thanks(alice, why, carol, dana);
     await thanks(bob, "Thanks for the careful review of the billing export", erin);
     await thanks(carol, "Thanks for writing the thorough onboarding notes", alice, bob, erin);
@@ -121,7 +121,7 @@ describe("AL49: the thoughtful boards rank thoughtful kudos awards given in the 
     expect(pinnedOn(erins)).toEqual({ me: { name: erin.name, rank: null, thoughtful: 0, you: true }, teams: [{ team: "quills", rank: null, thoughtful: 0, mine: true }], onTheBoards: true });
   });
 
-  test("a thoughtful kudos given last week is off this week's boards and on last week's", async () => {
+  test("a kudos given last week is off this week's boards and on last week's", async () => {
     await thanks(alice, why, carol, dana);
     vi.setSystemTime(tuesday.getTime() + 7 * dayMs);
     await thanks(bob, "Thanks for writing the thorough onboarding notes", carol);
@@ -180,31 +180,6 @@ describe("AL49: the thoughtful boards rank thoughtful kudos awards given in the 
     await settle(t);
 
     for (const period of ["week", "month", "all"] as const) expect(peopleOn(await boardsOf(carol, { period })), period).toEqual([{ name: alice.name, rank: 1, tied: false, thoughtful: 2, teams: ["lanterns"] }]);
-  });
-
-  test("awards the album tallied before the boards counted them reach every board once through fillThoughtfulBoards, however often it runs, beside awards given while it runs", async () => {
-    await thanks(alice, why, carol, dana);
-    await thanks(bob, "ty", carol);
-    vi.setSystemTime(tuesday.getTime() + 7 * dayMs);
-    await thanks(carol, "Thanks for writing the thorough onboarding notes", alice);
-    await asIfTheBoardsNeverCountedThem();
-    expect(peopleOn(await boardsOf(carol, { period: "all" })), "before the fill").toEqual([]);
-
-    await t.mutation(internal.album.history.fillThoughtfulBoards, { workspace: "T1" });
-    await thanks(dana, "Thanks for the careful review of the billing export", alice);
-    await t.mutation(internal.album.history.fillThoughtfulBoards, { workspace: "T1" });
-    await settle(t);
-
-    expect(peopleOn(await boardsOf(erin))).toEqual([
-      { name: carol.name, rank: 1, tied: true, thoughtful: 1, teams: ["otters"] },
-      { name: dana.name, rank: 1, tied: true, thoughtful: 1, teams: ["otters"] },
-    ]);
-    expect(peopleOn(await boardsOf(erin, { period: "last-week" }))).toEqual([{ name: alice.name, rank: 1, tied: false, thoughtful: 2, teams: ["lanterns"] }]);
-    expect(peopleOn(await boardsOf(erin, { period: "all" }))).toEqual([
-      { name: alice.name, rank: 1, tied: false, thoughtful: 2, teams: ["lanterns"] },
-      { name: carol.name, rank: 2, tied: true, thoughtful: 1, teams: ["otters"] },
-      { name: dana.name, rank: 2, tied: true, thoughtful: 1, teams: ["otters"] },
-    ]);
   });
 
   test("Who gave narrows the people board to one team's givers in any period, each keeping their rank", async () => {
@@ -269,7 +244,7 @@ describe("AL49: a member who left the boards is on neither thoughtful board", ()
 });
 
 describe("AL49: the thoughtful boards stay within Convex's transaction limits", { timeout: 120_000 }, () => {
-  test("every period's board of 1,000 members of one company team, each of whom gave thoughtful kudos, reads in one query", async () => {
+  test("every period's board of 1,000 members of one company team, each of whom gave kudos, reads in one query", async () => {
     t = testBackend({ transactionLimits: true });
     await switchWebsite(t, postHog, true, "album");
     const givers = 1000;
@@ -290,23 +265,6 @@ describe("AL49: the thoughtful boards stay within Convex's transaction limits", 
       expect(boards.teams, period).toEqual([expect.objectContaining({ team: "lanterns", thoughtful: (givers * (givers + 1)) / 2, mine: true })]);
     }
   });
-
-  test("fillThoughtfulBoards pages a workspace's awards, 50 a mutation, and a thoughtful kudos to 120 people is tallied in pages", async () => {
-    t = testBackend({ transactionLimits: true });
-    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 500 }));
-    await switchWebsite(t, postHog, true, "album");
-    const crowd = Array.from({ length: 120 }, (_, n) => ({ user: `U_CROWD_${n}`, name: `Crowd Person ${n}` }));
-    for (const person of crowd) slack.withMember(person.user, slackUserOf(person));
-    for (const person of [alice, carol]) await memberChanged(t, "team_join", { id: person.user, ...slackUserOf(person) });
-    await thanks(alice, why, ...crowd);
-    expect(peopleOn(await boardsOf(carol, { period: "all" }))).toEqual([{ name: alice.name, rank: 1, tied: false, thoughtful: 120, teams: [] }]);
-    await asIfTheBoardsNeverCountedThem();
-
-    await t.mutation(internal.album.history.fillThoughtfulBoards, { workspace: "T1" });
-    await settle(t);
-
-    for (const period of ["week", "month", "all"] as const) expect(peopleOn(await boardsOf(carol, { period })), period).toEqual([{ name: alice.name, rank: 1, tied: false, thoughtful: 120, teams: [] }]);
-  });
 });
 
 describe("AL40: getThoughtfulBoards answers off while album is off for the member", () => {
@@ -315,6 +273,24 @@ describe("AL40: getThoughtfulBoards answers off while album is off for the membe
     await switchWebsite(t, postHog, true, "everyone-board");
 
     expect(await boardsOf(carol)).toEqual({ kind: "off" });
+  });
+});
+
+describe("E2: a view of the website's Leaderboard sends leaderboard viewed", () => {
+  test.each(["week", "last-week", "month", "all"] as const)("a view of the %s boards sends one leaderboard viewed for the Everyone board from the website", async (period) => {
+    expect(await (await signedIn(alice)).mutation(api.website.album.viewLeaderboard, { period })).toEqual({ kind: "viewed" });
+    await settle(t);
+
+    expect(leaderboardViews()).toEqual([{ board: "everyone", period, surface: "website" }]);
+  });
+
+  test("with album off a view is refused and sends nothing", async () => {
+    await switchWebsite(t, postHog, true, "everyone-board");
+
+    expect(await (await signedIn(alice)).mutation(api.website.album.viewLeaderboard, { period: "week" })).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(leaderboardViews()).toEqual([]);
   });
 });
 
@@ -336,13 +312,6 @@ type Asked = { team?: string; period?: (typeof boardPeriods)[number] };
 
 async function boardsOf(person: Person, asked: Asked = {}) {
   return (await signedIn(person)).query(api.website.album.getThoughtfulBoards, asked);
-}
-
-async function asIfTheBoardsNeverCountedThem() {
-  await t.run(async (ctx) => {
-    for (const tally of await ctx.db.query("thoughtfulBoardTallies").collect()) await ctx.db.delete(tally._id);
-    for (const counted of await ctx.db.query("boardCountedAwards").collect()) await ctx.db.delete(counted._id);
-  });
 }
 
 function boardsIn(read: unknown): Boards {
@@ -389,4 +358,11 @@ async function hugs(giver: Person, author: Person, ts: string) {
 async function signedIn(person: Person) {
   const { asSignedIn } = await aSignedInSession(t, { user: person.user, name: person.name });
   return asSignedIn;
+}
+
+function leaderboardViews() {
+  return postHog
+    .productEvents()
+    .filter(({ event }) => event === "leaderboard viewed")
+    .map(({ properties: { board, period, surface } }) => ({ board, period, surface }));
 }

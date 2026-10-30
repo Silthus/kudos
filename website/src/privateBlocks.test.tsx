@@ -89,7 +89,7 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     await user.click(await screen.findByRole("button", { name: /^Your emojis/ }));
 
     expect(exposedIn(container)).toEqual([]);
-    expect([...container.querySelectorAll(".al-emoji-popover .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining([":ines-okafor-hype:", "From your first thoughtful pack for Ines Okafor · 9 Oct 2026"]));
+    expect([...container.querySelectorAll(".al-emoji-popover .ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining([":ines-okafor-hype:", "From your first pack for Ines Okafor · 9 Oct 2026"]));
   });
 
   it("AL56: an emoji bundle from the fixture build keeps each emoji's picture, its name and what it came from in blocks", async () => {
@@ -113,6 +113,39 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     expect(exposedIn(container)).toEqual([]);
     expect(blocked(addToSlack)).toBe(true);
     expect(blocked(screen.getByText(/team emoji\./).parentElement?.querySelector(".al-emoji-picture") ?? null)).toBe(true);
+  });
+
+  it("AL56: a locked team page's team card and teammate card keep the team emoji's name and picture and every face and name in blocks", async () => {
+    const album = { ...albumFixtures.midway, bookNext: { chatUrl: "https://app.slack.com/client/T1", rarityCaps: true } };
+    window.history.replaceState(null, "", "/book#teams/lanterns");
+    const { container } = renderAlbum(shellFixtures.member, fixedAlbum(album), { people: fixedPeople(album) });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /^Unlock the Lanterns sticker/ }, { timeout: 10_000 }));
+    expect(teamEmojiChipIn(screen.getByRole("dialog", { name: "Unlock the Lanterns sticker" }))).toSatisfy(blocked);
+    expect(exposedIn(container)).toEqual([]);
+
+    await user.click(screen.getAllByRole("button", { name: /how to get them$/ })[0]!);
+    expect(teamEmojiChipIn(screen.getByRole("dialog", { name: /isn't in your album yet$/ }))).toSatisfy(blocked);
+    expect(exposedIn(container)).toEqual([]);
+  });
+
+  it("AL56: a locked team page keeps every missing teammate's name in blocks, on the photo and in their cards", async () => {
+    const album = { ...albumFixtures.midway, packs: [{ pack: "pack-ivo", person: "ivo-lark", earnedAt: 0, thanked: { name: "Ivo Lark", face: null } }], bookNext: { chatUrl: "https://app.slack.com/client/T1", rarityCaps: true } };
+    window.history.replaceState(null, "", "/book#teams/salt-and-sparrow");
+    const { container } = renderAlbum(shellFixtures.member, fixedAlbum(album), { people: fixedPeople(album) });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /^Unlock the Salt and Sparrow sticker/ }, { timeout: 10_000 }));
+    expect(namesExposedIn(container, ["Ivo", "Mara", "Teo"])).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: /^Ivo Lark/ }));
+    expect(screen.getByRole("dialog", { name: "Ivo isn't in your album yet" })).toHaveTextContent("Ivo's pack is waiting");
+    expect(namesExposedIn(container, ["Ivo"])).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: /^Mara Fenn/ }));
+    expect(screen.getByRole("dialog", { name: "Mara isn't in your album yet" })).toHaveTextContent("Give Mara a kudos");
+    expect(namesExposedIn(container, ["Mara"])).toEqual([]);
   });
 
   it("AL56: the pack opening, sealed and opened from the fixture build, keeps every face, name and Slack picture in blocks", async () => {
@@ -198,6 +231,28 @@ function exposedIn(root: Element): string[] {
     for (const name of checkedAttributes) {
       const value = element.getAttribute(name);
       if (value !== null && isPrivate(value) && !blocked(element)) exposed.push(`<${element.tagName.toLowerCase()} ${name}="${value}">`);
+    }
+  }
+  return exposed;
+}
+
+function teamEmojiChipIn(card: HTMLElement) {
+  const chip = within(within(card).getByRole("list", { name: "What the sticker pays" })).getByText((_, element) => element?.tagName === "LI" && element.textContent?.endsWith(":team-lanterns:") === true);
+  expect(chip.querySelector("img, svg")).not.toBeNull();
+  return chip;
+}
+
+function namesExposedIn(root: Element, names: string[]): string[] {
+  const named = (text: string) => names.some((name) => text.includes(name));
+  const exposed: string[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    if (named(node.textContent ?? "") && !blocked(node.parentElement)) exposed.push(`text "${node.textContent}"`);
+  }
+  for (const element of root.querySelectorAll("*")) {
+    for (const name of checkedAttributes) {
+      const value = element.getAttribute(name);
+      if (value !== null && named(value) && !blocked(element)) exposed.push(`<${element.tagName.toLowerCase()} ${name}="${value}">`);
     }
   }
   return exposed;

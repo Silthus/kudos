@@ -116,6 +116,8 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
       [xpLevels, true],
       ["unlocks", false],
       ["team-spirit", false],
+      ["rarity-caps", false],
+      ["one-reply", false],
       ["message-settings", false],
       ["groups", false],
       [everyoneBoard, true],

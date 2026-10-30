@@ -15,7 +15,8 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { messageSettingsShownTo } from "../messageSettings/flag";
 import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
-import { kindAppliesTo, placesOf, placeWhenOn, setMessageSetting, setNotificationSwitches } from "../messageSettings/messageSettings";
+import { placesChosenFrom } from "../messageSettings/kinds";
+import { kindAppliesTo, placeWhenOn, setMessageSetting, setNotificationSwitches } from "../messageSettings/messageSettings";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { buyPerk } from "../progression/perks";
 import type { PurchaseOutcome } from "../progression/purchases";
@@ -26,13 +27,14 @@ import { rerollQuest } from "../quests/weekly";
 import { teamPagesApplyTo } from "../companyProfiles/flag";
 import { linkCompanyProfile, type AdminLinkOutcome } from "../companyProfiles/admin";
 import { linkMyCompanyProfile, type SelfLinkOutcome } from "../companyProfiles/links";
-import { setAvatar } from "../hoggies/avatar";
-import { avatarShownTo } from "../hoggies/flag";
-import { buyCrate, openCrate } from "../hoggies/boughtCrates";
-import type { CratePurchaseOutcome } from "../hoggies/records";
+import { setAvatar } from "../album/hoggies/avatar";
+import { avatarShownTo } from "../album/hoggies/flag";
+import { buyCrate, openCrate } from "../album/hoggies/boughtCrates";
+import type { CratePurchaseOutcome } from "../album/hoggies/records";
 import { buyItem } from "../store/buying";
 import { setCustomKudosEmoji } from "../store/customKudosEmoji";
 import type { ItemPurchaseOutcome } from "../store/rows";
+import { resumeMondayQuests, stopMondayQuests, type PressedIn } from "../mondayDm/stop";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import type { Surface } from "./surface";
 import { featureValidator } from "../unlocks/feature";
@@ -67,11 +69,13 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("linkMyCompanyProfile"), profile: v.union(v.number(), v.null()) }),
   v.object({ type: v.literal("linkCompanyProfile"), member: v.union(v.id("members"), v.null()), profile: v.union(v.number(), v.literal("none"), v.null()) }),
   v.object({ type: v.literal("setWorkspaceSettings"), baseAllowance: v.number(), kudosEmoji: v.string(), hugBudget: v.number() }),
+  v.object({ type: v.literal("stopMondayQuests"), dm: v.id("mondayDms") }),
+  v.object({ type: v.literal("resumeMondayQuests"), dm: v.id("mondayDms") }),
 );
 
 export type Command = Infer<typeof commandValidator>;
 
-export type CommandOrigin = { surface: Surface; idempotencyKey: string };
+export type CommandOrigin = { surface: Surface; idempotencyKey: string; pressedIn?: PressedIn };
 
 export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | WorkspaceSettingsOutcome | ChannelPickOutcome | null;
 
@@ -91,7 +95,7 @@ export async function commandsOfferedTo(ctx: QueryCtx, member: MemberId, command
   return commands.filter((command) => !setsAvatar(command));
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, { surface, idempotencyKey }: CommandOrigin): Promise<CommandOutcome> {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, { surface, idempotencyKey, pressedIn }: CommandOrigin): Promise<CommandOutcome> {
   const { member } = person;
   switch (command.type) {
     case "showHomeTab": {
@@ -175,6 +179,12 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "setCustomKudosEmoji":
       if (await setCustomKudosEmoji(ctx, workspace, person, command.emoji)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;
+    case "stopMondayQuests":
+      await stopMondayQuests(ctx, workspace, member, command.dm, pressedIn);
+      return null;
+    case "resumeMondayQuests":
+      await resumeMondayQuests(ctx, workspace, member, command.dm, pressedIn);
+      return null;
     case "pickPrimaryGroup": {
       const group = ctx.db.normalizeId("userGroups", command.group);
       if (group === null || !(await groupsShownAndExposedTo(ctx, member))) return null;
@@ -194,7 +204,7 @@ async function placeAskedBy(ctx: MutationCtx, member: MemberId, command: Extract
 }
 
 async function changeMessageSetting(ctx: MutationCtx, workspace: string, member: MemberId, kind: MessageKind, place: MessagePlace) {
-  if (!(await placesOf(ctx, member, kind)).includes(place)) return;
+  if (!placesChosenFrom[kind].includes(place)) return;
   if (await setMessageSetting(ctx, member, kind, place)) await reportMessageSettingChanged(ctx, { workspace, member, setting: kind, on: place !== "none", place, at: Date.now() });
 }
 

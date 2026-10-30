@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { AnswerPage } from "../pages/AnswerPage";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -9,12 +9,12 @@ import type { AlbumTeam, BoardPeriod, BoardPerson, BoardTeam, Standing, Thoughtf
 import type { BoardsOfPeriod } from "./boardPeriods";
 import { findYourselfHref, hrefOf } from "./place";
 
-type LeaderboardAnswerProps = { boards: BoardsOfPeriod; teams: AlbumTeam[]; homeTeam: string | null; onSignIn: () => void; onSignOut: () => void };
+type LeaderboardAnswerProps = { boards: BoardsOfPeriod; teams: AlbumTeam[]; homeTeam: string | null; onViewed: (period: BoardPeriod) => void; onSignIn: () => void; onSignOut: () => void };
 
-export function LeaderboardAnswerPage({ boards: { shown, shownPeriod, period, loading, choose }, teams, homeTeam, ...answers }: LeaderboardAnswerProps) {
+export function LeaderboardAnswerPage({ boards: { shown, shownPeriod, period, loading, choose }, teams, homeTeam, onViewed, ...answers }: LeaderboardAnswerProps) {
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "boards") return <AnswerPage answer={shown} {...answers} />;
-  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} shownPeriod={shownPeriod} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
+  return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} shownPeriod={shownPeriod} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} onViewed={onViewed} />;
 }
 
 type TeamRows = { listed: BoardTeam[]; unscored: BoardTeam[] };
@@ -44,9 +44,21 @@ const quietOffers: Record<BoardPeriod, BoardPeriod | null> = { week: "last-week"
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: TeamRows; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
+type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: TeamRows; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null; onViewed: (period: BoardPeriod) => void };
 
-function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
+function useViewedOncePerPeriodShown(shownPeriod: BoardPeriod, onViewed: (period: BoardPeriod) => void) {
+  const reported = useRef<BoardPeriod | null>(null);
+  const latest = useRef(onViewed);
+  latest.current = onViewed;
+  useEffect(() => {
+    if (reported.current === shownPeriod) return;
+    reported.current = shownPeriod;
+    latest.current(shownPeriod);
+  }, [shownPeriod]);
+}
+
+function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onChoosePeriod, homeTeam, onViewed }: LeaderboardPageProps) {
+  useViewedOncePerPeriodShown(shownPeriod, onViewed);
   const [picked, setPicked] = useState<BoardTeam | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
   const foldToggle = useRef<HTMLButtonElement>(null);
@@ -66,9 +78,9 @@ function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onCho
     <div className="al-page-body al-leaderboard">
       <header className="al-leaderboard-head">
         <div className="al-leaderboard-title">
-          <p className="al-eyebrow">Leaderboard · thoughtful kudos given</p>
+          <p className="al-eyebrow">Leaderboard · kudos given</p>
           <PageTitle tab="Leaderboard" size="hero">
-            Who said thanks, and why
+            Who said thanks
           </PageTitle>
         </div>
         <PeriodSwitch period={period} buttons={periodButtons.current} onChoose={onChoosePeriod} />
@@ -78,7 +90,7 @@ function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onCho
         <TeamBoard boards={boards} rows={teamRows} foldToggle={foldToggle} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
-        <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
+        <p>Only kudos count. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
         {!boards.onTheBoards && (
           <p className="al-board-off">
             You're off the boards by choice. Switch on "Show me on the leaderboards" in <AppLink href={hrefOf({ kind: "settings" })}>Settings</AppLink> to come back.
@@ -181,7 +193,7 @@ function PeopleStory({ boards, words, offer, onChoosePeriod }: PeopleStoryProps)
   const given = boards.people.reduce((sum, { thoughtful }) => sum + thoughtful, 0);
   return (
     <Story headline={<span className="ph-no-capture">{leadWords(leaders.map(({ name }) => name), leaders[0]!.thoughtful)}</span>}>
-      {[`${given} thoughtful kudos given${words.span || " in all"}.`, boards.onTheBoards ? myStandingWords(boards.pinned.me, words) : ""].join(" ").trim()}
+      {[`${given} kudos given${words.span || " in all"}.`, boards.onTheBoards ? myStandingWords(boards.pinned.me, words) : ""].join(" ").trim()}
     </Story>
   );
 }
@@ -195,7 +207,7 @@ function QuietOffer({ period, onChoose }: { period: BoardPeriod; onChoose: (peri
 }
 
 function nobodyWords(subject: string, { span, past }: PeriodWords) {
-  return past ? `${subject} said thanks with a why${span}.` : `${subject} has said thanks with a why yet${span}.`;
+  return past ? `${subject} gave a kudos${span}.` : `${subject} has given a kudos yet${span}.`;
 }
 
 function nobodyInWords(team: string, { span, past }: PeriodWords) {
@@ -203,7 +215,7 @@ function nobodyInWords(team: string, { span, past }: PeriodWords) {
 }
 
 function quietStandingWords(words: PeriodWords) {
-  return words.past ? notGivenWords("You", words) : `${notGivenWords("You", words)} Thank someone and say why to lead the board.`;
+  return words.past ? notGivenWords("You", words) : `${notGivenWords("You", words)} Give a kudos to lead the board.`;
 }
 
 function notGivenWords(subject: string, { span, past }: PeriodWords) {
@@ -226,7 +238,7 @@ function TeamStory({ boards, words }: { boards: ThoughtfulBoards; words: PeriodW
 function NoTeamYet() {
   return (
     <>
-      Your thoughtful kudos count for your team once you're matched to your profile. <AppLink href={findYourselfHref}>Find yourself on posthog.com</AppLink>
+      Your kudos count for your team once you're matched to your profile. <AppLink href={findYourselfHref}>Find yourself on posthog.com</AppLink>
     </>
   );
 }
@@ -369,7 +381,7 @@ function Score({ thoughtful }: { thoughtful: number }) {
   return (
     <span className="al-board-score">
       {thoughtful}
-      <span className="al-sr"> thoughtful kudos</span>
+      <span className="al-sr"> kudos</span>
     </span>
   );
 }

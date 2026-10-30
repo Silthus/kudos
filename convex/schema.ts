@@ -14,9 +14,12 @@ import { homeTabValidator } from "./feedback/homes";
 import { attributedAwardValidator, groupOrNoneValidator } from "./groups/attributedAward";
 import { primaryGroupCauseValidator } from "./groups/cause";
 import { groupModeValidator } from "./groups/mode";
-import { publicReplyValidator } from "./feedback/publicReplies";
+import { celebratedLevelValidator, publicReplyValidator } from "./feedback/publicReplies";
+import { grantReplyValidator } from "./feedback/albumReplies";
+import { sentNoticeValidator } from "./feedback/sentNotices";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
+import { oneReplyValidator } from "./feedback/oneReply";
 import { segmentValidator } from "./feedback/segments";
 import { channelCheckValidator, mondayPostOutcomeValidator } from "./leaderboard/mondayPostOutcome";
 import { periodValidator } from "./leaderboard/periods";
@@ -24,9 +27,9 @@ import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
-import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, petHoggieValidator, trayDropValidator } from "./hoggies/records";
-import { itemValidator } from "./items/records";
-import { itemShareValidator } from "./items/shareRecords";
+import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, petHoggieValidator, trayDropValidator } from "./album/hoggies/records";
+import { itemValidator } from "./album/items/records";
+import { mondayDmNudgeValidator, mondayDmValidator } from "./mondayDm/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import {
@@ -34,15 +37,18 @@ import {
   albumStickerValidator,
   emojiNameNumberValidator,
   seenEmojiValidator,
+  kudosEmojiPickValidator,
   emojiClassValidator,
   randomEmojiDropValidator,
   emojiNameValidator,
+  secondEmojiNameValidator,
   grantRecordValidator,
   grantToldValidator,
   milestoneTierRecordValidator,
   pairTallyValidator,
   talliedAwardValidator,
   talliedHugValidator,
+  hypeReactionValidator,
   teamStickerValidator,
   thoughtfulPackValidator,
   thoughtfulTallyValidator,
@@ -53,12 +59,14 @@ import {
   weekTallyValidator,
 } from "./album/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
+import { questFinishValidator } from "./quests/finishes";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
+import { questsJudgedValidator } from "./quests/judged";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
-import { welcomedAsValidator } from "./welcome/welcomedAs";
+import { welcomedAsValidator, welcomePathValidator } from "./welcome/welcomedAs";
 import { directoryEntryValidator } from "./workspace/directoryEntry";
 import { memberProfileFields } from "./workspace/memberProfile";
 import { coinSpendValidator } from "./wallet/wallet";
@@ -324,12 +332,16 @@ export default defineSchema({
     received: v.number(),
     receivedXp: v.number(),
     mostHugged: v.optional(v.object({ conversation: v.string(), message: v.string(), hugs: v.number(), lastAt: v.number() })),
-    recap: v.union(v.literal("waiting"), v.literal("scheduled"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
+    recap: v.union(v.literal("waiting"), v.literal("scheduled"), v.literal("sent"), v.literal("skipped"), v.literal("failed"), v.literal("monday-dm")),
     dueAt: v.optional(v.number()),
     tries: v.number(),
   })
     .index("by_member_week", ["member", "week"])
     .index("by_recap_due", ["recap", "dueAt"]),
+
+  mondayDms: defineTable(mondayDmValidator).index("by_member_monday", ["member", "monday"]).index("by_state_due", ["state", "dueAt"]),
+
+  mondayDmNudges: defineTable(mondayDmNudgeValidator).index("by_dm", ["dm"]),
 
   hugWeekMessages: defineTable({ member: v.id("members"), week: v.string(), conversation: v.string(), message: v.string(), hugs: v.number(), lastAt: v.number() }).index("by_member_week_message", [
     "member",
@@ -387,6 +399,7 @@ export default defineSchema({
   welcomes: defineTable({
     member: v.id("members"),
     welcomed: v.optional(welcomedAsValidator),
+    path: v.optional(welcomePathValidator),
   }).index("by_member", ["member"]),
 
   welcomeNudges: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
@@ -418,6 +431,14 @@ export default defineSchema({
     gains: v.optional(gainsValidator),
     held: v.optional(v.literal(true)),
   }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
+
+  oneReplies: defineTable(oneReplyValidator).index("by_reply", ["reply"]),
+
+  grantReplies: defineTable(grantReplyValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]),
+
+  sentNotices: defineTable(sentNoticeValidator).index("by_member_notice", ["member", "notice"]),
+
+  celebratedLevels: defineTable(celebratedLevelValidator).index("by_member_message", ["member", "workspace", "conversation", "message"]),
 
   publicReplies: defineTable(publicReplyValidator)
     .index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"])
@@ -456,6 +477,8 @@ export default defineSchema({
   customKudosEmoji: defineTable(customKudosEmojiValidator).index("by_workspace_name", ["workspace", "name"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
+
+  questStarts: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
 
   journeyLaunches: defineTable({
     workspace: v.string(),
@@ -566,7 +589,6 @@ export default defineSchema({
     .index("by_giver_at", ["giver", "at"]),
 
   items: defineTable(itemValidator).index("by_member_turned", ["member", "turnedAt", "earnedAt"]).index("by_member_source_key", ["member", "source", "key"]),
-  itemShares: defineTable(itemShareValidator).index("by_item", ["item"]).index("by_member_shared", ["member", "sharedAt"]),
 
   trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]).index("by_member_put_in_kind", ["member", "putInAt", "kind"]).index("by_pack_kind", ["pack", "kind"]),
 
@@ -580,6 +602,8 @@ export default defineSchema({
 
   boardCountedAwards: defineTable(boardCountedAwardValidator).index("by_award", ["award"]),
 
+  questsJudged: defineTable(questsJudgedValidator).index("by_award", ["award"]),
+
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 
   teamStickers: defineTable(teamStickerValidator).index("by_member_team", ["member", "team"]).index("by_workspace_at", ["workspace", "at"]),
@@ -591,9 +615,13 @@ export default defineSchema({
     .index("by_workspace_name", ["workspace", "name"])
     .index("by_emoji", ["emoji", "person", "workspace"]),
 
+  secondEmojiNames: defineTable(secondEmojiNameValidator).index("by_workspace_name", ["workspace", "name"]),
+
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
 
   seenEmojis: defineTable(seenEmojiValidator).index("by_member_emoji", ["member", "emoji"]),
+
+  kudosEmojiPicks: defineTable(kudosEmojiPickValidator).index("by_member_emoji", ["member", "emoji"]),
 
   emojiClasses: defineTable(emojiClassValidator).index("by_workspace_name", ["workspace", "name"]).index("by_workspace_class", ["workspace", "class", "name"]),
 
@@ -611,11 +639,15 @@ export default defineSchema({
 
   talliedHugs: defineTable(talliedHugValidator).index("by_hug_person", ["hug", "person"]),
 
+  hypeReactions: defineTable(hypeReactionValidator).index("by_giver_at", ["giver", "at"]).index("by_giver_owner_message", ["giver", "owner", "conversation", "message"]),
+
   teamPageCompletions: defineTable(teamPageCompletionValidator).index("by_member_team", ["member", "team"]),
 
   teamPageChecks: defineTable(teamPageCheckValidator).index("by_member", ["member"]),
 
   boughtCrates: defineTable(boughtCrateValidator).index("by_member_crate", ["member", "crate"]).index("by_member_n", ["member", "n"]).index("by_member_opened", ["member", "openedAt", "n"]),
+
+  questFinishes: defineTable(questFinishValidator).index("by_member_key", ["member", "key"]),
 
   pendingCratesBackfill: defineTable({
     cursor: v.union(v.string(), v.null()),
@@ -700,11 +732,19 @@ export default defineSchema({
     message: v.string(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
+  countedRecognitions: defineTable({
+    workspace: v.string(),
+    key: v.string(),
+  }).index("by_key", ["workspace", "key"]),
+
   givenByDay: defineTable({
     workspace: v.string(),
     member: v.id("members"),
     day: v.string(),
     kudos: v.number(),
+    kudosReceived: v.optional(v.number()),
+    hugsGiven: v.optional(v.number()),
+    hugsReceived: v.optional(v.number()),
   })
     .index("by_member_day", ["member", "day"])
     .index("by_workspace_day", ["workspace", "day"]),
@@ -739,6 +779,10 @@ export default defineSchema({
     member: v.id("members"),
     period: v.string(),
     kudos: v.number(),
+    kudosReceived: v.optional(v.number()),
+    hugsGiven: v.optional(v.number()),
+    hugsReceived: v.optional(v.number()),
+    firstDay: v.optional(v.string()),
     runningTotal: v.optional(v.array(v.number())),
   })
     .index("by_period", ["workspace", "period"])
@@ -768,6 +812,12 @@ export default defineSchema({
     week: v.string(),
     place: v.number(),
   }).index("by_workspace_week", ["workspace", "week"]),
+
+  weekThankers: defineTable({
+    member: v.id("members"),
+    week: v.string(),
+    person: v.id("members"),
+  }).index("by_member_week_person", ["member", "week", "person"]),
 
   leaderboardSettings: defineTable({
     member: v.id("members"),
@@ -833,6 +883,9 @@ export default defineSchema({
   }).index("by_job", ["job"]),
 
   reportedJobs: defineTable({
+    job: v.id("_scheduled_functions"),
+  }).index("by_job", ["job"]),
+  replays: defineTable({
     job: v.id("_scheduled_functions"),
   }).index("by_job", ["job"]),
 

@@ -33,6 +33,10 @@ type Answer = (signal?: AbortSignal) => Response | Promise<Response>;
 
 export const answersWith = (status: number): Answer => () => new Response(null, { status });
 
+const realSetTimeout = globalThis.setTimeout;
+
+export const answersAMomentLater: Answer = () => new Promise((resolve) => realSetTimeout(() => resolve(new Response(null, { status: 200 })), 0));
+
 export const failsToConnect: Answer = () => {
   throw new TypeError("fetch failed");
 };

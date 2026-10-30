@@ -1,7 +1,8 @@
 import type { QueryCtx } from "../_generated/server";
 import { weekOf, type DayKey, type Week } from "../engine/allowance";
 import { awardsInWeekNewestDaysFirst, type WeekAward } from "../engine/awards";
-import type { MessageRef } from "../engine/messageEvent";
+import { takenBackInSlack } from "../engine/kudosText";
+import { isSameMessage, type MessageRef } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 
 export const kudosListedAWeek = 50;
@@ -28,8 +29,17 @@ async function kudosListOf(ctx: QueryCtx, member: MemberId, side: Side, days: We
   const cutShort = read.at(awardsReadAWeek);
   const messages = messagesOf(read, side);
   if (cutShort !== undefined) messages.delete(keyOf(cutShort.message));
-  const listed = newestFirst([...messages.values()]).filter(({ message }) => lead === null || !isSameMessage(message, lead));
+  const listed = await stillInSlack(ctx, newestFirst([...messages.values()]).filter(({ message }) => lead === null || !isSameMessage(message, lead)), kudosListedAWeek + 1);
   return { kudos: listed.slice(0, kudosListedAWeek).map(withAFewNamed), more: cutShort !== undefined || listed.length > kudosListedAWeek };
+}
+
+async function stillInSlack(ctx: QueryCtx, messages: MessageAwards[], atMost: number): Promise<MessageAwards[]> {
+  const kept: MessageAwards[] = [];
+  for (const one of messages) {
+    if (kept.length === atMost) break;
+    if (!(await takenBackInSlack(ctx, one.message))) kept.push(one);
+  }
+  return kept;
 }
 
 function messagesOf(awards: WeekAward[], side: Side): Map<string, MessageAwards> {
@@ -52,8 +62,4 @@ function keyOf({ workspace, conversation, message }: MessageRef) {
 
 function withAFewNamed({ message, at, people }: MessageAwards): WeekKudos {
   return { message, at, people: people.slice(0, peopleNamedAKudos), morePeople: Math.max(0, people.length - peopleNamedAKudos) };
-}
-
-function isSameMessage(one: MessageRef, other: MessageRef) {
-  return one.workspace === other.workspace && one.conversation === other.conversation && one.message === other.message;
 }

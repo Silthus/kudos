@@ -1,6 +1,6 @@
 import { assets } from "@posthog/brand/hoggies/metadata";
 import { describe, expect, test } from "vitest";
-import { catalogue } from "../../convex/hoggies/catalogue";
+import { catalogue } from "../../convex/album/hoggies/catalogue";
 
 const packageNames = new Map(assets.map(({ slug, name }) => [slug, name]));
 

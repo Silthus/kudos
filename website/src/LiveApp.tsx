@@ -9,7 +9,7 @@ import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
-import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, LevelUpShown, PersonShown, PlayerCardReads, ProfileShown, WeekShown, XpMomentShown } from "./album/answer";
+import type { ActivityWeekShown, AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, HugBoardsShown, LevelUpShown, PersonShown, PlayerCardReads, ProfileShown, QuestsShown, WeekShown, XpMomentShown } from "./album/answer";
 import { albumOf, openShown, putAllInShown, putInShown } from "./album/liveAlbum";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
@@ -50,13 +50,16 @@ function LiveApp() {
       useAppEmojis={(asking) => useLiveAppEmojis(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking, period) => useLiveThoughtfulBoards(asking, period, unreachable)}
+      useHugBoards={(asking) => useLiveHugBoards(asking, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
+      useActivityWeek={(asking) => useLiveActivityWeek(asking, unreachable)}
       useAlbumProfile={(asking) => useLiveAlbumProfile(asking, unreachable)}
       useAlbumHoggies={(asking) => useLiveAlbumHoggies(asking, unreachable)}
       useLevelUp={(level) => useLiveLevelUp(level, unreachable)}
       useXpMoment={(asking) => useLiveXpMoment(asking, unreachable)}
       usePlayerCard={(asking, person) => useLivePlayerCard(asking, person, unreachable)}
+      useQuests={(asking) => useLiveQuests(asking, unreachable)}
     />
   );
 }
@@ -77,6 +80,14 @@ function useLiveThoughtfulBoards(asking: boolean, period: BoardPeriod, unreachab
   return boards;
 }
 
+function useLiveHugBoards(asking: boolean, unreachable: boolean): HugBoardsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.leaderboard.getBoards, args: {} } } : {}), [asking]);
+  const { boards } = useQueries(request);
+  if (boards instanceof Error) return { kind: "broken" };
+  if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return boards;
+}
+
 function useLiveAlbumPerson(asking: boolean, person: string | null, unreachable: boolean): PersonShown | undefined {
   const request = useMemo((): RequestForQueries => (asking && person !== null ? { person: { query: api.website.album.getAlbumPerson, args: { person } } } : {}), [asking, person]);
   const { person: answer } = useQueries(request);
@@ -88,6 +99,14 @@ function useLiveAlbumPerson(asking: boolean, person: string | null, unreachable:
 function useLiveAlbumWeek(asking: boolean, week: string | undefined, unreachable: boolean): WeekShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { week: { query: api.website.album.getAlbumWeek, args: week === undefined ? {} : { week } } } : {}), [asking, week]);
   const { week: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
+}
+
+function useLiveActivityWeek(asking: boolean, unreachable: boolean): ActivityWeekShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { activity: { query: api.website.activity.getActivityWeek, args: {} } } : {}), [asking]);
+  const { activity: answer } = useQueries(request);
   if (answer instanceof Error) return { kind: "broken" };
   if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return answer;
@@ -138,6 +157,12 @@ function useLiveXpMoment(asking: boolean, unreachable: boolean): XpMomentShown |
   if (moment instanceof Error) return { kind: "broken" };
   if (moment === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return moment;
+}
+
+function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { quests: { query: api.website.quests.getQuests, args: {} } } : {}), [asking]);
+  const { quests } = useQueries(request);
+  return shownOrWaiting(quests, unreachable);
 }
 
 function useLiveSettings(asking: boolean, unreachable: boolean): SettingsShown | undefined {
@@ -205,13 +230,16 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const putIn = useSentOnce(api.website.album.putIn);
   const putAllIn = useSentOnce(api.website.album.putAllIn);
   const markEmojisSeen = useSentOnce(api.website.album.markEmojisSeen);
+  const pickKudosEmoji = useSentOnce(api.website.album.pickKudosEmoji);
   const turnItem = useSentOnce(api.website.album.turnItem);
-  const shareItem = useSentOnce(api.website.itemShare.shareItem);
   const arrive = useSentOnce(api.website.lastVisit.arrive);
   const makePet = useSentOnce(api.website.album.makePet);
   const forgeHoggie = useSentOnce(api.website.album.forgeHoggie);
   const endXpMoment = useSentOnce(api.website.xpMoment.endXpMoment);
   const closeHowItWorks = useSentOnce(api.website.onboarding.closeHowItWorks);
+  const viewQuests = useSentOnce(api.website.quests.viewQuests);
+  const viewLeaderboard = useSentOnce(api.website.album.viewLeaderboard);
+  const viewActivity = useSentOnce(api.website.activity.viewActivity);
   return useMemo(
     () => ({
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
@@ -231,13 +259,16 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })).then(putInShown),
       putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})).then(putAllInShown),
       markEmojisSeen: (ids) => answerWithin(commandAnswerBudgetMs, markEmojisSeen({ ids })),
+      pickKudosEmoji: (emoji, picked) => answerWithin(commandAnswerBudgetMs, pickKudosEmoji({ emoji, picked })),
       turnItem: (item) => answerWithin(commandAnswerBudgetMs, turnItem({ item: item as Id<"items"> })),
-      shareItem: (item) => answerWithin(commandAnswerBudgetMs, shareItem({ item: item as Id<"items"> })),
       arrive: (from) => answerWithin(commandAnswerBudgetMs, arrive({ from })),
       makePet: (hoggie) => answerWithin(commandAnswerBudgetMs, makePet({ hoggie })),
       forgeHoggie: (hoggie, request) => answerWithin(commandAnswerBudgetMs, forgeHoggie({ hoggie, request })),
-      endXpMoment: (from, until, skipped) => answerWithin(commandAnswerBudgetMs, endXpMoment({ from, until, skipped })),
+      endXpMoment: (from, until, skipped, played) => answerWithin(commandAnswerBudgetMs, endXpMoment({ from, until, skipped, played })),
       closeHowItWorks: (triedSlack) => answerWithin(commandAnswerBudgetMs, closeHowItWorks({ triedSlack })),
+      viewQuests: (surface) => withoutWaiting(viewQuests({ surface })),
+      viewLeaderboard: (period) => withoutWaiting(viewLeaderboard({ period })),
+      viewActivity: (state) => withoutWaiting(viewActivity({ state })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -245,8 +276,12 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, turnItem, shareItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, onSignInFailure],
+    [signIn, signOut, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setWeeklyPost, pickWeeklyPostChannel, setPublicCelebrations, mapSlackEmoji, mapMyEmoji, pickMyHypeEmoji, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, markEmojisSeen, pickKudosEmoji, turnItem, makePet, forgeHoggie, arrive, endXpMoment, closeHowItWorks, viewQuests, viewLeaderboard, viewActivity, onSignInFailure],
   );
+}
+
+function withoutWaiting(report: Promise<unknown>) {
+  report.catch(() => undefined);
 }
 
 function useSentOnce<Mutation extends FunctionReference<"mutation">>(mutation: Mutation) {

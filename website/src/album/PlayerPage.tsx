@@ -16,6 +16,7 @@ import { levelShareOf, plural, xpToNextOf } from "./facts";
 import { emblemOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { PetHoggie, petOf } from "./PetHoggie";
+import { NextMilestones } from "./NextMilestones";
 import { OwnHypePick, ownHypeEmojiOf, type HypePicker } from "./OwnHypePick";
 import { findYourselfHref, hrefOf, type Place } from "./place";
 import { holdsNothingButEmojis, isAQuietCard, isAQuietWeek, ownWeekOf, teammateWeekOf, type EmojiStack, type PageWeek, type SaidLine } from "./playerPage";
@@ -86,6 +87,7 @@ function PlayerPage({ album, page, picker }: { album: Album; page: Page; picker:
       </section>
       {page.card.hoggies !== null && <RarestFind page={page} />}
       {page.together !== null && <Together name={page.card.name} together={page.together} />}
+      {page.own && <NextMilestones album={album} />}
       <Week page={page} />
       {page.hypePick !== null && <YourHypeEmoji person={page.hypePick} emojiPage={album.emojiPage} picker={picker} />}
     </article>
@@ -164,14 +166,14 @@ function RankStrip({ page: { own, card } }: { page: Page }) {
       {place === null ? <IconHeart className="al-pp-rank-icon" /> : <IconCrown className="al-pp-rank-icon" />}
       <span className="al-pp-rank-words">
         {place === null ? (
-          <strong>{own ? "Give a thoughtful kudos to join this week's board" : "Not on this week's board yet"}</strong>
+          <strong>{own ? "Give a kudos to join this week's board" : "Not on this week's board yet"}</strong>
         ) : (
           <>
             <strong>
               No. {place.rank}
               {place.tied ? " tied" : ""} this week
             </strong>{" "}
-            <span className="al-pp-quiet">· {plural(place.thoughtful, "thoughtful kudos", "thoughtful kudos")}</span>
+            <span className="al-pp-quiet">· {place.kudosGiven} kudos</span>
           </>
         )}
       </span>
@@ -243,7 +245,7 @@ function Stack({ className = "", children }: { className?: string; children: Rea
 }
 
 function QuietStats({ page: { own, card } }: { page: Page }) {
-  return <p className="al-pp-quiet-stats al-pp-small">{own ? "Thank a teammate and say why: your first person, hoggie and emoji land here." : `${firstNameOf(card.name)}'s album is just getting started.`}</p>;
+  return <p className="al-pp-quiet-stats al-pp-small">{own ? "Give a teammate a kudos: your first person, hoggie and emoji land here." : `${firstNameOf(card.name)}'s album is just getting started.`}</p>;
 }
 
 function Bar({ share }: { share: number }) {
@@ -266,7 +268,7 @@ function RarestFind({ page: { own, card } }: { page: Page }) {
           </span>
           <span className="al-pp-rarest-words">
             <span className="al-pp-label">{label}</span>
-            <span className="al-pp-quiet al-pp-small">{own ? "Give a thoughtful kudos and open its pack. Your first hoggie stands here." : "No hoggie found yet."}</span>
+            <span className="al-pp-quiet al-pp-small">{own ? "Give a kudos and open its pack. Your first hoggie stands here." : "No hoggie found yet."}</span>
           </span>
         </div>
       ) : (
@@ -348,7 +350,7 @@ function Together({ name, together }: { name: string; together: PersonPage }) {
       </dl>
       {together.hype.name !== null && (
         <p className="al-pp-small al-pp-together-hype ph-no-capture">
-          <code>:{together.hype.name}:</code> <span className="al-pp-quiet">{together.hype.earned ? "unlocked by your first thoughtful kudos" : `give ${first} a thoughtful kudos to unlock it`}</span>
+          <code>:{together.hype.name}:</code> <span className="al-pp-quiet">{together.hype.earned ? "unlocked by your first kudos" : `give ${first} a kudos to unlock it`}</span>
         </p>
       )}
     </section>
@@ -431,7 +433,7 @@ function KudosOfWeek({ kudos }: { kudos: KudosOfTheWeek }) {
         Kudos of the week
       </span>
       <blockquote>
-        <KudosMessage message={kudos.message} clamped={false} />
+        <KudosMessage message={kudos.message} />
       </blockquote>
       <figcaption className="al-pp-byline">
         <MemberFace face={kudos.giver.face} className="al-pp-face-xs" />
@@ -472,7 +474,7 @@ function Said({ line: { kudos, toSubject } }: { line: SaidLine }) {
           <span className="al-pp-quiet"> · {shortDay(kudos.at)}</span>
         </p>
         <blockquote className="al-pp-said-words">
-          <KudosMessage message={kudos.message} clamped={false} />
+          <KudosMessage message={kudos.message} />
         </blockquote>
       </div>
     </li>

@@ -1,12 +1,13 @@
 import type { CSSProperties } from "react";
 import type { TurnedFaceShown } from "../../../convex/website/album";
 import { metalOf } from "../book/metal";
+import { EmojiPicture } from "./EmojiPicture";
 import { HoggieArt } from "./HoggieArt";
 import { medalWordsOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { Confetti, Sparkles } from "./PackCards";
 import { PersonPicture } from "./PersonPicture";
-import type { Chip, Flight, FlightBoxes, MedalPop } from "./useTurnFlight";
+import type { Chip, EmojiUp, Flight, FlightBoxes, MedalPop } from "./useTurnFlight";
 
 export function TurnFlight({ flight, boxes }: { flight: Flight; boxes: FlightBoxes }) {
   const { face } = flight;
@@ -20,9 +21,10 @@ export function TurnFlight({ flight, boxes }: { flight: Flight; boxes: FlightBox
         {flight.rings !== null && face !== null && <Rings rect={flight.rings} face={face} />}
         {flight.flourish !== null && <GoldFlourish rect={flight.flourish} />}
         {flight.medal !== null && <MedalFlourish medal={flight.medal} />}
+        {flight.emoji !== null && <EmojiSpring up={flight.emoji} picture={boxes.emoji} />}
         {flight.stage !== "back" && <p className="ib-skip">Click to skip</p>}
       </div>
-      <p role="status" aria-label="Turning over" className="al-sr ph-no-capture">
+      <p role="status" aria-label="Identifying" className="al-sr ph-no-capture">
         {saidOf(flight)}
       </p>
     </>
@@ -120,7 +122,25 @@ function MedalFlourish({ medal: { tier, art, card } }: { medal: MedalPop }) {
   );
 }
 
-function saidOf({ caption, face, medal }: Flight) {
+const springingEmojiSize = 64;
+
+function EmojiSpring({ up: { emoji, at, flying }, picture }: { up: EmojiUp; picture: FlightBoxes["emoji"] }) {
+  return (
+    <span className="ib-emoji ph-no-capture" style={{ left: at.x, top: at.y }} data-flying={flying ? "" : undefined}>
+      <span ref={picture} className="ib-emoji-picture">
+        <Sparkles count={10} seed={at.x + at.y} />
+        <EmojiPicture emoji={emoji} size={springingEmojiSize} />
+      </span>
+      <span className="ib-emoji-caption">
+        <strong>:{emoji.name}:</strong>
+        <span>New emoji</span>
+      </span>
+    </span>
+  );
+}
+
+function saidOf({ caption, face, medal, emoji }: Flight) {
+  if (emoji !== null) return `:${emoji.emoji.name}: emoji unlocked`;
   if (medal !== null) return `${medalWordsOf(medal.tier)} medal unlocked`;
   return caption && face !== null ? `${nameOf(face)}: ${whatOf(face)}` : "";
 }

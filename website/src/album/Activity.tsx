@@ -1,6 +1,8 @@
 import { useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { hoggieNamed } from "../../../convex/hoggies/catalogue";
+import { hoggieNamed } from "../../../convex/album/hoggies/catalogue";
+import type { ActivityState } from "../../../convex/website/activity";
 import { KudosMessage } from "../activity/KudosMessage";
+import { YourWeekPage } from "../activity/YourWeek";
 import { AnswerPage } from "../pages/AnswerPage";
 import { AppLink } from "../AppLink";
 import { hoggiePictureOf } from "../crates/Hoggie";
@@ -9,15 +11,29 @@ import { PageTitle } from "../PageTitle";
 import type { Message } from "../shell";
 import { LoadingPage } from "../pages/LoadingPage";
 import { SlackLink } from "../SlackLink";
-import type { AlbumWeek, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
+import type { ActivityWeekShown, AlbumWeek, QuestsShown, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
 import { plural } from "./facts";
 import { rarityWordOf } from "./opening";
+import { mondayQuestsIn } from "./QuestsPanel";
 import { hrefOf } from "./place";
-import type { WeekEdition } from "./weekEdition";
+import { isWaitingForTheWeek, type WeekEdition } from "./weekEdition";
 
-type ActivityAnswerProps = { edition: WeekEdition; me: string; onSignIn: () => void; onSignOut: () => void };
+type ActivityAnswerProps = { week: ActivityWeekShown | undefined; edition: WeekEdition; quests: QuestsShown | undefined; me: string; inSight: boolean; onViewed: (state: ActivityState) => void; onSignIn: () => void; onSignOut: () => void };
 
-export function ActivityAnswerPage({ edition, me, ...answers }: ActivityAnswerProps) {
+export function ActivityAnswerPage({ week, edition, quests, me, inSight, onViewed, ...answers }: ActivityAnswerProps) {
+  if (week === undefined || week.kind === "off") return <LoadingPage shape="column" />;
+  if (week.kind === "week") return <YourWeekPage week={week} quests={mondayQuestsIn(quests)} inSight={inSight} onViewed={onViewed} />;
+  if (week.kind !== "edition") return <AnswerPage answer={week} {...answers} />;
+  return <WeeklyEditionAnswerPage edition={edition} me={me} {...answers} />;
+}
+
+export function isWaitingForTheActivity(week: ActivityWeekShown | undefined, edition: WeekEdition) {
+  return week === undefined || week.kind === "off" || (week.kind === "edition" && isWaitingForTheWeek(edition));
+}
+
+type WeeklyEditionAnswerProps = { edition: WeekEdition; me: string; onSignIn: () => void; onSignOut: () => void };
+
+function WeeklyEditionAnswerPage({ edition, me, ...answers }: WeeklyEditionAnswerProps) {
   const { shown } = edition;
   if (shown === undefined || shown.kind === "off") return <LoadingPage shape="column" />;
   if (shown.kind !== "week") return <AnswerPage answer={shown} {...answers} />;
@@ -82,7 +98,7 @@ function WeekTabs({ weeks, chosen, thisWeek, ids, onChoose }: WeekTabsProps) {
           <span className="al-week-tab-label">{tabLabelOf(tab.week, thisWeek)}</span>
           <span className="al-week-tab-span">{weekSpanOf(tab.week)}</span>
           <Sparkline days={tab.days} busiest={busiest} />
-          <span className="al-week-tab-count">{momentsOf(tab.days)}</span>
+          <span className="al-week-tab-count">{momentsOf(tab)}</span>
         </button>
       ))}
     </div>
@@ -118,8 +134,8 @@ function Sparkline({ days, busiest }: { days: number[]; busiest: number }) {
   );
 }
 
-function momentsOf(days: number[]) {
-  const moments = days.reduce((sum, count) => sum + count, 0);
+function momentsOf({ days, counted }: WeekTab) {
+  const moments = days.reduce((sum, count) => sum + count, 0) || counted;
   if (moments === 0) return "A quiet week";
   return moments === 1 ? "1 kudos or hug" : `${moments} kudos and hugs`;
 }
@@ -144,14 +160,18 @@ function Issue({ issue, me }: { issue: WeekIssue; me: string }) {
   return (
     <>
       <Tallies issue={issue} />
-      {isQuiet(issue) ? <p className="al-issue-quiet">A quiet week. Thank someone in Slack and say why, and it shows here.</p> : <IssueBody issue={issue} me={me} />}
+      {isQuiet(issue) ? <p className="al-issue-quiet">A quiet week. Give someone a kudos in Slack, and it shows here.</p> : <IssueBody issue={issue} me={me} />}
     </>
   );
 }
 
 function isQuiet(issue: WeekIssue) {
   const lists = [issue.thanked, issue.thankedBy, issue.hugged, issue.huggedBy, issue.newFaces];
-  return issue.days.every((count) => count === 0) && issue.packsOpened === 0 && issue.kudosOfWeek === null && lists.every((list) => countOf(list) === 0) && countOf(issue.hoggies) === 0 && issue.given.kudos.length + issue.received.kudos.length === 0;
+  return issue.days.every((count) => count === 0) && !hasRecognitions(issue) && issue.packsOpened === 0 && issue.kudosOfWeek === null && lists.every((list) => countOf(list) === 0) && countOf(issue.hoggies) === 0 && issue.given.kudos.length + issue.received.kudos.length === 0;
+}
+
+function hasRecognitions({ kudosGiven, kudosReceived, hugsGiven, hugsReceived }: WeekIssue) {
+  return kudosGiven + kudosReceived + hugsGiven + hugsReceived > 0;
 }
 
 function countOf({ more, ...list }: PeopleListed | HoggiesFound) {
@@ -165,8 +185,8 @@ function Tallies({ issue }: { issue: WeekIssue }) {
   const hugs = issue.hugsGiven + issue.hugsReceived;
   return (
     <dl className="al-issue-tallies">
-      <Tally term={thanked === 1 ? "person you thanked" : "people you thanked"} figure={thanked} note={`${issue.kudosGiven} kudos, ${issue.thoughtfulGiven} said why`} />
-      <Tally term="thanked you" figure={thankedBy} note={`${issue.kudosReceived} kudos, ${issue.thoughtfulReceived} said why`} />
+      <Tally term={thanked === 1 ? "person you thanked" : "people you thanked"} figure={thanked} note={`${issue.kudosGiven} kudos`} />
+      <Tally term="thanked you" figure={thankedBy} note={`${issue.kudosReceived} kudos`} />
       <Tally term={issue.packsOpened === 1 ? "pack opened" : "packs opened"} figure={issue.packsOpened} note={newFaces === 0 ? "no new faces" : `${plural(newFaces, "new face", "new faces")} in your album`} />
       <Tally term={hugs === 1 ? "hug" : "hugs"} figure={hugs} note={`${issue.hugsGiven} given · ${issue.hugsReceived} received`} />
     </dl>
@@ -193,7 +213,7 @@ function IssueBody({ issue, me }: { issue: WeekIssue; me: string }) {
         <KudosSection title="Said to you" list={issue.received} />
       </div>
       <div className="al-issue-side">
-        <Section title="New in your album">{countOf(issue.newFaces) === 0 ? <p className="al-issue-hint">No new faces this week. A thoughtful kudos to someone new brings their card.</p> : <People listed={issue.newFaces} />}</Section>
+        <Section title="New in your album">{countOf(issue.newFaces) === 0 ? <p className="al-issue-hint">No new faces this week. A kudos to someone new brings their card.</p> : <People listed={issue.newFaces} />}</Section>
         {countOf(issue.hoggies) > 0 && (
           <Section title="Hoggies from your packs">
             <Hoggies found={issue.hoggies} />
@@ -222,7 +242,7 @@ function KudosOfTheWeekStory({ kudos, me }: { kudos: KudosOfTheWeek; me: string 
   return (
     <Section title="The kudos of the week">
       <blockquote className="al-issue-quote">
-        <KudosMessage message={kudos.message} clamped={false} />
+        <KudosMessage message={kudos.message} />
       </blockquote>
       <div className="al-issue-byline">
         <MemberFace face={kudos.giver.face} className="al-issue-byline-face" />
@@ -266,7 +286,7 @@ function SaidLine({ kudos: { people, morePeople, message, at } }: { kudos: WeekK
           <Names people={people} more={morePeople} /> <span className="al-issue-hint">· {shortWeekdayOf(at)}</span>
         </p>
         <blockquote className="al-issue-said-words" data-quoted={isQuotable(message) || undefined}>
-          <KudosMessage message={message} clamped={false} />
+          <KudosMessage message={message} />
         </blockquote>
       </div>
     </li>

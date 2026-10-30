@@ -7,8 +7,11 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { convexStops, memberChanged, pendingJobs, react, settleUpTo, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { hugCounted } from "../../testing/leaderboard";
 import { internal } from "../_generated/api";
 import crons from "../crons";
+import { recordReward } from "../progression/progression";
+import type { MemberId } from "../workspace/directory";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const minuteMs = 60 * 1000;
@@ -19,7 +22,7 @@ const mondayNineInKolkata = Date.parse("2026-10-19T03:30:00Z");
 const mondayNineInNewYork = Date.parse("2026-10-19T13:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
-const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
+const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teammate with :taco:, earns much more XP.";
 const recapRow = "section: *Weekly hugs recap* — Last week's hugs, the :taco: you and your teammates reacted, with their XP, on Monday morning. [select: As a DM]";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
 
@@ -123,6 +126,51 @@ describe("SR12: at Monday 09:00 in their time zone, a member who gave or receive
 
     expect(recapTimesTo("U_ALICE")).toEqual([mondayNineInNewYork]);
     expect(recapTimesTo("U_BOB")).toEqual([mondayNineInUtc]);
+  });
+});
+
+describe("HH14: the hugs recap closes on what a kudos earns", () => {
+  test("its last line names a kudos as a message that mentions a teammate with the workspace's kudos emoji", async () => {
+    const t = await workspace({ urlKnown: false });
+    await setWorkspaceSettings(t, { kudosEmoji: "raised_hands" });
+    await react(t, { user: "U_BOB", itemUser: "U_ALICE", ts: messageOf(1), reaction: "raised_hands" });
+    await settleUpTo(t, Date.now() + minuteMs);
+
+    await recapsSentOnMonday(t);
+
+    const [recap] = slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "U_ALICE");
+    expect(String(recap?.text).split("\n").slice(-2)).toEqual(["Hugs are a quick thanks. A kudos, a message that mentions a teammate with :raised_hands:, earns much more XP.", footer]);
+  });
+});
+
+describe("HH30: the recap reads the week's hugs from Leaderboard and their XP from Progression", () => {
+  test("a hug Leaderboard counted that the recap's own week never saw shows, at the hug XP each", async () => {
+    const t = await workspace({ urlKnown: false });
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hugCounted(t, await memberOf(t, "U_BOB"), await memberOf(t, "U_ALICE"), { day: "2026-10-14" });
+
+    await recapsSentOnMonday(t);
+
+    expect(recapTo("U_BOB")).toEqual([":taco: Your week in hugs", "You reacted :taco: and gave 2 hugs (+2 XP).", nudge, footer].join("\n"));
+    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in hugs", "Teammates reacted :taco: on your messages and gave you 2 hugs (+2 XP).", nudge, footer].join("\n"));
+  });
+
+  test("the day bonuses of the member's seven days add to the XP given and the week's bonus to the XP received, and a bonus of another week adds nothing", async () => {
+    const t = await workspace({ urlKnown: false });
+    await hug(t, "U_ALICE", "U_BOB", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(2));
+    const alice = await memberOf(t, "U_ALICE");
+    for (const key of ["hug-day:2026-10-13", "hug-day:2026-10-18"]) await bonusPaid(t, alice, key, 9);
+    await bonusPaid(t, alice, "hug-week:2026-10-12", 4);
+    for (const key of ["hug-day:2026-10-11", "hug-day:2026-10-19", "hug-week:2026-10-05", "hug-week:2026-10-19"]) await bonusPaid(t, alice, key, 100);
+
+    await recapsSentOnMonday(t);
+
+    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+19 XP).", "Teammates reacted :taco: on your messages and gave you 1 hug (+5 XP).", nudge, footer].join("\n"));
+    expect(recapsSent().map(({ properties }) => [properties.hugs_given, properties.hugs_received, properties.xp])).toEqual([
+      [1, 1, 24],
+      [1, 1, 2],
+    ]);
   });
 });
 
@@ -351,7 +399,7 @@ describe("SR12 SR13 SR21: the recap goes only while the member wants it", () => 
 });
 
 describe("SR16: hugs recap sent reaches PostHog", () => {
-  test("with the hugs given and received and their XP, and nothing else", async () => {
+  test("with the hugs given and received, their XP and the recap as its DM, and nothing else", async () => {
     const t = await workspace();
     await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await hug(t, "U_CAROL", "U_ALICE", messageOf(1));
@@ -361,11 +409,22 @@ describe("SR16: hugs recap sent reaches PostHog", () => {
 
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
     expect(recapsSent().map(({ properties }) => properties)).toEqual([
-      { ...shared, hugs_given: 1, hugs_received: 2, xp: 3 },
-      { ...shared, hugs_given: 1, hugs_received: 1, xp: 2 },
-      { ...shared, hugs_given: 1, hugs_received: 0, xp: 1 },
+      { ...shared, hugs_given: 1, hugs_received: 2, xp: 3, via: "recap" },
+      { ...shared, hugs_given: 1, hugs_received: 1, xp: 2, via: "recap" },
+      { ...shared, hugs_given: 1, hugs_received: 0, xp: 1, via: "recap" },
     ]);
     expect(JSON.stringify(recapsSent())).not.toMatch(new RegExp(`U_ALICE|U_BOB|U_CAROL|C1|${messageOf(1).split(".")[0]}`));
+  });
+
+  test("a recap queued before via existed is sent without it", async () => {
+    const t = await workspace();
+    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+
+    await t.mutation(internal.analytics.isolatedUsage.recordHugsRecapSent, { workspace: "T1", member, given: 1, received: 2, xp: 3, at: Date.now() });
+
+    await settleUpTo(t, Date.now() + minuteMs);
+    expect(recapsSent().map(({ properties }) => Object.keys(properties))).toEqual([expect.not.arrayContaining(["via"])]);
+    expect(recapsSent().map(({ properties }) => properties.hugs_received)).toEqual([2]);
   });
 });
 
@@ -379,6 +438,21 @@ async function workspace({ transactionLimits = false, urlKnown = true } = {}) {
 async function hug(t: Backend, giver: string, author: string, message: string) {
   await react(t, { user: giver, itemUser: author, ts: message });
   await settleUpTo(t, Date.now() + minuteMs);
+}
+
+async function memberOf(t: Backend, user: string): Promise<MemberId> {
+  const member = await t.run((ctx) =>
+    ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique(),
+  );
+  if (member === null) throw new Error(`no member ${user}`);
+  return member._id;
+}
+
+async function bonusPaid(t: Backend, member: MemberId, key: string, xp: number) {
+  await t.run((ctx) => recordReward(ctx, "T1", { member, key, xp, coins: 0, item: null, catalogueVersion: "hugs-1", at: Date.now() }));
 }
 
 async function hugWeeksSeeded(t: Backend, members: number) {

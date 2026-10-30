@@ -1,15 +1,18 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator } from "../bus/events";
+import { internal } from "../_generated/api";
+import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { allowanceDay, type DayKey } from "../engine/allowance";
-import type { GivenMessage } from "../engine/awards";
+import type { AwardWithId, GivenMessage } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import { lookup, type MemberId } from "../workspace/directory";
 import type { BoardView, Entry } from "./board";
 import { improvement, type Improvement } from "./improvement";
 import { peerOf, type Peer } from "./peer";
-import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay, periodOfKey, periods, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Days, type Period, type PeriodKey } from "./periods";
+import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay, periodOfKey, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Days, type Period, type PeriodKey } from "./periods";
+import { addCounts, countedKeys, countOnce, landingAt } from "./counts";
+import { noteThanker } from "./thankers";
 import { boardMembers, boardViewOf, giversAmong, rankedOf, withoutViewer, type KudosByMember, type Ranked } from "./rankedBoard";
 import { totalUpTo, withKudosOn, type RunningTotal } from "./runningTotal";
 import { isOnTheBoards } from "./visibility";
@@ -22,19 +25,30 @@ export type RankedBoard = Ranked & { improvement: Improvement | null; peer: Peer
 
 type Total = Doc<"givenTotals">;
 
+const recipientsAPage = 100;
+
 export const countKudosGiven = internalMutation({
-  args: { event: kudosGivenEventValidator },
-  handler: async (ctx, { event }) => {
-    await countGiven(ctx, event);
+  args: { event: kudosGivenEventValidator, from: v.optional(v.number()) },
+  handler: async (ctx, { event, from = 0 }) => {
+    if (from === 0) await countGiven(ctx, event);
+    const next = from + recipientsAPage;
+    for (const award of event.awards.slice(from, next)) await countReceived(ctx, event, award);
+    if (next < event.awards.length) await ctx.scheduler.runAfter(0, internal.leaderboard.totals.countKudosGiven, { event, from: next });
   },
 });
 
 export async function countGiven(ctx: MutationCtx, given: GivenMessage) {
   if (await wasCounted(ctx, given.message)) return false;
   await ctx.db.insert("countedKudosGiven", given.message);
-  const kudos = kudosGivenIn(given);
-  await addToDay(ctx, given, kudos);
-  for (const period of periods) await addToPeriod(ctx, given, period, kudos);
+  await addCounts(ctx, { workspace: given.workspace, member: given.giver, day: given.day }, { kudosGiven: kudosGivenIn(given) });
+  return true;
+}
+
+export async function countReceived(ctx: MutationCtx, { workspace, giver, at }: Pick<KudosGivenEvent, "workspace" | "giver" | "at">, { award, recipient, kudos }: AwardWithId) {
+  if (!(await countOnce(ctx, workspace, countedKeys.kudosReceived(award)))) return false;
+  const landing = await landingAt(ctx, workspace, recipient, at);
+  await addCounts(ctx, landing, { kudosReceived: kudos });
+  await noteThanker(ctx, landing, giver);
   return true;
 }
 
@@ -67,7 +81,7 @@ async function boardFactsOf(ctx: QueryCtx, workspace: string, viewer: string, pe
   const today = allowanceDay(Date.now(), facts?.kind === "member" ? facts.timeZone : undefined);
   const viewerLeft = member !== undefined && !(await isOnTheBoards(ctx, member));
   const boardMemberOf = boardMembers(ctx, member);
-  const kudosNow = await totalsOf(ctx, workspace, keyOf(period, today));
+  const kudosNow = await kudosByMemberIn(ctx, workspace, keyOf(period, today));
   const kudosBefore = period === "all" ? null : await totalsUpToTheSameDay(ctx, workspace, period, today);
   const now = await giversAmong(kudosNow, boardMemberOf);
   const before = kudosBefore === null ? [] : await giversAmong(kudosBefore, boardMemberOf);
@@ -91,7 +105,7 @@ function kudosGivenIn(given: GivenMessage) {
   return given.awards.reduce((sum, award) => sum + award.kudos, 0);
 }
 
-async function totalsOf(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<KudosByMember> {
+async function kudosByMemberIn(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<KudosByMember> {
   const totals = await totalsIn(ctx, workspace, period);
   return new Map(totals.map((total) => [total.member, total.kudos]));
 }
@@ -143,7 +157,8 @@ async function bestCompletedPeriod(ctx: QueryCtx, member: MemberId, period: Comp
     .query("givenTotals")
     .withIndex("by_member_period", (q) => q.eq("member", member).gt("period", `${period}:`).lt("period", keyOf(period, today)))
     .collect();
-  return completed.length === 0 ? null : Math.max(...completed.map((total) => total.kudos));
+  const given = completed.map((total) => total.kudos).filter((kudos) => kudos > 0);
+  return given.length === 0 ? null : Math.max(...given);
 }
 
 async function wasCounted(ctx: QueryCtx, message: MessageRef) {
@@ -152,30 +167,4 @@ async function wasCounted(ctx: QueryCtx, message: MessageRef) {
     .withIndex("by_message", (q) => q.eq("workspace", message.workspace).eq("conversation", message.conversation).eq("message", message.message))
     .unique();
   return counted !== null;
-}
-
-async function addToDay(ctx: MutationCtx, { workspace, giver, day }: GivenMessage, kudos: number) {
-  const row = await ctx.db
-    .query("givenByDay")
-    .withIndex("by_member_day", (q) => q.eq("member", giver).eq("day", day))
-    .unique();
-  if (row === null) await ctx.db.insert("givenByDay", { workspace, member: giver, day, kudos });
-  else await ctx.db.patch(row._id, { kudos: row.kudos + kudos });
-}
-
-async function addToPeriod(ctx: MutationCtx, { workspace, giver, day }: GivenMessage, period: Period, kudos: number) {
-  const key = keyOf(period, day);
-  const row = await ctx.db
-    .query("givenTotals")
-    .withIndex("by_member_period", (q) => q.eq("member", giver).eq("period", key))
-    .unique();
-  const added = runningTotalAdding(period, row, day, kudos);
-  if (row === null) await ctx.db.insert("givenTotals", { workspace, member: giver, period: key, kudos, ...added });
-  else await ctx.db.patch(row._id, { kudos: row.kudos + kudos, ...added });
-}
-
-function runningTotalAdding(period: Period, row: Total | null, day: DayKey, kudos: number) {
-  if (period === "all") return {};
-  const runningTotal = row === null ? [] : row.runningTotal;
-  return runningTotal === undefined ? {} : { runningTotal: withKudosOn(runningTotal, dayOfPeriod(period, day), kudos) };
 }

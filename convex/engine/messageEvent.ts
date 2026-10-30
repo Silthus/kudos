@@ -69,3 +69,7 @@ export type CountableContent = Infer<typeof countableContentValidator>;
 export function countableOf({ mentions, emoji, mentionsBeforeEmoji }: CountableContent): CountableContent {
   return { mentions, emoji, ...(mentionsBeforeEmoji && { mentionsBeforeEmoji }) };
 }
+
+export function isSameMessage(one: MessageRef, other: MessageRef): boolean {
+  return one.workspace === other.workspace && one.conversation === other.conversation && one.message === other.message;
+}

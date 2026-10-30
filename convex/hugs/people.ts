@@ -2,11 +2,11 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { hugGivenEventValidator } from "../bus/events";
-import { recordReward } from "../progression/progression";
+import { publish } from "../bus/publish";
 import { isMember, type MemberId } from "../workspace/directory";
+import { hugRewardsOnAndExposedFor } from "./flag";
 import { countReceivedOnTheMessage, insertPaid, isPaid, hugOf, hugPeoplePageOf, type Hug } from "./records";
-import { countHugReceived } from "./weeks";
-import { hugXp, hugsCatalogueVersion } from "./xp";
+import { countHugReceived, weekOfPersonAt } from "./weeks";
 
 const peopleAPage = 100;
 
@@ -26,6 +26,10 @@ async function payPerson(ctx: MutationCtx, hug: Hug, person: MemberId) {
   await insertPaid(ctx, hug, person);
   await countReceivedOnTheMessage(ctx, hug, person);
   await countHugReceived(ctx, hug, person);
-  const key = `hug:${hug.giver}:${hug.conversation}:${hug.message}`;
-  await recordReward(ctx, hug.workspace, { member: person, key, xp: hugXp, coins: 0, item: null, catalogueVersion: hugsCatalogueVersion, at: hug.at });
+  await publishHugReceived(ctx, hug, person);
+}
+
+async function publishHugReceived(ctx: MutationCtx, { workspace, conversation, message, giver, at }: Hug, person: MemberId) {
+  const week = await weekOfPersonAt(ctx, person, at);
+  await publish(ctx, { type: "hugReceived", workspace, giver, person, message: { workspace, conversation, message }, at, week, rewards: await hugRewardsOnAndExposedFor(ctx, person) });
 }

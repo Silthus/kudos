@@ -4,14 +4,15 @@ import { FakeSlack, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { kudosCounted } from "../../testing/leaderboard";
 import { linkSharedEvent, type LinkSharedOptions } from "../../testing/slackMessages";
 import type { LadderId, TierId } from "../achievements/ladders";
 import { allowanceDay } from "../engine/allowance";
-import { keyOf } from "../leaderboard/periods";
 import type { MemberId } from "../workspace/directory";
 import { xpToReach } from "../progression/levels";
 
 const now = new Date("2026-10-21T10:00:00Z");
+const monthsAgo = "2026-08-04";
 const site = "https://hedgehug.example";
 const previewsFlag = "link-previews";
 const everyFlag = ["xp-levels", "unlocks", "achievements", previewsFlag];
@@ -66,7 +67,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
             blocks: [
               {
                 type: "section",
-                text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
+                text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
                 accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" },
               },
               { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · person page" }] },
@@ -86,9 +87,19 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
 
     expect(cardOf(url)).toEqual({
       type: "section",
-      text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\nLevel 1`, verbatim: true },
+      text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Bram Ode>*\nLevel 1`, verbatim: true },
       accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" },
     });
+  });
+
+  test("HH93: a link copied from another Slack message unfolds under the address it was shared with, and its card names the link card as the source", async () => {
+    const t = await workspace();
+    const bram = await memberOf(t, "U_BRAM");
+    const copied = `${site}/book?src=monday-post#people/${bram}`;
+
+    await shared(t, [copied], { user: "U_BRAM" });
+
+    expect(cardOf(copied)).toMatchObject({ text: { text: `*<${site}/book?src=link-card#people/${bram}|Bram Ode>*\nLevel 1` } });
   });
 
   test("a team link unfolds into its crest, name and size", async () => {
@@ -102,7 +113,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
         blocks: [
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people`, verbatim: true },
+            text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*\n3 people`, verbatim: true },
             accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
           },
           { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · team page" }] },
@@ -118,7 +129,7 @@ describe("LP78 LP79: a person or team link pasted into Slack unfolds into its ca
 
     await shared(t, [url]);
 
-    expect(cardOf(url)).toEqual({ type: "section", text: { type: "mrkdwn", text: `*<${url}|&lt;!here&gt; Ops &amp; @channel>*\n1 person`, verbatim: true } });
+    expect(cardOf(url)).toEqual({ type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|&lt;!here&gt; Ops &amp; @channel>*\n1 person`, verbatim: true } });
   });
 
   test("a team with the catalogue's own crest still shows its posthog.com crest picture", async () => {
@@ -320,14 +331,14 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Juno Park>*\n:team-kettle-works: Kettle Works · Lanterns\n*Level 3 → 4*\n▰▰▱▱▱▱▱▱▱▱\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Juno Park>*\n:team-kettle-works: Kettle Works · Lanterns\n*Level 3 → 4*\n▰▰▱▱▱▱▱▱▱▱\n🥇 Pillar · 🥉 First Thanks`, verbatim: true },
         accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" },
       },
       {
         type: "section",
         fields: [
           { type: "mrkdwn", text: "🏆 *No. 1* on the all-time leaderboard" },
-          { type: "mrkdwn", text: "💛 *12* thoughtful kudos given" },
+          { type: "mrkdwn", text: "💛 *12* kudos given" },
           { type: "mrkdwn", text: "🦔 *3* of 151 hoggies found" },
           { type: "mrkdwn", text: "📒 *1* person in their album" },
           { type: "mrkdwn", text: "🔓 *1* emoji unlocked" },
@@ -365,7 +376,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
       type: "section",
       fields: [
         { type: "mrkdwn", text: "🏆 *No. 1, tied* on the all-time leaderboard" },
-        { type: "mrkdwn", text: "💛 *4* thoughtful kudos given" },
+        { type: "mrkdwn", text: "💛 *4* kudos given" },
       ],
     });
   });
@@ -398,7 +409,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
 
     await shared(t, [url]);
 
-    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${url}|Juno Park>*`, "Kettle Works · :team-lanterns: Lanterns"]);
+    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${fromALinkCard(url)}|Juno Park>*`, "Kettle Works · :team-lanterns: Lanterns"]);
   });
 
   test("a person on no team shows no team line", async () => {
@@ -407,7 +418,7 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
 
     await shared(t, [url]);
 
-    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${url}|Bram Ode>*`, "*Level 1 → 2*"]);
+    expect(textLinesOf(url).slice(0, 2)).toEqual([`*<${fromALinkCard(url)}|Bram Ode>*`, "*Level 1 → 2*"]);
   });
 
   test("the emojis they unlocked count as their album counts them: team stickers, hype, milestone and level emojis", async () => {
@@ -467,14 +478,14 @@ describe("LP84: while rich-link-cards is on, a person card shows the level bar, 
     await shared(t, [url]);
 
     expect(blocksOf(url)).toEqual([
-      { type: "section", text: { type: "mrkdwn", text: `*<${url}|Bram Ode>*\n*Level 1 → 2*\n▱▱▱▱▱▱▱▱▱▱\n🌱 Just getting started. Their first thanks and finds show up here.`, verbatim: true }, accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" } },
+      { type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Bram Ode>*\n*Level 1 → 2*\n▱▱▱▱▱▱▱▱▱▱\n🌱 Just getting started. Their first thanks and finds show up here.`, verbatim: true }, accessory: { type: "image", image_url: bramPicture, alt_text: "Bram Ode" } },
       { type: "context", elements: [{ type: "mrkdwn", text: asOf }] },
     ]);
   });
 });
 
 describe("LP85: while rich-link-cards is on, a team card shows who said thanks, its place and its rarest hoggies", { timeout: 30_000 }, () => {
-  test("a team link unfolds into the share of its people who said thanks, its all-time place, its thoughtful kudos and its people's rarest hoggies", async () => {
+  test("a team link unfolds into the share of its people who said thanks, its all-time place, its kudos given and its people's rarest hoggies", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
     const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
     await matched(t, bram, 2);
@@ -487,14 +498,14 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people\n▰▰▰▰▰▰▱▱▱▱  *2 of 3* have said thanks`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*\n3 people\n▰▰▰▰▰▰▱▱▱▱  *2 of 3* have said thanks`, verbatim: true },
         accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
       },
       {
         type: "section",
         fields: [
           { type: "mrkdwn", text: "🏆 *No. 1* on the all-time team leaderboard" },
-          { type: "mrkdwn", text: "💛 *15* thoughtful kudos given" },
+          { type: "mrkdwn", text: "💛 *15* kudos given" },
         ],
       },
       { type: "context", elements: [hoggiePicture("angel", "Angel"), hoggiePicture("asleep", "Asleep"), { type: "mrkdwn", text: "Rarest find: *Angel* · Epic" }] },
@@ -511,11 +522,42 @@ describe("LP85: while rich-link-cards is on, a team card shows who said thanks, 
     expect(blocksOf(url)).toEqual([
       {
         type: "section",
-        text: { type: "mrkdwn", text: `*<${url}|Kettle Works>*\n3 people\n🌱 No thoughtful kudos yet. The first one puts Kettle Works on the board.`, verbatim: true },
+        text: { type: "mrkdwn", text: `*<${fromALinkCard(url)}|Kettle Works>*
+3 people
+🌱 No kudos yet. The first one puts Kettle Works on the board.`, verbatim: true },
         accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" },
       },
       { type: "context", elements: [{ type: "mrkdwn", text: teamAsOf }] },
     ]);
+  });
+});
+
+describe("HH29: a rich card's place is the all-time Leaderboard's by kudos given", { timeout: 30_000 }, () => {
+  test("an award worth 2 kudos counts 2, sharing its place with two awards of 1, for the person and each of their teams", async () => {
+    const t = await workspace({ flags: richFlags.map(onForEveryone) });
+    const [juno, bram] = [await memberOf(t, "U_JUNO"), await memberOf(t, "U_BRAM")];
+    await thanked(t, { [juno]: 2 });
+    await thanked(t, { [bram]: 1 });
+    await thanked(t, { [bram]: 1 });
+    const [person, team] = [`${site}/book#people/${juno}`, `${site}/book#teams/lanterns`];
+
+    await shared(t, [person, team]);
+
+    expect(blocksOf(person)[1]).toEqual({
+      type: "section",
+      fields: [
+        { type: "mrkdwn", text: "🏆 *No. 1, tied* on the all-time leaderboard" },
+        { type: "mrkdwn", text: "💛 *2* kudos given" },
+      ],
+    });
+    expect(textLinesOf(team)).toContain("▰▰▰▰▰▰▰▰▰▰  *1 of 1* have said thanks");
+    expect(blocksOf(team)[1]).toEqual({
+      type: "section",
+      fields: [
+        { type: "mrkdwn", text: "🏆 *No. 1, tied* on the all-time team leaderboard" },
+        { type: "mrkdwn", text: "💛 *2* kudos given" },
+      ],
+    });
   });
 });
 
@@ -556,7 +598,7 @@ describe("LP84: a person card's emoji count stays within Convex's limits", { tim
 });
 
 describe("LP86: a rich card shows only the leaderboard's facts and the person's own page, the same whoever shares it", { timeout: 30_000 }, () => {
-  test("a member off the boards shows no place and no thoughtful kudos, and their team doesn't count them", async () => {
+  test("a member off the boards shows no place and no kudos given, and their team doesn't count them", async () => {
     const t = await workspace({ flags: richFlags.map(onForEveryone) });
     const juno = await memberOf(t, "U_JUNO");
     await thanked(t, { [juno]: 12 });
@@ -565,10 +607,10 @@ describe("LP86: a rich card shows only the leaderboard's facts and the person's 
 
     await shared(t, [person, team]);
 
-    expect(JSON.stringify(blocksOf(person))).not.toMatch(/leaderboard|thoughtful/);
+    expect(JSON.stringify(blocksOf(person))).not.toMatch(/leaderboard|kudos given/);
     expect(JSON.stringify(blocksOf(person))).toMatch(/Level 3 → 4/);
     expect(JSON.stringify(blocksOf(team))).not.toMatch(/leaderboard|said thanks/);
-    expect(JSON.stringify(blocksOf(team))).toMatch(/No thoughtful kudos yet/);
+    expect(JSON.stringify(blocksOf(team))).toMatch(/No kudos yet/);
   });
 
   test("the card is the same whoever shares it, and names no XP, no kudos received and no hugs", async () => {
@@ -613,13 +655,13 @@ describe("LP88: rich link cards are behind rich-link-cards", { timeout: 30_000 }
     expect(slack.callsTo("chat.unfurl")[0]!.unfurls).toEqual({
       [person]: {
         blocks: [
-          { type: "section", text: { type: "mrkdwn", text: `*<${person}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true }, accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" } },
+          { type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(person)}|Juno Park>*\nLevel 3 · Kettle Works, Lanterns\n🥇 Pillar · 🥉 First Thanks`, verbatim: true }, accessory: { type: "image", image_url: junoFace, alt_text: "Juno Park" } },
           { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · person page" }] },
         ],
       },
       [team]: {
         blocks: [
-          { type: "section", text: { type: "mrkdwn", text: `*<${team}|Kettle Works>*\n3 people`, verbatim: true }, accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" } },
+          { type: "section", text: { type: "mrkdwn", text: `*<${fromALinkCard(team)}|Kettle Works>*\n3 people`, verbatim: true }, accessory: { type: "image", image_url: kettleCrest, alt_text: "Kettle Works" } },
           { type: "context", elements: [{ type: "mrkdwn", text: "HedgeHug album · team page" }] },
         ],
       },
@@ -669,9 +711,9 @@ describe("LP99 LP100: while card-image is on, a person link unfolds into a pictu
       {
         type: "image",
         image_url: picture!.url,
-        alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 this week, 4 thoughtful kudos. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 0 medals. Rarest find: Wizard, Legendary, found 21 Oct 2026.",
+        alt_text: "Juno Park's player card. Level 3, 150 XP. Kettle Works. No. 1 this week, 4 kudos. 3 of 151 hoggies found. 1 person in their album. 1 emoji unlocked. 0 medals. Rarest find: Wizard, Legendary, found 21 Oct 2026.",
       },
-      { type: "context", elements: [{ type: "mrkdwn", text: `*<${url}|Juno Park>* · HedgeHug album · as of ${madeAt}` }] },
+      { type: "context", elements: [{ type: "mrkdwn", text: `*<${fromALinkCard(url)}|Juno Park>* · HedgeHug album · as of ${madeAt}` }] },
     ]);
   });
 
@@ -897,16 +939,22 @@ function hoggiePicture(hoggie: string, name: string) {
   return { type: "image", image_url: `${site}/share/${hoggie}.png`, alt_text: name };
 }
 
-async function thanked(t: Backend, givers: Record<string, number>) {
-  await t.run(async (ctx) => {
-    for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: giver as MemberId, awards });
-  });
+async function thanked(t: Backend, givers: Record<string, number>, day = monthsAgo) {
+  const recipient = await thankedPersonOf(t);
+  for (const [giver, kudos] of Object.entries(givers)) await kudosCounted(t, giver as MemberId, recipient, { kudos, day });
 }
 
 async function thankedThisWeek(t: Backend, givers: Record<string, number>) {
-  const thisWeek = keyOf("week", allowanceDay(Date.now(), undefined));
-  await t.run(async (ctx) => {
-    for (const [giver, awards] of Object.entries(givers)) await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: thisWeek, giver: giver as MemberId, awards });
+  await thanked(t, givers, allowanceDay(Date.now(), undefined));
+}
+
+async function thankedPersonOf(t: Backend): Promise<MemberId> {
+  return t.run(async (ctx) => {
+    const thanked = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", "U_THANKED"))
+      .unique();
+    return thanked?._id ?? ctx.db.insert("members", { workspace: "T1", user: "U_THANKED", kind: "member", name: "Thanked" });
   });
 }
 
@@ -927,7 +975,7 @@ async function matched(t: Backend, member: MemberId, profile: number) {
 }
 
 async function teamWithEveryHoggie(t: Backend, team: string, size: number, firstProfile = 1000): Promise<MemberId[]> {
-  const { catalogue } = await import("../hoggies/catalogue");
+  const { catalogue } = await import("../album/hoggies/catalogue");
   const profiles = Array.from({ length: size }, (_, index) => firstProfile + index);
   const people: MemberId[] = [];
   for (const profile of profiles) {
@@ -935,12 +983,12 @@ async function teamWithEveryHoggie(t: Backend, team: string, size: number, first
       await t.run(async (ctx) => {
         const member = await ctx.db.insert("members", { workspace: "T1", user: `U_TEAM${profile}`, kind: "member", name: `Teammate ${profile}` });
         await ctx.db.insert("companyFaces", { workspace: "T1", member, face: null, profile });
-        await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: member, awards: 1 });
         for (const [index, { hoggie }] of catalogue.hoggies.entries()) await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: index, firstN: index + 1 });
         return member;
       }),
     );
   }
+  await thanked(t, Object.fromEntries(people.map((member) => [member, 1])));
   await t.run((ctx) => ctx.db.insert("companyTeams", { team, name: team, leads: [], people: profiles, asOf: 0 }));
   return people;
 }
@@ -952,13 +1000,16 @@ async function collected(t: Backend, member: MemberId, ...people: MemberId[]) {
 }
 
 async function boardOf(t: Backend, givers: number) {
-  await t.run(async (ctx) => {
+  const board = await t.run(async (ctx) => {
+    const kudosByGiver: Record<string, number> = {};
     for (let index = 0; index < givers; index += 1) {
       const member = await ctx.db.insert("members", { workspace: "T1", user: `U_BOARD${index}`, kind: "member", name: `Giver on the board ${index}` });
       await ctx.db.insert("companyFaces", { workspace: "T1", member, face: null, profile: 5000 + index });
-      await ctx.db.insert("thoughtfulBoardTallies", { workspace: "T1", period: "all", giver: member, awards: 1 + (index % 7) });
+      kudosByGiver[member] = 1 + (index % 7);
     }
+    return kudosByGiver;
   });
+  await thanked(t, board);
 }
 
 async function peopleWhoUnlockedEveryHype(t: Backend, givers: number, people: number, drops: number): Promise<MemberId[]> {
@@ -1038,4 +1089,10 @@ async function earned(t: Backend, member: MemberId, ladder: LadderId, ...tiers: 
       await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: Date.now(), award, catalogueVersion: "1", rewards: [] });
     }
   });
+}
+
+function fromALinkCard(url: string) {
+  const link = new URL(url);
+  link.searchParams.set("src", "link-card");
+  return link.toString();
 }

@@ -1,10 +1,14 @@
+import type { Rarity } from "../album/hoggies/catalogue";
 import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
-import { hypesHeldFor } from "../items/hypes";
+import { hypesHeldFor } from "../album/items/hypes";
+import { reportLeaderboardViewed } from "../analytics/isolatedUsage";
+import { exposeLeaderboardHugs, leaderboardHugsShownTo } from "../leaderboard/flag";
+import { kudosEmojiPicksOf, pickKudosEmoji as pickKudosEmojiOf, type KudosEmojiPick } from "../album/kudosEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
-import { albumShownTo, emojiWizardShownTo, personPageDShownTo, shareableUrlsShownTo } from "../album/flag";
-import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
+import { albumShownTo, bookNextShownTo, emojiWizardShownTo, kudosEmojiPicksShownTo, personPageDShownTo, shareableUrlsShownTo } from "../album/flag";
+import { albumHoggiesOf, type AlbumHoggies } from "../album/albumHoggies";
 import { levelUpRevealOf, levelUpRevealShownTo, type LevelUpAnswer } from "../album/levelUp";
 import { milestonesOf, type MilestoneAnswer } from "../album/milestones";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
@@ -17,21 +21,22 @@ import { unlockTeamStickerOf } from "../album/teamStickers";
 import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import type { Id } from "../_generated/dataModel";
-import { hoggieForgeShownTo, hoggiesShownTo, petHoggieShownTo } from "../hoggies/flag";
-import { forge } from "../hoggies/forge";
-import { makePetOf, petOf, petsIn, type Pet } from "../hoggies/pet";
-import { hiddenItemsShownTo } from "../items/flag";
-import { boardOf, type FaceDown } from "../items/ledger";
-import { milestonesHeldForTheirTurn } from "../items/milestoneUnlocks";
-import type { ItemReason } from "../items/records";
-import { shareOffersTo, type ShareOffers } from "../items/share";
-import { turn, type Turned, type TurnedFace } from "../items/turn";
-import { lessonAfter, type LoopLesson, type Taught } from "../items/welcome";
+import { hoggieForgeShownTo, hoggiesShownTo, petHoggieShownTo } from "../album/hoggies/flag";
+import { highestForgedFor, rarityCapsShownTo } from "../album/hoggies/rarityCaps";
+import { forge } from "../album/hoggies/forge";
+import { makePetOf, petOf, petsIn, type Pet } from "../album/hoggies/pet";
+import { hiddenItemsShownTo } from "../album/items/flag";
+import { boardOf, type FaceDown } from "../album/items/ledger";
+import { milestonesHeldForTheirTurn } from "../album/items/milestoneUnlocks";
+import type { ItemReason } from "../album/items/records";
+import { turn, type Turned, type TurnedFace } from "../album/items/turn";
+import { lessonAfter, type LoopLesson, type Taught } from "../album/items/welcome";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { customEmojiPageOf } from "../workspace/url";
+import { workspaceLink } from "../slack/workspaceLink";
 import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, type AlbumProfileAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
 import { lastVisitOf } from "./lastVisit";
@@ -57,6 +62,7 @@ export type AlbumAnswer = {
   milestones: MilestoneAnswer[];
   emojis: EarnedEmoji[];
   moreEmojis: boolean;
+  kudosEmojiPicks?: string[];
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
   emojiWizard: boolean;
@@ -67,8 +73,11 @@ export type AlbumAnswer = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
-} & ShareOffers &
-  Onboarding;
+  bookNext?: BookNext;
+  leaderboardHugs?: true;
+} & Onboarding;
+
+export type BookNext = { chatUrl: string; rarityCaps: boolean };
 
 export const mostPeopleShown = 500;
 
@@ -84,7 +93,7 @@ export type AlbumTrayItem = Exclude<TrayItem, { kind: "sticker" }> | (Extract<Tr
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
-export type BoardReason = { kind: "thanks"; thanked: Thanked } | Exclude<ItemReason, { kind: "thanks" }>;
+export type BoardReason = { kind: "thanks"; person: MemberId; thanked: Thanked } | Exclude<ItemReason, { kind: "thanks" }>;
 
 export type BoardItem = Omit<FaceDown, "reason"> & { reason: BoardReason };
 
@@ -126,7 +135,9 @@ export type AlbumWeekRead = { kind: "off" } | AlbumWeekAnswer;
 
 export type AlbumProfileRead = { kind: "off" } | AlbumProfileAnswer;
 
-export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies & { pet?: string | null; forge?: true };
+export type AlbumHoggiesAnswer = { kind: "hoggies" } & AlbumHoggies & { pet?: string | null; forge?: ForgeOffered };
+
+export type ForgeOffered = { upTo: Rarity };
 
 export type PetAnswer = { kind: "picked"; pet: string } | { kind: "refused" };
 
@@ -148,19 +159,33 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { teams, unlisted } = await teamsOf(ctx, pagesAndPeople, new Set(held.map(({ person }) => person)));
   const level = await levelOf(ctx, me.member);
   const milestones = await milestonesShownTo(ctx, me, pagesAndPeople.pages, { itemsShown });
-  const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level, ...(waiting !== null && { hypesHeld: hypesHeldFor(waiting) }) });
+  const picks = await kudosEmojiPicksShownOf(ctx, me.member);
+  const earned = await earnedEmojisOf(ctx, me, { pages: pagesAndPeople.pages, milestones, level, ...(waiting !== null && { hypesHeld: hypesHeldFor(waiting) }), picked: picks.kudosEmojiPicks });
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareOffersTo(ctx, me)), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, ...picks, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)), ...(await bookNextOn(ctx, me)), ...(await leaderboardHugsOn(ctx, me)) };
 });
+
+async function kudosEmojiPicksShownOf(ctx: QueryCtx, member: MemberId): Promise<Pick<AlbumAnswer, "kudosEmojiPicks">> {
+  return (await kudosEmojiPicksShownTo(ctx, member)) ? { kudosEmojiPicks: await kudosEmojiPicksOf(ctx, member) } : {};
+}
 
 async function shareableUrlsTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "shareableUrls">> {
   return (await shareableUrlsShownTo(ctx, me.member)) ? { shareableUrls: true } : {};
 }
 
+async function leaderboardHugsOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "leaderboardHugs">> {
+  return (await leaderboardHugsShownTo(ctx, me.member)) ? { leaderboardHugs: true } : {};
+}
+
 async function personPageDOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "personPageD">> {
   return (await personPageDShownTo(ctx, me.member)) ? { personPageD: true } : {};
+}
+
+async function bookNextOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "bookNext">> {
+  if (!(await bookNextShownTo(ctx, me.member))) return {};
+  return { bookNext: { chatUrl: workspaceLink(me.workspace), rarityCaps: await rarityCapsShownTo(ctx, me.member) } };
 }
 
 async function linkPreviewsOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "linkPreviews">> {
@@ -189,7 +214,7 @@ async function boardShownOf({ items, more }: Waiting, thanked: ThankedPeople): P
 }
 
 async function boardReasonOf(reason: ItemReason, thanked: ThankedPeople): Promise<BoardReason> {
-  return reason.kind === "thanks" ? { kind: "thanks", thanked: await thanked(reason.person) } : reason;
+  return reason.kind === "thanks" ? { kind: "thanks", person: reason.person, thanked: await thanked(reason.person) } : reason;
 }
 
 async function petsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "pets">> {
@@ -316,6 +341,11 @@ export const markEmojisSeen = memberMutation({
   },
 });
 
+export const pickKudosEmoji = memberMutation({
+  args: { emoji: v.string(), picked: v.boolean() },
+  handler: async (ctx, me, _person, { emoji, picked }): Promise<KudosEmojiPick> => ((await albumShownTo(ctx, me.member)) && (await kudosEmojiPicksShownTo(ctx, me.member)) ? pickKudosEmojiOf(ctx, me.member, emoji, picked) : { kind: "refused" }),
+});
+
 export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)), ...(await petPickOf(ctx, me)), ...(await forgeOfferOf(ctx, me)) } : { kind: "off" }));
 
 async function petPickOf(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumHoggiesAnswer, "pet">> {
@@ -331,7 +361,7 @@ export const makePet = memberMutation({
 });
 
 async function forgeOfferOf(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumHoggiesAnswer, "forge">> {
-  return (await forgeShownTo(ctx, me.member)) ? { forge: true } : {};
+  return (await forgeShownTo(ctx, me.member)) ? { forge: { upTo: await highestForgedFor(ctx, me.member) } } : {};
 }
 
 export const forgeHoggie = memberMutation({
@@ -373,6 +403,18 @@ export const getThoughtfulBoards = memberQuery({
     await followTheClock(ctx);
     const { people, teams, pinned, onTheBoards } = await thoughtfulBoardsOf(ctx, me, { whoGave: team ?? null, period: period ?? "week" });
     return { kind: "boards", people: people.map(personRowOf), teams, pinned: { me: pinned.me === null ? null : personRowOf(pinned.me), teams: pinned.teams }, onTheBoards };
+  },
+});
+
+export type LeaderboardViewAnswer = { kind: "viewed" } | { kind: "refused" };
+
+export const viewLeaderboard = memberMutation({
+  args: { period: boardPeriodValidator },
+  handler: async (ctx, me, _person, { period }): Promise<LeaderboardViewAnswer> => {
+    if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
+    await exposeLeaderboardHugs(ctx, me.member);
+    await reportLeaderboardViewed(ctx, { workspace: me.workspace, member: me.member, board: "everyone", period, surface: "website", at: Date.now() });
+    return { kind: "viewed" };
   },
 });
 

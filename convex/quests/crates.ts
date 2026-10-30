@@ -3,6 +3,7 @@ import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { appliedRewardValidator, rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
+import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { journeyStepValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "./step";
 
 export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number(), applied: v.optional(appliedRewardValidator) });
@@ -58,8 +59,15 @@ export async function recordWaits(ctx: QueryCtx, reward: RewardRecord | null): P
   return reward?.held === true && (await crateOpeningOf(ctx, reward.member, reward.key)) === null;
 }
 
-export function waitsUnopened(reward: RewardRecord | null, opening: Doc<"crateOpenings"> | null): boolean {
+type Finish = Pick<RewardRecord, "at" | "catalogueVersion" | "held">;
+
+export function waitsUnopened(reward: Finish | null, opening: Doc<"crateOpenings"> | null): boolean {
   return reward?.held === true && opening === null;
+}
+
+export function crateOpenedAt(reward: Finish | null, opening: Doc<"crateOpenings"> | null): number | null {
+  if (opening !== null) return opening.at;
+  return reward !== null && isPaidOnTheMondayPath(reward) ? reward.at : null;
 }
 
 export function crateOpeningOf(ctx: QueryCtx, member: MemberId, key: string) {

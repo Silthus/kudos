@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
-import { everythingStored, post, setWorkspaceSettings, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { deliverAgain, everythingStored, post, setWorkspaceSettings, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -76,6 +76,30 @@ describe("D18: the one public reply", () => {
 
     expect(slack.messagesIn("C_NEWS")).toEqual([{ ...notice, text: "🎉 <@U_ALICE> reached level 3." }]);
     expect(slack.callsTo("chat.update")).toEqual([{ channel: "C_NEWS", ts: notice!.ts, text: "🎉 <@U_ALICE> reached level 3." }]);
+  });
+
+  test("a level-up delivered again neither posts nor edits the one reply", async () => {
+    const t = await announcingIn("C_NEWS");
+    await post(t, thanksBobTwice);
+    await settle(t);
+
+    await deliverAgain(t, "feedback/publicReplies:celebrateLevel");
+
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C_NEWS"), "the posts").toHaveLength(1);
+    expect(slack.callsTo("chat.update"), "the edits").toEqual([]);
+  });
+
+  test("an older level-up delivered again after a newer one keeps the newer level", async () => {
+    const t = await announcingIn("C_NEWS");
+    await post(t, thanksBobTwice);
+    await settle(t);
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 3) });
+    await settle(t);
+
+    await deliverAgain(t, "feedback/publicReplies:celebrateLevel");
+
+    expect(slack.messagesIn("C_NEWS").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 3."]);
+    expect(slack.callsTo("chat.update"), "the edits").toHaveLength(1);
   });
 
   test("a level reached while the reply is being posted is added by an edit, never by a second post", async () => {

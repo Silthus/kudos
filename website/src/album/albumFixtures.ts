@@ -1,6 +1,7 @@
 import type { Id } from "../../../convex/_generated/dataModel";
-import { milestoneTierArtOf, slugOf } from "../../../convex/album/emojiCatalogue";
-import type { Drop } from "../../../convex/hoggies/drops";
+import { milestoneTierArtOf, mostKudosEmojiPicks, slugOf } from "../../../convex/album/emojiCatalogue";
+import type { KudosEmojiPick } from "../../../convex/album/kudosEmojis";
+import type { Drop } from "../../../convex/album/hoggies/drops";
 import type { BoardItem, ItemBoard, TurnAnswer } from "../../../convex/website/album";
 import type { GettingStarted, GettingStartedSteps } from "../../../convex/website/onboarding";
 import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, SharedEmoji, TrayItem, UnlockAnswer } from "./answer";
@@ -142,6 +143,7 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = started
     tray: [],
     emojis,
     moreEmojis: false,
+    kudosEmojiPicks: [],
     sharedEmojis: null,
     emojiPage,
     emojiWizard: false,
@@ -160,7 +162,7 @@ const midwayTray: TrayItem[] = [
 ];
 
 function boardItemFor(index: number, person: string): BoardItem {
-  return { item: `item-${index + 1}` as Id<"items">, earnedAt: now - (index + 1) * day, reason: { kind: "thanks", thanked: { name: nameOf(person), face: { kind: "initials", initials: initialsOf(person) } } } };
+  return { item: `item-${index + 1}` as Id<"items">, earnedAt: now - (index + 1) * day, reason: { kind: "thanks", person: person as Id<"members">, thanked: { name: nameOf(person), face: { kind: "initials", initials: initialsOf(person) } } } };
 }
 
 const waitingItems: ItemBoard = { items: ["cass-vey", "dov-esker", "rook-dale"].map((person, index) => boardItemFor(index, person)), more: false };
@@ -222,6 +224,15 @@ export function fixtureTurnOf(item: string): TurnAnswer {
     unlocked: { teamStickers: [], hype: null, milestones: [] },
     again: false,
   };
+}
+
+const fixtureKudosEmojiPicks = new Set<string>();
+
+export function fixtureKudosEmojiPickOf(emoji: string, picked: boolean): KudosEmojiPick {
+  if (picked && !fixtureKudosEmojiPicks.has(emoji) && fixtureKudosEmojiPicks.size >= mostKudosEmojiPicks) return { kind: "full" };
+  if (picked) fixtureKudosEmojiPicks.add(emoji);
+  else fixtureKudosEmojiPicks.delete(emoji);
+  return { kind: "picked", picks: [...fixtureKudosEmojiPicks] };
 }
 
 export function fixtureUnlockOf(album: Album, team: string): UnlockAnswer {

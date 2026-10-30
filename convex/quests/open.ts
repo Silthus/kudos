@@ -1,12 +1,14 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { questHoggieRarities } from "../album/hoggies/rarityCaps";
 import { publish } from "../bus/publish";
 import type { Surface } from "../commands/surface";
-import { dropsAHoggie } from "../hoggies/crateKey";
-import { dropFor } from "../hoggies/drops";
+import { dropsAHoggie } from "../album/hoggies/crateKey";
+import { dropFor } from "../album/hoggies/drops";
 import { applyGain } from "../progression/progression";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { journeyStepAppliesTo, questsLiveFor } from "./flag";
 import { groupQuestAppliesTo, groupQuestIdOf } from "./groupQuest";
 import { crateOpened } from "./pendingCrates";
@@ -16,7 +18,7 @@ import { poolQuestOf } from "./weekly";
 export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: Quest, surface: Surface): Promise<"done" | "refused"> {
   const key = rewardKeyOf(quest);
   const reward = await rewardOf(ctx, member, key);
-  if (reward === null || !(await questsLiveFor(ctx, member))) return "refused";
+  if (reward === null || isPaidOnTheMondayPath(reward) || !(await questsLiveFor(ctx, member))) return "refused";
   const { workspace } = await chatUserOf(ctx, member);
   if (quest.kind === "journey" && !(await journeyStepAppliesTo(ctx, workspace, member, quest.step))) return "refused";
   if (quest.kind === "group" && !(await groupQuestAppliesTo(ctx, member))) return "refused";
@@ -25,7 +27,7 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
   const applied = await appliedAtOpen(ctx, workspace, reward, at);
   await ctx.db.insert("crateOpenings", { member, key, at, ...(applied && { applied }) });
   await crateOpened(ctx, member, key);
-  if (dropsAHoggie(key)) await dropFor(ctx, member, key, at, { surface });
+  if (dropsAHoggie(key)) await dropFor(ctx, member, key, at, { surface, rarities: questHoggieRarities });
   await publish(ctx, { type: "questOpened", workspace, member, quest, ...(await poolQuestNamed(ctx, member, quest)), at });
   return "done";
 }

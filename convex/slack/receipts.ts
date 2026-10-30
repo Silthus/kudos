@@ -2,6 +2,8 @@ import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { withholdingWords } from "../analytics/exceptions";
+import { dmLinkValidator, reportDmLinkClicked } from "../analytics/isolatedUsage";
+import { onTheMondayPath } from "../quests/flag";
 import { commandsOfferedTo, commandValidator, runCommand } from "../commands/commands";
 import { welcomePickOf } from "../feedback/welcome";
 import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
@@ -10,13 +12,13 @@ import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import type { HomeRefusal } from "../feedback/homeRefusal";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
+import { howToAskedValidator } from "./welcome";
 import { reportHomeOpened } from "./appHome";
 import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
 import { hugReactionValidator } from "../hugs/reaction";
-import { giveHug } from "../hugs/hugs";
+import { decideReaction } from "../hugs/hugs";
 import { linkSharingValidator } from "./linkPreviews";
-import { withoutSkinTone } from "../workspace/slackEmoji";
 
 type Receipt = { workspace: string; eventId: string };
 
@@ -42,7 +44,7 @@ export const receiveReaction = internalMutation({
     const receipt = { workspace: reaction.workspace, eventId };
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    const decision = await giveHug(ctx, reaction, withoutSkinTone(reaction.emoji));
+    const decision = await decideReaction(ctx, reaction);
     if (decision.kind === "unknown-people") await ctx.scheduler.runAfter(0, internal.slack.hugLookups.lookUpHugPeople, { reaction, users: decision.users });
   },
 });
@@ -81,8 +83,9 @@ export const receiveHomeClick = internalMutation({
     await ctx.db.insert("slackReceipts", receipt);
     if (person?.kind !== "member") return;
     let refused: HomeRefusal | undefined;
+    const pressedIn = conversation !== undefined && message !== undefined && ephemeral === undefined ? { channel: conversation, ts: message } : undefined;
     for (const command of offered) {
-      const outcome = await runCommand(ctx, receipt.workspace, person, command, { surface: "slack", idempotencyKey: `slack:${receipt.eventId}` });
+      const outcome = await runCommand(ctx, receipt.workspace, person, command, { surface: "slack", idempotencyKey: `slack:${receipt.eventId}`, pressedIn });
       if (outcome !== null && "perk" in outcome && conversation !== undefined) {
         const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };
         await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, ...answeredIn, outcome });
@@ -94,6 +97,17 @@ export const receiveHomeClick = internalMutation({
       }
     }
     await republish(ctx, person.member, refused);
+  },
+});
+
+export const receiveDmLinkClick = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), link: dmLinkValidator, howTo: v.optional(howToAskedValidator) },
+  handler: async (ctx, { user, link, howTo, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    if (howTo !== undefined) await ctx.scheduler.runAfter(0, internal.slack.welcome.replyWithHowTo, { workspace: receipt.workspace, ...howTo });
+    const person = await lookup(ctx, receipt.workspace, user);
+    if (person?.kind === "member" && (await onTheMondayPath(ctx, person.member))) await reportDmLinkClicked(ctx, { workspace: receipt.workspace, member: person.member, ...link, at: Date.now() });
   },
 });
 
@@ -122,6 +136,15 @@ export const receiveChannelCreated = internalMutation({
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     await ctx.scheduler.runAfter(0, internal.slack.channelJoins.joinCreatedChannel, { channel });
+  },
+});
+
+export const receiveChannelToCheck = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), channel: v.string() },
+  handler: async (ctx, { channel, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await ctx.scheduler.runAfter(0, internal.slack.channelLeaves.leaveIfOffLimits, { channel });
   },
 });
 

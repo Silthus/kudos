@@ -128,15 +128,12 @@ describe("SR1 SR18: every other reaction does nothing", () => {
     expect(hugsGiven()).toEqual([]);
   });
 
-  test.each([
-    ["its author", "U_ALICE"],
-    ["one of its recipients", "U_CAROL"],
-  ])("a reaction by %s on a Given kudos message gives no XP", async (_, user) => {
+  test("a reaction by its author on a Given kudos message gives no XP", async () => {
     const t = await workspace();
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
     const before = await xpOfEveryone(t);
 
-    await hug(t, { user, itemUser: "U_ALICE" });
+    await hug(t, { user: "U_ALICE", itemUser: "U_ALICE" });
 
     expect(await xpOfEveryone(t)).toEqual(before);
     expect(hugsGiven()).toEqual([]);
@@ -175,7 +172,7 @@ describe("SR4: people the directory doesn't know are looked up first", () => {
   });
 });
 
-describe("SR16: a hug reaches PostHog as hug given, with only whether it was on a kudos message", () => {
+describe("SR16 HH90: a hug reaches PostHog as hug given, with only whether it was on a kudos message and the emoji reacted", () => {
   test.each([
     ["an ordinary message", false],
     ["a Given kudos message", true],
@@ -183,11 +180,11 @@ describe("SR16: a hug reaches PostHog as hug given, with only whether it was on 
     const t = await workspace();
     if (onKudos) await kudos(t, "U_ALICE", ["U_CAROL"]);
 
-    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", reaction: "taco::skin-tone-3" });
 
     const given = hugsGiven();
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
-    expect(given.map(({ properties }) => properties)).toEqual([{ ...shared, on_kudos: onKudos }]);
+    expect(given.map(({ properties }) => properties)).toEqual([{ ...shared, on_kudos: onKudos, reaction: "taco" }]);
     expect(JSON.stringify(given)).not.toMatch(new RegExp(`U_ALICE|U_BOB|C1|${secondsOf(messageTs)}`));
   });
 });
@@ -272,7 +269,7 @@ describe("SR5 SR23: a member hugs a message at most once", { timeout: 60_000 }, 
 });
 
 describe("SR2 SR23: a hug is never an award", { timeout: 120_000 }, () => {
-  test("with every feature on, hugs change nothing but their own records, XP and the flag's exposure: boards, kudos totals, coins, quests, the Journey and the allowance stay as they were", async () => {
+  test("with every feature on, hugs change nothing but their own records, XP, Leaderboard's hug counts and the flag's exposure: boards, kudos totals, coins, quests, the Journey and the allowance stay as they were", async () => {
     const t = await everyFeatureOn();
     await kudos(t, "U_ALICE", ["U_CAROL"]);
     await kudos(t, "U_BOB", ["U_ALICE"], slackTs(now.getTime() - hourMs + 1_000));
@@ -286,7 +283,7 @@ describe("SR2 SR23: a hug is never an award", { timeout: 120_000 }, () => {
     await hug(t, { user: "U_ALICE", itemUser: "U_DANA", ts: slackTs(now.getTime() - 2 * hourMs) });
 
     expect(hugsGiven()).toHaveLength(3);
-    expect(withoutTheAlbumsHugCounts(await everythingStored(t, { except: writtenByAHug }))).toEqual(withoutHugs);
+    expect(withoutLeaderboardsHugCounts(withoutTheAlbumsHugCounts(await everythingStored(t, { except: writtenByAHug })))).toEqual(withoutHugs);
   });
 });
 
@@ -311,7 +308,7 @@ async function workspace({ transactionLimits = false } = {}) {
 
 const everyFeature = ["hugs", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
 
-const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
+const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "countedRecognitions", "weekThankers", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
 
 function withoutTheAlbumsHugCounts(rows: Array<Record<string, unknown>>) {
   const thanked = (row: Record<string, unknown>) => row.kudosGiven !== 0 || row.kudosReceived !== 0;
@@ -326,6 +323,14 @@ function withoutTheAlbumsHugCounts(rows: Array<Record<string, unknown>>) {
     }
     if ("list" in row) return row.list === "hugged" || row.list === "huggedBy" ? [] : [row];
     return [row];
+  });
+}
+
+function withoutLeaderboardsHugCounts(rows: Array<Record<string, unknown>>) {
+  return rows.map((row) => {
+    if (!("period" in row || "day" in row) || !("kudos" in row)) return row;
+    const { hugsGiven, hugsReceived, ...kudos } = row;
+    return kudos;
   });
 }
 

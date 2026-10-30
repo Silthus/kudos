@@ -6,7 +6,9 @@ import { App, type AppReads } from "../App";
 import type { Capturer } from "../browserAnalytics/capture";
 import { CapturingContext } from "../browserAnalytics/capturing";
 import { albumFixtures, fixedAlbum } from "../album/albumFixtures";
-import type { AlbumRead, BoardsRead, HoggiesRead, LevelUpRead, PersonRead, PlayerCardRead, ProfileRead, WeekRead, XpMomentRead } from "../album/answer";
+import type { ActivityWeekRead, AlbumRead, BoardsRead, HoggiesRead, HugBoardsRead, LevelUpRead, PersonRead, PlayerCardRead, ProfileRead, QuestsRead, WeekRead, XpMomentRead } from "../album/answer";
+import { noQuests } from "../album/questsFixtures";
+import { theWeeklyEdition } from "../activity/activityWeekFixtures";
 import type { EmojiMappingsRead } from "../emojiMappingsRead";
 import type { AppEmojisRead, SlackEmojiMatchesRead } from "../emojiWizardReads";
 import type { SettingsRead } from "../settingsRead";
@@ -25,6 +27,8 @@ const noAlbum: AlbumRead = (asking) => (asking ? { kind: "off" } : undefined);
 
 const noBoards: BoardsRead = (asking) => (asking ? { kind: "off" } : undefined);
 
+const noHugBoards: HugBoardsRead = (asking) => (asking ? { kind: "off" } : undefined);
+
 const noWeeks: WeekRead = (asking) => (asking ? { kind: "off" } : undefined);
 
 const noPeople: PersonRead = (asking) => (asking ? { kind: "off" } : undefined);
@@ -39,16 +43,16 @@ const noXpMoment: XpMomentRead = (asking) => (asking ? { kind: "off" } : undefin
 
 const noPlayerCards: PlayerCardRead = (asking) => (asking ? { card: { kind: "off" }, emojis: { kind: "off" } } : { card: undefined, emojis: undefined });
 
-type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "shareItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks">>;
+type Commands = Partial<Pick<ShellActions, "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setWeeklyPost" | "pickWeeklyPostChannel" | "setPublicCelebrations" | "mapSlackEmoji" | "mapMyEmoji" | "pickKudosEmoji" | "pickMyHypeEmoji" | "openThoughtfulPack" | "putIn" | "putAllIn" | "unlockTeamSticker" | "markEmojisSeen" | "turnItem" | "makePet" | "forgeHoggie" | "arrive" | "endXpMoment" | "closeHowItWorks" | "viewQuests" | "viewLeaderboard" | "viewActivity">>;
 
-const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useAlbumWeek: noWeeks, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment, usePlayerCard: noPlayerCards };
+const noReads: AppReads = { useSettings: noSettings, useEmojiMappings: noEmojiMappings, useSlackEmojiMatches: noSlackEmojiMatches, useAppEmojis: noAppEmojis, useAlbum: noAlbum, useThoughtfulBoards: noBoards, useHugBoards: noHugBoards, useAlbumWeek: noWeeks, useActivityWeek: theWeeklyEdition, useAlbumPerson: noPeople, useAlbumProfile: noProfile, useAlbumHoggies: noHoggies, useLevelUp: noLevelUp, useXpMoment: noXpMoment, usePlayerCard: noPlayerCards, useQuests: noQuests };
 
 export function renderApp(visitor: ShellState) {
   return renderAppWith(visitor, noReads, {});
 }
 
-export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, emojiMappings = noEmojiMappings, slackEmojiMatches = noSlackEmojiMatches, appEmojis = noAppEmojis, boards = noBoards, weeks = noWeeks, people = noPeople, profile = noProfile, hoggies = noHoggies, levelUp = noLevelUp, xpMoment = noXpMoment, playerCards = noPlayerCards, commands = {}, capturer = null }: { settings?: SettingsRead; emojiMappings?: EmojiMappingsRead; slackEmojiMatches?: SlackEmojiMatchesRead; appEmojis?: AppEmojisRead; boards?: BoardsRead; weeks?: WeekRead; people?: PersonRead; profile?: ProfileRead; hoggies?: HoggiesRead; levelUp?: LevelUpRead; xpMoment?: XpMomentRead; playerCards?: PlayerCardRead; commands?: Commands; capturer?: Capturer | null } = {}) {
-  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useEmojiMappings: emojiMappings, useSlackEmojiMatches: slackEmojiMatches, useAppEmojis: appEmojis, useThoughtfulBoards: boards, useAlbumWeek: weeks, useAlbumPerson: people, useAlbumProfile: profile, useAlbumHoggies: hoggies, useLevelUp: levelUp, useXpMoment: xpMoment, usePlayerCard: playerCards }, commands, capturer);
+export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, emojiMappings = noEmojiMappings, slackEmojiMatches = noSlackEmojiMatches, appEmojis = noAppEmojis, boards = noBoards, hugBoards = noHugBoards, weeks = noWeeks, activity = theWeeklyEdition, people = noPeople, profile = noProfile, hoggies = noHoggies, levelUp = noLevelUp, xpMoment = noXpMoment, playerCards = noPlayerCards, quests = noQuests, commands = {}, capturer = null }: { settings?: SettingsRead; emojiMappings?: EmojiMappingsRead; slackEmojiMatches?: SlackEmojiMatchesRead; appEmojis?: AppEmojisRead; boards?: BoardsRead; hugBoards?: HugBoardsRead; weeks?: WeekRead; activity?: ActivityWeekRead; people?: PersonRead; profile?: ProfileRead; hoggies?: HoggiesRead; levelUp?: LevelUpRead; xpMoment?: XpMomentRead; playerCards?: PlayerCardRead; quests?: QuestsRead; commands?: Commands; capturer?: Capturer | null } = {}) {
+  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings, useEmojiMappings: emojiMappings, useSlackEmojiMatches: slackEmojiMatches, useAppEmojis: appEmojis, useThoughtfulBoards: boards, useHugBoards: hugBoards, useAlbumWeek: weeks, useActivityWeek: activity, useAlbumPerson: people, useAlbumProfile: profile, useAlbumHoggies: hoggies, useLevelUp: levelUp, useXpMoment: xpMoment, usePlayerCard: playerCards, useQuests: quests }, commands, capturer);
 }
 
 export function findTheAlbum() {
@@ -80,13 +84,16 @@ function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands,
     putIn: vi.fn(commands.putIn ?? (async () => ({ kind: "refused" }) as const)),
     putAllIn: vi.fn(commands.putAllIn ?? (async () => ({ kind: "refused" }) as const)),
     markEmojisSeen: vi.fn(commands.markEmojisSeen ?? (async (ids: string[]) => ({ kind: "seen", ids }) as const)),
+    pickKudosEmoji: vi.fn(commands.pickKudosEmoji ?? (async () => ({ kind: "refused" }) as const)),
     turnItem: vi.fn(commands.turnItem ?? (async () => ({ kind: "refused" }) as const)),
-    shareItem: vi.fn(commands.shareItem ?? (async () => ({ kind: "refused" }) as const)),
     makePet: vi.fn(commands.makePet ?? (async () => ({ kind: "refused" }) as const)),
     forgeHoggie: vi.fn(commands.forgeHoggie ?? (async () => ({ kind: "refused" }) as const)),
     arrive: vi.fn(commands.arrive ?? (async (from: number | null) => ({ kind: "arrived", lastVisit: from }) as const)),
     endXpMoment: vi.fn(commands.endXpMoment ?? (async (_from: number, until: number) => ({ kind: "arrived", lastVisit: until }) as const)),
     closeHowItWorks: vi.fn(commands.closeHowItWorks ?? (async () => ({ kind: "closed" }) as const)),
+    viewQuests: vi.fn(commands.viewQuests ?? (() => {})),
+    viewLeaderboard: vi.fn(commands.viewLeaderboard ?? (() => {})),
+    viewActivity: vi.fn(commands.viewActivity ?? (() => {})),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (

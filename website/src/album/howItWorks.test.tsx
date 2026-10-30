@@ -81,7 +81,7 @@ function theLesson() {
 
 async function turnTheFirstItem(user: ReturnType<typeof visit>["user"]) {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }));
-  await user.click(board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+  await user.click(board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!);
   await screen.findByRole("heading", { level: 1, name: "Hoggies" });
 }
 
@@ -138,7 +138,7 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
     await turnTheFirstItem(user);
     await user.click(within(theCard()!).getByRole("button", { name: "Got it" }));
 
-    await user.click(screen.getByRole("button", { name: "1 item waits" }));
+    await user.click(screen.getByRole("button", { name: "1 unidentified item waits" }));
     await turnTheFirstItem(user);
 
     expect(theCard()).toBeNull();
@@ -150,7 +150,7 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
     await turnTheFirstItem(user);
 
     expect(theCard()).toBeNull();
-    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 and say why.");
+    expect(theLesson()).toHaveTextContent("Your next item comes when you thank a teammate with 🌮 in a message.");
   });
 
   it("LP49: where getAlbum answers no card, nothing holds the items at arrival", async () => {
@@ -166,12 +166,12 @@ describe("LP67: the how-it-works card opens once, at the end of the arrival's se
     visit([welcomeItem, thanksItem]);
     await screen.findByRole("dialog", { name: "Your items" });
 
-    await turnOnFakeTime(within(theItemBoard()!).getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+    await turnOnFakeTime(within(theItemBoard()!).getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!);
 
     expect(theCard()).toBeInTheDocument();
     expect(theItemBoard(), "the board under the card").toBeNull();
     await act(async () => fireEvent.click(within(theCard()!).getByRole("button", { name: "Got it" })));
-    expect(within(theItemBoard()!).getAllByRole("button", { name: "A face-down item. Turn it over" })).toHaveLength(1);
+    expect(within(theItemBoard()!).getAllByRole("button", { name: "An unidentified item. Identify it" })).toHaveLength(1);
     expect(theLesson(), "the line the card replaced").toBeNull();
   });
 });
@@ -181,22 +181,24 @@ describe("LP68: the card shows a hug and a kudos as they look in Slack", () => {
     preferReducedMotion();
   });
 
-  it("plays the teammate's message with the member's kudos-emoji reaction and the hug chip, then the member's kudos with its chips, then what the first kudos unlocks", async () => {
+  it("plays the teammate's message with how to hug, the member's kudos-emoji reaction and the hug chip, then the member's kudos with how to give one and its chip, then what the first kudos unlocks", async () => {
     visit([]);
     const card = within(await screen.findByRole("dialog", { name: "How HedgeHug works" }));
 
     expect(card.getByText("How HedgeHug works")).toBeInTheDocument();
     expect(card.getByRole("heading", { name: "Two ways to thank someone" })).toBeInTheDocument();
     const [hug, kudos] = within(card.getByRole("list", { name: "Two Slack messages" })).getAllByRole("listitem");
+    expect(hug).toHaveTextContent("React to any message with 🌮");
     expect(hug).toHaveTextContent("Alex Lee");
     expect(hug).toHaveTextContent("Shipped the fix for the flaky deploy, should be green now.");
     expect(hug).toHaveTextContent("🌮 1");
     expect(hug).toHaveTextContent("Hug · +1 XP each");
+    expect(kudos).toHaveTextContent("Mention someone in a message with 🌮");
     expect(kudos).toHaveTextContent("You");
     expect(kudos).toHaveTextContent("🌮 @Alex Lee thanks for staying on the deploy fix, the release went out on time because of you.");
     expect(kudos).toHaveTextContent("Kudos · +10 XP");
-    expect(kudos).toHaveTextContent("said why · +1 item");
-    expect(card.getByText("Your first kudos takes you to level 2. Items wait here for you to turn.")).toBeInTheDocument();
+    expect(card.getByRole("list", { name: "Two Slack messages" })).not.toHaveTextContent(/why|item/);
+    expect(card.getByText("Your first kudos takes you to level 2. Items wait here for you to identify.")).toBeInTheDocument();
     expect(card.getByText(/Level 2 unlocks:/).closest("p")).toHaveTextContent("Level 2 unlocks: Leaderboard · 3 items · your next emoji");
   });
 
@@ -204,7 +206,7 @@ describe("LP68: the card shows a hug and a kudos as they look in Slack", () => {
     visit([], { ...newcomersCard, kudos: { kudosEmoji: "hoggo", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hoggo/1.png" } });
     const card = within(await screen.findByRole("dialog", { name: "How HedgeHug works" }));
 
-    expect(card.getAllByRole("img", { name: ":hoggo:" }).map((picture) => picture.getAttribute("src"))).toEqual(["https://emoji.slack-edge.com/T1/hoggo/1.png", "https://emoji.slack-edge.com/T1/hoggo/1.png"]);
+    expect(card.getAllByRole("img", { name: ":hoggo:" }).map((picture) => picture.getAttribute("src"))).toEqual(Array(4).fill("https://emoji.slack-edge.com/T1/hoggo/1.png"));
   });
 
   it("for a member already at level 2 or above, leaves out the first sentence and the level-2 row", async () => {
@@ -213,7 +215,7 @@ describe("LP68: the card shows a hug and a kudos as they look in Slack", () => {
 
     expect(card).not.toHaveTextContent("Your first kudos takes you to level 2.");
     expect(card).not.toHaveTextContent("Level 2 unlocks");
-    expect(within(card).getByText("Items wait here for you to turn.")).toBeInTheDocument();
+    expect(within(card).getByText("Items wait here for you to identify.")).toBeInTheDocument();
   });
 
   it("plays its beats one after the other, shows the end state with reduced motion, and stacks the messages full width on a phone", () => {

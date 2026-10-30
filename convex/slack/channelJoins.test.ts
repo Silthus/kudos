@@ -195,6 +195,47 @@ describe("channel_created puts the app in the new public channel", () => {
   });
 });
 
+describe("the app stays out of shared and customer channels", () => {
+  test("the channel join skips every channel whose name starts with customer-, and is never told to join one it listed", async () => {
+    const t = testBackend();
+    slack.withChannel("C_FIRST", { name: "first" }).withChannel("C_CUSTOMER", { name: "customer-example-internal" }).withChannel("C_CUSTOMERS", { name: "customers" });
+
+    await joinPublicChannels(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C_FIRST" }, { channel: "C_CUSTOMERS" }]);
+    expect(logged).toHaveBeenLastCalledWith("channel joins finished: joined 2, missed 0");
+  });
+
+  test("the channel join skips every channel named like one shared with another organization before the share, posthog- or ext-", async () => {
+    const t = testBackend();
+    slack.withChannel("C_POSTHOG", { name: "posthog-example" }).withChannel("C_EXT", { name: "ext-example" }).withChannel("C_POSTHOGGERS", { name: "posthoggers" });
+
+    await joinPublicChannels(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C_POSTHOGGERS" }]);
+  });
+
+  test("a channel Slack won't describe is never joined", async () => {
+    const t = testBackend();
+    slack.withChannel("C_FIRST", { name: "first" }).answering("conversations.info", slackError("missing_scope"));
+
+    await joinPublicChannels(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([]);
+  });
+
+  test.each(["customer-example-internal", "posthog-example", "ext-example"])("a new channel named %s is left without the app, and nothing is tried again", async (name) => {
+    const t = testBackend();
+    slack.withChannel("C_NEW", { name });
+
+    await channelCreated(t, "C_NEW");
+    await settleInTimeOrder(t);
+
+    expect(slack.callsTo("conversations.join")).toEqual([]);
+    expect(await lastTryOf(t, "C_NEW")).toEqual({ kind: "success" });
+  });
+});
+
 async function joinPublicChannels(t: Backend) {
   await t.action(internal.slack.channelJoins.joinPublicChannels, {});
   await settleInTimeOrder(t);

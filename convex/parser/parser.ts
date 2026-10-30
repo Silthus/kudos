@@ -3,14 +3,14 @@ import type { MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { thoughtfulKudos } from "../progression/gate";
 import { ownedKudosEmojiHook } from "../store/inventory";
-import { earnedEmojiHook } from "../album/earnedEmojis";
+import { earnedEmojiHook } from "../album/kudosEmojis";
 import type { Annotations, CountableContent, Mention, MessageContent } from "../engine/messageEvent";
 
 export type ParseContext = { workspace: string; giver: MemberId | undefined };
 
 export type ParseHook = {
   name: string;
-  kudosEmoji?(ctx: MutationCtx, context: ParseContext, emoji: string[]): Promise<string[]>;
+  kudosEmoji?(ctx: MutationCtx, context: ParseContext, content: CountableContent): Promise<string[]>;
   annotate?(content: MessageContent, context: ParseContext): Annotations;
 };
 
@@ -61,8 +61,8 @@ async function kudosEmojiIn(ctx: MutationCtx, content: CountableContent, context
 
 type Claim = { hook: ParseHook; claimed: Set<string> };
 
-function claimsOf(ctx: MutationCtx, { emoji }: CountableContent, context: ParseContext): Promise<Claim[]> {
-  return Promise.all(parseHooks.map(async (hook) => ({ hook, claimed: new Set(await (hook.kudosEmoji?.(ctx, context, emoji) ?? [])) })));
+function claimsOf(ctx: MutationCtx, content: CountableContent, context: ParseContext): Promise<Claim[]> {
+  return Promise.all(parseHooks.map(async (hook) => ({ hook, claimed: new Set(await (hook.kudosEmoji?.(ctx, context, content) ?? [])) })));
 }
 
 function placedIn({ emoji, mentionsBeforeEmoji }: CountableContent, claims: Claim[]): PlacedEmoji[] {

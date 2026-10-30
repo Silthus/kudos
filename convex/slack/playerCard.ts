@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { milestoneTierValidator } from "../album/records";
 import { productName } from "../feedback/naming";
-import { rarityValidator, rarityWord } from "../hoggies/catalogue";
+import { rarityValidator, rarityWord } from "../album/hoggies/catalogue";
 import type { PersonPreview } from "../website/linkPreviews";
 import { escaped, mrkdwn, slackDayOf } from "./blocks";
 
@@ -16,7 +16,7 @@ export const drawnCardValidator = v.object({
   face: faceValidator,
   level: v.union(v.object({ level: v.number(), xp: v.number(), share: v.number() }), v.null()),
   team: v.union(v.object({ name: v.string(), crest: v.union(v.string(), v.null()) }), v.null()),
-  place: v.union(v.object({ rank: v.number(), tied: v.boolean(), thoughtful: v.number() }), v.null()),
+  place: v.union(v.object({ rank: v.number(), tied: v.boolean(), kudosGiven: v.number() }), v.null()),
   hoggies: v.union(v.object({ found: v.number(), total: v.number(), rarest: v.union(rarestValidator, v.null()) }), v.null()),
   people: v.object({ held: v.number(), newest: v.array(faceValidator) }),
   emojis: v.object({ count: v.number(), pictures: v.array(v.string()) }),
@@ -72,7 +72,7 @@ function levelFactsOf({ level }: DrawnCard) {
 }
 
 function placeFactOf({ place }: DrawnCard) {
-  return place === null ? placeWordsOf(place) : `${placeWordsOf(place)}, ${counted(place.thoughtful, "thoughtful kudos", "thoughtful kudos")}`;
+  return place === null ? placeWordsOf(place) : `${placeWordsOf(place)}, ${place.kudosGiven} kudos`;
 }
 
 function statFactsOf({ hoggies, people, emojis, medals }: DrawnCard) {

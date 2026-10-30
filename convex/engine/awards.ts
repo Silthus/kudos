@@ -25,7 +25,7 @@ export type GivenMessagesPage = { messages: GivenMessage[]; cursor: string; isDo
 
 type AwardRow = Doc<"awards">;
 
-export type DatedAward = { award: AwardId; day: DayKey; at: number; annotations: Annotations };
+export type DatedAward = { award: AwardId; day: DayKey; at: number; created: number; annotations: Annotations };
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -61,7 +61,7 @@ export async function awardsInWeekNewestDaysFirst(ctx: QueryCtx, member: MemberI
   return newest.map(({ workspace, conversation, message, giver, recipient, at }) => ({ message: { workspace, conversation, message }, giver, recipient, at }));
 }
 
-export type EarlierAward = { recipient: MemberId; day: DayKey; annotations: Annotations };
+export type EarlierAward = Pick<AwardRow, "recipient" | "day">;
 
 export async function givenEarlierInWeek(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week, before: AwardId): Promise<EarlierAward[]> {
   const cutoff = (await ctx.db.get(before))?._creationTime ?? Infinity;
@@ -69,8 +69,7 @@ export async function givenEarlierInWeek(ctx: QueryCtx, giver: MemberId, { monda
     .query("awards")
     .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", monday).lte("day", sunday))
     .collect();
-  const earlier = await withStoredAnnotations(ctx, awards.filter(({ _creationTime }) => _creationTime < cutoff));
-  return earlier.map(({ award, annotations }) => ({ recipient: award.recipient, day: award.day, annotations }));
+  return awards.filter(({ _creationTime }) => _creationTime < cutoff).map(({ recipient, day }) => ({ recipient, day }));
 }
 
 async function withStoredAnnotations(ctx: QueryCtx, awards: AwardRow[]): Promise<Array<{ award: AwardRow; annotations: Annotations }>> {
@@ -98,6 +97,13 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
     .withIndex("by_creation_time", (q) => q.lt("_creationTime", before))
     .paginate(page);
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
+}
+
+export type RecordedAward = GivenAward & { workspace: string; at: number };
+
+export async function awardsInCreationOrder(ctx: QueryCtx, page: PaginationOptions): Promise<PaginationResult<RecordedAward>> {
+  const result = await ctx.db.query("awards").paginate(page);
+  return { ...result, page: result.page.map(({ _id, workspace, giver, recipient, kudos, day, at }) => ({ award: _id, workspace, giver, recipient, kudos, day, at })) };
 }
 
 export type WorkspaceAward = GivenAward & { message: MessageRef; at: number; created: number };
@@ -214,6 +220,16 @@ export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<D
   return previous?.day ?? null;
 }
 
+export type GivenKudos = { award: AwardId; message: MessageRef; at: number };
+
+export async function givenRecordedAfter(ctx: QueryCtx, giver: MemberId, after: number): Promise<GivenKudos[]> {
+  const given = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_decided", (q) => q.eq("giver", giver).gt("_creationTime", after))
+    .collect();
+  return given.map(({ _id, workspace, conversation, message, at }) => ({ award: _id, message: { workspace, conversation, message }, at }));
+}
+
 export type EarliestAward = { award: AwardId; at: number; created: number };
 
 export async function earliestAwardFrom(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<EarliestAward | null> {
@@ -224,16 +240,9 @@ export async function earliestAwardFrom(ctx: QueryCtx, giver: MemberId, recipien
   return earliest === null ? null : { award: earliest._id, at: earliest.at, created: earliest._creationTime };
 }
 
-export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
-  const awards = await ctx.db
-    .query("awards")
-    .withIndex("by_giver", (q) => q.eq("giver", giver))
-    .collect();
-  const lastThanked = new Map<MemberId, number>();
-  for (const { recipient, at } of awards) {
-    if (at <= atOrBefore && at > (lastThanked.get(recipient) ?? -Infinity)) lastThanked.set(recipient, at);
-  }
-  return lastThanked;
+export async function thankedAtOrBefore(ctx: QueryCtx, giver: MemberId, recipient: MemberId, atOrBefore: number): Promise<boolean> {
+  for await (const { at } of ctx.db.query("awards").withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))) if (at <= atOrBefore) return true;
+  return false;
 }
 
 const thankedBeforeSince = -Infinity;
@@ -287,8 +296,20 @@ export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number
       return Number.isFinite(until) ? from.lte("day", latestDayAt(until)) : from;
     })
     .collect();
-  const between = awards.filter(({ at }) => at >= since && at <= until).sort((one, other) => one.at - other.at);
-  return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at }, annotations }) => ({ award: _id, day, at, annotations }));
+  return datedOf(ctx, awards.filter(({ at }) => at >= since && at <= until));
+}
+
+export async function givenSinceWithin(ctx: QueryCtx, giver: MemberId, since: number, mostAwards: number): Promise<DatedAward[] | null> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_at", (q) => q.eq("giver", giver).gte("at", since))
+    .take(mostAwards + 1);
+  return awards.length > mostAwards ? null : datedOf(ctx, awards);
+}
+
+async function datedOf(ctx: QueryCtx, awards: AwardRow[]): Promise<DatedAward[]> {
+  const sorted = awards.toSorted((one, other) => one.at - other.at);
+  return (await withStoredAnnotations(ctx, sorted)).map(({ award: { _id, day, at, _creationTime }, annotations }) => ({ award: _id, day, at, created: _creationTime, annotations }));
 }
 
 function earliestDayAt(at: number): DayKey {
@@ -346,6 +367,14 @@ export async function hasGivenAnAward(ctx: QueryCtx, giver: MemberId): Promise<b
   const any = await ctx.db
     .query("awards")
     .withIndex("by_giver_decided", (q) => q.eq("giver", giver))
+    .first();
+  return any !== null;
+}
+
+export async function hasReceivedAnAward(ctx: QueryCtx, recipient: MemberId): Promise<boolean> {
+  const any = await ctx.db
+    .query("awards")
+    .withIndex("by_recipient_decided", (q) => q.eq("recipient", recipient))
     .first();
   return any !== null;
 }
@@ -496,6 +525,20 @@ export async function* awardsReceivedByDecision(ctx: QueryCtx, recipient: Member
     .withIndex("by_recipient_decided", (q) => decidedBelow(q.eq("recipient", recipient), below))
     .order("desc");
   for await (const row of rows) yield receivedAwardOf(row);
+}
+
+export type AnnotatedGivenMessage = GivenMessageAwards & { annotations: Annotations };
+
+export async function messagesGivenDecidedAfter(ctx: QueryCtx, giver: MemberId, after: number, mostAwards: number): Promise<AnnotatedGivenMessage[] | null> {
+  const given: AnnotatedGivenMessage[] = [];
+  let awards = 0;
+  for await (const message of messagesGivenByDecision(ctx, giver, { ...fromTheNewestDecided, above: after })) {
+    if (((await firstDecidedOf(ctx, message.message)) ?? message.created) <= after) continue;
+    awards += message.awards.length;
+    if (awards > mostAwards) return null;
+    given.push({ ...message, annotations: await storedAnnotationsOf(ctx, message.message) });
+  }
+  return given;
 }
 
 export function messagesGivenByDecision(ctx: QueryCtx, giver: MemberId, below: DecidedBelow): AsyncGenerator<GivenMessageAwards> {

@@ -1,20 +1,21 @@
-import { useId, type CSSProperties } from "react";
+import { useId, type ReactNode } from "react";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { PageTitle } from "../PageTitle";
 import { MapInPlace, NotInSlack, useMapsInPlace } from "./findInSlack";
 import type { Album, AlbumMilestone } from "./answer";
 import { medalsOf } from "./facts";
 import { NewLabel } from "./ItemBoard";
-import { climbedShareOf, emblemOf, goalOf, isEarned, medalKeyOf, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
+import { emblemOf, hintOf, isEarned, medalKeyOf, medalsInAll, metalOrder, milestoneNameOf, progressWords, tierEmojiOf, tierWordOf, type TierEmoji } from "./milestones";
 import { useNewSinceTheLastVisit } from "./newLabels";
-import { closestNextOf, highestEarnedOf, type NextMedal } from "./profile";
+import { earnedMedalsOf, medalsInReachOf, shareOf, type BestMedal, type NextMedal } from "./profile";
 import { dateOf } from "./teamPage";
 import { useLanding } from "./useItemBoard";
 import "./milestones.css";
 
+const lede = "Earn medals as your album grows: the people and teams you collect, the hoggies you find and the kudos you give. Every medal unlocks its own emoji for Slack.";
+
 export function MilestonesPage({ album }: { album: Album }) {
-  const rowsTitle = useId();
-  const { milestones } = album;
+  const started = album.milestones.length > 0;
   return (
     <div className="al-page-body al-ms">
       <header className="al-ms-head">
@@ -23,121 +24,156 @@ export function MilestonesPage({ album }: { album: Album }) {
           <PageTitle tab="Milestones" size="hero">
             Milestones
           </PageTitle>
-          <p className="al-lede">Medals your album earns as it fills. Every milestone has four, from bronze to diamond, and each one is yours for good.</p>
+          <p className="al-lede">{started ? lede : "Your milestones show here once your album starts filling."}</p>
         </div>
-        {milestones.length > 0 && <Tally album={album} />}
+        {started && <Tally album={album} />}
       </header>
-      {milestones.length === 0 ? (
-        <p className="al-lede">Your milestones show here once your album starts filling.</p>
-      ) : (
-        <section aria-labelledby={rowsTitle}>
-          <div className="al-ms-section-head">
-            <h2 id={rowsTitle} className="al-ms-section-title">
-              Your milestones
-            </h2>
-            <p className="al-ms-direction">
-              Bronze
-              <span className="al-ms-direction-arrow" aria-hidden="true" />
-              Diamond · the lit medal is your next goal
-            </p>
-          </div>
-          <ol className="al-ms-rows" aria-labelledby={rowsTitle}>
-            {milestones.map((milestone) => (
-              <MilestoneRow key={milestone.id} album={album} milestone={milestone} />
-            ))}
-          </ol>
-        </section>
-      )}
+      {started && <Medals album={album} />}
     </div>
   );
 }
 
 function Tally({ album }: { album: Album }) {
-  const closest = closestNextOf(album);
+  const tiers = album.milestones.flatMap(({ tiers }) => tiers);
   return (
     <div className="al-ms-tally">
-      <p className="al-ms-tally-count">
+      <p className="al-ms-total">
         <strong>{medalsOf(album)}</strong> <span>{`of ${medalsInAll(album.milestones)} medals`}</span>
       </p>
-      {closest !== null && <ClosestNext closest={closest} />}
+      <ol className="al-ms-metals" aria-label="Medals by metal">
+        {metalOrder.map((metal) => {
+          const ofMetal = tiers.filter(({ tier }) => tier === metal);
+          return (
+            <li key={metal} data-metal={metal}>
+              <span>{tierWordOf(metal)}</span> <strong>{ofMetal.filter(isEarned).length}</strong> <span>{`of ${ofMetal.length}`}</span>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
 
-function ClosestNext({ closest: { milestone, tier } }: { closest: NextMedal }) {
+function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+  const titleId = useId();
   return (
-    <p className="al-ms-closest">
-      {"Closest: "}
-      <strong>{`${tier.name}, ${goalOf(milestone, tier).toGo} to go`}</strong>
-      <span className="al-ms-quiet">{` · ${tierWordOf(tier.tier)} · ${milestoneNameOf(milestone.id)}`}</span>
-    </p>
+    <section className="al-ms-section" aria-labelledby={titleId}>
+      <h2 className="al-ms-section-title">
+        <span id={titleId}>{title}</span>
+        {aside}
+      </h2>
+      {children}
+    </section>
   );
 }
 
-function MilestoneRow({ album, milestone }: { album: Album; milestone: AlbumMilestone }) {
-  const nameId = useId();
-  const name = milestoneNameOf(milestone.id);
-  const ladder = emblemOf(milestone.id);
-  const next = nextGoalOf(milestone);
+function Medals({ album }: { album: Album }) {
+  const inReach = medalsInReachOf(album, useLanding()?.medalInPlace ?? null);
+  const earned = earnedMedalsOf(album).filter(({ milestone, tier }) => !inReach.some((shown) => shown.milestone === milestone && shown.tier === tier));
   return (
-    <li className="al-ms-row" aria-labelledby={nameId}>
-      <div className="al-ms-plaque">
-        <LadderEmblem ladder={ladder} best={highestEarnedOf(milestone)?.tier ?? null} size={64} />
-        <div className="al-ms-plaque-words">
-          <h3 id={nameId} className="al-ms-name">
-            {name}
-          </h3>
-          <p className="al-ms-count">
-            <strong>{milestone.count}</strong> <span>{unitOf(milestone.id, milestone.count)}</span>
-          </p>
-          <p className="al-ms-goal" data-done={next === null ? "" : undefined}>
-            {next === null ? "Every medal earned" : `${next.toGo} to go for ${next.tier.name}`}
-          </p>
-        </div>
-      </div>
-      <div className="al-ms-climb" style={{ "--al-ms-climbed": climbedShareOf(milestone) } as CSSProperties}>
-        <span className="al-ms-rail" aria-hidden="true" />
-        <ol className="al-ms-medals" aria-label={`${name} medals, bronze to diamond`}>
-          {milestone.tiers.map((tier) => (
-            <Medal key={tier.tier} milestone={milestone} tier={tier} step={stepOf(milestone, tier)} ladder={ladder} emoji={tierEmojiOf(album, milestone, tier)} emojiPage={album.emojiPage} />
+    <>
+      <ClosestMedals album={album} medals={inReach} />
+      <EarnedMedals album={album} medals={earned} />
+    </>
+  );
+}
+
+function ClosestMedals({ album, medals }: { album: Album; medals: NextMedal[] }) {
+  return (
+    <Section title="Closest medals">
+      {medals.length === 0 ? (
+        <p className="al-lede">Every medal earned. Nothing left to unlock.</p>
+      ) : (
+        <ol className="al-ms-closest">
+          {medals.map((medal) => (
+            <ClosestMedal key={medal.milestone.id} album={album} medal={medal} />
           ))}
         </ol>
+      )}
+    </Section>
+  );
+}
+
+function ClosestMedal({ album, medal }: { album: Album; medal: NextMedal }) {
+  const nameId = useId();
+  const { milestone, tier } = medal;
+  const isNew = useNewMedal(milestone, tier);
+  const earned = isEarned(tier);
+  return (
+    <li className="al-ms-next" aria-labelledby={nameId} data-step={earned ? "earned" : "next"} data-al-medal={medalKeyOf({ milestone: milestone.id, tier: tier.tier })}>
+      <span className="al-ms-medal-art">
+        <LadderEmblem ladder={emblemOf(milestone.id)} best={tier.tier} size={56} />
+      </span>
+      <div className="al-ms-next-words">
+        <div className="al-ms-earned-name">
+          <h3 id={nameId} className="al-ms-medal-name">
+            {tier.name}
+          </h3>
+          {isNew && <NewLabel />}
+        </div>
+        <p className="al-ms-metal-line" data-metal={tier.tier}>{`${tierWordOf(tier.tier)} · ${milestoneNameOf(milestone.id)}`}</p>
+        <p className="al-ms-hint">{hintOf(milestone.id)}</p>
+        <Progress medal={medal} />
       </div>
+      <p className="al-ms-to-go">{earned ? "Unlocked" : `${Math.max(0, tier.at - milestone.count)} to go`}</p>
+      <MedalEmoji tier={tier} emoji={tierEmojiOf(album, milestone, tier)} emojiPage={album.emojiPage} isNew={isNew} />
+    </li>
+  );
+}
+
+function Progress({ medal }: { medal: NextMedal }) {
+  const { milestone, tier } = medal;
+  return (
+    <div className="al-ms-progress">
+      <span className="al-ms-bar" role="progressbar" aria-label={tier.name} aria-valuemin={0} aria-valuemax={tier.at} aria-valuenow={Math.min(milestone.count, tier.at)}>
+        <span style={{ width: `${shareOf(medal) * 100}%` }} />
+      </span>
+      <span className="al-ms-count">{progressWords(milestone.id, milestone.count, tier.at)}</span>
+    </div>
+  );
+}
+
+function EarnedMedals({ album, medals }: { album: Album; medals: BestMedal[] }) {
+  if (medals.length === 0) return null;
+  return (
+    <Section title="Earned" aside={<span className="al-ms-section-count">{medals.length}</span>}>
+      <ol className="al-ms-earned-list">
+        {medals.map((medal) => (
+          <EarnedMedal key={medalKeyOf({ milestone: medal.milestone.id, tier: medal.tier.tier })} album={album} medal={medal} />
+        ))}
+      </ol>
+    </Section>
+  );
+}
+
+function EarnedMedal({ album, medal: { milestone, tier } }: { album: Album; medal: BestMedal }) {
+  const nameId = useId();
+  const isNew = useNewMedal(milestone, tier);
+  return (
+    <li className="al-ms-earned" aria-labelledby={nameId} data-step="earned" data-al-medal={medalKeyOf({ milestone: milestone.id, tier: tier.tier })}>
+      <span className="al-ms-medal-art">
+        <LadderEmblem ladder={emblemOf(milestone.id)} best={tier.tier} size={44} />
+      </span>
+      <div className="al-ms-earned-words">
+        <div className="al-ms-earned-name">
+          <h3 id={nameId} className="al-ms-medal-name">
+            {tier.name}
+          </h3>
+          {isNew && <NewLabel />}
+        </div>
+        <p className="al-ms-metal-line" data-metal={tier.tier}>{`${tierWordOf(tier.tier)} · ${milestoneNameOf(milestone.id)} · ${dateOf(tier.earnedAt)}`}</p>
+      </div>
+      <MedalEmoji tier={tier} emoji={tierEmojiOf(album, milestone, tier)} emojiPage={album.emojiPage} isNew={isNew} />
     </li>
   );
 }
 
 type Tier = AlbumMilestone["tiers"][number];
 
-function Medal({ milestone, tier, step, ladder, emoji, emojiPage }: { milestone: AlbumMilestone; tier: Tier; step: MedalStep; ladder: ReturnType<typeof emblemOf>; emoji: TierEmoji; emojiPage: string | null }) {
-  const note = noteOf(milestone, tier, step);
-  const isNew = useNewMedal(milestone, tier);
-  return (
-    <li className="al-ms-medal" data-step={step} data-al-medal={medalKeyOf({ milestone: milestone.id, tier: tier.tier })}>
-      {step === "next" && <span className="al-ms-tag">Next</span>}
-      <span className="al-ms-medal-art">
-        {step === "next" && <ProgressRing milestone={milestone} tier={tier} />}
-        <LadderEmblem ladder={ladder} best={tier.tier} size={60} />
-      </span>
-      <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
-      <span className="al-ms-medal-name">{tier.name}</span>
-      {isNew && <NewLabel />}
-      <span className="al-ms-note">{note}</span>
-      <MedalEmoji tier={tier} emoji={emoji} emojiPage={emojiPage} isNew={isNew} />
-    </li>
-  );
-}
-
 function useNewMedal(milestone: AlbumMilestone, tier: Tier) {
   const unlockedByTheTurn = useLanding()?.unlocked.milestones.some((reached) => reached.milestone === milestone.id && reached.tier === tier.tier) ?? false;
   const unlockedSinceTheLastVisit = useNewSinceTheLastVisit(tier.unlockedAt ?? tier.earnedAt);
   return isEarned(tier) && (unlockedByTheTurn || unlockedSinceTheLastVisit);
-}
-
-function noteOf(milestone: AlbumMilestone, tier: Tier, step: MedalStep) {
-  if (step === "earned") return dateOf(tier.earnedAt!);
-  if (step === "next") return `${Math.min(milestone.count, tier.at)} of ${tier.at}`;
-  return null;
 }
 
 function MedalEmoji({ tier, emoji: { name, picture, answered }, emojiPage, isNew }: { tier: Tier; emoji: TierEmoji; emojiPage: string | null; isNew: boolean }) {
@@ -169,18 +205,4 @@ function emojiSaysOf(earned: boolean, at: number, answered: TierEmoji["answered"
   if (answered === null) return null;
   if (answered.inSlack) return "In Slack";
   return inPlace ? null : <NotInSlack emoji={answered} emojiPage={emojiPage} />;
-}
-
-const ringRadius = 46;
-
-const ringLength = 2 * Math.PI * ringRadius;
-
-function ProgressRing({ milestone, tier }: { milestone: AlbumMilestone; tier: Tier }) {
-  const reached = Math.min(milestone.count, tier.at);
-  return (
-    <svg className="al-ms-ring" viewBox="0 0 100 100" role="progressbar" aria-label={tier.name} aria-valuemin={0} aria-valuemax={tier.at} aria-valuenow={reached}>
-      <circle cx="50" cy="50" r={ringRadius} className="al-ms-ring-track" />
-      <circle cx="50" cy="50" r={ringRadius} className="al-ms-ring-fill" strokeDasharray={`${(ringLength * reached) / tier.at} ${ringLength}`} />
-    </svg>
-  );
 }

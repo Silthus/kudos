@@ -25,13 +25,15 @@ import type {
 } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
-import type { Period } from "../leaderboard/periods";
+import type { BoardPeriod } from "../album/boards";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
-import { crateKindOf } from "../hoggies/crateKey";
+import { crateKindOf } from "../album/hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
+import type { WelcomePath } from "../welcome/welcomedAs";
+import type { SentMondayDmSection } from "../mondayDm/records";
 
 export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.number(), v.boolean()));
 
@@ -73,6 +75,10 @@ export type ProductEvent = {
     | "primary group picked"
     | "message setting changed"
     | "profile card viewed"
+    | "dm sent"
+    | "dm link clicked"
+    | "quests viewed"
+    | "activity viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
@@ -82,22 +88,48 @@ export type ProductEvent = {
 export type UsageFact =
   | { kind: "appHomeOpened"; workspace: string; member: MemberId; at: number }
   | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
-  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: Period; surface: LeaderboardSurface; at: number }
+  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: BoardPeriod; surface: LeaderboardSurface; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
-  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
+  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; via?: "dm-button"; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
-  | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number }
+  | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; via?: HugsRecapCarrier; at: number }
   | { kind: "xpMomentEnded"; workspace: string; member: MemberId; skipped: boolean; excerptsShown: number; folded: number; at: number }
-  | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number };
+  | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number }
+  | { kind: "dmSent"; workspace: string; member: MemberId; dm: SentDm; at: number }
+  | { kind: "dmLinkClicked"; workspace: string; member: MemberId; dm: DmKind; destination: DmLinkDestination; at: number }
+  | { kind: "questsViewed"; workspace: string; member: MemberId; surface: QuestsSurface; at: number }
+  | { kind: "activityViewed"; workspace: string; member: MemberId; state: ActivityState; at: number };
+
+export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: SentMondayDmSection[] };
+
+export const dmKindValidator = v.union(v.literal("welcome"), v.literal("monday"), v.literal("kudos-reply"));
+
+export const dmLinkDestinationValidator = v.union(v.literal("book"), v.literal("quests"), v.literal("quests-how"), v.literal("home"));
+
+export type DmLinkDestination = Infer<typeof dmLinkDestinationValidator>;
+
+export type DmKind = Infer<typeof dmKindValidator>;
+
+export const hugsRecapCarrierValidator = v.union(v.literal("recap"), v.literal("monday"));
+
+export type HugsRecapCarrier = Infer<typeof hugsRecapCarrierValidator>;
+
+export const questsSurfaceValidator = v.union(v.literal("panel"), v.literal("profile"));
+
+export type QuestsSurface = Infer<typeof questsSurfaceValidator>;
+
+export const activityStateValidator = v.union(v.literal("thanked"), v.literal("empty"), v.literal("quiet"));
+
+export type ActivityState = Infer<typeof activityStateValidator>;
 
 export type PickSurface = "welcome" | "settings" | "website";
 
 export type ViewedBoard = "everyone" | "groups" | "my-group";
 
-export type LeaderboardSurface = "app-home" | "command";
+export type LeaderboardSurface = "app-home" | "command" | "website";
 
-const surfaceNames: Record<LeaderboardSurface, string> = { "app-home": "app home", command: "command" };
+const surfaceNames: Record<LeaderboardSurface, string> = { "app-home": "app home", command: "command", website: "website" };
 
 const outcomeNames: Record<AttemptFailedEvent["outcome"], string> = { "over-allowance": "over allowance", invalid: "invalid" };
 
@@ -112,6 +144,7 @@ const featureNames: Record<Feature, string> = {
 const commandResultNames: Record<KudosCommandResult, string> = {
   joined: "joined",
   "already-in": "already in",
+  "off-limits": "off limits",
   "private-channel": "private channel",
   "direct-message": "direct message",
 };
@@ -242,7 +275,7 @@ export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
 }
 
 export function projectHugGiven(event: HugGivenEvent): ProductEvent {
-  return { event: "hug given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos } };
+  return { event: "hug given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos, ...(event.reaction !== undefined && { reaction: event.reaction }) } };
 }
 
 export function projectTeamPagesCompleted({ member, teams, at, told }: TeamPagesCompletedEvent): ProductEvent[] {
@@ -288,14 +321,26 @@ export function projectUsage(fact: UsageFact): ProductEvent {
     case "primaryGroupPicked":
       return { event: "primary group picked", subject, at: fact.at, properties: { surface: fact.surface } };
     case "messageSettingChanged":
-      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }) } };
+      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }), ...(fact.via !== undefined && { via: fact.via }) } };
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
     case "hugsRecapSent":
-      return { event: "hugs recap sent", subject, at: fact.at, properties: { hugs_given: fact.given, hugs_received: fact.received, xp: fact.xp } };
+      return { event: "hugs recap sent", subject, at: fact.at, properties: { hugs_given: fact.given, hugs_received: fact.received, xp: fact.xp, ...(fact.via !== undefined && { via: fact.via }) } };
     case "xpMomentEnded":
       return { event: "xp moment ended", subject, at: fact.at, properties: { skipped: fact.skipped, excerpts_shown: fact.excerptsShown, folded: fact.folded } };
     case "howItWorksClosed":
       return { event: "onboarding card closed", subject, at: fact.at, properties: { tried_slack: fact.triedSlack } };
+    case "dmSent":
+      return { event: "dm sent", subject, at: fact.at, properties: sentDmProperties(fact.dm) };
+    case "dmLinkClicked":
+      return { event: "dm link clicked", subject, at: fact.at, properties: { kind: fact.dm, destination: fact.destination } };
+    case "questsViewed":
+      return { event: "quests viewed", subject, at: fact.at, properties: { surface: fact.surface } };
+    case "activityViewed":
+      return { event: "activity viewed", subject, at: fact.at, properties: { state: fact.state } };
   }
+}
+
+function sentDmProperties(dm: SentDm): Properties {
+  return dm.kind === "welcome" ? { kind: dm.kind, path: dm.path } : { kind: dm.kind, sections: dm.sections.join(",") };
 }

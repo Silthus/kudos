@@ -7,7 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
-import { mostHypeEmojisShown } from "./earnedEmojis";
+import { mostHypeEmojisShown, mostPeoplePackedRead } from "./earnedEmojis";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
@@ -259,12 +259,9 @@ describe("an earned emoji follows its cause", { timeout: 90_000 }, () => {
     expect((await albumOf(asAlice)).emojiPage).toBe("https://hedgehug-sandbox.slack.com/customize/emoji");
   });
 
-  test("a sticker the album's history brought earns no hype emoji, and thanking that person thoughtfully once more does", async () => {
-    await thanks(alice, "ty", lanterns[0]!);
-    vi.setSystemTime(Date.now() + minuteMs);
-    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
-    await settle(t);
+  test("a sticker the album's history brought earns no hype emoji, and thanking that person once more does", async () => {
     await thanks(bruno, why, lanterns[1]!);
+    await aStickerTheHistoryBrought(alice, lanterns[0]!);
     const asAlice = await signedIn(alice);
     expect((await emojisOf(asAlice)).filter(({ kind }) => kind === "hype"), "a history sticker").toEqual([]);
 
@@ -397,6 +394,30 @@ describe("AL26: each earned emoji is seen once", { timeout: 90_000 }, () => {
     expect(hype).toHaveLength(mostHypeEmojisShown);
     expect(album.moreEmojis).toBe(true);
     expect(hype.filter(({ seen }) => !seen).map(({ id }) => id)).toEqual([`hype:${newest}`]);
+  });
+
+  test("past the 500 people one read packs for, the hype emojis picked to count in kudos come first, so a pick can always be unpicked", async () => {
+    await switchWebsite(t, postHog, true, ...albumOpen, "kudos-emoji-picks");
+    const aliceId = await memberOf(alice);
+    const people = await t.run(async (ctx) => {
+      const ids: MemberId[] = [];
+      for (let index = 0; index <= mostPeoplePackedRead; index += 1) ids.push(await ctx.db.insert("members", { workspace: "T1", user: `U_PACKED_${index}`, kind: "member", asOf: 0 }));
+      return ids.toSorted();
+    });
+    const picked = people.at(-1)!;
+    await t.run(async (ctx) => {
+      for (const [index, person] of people.entries()) {
+        await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: aliceId, recipient: person, week: "2026-10-12", message: { workspace: "T1", conversation: "C1", message: `m${index}` }, holdsSticker: false, at: index });
+        await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person, name: `packed-${index}-hype` });
+        await ctx.db.insert("seenEmojis", { member: aliceId, emoji: `hype:${person}`, at: 0 });
+      }
+      await ctx.db.insert("kudosEmojiPicks", { member: aliceId, emoji: `hype:${picked}` });
+    });
+
+    const album = await albumOf(await signedIn(alice));
+
+    expect(album.kudosEmojiPicks).toEqual([`hype:${picked}`]);
+    expect(album.emojis.filter(({ kind }) => kind === "hype").map(({ id }) => id)).toContain(`hype:${picked}`);
   });
 
   test("a member who earned emojis before the album sees each as new on their first visit", async () => {
@@ -664,4 +685,9 @@ function everyTable() {
     for (const table of Object.keys(schema.tables) as Array<keyof typeof schema.tables>) rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
+}
+
+async function aStickerTheHistoryBrought(member: Person, person: Person) {
+  const [memberId, personId] = [await memberOf(member), await memberOf(person)];
+  await t.run((ctx) => ctx.db.insert("albumStickers", { member: memberId, person: personId, from: "history", at: Date.now() }));
 }

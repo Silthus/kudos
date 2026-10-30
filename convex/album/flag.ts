@@ -1,5 +1,5 @@
-import { memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
-import type { QueryCtx } from "../_generated/server";
+import { memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
 export const albumFlag = { key: "album", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -38,6 +38,22 @@ export function ownHypePickShownTo(ctx: QueryCtx, member: MemberId): Promise<boo
   return memberDecisionWithoutWriting(ctx, ownHypePickFlag, member);
 }
 
+export const adminHypeEmojisFlag = { key: "admin-hype-emojis", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function adminHypeEmojisShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, adminHypeEmojisFlag, member);
+}
+
+export const kudosEmojiPicksFlag = { key: "kudos-emoji-picks", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function kudosEmojiPicksShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, kudosEmojiPicksFlag, member);
+}
+
+export function kudosEmojiPicksCountFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  return memberDecision(ctx, kudosEmojiPicksFlag, member);
+}
+
 export type AlbumShown = { album?: true };
 
 export async function albumOnProfileOf(ctx: QueryCtx, member: MemberId): Promise<AlbumShown> {
@@ -48,4 +64,10 @@ export const personPageDFlag = { key: "person-page-d", safeDefault: false, value
 
 export function personPageDShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecisionWithoutWriting(ctx, personPageDFlag, member);
+}
+
+export const bookNextFlag = { key: "book-next", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function bookNextShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, bookNextFlag, member);
 }

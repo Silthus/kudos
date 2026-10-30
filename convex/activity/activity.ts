@@ -1,13 +1,16 @@
 import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedByDecision, messagesGivenByDecision, type DecidedBelow, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
-import { dropsByDecision } from "../hoggies/drops";
-import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { awardsTallied } from "../album/tallies";
+import { takenBackInSlack } from "../engine/kudosText";
+import { dropsByDecision } from "../album/hoggies/drops";
+import { crestsShownTo, hoggiesShownTo } from "../album/hoggies/flag";
 import { bonusRecordedWith, xpRecordedFor } from "../progression/effects";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { catalogue } from "../progression/catalogue";
 import { giverXpOf } from "../progression/progression";
 import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
+import { questsJudgedFor } from "../quests/judged";
 import { hugsShownTo } from "../hugs/flag";
 import { withoutSkinTone } from "../workspace/slackEmoji";
 import { hugsGivenByDecision, hugsOnTheMessageAsOf, hugsReceivedByDecision, hugsReceivedSnapshot, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
@@ -16,7 +19,7 @@ import { levelUpsByDecision } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
 import type { MessageRef } from "../engine/messageEvent";
 import type { Activity, ActivityEntry, BonusEarned, Found, KudosGiven, KudosReceived, LevelUp, Message, RecentKudos, HugGiven, HugReceived } from "./entries";
-import { kudosFactsOf, kudosWordsOf, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
+import { kudosFactsOf, kudosWordsOf, mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
 import { belowFor, decodeCursor, encodeCursor, keyOf, newestFirst, ranks, type Cursor, type Position, type Rank } from "./position";
 
 export type Filter = "all" | "received" | "given";
@@ -25,9 +28,9 @@ export type Direction = Exclude<Filter, "all">;
 
 type GainsShown = { xp: boolean; quests: boolean; bonuses: boolean };
 
-type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean>; hugsAsOf: number | undefined };
+type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean>; hugsAsOf: number | undefined; questsAwaitedAbove: number; talliesAwaitedAbove: number };
 
-type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry>; xp: () => Promise<number | null> };
+type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry>; xp: () => Promise<number | null>; settled?: () => Promise<boolean>; takenBack?: () => Promise<boolean> };
 
 type Read = { pending: Pending[]; cut: boolean };
 
@@ -37,6 +40,7 @@ type PageSize = { min: number; max: number; usual: number };
 
 const activityPage: PageSize = { min: 1, max: 50, usual: 20 };
 const recentPage: PageSize = { min: 1, max: 10, usual: 5 };
+const recentPagesRead = 3;
 
 export const recipientsPerPage = 700;
 
@@ -62,6 +66,7 @@ const kudosReceived: Source = {
         position: { decided: award.created, rank: ranks.kudosReceived },
         entry: (mentions) => receivedEntryOf(ctx, mentions, award),
         xp: () => xpRecordedFor(ctx, award.award, "recipient"),
+        takenBack: () => takenBackInSlack(ctx, award.message),
       })),
     ),
 };
@@ -76,6 +81,8 @@ const kudosGiven: Source = {
         recipients: given.awards.length,
         entry: (mentions) => givenEntryOf(ctx, viewer, mentions, given),
         xp: () => giverXpRecordedFor(ctx, given),
+        settled: async () => (given.created <= viewer.questsAwaitedAbove || (await questsJudgedFor(ctx, given.awards))) && (given.created <= viewer.talliesAwaitedAbove || (await awardsTallied(ctx, given.awards))),
+        takenBack: () => takenBackInSlack(ctx, given.message),
       })),
       cut,
     };
@@ -157,14 +164,14 @@ export const mostReadSince = 50;
 
 export type EntrySince = Exclude<ActivityEntry, Found>;
 
-export type ReadSince = { decided: number; entry: EntrySince; xp: number; recorded: boolean };
+export type ReadSince = { decided: number; entry: EntrySince; xp: number; recorded: boolean; settled: boolean };
 
-export type Since = { above?: number; upTo?: number };
+export type Since = { above?: number; upTo?: number; questsAwaitedAbove?: number; talliesAwaitedAbove?: number };
 
 export async function activitySince(ctx: QueryCtx, member: MemberId, since: Since): Promise<ReadSince[]> {
   const page = await pendingSince(ctx, member, since, mostReadSince);
-  const mentions = mentionsOfOnePage(ctx);
-  return Promise.all(page.map(async ({ position, entry, xp }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp()) })));
+  const mentions = mentionsOfOnePage(ctx, mentionLookupsPerPage, "linked");
+  return Promise.all(page.map(async ({ position, entry, xp, settled }) => ({ decided: position.decided, entry: (await entry(mentions)) as EntrySince, ...recordedXpOf(await xp()), settled: (await settled?.()) ?? true })));
 }
 
 export async function positionsSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<Position[]> {
@@ -176,12 +183,21 @@ function recordedXpOf(xp: number | null) {
 }
 
 export async function newestDecidedSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<number | null> {
-  const [newest] = await pendingSince(ctx, member, since, 1);
+  const [newest] = await pendingSince(ctx, member, since, mostReadSince);
   return newest?.position.decided ?? null;
 }
 
-async function pendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Infinity }: Since, size: number): Promise<Pending[]> {
-  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined };
+export async function newestDecidedTakenBackOrNotSince(ctx: QueryCtx, member: MemberId, since: Since): Promise<number | null> {
+  const [newest] = await everyPendingSince(ctx, member, since, 1);
+  return newest?.position.decided ?? null;
+}
+
+async function pendingSince(ctx: QueryCtx, member: MemberId, since: Since, size: number): Promise<Pending[]> {
+  return stillShown(await everyPendingSince(ctx, member, since, size));
+}
+
+async function everyPendingSince(ctx: QueryCtx, member: MemberId, { above, upTo = Infinity, questsAwaitedAbove = Infinity, talliesAwaitedAbove = Infinity }: Since, size: number): Promise<Pending[]> {
+  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)), hugsAsOf: undefined, questsAwaitedAbove, talliesAwaitedAbove };
   const below = { decided: upTo, inclusive: true, ...(above !== undefined && { above }) };
   const reads = await Promise.all(sourcesSince.map(({ read }) => read(ctx, viewer, below, size + 1)));
   return newestWithin(reads, size);
@@ -193,20 +209,28 @@ export async function activityOf(ctx: QueryCtx, member: MemberId, { filter, curs
 }
 
 export async function recentKudosOf(ctx: QueryCtx, member: MemberId, { direction, limit }: { direction: Direction; limit?: number }): Promise<RecentKudos> {
-  const { entries } = await pageOf(ctx, member, direction, null, sizeOf(limit, recentPage));
-  return { kind: "recent", entries: entries.filter(isKudos) };
+  const size = sizeOf(limit, recentPage);
+  const mentions = mentionsOfOnePage(ctx);
+  const entries: RecentKudos["entries"] = [];
+  let cursor: Cursor | null = null;
+  for (let read = 0; read < recentPagesRead && entries.length < size; read++) {
+    const page = await pageOf(ctx, member, direction, cursor, size - entries.length, mentions);
+    entries.push(...page.entries.filter(isKudos));
+    if (page.after === null) break;
+    cursor = decodeCursor(page.after);
+  }
+  return { kind: "recent", entries };
 }
 
-async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: Cursor | null, size: number) {
+async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: Cursor | null, size: number, mentions = mentionsOfOnePage(ctx)) {
   const hugsShown = once(() => hugsShownTo(ctx, member));
   const hugsAsOf = await hugsSnapshotOf(ctx, member, filter, hugsShown, cursor);
-  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf };
+  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf, questsAwaitedAbove: Infinity, talliesAwaitedAbove: Infinity };
   const after = cursor?.after ?? null;
   const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, belowFor(rank, after), size + 1)));
   const pending = newestOf(reads);
   const page = newestWithin(reads, size);
-  const mentions = mentionsOfOnePage(ctx);
-  const entries = await Promise.all(page.map(({ entry }) => entry(mentions)));
+  const entries = await Promise.all((await stillShown(page)).map(({ entry }) => entry(mentions)));
   const last = page.at(-1);
   const more = pending.length > page.length || reads.some((read) => read.cut);
   return { entries, after: more && last !== undefined ? encodeCursor({ after: last.position, hugsAsOf }) : null };
@@ -283,8 +307,17 @@ async function hugGivenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions
 type HugFacts = { emojiImage?: string; on: string; permalink: string | null; kudos: Message | null };
 
 async function hugFactsOf(ctx: QueryCtx, mentions: Mentions, { message, onKudos, emoji }: TimelineHug): Promise<HugFacts> {
-  const [emojiImage, permalink, kudos] = await Promise.all([mentions.emojiImage(message.workspace, withoutSkinTone(emoji)), permalinkOfMessage(ctx, message), onKudos ? kudosWordsOf(ctx, mentions, message) : null]);
+  const [emojiImage, permalink, kudos] = await Promise.all([mentions.emojiImage(message.workspace, withoutSkinTone(emoji)), permalinkOfMessage(ctx, message), onKudos ? kudosWordsStillInSlack(ctx, mentions, message) : null]);
   return { ...(emojiImage !== undefined && { emojiImage }), on: onKeyOf(message), permalink, kudos };
+}
+
+async function kudosWordsStillInSlack(ctx: QueryCtx, mentions: Mentions, message: MessageRef): Promise<Message | null> {
+  return (await takenBackInSlack(ctx, message)) ? null : kudosWordsOf(ctx, mentions, message);
+}
+
+async function stillShown(pending: Pending[]): Promise<Pending[]> {
+  const takenBack = await Promise.all(pending.map((one) => one.takenBack?.() ?? false));
+  return pending.filter((_, index) => !takenBack[index]);
 }
 
 function onKeyOf({ conversation, message }: MessageRef): string {

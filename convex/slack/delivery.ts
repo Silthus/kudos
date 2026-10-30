@@ -9,6 +9,7 @@ import type { DeepLink } from "../feedback/deepLinks";
 import type { Indicator } from "../feedback/indicator";
 import type { Line, Segment } from "../feedback/segments";
 import { settingsFooterText } from "./appHomeLinks";
+import { oneReplyContentOf } from "./oneReply";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 export const attemptArgs = { attempt: v.optional(v.number()) };
@@ -106,10 +107,17 @@ async function reconcileIndicator(ctx: ActionCtx, ref: MessageRef, attempt: numb
 async function sendPrivateReply(ctx: ActionCtx, reply: Id<"privateReplies">, attempt: number): Promise<Retry> {
   const row = await ctx.runQuery(internal.feedback.replies.privateReply, { reply });
   if (row === null) return null;
-  const text = [slackTextOf(row.lines), ...(row.footer === null ? [] : [settingsFooterText(row.workspace, row.footer)])].join("\n");
-  if (row.asDirectMessage) return sendOnce(ctx, row.workspace, "chat.postMessage", { channel: row.to, text }, attempt);
-  const message = { channel: row.conversation, user: row.to, text, ...(row.threadRoot && { thread_ts: row.threadRoot }) };
+  const content = row.oneReply === null ? { text: [slackTextOf(row.lines), ...(row.footer === null ? [] : [settingsFooterText(row.workspace, row.footer)])].join("\n") } : oneReplyContentOf(row.workspace, row.oneReply, row.footer);
+  if (row.asDirectMessage) return sendOnce(ctx, row.workspace, "chat.postMessage", { channel: row.to, ...content }, attempt);
+  const message = { channel: row.conversation, user: row.to, ...content, ...(row.threadRoot && { thread_ts: row.threadRoot }) };
+  if (row.oneReply !== null) return sendBesideOrAtMostOnceAsDirectMessage(ctx, row.workspace, message, { channel: row.to, ...content }, attempt);
   return sendOnce(ctx, row.workspace, "chat.postEphemeral", message, attempt);
+}
+
+async function sendBesideOrAtMostOnceAsDirectMessage(ctx: ActionCtx, workspace: string, ephemeral: Record<string, unknown>, direct: Record<string, unknown>, attempt: number): Promise<Retry> {
+  const result = await attemptCall(ctx, workspace, "chat.postEphemeral", ephemeral);
+  if (isRefusedAsEphemeral(result)) return sendAtMostOnce(ctx, workspace, "chat.postMessage", direct, attempt);
+  return result.kind === "delivered" || result.kind === "gone" ? null : retryAfter(result, attempt);
 }
 
 async function retryOnAnyError(attempt: number, deliver: () => Promise<Retry>): Promise<Retry> {

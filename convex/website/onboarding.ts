@@ -4,9 +4,10 @@ import { hasGivenAThoughtfulAward } from "../album/boards";
 import { reportHowItWorksClosed } from "../analytics/isolatedUsage";
 import { hasGivenAnAward } from "../engine/awards";
 import { hasHuggedBefore } from "../hugs/records";
-import { newestTurnOf } from "../items/ledger";
-import { onboardingShownTo } from "../items/onboardingFlag";
-import { loopLessonIn, type LoopLesson } from "../items/welcome";
+import { newestTurnOf } from "../album/items/ledger";
+import { onboardingShownTo } from "../album/items/onboardingFlag";
+import { onTheMondayPath } from "../quests/flag";
+import { loopLessonIn, type LoopLesson } from "../album/items/welcome";
 import { workspaceLink } from "../slack/workspaceLink";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
@@ -28,7 +29,12 @@ const levelTwo = 2;
 export async function onboardingOf(ctx: QueryCtx, me: VerifiedMember, { level }: { level: number }): Promise<Onboarding> {
   if (!(await onboardingShownTo(ctx, me.member))) return {};
   const kudos = await loopLessonIn(ctx, me.workspace);
-  return { emojiHowTo: kudos, gettingStarted: { steps: await stepsDoneBy(ctx, me, level), kudos }, ...(await howItWorksFor(ctx, me, { level, kudos })) };
+  return { emojiHowTo: kudos, ...(await gettingStartedFor(ctx, me, { level, kudos })), ...(await howItWorksFor(ctx, me, { level, kudos })) };
+}
+
+async function gettingStartedFor(ctx: QueryCtx, me: VerifiedMember, { level, kudos }: { level: number; kudos: LoopLesson }): Promise<Pick<Onboarding, "gettingStarted">> {
+  if (await onTheMondayPath(ctx, me.member)) return {};
+  return { gettingStarted: { steps: await stepsDoneBy(ctx, me, level), kudos } };
 }
 
 async function stepsDoneBy(ctx: QueryCtx, me: VerifiedMember, level: number): Promise<GettingStartedSteps> {

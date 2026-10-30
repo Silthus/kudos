@@ -1,12 +1,13 @@
 import { v } from "convex/values";
+import { earnHoggieItem, kudosPackRarities } from "./hoggies/rarityCaps";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
-import type { MessageRef } from "../engine/messageEvent";
-import type { CrateKey } from "../hoggies/crateKey";
-import { earnItem } from "../items/ledger";
+import { isSameMessage, type MessageRef } from "../engine/messageEvent";
+import type { CrateKey } from "./hoggies/crateKey";
+import { earnItem } from "./items/ledger";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
 import { nameHypeEmojiOf } from "./emojiNames";
@@ -20,7 +21,7 @@ export type WaitingPack = { pack: Id<"thoughtfulPacks">; person: MemberId; earne
 
 export type Instants = { from: number; to: number };
 
-export type ThoughtfulKudos = { message: MessageRef; at: number; recipients: number };
+export type GrantedKudos = { message: MessageRef; at: number; recipients: number };
 
 type PackId = Id<"thoughtfulPacks">;
 
@@ -46,7 +47,7 @@ export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<{
   return { packs, more: oldestFirst.length > mostWaitingPacksShown };
 }
 
-export async function thoughtfulKudosBetween(ctx: QueryCtx, workspace: string, { from, to }: Instants, most: number): Promise<ThoughtfulKudos[]> {
+export async function grantedKudosBetween(ctx: QueryCtx, workspace: string, { from, to }: Instants, most: number): Promise<GrantedKudos[]> {
   const told = await ctx.db
     .query("grantsTold")
     .withIndex("by_workspace_at", (q) => q.eq("message.workspace", workspace).gte("at", from).lt("at", to))
@@ -67,7 +68,7 @@ export async function isFirstPackFor(ctx: QueryCtx, { _id, giver, recipient }: D
 
 export async function isFirstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId, message: MessageRef): Promise<boolean> {
   const first = await firstPackGrantedFor(ctx, giver, recipient);
-  return first !== null && isTheSameMessage(first.message, message);
+  return first !== null && isSameMessage(first.message, message);
 }
 
 export function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Doc<"thoughtfulPacks"> | null> {
@@ -75,10 +76,6 @@ export function firstPackGrantedFor(ctx: QueryCtx, giver: MemberId, recipient: M
     .query("thoughtfulPacks")
     .withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))
     .first();
-}
-
-function isTheSameMessage(one: MessageRef, other: MessageRef) {
-  return one.workspace === other.workspace && one.conversation === other.conversation && one.message === other.message;
 }
 
 function recipientsOf(event: KudosGivenEvent): MemberId[] {
@@ -105,12 +102,14 @@ type Thanks = { workspace: string; giver: MemberId; recipient: MemberId; message
 
 async function earnThanksItems(ctx: MutationCtx, thanks: Thanks, pack: PackId, holdsSticker: boolean) {
   const earning = thanksEarningOf(thanks);
-  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack) });
+  await earnHoggieItem(ctx, { ...earning, key: crateKeyOf(pack) }, kudosPackRarities);
   if (holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack });
 }
 
-export function earnPackItemsOf(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">) {
-  return earnThanksItems(ctx, pack, pack._id, pack.holdsSticker);
+export async function earnItemsOfAPackGivenBeforeTheLedger(ctx: MutationCtx, pack: Doc<"thoughtfulPacks">) {
+  const earning = thanksEarningOf(pack);
+  await earnItem(ctx, { ...earning, source: "hoggie", key: crateKeyOf(pack._id), ...kudosPackRarities.today });
+  if (pack.holdsSticker) await earnItem(ctx, { ...earning, source: "sticker", key: pack._id });
 }
 
 export function thanksEarningOf({ workspace, giver, recipient, message, at }: Thanks) {

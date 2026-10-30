@@ -2,8 +2,8 @@ import type { FunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { journeyStepOpenedBy } from "../quests/step";
-import { earnsPacks } from "../album/earns";
-import { crateKindOf } from "../hoggies/crateKey";
+import { crateKindOf } from "../album/hoggies/crateKey";
+import { isTheFirstThanks } from "../welcome/firstThanks";
 import type { DomainEvent } from "./events";
 
 type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
@@ -20,13 +20,13 @@ export const subscribers: Registry = {
     internal.leaderboard.totals.countKudosGiven,
     internal.groups.attribution.attributeKudosGiven,
     internal.stickers.stickers.recordStickers,
-    { subscriber: internal.album.packs.grantThoughtfulPacks, only: earnsPacks },
+    internal.album.packs.grantThoughtfulPacks,
     internal.album.tallies.tallyKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
   memberWelcomed: [internal.analytics.subscribers.recordMemberWelcomed],
-  levelReached: [internal.unlocks.unlocks.makeReady, internal.feedback.publicReplies.celebrateLevel, internal.analytics.subscribers.recordLevelReached],
+  levelReached: [internal.unlocks.unlocks.makeReady, internal.album.levelUpHoggies.earnLevelUpHoggies, internal.feedback.publicReplies.celebrateLevel, internal.analytics.subscribers.recordLevelReached],
   xpRecorded: [internal.feedback.homes.refreshHomeOnXp],
   unlockReady: [internal.analytics.subscribers.recordUnlockReady],
   unlockOpened: [
@@ -39,6 +39,9 @@ export const subscribers: Registry = {
   unlocksLaunched: [internal.analytics.subscribers.recordUnlocksLaunched],
   questFinished: [
     { subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" },
+    { subscriber: internal.welcome.welcome.welcomeOnFirstThanks, only: ({ quest }) => isTheFirstThanks(quest) },
+    internal.progression.questRewards.payQuestFinished,
+    internal.album.items.questHoggies.earnQuestHoggie,
     internal.analytics.subscribers.recordQuestFinished,
   ],
   questOpened: [internal.analytics.subscribers.recordQuestOpened],
@@ -55,7 +58,18 @@ export const subscribers: Registry = {
   awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
   hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped, { subscriber: internal.album.milestones.recordMilestonesAfterAHoggieDrop, only: ({ crate }) => crateKindOf(crate) !== "thoughtful" }],
   crateBought: [],
-  hugGiven: [internal.hugs.people.payHugPeople, internal.feedback.welcomeNudge.nudgeTheHugged, internal.album.tallies.tallyHugGiven, internal.analytics.subscribers.recordHugGiven],
+  hugGiven: [
+    { subscriber: internal.welcome.welcome.welcomeOnHug, only: ({ first }) => first === true },
+    internal.progression.hugRewards.payHugGiven,
+    internal.album.items.hugFinds.findOnHug,
+    internal.hugs.people.payHugPeople,
+    internal.feedback.welcomeNudge.nudgeTheHugged,
+    internal.album.tallies.tallyHugGiven,
+    internal.leaderboard.hugs.countHugGiven,
+    internal.analytics.subscribers.recordHugGiven,
+  ],
+  hugReceived: [internal.progression.hugRewards.payHugReceived, internal.leaderboard.hugs.countHugReceived],
+  hypeReacted: [internal.album.hypeReactions.keepHypeReaction],
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
   thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned, internal.feedback.albumReplies.replyAfterTheGrant],

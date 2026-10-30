@@ -3,13 +3,13 @@ import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/web
 import type { EmojiMappingAnswer, EmojiMappings, EmojiMappingsRead as EmojiMappingsReadAnswer, ShownTarget } from "../../convex/website/emojiMappings";
 import type { AppEmojisRead as AppEmojisReadAnswer, MyEmojiMappingAnswer, SlackEmojiMatchesRead as SlackEmojiMatchesReadAnswer } from "../../convex/website/emojiWizard";
 import type { TurnAnswer } from "../../convex/website/album";
-import type { ShareAnswer } from "../../convex/website/itemShare";
 import type { ArrivalAnswer } from "../../convex/website/lastVisit";
 import type { HowItWorksCloseAnswer } from "../../convex/website/onboarding";
+import type { ActivityState, QuestsSurface } from "../../convex/analytics/projections";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { MemberProfile, MyProfile } from "../../convex/website/profile";
-import { albumFixtures, fixturePackOpeningOf, fixturePutAllIn, fixturePutInOf, fixtureTurnOf, fixtureUnlockOf } from "./album/albumFixtures";
-import type { ForgeReply, HypePickReply, PackOpenReply, PetReply, PutAllInReply, PutInReply, SeenReply, UnlockReply } from "./album/answer";
+import { albumFixtures, fixtureKudosEmojiPickOf, fixturePackOpeningOf, fixturePutAllIn, fixturePutInOf, fixtureTurnOf, fixtureUnlockOf } from "./album/albumFixtures";
+import type { BoardPeriod, ForgeReply, HypePickReply, KudosEmojiPickReply, PackOpenReply, PetReply, PutAllInReply, PutInReply, SeenReply, UnlockReply } from "./album/answer";
 
 export type { Rarity } from "./crates/drops";
 export type { Face } from "../../convex/website/profile";
@@ -43,11 +43,12 @@ export type AdminLinkTarget = number | "none" | null;
 
 export type TurnReply = TurnAnswer | Denial;
 
-export type ShareReply = ShareAnswer | Denial;
-
 export type ArrivalReply = ArrivalAnswer | Denial;
 
 export type HowItWorksCloseReply = HowItWorksCloseAnswer | Denial;
+
+
+export type { QuestsSurface };
 
 export type MySettingsAnswer = SettingsAnswer | Denial;
 
@@ -73,7 +74,9 @@ export type Visitor = Exclude<MyProfile, MemberProfile> | Member | { kind: "load
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setWeeklyPost(on: boolean): Promise<WeeklyPostReply>; pickWeeklyPostChannel(link: string): Promise<WeeklyPostChannelReply>; setPublicCelebrations(on: boolean): Promise<PublicCelebrationsReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; mapMyEmoji(emoji: string, to: string): Promise<MyEmojiMappingReply>; pickMyHypeEmoji(emoji: string): Promise<HypePickReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply>; markEmojisSeen(ids: string[]): Promise<SeenReply>; turnItem(item: string): Promise<TurnReply>; shareItem(item: string): Promise<ShareReply>; makePet(hoggie: string): Promise<PetReply>; forgeHoggie(hoggie: string, request: string): Promise<ForgeReply>; arrive(from: number | null): Promise<ArrivalReply>; endXpMoment(from: number, until: number, skipped: boolean): Promise<ArrivalReply>; closeHowItWorks(triedSlack: boolean): Promise<HowItWorksCloseReply> };
+export type PlayedMoment = { shown: number; folded: number };
+
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; linkMyCompanyProfile(profile: number | null): Promise<CompanyProfileLinkReply>; linkCompanyProfile(member: string, profile: AdminLinkTarget): Promise<AdminProfileLinkReply>; setWorkspaceSettings(settings: WorkspaceSettingsChange): Promise<WorkspaceSettingsReply>; setWeeklyPost(on: boolean): Promise<WeeklyPostReply>; pickWeeklyPostChannel(link: string): Promise<WeeklyPostChannelReply>; setPublicCelebrations(on: boolean): Promise<PublicCelebrationsReply>; mapSlackEmoji(emoji: string, to: EmojiPlaceChoice): Promise<EmojiMappingReply>; mapMyEmoji(emoji: string, to: string): Promise<MyEmojiMappingReply>; pickMyHypeEmoji(emoji: string): Promise<HypePickReply>; openThoughtfulPack(pack: string): Promise<PackOpenReply>; putIn(item: string): Promise<PutInReply>; putAllIn(): Promise<PutAllInReply>; unlockTeamSticker(team: string): Promise<UnlockReply>; markEmojisSeen(ids: string[]): Promise<SeenReply>; pickKudosEmoji(emoji: string, picked: boolean): Promise<KudosEmojiPickReply>; turnItem(item: string): Promise<TurnReply>; makePet(hoggie: string): Promise<PetReply>; forgeHoggie(hoggie: string, request: string): Promise<ForgeReply>; arrive(from: number | null): Promise<ArrivalReply>; endXpMoment(from: number, until: number, skipped: boolean, played: PlayedMoment): Promise<ArrivalReply>; closeHowItWorks(triedSlack: boolean): Promise<HowItWorksCloseReply>; viewQuests(surface: QuestsSurface): void; viewLeaderboard(period: BoardPeriod): void; viewActivity(state: ActivityState): void };
 
 const member: Member = { kind: "member" };
 
@@ -105,8 +108,15 @@ const fixturesByName: Record<string, ShellState> = {
   "album-with-new-emojis": shellFixtures.member,
   "album-as-an-admin": shellFixtures.member,
   "album-emoji-wizard": shellFixtures.member,
+  "album-xp-moment": shellFixtures.member,
   "album-with-items": shellFixtures.member,
   "album-person-page-d": shellFixtures.member,
+  "album-quests": shellFixtures.member,
+  "album-quests-week": shellFixtures.member,
+  "album-leaderboard-hugs": shellFixtures.member,
+  "album-activity-next-empty": shellFixtures.member,
+  "album-activity-next-quiet": shellFixtures.member,
+  "album-activity-next-thanked": shellFixtures.member,
   error: shellFixtures.error,
 };
 
@@ -114,4 +124,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), setWeeklyPost: async () => ({ kind: "set" }), pickWeeklyPostChannel: async () => ({ kind: "checking", pick: 1 }), setPublicCelebrations: async () => ({ kind: "set" }), mapSlackEmoji: async () => ({ kind: "mapped" }), mapMyEmoji: async () => ({ kind: "mapped" }), pickMyHypeEmoji: async () => ({ kind: "picked" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team), markEmojisSeen: async (ids) => ({ kind: "seen", ids }), turnItem: async (item) => fixtureTurnOf(item), shareItem: async () => ({ kind: "shared" }), makePet: async (hoggie) => ({ kind: "picked", pet: hoggie }), forgeHoggie: async () => ({ kind: "refused" }), arrive: async (from) => ({ kind: "arrived", lastVisit: from }), endXpMoment: async (_from, until) => ({ kind: "arrived", lastVisit: until }), closeHowItWorks: async () => ({ kind: "closed" }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), linkMyCompanyProfile: async () => ({ kind: "linked" }), linkCompanyProfile: async () => ({ kind: "linked" }), setWorkspaceSettings: async () => ({ kind: "set" }), setWeeklyPost: async () => ({ kind: "set" }), pickWeeklyPostChannel: async () => ({ kind: "checking", pick: 1 }), setPublicCelebrations: async () => ({ kind: "set" }), mapSlackEmoji: async () => ({ kind: "mapped" }), mapMyEmoji: async () => ({ kind: "mapped" }), pickMyHypeEmoji: async () => ({ kind: "picked" }), openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), putIn: async (item) => fixturePutInOf(item), putAllIn: async () => fixturePutAllIn(), unlockTeamSticker: async (team) => fixtureUnlockOf(albumFixtures.midway, team), markEmojisSeen: async (ids) => ({ kind: "seen", ids }), pickKudosEmoji: async (emoji, picked) => fixtureKudosEmojiPickOf(emoji, picked), turnItem: async (item) => fixtureTurnOf(item), makePet: async (hoggie) => ({ kind: "picked", pet: hoggie }), forgeHoggie: async () => ({ kind: "refused" }), arrive: async (from) => ({ kind: "arrived", lastVisit: from }), endXpMoment: async (_from, until) => ({ kind: "arrived", lastVisit: until }), closeHowItWorks: async () => ({ kind: "closed" }), viewQuests() {}, viewLeaderboard() {}, viewActivity() {} };

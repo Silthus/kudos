@@ -15,7 +15,8 @@ import { levelShareOf, myTeamOf, xpToNextOf } from "./facts";
 import { countedWords, emblemOf, milestoneNameOf, progressWords, tierWordOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { findYourselfHref, hrefOf } from "./place";
-import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, type BestMedal, type NextMedal, type Standing } from "./profile";
+import { NextMilestones } from "./NextMilestones";
+import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, toGoOf, type BestMedal, type NextMedal, type Standing } from "./profile";
 import { dateOf } from "./teamPage";
 import { ShareLink } from "./ShareLink";
 import "./team.css";
@@ -61,6 +62,7 @@ function ProfilePage({ album, profile, standing, hoggies }: { album: Album; prof
         <Entry album={album} team={team} note={profile.note} />
         <Rank standing={standing} />
       </div>
+      <NextMilestones album={album} />
       {team === undefined && <FindYourTeam />}
       <Glance album={album} team={team} hoggies={hoggies} />
       <Finds album={album} newest={profile.newest} hoggies={hoggies} />
@@ -160,7 +162,7 @@ function Note({ note }: { note: KindNote }) {
         Someone wrote to you
       </p>
       <blockquote>
-        <KudosMessage message={note.message} clamped={false} />
+        <KudosMessage message={note.message} />
       </blockquote>
       <figcaption>
         <AppLink href={hrefOf({ kind: "person", person: note.giver.person })} className="al-profile-note-by">
@@ -184,7 +186,7 @@ function Rank({ standing }: { standing: Standing }) {
   return (
     <section className="al-profile-rank" aria-labelledby={heading}>
       <h2 id={heading} className="al-eyebrow">
-        This week's thoughtful kudos
+        This week's kudos
       </h2>
       <YourPlace standing={standing} />
       {standing.team !== null && (
@@ -205,11 +207,11 @@ function YourPlace({ standing: { me, onTheBoards } }: { standing: Standing }) {
         You're off the boards by choice. Switch on "Show me on the leaderboards" in <AppLink href={hrefOf({ kind: "settings" })}>Settings</AppLink> to come back.
       </p>
     );
-  if (me === null || me.rank === null) return <p className="al-profile-rank-line">Give a thoughtful kudos to join this week's board.</p>;
+  if (me === null || me.rank === null) return <p className="al-profile-rank-line">Give a kudos to join this week's board.</p>;
   return (
     <>
       <p className="al-profile-rank-number">{rankWords({ rank: me.rank, tied: me.tied })}</p>
-      <p className="al-profile-rank-line">{me.thoughtful} thoughtful kudos given</p>
+      <p className="al-profile-rank-line">{me.thoughtful} kudos given</p>
     </>
   );
 }
@@ -242,7 +244,7 @@ function Glance({ album, team, hoggies }: { album: Album; team: AlbumTeam | unde
   return (
     <Section title="Your album at a glance">
       <ul className="al-profile-glance">
-        <Tile href={hrefOf({ kind: "milestones" })} label="People in your album" held={people.held} total={people.total} footnote={`${people.unlocked} of ${people.teams} team stickers unlocked`} />
+        <Tile href={hrefOf({ kind: "milestones" })} label="People in your album" held={people.held} total={people.total} footnote={`${people.unlocked} of ${people.teams} full teams unlocked`} />
         {team !== undefined && <Tile href={hrefOf({ kind: "team", team: team.team })} label={`Your team, ${team.name}`} held={team.held} total={team.total} footnote={teamFootnoteOf(team)} art={<TeamCrest art={team.art} size={44} name={team.name} collected={team.held > 0} />} />}
         {hoggies !== null && <Tile href={hrefOf({ kind: "hoggies", hoggie: null })} label="Hoggies found" held={hoggies.found} total={hoggies.total} footnote={`${hoggies.total - hoggies.found} still hiding in packs`} />}
       </ul>
@@ -282,7 +284,7 @@ function Finds({ album, newest, hoggies }: { album: Album; newest: NewestPerson[
   return (
     <Section title="Coolest finds" more={hoggies !== null && <MoreLink href={hrefOf({ kind: "hoggies", hoggie: null })}>All your hoggies</MoreLink>}>
       {rarest.length === 0 && newest.length === 0 ? (
-        <p className="al-lede">Give a thoughtful kudos and open its pack: your first person and hoggie show here.</p>
+        <p className="al-lede">Give a kudos and open its pack: your first person and hoggie show here.</p>
       ) : (
         <div className="al-profile-finds">
           {rarest.length > 0 && (
@@ -407,7 +409,7 @@ function ClosestNext({ next }: { next: NextMedal }) {
       <Bar label={`${words} for ${tier.name}`} now={Math.min(milestone.count, tier.at)} min={0} max={tier.at} share={shareOf(next)} />
       <p className="al-profile-next-way al-profile-small">
         <span>{words}</span>
-        <span className="al-quiet">{Math.max(0, tier.at - milestone.count)} to go</span>
+        <span className="al-quiet">{toGoOf(next)} to go</span>
       </p>
     </div>
   );

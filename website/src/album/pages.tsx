@@ -25,7 +25,7 @@ export function AlbumPage({ album, place, settings, leaderboard, activity, perso
     case "packs":
       return (
         <Page tab="Packs" title="Your packs">
-          {album.packs.length === 0 ? "No packs waiting. Thank someone and say why to earn one." : `${plural(album.packs.length, "pack", "packs")} waiting to open.`}
+          {album.packs.length === 0 ? "No packs waiting. Give someone a kudos to earn one." : `${plural(album.packs.length, "pack", "packs")} waiting to open.`}
         </Page>
       );
     case "levelUp":

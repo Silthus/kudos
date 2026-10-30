@@ -13,7 +13,7 @@ import crons from "../crons";
 import { finishQuest } from "../quests/finish";
 import { groupQuestPool } from "../quests/groupPool";
 import { achievementsLiveIn } from "../achievements/flag";
-import { hoggieNamed, rarityLabel } from "../hoggies/catalogue";
+import { hoggieNamed, rarityLabel } from "../album/hoggies/catalogue";
 import { keepOpen } from "../unlocks/unlocks";
 
 const lastTuesday = Date.parse("2026-10-13T10:00:00Z");
@@ -170,8 +170,8 @@ describe("each crate's Open in Slack links to the page where it opens while the 
 
     await openHome(t, "U_ANN");
 
-    expect(publishedHome(slack, "U_ANN")).toContain(`${groupQuestDoneLine} [link: Open ${siteUrl}/]`);
-    expect(accessoryBeside("U_ANN", "Ants quest:")).toMatchObject({ url: `${siteUrl}/`, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
+    expect(publishedHome(slack, "U_ANN")).toContain(`${groupQuestDoneLine} [link: Open ${siteUrl}/?src=app-home]`);
+    expect(accessoryBeside("U_ANN", "Ants quest:")).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
   });
 
   test("an earlier week's group crate waiting to open links to that week's waiting crate on the Quests page", async () => {
@@ -184,7 +184,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     vi.setSystemTime(tuesday + 7 * 24 * 60 * 60 * 1000);
     await openHome(t, "U_ANN");
 
-    const ownWeek = `${siteUrl}/`;
+    const ownWeek = `${siteUrl}/?src=app-home`;
     expect(publishedHome(slack, "U_ANN")).toContain(`${earlierGroupCrateLine} [link: Open ${ownWeek}]`);
     expect(accessoryBeside("U_ANN", "*Week of Oct 19:* ✅ Ants quest:")).toMatchObject({ url: ownWeek, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
   });

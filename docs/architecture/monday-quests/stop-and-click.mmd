@@ -1,0 +1,16 @@
+sequenceDiagram
+  participant U as Member in Slack
+  participant S as Slack adapter
+  participant R as Commands
+  participant MS as Message settings
+  participant A as Analytics
+  U->>S: presses Stop Monday quests
+  S->>S: slackInteractivity: verify, parse action_id
+  S->>R: receiveHomeClick then runCommand(stopMondayQuests)
+  R->>R: questsFor(member).path is monday, else no-op
+  R->>MS: setMessageSetting(quests, none)
+  R->>A: message setting changed{kind: quests, via: dm-button}
+  S->>U: chat.update says stopped, with Turn back on
+  U->>S: clicks a DM link button (URL)
+  S->>A: dm link clicked{kind, destination}
+  Note over U,A: Slack opens the URL itself, and the website visit, item turned and quests viewed join by person in PostHog

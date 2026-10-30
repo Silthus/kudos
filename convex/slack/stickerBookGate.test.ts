@@ -63,8 +63,8 @@ vi.mock("../website/seen", async (importOriginal) => {
   return { ...actual, seenKeyOf: vi.fn((member: Parameters<typeof actual.seenKeyOf>[0], crate: string) => actual.seenKeyOf((namedIds.get(member) ?? member) as typeof member, crate)) };
 });
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
   return { ...actual, drawOf: vi.fn((input: Parameters<typeof actual.drawOf>[0]) => actual.drawOf({ ...input, member: namedIds.get(input.member) ?? input.member })) };
 });
 
@@ -356,7 +356,7 @@ function orderFree<T>(rows: T[]): T[] {
 }
 
 const convexTestId = /^\d+[a-zA-Z_]+$/;
-const keyedId = /^([a-z]+):(\d+[a-zA-Z_]+)$/;
+const keyedId = /^([a-z-]+):(\d+[a-zA-Z_]+)$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const createdInTheSameMillisecond = /(\d{13})\.\d+$/;
 const opaque = new Set(["cursor", "eventId"]);

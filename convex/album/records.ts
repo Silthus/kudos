@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { awardIdValidator } from "../engine/awards";
 import { messageRefValidator } from "../engine/messageEvent";
-import { rarityValidator } from "../hoggies/catalogue";
+import { rarityValidator } from "./hoggies/catalogue";
 
 export const grantOutcomeValidator = v.union(v.literal("new"), v.literal("held"), v.literal("waiting"), v.literal("nextWeek"));
 
@@ -68,7 +68,11 @@ export type EmojiMapper = Infer<typeof emojiMapperValidator>;
 
 export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string(), mappedBy: v.optional(emojiMapperValidator) });
 
+export const secondEmojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), name: v.string() });
+
 export const seenEmojiValidator = v.object({ member: v.id("members"), emoji: v.string(), at: v.number() });
+
+export const kudosEmojiPickValidator = v.object({ member: v.id("members"), emoji: v.string() });
 
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });
 
@@ -139,8 +143,19 @@ export const weekTallyValidator = v.object({
 
 export const weekPersonValidator = v.object({ member: v.id("members"), week: v.string(), list: weekListValidator, person: v.id("members") });
 
-export const talliedAwardValidator = v.object({ award: awardIdValidator });
+export const talliedAwardValidator = v.object({ award: awardIdValidator, everyKudos: v.optional(v.literal(true)) });
 
 export const boardCountedAwardValidator = v.object({ award: awardIdValidator });
 
 export const talliedHugValidator = v.object({ hug: v.id("hugs"), person: v.id("members") });
+
+export const hypeReactionValidator = v.object({
+  workspace: v.string(),
+  giver: v.id("members"),
+  owner: v.id("members"),
+  author: v.id("members"),
+  emoji: v.string(),
+  conversation: v.string(),
+  message: v.string(),
+  at: v.number(),
+});

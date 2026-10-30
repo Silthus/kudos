@@ -3,7 +3,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { routedFetch, type CapturedEvent, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding } from "../../testing/flags";
-import { blockActions } from "../../testing/slackInteractions";
+import { blockActions, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aSignedInSession } from "../../testing/website";
@@ -39,14 +39,17 @@ type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShow
 const now = new Date("2026-10-13T10:00:00Z");
 const stepMs = 10 * 60_000;
 const stepWindowMs = 9 * 60_000;
-const aTotalityOverEveryRecorderWalksSixTimesMs = 48_000;
+const aTotalityOverEveryRecorderWalksSevenTimesMs = 56_000;
 const week = "2026-10-12";
+const mondayNine = Date.parse("2026-10-19T09:00:00Z");
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const members = ["U_ALICE", "U_BOB"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "collection"];
 const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
 const recordingJobs = ["analytics/drain:drain", "analytics/person:identifyNewPeople"];
+const mondayPathRecorders = ["analytics/isolatedUsage:recordWelcomeDmSent", "analytics/isolatedUsage:recordDmLinkClicked", "analytics/isolatedUsage:recordQuestsViewed", "analytics/isolatedUsage:recordMondayDmSent"];
+const mondayPathFlags = ["website", "album", "packs", "hidden-items", "welcome-item", "onboarding", "hugs", "message-settings", "monday-quest"];
 const recordingWrites: Table[] = ["analyticsOutbox", "analyticsIds", "workspaceKeys", "analyticsDrain"];
 const darkFeatureTables: Table[] = ["unlocks", "unlockLaunches", "journeyLaunches", "journeySteps", "questDraws", "questSwaps", "questProgress", "rewardRecords", "crateOpenings", "leaderboardSettings"];
 
@@ -181,10 +184,10 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of six whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes, one through the album's tray and one through the item board ending an XP moment and closing the how-it-works card, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of seven whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes, one through the album's tray and one through the item board ending an XP moment and closing the how-it-works card, and one down the Monday path from the welcome to the Monday DM, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
-    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest, walkThroughTheAlbumsTray, walkThroughTheItemBoard]) {
+    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest, walkThroughTheAlbumsTray, walkThroughTheItemBoard, walkThroughTheMondayPath]) {
       const { t } = await walked();
       for (const spy of [memberDecision, workspaceDecision, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
       for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
@@ -194,7 +197,7 @@ describe("E11: recording a product event writes only analytics' own rows and sch
     }
 
     expect([...reRun].sort()).toEqual(everyRecorder().sort());
-  }, aTotalityOverEveryRecorderWalksSixTimesMs);
+  }, aTotalityOverEveryRecorderWalksSevenTimesMs);
 });
 
 async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
@@ -323,6 +326,49 @@ async function walkThroughTheItemBoard() {
   return { t };
 }
 
+async function walkThroughTheMondayPath() {
+  start("on", "flags key set");
+  aDeploymentForWorkspace();
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, ...mondayPathFlags].map(onForEveryone));
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
+
+  await giveKudos(t, "U_ALICE", 1);
+  await pressAWelcomeLink(t, "U_ALICE");
+  await viewTheQuestsPanel(t, "U_ALICE");
+  await mondayArrives(t);
+
+  expect(new Set(eventsNamed("dm sent").map(({ properties }) => properties.kind))).toEqual(new Set(["welcome", "monday"]));
+  expect(eventsNamed("dm link clicked").map(({ properties }) => properties.kind)).toEqual(["welcome"]);
+  expect(eventsNamed("quests viewed").map(({ properties }) => properties.surface)).toEqual(["panel"]);
+  return { t };
+}
+
+async function pressAWelcomeLink(t: Backend, user: string) {
+  const welcome = slack.messagesShownIn(user).find(({ blocks }) => welcomeLinksIn(blocks as Block[]).length > 0);
+  if (welcome === undefined) throw new Error(`no welcome with links shown to ${user}`);
+  const [link] = welcomeLinksIn(welcome.blocks as Block[]);
+  nextStep();
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, { type: "button", action_id: link! }, { inMessage: welcome }), form));
+  await settled(t);
+}
+
+function welcomeLinksIn(blocks: Block[] = []) {
+  const buttons = blocks.flatMap((block) => [block.accessory, ...(block.elements ?? [])]) as Array<{ action_id?: string } | undefined>;
+  return buttons.flatMap((button) => (button?.action_id?.startsWith("dm-link:welcome:") ? [button.action_id] : []));
+}
+
+async function viewTheQuestsPanel(t: Backend, user: string) {
+  const { asSignedIn } = await aSignedInSession(t, { user });
+  expect(await asSignedIn.mutation(api.website.quests.viewQuests, { surface: "panel" })).toEqual({ kind: "viewed" });
+  await settled(t);
+}
+
+async function mondayArrives(t: Backend) {
+  await t.mutation(internal.mondayDm.mondayDm.ensureMondayDms, {});
+  await settled(t, mondayNine + stepWindowMs);
+}
+
 async function closeTheHowItWorksCard(t: Backend) {
   const { asSignedIn } = await aSignedInSession(t, { user: "U_BOB" });
   await asSignedIn.mutation(api.website.onboarding.closeHowItWorks, { triedSlack: true });
@@ -375,7 +421,7 @@ function everyRecorder() {
     .flat()
     .map((subscription) => getFunctionName("subscriber" in subscription ? subscription.subscriber : subscription))
     .filter((name) => name.startsWith("analytics/"));
-  return [...new Set(subscribed), "analytics/isolatedUsage:recordLeaderboardViewed", "analytics/isolatedUsage:recordLeaderboardVisibilityChanged", "analytics/isolatedUsage:recordXpMomentEnded", "analytics/isolatedUsage:recordHowItWorksClosed", "slack/commands:recordLeaderboardViewed"];
+  return [...new Set(subscribed), "analytics/isolatedUsage:recordLeaderboardViewed", "analytics/isolatedUsage:recordLeaderboardVisibilityChanged", "analytics/isolatedUsage:recordXpMomentEnded", "analytics/isolatedUsage:recordHowItWorksClosed", ...mondayPathRecorders, "slack/commands:recordLeaderboardViewed"];
 }
 
 async function walk(setup: Setup, capture: Capture) {
@@ -506,8 +552,7 @@ async function hedgehug(t: Backend, user: string, words: string) {
   return response;
 }
 
-async function settled(t: Backend) {
-  const until = Date.now() + stepWindowMs;
+async function settled(t: Backend, until = Date.now() + stepWindowMs) {
   for (let fired = 0; fired < 500; fired += 1) {
     await t.finishInProgressScheduledFunctions();
     const next = await nextJobAt(t);
@@ -623,8 +668,15 @@ async function rowsOf(t: Backend, table: Table): Promise<Row[]> {
   return t.run(async (ctx) => (await ctx.db.query(table).collect()) as unknown as Row[]);
 }
 
+const writtenByConcurrentFollowers: Table[] = ["items", "levelUps"];
+
 function withStableIds(stored: Record<string, Row[]>) {
-  return withLabelledIds(withDrawPositionsHidden(stored));
+  return withLabelledIds(withDrawPositionsHidden(withConcurrentWritesInContentOrder(stored)));
+}
+
+function withConcurrentWritesInContentOrder(stored: Record<string, Row[]>): Record<string, Row[]> {
+  const content = ({ _id: _labelled, _creationTime: _timed, ...row }: Row) => serialized(row);
+  return { ...stored, ...Object.fromEntries(writtenByConcurrentFollowers.filter((table) => stored[table]).map((table) => [table, stored[table]!.toSorted((one, other) => content(one).localeCompare(content(other)))])) };
 }
 
 function withDrawPositionsHidden(stored: Record<string, Row[]>): Record<string, Row[]> {

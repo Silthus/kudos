@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import { mondayCatalogueVersion } from "./mondayCatalogue";
 import type { Reward } from "./journey";
 
 export const questIdValidator = v.union(
@@ -10,6 +11,9 @@ export const questIdValidator = v.union(
   v.literal("someone-new"),
   v.literal("two-new"),
   v.literal("not-in-30-days"),
+  v.literal("kudos-once"),
+  v.literal("kudos-two-days"),
+  v.literal("three-in-a-day"),
 );
 
 export type QuestId = Infer<typeof questIdValidator>;
@@ -20,7 +24,7 @@ export type PoolQuest = {
   quest: QuestId;
   kind: "breadth" | "thoughtfulness" | "participation";
   goal: string;
-  progress: { counts: "recognitions" | "people" | "days"; target: number; given: { saysWhy: boolean; to: Recipient } };
+  progress: { counts: "recognitions" | "people" | "days" | "people-in-a-day"; target: number; given: { saysWhy: boolean; to: Recipient } };
   needs: ReadonlyArray<"groups" | "chime-ins" | "recent-joiners">;
   reward: Reward;
 };
@@ -31,7 +35,17 @@ export const feasibleBecauseValidator = v.object({ peopleLeft: v.number(), recog
 
 export type FeasibleBecause = Infer<typeof feasibleBecauseValidator>;
 
+export type QuestPool = { version: string; quests: readonly PoolQuest[] };
+
 const personalReward = { xp: 20, coins: 10, item: null };
+
+export const mondayReward = { xp: 20, coins: 0, item: null };
+
+const reachingOut = [
+  thanking("someone-new", "Thank someone you haven't thanked before.", "someone-new", 1),
+  thanking("two-new", "Thank 2 people you haven't thanked before.", "someone-new", 2),
+  thanking("not-in-30-days", "Thank someone you haven't thanked in the last 30 days.", "someone-not-thanked-in-30-days", 1),
+];
 
 export const questPool = {
   version: "2",
@@ -41,27 +55,48 @@ export const questPool = {
     sayingWhy("say-why-three-times", "Thank someone and say why, 3 times.", "recognitions", 3),
     sayingWhy("say-why-two-days", "Thank someone and say why on 2 different days.", "days", 2),
     sayingWhy("say-why-three-days", "Thank someone and say why on 3 different days.", "days", 3),
-    thanking("someone-new", "Thank someone you haven't thanked before.", "someone-new", 1),
-    thanking("two-new", "Thank 2 people you haven't thanked before.", "someone-new", 2),
-    thanking("not-in-30-days", "Thank someone you haven't thanked in the last 30 days.", "someone-not-thanked-in-30-days", 1),
+    ...reachingOut,
   ],
-} as const satisfies { version: string; quests: readonly PoolQuest[] };
+} as const satisfies QuestPool;
+
+export const mondayQuestPool = {
+  version: mondayCatalogueVersion,
+  quests: [
+    givingKudos("kudos-once", "Give a kudos to someone.", "recognitions", 1),
+    givingKudos("kudos-two-days", "Thank someone on two different days.", "days", 2),
+    givingKudos("three-in-a-day", "Thank 3 people in one day.", "people-in-a-day", 3),
+    ...reachingOut,
+  ].map((quest) => ({ ...quest, reward: mondayReward })),
+} as const satisfies QuestPool;
+
+export function withoutFullStop(goal: string): string {
+  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
+}
 
 export function questOf(quest: QuestId): PoolQuest {
-  return questPool.quests.find((entry) => entry.quest === quest)!;
+  return [...questPool.quests, ...mondayQuestPool.quests].find((entry) => entry.quest === quest)!;
 }
 
 export function feasibility({ progress }: PoolQuest, facts: DrawFacts): FeasibleBecause | null {
   const people = facts.peopleLeft[progress.given.to];
   const recognitionsLeft = Math.min(facts.kudosLeftToday, people) + Math.min(facts.dailyAllowance, people) * (facts.daysLeft - 1);
-  if (people < (progress.counts === "people" ? progress.target : 1) || recognitionsLeft < progress.target) return null;
+  if (people < (progress.counts === "recognitions" || progress.counts === "days" ? 1 : progress.target) || recognitionsLeft < progress.target) return null;
+  if (progress.counts === "people-in-a-day") return aDayHolds(progress.target, people, facts) ? { peopleLeft: people, recognitionsLeft } : null;
   if (progress.counts !== "days") return { peopleLeft: people, recognitionsLeft };
   const daysLeft = facts.kudosLeftToday > 0 ? facts.daysLeft : facts.daysLeft - 1;
   return daysLeft < progress.target ? null : { peopleLeft: people, recognitionsLeft, daysLeft };
 }
 
+function aDayHolds(target: number, people: number, { dailyAllowance, kudosLeftToday, daysLeft }: DrawFacts): boolean {
+  return dailyAllowance >= target && (Math.min(kudosLeftToday, people) >= target || daysLeft > 1);
+}
+
 function sayingWhy(quest: QuestId, goal: string, counts: "recognitions" | "days", target: number): PoolQuest {
   return { quest, kind: "thoughtfulness", goal, progress: { counts, target, given: { saysWhy: true, to: "anyone" } }, needs: [], reward: personalReward };
+}
+
+function givingKudos(quest: QuestId, goal: string, counts: "recognitions" | "days" | "people-in-a-day", target: number): PoolQuest {
+  return { quest, kind: "participation", goal, progress: { counts, target, given: { saysWhy: false, to: "anyone" } }, needs: [], reward: personalReward };
 }
 
 function thanking(quest: QuestId, goal: string, to: Exclude<Recipient, "anyone">, target: number): PoolQuest {

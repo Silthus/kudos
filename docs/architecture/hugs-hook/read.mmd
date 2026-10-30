@@ -1,0 +1,17 @@
+sequenceDiagram
+  autonumber
+  actor M as Member on the website
+  participant W as Website reads
+  participant L as Leaderboard
+  participant A as Album
+  M->>W: opens the Leaderboard page (period, team)
+  W->>L: boardsOf(viewer, period, team)
+  L->>L: one index range: recognition totals by workspace + period
+  L->>L: rank people by each count in memory, sum company teams (Q6)
+  L->>L: opted-out members skipped (isOnTheBoards)
+  L-->>W: people, teams, pinned me, four counts per row
+  W-->>M: the boards
+  Note over W,L: the player card's placeOf and the link card's all-time boards move here too (Q7)
+  M->>W: opens the Album
+  W->>A: albumOf(viewer)
+  A-->>W: Book, items, hoggies, no board data

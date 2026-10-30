@@ -1,8 +1,8 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
-import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MemberId } from "../../../convex/workspace/directory";
 import { shellFixtures, type TurnReply } from "../shell";
+import { anAlbumThatAnswers } from "../test/albumThatAnswers";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedPeople } from "./albumFixtures";
@@ -29,26 +29,6 @@ function aStickerTurnOf(person: string, page: { kind: "team"; team: string } | {
   return { kind: "turned", face: { kind: "sticker", person: person as MemberId, isNew: true, thanked: { name: thanked.name, face: thanked.face } }, applied: null, page, unlocked, again: false };
 }
 
-function anAlbumThatAnswers(first: Album) {
-  let answer = first;
-  const listeners = new Set<() => void>();
-  const read: AlbumRead = (asking) => {
-    const shown = useSyncExternalStore(
-      (listener) => {
-        listeners.add(listener);
-        return () => listeners.delete(listener);
-      },
-      () => answer,
-    );
-    return asking ? shown : undefined;
-  };
-  const answerNext = (next: Album) => {
-    answer = next;
-    act(() => listeners.forEach((listener) => listener()));
-  };
-  return { read, answerNext, now: () => answer };
-}
-
 function withTheStickerIn(album: Album, item: string, person: string): Album {
   return { ...album, board: { ...album.board!, items: album.board!.items.filter((waiting) => waiting.item !== item) }, people: album.people.map((someone) => (someone.person === person ? { ...someone, held: true } : someone)) };
 }
@@ -65,7 +45,7 @@ function visit(reply: TurnReply, person: string) {
 
 async function turnTheFirstItem(user: ReturnType<typeof visit>["user"]) {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }));
-  await user.click(board.getAllByRole("button", { name: "A face-down item. Turn it over" })[0]!);
+  await user.click(board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!);
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Your items" })).toBeNull());
 }
 
@@ -92,8 +72,8 @@ describe("LP13 LP19 LP21: a turned sticker lands on its page, plain path under r
     await waitFor(() => expect(scrolled.mock.contexts).toContain(landed));
     expect(scrolled).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
     expect(within(landed).getByRole("img", { name: ":dov-esker-hype: hype emoji unlocked" })).toBeVisible();
-    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("Dov Esker: Sticker · New");
-    expect(screen.getByRole("button", { name: "2 items wait" })).toBeVisible();
+    expect(screen.getByRole("status", { name: "Identified" })).toHaveTextContent("Dov Esker: Sticker · New");
+    expect(screen.getByRole("button", { name: "2 unidentified items wait" })).toBeVisible();
   });
 
   it("shows the team sticker the sticker filled unlocked on that page, with its date, its emoji and New, and says so", async () => {
@@ -109,7 +89,7 @@ describe("LP13 LP19 LP21: a turned sticker lands on its page, plain path under r
     expect(tag).toHaveTextContent(":team-tin-orchard:");
     expect(tag).toHaveTextContent("New");
     expect(screen.queryByRole("button", { name: /Ready to unlock/ })).toBeNull();
-    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("Cass Vey: Sticker · New · Tin Orchard team sticker unlocked");
+    expect(screen.getByRole("status", { name: "Identified" })).toHaveTextContent("Cass Vey: Sticker · New · Tin Orchard team sticker unlocked");
   });
 
   it("LP14: on the person's own page, shows their hype emoji beside the landed sticker", async () => {
@@ -128,6 +108,6 @@ describe("LP13 LP19 LP21: a turned sticker lands on its page, plain path under r
 
     expect(window.location.hash).toBe("#people/dov-esker");
     expect(await landedSticker()).toBeVisible();
-    expect(screen.getByRole("status", { name: "Turned over" })).toHaveTextContent("Dov Esker: Sticker · New");
+    expect(screen.getByRole("status", { name: "Identified" })).toHaveTextContent("Dov Esker: Sticker · New");
   });
 });

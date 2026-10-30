@@ -1,4 +1,4 @@
-import { catalogue as hoggieCatalogue } from "../hoggies/catalogue";
+import { catalogue as hoggieCatalogue } from "./hoggies/catalogue";
 import { milestoneCatalogue, type MilestoneId } from "./milestoneCatalogue";
 import type { MilestoneTier } from "./records";
 
@@ -7,6 +7,10 @@ export const emojiLevels = [5, 10, 15, 20, 25] as const;
 export const levelTwoEmoji = { level: 2, name: "raised_hands" } as const;
 
 export const everyEmojiLevel: readonly number[] = [levelTwoEmoji.level, ...emojiLevels];
+
+export const firstThankYouEmoji = "milestone:thoughtful:bronze";
+
+export const mostKudosEmojiPicks = 5;
 
 export type MilestoneTierEmoji = { milestone: MilestoneId; tier: MilestoneTier; name: string };
 

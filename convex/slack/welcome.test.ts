@@ -15,8 +15,8 @@ const alicesEmail = "alice@example.com";
 const welcomeLine = "Welcome to HedgeHug, where we thank each other for the help that usually goes unnoticed.";
 const earnsXp = "Every kudos you give or receive earns XP.";
 const recipientsStep =
-  "👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in. Say why you're thanking them: it means more.";
-const giversStep = "👉 *Next step:* thank two more teammates this week. Say why you're thanking them: it means more.";
+  "👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in.";
+const giversStep = "👉 *Next step:* thank two more teammates this week.";
 const allowance = "You have 3 kudos a day, and they refill at midnight your time.";
 const websiteLine = "The HedgeHug website shows your kudos and progress in one place.";
 const everyFeature = ["xp-levels", "unlocks", "quests", "skill-tree", "achievements"];
@@ -57,7 +57,7 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
         recipientsStep,
         allowance,
         websiteLine,
-        `<${siteUrl}/|See your progress>`,
+        `<${siteUrl}/?src=welcome|See your progress>`,
         `<${appHome}|Open App Home>`,
       ].join("\n"),
       blocks: [
@@ -70,7 +70,7 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
         {
           type: "actions",
           elements: [
-            { type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${siteUrl}/`, action_id: "welcome-website", style: "primary" },
+            { type: "button", text: { type: "plain_text", text: "See your progress" }, url: `${siteUrl}/?src=welcome`, action_id: "welcome-website", style: "primary" },
             { type: "button", text: { type: "plain_text", text: "Open App Home" }, url: appHome, action_id: "welcome-app-home" },
           ],
         },
@@ -157,7 +157,7 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
     await giveKudos(t, "U_ALICE", ["U_BOB"], ["pizza"]);
 
     expect(readWelcomeTo("U_BOB").slice(2, 4)).toEqual([
-      "section: 👉 *Your first step:* thank someone who helped you lately. Mention them and add :pizza: to your message in any channel I'm in. Say why you're thanking them: it means more.",
+      "section: 👉 *Your first step:* thank someone who helped you lately. Mention them and add :pizza: to your message in any channel I'm in.",
       "section: You have 5 kudos a day, and they refill at midnight your time.",
     ]);
   });
@@ -169,7 +169,7 @@ describe("QM8: the welcome's website line and See your progress follow the membe
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
-    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/`);
+    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/?src=welcome`);
     expect(readWelcomeTo("U_ALICE")).toContain(`section: ${websiteLine}`);
   });
 
@@ -180,7 +180,7 @@ describe("QM8: the welcome's website line and See your progress follow the membe
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
-    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/`);
+    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/?src=welcome`);
     expect(readWelcomeTo("U_ALICE")).toContain(`section: ${websiteLine}`);
     expect(websiteButtonOf("U_BOB")).toBeUndefined();
     expect(readWelcomeTo("U_BOB")).not.toContain(`section: ${websiteLine}`);
@@ -194,7 +194,7 @@ describe("QM8: the welcome's website line and See your progress follow the membe
     await post(t, [section(mention("U_ALICE"), emoji("taco"))], { user: "U_BOB" });
     await settleWithOtherSubscribersBehind(t);
 
-    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/`);
+    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/?src=welcome`);
   });
 
   test.each([

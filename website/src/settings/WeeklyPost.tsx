@@ -12,7 +12,7 @@ type ChannelPick = NonNullable<WeeklyPostSetting["channelPick"]>;
 
 type ChannelCheck = NonNullable<ChannelPick["check"]>;
 
-const postNamed: Record<WeeklyPostSetting["posts"], string> = { groups: "last week's top groups", topKudos: "last week's top thoughtful kudos" };
+const postNamed: Record<WeeklyPostSetting["posts"], string> = { groups: "last week's top groups", topKudos: "last week's top kudos" };
 
 const landedLines = { on: "Switched on. The next one goes out on Monday at 9:00.", off: "Switched off. Nothing goes out until it's switched on again." };
 
@@ -64,6 +64,7 @@ const checkLines: Record<Exclude<ChannelCheck, "picked">, string> = {
   checking: "Checking the channel…",
   private: "That channel is private. I only post in public channels, since the post quotes public kudos.",
   shared: "That channel is shared with another organization. I only post in this workspace's own channels, since the post quotes kudos.",
+  customer: "That's a customer channel. I stay out of customer channels, since the post quotes kudos.",
   "not-found": "I couldn't find that channel in this workspace. Check the link and try again.",
   archived: "That channel is archived. Pick another one.",
   failed: "Slack didn't answer about that channel. Try again.",

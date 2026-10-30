@@ -59,6 +59,8 @@ const momentOfWhatWaited: XpMoment = {
   moments: 1,
   xp: 5,
   climb: { from: { level, xp: xp - 5, startsAt, nextAt }, to: { level, xp, startsAt, nextAt } },
+  quests: [],
+  progressed: [],
   waiting: 0,
   thoughtfulGivers: null,
   timeZone: "UTC",
@@ -210,7 +212,7 @@ describe("LP22: what was put in since the last visit carries New on its page", {
     expect(await screen.findByText(/^Unlocked /, {}, theAlbumLoads)).toBeVisible();
     await act(async () => {});
 
-    expect(actions.endXpMoment).toHaveBeenCalledWith(lastVisit, decidedWhileTheMomentBeforePlayed, false);
+    expect(actions.endXpMoment).toHaveBeenCalledWith(lastVisit, decidedWhileTheMomentBeforePlayed, false, expect.objectContaining({ shown: expect.any(Number), folded: expect.any(Number) }));
     expect(actions.arrive).not.toHaveBeenCalled();
     expect(newLabels()).toEqual([]);
 

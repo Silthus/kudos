@@ -29,7 +29,7 @@ const why = "Thanks for untangling the flaky migration";
 const albumOn = ["website", "album", "collection", "packs", "xp-levels", "message-settings", "hugs", "groups", "monday-post"];
 const albumSlack = "album-slack";
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
-const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
+const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teammate with :taco:, earns much more XP.";
 
 const theGate = vi.hoisted(() => ({ shut: false }));
 
@@ -161,8 +161,8 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
   });
 });
 
-describe("AL61: the Monday post becomes the week's top thoughtful kudos", { timeout: 180_000 }, () => {
-  test("the three most hugged public thoughtful kudos are quoted, then by recipients, then newest, each with giver, recipients, its first 200 characters and a link, and the week's team stickers by count", async () => {
+describe("AL61: the Monday post becomes the week's top kudos", { timeout: 180_000 }, () => {
+  test("the three most hugged public kudos are quoted, then by recipients, then newest, each with giver, recipients, its first 200 characters and a link, and the week's team stickers by count", async () => {
     await fourMembers([onForEveryone(albumSlack)], { startingAt: lastWeeksTuesday });
     await collects(alice, bob, carol);
     await collects(bob, dana);
@@ -176,12 +176,10 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
     const twoRecipients = await thanks(carol, "Thanks for the careful design review today", dana, alice);
     const newest = await thanks(dana, "Thanks for covering the support rotation", carol);
     const unhugged = await thanks(bob, "Thanks for the thorough incident write-up", alice);
-    const short = await thanks(bob, "ty", carol);
     await hugs(carol, mostHugged);
     await hugs(dana, mostHugged);
     await hugs(bob, twoRecipients);
     await hugs(alice, newest);
-    for (const hugger of [alice, dana]) await hugs(hugger, short);
 
     await mondayPostSent();
 
@@ -190,7 +188,7 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
     expect(mondayPost()).toEqual({
       channel: announcementChannel,
       text: [
-        "🏆 Last week's top thoughtful kudos",
+        "🏆 Last week's top kudos",
         `1. Alice Marchetti thanked Bob Okonkwo: ${quote} ${permalinkOf(mostHugged)}`,
         `2. Carol Lindqvist thanked Dana Ferreira and Alice Marchetti: Thanks for the careful design review today @Dana Ferreira @Alice Marchetti :taco: ${permalinkOf(twoRecipients)}`,
         `3. Dana Ferreira thanked Carol Lindqvist: Thanks for covering the support rotation @Carol Lindqvist :taco: ${permalinkOf(newest)}`,
@@ -199,7 +197,7 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
       unfurl_links: false,
       unfurl_media: false,
       blocks: [
-        { type: "section", text: { type: "mrkdwn", text: "*🏆 Last week's top thoughtful kudos*" } },
+        { type: "section", text: { type: "mrkdwn", text: "*🏆 Last week's top kudos*" } },
         { type: "section", text: { type: "mrkdwn", text: `*1. Alice Marchetti* thanked *Bob Okonkwo*\n>${quote}\n<${permalinkOf(mostHugged)}|Open in Slack>` } },
         {
           type: "section",
@@ -214,9 +212,26 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
     expect(quotedMessagesOf(mondayPost()), "the unhugged kudos is fourth").not.toContain(unhugged);
   });
 
-  test("a week with no public thoughtful kudos and no team sticker posts nothing", async () => {
+  test("HH10: a short kudos ranks by its hugs as any kudos does, quoted under the week's top kudos", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
-    await thanks(bob, "ty", carol);
+    const longer = await thanks(alice, "Thanks for the careful design review today", bob);
+    const short = await thanks(bob, "ty", carol);
+    await hugs(dana, short);
+
+    await mondayPostSent();
+
+    expect(mondayPost()?.text).toEqual(
+      [
+        "🏆 Last week's top kudos",
+        `1. Bob Okonkwo thanked Carol Lindqvist: ty @Carol Lindqvist :taco: ${permalinkOf(short)}`,
+        `2. Alice Marchetti thanked Bob Okonkwo: Thanks for the careful design review today @Bob Okonkwo :taco: ${permalinkOf(longer)}`,
+      ].join("\n"),
+    );
+  });
+
+  test("a week with no public kudos and no team sticker posts nothing", async () => {
+    await fourMembers([onForEveryone(albumSlack)]);
+    await thanks(bob, "Thanks for walking me through the billing edge cases", carol, { channel: "G_PRIVATE", channelType: "group" });
 
     await mondayPostSent();
 
@@ -282,12 +297,12 @@ describe("AL61: the Monday post becomes the week's top thoughtful kudos", { time
     expect(mondayPost()?.text).toContain("1. Carol Lindqvist thanked Dana Ferreira: Thanks for the careful design review today @Dana Ferreira :taco:");
   });
 
-  test("an admin's App Home switch says the Monday post is the week's top thoughtful kudos", async () => {
+  test("an admin's App Home switch says the Monday post is the week's top kudos", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
 
     await adminTabOpen(alice);
 
-    expect(publishedHome(slack, alice.user)).toContain(`section: I can post last week's top thoughtful kudos in <#${announcementChannel}> every Monday at 9:00. [button: Switch on]`);
+    expect(publishedHome(slack, alice.user)).toContain(`section: I can post last week's top kudos in <#${announcementChannel}> every Monday at 9:00. [button: Switch on]`);
   });
 });
 
@@ -346,9 +361,9 @@ const itemShare = "item-share";
 const itemsOn = ["hidden-items", "collection"].map(onForEveryone);
 const theDraw = vi.hoisted(() => ({ planned: [] as string[] }));
 
-vi.mock("../hoggies/draw", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../hoggies/draw")>();
-  const { hoggieNamed } = await import("../hoggies/catalogue");
+vi.mock("../album/hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
+  const { hoggieNamed } = await import("../album/hoggies/catalogue");
   return {
     ...actual,
     drawOf: async (input: Parameters<typeof actual.drawOf>[0]) => {
@@ -381,7 +396,7 @@ function leadsOf(posted: Posted | undefined) {
 }
 
 describe("AL61 AL63: a weekly post quotes only public kudos", { timeout: 180_000 }, () => {
-  test("a thoughtful kudos in a private channel, in a group DM or in a DM, or one deleted since, is never quoted however hugged, and a public one is", async () => {
+  test("a kudos in a private channel, in a group DM or in a DM, or one deleted since, is never quoted however hugged, and a public one is", async () => {
     await fourMembers([onForEveryone(albumSlack)]);
     const inPrivate = await thanks(alice, "Thanks for walking me through the billing edge cases", bob, { channel: "G_PRIVATE", channelType: "group" });
     const inAGroupDm = await thanks(carol, "Thanks for the patient onboarding session yesterday", bob, { channel: "G_MPDM", channelType: "mpim" });
@@ -422,7 +437,7 @@ const highlightsOn = [onForEveryone(albumSlack), onForEveryone(weeklyHighlights)
 const nextMondayNine = mondayNine + weekMs;
 
 describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top three new givers", { timeout: 180_000 }, () => {
-  test("only the most hugged kudos is quoted, unranked, its people linked to their pages and its message left for Slack to embed, then last week's top three thoughtful givers with their page and count, ties to whoever gave first, and the first one's card", async () => {
+  test("only the most hugged kudos is quoted, unranked, its people linked to their pages and its message left for Slack to embed, then last week's top three givers with their page and count, ties to whoever gave first, and the first one's card", async () => {
     await fourMembers(highlightsOn);
     const mostHugged = await thanks(alice, "Thanks for staying late on the release checklist", bob);
     await thanks(alice, "Thanks for the second pair of eyes on the rollout", carol);
@@ -436,10 +451,20 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
     const posted = mondayPost();
     expect(posted?.blocks?.[1]?.text?.text, "one top kudos").toEqual(`*<${await pageOf(alice)}|Alice Marchetti>* thanked *<${await pageOf(bob)}|Bob Okonkwo>*\n>Thanks for staying late on the release checklist @Bob Okonkwo :taco:\n<${permalinkOf(mostHugged)}|Open in Slack>`);
     expect(leadsOf(posted)).toHaveLength(1);
-    expect(newGiverLinesOf(posted)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 3 thoughtful kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 2 thoughtful kudos`, `3. *<${await pageOf(dana)}|Dana Ferreira>* · 1 thoughtful kudos`]);
+    expect(newGiverLinesOf(posted)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 3 kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 2 kudos`, `3. *<${await pageOf(dana)}|Dana Ferreira>* · 1 kudos`]);
     expect(cardsIn(posted), "one card, right after the first new giver").toEqual([{ after: newGiverLinesOf(posted)[0], name: `*<${await pageOf(carol)}|Carol Lindqvist>*` }]);
     expect(String(posted?.text).split("\n").slice(-1)).toEqual(["🌱 Top new givers last week: 1. Carol Lindqvist · 3, 2. Alice Marchetti · 2, 3. Dana Ferreira · 1"]);
     expect({ unfurl_links: posted?.unfurl_links, unfurl_media: posted?.unfurl_media }, "Slack embeds the quoted message, and our own links get no card from a bot's post").toEqual({ unfurl_links: true, unfurl_media: false });
+  });
+
+  test("HH10: new givers are ranked by all their kudos awards, a short kudos as much as a longer one", async () => {
+    await fourMembers(highlightsOn);
+    await thanks(alice, "Thanks for staying late on the release checklist", bob);
+    for (const words of ["ty", "thx"]) await thanks(carol, words, dana);
+
+    await mondayPostSent();
+
+    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 2 kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 1 kudos`]);
   });
 
   test("a giver listed in an earlier week's post is never listed again, fewer than three are listed as they are, and with nobody new the section is left out", async () => {
@@ -456,14 +481,14 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
     await settleUpTo(t, nextMondayNine + weekMs + hourMs);
 
     const [first, second, third] = mondayPosts();
-    expect(newGiverLinesOf(first)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 2 thoughtful kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 1 thoughtful kudos`]);
-    expect(newGiverLinesOf(second), "only the giver not listed before").toEqual([`1. *<${await pageOf(bob)}|Bob Okonkwo>* · 1 thoughtful kudos`]);
+    expect(newGiverLinesOf(first)).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 2 kudos`, `2. *<${await pageOf(alice)}|Alice Marchetti>* · 1 kudos`]);
+    expect(newGiverLinesOf(second), "only the giver not listed before").toEqual([`1. *<${await pageOf(bob)}|Bob Okonkwo>* · 1 kudos`]);
     expect(cardsIn(second)).toEqual([{ after: newGiverLinesOf(second)[0], name: `*<${await pageOf(bob)}|Bob Okonkwo>*` }]);
     expect(third?.blocks?.map(({ text }) => text?.text), "no new-givers section").not.toContain("*🌱 Top new givers last week*");
     expect(cardsIn(third)).toEqual([]);
   });
 
-  test("a member off the leaderboards is never listed, however many thoughtful kudos they gave", async () => {
+  test("a member off the leaderboards is never listed, however many kudos they gave", async () => {
     await fourMembers(highlightsOn);
     for (const words of ["Thanks for the careful design review today", "Thanks for the patient pairing session"]) await thanks(dana, words, carol);
     await thanks(alice, "Thanks for staying late on the release checklist", bob);
@@ -474,7 +499,7 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
 
     await mondayPostSent();
 
-    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(alice)}|Alice Marchetti>* · 1 thoughtful kudos`]);
+    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(alice)}|Alice Marchetti>* · 1 kudos`]);
   });
 
   test("givers listed before never crowd out a new one, however many of them gave more", async () => {
@@ -492,7 +517,7 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
 
     await mondayPostSent();
 
-    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`]);
+    expect(newGiverLinesOf(mondayPost())).toEqual([`1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 kudos`]);
   });
 
   test("a post Slack rate-limited lists the same new givers when it goes out, even when last week's counts changed meanwhile", async () => {
@@ -509,7 +534,7 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
 
     await mondayPostSent();
 
-    const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`;
+    const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 kudos`;
     expect(mondayPosts().map(newGiverLinesOf), "the refused post and the one Slack took").toEqual([[carolsLine], [carolsLine]]);
   });
 
@@ -523,7 +548,7 @@ describe("LP89 LP90 LP91: the weekly post highlights one top kudos and the top t
     await thanks(carol, "Thanks for the patient pairing session", dana);
     await settleUpTo(t, nextMondayNine + hourMs);
 
-    const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 thoughtful kudos`;
+    const carolsLine = `1. *<${await pageOf(carol)}|Carol Lindqvist>* · 1 kudos`;
     expect(mondayPosts().map(newGiverLinesOf), "the refused post and the next week's").toEqual([[carolsLine], [carolsLine]]);
   });
 
@@ -566,7 +591,7 @@ async function memberIdOf(someone: Person) {
 }
 
 async function pageOf(someone: Person) {
-  return `${site}/book#people/${encodeURIComponent(await memberIdOf(someone))}`;
+  return `${site}/book?src=monday-post#people/${encodeURIComponent(await memberIdOf(someone))}`;
 }
 
 const albumSlackOff: Array<{ condition: string; flags: FlagDefinition[]; turnOff?: () => void; momentsSent?: { recaps: number; mondayPosts: number } }> = [

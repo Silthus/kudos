@@ -8,9 +8,11 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import { catalogue } from "../hoggies/catalogue";
+import { catalogue } from "./hoggies/catalogue";
 import { recordReward } from "../progression/progression";
 import { membersPerMilestonePage } from "./milestones";
+import { milestoneCatalogue } from "./milestoneCatalogue";
+import { anEmptyWeek } from "./tallies";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -68,7 +70,7 @@ describe("AL21: five milestones count album facts and record each tier once with
     ]);
   });
 
-  test("a first thoughtful kudos records Kind words at bronze, and the first put-in Faces in the album, each dated when its count got there", async () => {
+  test("a first kudos records the kudos milestone at bronze, and the first put-in Faces in the album, each dated when its count got there", async () => {
     await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(...otters) });
     const thankedAt = await thanks(alice, why, otters[0]!);
     const asAlice = await signedIn(alice);
@@ -135,10 +137,16 @@ describe("AL21: five milestones count album facts and record each tier once with
     expect(await earnedOf(await signedIn(alice))).toMatchObject({ reach: { bronze: syncedAt } });
   });
 
-  test("a short kudos counts no kind words", async () => {
-    await thanks(alice, "ty", otters[0]!);
+  test("HH9: a short kudos moves the kudos milestone on from the thoughtful kudos counted before, and the tier those reached keeps its date", async () => {
+    const reachedAt = Date.now() - 7 * dayMs;
+    await countedBeforeTheChange(alice, { kudosGiven: 3, thoughtfulGiven: 1, bronzeAt: reachedAt });
 
-    expect(await countsOf(await signedIn(alice))).toMatchObject({ thoughtful: 0 });
+    await thanks(alice, "ty", otters[0]!);
+    await thanks(alice, "ty", otters[1]!);
+
+    const asAlice = await signedIn(alice);
+    expect(await countsOf(asAlice), "the earlier short kudos stay uncounted").toMatchObject({ thoughtful: 3 });
+    expect(await earnedOf(asAlice)).toMatchObject({ thoughtful: { bronze: reachedAt } });
   });
 
   test("Across the company counts the company teams holding an album sticker, and Full pages the team stickers unlocked", async () => {
@@ -309,6 +317,14 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
   await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts: `${at / 1000}.${String(messages).padStart(6, "0")}` });
   await settle(t);
   return at;
+}
+
+async function countedBeforeTheChange(giver: Person, { kudosGiven, thoughtfulGiven, bronzeAt }: { kudosGiven: number; thoughtfulGiven: number; bronzeAt: number }) {
+  await t.run(async (ctx) => {
+    const member = (await ctx.db.query("members").withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", giver.user)).unique())!._id;
+    await ctx.db.insert("weekTallies", { member, week: "2026-10-05", ...anEmptyWeek(), kudosGiven, thoughtfulGiven });
+    await ctx.db.insert("milestoneTiers", { member, milestone: "thoughtful", tier: "bronze", at: bronzeAt, catalogue: milestoneCatalogue.version });
+  });
 }
 
 async function signedIn(someone: Person) {

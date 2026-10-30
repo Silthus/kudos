@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { catalogue } from "../../../convex/hoggies/catalogue";
+import { catalogue, type Rarity } from "../../../convex/album/hoggies/catalogue";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "../test/systemTheme";
@@ -26,7 +26,7 @@ const asleepForged: BoardItem = { item: forgedItem as BoardItem["item"], earnedA
 
 const withAsleepForged: Album = { ...withNoItems, board: { items: [asleepForged], more: false } };
 
-const asleepCard = "A face-down item forged from Asleep. Turn it over";
+const asleepCard = "An unidentified item forged from Asleep. Identify it";
 
 const everyUncommonHeld = Object.fromEntries(catalogue.hoggies.filter(({ rarity }) => rarity === "uncommon").map(({ hoggie }) => [hoggie, 1]));
 
@@ -46,7 +46,7 @@ function withCopies(answer: AlbumHoggies, copies: Record<string, number>): Album
   return { ...answer, hoggies };
 }
 
-function visit(path: string, answer: AlbumHoggies & { forge?: true }, forgeHoggie: Forge = async () => forgedCake, { turnItem = async () => cakeTurned, album = withNoItems }: { turnItem?: Turn; album?: Album } = {}) {
+function visit(path: string, answer: AlbumHoggies, forgeHoggie: Forge = async () => forgedCake, { turnItem = async () => cakeTurned, album = withNoItems }: { turnItem?: Turn; album?: Album } = {}) {
   window.history.replaceState(null, "", path);
   let shownAlbum = album;
   const view = renderAlbum(memberWithTheAlbum, (asking) => (asking ? shownAlbum : undefined), { hoggies: fixedHoggies(answer), commands: { forgeHoggie, turnItem } });
@@ -61,8 +61,8 @@ async function theFaceDownItem(name = asleepCard) {
   return within(await screen.findByRole("group", { name: "Forged" }, { timeout: arrival })).findByRole("button", { name }, { timeout: arrival });
 }
 
-function forgeOn(copies: Record<string, number>) {
-  return { ...withCopies(hoggiesFixtures.midway, copies), forge: true as const };
+function forgeOn(copies: Record<string, number>, upTo: Rarity = "legendary"): AlbumHoggies {
+  return { ...withCopies(hoggiesFixtures.midway, copies), forge: { upTo } };
 }
 
 function goTo(path: string) {
@@ -126,6 +126,66 @@ describe("HF8: a found hoggie's entry says what its spares forge into", { timeou
   });
 });
 
+describe("HH43: while rarity-caps is on, the forge stops at rare", { timeout: 60_000 }, () => {
+  it("an uncommon's four copies still offer Forge 3 into a Rare", async () => {
+    visit("/book#hoggies/cake", forgeOn({ cake: 4 }, "rare"));
+
+    const shown = await entry();
+    expect(shown.getByRole("button", { name: "Forge 3 into a Rare" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["a rare", "ape"],
+    ["an epic", "angel"],
+  ])("%s says nothing about forging, however many copies the member holds", async (_, hoggie) => {
+    visit(`/book#hoggies/${hoggie}`, forgeOn({ [hoggie]: 5 }, "rare"));
+
+    const shown = await entry();
+    expect(shown.getByText("Copies").nextSibling).toHaveTextContent("5 copies");
+    expect(shown.queryByText(/forge/i)).not.toBeInTheDocument();
+  });
+
+  it("a rare's forge that landed while its answer was lost keeps Forge to fetch that answer after rarity-caps turns on", async () => {
+    let shown = forgeOn({ ape: 4 });
+    let calls = 0;
+    const lostAfterLanding = async () => {
+      if ((calls += 1) > 1) return forgedCake;
+      shown = forgeOn({ ape: 1, angel: 1 }, "rare");
+      throw new Error("offline");
+    };
+    window.history.replaceState(null, "", "/book#hoggies/ape");
+    const { user, actions, showVisitor } = renderAlbum(memberWithTheAlbum, (asking) => (asking ? withNoItems : undefined), { hoggies: (asking) => (asking ? shown : undefined), commands: { forgeHoggie: lostAfterLanding } });
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Epic" }));
+    await (await entry()).findByText("Couldn't reach HedgeHug. Try again.");
+    act(() => showVisitor({ ...memberWithTheAlbum }));
+    const shownAfter = await entry();
+    expect(shownAfter.getByText("Copies").nextSibling).toHaveTextContent("one copy");
+    await user.click(shownAfter.getByRole("button", { name: "Forge 3 into an Epic" }));
+
+    expect(await theFaceDownItem("An unidentified item forged from Ape. Identify it")).toBeInTheDocument();
+    const [first, again] = actions.forgeHoggie.mock.calls;
+    expect(again).toEqual(first);
+  });
+
+  it("a rare's forge refused as rarity-caps turns on offers no forge after the refusal", async () => {
+    let shown = forgeOn({ ape: 4 });
+    const refusedUnderTheCap = async () => {
+      shown = forgeOn({ ape: 4 }, "rare");
+      return { kind: "refused" } as const;
+    };
+    window.history.replaceState(null, "", "/book#hoggies/ape");
+    const { user, showVisitor } = renderAlbum(memberWithTheAlbum, (asking) => (asking ? withNoItems : undefined), { hoggies: (asking) => (asking ? shown : undefined), commands: { forgeHoggie: refusedUnderTheCap } });
+
+    await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Epic" }));
+    act(() => showVisitor({ ...memberWithTheAlbum }));
+
+    const shownAfter = await entry();
+    await waitFor(() => expect(shownAfter.getByText("Copies").nextSibling).toHaveTextContent("4 copies"));
+    expect(shownAfter.queryByRole("button", { name: /forge/i })).not.toBeInTheDocument();
+  });
+});
+
 describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a face-down item the member turns over", { timeout: 60_000 }, () => {
   it("a click sends forgeHoggie once, the copies fuse into a face-down item, and a click on it turns that item over", async () => {
     const { user, actions } = visit("/book#hoggies/asleep", forgeOn({ asleep: 4 }));
@@ -134,12 +194,12 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     const card = await theFaceDownItem();
 
     expect(actions.forgeHoggie).toHaveBeenCalledExactlyOnceWith("asleep", expect.any(String));
-    expect(screen.getByRole("group", { name: "Forged" })).toHaveTextContent("Forged into an Uncommon. Turn it over.");
+    expect(screen.getByRole("group", { name: "Forged" })).toHaveTextContent("Forged into an Uncommon. Identify it.");
     expect(actions.turnItem).not.toHaveBeenCalled();
     await user.click(card);
 
     expect(actions.turnItem).toHaveBeenCalledExactlyOnceWith(forgedItem);
-    expect(await screen.findByRole("status", { name: "Turning over" })).toBeInTheDocument();
+    expect(await screen.findByRole("status", { name: "Identifying" })).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument();
   });
 
@@ -154,7 +214,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
 
     expect(actions.turnItem).toHaveBeenCalledExactlyOnceWith(forgedItem);
     await waitFor(() => expect(window.location.hash).toBe("#hoggies"));
-    expect(await screen.findByRole("status", { name: "Turned over" })).toHaveTextContent("Cake: Uncommon hoggie · New");
+    expect(await screen.findByRole("status", { name: "Identified" })).toHaveTextContent("Cake: Uncommon hoggie · New");
   });
 
   it("Escape sets the forged item aside, keeps the entry open to use, and the item board opens with it once the entry closes", async () => {
@@ -213,7 +273,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
     await user.click(screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!);
 
-    expect(await screen.findByRole("button", { name: /4 items wait/ }, { timeout: arrival })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /4 unidentified items wait/ }, { timeout: arrival })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
   });
 
@@ -226,7 +286,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
 
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await user.click(await theFaceDownItem());
-    await screen.findByRole("status", { name: "Turned over" });
+    await screen.findByRole("status", { name: "Identified" });
     goTo("/book#hoggies/asleep");
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await theFaceDownItem();
@@ -235,7 +295,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
     await user.click(screen.getByRole("dialog", { name: "Asleep" }).querySelector<HTMLElement>(".al-entry-close")!);
 
-    expect(await screen.findByRole("button", { name: /4 items wait/ }, { timeout: arrival })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /4 unidentified items wait/ }, { timeout: arrival })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Your items" })).not.toBeInTheDocument();
   });
 
@@ -460,7 +520,7 @@ describe("HF9, HF10: Forge sends forgeHoggie once and fuses the copies into a fa
     goTo("/book#hoggies/ball");
     await user.click((await entry()).getByRole("button", { name: "Forge 3 into an Uncommon" }));
     await act(async () => answers[1]!(forgedBall));
-    expect(await theFaceDownItem("A face-down item forged from Ball. Turn it over"), "Ball's own face-down item").toBeInTheDocument();
+    expect(await theFaceDownItem("An unidentified item forged from Ball. Identify it"), "Ball's own face-down item").toBeInTheDocument();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("group", { name: "Forged" })).not.toBeInTheDocument());
 

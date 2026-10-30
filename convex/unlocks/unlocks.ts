@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { featureOpeningRarities } from "../album/hoggies/rarityCaps";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
@@ -6,8 +7,7 @@ import { publish } from "../bus/publish";
 import type { Surface } from "../commands/surface";
 import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { republish } from "../feedback/homes";
-import { dropFor } from "../hoggies/drops";
-import { dropLevelUpHoggies } from "./levelUpHoggies";
+import { dropFor } from "../album/hoggies/drops";
 import { notifyLevelReached } from "../feedback/notify";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -31,7 +31,6 @@ export const makeReady = internalMutation({
     await unlocksLiveFor(ctx, member);
     const madeReady = await storeReadiness(ctx, { workspace, member, at }, reachedAt(await shippedTo(ctx, member), level));
     await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
-    await dropLevelUpHoggies(ctx, { workspace, member, level, at });
     await notifyLevelReached(ctx, event, madeReady);
     if (madeReady.length > 0 && (await xpLevelsOnFor(ctx, member))) await republish(ctx, member);
   },
@@ -43,7 +42,7 @@ export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Fe
   if ((await stateOf(ctx, member, feature)) !== "ready") return "refused";
   const opening = { workspace, member, at: Date.now() };
   if (!(await storeOpening(ctx, opening, feature))) return "done";
-  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at, { surface });
+  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at, { surface, rarities: featureOpeningRarities });
   await publishOpened(ctx, opening, feature);
   return "done";
 }

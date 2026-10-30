@@ -43,7 +43,7 @@ function HoggiesPage({ answer: answered, place, address, makePet, forging: forgi
   const chosen = answer.hoggies.find(({ hoggie }) => hoggie === place.hoggie) ?? null;
   const open: Open = (hoggie) => address.open(hoggie.hoggie);
   const picking = usePetPick(answer.pet, makePet);
-  const forging = answer.forge === true ? forgingAnywhere : null;
+  const forging = answer.forge !== undefined ? forgingAnywhere : null;
   return (
     <article className="al-page-body al-hoggies">
       <Header answer={answer} />
@@ -73,7 +73,7 @@ function Header({ answer }: { answer: AlbumHoggies }) {
       <PageTitle tab="Hoggies" size="hero">
         Hoggies
       </PageTitle>
-      <p className="al-lede">{`Every pack rolls one hoggie. You've found ${answer.found} of ${answer.total}, from the everyday commons to the ${legendaries} legendaries.`}</p>
+      <p className="al-lede">{`Every kudos you give earns a hoggie, one per person you thank each week. You've found ${answer.found} of ${answer.total}, from the everyday commons to the ${legendaries} legendaries.`}</p>
     </header>
   );
 }
@@ -88,7 +88,7 @@ function RarestFinds({ answer, onOpen }: { answer: AlbumHoggies; onOpen: Open })
           <span>The top shelf fills itself</span>
         </p>
         {answer.rarest.length === 0 ? (
-          <p className="al-hoggies-glass-empty">Every thoughtful kudos you give can earn a pack, and every pack rolls one hoggie. Your rarest finds stand here.</p>
+          <p className="al-hoggies-glass-empty">Every kudos you give earns a hoggie, one per person you thank each week. Your rarest finds stand here.</p>
         ) : (
           <ul className="al-hoggies-plinths">
             {answer.rarest.map((hoggie) => (

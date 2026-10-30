@@ -14,11 +14,12 @@ import { answerCommand, onceKnown, replyPrivately, type Viewer } from "./command
 import { attemptArgs } from "./delivery";
 import { cardRequestOf, cardViewedValidator, recordProfileCardViewedWithoutBlocking } from "./profileCardCommand";
 import { readSignedBody } from "./signature";
-import { callSlack, type SlackAnswer } from "./webApi";
+import { isOffLimits, joinUnlessOffLimits, type OffLimits } from "./offLimitsChannels";
+import type { SlackAnswer } from "./webApi";
 
 const commandArgs = { workspace: v.string(), user: v.string(), alias: v.boolean(), arrivedAt: v.number() };
 
-const kudosCommandResultValidator = v.union(v.literal("joined"), v.literal("already-in"), v.literal("private-channel"), v.literal("direct-message"));
+const kudosCommandResultValidator = v.union(v.literal("joined"), v.literal("already-in"), v.literal("off-limits"), v.literal("private-channel"), v.literal("direct-message"));
 
 const commandUsedArgs = { ...commandArgs, result: kudosCommandResultValidator };
 
@@ -62,7 +63,7 @@ export const slackCommands = observedHttpAction(async (ctx, request) => {
 export const addToChannel = observedAction({
   args: { ...commandArgs, channel: v.string(), inDirectMessage: v.boolean(), responseUrl: v.string() },
   handler: async (ctx, { channel, inDirectMessage, responseUrl, ...used }) => {
-    const result = resultOfJoining(await callSlack("conversations.join", { channel }), inDirectMessage);
+    const result = resultOfJoining(await joinUnlessOffLimits(channel), inDirectMessage);
     await ctx.scheduler.runAfter(0, internal.slack.commands.reportCommandUsed, { ...used, result });
     await answerCommand(responseUrl, renderKudosCommandReply(result));
   },
@@ -158,7 +159,7 @@ async function leaderboardReply(ctx: ActionCtx, viewer: Viewer, rest: string[]):
   const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, asked);
   const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, asked);
   const everyone = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, asked);
-  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period } });
+  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period }, source: "reply" });
   const boards = renderBoards(groups, myGroup, everyone, period);
   const shown = { groups: boards.some(({ board }) => board === "groups"), myGroup: boards.some(({ board }) => board === "my-group") };
   return { lines: [...boards.flatMap(({ lines }, index) => (index === 0 ? lines : [[], ...lines])), ...renderFullBoardLink(website)], period, shown };
@@ -176,14 +177,15 @@ function argumentsOf(command: URLSearchParams) {
   return (command.get("text") ?? "").trim().split(/\s+/).filter((word) => word !== "");
 }
 
-const unjoinableChannelErrors = new Set(["channel_not_found", "method_not_supported_for_channel_type"]);
+const unjoinableChannelErrors = new Set(["channel_not_found", "method_not_supported_for_channel_type", "missing_scope"]);
 
 function isDirectMessage(command: URLSearchParams) {
   const name = field(command, "channel_name");
   return name === "directmessage" || name.startsWith("mpdm-");
 }
 
-function resultOfJoining(answer: SlackAnswer, inDirectMessage: boolean): KudosCommandResult {
+function resultOfJoining(answer: SlackAnswer | OffLimits, inDirectMessage: boolean): KudosCommandResult {
+  if (isOffLimits(answer)) return "off-limits";
   if (answer.ok) return answer.warning === "already_in_channel" ? "already-in" : "joined";
   if (inDirectMessage) return "direct-message";
   if (unjoinableChannelErrors.has(answer.error)) return "private-channel";

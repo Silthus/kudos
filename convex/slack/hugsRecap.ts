@@ -29,7 +29,7 @@ export const sendHugsRecap = observedAction({
 
 const mostPicturesInALine = 9;
 
-async function postRecap(ctx: ActionCtx, recap: Recap) {
+export async function postRecap(ctx: ActionCtx, recap: Recap) {
   const words = { channel: recap.user, text: textOf(recap) };
   if (recap.emojiLine === null) return attemptCall(ctx, recap.workspace, "chat.postMessage", words);
   const sent = await attemptCall(ctx, recap.workspace, "chat.postMessage", { ...words, blocks: blocksOf(recap, recap.emojiLine) });
@@ -40,15 +40,18 @@ function textOf({ lines, emojiLine, ...recap }: Recap) {
   return [...lines.map(lineTextOf), ...(emojiLine === null ? [] : [emojiLine.text]), ...footerOf(recap)].join("\n");
 }
 
-function blocksOf({ lines, ...recap }: Recap, { text, pictures }: RecapEmojiLine) {
-  const emojiLine = { type: "context", elements: [...pictures.slice(0, mostPicturesInALine).map(({ url, name }) => ({ type: "image", image_url: url, alt_text: name })), mrkdwn(text)] };
-  return [{ type: "section", text: mrkdwn(lines.map(lineTextOf).join("\n")) }, emojiLine, ...footerOf(recap).map((footer) => ({ type: "context", elements: [mrkdwn(footer)] }))];
+function blocksOf({ lines, ...recap }: Recap, emojiLine: RecapEmojiLine) {
+  return [{ type: "section", text: mrkdwn(lines.map(lineTextOf).join("\n")) }, emojiLineBlockOf(emojiLine), ...footerOf(recap).map((footer) => ({ type: "context", elements: [mrkdwn(footer)] }))];
 }
 
-function footerOf({ workspace, footer }: Pick<Recap, "workspace" | "footer">) {
+export function emojiLineBlockOf({ text, pictures }: RecapEmojiLine) {
+  return { type: "context", elements: [...pictures.slice(0, mostPicturesInALine).map(({ url, name }) => ({ type: "image", image_url: url, alt_text: name })), mrkdwn(text)] };
+}
+
+export function footerOf({ workspace, footer }: Pick<Recap, "workspace" | "footer">) {
   return footer === null ? [] : [settingsFooterText(workspace, footer)];
 }
 
-function lineTextOf(line: RecapLine) {
+export function lineTextOf(line: RecapLine) {
   return typeof line === "string" ? line : `${line.text}${slackLink(line.link)}`;
 }

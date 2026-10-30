@@ -1,9 +1,19 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { exposed, memberDecision, workspaceDecision, type Flag } from "../analytics/flags";
+import { exposed, memberDecision, memberDecisionWithoutWriting, workspaceDecision, type Flag } from "../analytics/flags";
 import { lookup, type MemberId } from "../workspace/directory";
 
 export const everyoneBoardFlag = { key: "everyone-board", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export const leaderboardHugsFlag = { key: "leaderboard-hugs", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function leaderboardHugsShownTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, leaderboardHugsFlag, member);
+}
+
+export async function exposeLeaderboardHugs(ctx: MutationCtx, member: MemberId) {
+  await exposed(ctx, leaderboardHugsFlag, member, await memberDecision(ctx, leaderboardHugsFlag, member));
+}
 
 export function everyoneBoardShownIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
   return workspaceDecision(ctx, everyoneBoardFlag, workspace);

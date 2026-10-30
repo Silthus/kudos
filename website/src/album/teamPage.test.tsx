@@ -38,7 +38,7 @@ function visit(path: string, { album = midway, unlockTeamSticker = async (team) 
 const arrival = { timeout: 10_000 };
 
 async function photo() {
-  return within(await screen.findByRole("figure", { name: /^Left to right/ }, arrival));
+  return within(await screen.findByRole("figure", { name: / team photo$/ }, arrival));
 }
 
 async function unlockOnThePhoto(name = "Ready to unlock the Kettle Works sticker") {
@@ -70,7 +70,7 @@ function pictureShownOf(person: HTMLElement) {
 }
 
 describe("AL45: the team page is the team's class photo", () => {
-  it("the member's own team page is one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
+  it("the member's own team page is one mounted photo: collected people by face, the rest as silhouettes, and the unmatched shown and never counted, with no caption repeating their names", async () => {
     visit("/book#teams/lanterns");
 
     expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" }, arrival)).toBeInTheDocument();
@@ -85,7 +85,17 @@ describe("AL45: the team page is the team's class photo", () => {
     ]);
     expect(shown.getByRole("link", { name: "Juno Park Not in your album yet" })).toHaveAttribute("href", "/book#people/juno-park");
     expect(shown.queryByRole("link", { name: /Hal Corwin/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("figure", { name: "Left to right Ines Okafor, Bram Teller, Oona Vasquez, Tomas Reyne, Juno Park, Hal Corwin" })).toBeInTheDocument();
+    expect(screen.getByRole("figure", { name: "Lanterns team photo" })).toBeInTheDocument();
+    expect(screen.queryByText(/Left to right/)).not.toBeInTheDocument();
+  });
+
+  it("leaves whether someone is in your album to their picture, and says it in words only to a screen reader", async () => {
+    visit("/book#teams/lanterns");
+
+    const shown = await photo();
+    expect(shown.getByText("Not in your album yet")).toHaveClass("sr-only");
+    expect(shown.getAllByText("In your album").every((words) => words.classList.contains("sr-only"))).toBe(true);
+    expect(shown.getByText("Not in Slack yet")).not.toHaveClass("sr-only");
   });
 
   it("someone not in your album yet shows their own picture greyed out, as a locked sticker is, while the collected show theirs in colour and someone not in Slack yet stays a named silhouette", async () => {
@@ -456,7 +466,7 @@ describe("AL46: the person page", () => {
       ["Lanterns4 of 5", "/book#teams/lanterns"],
     ]);
     expect(screen.getByText(":ines-okafor-hype:")).toBeInTheDocument();
-    expect(screen.getByText("Unlocked by your first thoughtful kudos to Ines")).toBeInTheDocument();
+    expect(screen.getByText("Unlocked by your first kudos to Ines")).toBeInTheDocument();
   });
 
   it("opens them in Slack in a new tab, from the link getAlbumPerson gives", async () => {
@@ -482,7 +492,7 @@ describe("AL46: the person page", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Juno Park" })).toBeInTheDocument();
     expect(screen.getByRole("figure", { name: "Not in your album yet" })).toBeInTheDocument();
     expect(screen.getByText("Juno's pack is waiting. Open it from your packs to add Juno to your album.")).toBeInTheDocument();
-    expect(screen.getByText("Give Juno a thoughtful kudos to unlock their hype emoji")).toBeInTheDocument();
+    expect(screen.getByText("Give Juno a kudos to unlock their hype emoji")).toBeInTheDocument();
     expect(within(screen.getByRole("list", { name: "Your history together" })).getByText("Not yet")).toBeInTheDocument();
   });
 

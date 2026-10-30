@@ -23,27 +23,21 @@ function visit(album: Album = midway) {
   return renderAlbum(memberWithTheAlbum, fixedAlbum(album));
 }
 
-async function rowOf(name: string) {
-  return within(await screen.findByRole("listitem", { name }, { timeout: arrival }));
+async function sectionOf(name: string) {
+  return within(await screen.findByRole("region", { name }, { timeout: arrival }));
 }
 
-function medalsIn(row: ReturnType<typeof within>): HTMLElement[] {
-  return row.getAllByRole("listitem");
+async function medalsListedUnder(name: string) {
+  return within((await sectionOf(name)).getByRole("list")).getAllByRole("listitem", { name: /./ });
 }
 
-function medalWordsIn(row: ReturnType<typeof within>): [string | null, string | null][] {
-  return medalsIn(row).map((medal) => [medal.getAttribute("data-step"), textOutsideTheEmoji(medal)]);
+async function medalNamed(section: string, name: string) {
+  return within((await sectionOf(section)).getByRole("listitem", { name }));
 }
 
-function textOutsideTheEmoji(medal: HTMLElement) {
-  return [...medal.children].filter((part) => part.tagName !== "FIGURE").map((part) => part.textContent).join("");
-}
-
-function emojisUnder(row: ReturnType<typeof within>) {
-  return medalsIn(row).map((medal) => {
-    const emoji = within(medal).getByRole("figure");
-    return { picture: emoji.querySelector("img")?.getAttribute("src"), name: within(emoji).getByText(/^:.+:$/).textContent, earned: emoji.hasAttribute("data-earned"), says: emoji.querySelector(".al-ms-emoji-says")?.textContent };
-  });
+function emojiIn(medal: ReturnType<typeof within>) {
+  const emoji = medal.getByRole("figure");
+  return { picture: emoji.querySelector("img")?.getAttribute("src"), name: within(emoji).getByText(/^:.+:$/).textContent, earned: emoji.hasAttribute("data-earned"), says: emoji.querySelector(".al-ms-emoji-says")?.textContent };
 }
 
 function withEmoji(album: Album, emoji: AlbumEmoji): Album {
@@ -75,64 +69,90 @@ const day = 86_400_000;
 
 const now = Date.parse("2026-10-18T10:00:00Z");
 
-describe("AL51: Milestones shows one row per milestone with its four medals and the emoji each one unlocks", { timeout: 60_000 }, () => {
-  it("lists the five milestones in the catalogue's order, each saying what it counts in plain words and the next goal", async () => {
+
+const lede = "Earn medals as your album grows: the people and teams you collect, the hoggies you find and the kudos you give. Every medal unlocks its own emoji for Slack.";
+
+function nameOf(medal: HTMLElement) {
+  return within(medal).getByRole("heading", { level: 3 }).textContent;
+}
+
+function withEveryMedal(album: Album, id: AlbumMilestone["id"]): Album {
+  const listed = album.milestones.find((milestone) => milestone.id === id)!;
+  return withMilestone(album, { ...listed, count: listed.tiers.at(-1)!.at, tiers: listed.tiers.map((tier) => ({ ...tier, earnedAt: tier.earnedAt ?? now - day })) });
+}
+
+describe("AL51: Milestones puts the next steps first: the closest medal of every milestone with how to earn it, then the medals earned", { timeout: 60_000 }, () => {
+  it("says what the page collects and what every medal unlocks, then counts the medals earned of all twenty and per metal", async () => {
     visit();
 
     expect(await screen.findByRole("heading", { level: 1, name: "Milestones" }, { timeout: arrival })).toBeInTheDocument();
-    const rows = within(screen.getByRole("list", { name: "Your milestones" })).getAllByRole("listitem", { name: /./ });
-    expect(rows.map((row) => row.querySelector("h3")?.textContent)).toEqual(["Faces in the album", "Full pages", "Across the company", "Hoggie hunter", "Kind words"]);
-
-    const faces = await rowOf("Faces in the album");
-    expect(faces.getByText("people in your album").parentElement).toHaveTextContent("12 people in your album");
-    expect(faces.getByText("13 to go for Full of friends")).toBeInTheDocument();
-    expect((await rowOf("Full pages")).getByText("team sticker unlocked").parentElement).toHaveTextContent("1 team sticker unlocked");
-    expect((await rowOf("Across the company")).getByText("teams with someone in your album").parentElement).toHaveTextContent("6 teams with someone in your album");
-    expect((await rowOf("Hoggie hunter")).getByText("hoggies found").parentElement).toHaveTextContent("18 hoggies found");
-    expect((await rowOf("Kind words")).getByText("thoughtful kudos given").parentElement).toHaveTextContent("9 thoughtful kudos given");
-  });
-
-  it("reads its four medals bronze to diamond: earned ones in metal with their dates, the next lit with its progress, later ones faint at their step", async () => {
-    visit();
-
-    const faces = await rowOf("Faces in the album");
-    expect(faces.getByRole("list", { name: "Faces in the album medals, bronze to diamond" })).toBeInTheDocument();
-    expect(medalWordsIn(faces)).toEqual([
-      ["earned", "BronzeFirst face28 Sept 2026"],
-      ["earned", "SilverFamiliar faces16 Oct 2026"],
-      ["next", "NextGoldFull of friends12 of 25"],
-      ["later", "DiamondEveryone's album"],
-    ]);
-    expect(faces.getByRole("progressbar", { name: "Full of friends" })).toHaveAttribute("aria-valuenow", "12");
-    expect(faces.getByRole("progressbar", { name: "Full of friends" })).toHaveAttribute("aria-valuemax", "25");
-  });
-
-  it("a milestone with every medal says so with nothing lit", async () => {
-    const tiersAllEarned = midway.milestones.find(({ id }) => id === "thoughtful")!.tiers.map((tier) => ({ ...tier, earnedAt: now - day }));
-    visit(withMilestone(midway, { id: "thoughtful", count: 512, tiers: tiersAllEarned }));
-
-    const kind = await rowOf("Kind words");
-    expect(kind.getByText("Every medal earned")).toBeInTheDocument();
-    expect(medalsIn(kind).map((medal) => medal.getAttribute("data-step"))).toEqual(["earned", "earned", "earned", "earned"]);
-    expect(kind.queryByRole("progressbar")).not.toBeInTheDocument();
-  });
-  it("heads the page with the medals earned of all twenty and the closest next medal, with no Collected strip and no just-earned band", async () => {
-    visit();
-
-    expect(await screen.findByText("of 20 medals", undefined, { timeout: arrival })).toBeInTheDocument();
+    expect(screen.getByText(lede)).toBeInTheDocument();
     expect(screen.getByText("of 20 medals").parentElement).toHaveTextContent("6 of 20 medals");
-    expect(screen.getByText(/^Closest:/)).toHaveTextContent("Closest: Bridge builder, 4 to go · Silver · Across the company");
-    expect(screen.queryByText(/Collected/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/just earned/i)).not.toBeInTheDocument();
+    const metals = within(screen.getByRole("list", { name: "Medals by metal" })).getAllByRole("listitem");
+    expect(metals.map((metal) => metal.textContent)).toEqual(["Bronze 5 of 5", "Silver 1 of 5", "Gold 0 of 5", "Diamond 0 of 5"]);
   });
 
-  it("a newcomer sees every bronze lit as the next goal", async () => {
+  it("lists the next medal of every milestone, the closest first, each with its progress, what is still to go, how to get there and the emoji it unlocks", async () => {
+    visit();
+
+    expect((await medalsListedUnder("Closest medals")).map(nameOf)).toEqual(["Bridge builder", "Full of friends", "Collector", "Generous soul", "Five teams strong"]);
+    const bridge = await medalNamed("Closest medals", "Bridge builder");
+    expect(bridge.getByText("Silver · Across the company")).toBeInTheDocument();
+    expect(bridge.getByRole("progressbar", { name: "Bridge builder" })).toHaveAttribute("aria-valuenow", "6");
+    expect(bridge.getByRole("progressbar", { name: "Bridge builder" })).toHaveAttribute("aria-valuemax", "10");
+    expect(bridge.getByText("4 to go")).toBeInTheDocument();
+    expect(bridge.getByText("6 of 10 teams in your album")).toBeInTheDocument();
+    expect(emojiIn(bridge)).toEqual({ picture: "/emoji/milestone-reach-silver.png", name: ":bridge-builder:", earned: false, says: "Unlocks at 10" });
+  });
+
+  it("says how to earn every milestone's next medal and what counts toward it", async () => {
+    visit();
+
+    const guidance = await Promise.all(
+      ["Full of friends", "Generous soul", "Bridge builder", "Collector", "Five teams strong"].map(async (name) => {
+        const medal = await medalNamed("Closest medals", name);
+        return [medal.getByText(/./, { selector: ".al-ms-hint" }).textContent, medal.getByText(/./, { selector: ".al-ms-count" }).textContent];
+      }),
+    );
+    expect(guidance).toEqual([
+      ["Give someone new a kudos in Slack, then identify the items it earns", "12 of 25 people in your album"],
+      ["Give anyone a kudos in Slack. Thanking the same person again counts too", "9 of 25 kudos given"],
+      ["Thank someone from a team not yet in your album, then identify the items it earns", "6 of 10 teams in your album"],
+      ["Identify your items to find hoggies you don't have yet. Repeats don't count", "18 of 40 different hoggies found"],
+      ["Collect everyone on a team to unlock it", "1 of 5 full teams unlocked"],
+    ]);
+  });
+
+  it("a newcomer sees every milestone's bronze in the catalogue's order and nothing earned yet", async () => {
     visit(albumFixtures.newcomer);
 
-    const faces = await rowOf("Faces in the album");
-    expect(medalsIn(faces).map((medal) => medal.getAttribute("data-step"))).toEqual(["next", "later", "later", "later"]);
-    expect(faces.getByText("1 to go for First face")).toBeInTheDocument();
+    expect((await medalsListedUnder("Closest medals")).map(nameOf)).toEqual(["First face", "First full page", "Next door", "Curious", "First thank-you"]);
+    expect((await medalNamed("Closest medals", "First face")).getByText("1 to go")).toBeInTheDocument();
     expect(screen.getByText("of 20 medals").parentElement).toHaveTextContent("0 of 20 medals");
+    expect(screen.queryByRole("region", { name: "Earned" })).not.toBeInTheDocument();
+  });
+
+  it("leaves a milestone with every medal out of the closest medals", async () => {
+    visit(withEveryMedal(midway, "thoughtful"));
+
+    expect((await medalsListedUnder("Closest medals")).map(nameOf)).toEqual(["Bridge builder", "Full of friends", "Collector", "Five teams strong"]);
+  });
+
+  it("once every medal is earned, says nothing is left to unlock", async () => {
+    visit(midway.milestones.reduce((album, { id }) => withEveryMedal(album, id), midway));
+
+    expect((await sectionOf("Closest medals")).getByText("Every medal earned. Nothing left to unlock.")).toBeInTheDocument();
+    expect(screen.getByText("of 20 medals").parentElement).toHaveTextContent("20 of 20 medals");
+  });
+
+  it("lists the medals earned, the newest first, each with its metal, its milestone, its date and its emoji in colour", async () => {
+    visit();
+
+    expect((await medalsListedUnder("Earned")).map(nameOf)).toEqual(["Familiar faces", "First full page", "Curious", "Next door", "First face", "First thank-you"]);
+    const familiar = await medalNamed("Earned", "Familiar faces");
+    expect(familiar.getByText("Silver · Faces in the album · 16 Oct 2026")).toBeInTheDocument();
+    expect(emojiIn(familiar)).toEqual({ picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "Add to Slack" });
+    expect(emojiIn(await medalNamed("Earned", "First face"))).toEqual({ picture: "/emoji/milestone-people-bronze.png", name: ":first-face:", earned: true, says: "In Slack" });
   });
 
   it("before the album answers its milestones, says where they will show", async () => {
@@ -140,42 +160,26 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
 
     expect(await screen.findByText("Your milestones show here once your album starts filling.", undefined, { timeout: arrival })).toBeInTheDocument();
   });
-  it("#707: under every medal, shows its tier's emoji picture and name, earned tiers in colour and locked tiers greyed out with the step that unlocks them", async () => {
-    visit();
-
-    expect(emojisUnder(await rowOf("Faces in the album"))).toEqual([
-      { picture: "/emoji/milestone-people-bronze.png", name: ":first-face:", earned: true, says: "In Slack" },
-      { picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "Add to Slack" },
-      { picture: "/emoji/milestone-people-gold.png", name: ":full-of-friends:", earned: false, says: "Unlocks at 25" },
-      { picture: "/emoji/milestone-people-diamond.png", name: ":everyone-s-album:", earned: false, says: "Unlocks at 50" },
-    ]);
-  });
 
   it("#707: names each emoji as the album's earned emojis name it, so a name the registry numbered shows numbered", async () => {
     const numbered: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends-2", from: "Full of friends", picture: "/emoji/milestone-people-gold.png", earned: false, earnedAt: null, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
     visit(withEmoji(midway, numbered));
 
-    expect(emojisUnder(await rowOf("Faces in the album"))[2]).toMatchObject({ name: ":full-of-friends-2:", says: "Unlocks at 25" });
+    expect(emojiIn(await medalNamed("Closest medals", "Full of friends"))).toMatchObject({ name: ":full-of-friends-2:", says: "Unlocks at 25" });
   });
 
   it("#707: before the album answers a tier's emoji, shows the tier's picture under the slug of its name and offers nothing to add", async () => {
     visit(withoutMilestoneEmojis(midway));
 
-    const faces = await rowOf("Faces in the album");
-    expect(emojisUnder(faces)[1]).toEqual({ picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "" });
-    expect(faces.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
+    expect(emojiIn(await medalNamed("Earned", "Familiar faces"))).toEqual({ picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "" });
+    expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
   });
 
   it("#707: getAlbum's answer as the code before #707 built it, gold only under milestone:<id>, still shows every medal's own picture under its tier's slug and offers nothing to add", async () => {
     visit(answeredBeforeEveryTier(midway));
 
-    const faces = await rowOf("Faces in the album");
-    expect(emojisUnder(faces)).toEqual([
-      { picture: "/emoji/milestone-people-bronze.png", name: ":first-face:", earned: true, says: "" },
-      { picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "" },
-      { picture: "/emoji/milestone-people-gold.png", name: ":full-of-friends:", earned: false, says: "Unlocks at 25" },
-      { picture: "/emoji/milestone-people-diamond.png", name: ":everyone-s-album:", earned: false, says: "Unlocks at 50" },
-    ]);
+    expect(emojiIn(await medalNamed("Earned", "Familiar faces"))).toEqual({ picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "" });
+    expect(emojiIn(await medalNamed("Closest medals", "Full of friends"))).toEqual({ picture: "/emoji/milestone-people-gold.png", name: ":full-of-friends:", earned: false, says: "Unlocks at 25" });
     expect(screen.queryByRole("button", { name: /^Add to Slack/ })).not.toBeInTheDocument();
   });
 
@@ -184,7 +188,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
     const { user } = visit();
 
     vi.spyOn(window, "open").mockReturnValue(null);
-    await user.click((await rowOf("Faces in the album")).getByRole("button", { name: "Add to Slack: :familiar-faces:" }));
+    await user.click((await medalNamed("Earned", "Familiar faces")).getByRole("button", { name: "Add to Slack: :familiar-faces:" }));
 
     await waitFor(() => expect(saved).toEqual([{ href: "/emoji/milestone-people-silver.png", download: "familiar-faces.png" }]));
     expect(window.open).toHaveBeenCalledExactlyOnceWith("https://hedgehug.slack.com/customize/emoji", "_blank", "noopener,noreferrer");
@@ -194,6 +198,6 @@ describe("AL51: Milestones shows one row per milestone with its four medals and 
     const gold: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends", from: "Full of friends", picture: "/emoji/milestone-people-gold.png", earned: false, earnedAt: null, seen: false, inSlack: true, progress: { have: 12, need: 25 } };
     visit(withEmoji(midway, gold));
 
-    expect(emojisUnder(await rowOf("Faces in the album"))[2]).toMatchObject({ earned: false, says: "Unlocks at 25" });
+    expect(emojiIn(await medalNamed("Closest medals", "Full of friends"))).toMatchObject({ earned: false, says: "Unlocks at 25" });
   });
 });

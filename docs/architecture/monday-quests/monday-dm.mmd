@@ -1,0 +1,25 @@
+sequenceDiagram
+  participant C as Cron (hourly)
+  participant M as Monday DM
+  participant H as Hugs
+  participant Q as Quests
+  participant S as Slack adapter
+  participant A as Analytics
+  C->>M: scheduleMondayDms sweep
+  M->>M: page waiting rows, dueAt = Monday 9:00 local
+  M->>M: startMondayDm(row, attempt) fenced on tries
+  M->>H: hugsSectionOf(member, week)
+  M->>Q: questsSectionOf(member, week)
+  alt both sections null (kind off, no hugs, not Monday path)
+    M->>M: row skipped
+  else at least one section
+    M->>S: deliverMondayDm(sections, buttons)
+    alt delivered
+      S->>M: mondayDmEnded(sent)
+      M->>A: dm sent{kind: monday, sections}
+    else Slack error, tries < 3
+      S->>M: mondayDmLater(attempt + 1)
+    else gone or third failure
+      S->>M: mondayDmEnded(failed)
+    end
+  end

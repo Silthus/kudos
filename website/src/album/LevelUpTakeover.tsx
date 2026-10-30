@@ -1,9 +1,11 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import type { LoopLesson } from "../../../convex/website/album";
 import type { Climb } from "../../../convex/website/xpMoment";
 import { NamedEmoji } from "../Emoji";
 import type { AlbumEmoji } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
+import { flyACopyIntoTheEmojiButton } from "./emojiFlight";
+import type { EmojisOnTheirWay } from "./emojisOnTheirWay";
 import { ItemBack } from "./ItemBoard";
 import type { LevelUnlocks } from "./levelUnlocks";
 import { Confetti } from "./PackCards";
@@ -15,7 +17,11 @@ const discHeightShare = 0.36;
 
 const unlockEmojiSize = 32;
 
-export function LevelUpTakeover({ climb: { to }, unlocks, onDone }: { climb: Climb; unlocks: LevelUnlocks; onDone: () => void }) {
+export const takeoverTiming = { unlocksAfterMs: 1100, unlockStaggerMs: 260, unlockRiseMs: 520, emojiHoldMs: 600 };
+
+type TakeoverProps = { climb: Climb; unlocks: LevelUnlocks; onTheirWay: EmojisOnTheirWay; onDone: () => void };
+
+export function LevelUpTakeover({ climb: { to }, unlocks, onTheirWay, onDone }: TakeoverProps) {
   const [from] = useState(dropFromThePill);
   useSparksOffThePill();
   useEscapeTo(onDone);
@@ -31,7 +37,7 @@ export function LevelUpTakeover({ climb: { to }, unlocks, onDone }: { climb: Cli
         <strong>{to.level}</strong>
       </div>
       <h2 className="xpm-lvl-title">You reached level {to.level}!</h2>
-      <Unlocks unlocks={unlocks} />
+      <Unlocks unlocks={unlocks} onTheirWay={onTheirWay} />
       <p className="xpm-lvl-next">
         Level {to.level + 1} is {to.nextAt - to.xp} XP away
       </p>
@@ -42,17 +48,51 @@ export function LevelUpTakeover({ climb: { to }, unlocks, onDone }: { climb: Cli
   );
 }
 
-function Unlocks({ unlocks: { items, emojis, howTo } }: { unlocks: LevelUnlocks }) {
-  if (items === 0 && emojis.length === 0) return null;
+function Unlocks({ unlocks: { items, emojis, howTo }, onTheirWay }: { unlocks: LevelUnlocks; onTheirWay: EmojisOnTheirWay }) {
+  const list = useRef<HTMLUListElement>(null);
   const itemsShown = items > 0 ? 1 : 0;
+  useSentUpToTheEmojis(list, emojis, itemsShown, onTheirWay);
+  if (items === 0 && emojis.length === 0) return null;
   return (
-    <ul className="xpm-lvl-unlocks">
+    <ul ref={list} className="xpm-lvl-unlocks">
       {items > 0 && <ItemsUnlocked count={items} />}
       {emojis.map((emoji, index) => (
         <EmojiUnlocked key={emoji.id} emoji={emoji} howTo={howTo} order={itemsShown + index} />
       ))}
     </ul>
   );
+}
+
+function useSentUpToTheEmojis(list: RefObject<HTMLUListElement | null>, emojis: AlbumEmoji[], firstOrder: number, { leave, home }: EmojisOnTheirWay) {
+  const ids = emojis.map(({ id }) => id).join(" ");
+  useLayoutEffect(() => {
+    const sent = ids === "" ? [] : ids.split(" ");
+    const takenAway = new AbortController();
+    const sendUpAndHome = async (id: string) => {
+      await sendUp(list.current, id, takenAway.signal);
+      if (!takenAway.signal.aborted) home([id]);
+    };
+    leave(sent);
+    const timers = sent.map((id, index) => window.setTimeout(() => void sendUpAndHome(id), sentUpAtOf(firstOrder + index)));
+    return () => {
+      takenAway.abort();
+      timers.forEach((timer) => window.clearTimeout(timer));
+      home(sent);
+    };
+  }, [list, ids, firstOrder, leave, home]);
+}
+
+async function sendUp(list: HTMLElement | null, id: string, signal: AbortSignal) {
+  const picture = list?.querySelector<HTMLElement>(`[data-emoji="${CSS.escape(id)}"] .al-emoji-art`);
+  if (picture !== null && picture !== undefined) await flyACopyIntoTheEmojiButton(picture, signal);
+}
+
+function risesAtOf(order: number) {
+  return takeoverTiming.unlocksAfterMs + order * takeoverTiming.unlockStaggerMs;
+}
+
+function sentUpAtOf(order: number) {
+  return risesAtOf(order) + takeoverTiming.unlockRiseMs + takeoverTiming.emojiHoldMs;
 }
 
 function ItemsUnlocked({ count }: { count: number }) {
@@ -68,7 +108,7 @@ function ItemsUnlocked({ count }: { count: number }) {
       </span>
       <span>
         <strong>{words}</strong>
-        <small>waiting face down</small>
+        <small>waiting to be identified</small>
       </span>
     </li>
   );
@@ -77,7 +117,7 @@ function ItemsUnlocked({ count }: { count: number }) {
 function EmojiUnlocked({ emoji, howTo, order }: { emoji: AlbumEmoji; howTo: LoopLesson | null; order: number }) {
   const usable = howTo !== null && emoji.inSlack;
   return (
-    <li aria-label={usable ? `:${emoji.name}: unlocked` : `New emoji :${emoji.name}:`} style={orderOf(order)}>
+    <li aria-label={usable ? `:${emoji.name}: unlocked` : `New emoji :${emoji.name}:`} data-emoji={emoji.id} style={{ ...orderOf(order), ...hopOf(order) }}>
       <EmojiPicture emoji={emoji} size={unlockEmojiSize} />
       {usable ? <HowToUseWords name={emoji.name} howTo={howTo} /> : <NewEmojiWords name={emoji.name} />}
     </li>
@@ -106,8 +146,12 @@ function HowToUseWords({ name, howTo: { kudosEmoji, kudosEmojiImage } }: { name:
   );
 }
 
+function hopOf(order: number) {
+  return { "--hop-at": `${risesAtOf(order) + takeoverTiming.unlockRiseMs}ms`, "--hop-ms": `${takeoverTiming.emojiHoldMs}ms` } as CSSProperties;
+}
+
 function orderOf(order: number) {
-  return { "--i": order } as CSSProperties;
+  return { animationDelay: `${risesAtOf(order)}ms`, animationDuration: `${takeoverTiming.unlockRiseMs}ms` };
 }
 
 function thePill() {

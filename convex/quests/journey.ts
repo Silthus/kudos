@@ -12,7 +12,7 @@ import {
 } from "../bus/events";
 import type { DayKey } from "../engine/allowance";
 import type { MessageRef } from "../engine/messageEvent";
-import { firstThanksOf, givenBetween, lastThankedBefore, lastThankedBy, type DatedAward } from "../engine/awards";
+import { firstThanksOf, givenBetween, lastThankedBefore, thankedAtOrBefore, type DatedAward } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
@@ -20,9 +20,10 @@ import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
 import { storeVisibleTo } from "../store/visibility";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
-import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, waitsUnopened } from "./crates";
+import { crateOpenedAt, crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, waitsUnopened } from "./crates";
 import { finishQuest } from "./finish";
-import { journeyStartedFor, journeyStepAppliesTo, questsLiveFor } from "./flag";
+import { journeyStartedFor, journeyStepAppliesTo, onTheMondayPath, questsLiveFor } from "./flag";
+import { finishSomeoneNewOnceEveryoneIsThanked, someoneNewWaitsOnTheMondayPath } from "./onboarding";
 import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
@@ -85,7 +86,7 @@ export const recheckSomeoneNew = internalMutation({
       .withIndex("by_user", (q) => q.eq("workspace", event.workspace))
       .paginate({ numItems: membersPerRecheck, cursor: cursor ?? null });
     for (const { _id: member, kind } of people.page) {
-      if (kind === "member" && (await isUnfinished(ctx, member, "someone-new"))) await recheckLater(ctx, event.workspace, member, event.at);
+      if (kind === "member" && (await someoneNewWaitsFor(ctx, member))) await recheckLater(ctx, event.workspace, member, event.at);
     }
     if (!people.isDone) await ctx.scheduler.runAfter(0, internal.quests.journey.recheckSomeoneNew, { event, cursor: people.continueCursor });
   },
@@ -94,16 +95,16 @@ export const recheckSomeoneNew = internalMutation({
 export const recheckRejoined = internalMutation({
   args: { event: memberRejoinedEventValidator },
   handler: async (ctx, { event: { workspace, member, at } }) => {
-    if (await isUnfinished(ctx, member, "someone-new")) await recheckLater(ctx, workspace, member, at);
+    if (await someoneNewWaitsFor(ctx, member)) await recheckLater(ctx, workspace, member, at);
   },
 });
 
 export const recheckSomeoneNewOf = internalMutation({
   args: { workspace: v.string(), member: v.id("members"), at: v.number() },
   handler: async (ctx, { workspace, member, at }) => {
-    if (!(await questsLiveFor(ctx, member))) return;
+    if (await onTheMondayPath(ctx, member)) return await finishSomeoneNewOnceEveryoneIsThanked(ctx, workspace, member, at);
     const someoneNew = await activationOf(ctx, member, "someone-new");
-    if (someoneNew !== null) await finishOnceEveryoneIsThanked(ctx, workspace, someoneNew, at);
+    if (someoneNew !== null && (await questsLiveFor(ctx, member))) await finishOnceEveryoneIsThanked(ctx, workspace, someoneNew, at);
   },
 });
 
@@ -225,19 +226,19 @@ function earliest(times: number[]): number | null {
   return times.length === 0 ? null : Math.min(...times);
 }
 
-async function isUnfinished(ctx: QueryCtx, member: MemberId, step: JourneyStep) {
-  const activation = await activationOf(ctx, member, step);
-  return activation !== null && !(await isFinished(ctx, activation));
+async function someoneNewWaitsFor(ctx: QueryCtx, member: MemberId) {
+  const activation = await activationOf(ctx, member, "someone-new");
+  if (activation === null) return someoneNewWaitsOnTheMondayPath(ctx, member);
+  return !(await isFinished(ctx, activation));
 }
 
 async function finishOnceEveryoneIsThanked(ctx: MutationCtx, workspace: string, someoneNew: JourneyActivation, at: number) {
   if (!(await isFinished(ctx, someoneNew)) && (await hasThankedEveryone(ctx, workspace, someoneNew.member, at))) await finish(ctx, workspace, someoneNew, at);
 }
 
-async function hasThankedEveryone(ctx: QueryCtx, workspace: string, member: MemberId, at: number) {
-  const thanked = await lastThankedBy(ctx, member, at);
-  const teammates = await teammatesOf(ctx, workspace, member);
-  return teammates.every((teammate) => thanked.has(teammate));
+export async function hasThankedEveryone(ctx: QueryCtx, workspace: string, member: MemberId, at: number): Promise<boolean> {
+  for (const teammate of await teammatesOf(ctx, workspace, member)) if (!(await thankedAtOrBefore(ctx, member, teammate, at))) return false;
+  return true;
 }
 
 async function isFinished(ctx: QueryCtx, { member, step }: JourneyActivation) {
@@ -256,7 +257,7 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
     const key = rewardKeyOf({ kind: "journey", step });
     const finish = await rewardOf(ctx, member, key);
     const opening = await crateOpeningOf(ctx, member, key);
-    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null, waiting: waitsUnopened(finish, opening) });
+    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null, openedAt: crateOpenedAt(finish, opening), waiting: waitsUnopened(finish, opening) });
   }
   return facts;
 }

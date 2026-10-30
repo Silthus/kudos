@@ -1,17 +1,20 @@
-import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/hoggies";
+import type { AlbumHoggie, AlbumHoggies as HoggiesAnswered, AlbumRarity } from "../../../convex/album/albumHoggies";
 import type { EmojiInPlace } from "../../../convex/album/emojiWizard";
 import type { OwnHypePick } from "../../../convex/album/emojiMappings";
-import type { Drop } from "../../../convex/hoggies/drops";
-import type { Pet as AlbumPet } from "../../../convex/hoggies/pet";
+import type { KudosEmojiPick } from "../../../convex/album/kudosEmojis";
+import type { Drop } from "../../../convex/album/hoggies/drops";
+import type { Pet as AlbumPet } from "../../../convex/album/hoggies/pet";
 import type { MilestoneId } from "../../../convex/album/milestoneCatalogue";
-import type { ForgeAnswer, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
+import type { ForgeAnswer, ForgeOffered, ItemBoard, LoopLesson, PetAnswer } from "../../../convex/website/album";
 import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";
 import type { Denial } from "../../../convex/website/memberQuery";
+import type { MyActivityWeek } from "../../../convex/website/activity";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
+import type { HugBoardsAnswer } from "../../../convex/website/leaderboard";
+import type { QuestsAnswer } from "../../../convex/website/quests";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
 import type { Face, Message, Rarity } from "../shell";
-import type { ShareOffers } from "../../../convex/website/itemShare";
 import type { CardEmojisRead, CardWeek, PlayerCard, PlayerCardAnswer, PlayerCardRead as PlayerCardAnswered } from "../../../convex/website/playerCard";
 
 export type AlbumMe = { name: string; face: Face; person: string; team: string | null };
@@ -53,6 +56,7 @@ export type Album = {
   tray: TrayItem[];
   emojis: AlbumEmoji[];
   moreEmojis: boolean;
+  kudosEmojiPicks?: string[];
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
   emojiWizard: boolean;
@@ -67,7 +71,11 @@ export type Album = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
-} & ShareOffers;
+  bookNext?: BookNext;
+  leaderboardHugs?: true;
+};
+
+export type BookNext = { chatUrl: string; rarityCaps: boolean };
 
 export type AlbumAnswer = { kind: "off" } | Album;
 
@@ -84,6 +92,10 @@ export type PackOpenReply = PackOpenAnswer | Denial;
 export type SeenAnswer = { kind: "seen"; ids: string[] } | { kind: "refused" };
 
 export type SeenReply = SeenAnswer | Denial;
+
+export type KudosEmojiPickReply = KudosEmojiPick | Denial;
+
+export type PickKudosEmoji = (emoji: string, picked: boolean) => Promise<KudosEmojiPickReply>;
 
 export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
 
@@ -104,6 +116,10 @@ export type ThoughtfulBoards = { kind: "boards"; people: BoardPerson[]; teams: B
 export type BoardsShown = ThoughtfulBoards | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type BoardPeriod = "week" | "last-week" | "month" | "all";
+
+export type HugBoardsShown = HugBoardsAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type HugBoardsRead = (asking: boolean) => HugBoardsShown | undefined;
 
 export type BoardsRead = (asking: boolean, period: BoardPeriod) => BoardsShown | undefined;
 
@@ -139,13 +155,17 @@ export type WeekIssue = {
   received: WeekKudosList;
 };
 
-export type WeekTab = { week: string; days: number[] };
+export type WeekTab = { week: string; days: number[]; counted: number };
 
 export type AlbumWeek = { kind: "week"; week: string; thisWeek: string; weeks: WeekTab[]; issue: WeekIssue | null };
 
 export type WeekShown = AlbumWeek | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type WeekRead = (asking: boolean, week: string | undefined) => WeekShown | undefined;
+
+export type ActivityWeekShown = MyActivityWeek | { kind: "connecting" } | { kind: "broken" };
+
+export type ActivityWeekRead = (asking: boolean) => ActivityWeekShown | undefined;
 
 export type TeamSticker = { team: string; name: string; art: TeamArt; emoji: string; at: number };
 
@@ -181,7 +201,7 @@ export type PersonRead = (asking: boolean, person: string | null) => PersonShown
 
 export type { AlbumHoggie, AlbumRarity };
 
-export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null; forge?: true };
+export type AlbumHoggies = { kind: "hoggies" } & HoggiesAnswered & { pet?: string | null; forge?: ForgeOffered };
 
 export type { PetAnswer };
 
@@ -217,6 +237,10 @@ export type LevelUpRead = (level: number | null) => LevelUpShown | undefined;
 export type XpMomentShown = XpMomentAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type XpMomentRead = (asking: boolean) => XpMomentShown | undefined;
+
+export type QuestsShown = QuestsAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type QuestsRead = (asking: boolean) => QuestsShown | undefined;
 
 export type { CardWeek, PlayerCard, PlayerCardAnswer };
 

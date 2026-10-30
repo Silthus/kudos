@@ -8,10 +8,10 @@ export type ShelfKind = { kind: EarnedEmojiKind; title: string; hint: string; ea
 
 export const shelfKinds: ShelfKind[] = [
   { kind: "team", title: "Team stickers", hint: "Collect everyone on a team, then unlock its sticker.", earnedShown: 6, lockedShown: 3, onlyEarned: false },
-  { kind: "hype", title: "Hype", hint: "Give someone their first thoughtful kudos to unlock their hype emoji.", earnedShown: 6, lockedShown: 0, onlyEarned: true },
+  { kind: "hype", title: "Hype", hint: "Give someone their first kudos to unlock their hype emoji.", earnedShown: 6, lockedShown: 0, onlyEarned: true },
   { kind: "milestone", title: "Milestones", hint: "Earn a milestone's medals: each one has its emoji.", earnedShown: 6, lockedShown: 3, onlyEarned: false },
   { kind: "level", title: "Levels", hint: "One every five levels, up to level 25.", earnedShown: 6, lockedShown: 2, onlyEarned: false },
-  { kind: "random", title: "Random drops", hint: "Now and then a thoughtful pack drops one of the workspace's emojis.", earnedShown: 6, lockedShown: 0, onlyEarned: true },
+  { kind: "random", title: "Random drops", hint: "Now and then a pack drops one of the workspace's emojis.", earnedShown: 6, lockedShown: 0, onlyEarned: true },
 ];
 
 export type Shelf = { kind: ShelfKind; earned: AlbumEmoji[]; locked: AlbumEmoji[] };
@@ -33,6 +33,10 @@ export function shelvesOf(emojis: AlbumEmoji[]): Shelf[] {
 
 export function shownCountOf(shelves: Shelf[]) {
   return shelves.reduce((count, shelf) => count + shelf.earned.length + shelf.locked.length, 0);
+}
+
+export function picksKudosEmojis({ kudosEmojiPicks }: Album): boolean {
+  return kudosEmojiPicks !== undefined;
 }
 
 export function usableNowOf(emojis: AlbumEmoji[]): AlbumEmoji[] {
@@ -142,7 +146,7 @@ export function earnedFromWords(emoji: Pick<AlbumEmoji, "kind" | "id" | "from">)
     case "level":
       return `Reaching ${emoji.from.toLowerCase()}`;
     case "hype":
-      return `Your first thoughtful pack for ${emoji.from}`;
+      return `Your first pack for ${emoji.from}`;
     case "random":
       return `A random drop in your pack for ${emoji.from}`;
   }
@@ -158,9 +162,9 @@ export function whyWords(emoji: AlbumEmoji): string {
     case "level":
       return `You reached ${emoji.from.toLowerCase()}`;
     case "hype":
-      return `From your first thoughtful pack for ${emoji.from}${when}`;
+      return `From your first pack for ${emoji.from}${when}`;
     case "random":
-      return `A random drop in your thoughtful pack for ${emoji.from}${when}`;
+      return `A random drop in your pack for ${emoji.from}${when}`;
   }
 }
 
@@ -175,9 +179,9 @@ export function howToUnlockWords(emoji: AlbumEmoji): string {
     case "level":
       return `Reach ${emoji.from.toLowerCase()} · ${number(have)} of ${number(need)} XP`;
     case "hype":
-      return `Give ${firstNameOf(emoji.from)} their first thoughtful kudos`;
+      return `Give ${firstNameOf(emoji.from)} their first kudos`;
     case "random":
-      return "Open a thoughtful pack: now and then one drops a workspace emoji";
+      return "Open a pack: now and then one drops a workspace emoji";
   }
 }
 

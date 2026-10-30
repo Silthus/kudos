@@ -1,4 +1,4 @@
-import { ConvexReactClient } from "convex/react";
+import { PatientConvexClient } from "./patientConvexClient";
 import { lazy, Suspense } from "react";
 import { LiveShell } from "./LiveApp";
 import { ShellBoundary } from "./ShellBoundary";
@@ -13,7 +13,7 @@ export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: str
           <FixtureApp fixture={fixture} />
         </Suspense>
       ) : (
-        <LiveShell client={new ConvexReactClient(convexUrl)} />
+        <LiveShell client={new PatientConvexClient(convexUrl)} />
       )}
     </ShellBoundary>
   );

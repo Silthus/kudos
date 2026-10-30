@@ -1,13 +1,12 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ReachedTier } from "../../../convex/album/milestones";
-import { hoggieNamed } from "../../../convex/hoggies/catalogue";
+import { hoggieNamed } from "../../../convex/album/hoggies/catalogue";
 import type { ItemBoard as Board, BoardReason, LoopLesson } from "../../../convex/website/album";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { NamedEmoji } from "../Emoji";
 import type { Album } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
 import { keepFocusIn } from "./focusTrap";
-import { ShareWin, type WinShares } from "./ShareWin";
 import { emblemOf, medalEmojiOf, medalKeyOf, medalSpokenOf, medalWordsOf } from "./milestones";
 import { nameOf, whatOf } from "./TurnFlight";
 import type { Landing, ShownTurns } from "./useItemBoard";
@@ -67,16 +66,14 @@ export function ItemBoard({ board, turning, trouble, flight, lead, landed, touch
   );
 }
 
-type TurnedOverProps = { turns: ShownTurns; album: Album; shares: WinShares };
-
-export function ItemsWait({ turns, album, shares, pill }: TurnedOverProps & { pill: boolean }) {
+export function ItemsWait({ turns, album, pill }: { turns: ShownTurns; album: Album; pill: boolean }) {
   const { board, landing, offered, open, flight, closedByLater, show } = turns;
   const settled = !open && flight === null;
   const said = landing !== null && settled;
   return (
     <>
       <div className="ib-strip">
-        <p role="status" aria-label="Turned over" className="ib-turned">
+        <p role="status" aria-label="Identified" className="ib-turned">
           {said && <LandedWords landing={landing} />}
         </p>
         {said && !landing.flown && landing.unlocked.milestones.length > 0 && <MedalsLine album={album} tiers={landing.unlocked.milestones} />}
@@ -91,22 +88,15 @@ export function ItemsWait({ turns, album, shares, pill }: TurnedOverProps & { pi
       </div>
       {settled && (
         <div className="ib-after">
-          <AfterTheLanding turns={turns} album={album} shares={shares} />
+          <AfterTheLanding turns={turns} />
         </div>
       )}
     </>
   );
 }
 
-export function AfterTheLanding({ turns: { landing, turnedThisVisit }, album, shares }: TurnedOverProps) {
-  return (
-    <>
-      {landing?.teaches && <LoopLine lesson={landing.teaches} />}
-      {turnedThisVisit.map(({ item, face }) => (
-        <ShareWin key={item} item={item} name={nameOf(face)} offered={album.shares} shares={shares} />
-      ))}
-    </>
-  );
+export function AfterTheLanding({ turns: { landing } }: { turns: ShownTurns }) {
+  return landing?.teaches && <LoopLine lesson={landing.teaches} />;
 }
 
 function LandedWords({ landing: { face, applied, unlocked } }: { landing: Landing }) {
@@ -160,7 +150,7 @@ export function NewLabel() {
 function LoopLine({ lesson: { kudosEmoji, kudosEmojiImage } }: { lesson: LoopLesson }) {
   return (
     <p role="note" aria-label="How the next item comes" className="ib-loop">
-      Your next item comes when you thank a teammate with <NamedEmoji name={kudosEmoji} image={kudosEmojiImage ?? undefined} /> and say why.
+      Your next item comes when you thank a teammate with <NamedEmoji name={kudosEmoji} image={kudosEmojiImage ?? undefined} /> in a message.
     </p>
   );
 }
@@ -187,20 +177,20 @@ function tagOf(reason: BoardReason) {
 }
 
 function itemLabelOf(reason: BoardReason) {
-  if (reason.kind === "levelUp") return `A face-down item from level ${reason.level}. Turn it over`;
-  if (reason.kind === "team") return `A face-down item for filling the ${reason.name} page. Turn it over`;
-  if (reason.kind === "milestone") return `A face-down item for ${medalSpokenOf(reason)}. Turn it over`;
+  if (reason.kind === "levelUp") return `An unidentified item from level ${reason.level}. Identify it`;
+  if (reason.kind === "team") return `An unidentified item for filling the ${reason.name} page. Identify it`;
+  if (reason.kind === "milestone") return `An unidentified item for ${medalSpokenOf(reason)}. Identify it`;
   if (reason.kind === "forge") return forgedItemLabelOf(reason.hoggie);
-  return "A face-down item. Turn it over";
+  return "An unidentified item. Identify it";
 }
 
 export function forgedItemLabelOf(hoggie: string) {
-  return `A face-down item forged from ${hoggieNamed(hoggie)?.name ?? hoggie}. Turn it over`;
+  return `An unidentified item forged from ${hoggieNamed(hoggie)?.name ?? hoggie}. Identify it`;
 }
 
 export function itemsWaitWordsOf({ items, more }: Board) {
-  if (more) return `${items.length}+ items wait`;
-  return items.length === 1 ? "1 item waits" : `${items.length} items wait`;
+  if (more) return `${items.length}+ unidentified items wait`;
+  return items.length === 1 ? "1 unidentified item waits" : `${items.length} unidentified items wait`;
 }
 
 function useFirstItemFocused(dialog: RefObject<HTMLElement | null>, flying: boolean) {

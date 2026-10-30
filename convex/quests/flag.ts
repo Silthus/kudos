@@ -6,9 +6,32 @@ import { unlockPathShownIn, unlockPathShownTo } from "../unlocks/launch";
 import { storeVisibleTo } from "../store/visibility";
 import { previewMomentOf } from "../unlocks/previewMoments";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { xpLevelsOnFor } from "../progression/xpLevels";
 import { joinMember } from "./join";
+import { mondayQuestFlag } from "./mondayQuestFlag";
 import { questsFlag } from "./questsFlag";
 import type { JourneyStep } from "./step";
+
+export type QuestPath = "monday" | "unlocks";
+
+export async function questsFor(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<QuestPath | null> {
+  if (await onTheMondayPath(ctx, member)) return "monday";
+  return (await questsApplyTo(ctx, member)) ? "unlocks" : null;
+}
+
+export async function onTheMondayPath(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
+  return (await memberDecision(ctx, mondayQuestFlag, member)) && (await xpLevelsOnFor(ctx, member));
+}
+
+export async function mondayPathShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const applies = await memberDecision(ctx, mondayQuestFlag, member);
+  await exposed(ctx, mondayQuestFlag, member, applies);
+  return applies && (await xpLevelsOnFor(ctx, member));
+}
+
+export async function questsHoldTheReplyOf(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  return (await onTheMondayPath(ctx, member)) || (await questsExposedTo(ctx, member));
+}
 
 export async function questsApplyIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
   return (await workspaceDecision(ctx, questsFlag, workspace)) && (await unlockPathShownIn(ctx, workspace));
