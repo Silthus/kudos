@@ -5,6 +5,7 @@ import type { AwardId } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
 import { dayOfPeriod, keyOf, periods, type Period, type PeriodKey } from "./periods";
+import { addHugsToRunningTotal } from "./hugRunningTotals";
 import { withKudosOn } from "./runningTotal";
 
 export type RecognitionCounts = { kudosGiven: number; kudosReceived: number; hugsGiven: number; hugsReceived: number };
@@ -20,8 +21,6 @@ type Added = Partial<RecognitionCounts>;
 type Counted = Doc<"givenByDay"> | Doc<"givenTotals">;
 
 type Total = Doc<"givenTotals">;
-
-export type RunningTotalField = "runningTotal" | "hugsRunningTotal";
 
 const keptBesideKudosGiven = ["kudosReceived", "hugsGiven", "hugsReceived"] as const;
 
@@ -133,9 +132,11 @@ async function addToDay(ctx: MutationCtx, { workspace, member, day }: Landing, a
 async function addToPeriod(ctx: MutationCtx, { workspace, member, day }: Landing, period: Period, added: Added) {
   const key = keyOf(period, day);
   const row = await periodRowOf(ctx, member, key);
-  const counts = { ...withAdded(row, added), ...firstDayAdding(row, day, added), ...runningTotalsAdding(period, row, day, added) };
+  const counts = { ...withAdded(row, added), ...firstDayAdding(row, day, added), ...runningTotalAdding(period, row, day, added.kudosGiven ?? 0) };
   if (row === null) await ctx.db.insert("givenTotals", { workspace, member, period: key, ...counts });
   else await ctx.db.patch(row._id, counts);
+  const hugs = added.hugsGiven ?? 0;
+  if (period !== "all" && hugs > 0) await addHugsToRunningTotal(ctx, period, { workspace, member, day, hugsBefore: row?.hugsGiven ?? 0, hugs });
 }
 
 function periodRowOf(ctx: QueryCtx, member: MemberId, period: PeriodKey) {
@@ -151,13 +152,8 @@ function firstDayAdding(row: Total | null, day: DayKey, { kudosGiven = 0, hugsGi
   return { firstDay: firstDay !== undefined && firstDay < day ? firstDay : day };
 }
 
-function runningTotalsAdding(period: Period, row: Total | null, day: DayKey, { kudosGiven = 0, hugsGiven = 0 }: Added) {
-  if (period === "all") return {};
-  return { ...runningTotalAdding("runningTotal", row, dayOfPeriod(period, day), kudosGiven), ...runningTotalAdding("hugsRunningTotal", row, dayOfPeriod(period, day), hugsGiven) };
-}
-
-function runningTotalAdding(field: RunningTotalField, row: Total | null, day: number, added: number) {
-  if (row !== null && added === 0) return {};
-  const runningTotal = row === null ? [] : row[field];
-  return runningTotal === undefined ? {} : { [field]: withKudosOn(runningTotal, day, added) };
+function runningTotalAdding(period: Period, row: Total | null, day: DayKey, kudos: number) {
+  if (period === "all" || (row !== null && kudos === 0)) return {};
+  const runningTotal = row === null ? [] : row.runningTotal;
+  return runningTotal === undefined ? {} : { runningTotal: withKudosOn(runningTotal, dayOfPeriod(period, day), kudos) };
 }

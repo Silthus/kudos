@@ -428,8 +428,9 @@ async function theDaysOf(t: Backend, everyone: Array<Id<"members">>, { month, da
 async function eachHuggedDaily(t: Backend, everyone: Array<Id<"members">>, { month, days, kudos: hugs }: DailyGiving) {
   await t.run(async (ctx) => {
     for (const [index, member] of everyone.entries()) {
-      const hugsRunningTotal = Array.from({ length: days }, (_, day) => hugs(index) * (day + 1));
-      await ctx.db.insert("givenTotals", { workspace: "T1", member, period: `month:${month}`, kudos: 0, hugsGiven: hugs(index) * days, runningTotal: [], hugsRunningTotal });
+      const runningTotal = Array.from({ length: days }, (_, day) => hugs(index) * (day + 1));
+      await ctx.db.insert("givenTotals", { workspace: "T1", member, period: `month:${month}`, kudos: 0, hugsGiven: hugs(index) * days, runningTotal: [] });
+      await ctx.db.insert("hugRunningTotals", { workspace: "T1", member, period: `month:${month}`, runningTotal });
     }
   });
 }

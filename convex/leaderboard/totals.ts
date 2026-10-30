@@ -11,7 +11,8 @@ import type { BoardView, Entry } from "./board";
 import { improvement, type Improvement } from "./improvement";
 import { peerOf, type Peer } from "./peer";
 import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay, periodOfKey, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Days, type Period, type PeriodKey } from "./periods";
-import { addCounts, countedKeys, countOnce, landingAt, type RunningTotalField } from "./counts";
+import { addCounts, countedKeys, countOnce, landingAt } from "./counts";
+import { hasHugRunningTotal, hugRunningTotalsIn, recordHugRunningTotal } from "./hugRunningTotals";
 import { noteThanker } from "./thankers";
 import { boardMembers, boardViewOf, giversAmong, rankedOf, withoutViewer, type KudosByMember, type Ranked } from "./rankedBoard";
 import { totalUpTo, withKudosOn, type RunningTotal } from "./runningTotal";
@@ -20,12 +21,6 @@ import { isOnTheBoards } from "./visibility";
 export type { RankedRow, Standing } from "./rankedBoard";
 
 export type GivenMeasure = "kudosGiven" | "hugsGiven";
-
-const runningTotalFieldOf: Record<GivenMeasure, RunningTotalField> = { kudosGiven: "runningTotal", hugsGiven: "hugsRunningTotal" };
-
-const measureOfRunningTotal: Record<RunningTotalField, GivenMeasure> = { runningTotal: "kudosGiven", hugsRunningTotal: "hugsGiven" };
-
-const runningTotalFields: RunningTotalField[] = ["runningTotal", "hugsRunningTotal"];
 
 export const givenMeasureValidator = v.union(v.literal("kudosGiven"), v.literal("hugsGiven"));
 
@@ -78,11 +73,24 @@ export async function rankedBoardOf(ctx: QueryCtx, workspace: string, viewer: st
 }
 
 export async function fillRunningTotal(ctx: MutationCtx, total: Total) {
-  const missing = runningTotalFields.filter((field) => total[field] === undefined);
-  if (missing.length === 0) return false;
-  const filled = await runningTotalsFromDays(ctx, total, missing);
-  if (filled === undefined) return false;
-  await ctx.db.patch(total._id, filled);
+  const kudosFilled = await fillKudosRunningTotal(ctx, total);
+  const hugsFilled = await fillHugRunningTotal(ctx, total);
+  return kudosFilled || hugsFilled;
+}
+
+async function fillKudosRunningTotal(ctx: MutationCtx, total: Total) {
+  if (total.runningTotal !== undefined) return false;
+  const runningTotal = await runningTotalFromDays(ctx, total, "kudosGiven");
+  if (runningTotal === undefined) return false;
+  await ctx.db.patch(total._id, { runningTotal });
+  return true;
+}
+
+async function fillHugRunningTotal(ctx: MutationCtx, total: Total) {
+  if (givenIn(total, "hugsGiven") === 0 || (await hasHugRunningTotal(ctx, total.member, total.period))) return false;
+  const runningTotal = await runningTotalFromDays(ctx, total, "hugsGiven");
+  if (runningTotal === undefined) return false;
+  await recordHugRunningTotal(ctx, total, runningTotal);
   return true;
 }
 
@@ -127,9 +135,19 @@ async function givenByMemberIn(ctx: QueryCtx, workspace: string, period: PeriodK
 
 async function givenUpToTheSameDay(ctx: QueryCtx, workspace: string, period: ComparedPeriod, today: DayKey, measure: GivenMeasure): Promise<KudosByMember> {
   const { key, day } = sameDayLastPeriod(period, today);
-  const runningTotals = (await totalsIn(ctx, workspace, key)).map((total) => ({ member: total.member, runningTotal: total[runningTotalFieldOf[measure]] }));
-  if (!runningTotals.every(hasRunningTotal)) return dayTotalsUpToTheSameDay(ctx, workspace, lastPeriodUpToTheSameDay(period, today), measure);
-  return new Map(runningTotals.map(({ member, runningTotal }) => [member, totalUpTo(runningTotal, day)]));
+  const totals = await totalsIn(ctx, workspace, key);
+  const runningTotals = measure === "kudosGiven" ? kudosRunningTotalsOf(totals) : await hugRunningTotalsOf(ctx, workspace, key, totals);
+  if (runningTotals === null) return dayTotalsUpToTheSameDay(ctx, workspace, lastPeriodUpToTheSameDay(period, today), measure);
+  return new Map([...runningTotals].map(([member, runningTotal]) => [member, totalUpTo(runningTotal, day)]));
+}
+
+function kudosRunningTotalsOf(totals: Total[]): Map<MemberId, RunningTotal> | null {
+  return totals.every(hasRunningTotal) ? new Map(totals.map((total) => [total.member, total.runningTotal])) : null;
+}
+
+async function hugRunningTotalsOf(ctx: QueryCtx, workspace: string, period: PeriodKey, totals: Total[]): Promise<Map<MemberId, RunningTotal> | null> {
+  const runningTotals = await hugRunningTotalsIn(ctx, workspace, period);
+  return totals.every((total) => givenIn(total, "hugsGiven") === 0 || runningTotals.has(total.member)) ? runningTotals : null;
 }
 
 async function dayTotalsUpToTheSameDay(ctx: QueryCtx, workspace: string, { first, last }: Days, measure: GivenMeasure): Promise<KudosByMember> {
@@ -142,8 +160,8 @@ async function dayTotalsUpToTheSameDay(ctx: QueryCtx, workspace: string, { first
   return givenByMember;
 }
 
-function hasRunningTotal<Kept extends { runningTotal: RunningTotal | undefined }>(kept: Kept): kept is Kept & { runningTotal: RunningTotal } {
-  return kept.runningTotal !== undefined;
+function hasRunningTotal(total: Total): total is Total & { runningTotal: RunningTotal } {
+  return total.runningTotal !== undefined;
 }
 
 export async function giversIn(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<number> {
@@ -157,15 +175,14 @@ function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey) {
     .collect();
 }
 
-async function runningTotalsFromDays(ctx: MutationCtx, { member, period: key }: Total, fields: RunningTotalField[]): Promise<Partial<Record<RunningTotalField, RunningTotal>> | undefined> {
+async function runningTotalFromDays(ctx: MutationCtx, { member, period: key }: Total, measure: GivenMeasure): Promise<RunningTotal | undefined> {
   const period = periodOfKey(key);
   if (period === null) return undefined;
   const days = await ctx.db
     .query("givenByDay")
     .withIndex("by_member_day", (q) => q.eq("member", member).gte("day", period.days.first).lte("day", period.days.last))
     .collect();
-  const runningTotalOf = (measure: GivenMeasure) => days.reduce((runningTotal, day) => withKudosOn(runningTotal, dayOfPeriod(period.period, day.day), givenIn(day, measure)), [] as RunningTotal);
-  return Object.fromEntries(fields.map((field) => [field, runningTotalOf(measureOfRunningTotal[field])]));
+  return days.reduce((runningTotal, day) => withKudosOn(runningTotal, dayOfPeriod(period.period, day.day), givenIn(day, measure)), [] as RunningTotal);
 }
 
 async function bestCompletedPeriod(ctx: QueryCtx, member: MemberId, period: ComparedPeriod, today: DayKey, measure: GivenMeasure) {

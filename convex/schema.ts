@@ -777,6 +777,15 @@ export default defineSchema({
     message: v.string(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
+  hugRunningTotals: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    period: v.string(),
+    runningTotal: v.array(v.number()),
+  })
+    .index("by_period", ["workspace", "period"])
+    .index("by_member_period", ["member", "period"]),
+
   givenTotals: defineTable({
     workspace: v.string(),
     member: v.id("members"),
@@ -787,7 +796,6 @@ export default defineSchema({
     hugsReceived: v.optional(v.number()),
     firstDay: v.optional(v.string()),
     runningTotal: v.optional(v.array(v.number())),
-    hugsRunningTotal: v.optional(v.array(v.number())),
   })
     .index("by_period", ["workspace", "period"])
     .index("by_member_period", ["member", "period"]),
