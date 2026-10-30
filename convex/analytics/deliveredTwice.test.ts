@@ -1,4 +1,4 @@
-import { getFunctionName } from "convex/server";
+import { getFunctionName, makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakePostHog, postHogHost, projectToken } from "../../testing/fakePostHog";
@@ -90,14 +90,29 @@ describe("a fact is recorded once however often the bus delivers it", () => {
   test.each(analyticsSubscriptions())("%s: %s sends its product events once, before and after the outbox drained", async (type, subscriber) => {
     const t = testBackend();
     await t.run(async (ctx) => publish(ctx, await factOf(ctx, type)));
-    await onlyAnalyticsDelivered(t);
+    await onlyAnalyticsScheduled(t);
+
+    await deliverBeforeItsJobRuns(t, subscriber);
+    await settle(t);
     const recorded = postHog.productEvents();
-
-    await deliverAgain(t, subscriber);
     await deliverAgain(t, subscriber);
 
-    expect(recorded, "the product events of the first delivery").not.toHaveLength(0);
-    expect(postHog.productEvents(), "the product events after delivering it twice more").toEqual(recorded);
+    expect(recorded, "the product events of a fact delivered again while its outbox rows were pending").not.toHaveLength(0);
+    expect(postHog.productEvents(), "the product events after delivering it again once the outbox drained").toEqual(recorded);
+  });
+
+  test("a fact delivered while capture is off is recorded once capture is on", async () => {
+    const t = testBackend();
+    vi.stubEnv("POSTHOG_PROJECT_TOKEN", "");
+    await t.run(async (ctx) => publish(ctx, await factOf(ctx, "hugGiven")));
+    await onlyAnalyticsScheduled(t);
+    await settle(t);
+    vi.stubEnv("POSTHOG_PROJECT_TOKEN", projectToken);
+
+    await deliverAgain(t, "analytics/subscribers:recordHugGiven");
+    await deliverAgain(t, "analytics/subscribers:recordHugGiven");
+
+    expect(postHog.productEvents().filter(({ event }) => event === "hug given")).toHaveLength(1);
   });
 
   test("two facts with the same values are two product events", async () => {
@@ -141,11 +156,15 @@ function itemTurned(member: MemberId): ItemTurnedEvent {
   return { type: "itemTurned", workspace: "T1", member, source: "hoggie", rarity: "rare", isNew: true, at };
 }
 
-async function onlyAnalyticsDelivered(t: Backend) {
+async function onlyAnalyticsScheduled(t: Backend) {
   await t.run(async (ctx) => {
     for (const job of await ctx.db.system.query("_scheduled_functions").collect()) {
       if (job.state.kind === "pending" && !job.name.startsWith("analytics/")) await ctx.scheduler.cancel(job._id);
     }
   });
-  await settle(t);
+}
+
+async function deliverBeforeItsJobRuns(t: Backend, subscriber: string) {
+  const pending = await t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name, state }) => name === subscriber && state.kind === "pending"));
+  for (const { args } of pending) await t.mutation(makeFunctionReference<"mutation">(subscriber), args[0] as never);
 }
