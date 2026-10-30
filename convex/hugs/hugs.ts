@@ -8,7 +8,7 @@ import type { MessageRef } from "../engine/messageEvent";
 import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { hugBudgetOf, settingsOf } from "../workspace/settings";
 import { withoutSkinTone } from "../workspace/slackEmoji";
-import { hugsOnAndExposedFor } from "./flag";
+import { hugRewardsOnAndExposedFor, hugsOnAndExposedFor } from "./flag";
 import type { HugReaction } from "./reaction";
 import { hasHuggedBefore, insertHug, hugOf, hugsGivenOn, type NewHug, type HugFor } from "./records";
 import { countHugGiven } from "./weeks";
@@ -91,5 +91,6 @@ async function recordHug(ctx: MutationCtx, hug: NewHug, { first, reaction }: { f
   const { workspace, conversation, message, giver, onKudos, at, day } = hug;
   await insertHug(ctx, hug);
   await countHugGiven(ctx, hug);
-  await publish(ctx, { type: "hugGiven", workspace, giver, message: { workspace, conversation, message }, onKudos, ...(!hug.onKudos && { author: hug.author }), at, day, first, reaction });
+  const rewards = await hugRewardsOnAndExposedFor(ctx, giver);
+  await publish(ctx, { type: "hugGiven", workspace, giver, message: { workspace, conversation, message }, onKudos, ...(!hug.onKudos && { author: hug.author }), at, day, first, reaction, rewards });
 }
