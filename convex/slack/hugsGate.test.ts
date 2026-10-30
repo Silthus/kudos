@@ -321,6 +321,10 @@ function isHugsExposure({ event, properties }: { event?: unknown; properties?: u
   return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === hugs;
 }
 
+function isHugRewardsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
+  return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === "hug-rewards";
+}
+
 function isLookUpOf(person: Person, call: string) {
   const { method, args } = JSON.parse(call) as { method: string; args: { user?: string } };
   return method === "users.info" && args.user === person.user;
@@ -346,7 +350,7 @@ function messagesTo(seen: Seen, person: Person) {
 }
 
 function postHogEventsOf(seen: Seen, person: Person) {
-  return seen.postHogEvents.filter((event) => event.distinct_id === `<analytics ID of ${person.user}>` && !isHugsExposure(event));
+  return seen.postHogEvents.filter((event) => event.distinct_id === `<analytics ID of ${person.user}>` && !isHugsExposure(event) && !isHugRewardsExposure(event));
 }
 
 function timelineKinds(walk: Walk, person: Person) {

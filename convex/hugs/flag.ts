@@ -10,6 +10,14 @@ export async function hugsOnAndExposedFor(ctx: MutationCtx, member: MemberId): P
   return on;
 }
 
+export const hugRewardsFlag = { key: "hug-rewards", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export async function hugRewardsOnAndExposedFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const on = await memberDecision(ctx, hugRewardsFlag, member);
+  await exposed(ctx, hugRewardsFlag, member, on);
+  return on;
+}
+
 export function hugsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecision(ctx, hugsFlag, member);
 }

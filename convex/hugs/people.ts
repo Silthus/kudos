@@ -4,6 +4,7 @@ import { internalMutation, type MutationCtx } from "../_generated/server";
 import { hugGivenEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
 import { isMember, type MemberId } from "../workspace/directory";
+import { hugRewardsOnAndExposedFor } from "./flag";
 import { countReceivedOnTheMessage, insertPaid, isPaid, hugOf, hugPeoplePageOf, type Hug } from "./records";
 import { countHugReceived, weekOfPersonAt } from "./weeks";
 
@@ -29,5 +30,6 @@ async function payPerson(ctx: MutationCtx, hug: Hug, person: MemberId) {
 }
 
 async function publishHugReceived(ctx: MutationCtx, { workspace, conversation, message, giver, at }: Hug, person: MemberId) {
-  await publish(ctx, { type: "hugReceived", workspace, giver, person, message: { workspace, conversation, message }, at, week: await weekOfPersonAt(ctx, person, at) });
+  const week = await weekOfPersonAt(ctx, person, at);
+  await publish(ctx, { type: "hugReceived", workspace, giver, person, message: { workspace, conversation, message }, at, week, rewards: await hugRewardsOnAndExposedFor(ctx, person) });
 }

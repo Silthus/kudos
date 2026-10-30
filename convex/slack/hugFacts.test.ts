@@ -178,8 +178,8 @@ describe("HH20: the hug facts", () => {
     const hugged = { ...message, message: ts };
     const { at } = factsOf("hugGiven")[0]!;
     expect(factsOf("hugReceived").toSorted((a, b) => a.week.localeCompare(b.week))).toEqual([
-      { type: "hugReceived", workspace: "T1", giver, person: await memberOf(t, "U_DANA"), message: hugged, at, week: "2026-10-12" },
-      { type: "hugReceived", workspace: "T1", giver, person: await memberOf(t, "U_CAROL"), message: hugged, at, week: "2026-10-19" },
+      { type: "hugReceived", workspace: "T1", giver, person: await memberOf(t, "U_DANA"), message: hugged, at, week: "2026-10-12", rewards: false },
+      { type: "hugReceived", workspace: "T1", giver, person: await memberOf(t, "U_CAROL"), message: hugged, at, week: "2026-10-19", rewards: false },
     ]);
   });
 });
