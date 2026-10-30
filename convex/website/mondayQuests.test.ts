@@ -137,7 +137,29 @@ describe("MQ37 MQ9: once the three quests are finished, the read answers this we
 
     expect((await mondayQuestsOf(alice)).quests.kind).toBe("journey");
   });
+
+  test("a Monday week drawn with a say-why quest of the earlier pool reads that quest's goal and progress", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await finishOnboarding();
+    await theHourlySweep();
+
+    await drawnWithAnEarlierSayWhyQuest(alice);
+
+    const drawn = drawnOf(await mondayQuestsOf(alice));
+    expect(drawn.map(({ goal, progress }) => ({ goal, target: progress.target }))).toContainEqual({ goal: "Thank someone and say why on 2 different days", target: 2 });
+  });
 });
+
+async function drawnWithAnEarlierSayWhyQuest(person: Person) {
+  const member = await memberOf(person);
+  await t.run(async (ctx) => {
+    const draw = (await ctx.db
+      .query("questDraws")
+      .withIndex("by_member_week", (q) => q.eq("member", member))
+      .first())!;
+    await ctx.db.patch(draw._id, { slots: draw.slots.map((slot, index) => (index === 1 ? { ...slot, quest: "say-why-two-days" as const } : slot)) });
+  });
+}
 
 async function drawnFromTheUnlockPool(person: Person) {
   const member = await memberOf(person);

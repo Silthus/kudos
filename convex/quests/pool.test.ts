@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { feasibility, mondayQuestPool, questOf, type DrawFacts, type PoolQuest } from "./pool";
+import { feasibility, mondayQuestPool, questIdValidator, questOf, type DrawFacts, type PoolQuest } from "./pool";
 
 const lastDayWithOneTeammateAlreadyThanked: DrawFacts = { daysLeft: 1, kudosLeftToday: 3, dailyAllowance: 3, peopleLeft: { anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 0 } };
 
@@ -30,6 +30,12 @@ describe("P83: every quest in the pool keeps the guardrails", () => {
 
       expect(fallbacks.map(({ quest }) => quest)).toEqual(["kudos-once"]);
     });
+  });
+});
+
+describe("every quest a stored draw can hold resolves to its definition", () => {
+  test.each(questIdValidator.members.map(({ value }) => value))("%s", (quest) => {
+    expect(questOf(quest)).toMatchObject({ quest, goal: expect.any(String), progress: { target: expect.any(Number) } });
   });
 });
 
