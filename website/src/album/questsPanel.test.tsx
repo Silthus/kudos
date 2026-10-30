@@ -50,6 +50,10 @@ function tab() {
   return screen.getByRole("button", { name: /^Quests,/ });
 }
 
+function stepsMarkedNextIn(panel: Awaited<ReturnType<typeof openPanel>>) {
+  return panel.getAllByRole("listitem").flatMap((step) => /^(.*): next\b/.exec(step.getAttribute("aria-label") ?? "")?.[1] ?? []);
+}
+
 function views(actions: { viewQuests: ReturnType<typeof vi.fn> }) {
   return actions.viewQuests.mock.calls.map(([surface]) => surface);
 }
@@ -81,6 +85,25 @@ describe("MQ38 MQ39: the quests panel greets a newcomer with the Getting started
     expect(next.getByText("Someone from another team counts, and so does a new joiner.")).toBeInTheDocument();
     expect(panel.getByRole("img", { name: "1 of 2" })).toBeInTheDocument();
     expect(panel.getByText("Getting started · 3 of 5")).toBeInTheDocument();
+  });
+
+  it.each([
+    { journey: "before the first hug", quests: questsFixtures.beforeTheFirstHug, next: "Give a kudos to someone" },
+    { journey: "with the first kudos given and its hoggie still unidentified", quests: questsFixtures.firstThanks, next: "Thank someone new" },
+  ])("MQ6: marks the quest the backend names next $journey, not the first step left", async ({ quests, next }) => {
+    visit(aTeamPage, { quests: fixedQuests(quests) });
+
+    const panel = await openPanel();
+    expect(stepsMarkedNextIn(panel)).toEqual([next]);
+    expect(panel.getAllByText("Next")).toHaveLength(1);
+  });
+
+  it("MQ6: marks no step next once the backend names no next quest", async () => {
+    visit(aTeamPage, { quests: fixedQuests(questsFixtures.awaitingTheDraw) });
+
+    const panel = await openPanel();
+    expect(stepsMarkedNextIn(panel)).toEqual([]);
+    expect(panel.queryByText("Next")).not.toBeInTheDocument();
   });
 
   it("MQ37: a finished step whose hoggie waits offers the board, and one already turned does not", async () => {
