@@ -34,7 +34,7 @@ export const grantToldValidator = v.object({ message: messageRefValidator, at: v
 export const albumStickerValidator = v.object({
   member: v.id("members"),
   person: v.id("members"),
-  from: v.union(v.literal("pack"), v.literal("history")),
+  from: v.union(v.literal("pack"), v.literal("history"), v.literal("reactions")),
   pack: v.optional(v.id("thoughtfulPacks")),
   at: v.number(),
 });
@@ -157,5 +157,12 @@ export const hypeReactionValidator = v.object({
   emoji: v.string(),
   conversation: v.string(),
   message: v.string(),
+  at: v.number(),
+});
+
+export const hypeCollectedValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  person: v.id("members"),
   at: v.number(),
 });
