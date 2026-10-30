@@ -5,7 +5,7 @@ import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyP
 import type { DayKey } from "../engine/allowance";
 import { countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, primaryMembersOf, userGroupsIn, type GroupId } from "../groups/groups";
 import type { BoardViewer } from "../leaderboard/boards";
-import { totalsIn } from "../leaderboard/counts";
+import { totalsIn, weekCountedBy } from "../leaderboard/counts";
 import { ranking } from "../leaderboard/board";
 import { fewestMembersListed } from "../leaderboard/groupsBoard";
 import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay } from "../leaderboard/periods";
@@ -64,21 +64,13 @@ async function comparisonOf(ctx: QueryCtx, workspace: string, { today, thisWeek,
   return {
     joinedNow: await joinedIn(ctx, workspace, thisWeek, sunday),
     joinedBefore: await joinedIn(ctx, workspace, lastWeek, dayOfPeriod("week", today)),
-    comparableSince: (await wasCountedBy(ctx, workspace, lastWeek)) ? endOfTheSameWeekdayLastWeek(today) : null,
+    comparableSince: (await weekCountedBy(ctx, workspace, lastWeek)) ? endOfTheSameWeekdayLastWeek(today) : null,
   };
 }
 
 async function joinedIn(ctx: QueryCtx, workspace: string, monday: DayKey, byWeekday: number): Promise<Set<MemberId>> {
   const totals = await totalsIn(ctx, workspace, keyOf("week", monday));
   return new Set(totals.flatMap(({ member, firstDay }) => (firstDay !== null && dayOfPeriod("week", firstDay) <= byWeekday ? [member] : [])));
-}
-
-async function wasCountedBy(ctx: QueryCtx, workspace: string, monday: DayKey): Promise<boolean> {
-  const earliest = await ctx.db
-    .query("givenTotals")
-    .withIndex("by_period", (q) => q.eq("workspace", workspace).gte("period", "week:").lte("period", keyOf("week", monday)))
-    .first();
-  return earliest !== null;
 }
 
 function endOfTheSameWeekdayLastWeek(today: DayKey): number {
