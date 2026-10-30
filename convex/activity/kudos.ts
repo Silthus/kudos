@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import type { AwardId } from "../engine/awards";
 import { threadRootOf } from "../engine/engine";
-import { wordsOf } from "../engine/kudosText";
+import { takenBackInSlack, wordsOf } from "../engine/kudosText";
 import type { MessageRef, WordSegment } from "../engine/messageEvent";
 import { gateRecordedWith } from "../progression/effects";
 import { permalinkOf } from "../slack/permalink";
@@ -64,6 +64,10 @@ export async function personOf(ctx: QueryCtx, member: MemberId): Promise<Person>
 
 export async function kudosWordsOf(ctx: QueryCtx, mentions: Mentions, ref: MessageRef): Promise<Message> {
   return (await wordsAndChannelOf(ctx, mentions, ref)).message;
+}
+
+export async function kudosWordsStillInSlack(ctx: QueryCtx, mentions: Mentions, message: MessageRef): Promise<Message | null> {
+  return (await takenBackInSlack(ctx, message)) ? null : kudosWordsOf(ctx, mentions, message);
 }
 
 async function wordsAndChannelOf(ctx: QueryCtx, mentions: Mentions, ref: MessageRef): Promise<{ channel: Channel; message: Message }> {

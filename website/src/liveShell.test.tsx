@@ -9,6 +9,7 @@ import { Root } from "./Root";
 import { settingsFixtures } from "./settingsFixtures";
 import { shellFixtures } from "./shell";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
+import { activityWeekFixtures } from "./activity/activityWeekFixtures";
 
 const profileRead = vi.fn();
 const boardRead = vi.fn();
@@ -457,8 +458,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
   });
 
   it("HH61: while activity-next is on, /activity reads getActivityWeek alone and leads with the next step", async () => {
-    const nextStep = { kind: "week", next: { kind: "empty" }, kudos: { kudosEmoji: "hedgehug", kudosEmojiImage: null }, slack: "https://app.slack.com/client/T1" };
-    showTheAlbum(albumV1, (query) => (query === "website/activity:getActivityWeek" ? nextStep : undefined));
+    showTheAlbum(albumV1, (query) => (query === "website/activity:getActivityWeek" ? activityWeekFixtures.empty : undefined));
     window.history.replaceState(null, "", "/book#milestones");
     const { user } = renderLiveSite();
     await screen.findByRole("heading", { level: 1, name: "Milestones" });
