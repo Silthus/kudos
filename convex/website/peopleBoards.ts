@@ -4,7 +4,7 @@ import { hoggiesOwnedBy } from "../album/hoggies/collection";
 import { hoggiesShownTo } from "../album/hoggies/flag";
 import type { DayKey } from "../engine/allowance";
 import { countingPrimaryGroupOf, groupsShownTo, primaryMembersOf } from "../groups/groups";
-import { ranking } from "../leaderboard/board";
+import { ranking, windowOf } from "../leaderboard/board";
 import { boardPeopleOf, peopleIn, type BoardPerson, type BoardViewer } from "../leaderboard/boards";
 import { fewestMembersListed } from "../leaderboard/groupsBoard";
 import { standingOf } from "../progression/progression";
@@ -41,7 +41,7 @@ export async function peopleBoardsOf(ctx: QueryCtx, viewer: BoardViewer, measure
 }
 
 async function peopleBoardOf(week: Week): Promise<PeopleBoard> {
-  const rows = shownOnly(await rowsOf(await rankedPeopleOf(week), figureOf(week)));
+  const rows = windowed(await rowsOf(await rankedPeopleOf(week), figureOf(week)));
   if (!isWeekly(week.measure) || rows.some(({ rank }) => rank !== null)) return { rows, lastWeek: null };
   return { rows, lastWeek: (await rowsOf(await lastWeeksPeopleOf(week), figureOf(week))).filter(({ rank }) => rank !== null).slice(0, lastWeekShown) };
 }
@@ -89,8 +89,10 @@ function rowOf({ member, name, picture, face, viewer }: BoardPerson, figure: num
   return { person: member, rank, ...companyTeammateOf(name, picture, face), figure, you: viewer };
 }
 
-function shownOnly(rows: PersonRow[]): PersonRow[] {
-  return rows.filter(({ rank, you }) => rank !== null || you);
+function windowed(rows: PersonRow[]): PersonRow[] {
+  const ranked = rows.filter(({ rank }) => rank !== null);
+  const shown = new Set(windowOf(ranked.length, ranked.findIndex(({ you }) => you) + 1));
+  return [...ranked.filter((_, index) => shown.has(index + 1)), ...rows.filter(({ rank, you }) => rank === null && you)];
 }
 
 function withPerson(people: BoardPerson[], person: BoardPerson | null): BoardPerson[] {

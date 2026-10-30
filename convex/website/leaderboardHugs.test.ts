@@ -252,6 +252,17 @@ describe("HH73: the People board ranks the chosen measure", () => {
     ]);
   });
 
+  test("a long board shows Leaderboard's window: the top three and the three around the member, with the member's row", async () => {
+    const crowd = await moreTeammates(12);
+    await thisWeek();
+    await thanks(alice, why, ...crowd);
+    for (const [index, person] of crowd.entries()) await atLevel(person, index + 2);
+    await atLevel(alice, 1);
+
+    expect(shown((await boardsOf(alice, "level")).people.rows).map(({ rank, figure, you }) => `${rank}:${figure}${you ? ":you" : ""}`)).toEqual(["1:13", "2:12", "3:11", "10:4", "11:3", "12:2", "13:1:you"]);
+    expect(shown((await boardsOf(alice, "kudosReceived")).people.rows).map(({ rank, you }) => `${rank}${you ? ":you" : ""}`)).toEqual(["1", "1", "1", "null:you"]);
+  });
+
   test("members who left the boards are on no board, their own view included", async () => {
     await thisWeek();
     await hugsOn(alice, bob);
@@ -461,6 +472,16 @@ async function owns(person: Person, hoggies: number) {
   await t.run(async (ctx) => {
     for (const [index, { hoggie }] of catalogue.hoggies.slice(0, hoggies).entries()) await ctx.db.insert("hoggieTallies", { member, hoggie, count: 1, firstAt: Date.now(), firstN: index + 1 });
   });
+}
+
+async function moreTeammates(count: number): Promise<Person[]> {
+  const crowd = Array.from({ length: count }, (_, index) => ({ user: `U_CROWD${String(index).padStart(2, "0")}`, name: `Crowd Member ${String(index).padStart(2, "0")}` }));
+  for (const person of crowd) {
+    slack.withMember(person.user, slackUserOf(person));
+    await memberChanged(t, "team_join", { id: person.user, ...slackUserOf(person) });
+  }
+  await settle(t);
+  return crowd;
 }
 
 async function leavesTheBoards(person: Person) {
