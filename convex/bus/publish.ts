@@ -26,6 +26,7 @@ export const subscribers: Registry = {
   ],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
   memberWelcomed: [internal.analytics.subscribers.recordMemberWelcomed],
+  memberGreeted: [internal.album.items.welcome.earnWelcomeItemOnGreeting],
   levelReached: [internal.unlocks.unlocks.makeReady, internal.album.levelUpHoggies.earnLevelUpHoggies, internal.feedback.publicReplies.celebrateLevel, internal.analytics.subscribers.recordLevelReached],
   xpRecorded: [internal.feedback.homes.refreshHomeOnXp],
   unlockReady: [internal.analytics.subscribers.recordUnlockReady],
