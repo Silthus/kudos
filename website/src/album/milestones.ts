@@ -3,6 +3,7 @@ import { stepNameOf, type MilestoneId } from "../../../convex/album/milestoneCat
 import type { ReachedTier } from "../../../convex/album/milestones";
 import type { LadderCard } from "../shell";
 import type { Album, AlbumEmoji, AlbumMilestone, MilestoneTierId } from "./answer";
+import { plural } from "./facts";
 
 type Tier = AlbumMilestone["tiers"][number];
 
@@ -82,4 +83,29 @@ export function medalEmojiOf(album: Album, { milestone, tier }: ReachedTier): Ti
   const listed = album.milestones.find(({ id }) => id === milestone);
   const step = listed?.tiers.find((reached) => reached.tier === tier);
   return listed === undefined || step === undefined ? null : tierEmojiOf(album, listed, step);
+}
+
+const howToGet: Record<MilestoneId, (toGo: number) => string> = {
+  people: (toGo) => `Give a kudos to ${plural(toGo, "person", "people")} you haven't thanked yet.`,
+  teams: (toGo) => `Collect everyone on ${plural(toGo, "more team", "more teams")}.`,
+  reach: (toGo) => `Give a kudos to someone on a team not in your album yet (${toGo} to go).`,
+  hoggies: (toGo) => `Find ${plural(toGo, "hoggie", "hoggies")} you don't have yet: hugs and kudos both find them.`,
+  thoughtful: (toGo) => `Give ${toGo} more kudos. Thanking the same person again counts.`,
+};
+
+export function howToGetWords(milestone: MilestoneId, toGo: number) {
+  return howToGet[milestone](toGo);
+}
+
+const hoggiePaid: Record<"capped" | "today", Record<MilestoneTierId, string>> = {
+  capped: { bronze: "An uncommon or rare hoggie", silver: "A rare hoggie", gold: "A rare hoggie", diamond: "A rare hoggie" },
+  today: { bronze: "An uncommon hoggie or rarer", silver: "A rare hoggie or rarer", gold: "An epic hoggie or rarer", diamond: "A legendary hoggie" },
+};
+
+export function hoggiePaidWords(tier: MilestoneTierId, rarityCaps: boolean) {
+  return hoggiePaid[rarityCaps ? "capped" : "today"][tier];
+}
+
+export function slackActionWords(milestone: MilestoneId) {
+  return milestone === "hoggies" ? "Hug a message in Slack" : "Give a kudos in Slack";
 }
