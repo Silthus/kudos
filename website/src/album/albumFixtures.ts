@@ -162,7 +162,7 @@ const midwayTray: TrayItem[] = [
 ];
 
 function boardItemFor(index: number, person: string): BoardItem {
-  return { item: `item-${index + 1}` as Id<"items">, earnedAt: now - (index + 1) * day, reason: { kind: "thanks", thanked: { name: nameOf(person), face: { kind: "initials", initials: initialsOf(person) } } } };
+  return { item: `item-${index + 1}` as Id<"items">, earnedAt: now - (index + 1) * day, reason: { kind: "thanks", person: person as Id<"members">, thanked: { name: nameOf(person), face: { kind: "initials", initials: initialsOf(person) } } } };
 }
 
 const waitingItems: ItemBoard = { items: ["cass-vey", "dov-esker", "rook-dale"].map((person, index) => boardItemFor(index, person)), more: false };
