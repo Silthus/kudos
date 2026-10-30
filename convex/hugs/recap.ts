@@ -13,7 +13,7 @@ import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/di
 import { settingsOf } from "../workspace/settings";
 import { workspaceUrlOf } from "../workspace/url";
 import { hugsOnAndExposedFor } from "./flag";
-import { awaitsTheMondayDm, type MostHugged, type HugWeek } from "./weeks";
+import { belongsToTheMondayDm, type MostHugged, type HugWeek } from "./weeks";
 
 export type RecapLine = string | { text: string; link: { url: string; label: string } };
 
@@ -24,8 +24,8 @@ export type HugsSection = { lines: RecapLine[]; closing: RecapLine[]; emojiLine:
 const dayMs = 24 * 60 * 60 * 1000;
 
 export async function hugsSectionFor(ctx: MutationCtx, member: MemberId, monday: DayKey): Promise<HugsSection | null> {
-  const week = await claimedForTheMondayDm(ctx, member, mondayBefore(monday));
-  return week !== null && (await recapWantedBy(ctx, member)) ? hugsSectionOf(ctx, week) : null;
+  const week = await hugWeekOf(ctx, member, mondayBefore(monday));
+  return week !== null && belongsToTheMondayDm(week) && (await recapWantedBy(ctx, member)) ? hugsSectionOf(ctx, week) : null;
 }
 
 export async function hugsSentInTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey) {
@@ -36,14 +36,6 @@ export async function hugsSentInTheMondayDm(ctx: MutationCtx, member: MemberId, 
 async function recapSentOf(ctx: QueryCtx, { workspace, member, week }: HugWeek) {
   const { given, received, givenXp, receivedXp } = await hugXpOf(ctx, member, week);
   return { workspace, member, given, received, xp: givenXp + receivedXp, via: "monday" as const, at: Date.now() };
-}
-
-async function claimedForTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey): Promise<HugWeek | null> {
-  const week = await hugWeekOf(ctx, member, monday);
-  if (week === null || week.recap === "monday-dm") return week;
-  if (!awaitsTheMondayDm(week)) return null;
-  await ctx.db.patch(week._id, { recap: "monday-dm" });
-  return week;
 }
 
 function hugWeekOf(ctx: QueryCtx, member: MemberId, week: DayKey) {

@@ -21,16 +21,16 @@ export async function countHugGiven(ctx: MutationCtx, hug: CountedHug) {
 
 export type HugWeeksPage = { weeks: HugWeek[]; next: string | null };
 
-export async function weeksAwaitingTheMondayDmSince(ctx: QueryCtx, since: DayKey, page: PaginationOptions): Promise<HugWeeksPage> {
+export async function weeksOfTheMondayDmSince(ctx: QueryCtx, since: DayKey, page: PaginationOptions): Promise<HugWeeksPage> {
   const { page: weeks, isDone, continueCursor } = await ctx.db
     .query("hugWeeks")
     .withIndex("by_week", (q) => q.gte("week", since))
     .paginate(page);
-  return { weeks: weeks.filter(awaitsTheMondayDm), next: isDone ? null : continueCursor };
+  return { weeks: weeks.filter(belongsToTheMondayDm), next: isDone ? null : continueCursor };
 }
 
-export function awaitsTheMondayDm({ recap, tries }: HugWeek): boolean {
-  return (recap === "waiting" || recap === "scheduled") && tries === 0;
+export function belongsToTheMondayDm({ recap, tries }: HugWeek): boolean {
+  return tries === 0 && (recap === "waiting" || recap === "scheduled" || recap === "monday-dm");
 }
 
 export async function weekOfPersonAt(ctx: QueryCtx, person: MemberId, at: number): Promise<DayKey> {
