@@ -1,31 +1,15 @@
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
-import { observedAction } from "../analytics/boundary";
 import type { RecapEmojiLine } from "../feedback/albumRecap";
 import type { Recap, RecapLine } from "../hugs/recap";
 import { settingsFooterText } from "./appHomeLinks";
 import { mrkdwn } from "./blocks";
 import type { ActionCtx } from "../_generated/server";
-import { attemptCall, isRefusedForItsBlocks, retryAfter, slackLink, tryAtMostThreeTimes } from "./delivery";
+import { observedAction } from "../analytics/boundary";
+import { attemptCall, isRefusedForItsBlocks, slackLink } from "./delivery";
 
-export const sendHugsRecap = observedAction({
-  args: { week: v.id("hugWeeks"), attempt: v.number() },
-  handler: async (ctx, { week, attempt }) => {
-    await tryAtMostThreeTimes(
-      attempt,
-      async (attempt) => {
-        const recap = await ctx.runMutation(internal.hugs.recap.startRecap, { week, attempt });
-        if (recap === null) return null;
-        const sent = await postRecap(ctx, recap);
-        if (sent.kind !== "delivered" && sent.kind !== "gone") return retryAfter(sent, attempt);
-        await ctx.runMutation(internal.hugs.recap.recapEnded, { week, attempt, sent: sent.kind === "delivered" });
-        return null;
-      },
-      (retry) => ctx.runMutation(internal.hugs.recap.recapLater, { week, attempt, retry }),
-      () => ctx.runMutation(internal.hugs.recap.recapEnded, { week, attempt, sent: false }),
-    );
-  },
-});
+const queuedBeforeTheMondayDmTookOver = { week: v.id("hugWeeks"), attempt: v.number() };
+
+export const sendHugsRecap = observedAction({ args: queuedBeforeTheMondayDmTookOver, handler: async () => {} });
 
 const mostPicturesInALine = 9;
 

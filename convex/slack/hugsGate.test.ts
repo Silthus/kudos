@@ -273,7 +273,7 @@ async function walkIn(backend: Backend) {
   await reaction({ user: carol.user, itemUser: dana.user, ts: danasMessage, reaction: "tada" });
   await thanks(carol, "Thanks for pairing on the flaky deploy", bob);
   for (const { user } of members) await openHome(user);
-  await theRecapSweepRuns();
+  await theMondayDmSweepRuns();
   await settleUpTo(t, mondayAfter);
   phase = mondayAfter;
   steps = 0;
@@ -424,9 +424,9 @@ async function settingsTabOf(user: string) {
   return withStableIds(publishedHome(slack, user));
 }
 
-async function theRecapSweepRuns() {
-  const job = crons.crons["schedule each member's weekly hugs recap"];
-  if (job === undefined) throw new Error("no cron job schedules each member's weekly hugs recap");
+async function theMondayDmSweepRuns() {
+  const job = crons.crons["ensure each member's coming Monday DM"];
+  if (job === undefined) throw new Error("no cron job ensures each member's coming Monday DM");
   nextStep();
   await t.mutation(makeFunctionReference<"mutation">(job.name), {});
   await settled();
