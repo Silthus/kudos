@@ -361,13 +361,14 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
   });
 
   it("HH92: this week's Leaderboard sends its view as one viewLeaderboard with the measure over HTTP with the session's token", async () => {
-    showTheAlbum({ ...albumV1, leaderboardHugs: true }, (query) => (query === "website/leaderboard:getBoards" ? hugBoardsFixtures.lively : undefined));
+    const reads: Record<string, unknown> = { "website/leaderboard:getBoards": hugBoardsFixtures.lively, "website/xpMoment:getXpMoment": { kind: "none", lastVisit: null } };
+    showTheAlbum({ ...albumV1, leaderboardHugs: true }, (query) => reads[query]);
     sentOverHttp.mockResolvedValue({ kind: "viewed" });
     window.history.replaceState(null, "", "/leaderboard");
 
     renderLiveSite();
 
-    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:viewLeaderboard", args: { measure: "hugsGiven" } }));
+    await waitFor(() => expect(sentOverHttp.mock.calls.filter(([sent]) => sent.mutation === "website/album:viewLeaderboard")).toEqual([[{ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:viewLeaderboard", args: { measure: "hugsGiven" } }]]));
   });
 
   it("E2: a Leaderboard view the network drops is let go, leaving no unhandled rejection", async () => {

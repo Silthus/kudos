@@ -6,7 +6,8 @@ import { boardsFixtures, fixedBoards } from "../album/boardsFixtures";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
-import type { HugBoardsShown } from "../album/answer";
+import type { Album, HugBoardsShown, XpMomentRead, XpMomentShown } from "../album/answer";
+import { xpMomentFixture } from "../album/xpMomentFixtures";
 import { byHoggies, byKudosReceived, byLevel, fixedHugBoards, hugBoardsFixtures, junosKudos, nextSteps, offTheBoards, slackOfTheWorkspace, withinReach } from "./thisWeekFixtures";
 
 const arrival = { timeout: 10_000 };
@@ -18,10 +19,10 @@ beforeEach(() => {
 
 type Measured = (measure: HugMeasure) => HugBoardsShown | undefined;
 
-function visit(boards: HugBoards | Measured = hugBoardsFixtures.lively, { leaderboardHugs = true, shown = albumFixtures.midway } = {}) {
+function visit(boards: HugBoards | Measured = hugBoardsFixtures.lively, { leaderboardHugs = true, shown = albumFixtures.midway, xpMoment }: { leaderboardHugs?: boolean; shown?: Album; xpMoment?: XpMomentRead } = {}) {
   window.history.replaceState(null, "", "/leaderboard");
   const album = leaderboardHugs ? { ...shown, leaderboardHugs: true as const } : shown;
-  return renderAlbum(shellFixtures.member, fixedAlbum(album), { hugBoards: fixedHugBoards(boards), boards: fixedBoards(boardsFixtures.week) });
+  return renderAlbum(shellFixtures.member, fixedAlbum(album), { hugBoards: fixedHugBoards(boards), boards: fixedBoards(boardsFixtures.week), xpMoment });
 }
 
 async function board(name: string) {
@@ -118,6 +119,22 @@ describe("HH92: the page records leaderboard viewed with its measure", { timeout
 
     expect(measuresViewed(actions)).toEqual([]);
     await user.click(items.getByRole("button", { name: "Later" }));
+
+    await waitFor(() => expect(measuresViewed(actions)).toEqual(["hugsGiven"]));
+  });
+
+  it("records nothing while the XP moment since the last visit is still read or plays, and one view once it is skipped", async () => {
+    let moment: XpMomentShown | undefined;
+    const returning = { ...albumFixtures.midway, level: xpMomentFixture.climb.to, lastVisit: xpMomentFixture.since };
+    const { actions, user, showVisitor } = visit(onEachMeasure, { shown: returning, xpMoment: (asking) => (asking ? moment : undefined) });
+    await youCard();
+
+    expect(measuresViewed(actions), "while the moment is read").toEqual([]);
+    moment = xpMomentFixture;
+    act(() => showVisitor({ ...shellFixtures.member }));
+    const skip = await screen.findByRole("button", { name: "Skip" }, arrival);
+    expect(measuresViewed(actions), "while it plays").toEqual([]);
+    await user.click(skip);
 
     await waitFor(() => expect(measuresViewed(actions)).toEqual(["hugsGiven"]));
   });

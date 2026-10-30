@@ -118,7 +118,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     missedXpMoment.start();
     turns.show();
   };
-  const inSight = !(playing || covered || anEntryIsOpen);
+  const inSight = !(playing || covered || sinceTheLastVisit.waits || anEntryIsOpen);
   const shellQuests = shellQuestsOf(quests, { inSight, openBoard: turns.show, landing: questsLanding, viewQuests });
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place));
   useUnlockedFocusAfterTheMoment(moment !== null);
