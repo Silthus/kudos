@@ -22,7 +22,7 @@ type ActivityAnswerProps = { week: ActivityWeekShown | undefined; edition: WeekE
 
 export function ActivityAnswerPage({ week, edition, quests, me, inSight, onViewed, ...answers }: ActivityAnswerProps) {
   if (week === undefined || week.kind === "off") return <LoadingPage shape="column" />;
-  if (week.kind === "week") return <YourWeekPage week={week} quests={mondayQuestsIn(quests)} me={me} inSight={inSight} onViewed={onViewed} />;
+  if (week.kind === "week") return <YourWeekPage week={week} quests={mondayQuestsIn(quests)} inSight={inSight} onViewed={onViewed} />;
   if (week.kind !== "edition") return <AnswerPage answer={week} {...answers} />;
   return <WeeklyEditionAnswerPage edition={edition} me={me} {...answers} />;
 }

@@ -3,12 +3,13 @@ import type { LoopLesson, NextStep } from "../../../convex/website/activity";
 import { firstNameOf } from "../album/teamPage";
 import { NamedEmoji } from "../Emoji";
 import { SlackLink } from "../SlackLink";
+import { HugPicture } from "./HugPicture";
 
 type StepShown = { title: string; why: ReactNode; button: string; href: string };
 
-type NextStepCardProps = { step: NextStep; kudos: LoopLesson; slack: string; picture: ReactNode };
+type NextStepCardProps = { step: NextStep; kudos: LoopLesson; slack: string };
 
-export function NextStepCard({ step, kudos, slack, picture }: NextStepCardProps) {
+export function NextStepCard({ step, kudos, slack }: NextStepCardProps) {
   const { title, why, button, href } = stepShownOf(step, <NamedEmoji name={kudos.kudosEmoji} image={kudos.kudosEmojiImage ?? undefined} />, slack);
   return (
     <section className="al-next-step" aria-label="Your next step">
@@ -20,7 +21,7 @@ export function NextStepCard({ step, kudos, slack, picture }: NextStepCardProps)
           {button}
         </SlackLink>
       </div>
-      {picture}
+      <HugPicture step={step} kudos={kudos} />
     </section>
   );
 }

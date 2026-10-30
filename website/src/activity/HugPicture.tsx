@@ -10,8 +10,8 @@ const sampleTime = "10:42";
 
 const timeOfDay = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
-export function HugPicture({ step, kudos, me }: { step: NextStep; kudos: LoopLesson; me: string }) {
-  const { sender, at, words } = drawingOf(step, me);
+export function HugPicture({ step, kudos }: { step: NextStep; kudos: LoopLesson }) {
+  const { sender, at, words } = drawingOf(step);
   return (
     <div className="al-hug-picture" aria-hidden="true">
       <SlackMessage sender={sender} at={at}>
@@ -22,10 +22,10 @@ export function HugPicture({ step, kudos, me }: { step: NextStep; kudos: LoopLes
   );
 }
 
-function drawingOf(step: NextStep, me: string): Drawing {
+function drawingOf(step: NextStep): Drawing {
   switch (step.kind) {
     case "thanked":
-      return { sender: step.giver, at: timeOfDay.format(step.at), words: <KudosMessage message={step.words} look="slack" me={{ person: me }} /> };
+      return { sender: step.giver, at: timeOfDay.format(step.at), words: <KudosMessage message={step.words} look="slack" /> };
     case "empty":
       return { sender: sampleTeammate("Alex Lee"), at: sampleTime, words: "Shipped the fix for the flaky deploy, should be green now." };
     case "quiet":
