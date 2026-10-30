@@ -6,7 +6,7 @@ import { memberChanged, react, settle, setWorkspaceSettings, testBackend, type B
 import { internal } from "../_generated/api";
 import type { HypeReactedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
-import { nudgesFor } from "./hypeReactions";
+import { mostHypeReactionsRead, nudgesFor } from "./hypeReactions";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
@@ -74,12 +74,28 @@ describe("HH22 HH58: Album keeps the hype reactions and answers the nudges from 
     expect(await nudgesOf("U_BOB")).toEqual([{ person: carol, emoji: "carol-hype", reactions: 1 }]);
   });
 
-  test("a hype reaction on someone else's message is kept but names nobody", async () => {
+  test("between owners with as many reactions, a reaction delivered late still ranks by when it was given", async () => {
+    const carol = await hypeEmojiOf("U_CAROL", "carol-hype");
+    const dana = await hypeEmojiOf("U_DANA", "dana-hype");
+    const bob = await aMember("U_BOB");
+
+    await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: hypeReacted(bob, dana, "dana-hype", now.getTime() + 2 * minuteMs) });
+    await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: hypeReacted(bob, carol, "carol-hype", now.getTime() + minuteMs) });
+
+    expect(await nudgesOf("U_BOB")).toEqual([
+      { person: dana, emoji: "dana-hype", reactions: 1 },
+      { person: carol, emoji: "carol-hype", reactions: 1 },
+    ]);
+  });
+
+  test("a hype reaction on someone else's message is kept once but names nobody", async () => {
     await hypeEmojiOf("U_CAROL", "carol-hype");
 
-    await hypeReaction({ user: "U_BOB", reaction: "carol-hype", itemUser: "U_ALICE" });
+    const reacted = await hypeReaction({ user: "U_BOB", reaction: "carol-hype", itemUser: "U_ALICE" });
+    await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: reacted });
 
     expect(await nudgesOf("U_BOB")).toEqual([]);
+    expect(await keptRowsOf("U_BOB"), "the rows kept for collecting by reactions").toEqual([{ owner: reacted.owner, author: reacted.author, emoji: "carol-hype", message: reacted.message.message }]);
   });
 
   test("the nudges are the reacting member's own", async () => {
@@ -126,6 +142,19 @@ describe("HH22 HH58: Album keeps the hype reactions and answers the nudges from 
     expect(await nudgesOf("U_BOB")).toEqual([{ person: dana, emoji: "dana-cheers", reactions: 1 }]);
   });
 
+  test("the answer counts only the member's newest reactions, so an owner reacted to only before them is left out", async () => {
+    const carol = await hypeEmojiOf("U_CAROL", "carol-hype");
+    const dana = await hypeEmojiOf("U_DANA", "dana-hype");
+    const bob = await aMember("U_BOB");
+
+    await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: hypeReacted(bob, carol, "carol-hype", now.getTime() - minuteMs) });
+    for (let reaction = 0; reaction < mostHypeReactionsRead; reaction += 1) {
+      await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: hypeReacted(bob, dana, "dana-hype", now.getTime() + reaction) });
+    }
+
+    expect(await nudgesOf("U_BOB")).toEqual([{ person: dana, emoji: "dana-hype", reactions: mostHypeReactionsRead }]);
+  });
+
   test("the answer names at most as many teammates as asked", async () => {
     const carol = await hypeEmojiOf("U_CAROL", "carol-hype");
     await hypeEmojiOf("U_DANA", "dana-hype");
@@ -150,6 +179,26 @@ async function hypeReaction(options: { user: string; reaction: string; itemUser:
   const author = await memberOf(options.itemUser);
   const owner = await ownerOf(options.reaction.split("::")[0]!);
   return { type: "hypeReacted", workspace: "T1", giver, owner, author, emoji: options.reaction.split("::")[0]!, message: { workspace: "T1", conversation: "C1", message: ts }, at: Date.now() };
+}
+
+function hypeReacted(giver: MemberId, owner: MemberId, emoji: string, at: number): HypeReactedEvent {
+  messages += 1;
+  return { type: "hypeReacted", workspace: "T1", giver, owner, author: owner, emoji, message: { workspace: "T1", conversation: "C1", message: `${at / 1000}.${String(messages).padStart(6, "0")}` }, at };
+}
+
+async function keptRowsOf(user: string) {
+  const giver = await memberOf(user);
+  const rows = await t.run((ctx) =>
+    ctx.db
+      .query("hypeReactions")
+      .withIndex("by_giver_at", (q) => q.eq("giver", giver))
+      .collect(),
+  );
+  return rows.map(({ owner, author, emoji, message }) => ({ owner, author, emoji, message }));
+}
+
+async function aMember(user: string): Promise<MemberId> {
+  return t.run(async (ctx) => ctx.db.insert("members", { workspace: "T1", user, kind: "member" }));
 }
 
 async function nudgesOf(user: string, most = everyNudge) {

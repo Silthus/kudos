@@ -11,7 +11,7 @@ type HypeReaction = Doc<"hypeReactions">;
 
 type ReactedOwner = { workspace: string; owner: MemberId; reactions: number };
 
-const mostHypeReactionsRead = 500;
+export const mostHypeReactionsRead = 500;
 
 export const keepHypeReaction = internalMutation({
   args: { event: hypeReactedEventValidator },
@@ -43,7 +43,7 @@ async function isKept(ctx: MutationCtx, { giver, owner, message }: HypeReactedEv
 function newestHypeReactionsBy(ctx: QueryCtx, giver: MemberId): Promise<HypeReaction[]> {
   return ctx.db
     .query("hypeReactions")
-    .withIndex("by_giver", (q) => q.eq("giver", giver))
+    .withIndex("by_giver_at", (q) => q.eq("giver", giver))
     .order("desc")
     .take(mostHypeReactionsRead);
 }

@@ -637,7 +637,7 @@ export default defineSchema({
 
   talliedHugs: defineTable(talliedHugValidator).index("by_hug_person", ["hug", "person"]),
 
-  hypeReactions: defineTable(hypeReactionValidator).index("by_giver", ["giver"]).index("by_giver_owner_message", ["giver", "owner", "conversation", "message"]),
+  hypeReactions: defineTable(hypeReactionValidator).index("by_giver_at", ["giver", "at"]).index("by_giver_owner_message", ["giver", "owner", "conversation", "message"]),
 
   teamPageCompletions: defineTable(teamPageCompletionValidator).index("by_member_team", ["member", "team"]),
 
