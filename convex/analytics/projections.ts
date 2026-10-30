@@ -78,6 +78,7 @@ export type ProductEvent = {
     | "dm sent"
     | "dm link clicked"
     | "quests viewed"
+    | "activity viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
@@ -97,7 +98,8 @@ export type UsageFact =
   | { kind: "howItWorksClosed"; workspace: string; member: MemberId; triedSlack: boolean; at: number }
   | { kind: "dmSent"; workspace: string; member: MemberId; dm: SentDm; at: number }
   | { kind: "dmLinkClicked"; workspace: string; member: MemberId; dm: DmKind; destination: DmLinkDestination; at: number }
-  | { kind: "questsViewed"; workspace: string; member: MemberId; surface: QuestsSurface; at: number };
+  | { kind: "questsViewed"; workspace: string; member: MemberId; surface: QuestsSurface; at: number }
+  | { kind: "activityViewed"; workspace: string; member: MemberId; state: ActivityState; at: number };
 
 export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: MondayDmSection[] };
 
@@ -116,6 +118,10 @@ export type HugsRecapCarrier = Infer<typeof hugsRecapCarrierValidator>;
 export const questsSurfaceValidator = v.union(v.literal("panel"), v.literal("profile"));
 
 export type QuestsSurface = Infer<typeof questsSurfaceValidator>;
+
+export const activityStateValidator = v.union(v.literal("thanked"), v.literal("empty"), v.literal("quiet"));
+
+export type ActivityState = Infer<typeof activityStateValidator>;
 
 export type PickSurface = "welcome" | "settings" | "website";
 
@@ -330,6 +336,8 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "dm link clicked", subject, at: fact.at, properties: { kind: fact.dm, destination: fact.destination } };
     case "questsViewed":
       return { event: "quests viewed", subject, at: fact.at, properties: { surface: fact.surface } };
+    case "activityViewed":
+      return { event: "activity viewed", subject, at: fact.at, properties: { state: fact.state } };
   }
 }
 
