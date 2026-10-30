@@ -47,6 +47,19 @@ describe("HH27: the backfill counts the kudos and hugs that came before Leaderbo
     expect(await everyCount(t)).toEqual(counted);
   });
 
+  test("the teammates who thanked someone in a week come back for kudos and hugs counted before they were noted, and running it again adds none", async () => {
+    const t = await workspaceWithKudosAndHugs();
+    const thankers = await everyThanker(t);
+
+    await asBeforeThankersWereNoted(t);
+    expect(await everyThanker(t)).toEqual([]);
+    await countEarlierRecognitions(t);
+    expect(await everyThanker(t)).toEqual(thankers);
+
+    await countEarlierRecognitions(t);
+    expect(await everyThanker(t)).toEqual(thankers);
+  });
+
   test("a kudos or hug the followers already counted counts once", async () => {
     const t = await workspaceWithKudosAndHugs();
     const counted = await everyCount(t);
@@ -123,6 +136,16 @@ async function everyCount(t: Backend) {
 
 function sortedByMember<Row extends { member: MemberId }>(rows: Row[]) {
   return rows.toSorted((one, other) => JSON.stringify(one).localeCompare(JSON.stringify(other)));
+}
+
+async function everyThanker(t: Backend) {
+  return t.run(async (ctx) => sortedByMember((await ctx.db.query("weekThankers").collect()).map(({ _id, _creationTime, ...row }) => row)));
+}
+
+async function asBeforeThankersWereNoted(t: Backend) {
+  await t.run(async (ctx) => {
+    for (const { _id } of await ctx.db.query("weekThankers").collect()) await ctx.db.delete(_id);
+  });
 }
 
 async function asBeforeLeaderboardCountedThem(t: Backend) {

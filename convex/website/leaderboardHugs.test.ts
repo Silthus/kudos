@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
+import { firstHypeEmojiNameFor } from "../album/emojiNames";
 import { catalogue } from "../album/hoggies/catalogue";
 import { xpToReach } from "../progression/levels";
-import type { HugBoardsRead, HugMeasure, Highlight, PersonRow, JoiningTeam, Tallies } from "./leaderboard";
+import { allowanceRange, hugBudgetRange } from "../workspace/settingsBounds";
+import type { BoardsNextStep, HugBoardsRead, HugMeasure, Highlight, PersonRow, JoiningTeam, Tallies, WithinReach } from "./leaderboard";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
@@ -20,6 +23,7 @@ const dana = { user: "U_DANA", name: "Dana Ferreira" };
 const kiri = { user: "U_KIRI", name: "Kiri Tamaki", tz: "Pacific/Kiritimati" };
 const people: Person[] = [alice, bob, carol, dana, kiri];
 const why = "Thanks for untangling the flaky migration";
+const workspaceUrl = "https://kudos-test.slack.com/";
 const websiteFlags = ["album", "everyone-board", "hugs", "collection", "packs", "groups"];
 
 type Person = { user: string; name: string; tz?: string };
@@ -29,6 +33,7 @@ type Shown = Pick<PersonRow, "name" | "rank" | "figure" | "you">;
 type Joining = Pick<JoiningTeam, "name" | "joined" | "of" | "standing" | "mine">;
 
 let postHog: FakePostHog;
+let postHogCom: FakePostHogCom;
 let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
@@ -38,11 +43,12 @@ beforeEach(async () => {
   aDeploymentForWorkspace();
   messages = 0;
   postHog = new FakePostHog();
-  slack = new FakeSlack();
+  postHogCom = new FakePostHogCom();
+  slack = new FakeSlack().withWorkspaceUrl(workspaceUrl);
   for (const person of people) slack.withMember(person.user, slackUserOf(person));
-  vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slack.fetch(input, init))));
   t = testBackend();
-  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 200 }));
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", url: workspaceUrl, kudosEmoji: "taco", baseAllowance: 200 }));
   await leaderboardHugs(true);
   for (const person of people) {
     await memberChanged(t, "team_join", { id: person.user, ...slackUserOf(person) });
@@ -518,6 +524,143 @@ describe("HH76 HH77: teams joining in", () => {
   });
 });
 
+describe("HH72: one next step beside the you card", () => {
+  test("a member who gave this week is asked to give a kudos to the first teammate nudgesFor names, collecting their hype emoji", async () => {
+    await thisWeek();
+    await thanks(alice, why, bob);
+    await hypeReactsTo(carol, bob);
+    await hugsOn(carol, dana);
+    await hugsOn(carol, dana);
+
+    expect((await boardsOf(carol)).next).toEqual<BoardsNextStep>({ kind: "lively", teammate: await faceOf(bob), collectsHype: true, epicHoggiesByKudos: false });
+  });
+
+  test("without a nudge, it names the teammate the member hugged or thanked most this week, and a teammate without a hype emoji collects none", async () => {
+    await lastWeek();
+    for (let kudos = 0; kudos < 3; kudos += 1) await thanks(carol, why, kiri);
+    await thisWeek();
+    await hugsOn(carol, dana);
+    await thanks(carol, why, dana);
+    await thanks(carol, why, bob);
+
+    expect((await boardsOf(carol)).next).toEqual<BoardsNextStep>({ kind: "lively", teammate: await faceOf(dana), collectsHype: false, epicHoggiesByKudos: false });
+  });
+
+  test("the teammate thanked most counts the whole week, however many teammates were thanked since", { timeout: 60_000 }, async () => {
+    await withTheLargestSettings();
+    const crowd = await moreTeammates(allowanceRange.most * 5);
+    await thisWeek();
+    await thanks(carol, why, dana);
+    await thanks(carol, why, dana);
+    for (let day = 0; day < 5; day += 1) {
+      vi.setSystemTime(Date.now() + dayMs);
+      await thanks(carol, why, ...crowd.slice(day * allowanceRange.most, (day + 1) * allowanceRange.most));
+    }
+
+    expect((await boardsOf(carol)).next).toMatchObject({ kind: "lively", teammate: { name: dana.name } });
+  });
+
+  test("the teammate hugged most counts the whole week, however many hugs were given since", { timeout: 120_000 }, async () => {
+    await withTheLargestSettings();
+    const crowd = await moreTeammates(60);
+    await thisWeek();
+    for (let hug = 0; hug < 3; hug += 1) await hugsOn(carol, dana);
+    for (let day = 0; day < 3; day += 1) {
+      vi.setSystemTime(Date.now() + dayMs);
+      for (let hug = 0; hug < 40; hug += 1) await hugsOn(carol, crowd[(day * 40 + hug) % crowd.length]!);
+    }
+
+    expect((await boardsOf(carol)).next).toMatchObject({ kind: "lively", teammate: { name: dana.name } });
+  });
+
+  test("it says the kudos collects the teammate's hype emoji only while the member doesn't hold it yet", async () => {
+    await thisWeek();
+    await thanks(alice, why, bob);
+    await hugsOn(carol, bob);
+    expect((await boardsOf(carol)).next, "before carol holds it").toMatchObject({ kind: "lively", teammate: { name: bob.name }, collectsHype: true });
+
+    await thanks(carol, why, bob);
+
+    expect((await boardsOf(carol)).next, "once carol holds it").toMatchObject({ kind: "lively", teammate: { name: bob.name }, collectsHype: false });
+  });
+
+  test("while rarity-caps is on for the member, it says kudos are the only way to epic hoggies", async () => {
+    await thisWeek();
+    await hugsOn(carol, dana);
+    await switchWebsite(t, postHog, true, ...websiteFlags, "leaderboard-hugs", "rarity-caps");
+
+    expect((await boardsOf(carol)).next).toMatchObject({ kind: "lively", epicHoggiesByKudos: true });
+  });
+
+  test("a member who gave nothing this week is asked to hug back a kudos they got that they can still hug, as Activity's thanked step", async () => {
+    await lastWeek();
+    await hugsOn(alice, carol);
+    await thisWeek();
+    const kudos = await thanks(bob, why, alice);
+
+    expect((await boardsOf(alice)).next).toEqual<BoardsNextStep>({ kind: "quiet", giver: await faceOf(bob), permalink: permalinkOf(kudos), at: atOf(kudos) });
+  });
+
+  test("giving this week comes before a kudos to hug back", async () => {
+    await thisWeek();
+    await thanks(bob, why, alice);
+    await hugsOn(alice, dana);
+
+    expect((await boardsOf(alice)).next).toMatchObject({ kind: "lively", teammate: { name: dana.name } });
+  });
+
+  test("everyone else is asked for the first hug of the week, which pays extra XP only while hug rewards show to them", async () => {
+    await thisWeek();
+    expect((await boardsOf(alice)).next, "hug-rewards off").toEqual<BoardsNextStep>({ kind: "empty", firstHugPaysExtra: false });
+
+    await switchWebsite(t, postHog, true, ...websiteFlags, "leaderboard-hugs", "hug-rewards");
+
+    expect((await boardsOf(alice)).next, "hug-rewards on").toEqual<BoardsNextStep>({ kind: "empty", firstHugPaysExtra: true });
+  });
+
+  test("the answer carries the workspace's Slack link for the step's button", async () => {
+    await thisWeek();
+
+    expect((await boardsOf(alice)).slack).toBe("https://app.slack.com/client/T1");
+  });
+});
+
+describe("HH78: emojis within your reach", () => {
+  test("the first teammate nudgesFor names brings their hype emoji, one kudos away", async () => {
+    await thisWeek();
+    await thanks(alice, why, bob);
+    await hypeReactsTo(carol, bob);
+
+    expect((await boardsOf(carol)).withinReach.hype).toEqual<WithinReach["hype"]>({ person: await faceOf(bob), emoji: { name: firstHypeEmojiNameFor(bob.name), picture: expect.any(String), inSlack: false }, progress: { have: 0, need: 1 } });
+    expect((await boardsOf(dana)).withinReach.hype, "without a nudge").toBeNull();
+  });
+
+  test("the member's team emoji shows the stickers to go while the team page is still collecting", async () => {
+    await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(alice, bob, carol, dana) });
+    await thisWeek();
+    await aliceCollects(bob);
+
+    expect((await boardsOf(alice)).withinReach.team).toEqual<WithinReach["team"]>({ teamName: "Otters", emoji: { name: "team-otters", picture: expect.any(String), inSlack: false }, progress: { have: 1, need: 3 } });
+    expect((await boardsOf(kiri)).withinReach.team, "without a team page of their own").toBeNull();
+
+    await aliceCollects(carol, dana);
+
+    expect((await boardsOf(alice)).withinReach.team, "every sticker collected").toBeNull();
+  });
+
+  test("the next level emoji shows the XP to go, and none past the last one", async () => {
+    await thisWeek();
+    await thanks(bob, why, carol);
+    await atLevel(alice, 3);
+
+    expect((await boardsOf(alice)).withinReach.level).toEqual<WithinReach["level"]>({ level: 5, emoji: { name: "level-5", picture: expect.any(String), inSlack: false }, progress: { have: xpToReach(3), need: xpToReach(5) } });
+
+    await atLevel(alice, 25);
+
+    expect((await boardsOf(alice)).withinReach.level).toBeNull();
+  });
+});
+
 async function leaderboardHugs(on: boolean) {
   await switchWebsite(t, postHog, true, ...websiteFlags, ...(on ? ["leaderboard-hugs"] : []));
 }
@@ -577,7 +720,7 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
 
 async function hugs(giver: Person, author: Person, ts: string) {
   messages += 1;
-  await react(t, { user: giver.user, itemUser: author.user, ts, eventId: `EvHug${messages}` });
+  await react(t, { user: giver.user, itemUser: author.user, ts, eventId: `EvHug${messages}`, eventTs: `${Math.floor(Date.now() / 1000)}.999999` });
   await settle(t);
 }
 
@@ -620,8 +763,20 @@ async function owns(person: Person, hoggies: number) {
   });
 }
 
+function withTheLargestSettings() {
+  const largest = { baseAllowance: allowanceRange.most, hugBudget: hugBudgetRange.most };
+  return t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("workspaces")
+      .withIndex("by_workspace", (q) => q.eq("workspace", "T1"))
+      .unique();
+    if (row === null) await ctx.db.insert("workspaces", { workspace: "T1", ...largest });
+    else await ctx.db.patch(row._id, largest);
+  });
+}
+
 async function moreTeammates(count: number): Promise<Person[]> {
-  const crowd = Array.from({ length: count }, (_, index) => ({ user: `U_CROWD${String(index).padStart(2, "0")}`, name: `Crowd Member ${String(index).padStart(2, "0")}` }));
+  const crowd = Array.from({ length: count }, (_, index) => ({ user: `U_CROWD${String(index).padStart(3, "0")}`, name: `Crowd Member ${String(index).padStart(3, "0")}` }));
   for (const person of crowd) {
     slack.withMember(person.user, slackUserOf(person));
     await memberChanged(t, "team_join", { id: person.user, ...slackUserOf(person) });
@@ -657,4 +812,45 @@ function joining({ joiningIn }: Boards): Joining[] {
 
 function exposuresOf(flag: string) {
   return t.run(async (ctx) => (await ctx.db.query("flagExposures").collect()).filter((exposure) => exposure.flag === flag).map(({ value }) => value));
+}
+
+async function hypeReactsTo(giver: Person, owner: Person) {
+  const ts = await said(owner, "A message worth a hype");
+  messages += 1;
+  await react(t, { user: giver.user, itemUser: owner.user, ts, reaction: firstHypeEmojiNameFor(owner.name), eventId: `EvHype${messages}` });
+  await settle(t);
+}
+
+async function faceOf(person: Person) {
+  const [row] = (await boardsOf(person, "level")).people.rows.filter(({ you }) => you);
+  return { person: row!.person, name: row!.name, face: row!.face };
+}
+
+function permalinkOf(ts: string) {
+  return `${workspaceUrl}archives/C1/p${ts.replace(".", "")}`;
+}
+
+function atOf(ts: string) {
+  return Number(ts.split(".")[0]) * 1000;
+}
+
+async function theCompanyCopyHolds(...teams: TeamPage[]) {
+  postHogCom.withTeams(...teams);
+  await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+  await settle(t);
+}
+
+function profilesOf(...members: Person[]): TeamPage["profiles"] {
+  return members.map(({ name }) => {
+    const [firstName, lastName] = name.split(" ") as [string, string];
+    return { id: people.findIndex((someone) => someone.name === name) + 1, firstName, lastName, colour: "teal" };
+  });
+}
+
+async function aliceCollects(...collected: Person[]) {
+  await thanks(alice, why, ...collected);
+  const asAlice = await signedIn(alice);
+  await openEveryPack(asAlice);
+  for (let placed = await asAlice.mutation(api.website.album.putAllIn, {}); placed.kind === "placed" && placed.more; ) placed = await asAlice.mutation(api.website.album.putAllIn, {});
+  await settle(t);
 }
