@@ -89,6 +89,7 @@ import type * as album_teamStickers from "../album/teamStickers.js";
 import type * as album_thoughtfulGivers from "../album/thoughtfulGivers.js";
 import type * as album_weekIssue from "../album/weekIssue.js";
 import type * as album_weekKudos from "../album/weekKudos.js";
+import type * as album_weekThanks from "../album/weekThanks.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_browser from "../analytics/browser.js";
 import type * as analytics_capture from "../analytics/capture.js";
@@ -495,6 +496,7 @@ declare const fullApi: ApiFromModules<{
   "album/thoughtfulGivers": typeof album_thoughtfulGivers;
   "album/weekIssue": typeof album_weekIssue;
   "album/weekKudos": typeof album_weekKudos;
+  "album/weekThanks": typeof album_weekThanks;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/browser": typeof analytics_browser;
   "analytics/capture": typeof analytics_capture;

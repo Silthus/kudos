@@ -9,6 +9,7 @@ import type { ForgeAnswer, ForgeOffered, ItemBoard, LoopLesson, PetAnswer } from
 import type { GettingStarted, HowItWorksCard } from "../../../convex/website/onboarding";
 import type { Denial } from "../../../convex/website/memberQuery";
 import type { XpMomentAnswer } from "../../../convex/website/xpMoment";
+import type { HugBoardsAnswer } from "../../../convex/website/leaderboard";
 import type { QuestsAnswer } from "../../../convex/website/quests";
 import type { AppliedReward } from "../../../convex/progression/rewards";
 import type { TeamArt } from "../crates/TeamCrest";
@@ -69,6 +70,7 @@ export type Album = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
+  leaderboardHugs?: true;
 };
 
 export type AlbumAnswer = { kind: "off" } | Album;
@@ -110,6 +112,10 @@ export type ThoughtfulBoards = { kind: "boards"; people: BoardPerson[]; teams: B
 export type BoardsShown = ThoughtfulBoards | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type BoardPeriod = "week" | "last-week" | "month" | "all";
+
+export type HugBoardsShown = HugBoardsAnswer | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type HugBoardsRead = (asking: boolean) => HugBoardsShown | undefined;
 
 export type BoardsRead = (asking: boolean, period: BoardPeriod) => BoardsShown | undefined;
 

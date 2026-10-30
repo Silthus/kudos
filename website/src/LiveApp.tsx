@@ -9,7 +9,7 @@ import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
-import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, LevelUpShown, PersonShown, PlayerCardReads, ProfileShown, QuestsShown, WeekShown, XpMomentShown } from "./album/answer";
+import type { AlbumShown, BoardPeriod, BoardsShown, HoggiesShown, HugBoardsShown, LevelUpShown, PersonShown, PlayerCardReads, ProfileShown, QuestsShown, WeekShown, XpMomentShown } from "./album/answer";
 import { albumOf, openShown, putAllInShown, putInShown } from "./album/liveAlbum";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
@@ -50,6 +50,7 @@ function LiveApp() {
       useAppEmojis={(asking) => useLiveAppEmojis(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking, period) => useLiveThoughtfulBoards(asking, period, unreachable)}
+      useHugBoards={(asking) => useLiveHugBoards(asking, unreachable)}
       useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
       useAlbumProfile={(asking) => useLiveAlbumProfile(asking, unreachable)}
@@ -72,6 +73,14 @@ function useLiveAlbum(asking: boolean, unreachable: boolean): AlbumShown | undef
 
 function useLiveThoughtfulBoards(asking: boolean, period: BoardPeriod, unreachable: boolean): BoardsShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.album.getThoughtfulBoards, args: period === "week" ? {} : { period } } } : {}), [asking, period]);
+  const { boards } = useQueries(request);
+  if (boards instanceof Error) return { kind: "broken" };
+  if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return boards;
+}
+
+function useLiveHugBoards(asking: boolean, unreachable: boolean): HugBoardsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { boards: { query: api.website.leaderboard.getBoards, args: {} } } : {}), [asking]);
   const { boards } = useQueries(request);
   if (boards instanceof Error) return { kind: "broken" };
   if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;

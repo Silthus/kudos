@@ -2,6 +2,7 @@ import type { AppReads } from "./App";
 import { fixedAlbum, fixedPeople, albumFixtures } from "./album/albumFixtures";
 import { boardsFixtures, fixedBoards } from "./album/boardsFixtures";
 import { fixedHoggies, hoggiesFixtures } from "./album/hoggiesFixtures";
+import { fixedHugBoards, hugBoardsFixtures } from "./leaderboard/thisWeekFixtures";
 import { fixedLevelUp, levelUpFixtures } from "./album/levelUpFixtures";
 import { fixedPlayerCards } from "./album/playerCardFixtures";
 import { fixedProfile, profileFixtures } from "./album/profileFixtures";
@@ -54,6 +55,7 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useAppEmojis: fixture === withTheEmojiWizard ? fixtureAppEmojis : (asking) => (asking ? { kind: "off" } : undefined),
     useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === withAnXpMoment ? fixedAlbum(xpMomentAlbum) : fixture === withPersonPageD ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true }) : fixture === withQuests || fixture === withThisWeeksQuests ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true, gettingStarted: null }) : fixtureAlbum,
     useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
+    useHugBoards: fixedHugBoards(hugBoardsFixtures.lively),
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
     useAlbumProfile: fixtureProfile,
