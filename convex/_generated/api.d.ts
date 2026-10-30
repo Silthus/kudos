@@ -202,6 +202,7 @@ import type * as leaderboard_peer from "../leaderboard/peer.js";
 import type * as leaderboard_periods from "../leaderboard/periods.js";
 import type * as leaderboard_rankedBoard from "../leaderboard/rankedBoard.js";
 import type * as leaderboard_runningTotal from "../leaderboard/runningTotal.js";
+import type * as leaderboard_thankers from "../leaderboard/thankers.js";
 import type * as leaderboard_timeZones from "../leaderboard/timeZones.js";
 import type * as leaderboard_topKudos from "../leaderboard/topKudos.js";
 import type * as leaderboard_totals from "../leaderboard/totals.js";
@@ -609,6 +610,7 @@ declare const fullApi: ApiFromModules<{
   "leaderboard/periods": typeof leaderboard_periods;
   "leaderboard/rankedBoard": typeof leaderboard_rankedBoard;
   "leaderboard/runningTotal": typeof leaderboard_runningTotal;
+  "leaderboard/thankers": typeof leaderboard_thankers;
   "leaderboard/timeZones": typeof leaderboard_timeZones;
   "leaderboard/topKudos": typeof leaderboard_topKudos;
   "leaderboard/totals": typeof leaderboard_totals;

@@ -15,11 +15,12 @@ const alice = { user: "U_ALICE", name: "Alice Marchetti" };
 const bob = { user: "U_BOB", name: "Bob Okonkwo" };
 const carol = { user: "U_CAROL", name: "Carol Lindqvist" };
 const dana = { user: "U_DANA", name: "Dana Ferreira" };
-const people = [alice, bob, carol, dana];
+const kiri = { user: "U_KIRI", name: "Kiri Tamaki", tz: "Pacific/Kiritimati" };
+const people: Person[] = [alice, bob, carol, dana, kiri];
 const why = "Thanks for untangling the flaky migration";
 const websiteFlags = ["album", "everyone-board", "hugs", "collection", "packs"];
 
-type Person = { user: string; name: string };
+type Person = { user: string; name: string; tz?: string };
 type Reader = Pick<Backend, "query" | "mutation">;
 type Boards = Extract<HugBoardsRead, { kind: "boards" }>;
 
@@ -152,6 +153,17 @@ describe("HH71: the you card always leads with a positive highlight", () => {
     expect((await boardsOf(alice)).you.highlight).toEqual<Highlight>({ kind: "thanked", teammates: 2, reach: 0 });
   });
 
+  test("the teammates who thanked the member count in the member's own week, wherever the giver's week falls", async () => {
+    vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
+    await thanks(alice, why, kiri);
+    vi.setSystemTime(new Date("2026-10-19T13:00:00Z"));
+
+    const { you } = await boardsOf(kiri);
+
+    expect(you.tallies.kudosReceived).toBe(1);
+    expect(you.highlight).toEqual<Highlight>({ kind: "thanked", teammates: 1, reach: 0 });
+  });
+
   test("a quiet week after a week with hugs tells the hugs of last week, and whether it was the best week yet", async () => {
     await weeksAgo(2);
     await hugsOn(alice, bob);
@@ -189,8 +201,8 @@ function thisWeek() {
   return weeksAgo(0);
 }
 
-function slackUserOf({ name }: Person) {
-  return { real_name: name, profile: { real_name: name, display_name: name } };
+function slackUserOf({ name, tz }: Person) {
+  return { real_name: name, ...(tz !== undefined && { tz }), profile: { real_name: name, display_name: name } };
 }
 
 async function signedIn(person: Person) {

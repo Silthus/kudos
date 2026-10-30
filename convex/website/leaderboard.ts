@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { albumShownTo } from "../album/flag";
-import { hoggiesFoundIn, teammatesThankedBy, teammatesWhoThanked } from "../album/weekThanks";
+import { hoggiesFoundIn, teammatesThankedBy } from "../album/weekThanks";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
 import { weekCountsThrough, type RecognitionCounts } from "../leaderboard/counts";
 import { leaderboardHugsShownTo } from "../leaderboard/flag";
@@ -8,6 +8,7 @@ import type { Improvement } from "../leaderboard/improvement";
 import type { Peer } from "../leaderboard/peer";
 import { lastPeriodUpToTheSameDay, periodValidator, type Period } from "../leaderboard/periods";
 import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/totals";
+import { teammatesWhoThanked } from "../leaderboard/thankers";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { workspaceLink } from "../slack/workspaceLink";
 import { timeZoneOf, type MemberId } from "../workspace/directory";

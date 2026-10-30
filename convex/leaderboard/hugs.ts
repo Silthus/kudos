@@ -2,6 +2,7 @@ import type { MutationCtx } from "../_generated/server";
 import { hugGivenEventValidator, hugReceivedEventValidator, type HugGivenEvent, type HugReceivedEvent } from "../bus/events";
 import { internalMutation } from "../_generated/server";
 import { addCounts, countedKeys, countOnce, landingAt } from "./counts";
+import { noteThanker } from "./thankers";
 
 type GivenHug = Pick<HugGivenEvent, "workspace" | "giver" | "message" | "day">;
 
@@ -29,6 +30,8 @@ export async function countGivenHug(ctx: MutationCtx, { workspace, giver, messag
 
 export async function countReceivedHug(ctx: MutationCtx, { workspace, giver, person, message, at }: ReceivedHug) {
   if (!(await countOnce(ctx, workspace, countedKeys.hugReceived(person, giver, message)))) return false;
-  await addCounts(ctx, await landingAt(ctx, workspace, person, at), { hugsReceived: 1 });
+  const landing = await landingAt(ctx, workspace, person, at);
+  await addCounts(ctx, landing, { hugsReceived: 1 });
+  await noteThanker(ctx, landing, giver);
   return true;
 }
