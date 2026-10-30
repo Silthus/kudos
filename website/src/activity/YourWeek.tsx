@@ -18,7 +18,7 @@ export function YourWeekPage({ week, quests, inSight, onViewed }: YourWeekPagePr
       <NextStepCard step={week.next} kudos={week.kudos} slack={week.slack} />
       {quests !== null && (
         <div className="al-your-week-grid">
-          <QuestsBox quests={quests} />
+          <QuestsBox quests={quests} kudos={week.kudos} />
         </div>
       )}
     </div>

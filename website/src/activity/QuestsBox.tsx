@@ -1,10 +1,13 @@
 import { IconCheck } from "@posthog/icons";
+import type { ReactNode } from "react";
+import type { LoopLesson } from "../../../convex/website/activity";
 import type { MondayQuests } from "../../../convex/website/quests";
 import { doneOf } from "../album/QuestsPanel";
+import { NamedEmoji } from "../Emoji";
 
-type Check = { goal: string; how: string | null; done: boolean; reward: { xp: number } | null };
+type Check = { goal: string; how: ReactNode; done: boolean; reward: { xp: number } | null };
 
-export function QuestsBox({ quests }: { quests: MondayQuests }) {
+export function QuestsBox({ quests, kudos }: { quests: MondayQuests; kudos: LoopLesson }) {
   const { done, total } = doneOf(quests);
   return (
     <section className="al-week-box" aria-label="This week's quests">
@@ -12,7 +15,7 @@ export function QuestsBox({ quests }: { quests: MondayQuests }) {
         This week's quests · {done} of {total}
       </h2>
       <ul className="al-checks">
-        {checksOf(quests).map((check) => (
+        {checksOf(quests, <HowToGiveAKudos kudos={kudos} />).map((check) => (
           <QuestCheck key={check.goal} check={check} />
         ))}
       </ul>
@@ -35,7 +38,15 @@ function QuestCheck({ check: { goal, how, done, reward } }: { check: Check }) {
   );
 }
 
-function checksOf({ quests }: MondayQuests): Check[] {
-  if (quests.kind === "drawn") return quests.quests.map(({ goal, done, reward }) => ({ goal, how: null, done, reward }));
+function HowToGiveAKudos({ kudos }: { kudos: LoopLesson }) {
+  return (
+    <>
+      Write <NamedEmoji name={kudos.kudosEmoji} image={kudos.kudosEmojiImage ?? undefined} /> @name and what they did, in any channel.
+    </>
+  );
+}
+
+function checksOf({ quests }: MondayQuests, howToGiveAKudos: ReactNode): Check[] {
+  if (quests.kind === "drawn") return quests.quests.map(({ goal, done, reward }) => ({ goal, how: howToGiveAKudos, done, reward }));
   return quests.steps.map(({ goal, hint, done, reward }) => ({ goal, how: hint, done, reward }));
 }

@@ -102,15 +102,15 @@ describe("HH64: beside the step, a Slack message drawn with one reaction of the 
 });
 
 describe("HH62 HH65: the week's quests sit under the step, one checkbox row each", { timeout: 30_000 }, () => {
-  it("lists this week's drawn quests with their reward, a finished one ticked, and no difficulty labels", async () => {
+  it("lists this week's drawn quests with how to give a kudos and their reward, a finished one ticked, and no difficulty labels", async () => {
     visitWithQuests(fixedActivityWeek(activityWeekFixtures.quiet), fixedQuests(questsFixtures.week));
 
     const box = await questsBox();
     expect(box.getByRole("heading", { level: 2, name: "This week's quests · 1 of 3" })).toBeInTheDocument();
     expect(checksIn(box)).toEqual([
-      "Not done: Thank 3 people in one day +20 XP and a hoggie",
-      "Not done: Thank 2 people you haven't thanked before +20 XP and a hoggie",
-      "Done: Thank someone you haven't thanked in the last 30 days +20 XP and a hoggie",
+      "Not done: Thank 3 people in one day Write :hedgehug: @name and what they did, in any channel. +20 XP and a hoggie",
+      "Not done: Thank 2 people you haven't thanked before Write :hedgehug: @name and what they did, in any channel. +20 XP and a hoggie",
+      "Done: Thank someone you haven't thanked in the last 30 days Write :hedgehug: @name and what they did, in any channel. +20 XP and a hoggie",
     ]);
     expect(box.queryByText(/Say why|Reach out|Join in/)).not.toBeInTheDocument();
   });
