@@ -30,6 +30,8 @@ const dayMs = 24 * 60 * 60 * 1000;
 
 const sunday = 6;
 
+const wordsAroundATeamName = new Set(["team", "folks"]);
+
 export async function teamsJoiningInOf(ctx: QueryCtx, viewer: BoardViewer, weeks: JoiningWeeks): Promise<TeamsJoiningIn | null> {
   if (!(await groupsShownTo(ctx, viewer.member))) return null;
   const teams = await teamsIn(ctx, viewer.workspace);
@@ -87,7 +89,7 @@ function scored({ row, members }: Team, { joinedNow, joinedBefore, comparableSin
   const joined = members.filter((member) => joinedNow.has(member)).length;
   const before = members.filter((member) => joinedBefore.has(member)).length;
   const comparable = comparableSince !== null && row._creationTime < comparableSince;
-  const companyTeam = companyTeams.get(normalisedName(row.name)) ?? null;
+  const companyTeam = companyTeams.get(teamNameKey(row.name)) ?? null;
   return {
     team: { group: row._id, name: row.name, team: companyTeam?.team ?? null, art: companyTeam?.crest ?? null, joined, of: members.length, mine: row._id === mine },
     gain: comparable ? Math.round((100 * (joined - before)) / members.length) : null,
@@ -104,5 +106,12 @@ function ranked(teams: Scored[]): JoiningTeam[] {
 }
 
 function companyTeamsByName(teams: CompanyTeam[]): Map<string, CompanyTeam> {
-  return new Map(teams.map((team) => [normalisedName(team.name), team]));
+  return new Map(teams.map((team) => [teamNameKey(team.name), team]));
+}
+
+function teamNameKey(name: string): string {
+  return normalisedName(name.replaceAll("&", " and "))
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((word) => word !== "" && !wordsAroundATeamName.has(word))
+    .join(" ");
 }

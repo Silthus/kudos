@@ -483,13 +483,28 @@ describe("HH76 HH77: teams joining in", () => {
   });
 
   test("a team carries the crest and page of the company team with its name, and only groups of three or more primary members join the board", async () => {
-    await t.run((ctx) => ctx.db.insert("companyTeams", { team: "otters", name: "Otters", crestImage: "https://example.com/otters.png", leads: [], people: [], asOf: Date.now() }));
+    await companyTeams({ otters: "Otters" });
     await inGroups({ Otters: [alice, bob, carol], Pairs: [dana, kiri] });
     await thisWeek();
 
     const { joiningIn } = await boardsOf(alice);
 
     expect(joiningIn?.teams.map(({ name, team, art }) => ({ name, team, art }))).toEqual([{ name: "Otters", team: "otters", art: { kind: "image", url: "https://example.com/otters.png" } }]);
+  });
+
+  test("a group names its company team whatever its case, punctuation, ampersand or the words team and folks around the name", async () => {
+    await companyTeams({ otters: "Otters", "wizard-docs": "Wizard & Docs", "led-sales": "Product-Led Sales" });
+    const [ezra, finn, gwen, hugo] = await moreTeammates(4);
+    await inGroups({ "Team Otters": [alice, bob, carol], "wizard and docs folks": [dana, kiri, ezra!], "Product Led Sales Team": [finn!, gwen!, hugo!] });
+    await thisWeek();
+
+    const { joiningIn } = await boardsOf(alice);
+
+    expect(joiningIn?.teams.map(({ name, team }) => ({ name, team }))).toEqual([
+      { name: "Product Led Sales Team", team: "led-sales" },
+      { name: "Team Otters", team: "otters" },
+      { name: "wizard and docs folks", team: "wizard-docs" },
+    ]);
   });
 
   test("teams joining in is missing while groups is off or without a team", async () => {
@@ -622,6 +637,12 @@ async function leavesTheBoards(person: Person) {
 
 async function inTheOtters(...otters: Person[]) {
   await inGroups({ Otters: otters });
+}
+
+function companyTeams(teams: Record<string, string>) {
+  return t.run(async (ctx) => {
+    for (const [team, name] of Object.entries(teams)) await ctx.db.insert("companyTeams", { team, name, crestImage: `https://example.com/${team}.png`, leads: [], people: [], asOf: Date.now() });
+  });
 }
 
 async function inGroups(groups: Record<string, Person[]>) {
