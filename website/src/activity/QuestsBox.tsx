@@ -41,7 +41,7 @@ function QuestCheck({ check: { goal, how, done, reward } }: { check: Check }) {
 function HowToGiveAKudos({ kudos }: { kudos: LoopLesson }) {
   return (
     <>
-      Write <NamedEmoji name={kudos.kudosEmoji} image={kudos.kudosEmojiImage ?? undefined} /> @name and what they did, in any channel.
+      Write <NamedEmoji name={kudos.kudosEmoji} image={kudos.kudosEmojiImage ?? undefined} /> @name and what they did, in any channel HedgeHug is in.
     </>
   );
 }
