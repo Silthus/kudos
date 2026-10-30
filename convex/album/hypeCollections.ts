@@ -4,6 +4,7 @@ import type { HypeReactedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
 import { reactionsToCollect } from "./emojiCatalogue";
 import { hypeByReactionsCollectFor } from "./flag";
+import { recordMilestonesOf } from "./milestones";
 import { recordReactionsSticker } from "./stickers";
 
 export type ReactionsToward = { have: number; need: number };
@@ -16,6 +17,7 @@ export async function collectByReactions(ctx: MutationCtx, { workspace, giver, o
   if ((await reactionsToward(ctx, giver, owner)).have < reactionsToCollect) return;
   await ctx.db.insert("hypesCollected", { workspace, member: giver, person: owner, at });
   await recordReactionsSticker(ctx, giver, owner, at);
+  await recordMilestonesOf(ctx, { workspace, member: giver }, at);
 }
 
 export async function reactionsToward(ctx: QueryCtx, giver: MemberId, owner: MemberId): Promise<ReactionsToward> {

@@ -105,6 +105,24 @@ describe("a teammate's hype emoji is collected by reactions on 10 of their messa
     expect(await collectionsOf(bruno), "what Bruno collected").toEqual([await memberOf(carol)]);
   });
 
+  test("Carol's card collected by reactions counts toward Bruno's people milestones the moment it lands", async () => {
+    await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
+
+    expect(await milestoneTierOf(bruno, "First face"), "First face once Carol's card landed").toMatchObject({ earnedAt: expect.any(Number) });
+  });
+
+  test("the maintainer's emoji list counts Bruno once as a holder of Carol's hype emoji, whether he only collected it or thanked her too", async () => {
+    vi.stubEnv("KUDOS_MAINTAINER", bruno.user);
+    await switchWebsite(t, postHog, true, ...hypeByReactionsOn, "workspace-settings", "emoji-wizard");
+    await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
+
+    expect(await holdersOfHypeOf(carol, { readBy: bruno }), "holders after collecting by reactions").toBe(1);
+
+    await thanks(bruno, carol);
+
+    expect(await holdersOfHypeOf(carol, { readBy: bruno }), "holders after collecting and a kudos").toBe(1);
+  });
+
   test("a card already in the album stays as it was", async () => {
     await t.run(async (ctx) => ctx.db.insert("albumStickers", { member: await memberIn(ctx, bruno), person: await memberIn(ctx, carol), from: "history", at: tuesday.getTime() }));
 
@@ -180,11 +198,26 @@ describe("collecting by reactions is dark where hype-by-reactions is off", { tim
 });
 
 async function hypeEmojiInTheBookOf(reader: Person, someone: Person) {
+  const person = await memberOf(someone);
+  return (await albumOf(reader)).emojis.find(({ id }) => id === `hype:${person}`);
+}
+
+async function milestoneTierOf(reader: Person, name: string) {
+  return (await albumOf(reader)).milestones.flatMap(({ tiers }) => tiers).find((tier) => tier.name === name);
+}
+
+async function albumOf(reader: Person) {
   const { asSignedIn } = await aSignedInSession(t, { user: reader.user, name: reader.name });
   const album = await asSignedIn.query(api.website.album.getAlbum, {});
   if (album.kind !== "album") throw new Error(`expected an album, got ${album.kind}`);
-  const person = await memberOf(someone);
-  return album.emojis.find(({ id }) => id === `hype:${person}`);
+  return album;
+}
+
+async function holdersOfHypeOf(someone: Person, { readBy }: { readBy: Person }): Promise<number | undefined> {
+  const { asSignedIn } = await aSignedInSession(t, { user: readBy.user, name: readBy.name });
+  const read = await asSignedIn.query(api.website.emojiWizard.getAppEmojis, {});
+  if (read.kind !== "app-emojis") throw new Error(`expected the app emojis, got ${read.kind}`);
+  return read.emojis.find(({ kind, name }) => kind === "hype" && name === someone.hype)?.holders;
 }
 
 async function reactOnMessagesOf(author: Person, { by, messages: count, emoji = author.hype }: { by: Person; messages: number; emoji?: string }): Promise<string> {
