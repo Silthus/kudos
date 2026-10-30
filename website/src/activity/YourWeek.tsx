@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import type { ActivityState, ActivityWeek, NextStep } from "../../../convex/website/activity";
+import type { MondayQuests } from "../../../convex/website/quests";
 import { PageTitle } from "../PageTitle";
 import { NextStepCard } from "./NextStepCard";
+import { QuestsBox } from "./QuestsBox";
 
-type YourWeekPageProps = { week: ActivityWeek; inSight: boolean; onViewed: (state: ActivityState) => void };
+type YourWeekPageProps = { week: ActivityWeek; quests: MondayQuests | null; inSight: boolean; onViewed: (state: ActivityState) => void };
 
-export function YourWeekPage({ week, inSight, onViewed }: YourWeekPageProps) {
+export function YourWeekPage({ week, quests, inSight, onViewed }: YourWeekPageProps) {
   useViewedOnceInSight(week.next.kind, inSight, onViewed);
   return (
     <div className="al-page-body al-your-week">
@@ -14,6 +16,11 @@ export function YourWeekPage({ week, inSight, onViewed }: YourWeekPageProps) {
         Your week
       </PageTitle>
       <NextStepCard step={week.next} kudos={week.kudos} slack={week.slack} />
+      {quests !== null && (
+        <div className="al-your-week-grid">
+          <QuestsBox quests={quests} kudos={week.kudos} />
+        </div>
+      )}
     </div>
   );
 }

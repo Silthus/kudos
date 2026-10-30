@@ -208,7 +208,7 @@ function rowLabelOf({ goal, done, reward }: Row, next: boolean) {
   return `${goal}: ${state}, ${done ? `won ${reward.xp} XP and a hoggie` : `+${reward.xp} XP and an unidentified hoggie`}`;
 }
 
-function doneOf({ quests }: MondayQuests) {
+export function doneOf({ quests }: MondayQuests) {
   const rows = quests.kind === "drawn" ? quests.quests : quests.steps;
   return { done: rows.filter(({ done }) => done).length, total: rows.length };
 }
