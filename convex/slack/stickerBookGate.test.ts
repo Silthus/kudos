@@ -379,10 +379,9 @@ function withStableIds<T>(value: T): T {
 async function rowsWrittenApartFromStickers() {
   const tables = await t.run(async (ctx) => {
     const rows = {} as Record<TableName, Record<string, unknown>[]>;
-    for (const table of Object.keys(schema.tables) as TableName[]) if (!(stickerTables as readonly string[]).includes(table)) rows[table] = await ctx.db.query(table).collect();
+    for (const table of Object.keys(schema.tables) as TableName[]) if (!(stickerTables as readonly string[]).includes(table) && table !== "recordedFacts") rows[table] = await ctx.db.query(table).collect();
     rows.flagExposures = rows.flagExposures.filter(({ flag }) => flag !== teamSpirit);
     rows.analyticsOutbox = rows.analyticsOutbox.filter((row) => !isTeamSpiritsExposure(row) && !isPersonCollected(row));
-    delete rows.recordedFacts;
     return rows;
   });
   const inContentOrder = Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b)))]));

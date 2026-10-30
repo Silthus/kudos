@@ -625,8 +625,7 @@ function namedWithin(text: string) {
 async function rowsWritten() {
   const tables = await t.run(async (ctx) => {
     const rows = {} as Record<TableName, Record<string, unknown>[]>;
-    for (const table of Object.keys(schema.tables) as TableName[]) rows[table] = await ctx.db.query(table).collect();
-    delete rows.recordedFacts;
+    for (const table of Object.keys(schema.tables) as TableName[]) if (table !== "recordedFacts") rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
   const written = withoutExposureOf(teamSpirit, tables);
