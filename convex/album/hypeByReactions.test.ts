@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { HypeReactedEvent } from "../bus/events";
@@ -135,6 +136,16 @@ describe("a teammate's hype emoji is collected by reactions on 10 of their messa
     expect(await holdsHypeOf(bruno, carol), "after the next reaction").toBe(true);
   });
 
+  test("a kudos after collecting by reactions keeps the reactions as the way it was unlocked", async () => {
+    await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
+    vi.setSystemTime(Date.now() + minuteMs);
+
+    await thanks(bruno, carol);
+
+    expect((await packsOf(bruno)).length, "the kudos's pack").toBe(1);
+    expect((await personPageOf(bruno, carol)).hype).toMatchObject({ earned: true, byReactions: true });
+  });
+
   test("the person page of the member themself shows no reactions", async () => {
     expect((await personPageOf(carol, carol)).hype).not.toHaveProperty("reactions");
   });
@@ -161,6 +172,12 @@ async function reactOnMessagesOf(author: Person, { by, messages: count, emoji = 
     await settle(t);
   }
   return ts;
+}
+
+async function thanks(giver: Person, recipient: Person) {
+  messages += 1;
+  await post(t, [section(text("Thanks for the review "), mention(recipient.user), text(" "), emoji("taco"))], { user: giver.user, ts: `${Math.floor(Date.now() / 1000)}.${String(messages).padStart(6, "0")}` });
+  await settle(t);
 }
 
 async function hypeReactedOn(author: Person, { by }: { by: Person }): Promise<HypeReactedEvent> {

@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { storedCompanyMatchOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
 import { isAPersonOf, type MemberId } from "../workspace/directory";
-import { hypeEarnedBy, hypeEarnedByKudos, hypeEmojiOf as shownHypeEmojiOf } from "./earnedEmojis";
+import { hypeEarnedBy, hypeEmojiOf as shownHypeEmojiOf, hypeUnlockedByReactions } from "./earnedEmojis";
 import { hypeByReactionsShownTo } from "./flag";
 import { reactionsToward, type ReactionsToward } from "./hypeCollections";
 import type { PageOwner } from "./teamPages";
@@ -43,5 +43,5 @@ async function hypeEmojiOf(ctx: QueryCtx, { workspace, member }: PageOwner, pers
 async function collectingByReactionsOf(ctx: QueryCtx, member: MemberId, person: MemberId, earned: boolean): Promise<Pick<HypeEmoji, "reactions" | "byReactions">> {
   if (member === person || !(await hypeByReactionsShownTo(ctx, member))) return {};
   const reactions = await reactionsToward(ctx, member, person);
-  return earned && !(await hypeEarnedByKudos(ctx, member, person)) ? { reactions, byReactions: true } : { reactions };
+  return earned && (await hypeUnlockedByReactions(ctx, member, person)) ? { reactions, byReactions: true } : { reactions };
 }

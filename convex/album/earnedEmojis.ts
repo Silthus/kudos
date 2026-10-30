@@ -307,7 +307,7 @@ export async function hypeEarnedBy(ctx: QueryCtx, member: MemberId, person: Memb
   return (await hypeEarnedByKudos(ctx, member, person)) || (await collectedBy(ctx, member, person)) !== null;
 }
 
-export async function hypeEarnedByKudos(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
+async function hypeEarnedByKudos(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
   if (!(await hasPackedFor(ctx, member, person))) return false;
   return (await seenAtOf(ctx, member, `hype:${person}`)) !== null || !(await hypeWaitsForItsItem(ctx, member, person));
 }
@@ -331,10 +331,22 @@ async function pickedPeoplePackedBy(ctx: QueryCtx, giver: MemberId, picked: stri
   for (const emoji of picked) {
     const [kind, cause] = splitOnce(emoji);
     const person = kind === "hype" ? ctx.db.normalizeId("members", cause) : null;
-    const pack = person === null ? null : await firstPackFor(ctx, giver, person);
-    if (pack !== null) people.push({ person: pack.recipient, firstPackAt: pack.at, collected: (await collectedBy(ctx, giver, pack.recipient)) !== null });
+    const withHype = person === null ? null : await personWithHypeOf(ctx, giver, person);
+    if (withHype !== null) people.push(withHype);
   }
   return people;
+}
+
+async function personWithHypeOf(ctx: QueryCtx, giver: MemberId, person: MemberId): Promise<PackedPerson | null> {
+  const pack = await firstPackFor(ctx, giver, person);
+  const collected = await collectedBy(ctx, giver, person);
+  if (collected !== null) return { person, firstPackAt: Math.min(collected.at, pack?.at ?? collected.at), collected: true };
+  return pack === null ? null : { person, firstPackAt: pack.at, collected: false };
+}
+
+export async function hypeUnlockedByReactions(ctx: QueryCtx, member: MemberId, person: MemberId): Promise<boolean> {
+  const collected = await collectedBy(ctx, member, person);
+  return collected !== null && !(await isPackedBefore(ctx, member, person, collected.at));
 }
 
 async function peoplePackedBy(ctx: QueryCtx, giver: MemberId, most: number): Promise<PackedPerson[]> {
