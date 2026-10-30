@@ -116,11 +116,11 @@ describe("HH62 HH65: the week's quests sit under the step, one checkbox row each
   });
 
   it("shows how to do each getting-started step, and no reward where a step has none", async () => {
-    visitWithQuests(fixedActivityWeek(activityWeekFixtures.empty), fixedQuests(questsFixtures.newcomer));
+    visitWithQuests(fixedActivityWeek(activityWeekFixtures.empty), fixedQuests(questsFixtures.beforeTheFirstHug));
 
     const box = await questsBox();
     expect(checksIn(box).slice(0, 2)).toEqual([
-      "Done: Give your first hug React with your kudos emoji on any message in Slack.",
+      "Not done: Give your first hug React with your kudos emoji on any message in Slack.",
       "Not done: Give a kudos to someone Mention someone in a Slack message and add your kudos emoji. +50 XP and a hoggie",
     ]);
   });

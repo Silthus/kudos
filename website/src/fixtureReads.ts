@@ -71,7 +71,7 @@ const activityNextFixture = "album-activity-next-";
 
 function activityQuestsOf(fixture: string | undefined) {
   if (!fixture?.startsWith(activityNextFixture)) return noQuests;
-  return fixture === `${activityNextFixture}empty` ? fixedQuests(questsFixtures.newcomer) : fixedQuests(questsFixtures.week);
+  return fixture === `${activityNextFixture}empty` ? fixedQuests(questsFixtures.beforeTheFirstHug) : fixedQuests(questsFixtures.week);
 }
 
 function activityWeekOf(fixture: string | undefined) {
