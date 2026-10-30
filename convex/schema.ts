@@ -620,7 +620,7 @@ export default defineSchema({
 
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
 
-  seenEmojis: defineTable(seenEmojiValidator).index("by_member_emoji", ["member", "emoji"]),
+  seenEmojis: defineTable(seenEmojiValidator).index("by_member_emoji", ["member", "emoji"]).index("by_member_at", ["member", "at"]),
 
   kudosEmojiPicks: defineTable(kudosEmojiPickValidator).index("by_member_emoji", ["member", "emoji"]),
 
