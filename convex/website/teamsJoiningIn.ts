@@ -6,6 +6,7 @@ import type { DayKey } from "../engine/allowance";
 import { countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, primaryMembersOf, userGroupsIn, type GroupId } from "../groups/groups";
 import type { BoardViewer } from "../leaderboard/boards";
 import { totalsIn } from "../leaderboard/counts";
+import { ranking } from "../leaderboard/board";
 import { fewestMembersListed } from "../leaderboard/groupsBoard";
 import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay } from "../leaderboard/periods";
 import { isOnTheBoards } from "../leaderboard/visibility";
@@ -21,11 +22,13 @@ export type JoiningWeeks = { today: DayKey; thisWeek: DayKey; lastWeek: DayKey }
 
 type Team = { row: Doc<"userGroups">; members: MemberId[] };
 
-type Scored = Omit<JoiningTeam, "standing"> & { gain: number | null };
+type Scored = { team: Omit<JoiningTeam, "standing">; gain: number | null };
 
 type Comparison = { joinedNow: Set<MemberId>; joinedBefore: Set<MemberId>; comparableSince: number | null };
 
 const dayMs = 24 * 60 * 60 * 1000;
+
+const sunday = 6;
 
 export async function teamsJoiningInOf(ctx: QueryCtx, viewer: BoardViewer, weeks: JoiningWeeks): Promise<TeamsJoiningIn | null> {
   if (!(await groupsShownTo(ctx, viewer.member))) return null;
@@ -56,17 +59,16 @@ async function membersOnTheBoards(ctx: QueryCtx, members: MemberId[]): Promise<M
 }
 
 async function comparisonOf(ctx: QueryCtx, workspace: string, { today, thisWeek, lastWeek }: JoiningWeeks): Promise<Comparison> {
-  const weekday = dayOfPeriod("week", today);
   return {
-    joinedNow: await joinedIn(ctx, workspace, thisWeek, () => true),
-    joinedBefore: await joinedIn(ctx, workspace, lastWeek, (firstDay) => dayOfPeriod("week", firstDay) <= weekday),
+    joinedNow: await joinedIn(ctx, workspace, thisWeek, sunday),
+    joinedBefore: await joinedIn(ctx, workspace, lastWeek, dayOfPeriod("week", today)),
     comparableSince: (await wasCountedBy(ctx, workspace, lastWeek)) ? endOfTheSameWeekdayLastWeek(today) : null,
   };
 }
 
-async function joinedIn(ctx: QueryCtx, workspace: string, monday: DayKey, counts: (firstDay: DayKey) => boolean): Promise<Set<MemberId>> {
+async function joinedIn(ctx: QueryCtx, workspace: string, monday: DayKey, byWeekday: number): Promise<Set<MemberId>> {
   const totals = await totalsIn(ctx, workspace, keyOf("week", monday));
-  return new Set(totals.flatMap(({ member, firstDay }) => (firstDay !== null && counts(firstDay) ? [member] : [])));
+  return new Set(totals.flatMap(({ member, firstDay }) => (firstDay !== null && dayOfPeriod("week", firstDay) <= byWeekday ? [member] : [])));
 }
 
 async function wasCountedBy(ctx: QueryCtx, workspace: string, monday: DayKey): Promise<boolean> {
@@ -87,31 +89,18 @@ function scored({ row, members }: Team, { joinedNow, joinedBefore, comparableSin
   const comparable = comparableSince !== null && row._creationTime < comparableSince;
   const companyTeam = companyTeams.get(normalisedName(row.name)) ?? null;
   return {
-    group: row._id,
-    name: row.name,
-    team: companyTeam?.team ?? null,
-    art: companyTeam?.crest ?? null,
-    joined,
-    of: members.length,
+    team: { group: row._id, name: row.name, team: companyTeam?.team ?? null, art: companyTeam?.crest ?? null, joined, of: members.length, mine: row._id === mine },
     gain: comparable ? Math.round((100 * (joined - before)) / members.length) : null,
-    mine: row._id === mine,
   };
 }
 
 function ranked(teams: Scored[]): JoiningTeam[] {
-  const gaining = teams.filter(isGaining);
-  const standingOf = (gain: number) => ({ rank: 1 + gaining.filter((other) => other.gain > gain).length, gain });
-  const rows = teams.map(({ gain, ...team }) => ({ ...team, standing: gain !== null && gain > 0 ? standingOf(gain) : null }));
-  return rows.toSorted((first, second) => byStanding(first, second) || first.name.localeCompare(second.name));
-}
-
-function isGaining(team: Scored): team is Scored & { gain: number } {
-  return team.gain !== null && team.gain > 0;
-}
-
-function byStanding({ standing: first }: JoiningTeam, { standing: second }: JoiningTeam): number {
-  if (first === null || second === null) return (first === null ? 1 : 0) - (second === null ? 1 : 0);
-  return first.rank - second.rank;
+  const gaining = ranking(
+    teams.map(({ team, gain }) => ({ id: team.group, name: team.name, value: gain ?? 0, team })),
+    null,
+  ).rows.map(({ team, rank, value }) => ({ ...team, standing: { rank, gain: value } }));
+  const folded = teams.filter(({ gain }) => gain === null || gain <= 0).map(({ team }) => ({ ...team, standing: null }));
+  return [...gaining, ...folded.toSorted((first, second) => first.name.localeCompare(second.name))];
 }
 
 function companyTeamsByName(teams: CompanyTeam[]): Map<string, CompanyTeam> {
