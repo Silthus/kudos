@@ -46,11 +46,11 @@ const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const members = ["U_ALICE", "U_BOB"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "collection"];
-const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
+const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "recordedFacts", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
 const recordingJobs = ["analytics/drain:drain", "analytics/person:identifyNewPeople"];
 const mondayPathRecorders = ["analytics/isolatedUsage:recordWelcomeDmSent", "analytics/isolatedUsage:recordDmLinkClicked", "analytics/isolatedUsage:recordQuestsViewed", "analytics/isolatedUsage:recordMondayDmSent"];
 const mondayPathFlags = ["website", "album", "packs", "hidden-items", "welcome-item", "onboarding", "hugs", "message-settings", "monday-quest"];
-const recordingWrites: Table[] = ["analyticsOutbox", "analyticsIds", "workspaceKeys", "analyticsDrain"];
+const recordingWrites: Table[] = ["analyticsOutbox", "analyticsIds", "workspaceKeys", "analyticsDrain", "recordedFacts"];
 const darkFeatureTables: Table[] = ["unlocks", "unlockLaunches", "journeyLaunches", "journeySteps", "questDraws", "questSwaps", "questProgress", "rewardRecords", "crateOpenings", "leaderboardSettings"];
 
 const everyFlagOff: Setup = { name: "every flag off", flags: everyFlag.map(offForEveryone), boardShown: false };
@@ -201,7 +201,7 @@ describe("E11: recording a product event writes only analytics' own rows and sch
 });
 
 async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
-  await forgetAnalyticsIdentities(t);
+  await forgetWhatAnalyticsKnows(t);
   const before = await everythingByTable(t);
   const scheduledBefore = await scheduledJobIds(t);
   const slackCallsBefore = slack.calls.length;
@@ -635,10 +635,11 @@ function commandsLeaderboardView() {
   return { name: "slack/commands:recordLeaderboardViewed", args: { workspace: "T1", user: "U_ALICE", period: "all", arrivedAt: Date.now() } };
 }
 
-async function forgetAnalyticsIdentities(t: Backend) {
+async function forgetWhatAnalyticsKnows(t: Backend) {
   await t.run(async (ctx) => {
     for (const row of await ctx.db.query("analyticsIds").collect()) await ctx.db.delete(row._id);
     for (const row of await ctx.db.query("workspaceKeys").collect()) await ctx.db.delete(row._id);
+    for (const row of await ctx.db.query("recordedFacts").collect()) await ctx.db.delete(row._id);
   });
 }
 

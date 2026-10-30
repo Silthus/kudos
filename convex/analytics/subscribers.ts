@@ -1,4 +1,4 @@
-import { internalMutation, type QueryCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import {
   achievementEarnedEventValidator,
   teamPagesCompletedEventValidator,
@@ -22,12 +22,15 @@ import {
   unlockOpenedEventValidator,
   unlockReadyEventValidator,
   unlocksLaunchedEventValidator,
+  type DomainEvent,
   type KudosGivenEvent,
 } from "../bus/events";
 import { earliestAwardFrom, type AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
+import { captureSettings } from "./capture";
 import { failuresLogged } from "./failures";
 import { record } from "./outbox";
+import { recordsOnce } from "./recordedFacts";
 import {
   projectAchievementEarned,
   projectTeamPagesCompleted,
@@ -51,13 +54,12 @@ import {
   projectUnlockOpened,
   projectUnlockReady,
   projectUnlocksLaunched,
+  type ProductEvent,
 } from "./projections";
 
 export const recordKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, async () => record(ctx, event.workspace, projectKudosGiven(event, { newRecipients: await newRecipientsOf(ctx, event) })));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, async () => projectKudosGiven(event, { newRecipients: await newRecipientsOf(ctx, event) })),
 });
 
 async function newRecipientsOf(ctx: QueryCtx, { giver, awards }: KudosGivenEvent): Promise<number> {
@@ -73,151 +75,115 @@ async function isFirstFrom(ctx: QueryCtx, giver: MemberId, recipient: MemberId, 
 
 export const recordAttemptFailed = internalMutation({
   args: { event: attemptFailedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectAttemptFailed(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectAttemptFailed(event)]),
 });
 
 export const recordMemberWelcomed = internalMutation({
   args: { event: memberWelcomedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectMemberWelcomed(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectMemberWelcomed(event)]),
 });
 
 export const recordLevelReached = internalMutation({
   args: { event: levelReachedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectLevelReached(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectLevelReached(event)]),
 });
 
 export const recordUnlockReady = internalMutation({
   args: { event: unlockReadyEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectUnlockReady(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectUnlockReady(event)]),
 });
 
 export const recordUnlockOpened = internalMutation({
   args: { event: unlockOpenedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectUnlockOpened(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectUnlockOpened(event)]),
 });
 
 export const recordUnlocksLaunched = internalMutation({
   args: { event: unlocksLaunchedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectUnlocksLaunched(event)));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => projectUnlocksLaunched(event)),
 });
 
 export const recordQuestsDrawn = internalMutation({
   args: { event: questsDrawnEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectQuestsDrawn(event)));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => projectQuestsDrawn(event)),
 });
 
 export const recordGroupQuestDrawn = internalMutation({
   args: { event: groupQuestDrawnEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectGroupQuestDrawn(event)));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => projectGroupQuestDrawn(event)),
 });
 
 export const recordQuestSwapped = internalMutation({
   args: { event: questSwappedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestSwapped(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectQuestSwapped(event)]),
 });
 
 export const recordQuestFinished = internalMutation({
   args: { event: questFinishedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestFinished(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectQuestFinished(event)]),
 });
 
 export const recordQuestOpened = internalMutation({
   args: { event: questOpenedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestOpened(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectQuestOpened(event)]),
 });
 
 export const recordJourneyStepActivated = internalMutation({
   args: { event: journeyStepActivatedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectJourneyStepActivated(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectJourneyStepActivated(event)]),
 });
 
 export const recordHoggieDropped = internalMutation({
   args: { event: hoggieDroppedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectHoggieDropped(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectHoggieDropped(event)]),
 });
 
 export const recordHugGiven = internalMutation({
   args: { event: hugGivenEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectHugGiven(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectHugGiven(event)]),
 });
 
 export const recordTeamPagesCompleted = internalMutation({
   args: { event: teamPagesCompletedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectTeamPagesCompleted(event)));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => projectTeamPagesCompleted(event)),
 });
 
 export const recordPersonCollected = internalMutation({
   args: { event: stickersCollectedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectPersonCollected(event)));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => projectPersonCollected(event)),
 });
 
 export const recordPacksEarned = internalMutation({
   args: { event: thoughtfulPacksGrantedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectPacksEarned(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectPacksEarned(event)]),
 });
 
 export const recordAlbumStickerCollected = internalMutation({
   args: { event: stickerPutInEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectAlbumStickerCollected(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectAlbumStickerCollected(event)]),
 });
 
 export const recordItemTurned = internalMutation({
   args: { event: itemTurnedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectItemTurned(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectItemTurned(event)]),
 });
 
 export const recordPerkBought = internalMutation({
   args: { event: perkBoughtEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectPerkBought(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectPerkBought(event)]),
 });
 
 export const recordAchievementEarned = internalMutation({
   args: { event: achievementEarnedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectAchievementEarned(event)]));
-  },
+  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectAchievementEarned(event)]),
 });
 
-function recordingFailuresLogged(event: string, recording: () => Promise<void>) {
-  return failuresLogged("analytics.recording_failed", recording, { event });
+function recordOnce(ctx: MutationCtx, event: DomainEvent & { workspace: string }, project: () => ProductEvent[] | Promise<ProductEvent[]>): Promise<void> {
+  return failuresLogged(
+    "analytics.recording_failed",
+    async () => {
+      if (captureSettings() !== null && (await recordsOnce(ctx, event.fact))) await record(ctx, event.workspace, await project());
+    },
+    { event: event.type },
+  );
 }
