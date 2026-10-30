@@ -373,6 +373,57 @@ describe("#695: a top bar label opens out calmly", () => {
   });
 });
 
+const withBookNext = { ...albumFixtures.midway, bookNext: { chatUrl: "https://app.slack.com/client/T1", rarityCaps: true } };
+
+function follows(earlier: HTMLElement, later: HTMLElement) {
+  return earlier.compareDocumentPosition(later) === Node.DOCUMENT_POSITION_FOLLOWING;
+}
+
+describe("HH88: with book-next, the sidebar leads with Hoggies and Milestones and expands the teams in place", () => {
+  it("puts Hoggies and Milestones, with the medal count, above search, your team and the teams", async () => {
+    visit("/", withBookNext);
+    const side = await sidebar();
+
+    const pages = side.getByRole("list", { name: "More of your album" });
+    expect(within(pages).getByRole("link", { name: /^Milestones/ })).toHaveTextContent("6 medals");
+    expect(follows(pages, side.getByRole("searchbox", { name: "Search teams and people" }))).toBe(true);
+    expect(follows(pages, side.getByRole("region", { name: "Your team" }))).toBe(true);
+    expect(follows(pages, side.getByRole("list", { name: "Teams" }))).toBe(true);
+  });
+
+  it("expands the teams in place, with Show fewer at the bottom of the expanded list", async () => {
+    const { user } = visit("/", withBookNext);
+    const side = await sidebar();
+    const teams = side.getByRole("list", { name: "Teams" });
+
+    await user.click(side.getByRole("button", { name: "Show 2 more" }));
+
+    expect(within(teams).getAllByRole("link")).toHaveLength(12);
+    const fewer = side.getByRole("button", { name: "Show fewer" });
+    expect(fewer).toHaveTextContent("Show fewer ▴");
+    expect(follows(teams, fewer)).toBe(true);
+    await user.click(fewer);
+    expect(within(teams).getAllByRole("link")).toHaveLength(10);
+  });
+
+  it("keeps Show fewer stuck to the bottom of the sidebar while the expanded list scrolls", () => {
+    expect(declarationsOf(".al-more[data-sticky]")).toMatchObject({ position: "sticky", bottom: "0" });
+  });
+
+  it("keeps the open team in the collapsed list", async () => {
+    visit("/book#teams/velvet-signal", withBookNext);
+
+    expect(within((await sidebar()).getByRole("list", { name: "Teams" })).getByRole("link", { name: /^Velvet Signal/ })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("is as before while book-next is off: Hoggies and Milestones last", async () => {
+    visit("/");
+    const side = await sidebar();
+
+    expect(follows(side.getByRole("list", { name: "Teams" }), side.getByRole("list", { name: "More of your album" }))).toBe(true);
+  });
+});
+
 describe("AL42: the sidebar", () => {
   it("leads with the member's team as a progress card", async () => {
     visit("/book#teams/lanterns");
