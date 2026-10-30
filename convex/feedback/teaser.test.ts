@@ -207,7 +207,7 @@ async function opensHome(user: string) {
 }
 
 async function recapsSentOnMonday() {
-  const sweep = makeFunctionReference<"mutation">(crons.crons["schedule each member's weekly hugs recap"]!.name);
+  const sweep = makeFunctionReference<"mutation">(crons.crons["ensure each member's coming Monday DM"]!.name);
   await settleUpTo(t, Date.now() + hourMs);
   await t.mutation(sweep, {});
   await settleUpTo(t, mondayNine + hourMs);

@@ -210,6 +210,7 @@ import type * as leaderboard_visibility from "../leaderboard/visibility.js";
 import type * as messageSettings_flag from "../messageSettings/flag.js";
 import type * as messageSettings_kinds from "../messageSettings/kinds.js";
 import type * as messageSettings_messageSettings from "../messageSettings/messageSettings.js";
+import type * as mondayDm_hugWeeks from "../mondayDm/hugWeeks.js";
 import type * as mondayDm_hypeNudge from "../mondayDm/hypeNudge.js";
 import type * as mondayDm_mondayDm from "../mondayDm/mondayDm.js";
 import type * as mondayDm_questsCopy from "../mondayDm/questsCopy.js";
@@ -622,6 +623,7 @@ declare const fullApi: ApiFromModules<{
   "messageSettings/flag": typeof messageSettings_flag;
   "messageSettings/kinds": typeof messageSettings_kinds;
   "messageSettings/messageSettings": typeof messageSettings_messageSettings;
+  "mondayDm/hugWeeks": typeof mondayDm_hugWeeks;
   "mondayDm/hypeNudge": typeof mondayDm_hypeNudge;
   "mondayDm/mondayDm": typeof mondayDm_mondayDm;
   "mondayDm/questsCopy": typeof mondayDm_questsCopy;

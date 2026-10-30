@@ -1,9 +1,5 @@
-import { v } from "convex/values";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { reportHugsRecapSent } from "../analytics/isolatedUsage";
-import type { HugsRecapCarrier } from "../analytics/projections";
 import { wallClockAt, type DayKey } from "../engine/allowance";
 import { threadRootOf } from "../engine/engine";
 import { emojiLineOf, type RecapEmojiLine } from "../feedback/albumRecap";
@@ -12,14 +8,12 @@ import { teaserOf } from "../feedback/teaser";
 import { placeOf } from "../messageSettings/messageSettings";
 import { hugXpOf, type HugWeekXp } from "../progression/hugXp";
 import { xpLevelsOnFor } from "../progression/xpLevels";
-import { hasMondayDm } from "../mondayDm/rows";
 import { permalinkOf } from "../slack/permalink";
-import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { workspaceUrlOf } from "../workspace/url";
 import { hugsOnAndExposedFor } from "./flag";
-import type { MostHugged, HugWeek } from "./weeks";
+import { awaitsTheMondayDm, type MostHugged, type HugWeek } from "./weeks";
 
 export type RecapLine = string | { text: string; link: { url: string; label: string } };
 
@@ -27,54 +21,7 @@ export type Recap = { workspace: string; user: string; lines: RecapLine[]; emoji
 
 export type HugsSection = { lines: RecapLine[]; closing: RecapLine[]; emojiLine: RecapEmojiLine | null };
 
-const recapsPerSweep = 100;
-const recapHour = 9;
-const triesAtMost = 3;
 const dayMs = 24 * 60 * 60 * 1000;
-
-export const sweep = internalMutation({
-  args: {},
-  handler: async (ctx): Promise<void> => {
-    const waiting = await ctx.db
-      .query("hugWeeks")
-      .withIndex("by_recap_due", (q) => q.eq("recap", "waiting"))
-      .take(recapsPerSweep);
-    for (const week of waiting) await scheduleRecap(ctx, week);
-    const stranded = await ctx.db
-      .query("hugWeeks")
-      .withIndex("by_recap_due", (q) => q.eq("recap", "scheduled").gte("dueAt", 0).lt("dueAt", Date.now() - convexActionTimeLimitMs))
-      .take(recapsPerSweep);
-    for (const week of stranded) await tryAgainAfterConvexStopped(ctx, week);
-    if (waiting.length === recapsPerSweep || stranded.length === recapsPerSweep) await ctx.scheduler.runAfter(0, internal.hugs.recap.sweep, {});
-  },
-});
-
-const tryArgs = { week: v.id("hugWeeks"), attempt: v.number() };
-
-export const startRecap = internalMutation({
-  args: tryArgs,
-  handler: async (ctx, { week, attempt }): Promise<Recap | null> => {
-    const row = await awaitingTry(ctx, week, attempt - 1);
-    if (row === null) return null;
-    const dueAt = await recapDueAtOf(ctx, row);
-    if (dueAt > Date.now()) {
-      await scheduleTry(ctx, row, dueAt, attempt);
-      return null;
-    }
-    if (attempt === 1 && (await hasMondayDm(ctx, row.member, mondayAfter(row.week)))) {
-      await ctx.db.patch(week, { recap: "monday-dm" });
-      return null;
-    }
-    if (!(await recapWantedBy(ctx, row.member))) {
-      await ctx.db.patch(week, { recap: "skipped" });
-      return null;
-    }
-    await ctx.db.patch(week, { tries: attempt, dueAt: Date.now() });
-    const { workspace, user } = await chatUserOf(ctx, row.member);
-    const { lines, closing, emojiLine } = await hugsSectionOf(ctx, row);
-    return { workspace, user, lines: [...lines, ...closing], emojiLine, footer: await settingsFooterFor(ctx, row.member) };
-  },
-});
 
 export async function hugsSectionFor(ctx: MutationCtx, member: MemberId, monday: DayKey): Promise<HugsSection | null> {
   const week = await claimedForTheMondayDm(ctx, member, mondayBefore(monday));
@@ -83,37 +30,18 @@ export async function hugsSectionFor(ctx: MutationCtx, member: MemberId, monday:
 
 export async function hugsSentInTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey) {
   const week = await hugWeekOf(ctx, member, mondayBefore(monday));
-  if (week !== null) await reportHugsRecapSent(ctx, await recapSentOf(ctx, week, "monday"));
+  if (week !== null) await reportHugsRecapSent(ctx, await recapSentOf(ctx, week));
 }
 
-export const recapLater = internalMutation({
-  args: { ...tryArgs, retry: v.object({ at: v.number(), attempt: v.number() }) },
-  handler: async (ctx, { week, attempt, retry }) => {
-    if ((await awaitingTry(ctx, week, attempt)) === null) return;
-    await ctx.db.patch(week, { tries: retry.attempt - 1, dueAt: retry.at });
-    await ctx.scheduler.runAt(retry.at, internal.slack.hugsRecap.sendHugsRecap, { week, attempt: retry.attempt });
-  },
-});
-
-export const recapEnded = internalMutation({
-  args: { ...tryArgs, sent: v.boolean() },
-  handler: async (ctx, { week, attempt, sent }) => {
-    const row = await awaitingTry(ctx, week, attempt);
-    if (row === null) return;
-    await ctx.db.patch(week, { recap: sent ? "sent" : "failed" });
-    if (sent) await reportHugsRecapSent(ctx, await recapSentOf(ctx, row, "recap"));
-  },
-});
-
-async function recapSentOf(ctx: QueryCtx, { workspace, member, week }: HugWeek, via: HugsRecapCarrier) {
+async function recapSentOf(ctx: QueryCtx, { workspace, member, week }: HugWeek) {
   const { given, received, givenXp, receivedXp } = await hugXpOf(ctx, member, week);
-  return { workspace, member, given, received, xp: givenXp + receivedXp, via, at: Date.now() };
+  return { workspace, member, given, received, xp: givenXp + receivedXp, via: "monday" as const, at: Date.now() };
 }
 
 async function claimedForTheMondayDm(ctx: MutationCtx, member: MemberId, monday: DayKey): Promise<HugWeek | null> {
   const week = await hugWeekOf(ctx, member, monday);
   if (week === null || week.recap === "monday-dm") return week;
-  if ((week.recap !== "waiting" && week.recap !== "scheduled") || week.tries > 0) return null;
+  if (!awaitsTheMondayDm(week)) return null;
   await ctx.db.patch(week._id, { recap: "monday-dm" });
   return week;
 }
@@ -129,33 +57,9 @@ async function hugsSectionOf(ctx: QueryCtx, week: HugWeek): Promise<HugsSection>
   return { ...(await recapLinesOf(ctx, week)), emojiLine: await emojiLineOf(ctx, week, await weekInstantsOf(ctx, week)) };
 }
 
-async function scheduleRecap(ctx: MutationCtx, week: HugWeek) {
-  await scheduleTry(ctx, week, Math.max(await recapDueAtOf(ctx, week), Date.now()), 1);
-}
-
-async function scheduleTry(ctx: MutationCtx, week: HugWeek, dueAt: number, attempt: number) {
-  await ctx.db.patch(week._id, { recap: "scheduled", dueAt });
-  await ctx.scheduler.runAt(dueAt, internal.slack.hugsRecap.sendHugsRecap, { week: week._id, attempt });
-}
-
-async function recapDueAtOf(ctx: QueryCtx, week: HugWeek) {
-  return wallClockAt(mondayAfter(week.week), recapHour, (await timeZoneOf(ctx, week.member)) ?? undefined);
-}
-
 async function weekInstantsOf(ctx: QueryCtx, week: HugWeek) {
   const timeZone = (await timeZoneOf(ctx, week.member)) ?? undefined;
   return { from: wallClockAt(week.week, 0, timeZone), to: wallClockAt(mondayAfter(week.week), 0, timeZone) };
-}
-
-async function tryAgainAfterConvexStopped(ctx: MutationCtx, week: HugWeek) {
-  if (week.tries >= triesAtMost) return ctx.db.patch(week._id, { recap: "failed" });
-  await ctx.db.patch(week._id, { dueAt: Date.now() });
-  await ctx.scheduler.runAfter(0, internal.slack.hugsRecap.sendHugsRecap, { week: week._id, attempt: week.tries + 1 });
-}
-
-async function awaitingTry(ctx: QueryCtx, week: Id<"hugWeeks">, tries: number): Promise<HugWeek | null> {
-  const row = await ctx.db.get(week);
-  return row?.recap === "scheduled" && row.tries === tries ? row : null;
 }
 
 async function recapWantedBy(ctx: MutationCtx, member: MemberId) {

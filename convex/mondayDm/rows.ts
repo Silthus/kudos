@@ -5,10 +5,6 @@ import type { MemberId } from "../workspace/directory";
 
 export type MondayDmRow = Doc<"mondayDms">;
 
-export async function hasMondayDm(ctx: QueryCtx, member: MemberId, monday: DayKey): Promise<boolean> {
-  return (await mondayDmOf(ctx, member, monday)) !== null;
-}
-
 export function mondayDmOf(ctx: QueryCtx, member: MemberId, monday: DayKey): Promise<MondayDmRow | null> {
   return ctx.db
     .query("mondayDms")
