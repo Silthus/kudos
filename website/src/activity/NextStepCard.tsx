@@ -3,6 +3,7 @@ import type { LoopLesson, NextStep } from "../../../convex/website/activity";
 import { firstNameOf } from "../album/teamPage";
 import { NamedEmoji } from "../Emoji";
 import { SlackLink } from "../SlackLink";
+import { HugPicture } from "./HugPicture";
 
 type StepShown = { title: string; why: ReactNode; button: string; href: string };
 
@@ -20,6 +21,7 @@ export function NextStepCard({ step, kudos, slack }: NextStepCardProps) {
           {button}
         </SlackLink>
       </div>
+      <HugPicture step={step} kudos={kudos} />
     </section>
   );
 }
