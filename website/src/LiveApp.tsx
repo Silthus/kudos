@@ -269,6 +269,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       closeHowItWorks: (triedSlack) => answerWithin(commandAnswerBudgetMs, closeHowItWorks({ triedSlack })),
       viewQuests: (surface) => withoutWaiting(viewQuests({ surface })),
       viewLeaderboard: (period) => withoutWaiting(viewLeaderboard({ period })),
+      viewThisWeek: (measure) => withoutWaiting(viewLeaderboard({ measure })),
       viewActivity: (state) => withoutWaiting(viewActivity({ state })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {

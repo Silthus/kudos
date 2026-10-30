@@ -10,6 +10,7 @@ import { settingsFixtures } from "./settingsFixtures";
 import { shellFixtures } from "./shell";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 import { activityWeekFixtures } from "./activity/activityWeekFixtures";
+import { hugBoardsFixtures } from "./leaderboard/thisWeekFixtures";
 
 const profileRead = vi.fn();
 const boardRead = vi.fn();
@@ -357,6 +358,16 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     renderLiveSite();
 
     await waitFor(() => expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:viewLeaderboard", args: { period: "week" } }));
+  });
+
+  it("HH92: this week's Leaderboard sends its view as one viewLeaderboard with the measure over HTTP with the session's token", async () => {
+    showTheAlbum({ ...albumV1, leaderboardHugs: true }, (query) => (query === "website/leaderboard:getBoards" ? hugBoardsFixtures.lively : undefined));
+    sentOverHttp.mockResolvedValue({ kind: "viewed" });
+    window.history.replaceState(null, "", "/leaderboard");
+
+    renderLiveSite();
+
+    await waitFor(() => expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:viewLeaderboard", args: { measure: "hugsGiven" } }));
   });
 
   it("E2: a Leaderboard view the network drops is let go, leaving no unhandled rejection", async () => {

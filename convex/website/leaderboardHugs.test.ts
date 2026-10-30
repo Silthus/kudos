@@ -661,6 +661,18 @@ describe("HH78: emojis within your reach", () => {
   });
 });
 
+describe("HH92: a view of this week's Leaderboard records leaderboard viewed with its measure", () => {
+  test.each<HugMeasure>(["hugsGiven", "hugsReceived", "kudosReceived", "level", "hoggies"])("a view on %s records one leaderboard viewed for the people board this week from the website, and exposes leaderboard-hugs", async (measure) => {
+    await thisWeek();
+
+    expect(await (await signedIn(alice)).mutation(api.website.album.viewLeaderboard, { measure })).toEqual({ kind: "viewed" });
+    await settle(t);
+
+    expect(leaderboardViews()).toEqual([{ board: "people", period: "week", surface: "website", measure }]);
+    expect(await exposuresOf("leaderboard-hugs")).toEqual([true]);
+  });
+});
+
 async function leaderboardHugs(on: boolean) {
   await switchWebsite(t, postHog, true, ...websiteFlags, ...(on ? ["leaderboard-hugs"] : []));
 }
@@ -808,6 +820,13 @@ async function inGroups(groups: Record<string, Person[]>) {
 
 function joining({ joiningIn }: Boards): Joining[] {
   return (joiningIn?.teams ?? []).map(({ name, joined, of, standing, mine }) => ({ name, joined, of, standing, mine }));
+}
+
+function leaderboardViews() {
+  return postHog
+    .productEvents()
+    .filter(({ event }) => event === "leaderboard viewed")
+    .map(({ properties: { board, period, surface, measure } }) => ({ board, period, surface, measure }));
 }
 
 function exposuresOf(flag: string) {
