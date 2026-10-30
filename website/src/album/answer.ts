@@ -69,6 +69,7 @@ export type Album = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
+  bookNext?: true;
 };
 
 export type AlbumAnswer = { kind: "off" } | Album;
