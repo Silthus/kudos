@@ -61,6 +61,7 @@ export const subscribers: Registry = {
   hugGiven: [
     { subscriber: internal.welcome.welcome.welcomeOnHug, only: ({ first }) => first === true },
     internal.progression.hugRewards.payHugGiven,
+    internal.album.items.hugFinds.findOnHug,
     internal.hugs.people.payHugPeople,
     internal.feedback.welcomeNudge.nudgeTheHugged,
     internal.album.tallies.tallyHugGiven,

@@ -53,6 +53,11 @@ export async function earnHoggieItem(ctx: MutationCtx, earning: HoggieEarning, r
   return earned?._id ?? (await earnItem(ctx, { ...earning, source: "hoggie", ...(await rarityRangeFor(ctx, earning.member, rarities)) }));
 }
 
+export async function earnHoggieItemCappedAtRare(ctx: MutationCtx, earning: HoggieEarning): Promise<Id<"items">> {
+  const earned = await earnedItemOf(ctx, earning.member, "hoggie", earning.key);
+  return earned?._id ?? (await earnItem(ctx, { ...earning, source: "hoggie", ...cappedAtRare }));
+}
+
 export async function rarityRangeFor(ctx: MutationCtx, member: MemberId, { today, capped }: SourceRarities): Promise<RarityRange> {
   const caps = await memberDecision(ctx, rarityCapsFlag, member);
   await exposed(ctx, rarityCapsFlag, member, caps);

@@ -862,6 +862,10 @@
     {
       "name": "player card",
       "definition": "A member's card on their person page, in its share picture and in a person link's unfold: their face, name, first team, level and XP, this week's place and kudos given on the Leaderboard, and their album's people, hoggies, emojis and medals (LP94). Not a card: a card is an unlocked image with a quip."
+    },
+    {
+      "name": "hug find",
+      "definition": "A face-down hoggie item a hug given earns its giver: while hug-rewards was on at the hug, a hug finds with a 20% chance decided by the deployment's draw secret from the hug's own message, at most one find on the giver's day, and it always draws common to rare (HH35, HH36). Not a pack or a crate bought."
     }
   ],
   "retired": [
