@@ -10,9 +10,8 @@ import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { xpLevelsShownTo } from "../progression/xpLevels";
-import { journeyStepNamedTo, questsHoldTheReplyOf } from "../quests/flag";
+import { onTheMondayPath } from "../quests/flag";
 import { finishedStepGoalOf } from "../quests/onboarding";
-import { rewardWaits } from "../quests/crates";
 import { withoutFullStop } from "../quests/pool";
 import { journeyStepValidator } from "../quests/step";
 import type { MovedQuest } from "../quests/progress";
@@ -34,7 +33,7 @@ export const questDoneValidator = v.union(
 
 export type QuestDone = Infer<typeof questDoneValidator>;
 
-type Shown<Done> = Done extends unknown ? Omit<Done, "heldRewardKey"> & { waiting: boolean } : never;
+type Shown<Done> = Done extends unknown ? Omit<Done, "heldRewardKey"> : never;
 
 type QuestDoneShown = Shown<QuestDone>;
 
@@ -84,7 +83,7 @@ async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefine
   const lines = skippedLines(reply.outcome.skipped);
   if (member !== undefined && !(await wantsMessage(ctx, member, "kudos-reply"))) return { reply: { lines }, oneReply: null };
   const gains = await gainsWritten(ctx, member, ref, reply);
-  const waitsForQuests = member !== undefined && (await questsHoldTheReplyOf(ctx, member));
+  const waitsForQuests = member !== undefined && (await onTheMondayPath(ctx, member));
   const written = { lines, gains, ...(waitsForQuests && { held: true as const }) };
   if (member === undefined || !(await oneReplyShownTo(ctx, member))) return { reply: { given: givenLine(reply.outcome, reply.base), ...written }, oneReply: null };
   const awaitsItems = await itemsAwaitedBy(ctx, member);
@@ -155,7 +154,7 @@ export const privateReply = internalQuery({
 });
 
 async function questsMovedShownTo(ctx: QueryCtx, workspace: string, member: MemberId, questsMoved: MovedQuest[]): Promise<MovedQuest[]> {
-  return questsMoved.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? questsMoved : [];
+  return questsMoved.length > 0 && (await questGainsShownTo(ctx, member)) ? questsMoved : [];
 }
 
 type WrittenFacts = { headline: Line; left: string; skipped: Line[]; items: RepliedItems | null; questsMoved: MovedQuest[] };
@@ -208,19 +207,13 @@ async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId |
   return {
     xp: (await xpGainsShownTo(ctx, workspace, member)) ? xp : 0,
     coins: coinsVisible ? coins : 0,
-    questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? (await questsStillShown(ctx, workspace, member, questsDone)).map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
+    questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, member)) ? questsDone.map(withoutHeldRewardKey).map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
     bonus: bonus.length > 0 && (await bonusGainsShownTo(ctx, workspace, member)) ? bonus : [],
   };
 }
 
-async function questsStillShown(ctx: QueryCtx, workspace: string, member: MemberId | null, questsDone: QuestDone[]): Promise<QuestDoneShown[]> {
-  const shown: QuestDoneShown[] = [];
-  for (const done of questsDone) if (done.kind !== "journey" || member === null || (await journeyStepNamedTo(ctx, workspace, member, done.step))) shown.push(await withWaitingOf(ctx, member, done));
-  return shown;
-}
-
-async function withWaitingOf(ctx: QueryCtx, member: MemberId | null, { heldRewardKey, ...done }: QuestDone): Promise<QuestDoneShown> {
-  return { ...done, waiting: heldRewardKey !== undefined && member !== null && (await rewardWaits(ctx, member, heldRewardKey)) };
+function withoutHeldRewardKey({ heldRewardKey: _, ...done }: QuestDone): QuestDoneShown {
+  return done;
 }
 
 async function areCoinsVisibleTo(ctx: QueryCtx, member: MemberId | null) {
@@ -254,9 +247,8 @@ function hoggieQuestLinesOf(questsDone: QuestDoneShown[]): Line[] {
   return questsDone.filter(({ hoggie }) => hoggie === true).map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} · ${hoggieRewardOf(done.xp)}` }]);
 }
 
-function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
-  const gains = coins > 0 ? `+${xp} XP, ${coinsPartOf(coins)}` : `+${xp} XP`;
-  return waiting ? `${gains} waiting in your crate` : gains;
+function questRewardOf({ xp, coins = 0 }: QuestDoneShown) {
+  return coins > 0 ? `+${xp} XP, ${coinsPartOf(coins)}` : `+${xp} XP`;
 }
 
 function goalOf(done: QuestDoneShown) {

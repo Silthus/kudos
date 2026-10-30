@@ -122,19 +122,15 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await rowsOf("flagExposures")).toEqual([]);
     });
 
-    test("signing in runs the previewing member's due preview moments, and never the unlocks launch or the Journey launch", async () => {
+    test("signing in runs the previewing member's due preview moments, and never the unlocks launch", async () => {
       const member = await aMemberWithEmail(alice);
       await flagsServed(...everythingForAlice);
 
       await signIn(alice);
       await settle(t);
 
-      expect(await previewMoments()).toEqual([
-        { member, moment: "unlocks" },
-        { member, moment: "journey" },
-      ]);
+      expect(await previewMoments()).toEqual([{ member, moment: "unlocks" }]);
       expect(await rowsOf("unlockLaunches")).toEqual([]);
-      expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
 
     test("with the website on for the workspace, a member signs in with their website exposure and no preview moment runs", async () => {
@@ -168,7 +164,7 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await myProfile(asSignedIn)).toEqual({ kind: "closed" });
     });
 
-    test("with the website on for everyone, each member's pages follow their own XP, board, unlocks and quests decisions", async () => {
+    test("with the website on for everyone, each member's pages follow their own XP, board and unlocks decisions", async () => {
       const alices = await aMemberWithEmail(alice);
       const bobs = await aMemberWithEmail(bob);
       await flagsServed(...websiteForEveryoneTheRestForAlice);
@@ -181,12 +177,10 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       const bobsProfile = await myProfile(asBob);
 
       expect(alicesProfile).toMatchObject({ kind: "member", progression: expect.objectContaining({ level: expect.any(Number) }), leaderboard: { kind: "open" } });
-      expect(alicesProfile).toMatchObject({ features: expect.arrayContaining([expect.objectContaining({ feature: "leaderboard", state: "open" })]), journey: expect.any(Array) });
-      expect(bobsProfile).toMatchObject({ kind: "member", progression: null, features: null, journey: null, leaderboard: { kind: "off" } });
+      expect(alicesProfile).toMatchObject({ features: expect.arrayContaining([expect.objectContaining({ feature: "leaderboard", state: "open" })]) });
+      expect(bobsProfile).toMatchObject({ kind: "member", progression: null, features: null, leaderboard: { kind: "off" } });
       expect((await asAlice.query(api.website.leaderboard.getLeaderboard, { period: "week" })).kind).toBe("board");
       expect(await asBob.query(api.website.leaderboard.getLeaderboard, { period: "week" })).toEqual({ kind: "not-found" });
-      expect((await asAlice.query(api.website.quests.getQuests, {})).kind).not.toBe("not-found");
-      expect(await asBob.query(api.website.quests.getQuests, {})).toEqual({ kind: "not-found" });
     });
   });
 
@@ -262,17 +256,6 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
 
-    test("quests switched on for the workspace after the preview, with unlocks launched: the previewer's open answers refused and records no Journey launch", async () => {
-      await aMemberWithEmail(alice);
-      await flagsServed(...everythingForAlice);
-      const asAlice = await signedIn(alice);
-      await flagsServed(...everyFlagOn.filter(({ key }) => key !== "quests"));
-      await unlocksShippedBeforeAnyoneJoined(t, allowedWorkspace);
-      await flagsServed(...everyFlagOn);
-
-      expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
-      expect(await rowsOf("journeyLaunches")).toEqual([]);
-    });
     test("achievements switched on for the workspace after unlocks launched: the previewer's sign-in runs no Journey preview, and their open answers refused and records no Book launch", async () => {
       await aMemberWithEmail(alice);
       const workspaceFlags = everyFlagOn.filter(({ key }) => key !== "website" && key !== "quests");

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor, slackError, type SlackArgs } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { blockActions, buttonIn, buttonInHome, optionPickedInHome, publishedHome, staleButtonOf, type Block, type BlockAction, type ClickedMessage } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -29,7 +29,6 @@ const pickers = {
 
 const noKudosBehind: Array<[string, Notification]> = [
   ["a level a reward reaches", { kind: "level-reached", level: 2, skillPoints: null, xpToNextLevel: 80, ready: [] }],
-  ["a Journey join", { kind: "journey-joined", finished: [{ quest: { kind: "journey", step: "first-thanks" }, xp: 20 }] }],
   ["a tier summary", { kind: "tiers-earned", tiers: [{ ladder: "generosity", tier: "bronze" }] }],
 ];
 
@@ -174,18 +173,6 @@ describe("QM24: in the channel, beside the kudos message that caused it", () => 
     ]);
     expect(postsTo("U_BOB").filter((text) => text.startsWith("🏅"))).toEqual([]);
   });
-
-  test("a weekly quest finished by a kudos arrives beside it, and the Journey step it finishes too", async () => {
-    const t = await questsOpenedBy("U_ALICE");
-    await place(t, "U_ALICE", "quests", "channel");
-    const before = slack.ephemeralsTo("U_ALICE").length;
-
-    await giveKudos(t, "U_ALICE", "U_BOB", { words: "thanks for untangling the release notes today" });
-
-    const crates = slack.ephemeralsTo("U_ALICE").slice(before).filter(({ text }) => String(text).startsWith("✅"));
-    expect(crates.map(({ channel }) => channel)).toEqual(["C1", "C1"]);
-    expect(postsTo("U_ALICE").filter((text) => text.startsWith("✅"))).toEqual([]);
-  });
 });
 
 describe("QM25: when in-channel can't be, it arrives as a DM", () => {
@@ -314,7 +301,7 @@ async function settingsOpen(flags: string[], firstThanked = "U_BOB") {
 
 async function everythingOpen() {
   const t = await workspaceWith([messageSettings, "xp-levels", "unlocks", "quests", "achievements"]);
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await bookShippedBeforeAnyoneJoined(t);
   await giveKudos(t, "U_ALICE", "U_BOB");
   await bookOpened(t, "U_ALICE");
@@ -342,19 +329,6 @@ async function bookOpened(t: Backend, user: string) {
   });
 }
 
-async function questsOpenedBy(user: string) {
-  const t = await unlocksShippedBeforeAnyoneJoined(await workspaceWith([messageSettings, "xp-levels", "unlocks", "quests"]));
-  slack.withMember("U_CAROL");
-  await giveKudos(t, user, "U_CAROL");
-  const member = await t.run((ctx) => memberIn(ctx, user));
-  const drawn = { reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 2, recognitionsLeft: 18 } };
-  const slots = (["say-why", "say-why-three-times", "say-why-three-days"] as const).map((quest, slot) => ({ slot, quest, ...drawn }));
-  await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: Date.now(), slots }));
-  await openUnlock(t, user, "quests");
-  vi.setSystemTime(Date.now() + 60 * 60 * 1000);
-  return t;
-}
-
 async function skillTreeOpenAtLevelFive(user: string) {
   const t = await unlocksShippedBeforeAnyoneJoined(await workspaceWith([messageSettings, "xp-levels", "unlocks", "skill-tree"]));
   await giveKudos(t, user, "U_BOB");
@@ -379,10 +353,6 @@ async function withXp(t: Backend, user: string, xp: number) {
       .unique();
     await ctx.db.patch(progress!._id, { xp });
   });
-}
-
-async function openUnlock(t: Backend, user: string, feature: "quests") {
-  await clickHome(t, user, staleButtonOf({ type: "openUnlock", feature }));
 }
 
 async function place(t: Backend, user: string, kind: MessageKind, where: MessagePlace) {

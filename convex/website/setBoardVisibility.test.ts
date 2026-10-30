@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, journeyShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, testBackend, type Backend } from "../../testing/slackBackend";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
@@ -159,17 +159,6 @@ describe("a website command never launches unlocks", () => {
     expect(publishedEvents()).toEqual([]);
   });
 
-  test("WS321 WS335 P91: with quests on and no Journey launch, an open board's switch answers refused and neither launches the Journey nor joins anyone", async () => {
-    const { asSignedIn } = await anOpenBoardIn(t, "quests");
-    const before = await everythingWritten();
-    vi.mocked(publish).mockClear();
-
-    expect(await setBoardVisibility(asSignedIn, false)).toEqual({ kind: "refused" });
-    expect(await everythingWritten()).toEqual(before);
-    expect(before.tables.journeyLaunches).toEqual([]);
-    expect(publishedEvents()).toEqual([]);
-  });
-
   test("WS321 WS335: with achievements on and no Book launch, an open board's switch answers refused and doesn't launch the Book", async () => {
     const { asSignedIn } = await anOpenBoardIn(t, "achievements");
     const before = await everythingWritten();
@@ -204,7 +193,7 @@ describe("a website command is a D17 command", () => {
 
   test("WS321: an open Leaderboard on the unlock path switches, with the Journey and the Book launched", async () => {
     const { member, asSignedIn } = await anOpenBoardIn(t, "quests", "achievements");
-    await journeyShippedBeforeAnyoneJoined(t);
+    await unlocksShippedBeforeAnyoneJoined(t);
     await bookShippedBeforeAnyoneJoined(t);
 
     expect(await setBoardVisibility(asSignedIn, false)).toEqual({ kind: "set", visible: false });

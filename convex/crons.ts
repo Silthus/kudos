@@ -11,7 +11,6 @@ crons.interval("try again the member verifications Convex stranded", { minutes: 
 crons.interval("sweep failed scheduled functions", { minutes: 15 }, internal.analytics.sweep.sweep);
 crons.interval("make features that shipped ready", { hours: 1 }, internal.unlocks.sweep.sweep, {});
 crons.interval("draw each member's new week of quests", { hours: 1 }, internal.quests.newWeek.sweep, {});
-crons.interval("draw each group's weekly group quest", { hours: 1 }, internal.quests.groupQuest.sweep, {});
 crons.interval("schedule each member's weekly hugs recap", { hours: 1 }, internal.hugs.recap.sweep, {});
 crons.interval("ensure each member's coming Monday DM", { hours: 1 }, internal.mondayDm.mondayDm.ensureMondayDms, {});
 crons.interval("tick the website clock", { minutes: 15 }, internal.website.clock.tick);

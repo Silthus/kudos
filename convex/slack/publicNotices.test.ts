@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
 import { deliverAgain, everythingStored, post, setWorkspaceSettings, settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -350,77 +350,10 @@ describe("QM1 QM2 QM3: a public celebration is never posted in a work thread", (
   });
 });
 
-describe("P64: a level reached through a reward record", () => {
-  const saysWhy = "thanks for untangling the release notes today";
-
-  beforeEach(() => flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests"));
-
-  test.each([
-    ["still picked, is posted there", ["🎉 <@U_ALICE> reached level 2."]],
-    ["cleared by Stop posting, is never posted", []],
-  ])("a notice still posting when the announcement channel is %s", async (picked, posted) => {
-    const t = await journeyWorkspace({ announcementChannel: "C_NEWS" });
-    const notice = await storedRewardedLevelNotice(t, "C_NEWS");
-    if (picked.startsWith("cleared")) await clearAnnouncementChannel(t);
-
-    await deliver(t, notice);
-
-    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(posted);
-  });
-
-  test("with an announcement channel set, the level 2 that first-thanks reaches is celebrated there once, and nowhere else", async () => {
-    const t = await journeyWorkspace({ announcementChannel: "C_NEWS" });
-
-    await post(t, [section(mention("U_BOB"), text(` ${saysWhy} `), emoji("taco"))]);
-    await settle(t);
-
-    expect(publicNotices()).toEqual([{ channel: "C_NEWS", text: "🎉 <@U_ALICE> reached level 2." }]);
-  });
-
-  test("without an announcement channel, nothing is posted and the level-up DM still goes out", async () => {
-    const t = await journeyWorkspace();
-
-    await post(t, [section(mention("U_BOB"), text(` ${saysWhy} `), emoji("taco"))]);
-    await settle(t);
-
-    expect(publicNotices()).toEqual([]);
-    expect(slack.messagesIn("U_ALICE").map(({ text }) => text)).toContainEqual(expect.stringContaining("You reached level 2!"));
-  });
-
-  test("a member who muted public notices gets no notice", async () => {
-    const t = await journeyWorkspace({ announcementChannel: "C_NEWS" });
-    await withSettings(t, "U_ALICE", { muteNotices: true });
-
-    await post(t, [section(mention("U_BOB"), text(` ${saysWhy} `), emoji("taco"))]);
-    await settle(t);
-
-    expect(publicNotices()).toEqual([]);
-  });
-
-  test("a replayed levelReached posts nothing new", async () => {
-    const t = await journeyWorkspace({ announcementChannel: "C_NEWS" });
-    await post(t, [section(mention("U_BOB"), text(` ${saysWhy} `), emoji("taco"))]);
-    await settle(t);
-
-    const { message: _, ...withoutKudosMessage } = await levelReached(t, "U_ALICE", 2);
-    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: withoutKudosMessage });
-    await settle(t);
-
-    expect(publicNotices()).toEqual([{ channel: "C_NEWS", text: "🎉 <@U_ALICE> reached level 2." }]);
-    expect(slack.callsTo("chat.update")).toEqual([]);
-  });
-});
-
 const acceptedButAnsweredWithoutTs: ScriptedAnswer = async (answerAsSlackWould) => {
   const { ts: _, ...withoutTs } = await answerAsSlackWould().json();
   return Response.json(withoutTs);
 };
-
-async function journeyWorkspace(settings: { announcementChannel?: string } = {}) {
-  const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
-  await setWorkspaceSettings(t, settings);
-  return t;
-}
 
 function publicNotices() {
   return slack
@@ -449,12 +382,6 @@ async function storedReply(t: Backend, destination: { channel: string; threadTs?
     await ctx.db.insert("workspaceKeys", { workspace: "T1", workspaceKey: "workspace-key" });
     return ctx.db.insert("publicReplies", { workspace: "T1", conversation: "C1", message: postedTs, ...destination, sections, version: 2, shown });
   });
-}
-
-async function storedRewardedLevelNotice(t: Backend, channel: string) {
-  const sections = await aliceReachedLevel2(t);
-  const reached = { member: sections[0]!.member, level: 2 };
-  return t.run((ctx) => ctx.db.insert("publicReplies", { workspace: "T1", reached, channel, sections, version: 1, shown: { state: "posting" } }));
 }
 
 async function aliceReachedLevel2(t: Backend) {

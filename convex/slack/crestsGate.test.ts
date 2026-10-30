@@ -2,7 +2,7 @@ import type { FunctionReturnType } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, type FlagDefinition, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding, testBackendServing } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding, testBackendServing } from "../../testing/flags";
 import { withoutExposureOf } from "../../testing/hoggies";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settleInTimeOrder, type Backend } from "../../testing/slackBackend";
@@ -10,7 +10,6 @@ import { blockActions, publishedHome, staleButtonOf } from "../../testing/slackI
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { aSession, aSignedInSession } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import type { Quest } from "../quests/step";
 import schema from "../schema";
 import type { Feature } from "../unlocks/feature";
 
@@ -28,7 +27,7 @@ vi.mock("../album/hoggies/flag", async (importOriginal) => {
 vi.mock("../album/hoggies/draw", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../album/hoggies/draw")>();
   const { hoggieNamed } = await import("../album/hoggies/catalogue");
-  const planned: Record<string, string> = { "unlock:book": "roller-coaster", "journey:first-thanks": "dynamite", "unlock:leaderboard": "cursor" };
+  const planned: Record<string, string> = { "unlock:book": "roller-coaster", "unlock:quests": "dynamite", "unlock:leaderboard": "cursor" };
   return { ...actual, drawOf: vi.fn(async ({ crate }: Parameters<typeof actual.drawOf>[0]) => ({ hoggie: planned[crate]!, rarity: hoggieNamed(planned[crate]!)!.rarity })) };
 });
 
@@ -40,7 +39,6 @@ const crests = "crests";
 const everyOtherFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "achievements", "activity", "collection", "website"];
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
-const firstThanks: Quest = { kind: "journey", step: "first-thanks" };
 const opensOf = { [alice.user]: { inSlack: "book", onTheWebsite: "leaderboard" }, [bob.user]: { inSlack: "leaderboard", onTheWebsite: "book" } } satisfies Record<string, { inSlack: Feature; onTheWebsite: Feature }>;
 
 let slack: FakeSlack;
@@ -116,12 +114,12 @@ describe("CL26: crests are dark where crests is off, show only to the members it
     for (const { user } of [alice, bob]) await openHome(user);
     await openInSlack(alice.user, { type: "openUnlock", feature: "book" });
     await openInSlack(bob.user, { type: "openUnlock", feature: "leaderboard" });
-    await openInSlack(bob.user, { type: "openQuestCrate", quest: firstThanks });
+    await openInSlack(bob.user, { type: "openUnlock", feature: "quests" });
     for (const member of [alice, bob]) await readsOnTheWebsite(member);
     expect(crestsExposures()).toEqual({});
 
-    await openInSlack(alice.user, { type: "openQuestCrate", quest: firstThanks });
-    await openInSlack(alice.user, { type: "openQuestCrate", quest: firstThanks });
+    await openInSlack(alice.user, { type: "openUnlock", feature: "quests" });
+    await openInSlack(alice.user, { type: "openUnlock", feature: "quests" });
     await (await signedIn(bob)).mutation(api.website.commands.openFeature, { feature: "book" });
     await onTheWebsite(alice);
     await settleInTimeOrder(t);
@@ -157,7 +155,7 @@ async function aliceAndBobAtLevelFour(crestsFlag: FlagDefinition[], turnOff?: ()
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   await bookShippedBeforeAnyoneJoined(t);
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await giveKudos(alice.user, bob.user);
   await giveKudos(bob.user, alice.user);
   for (const { user } of [alice, bob]) await reachLevelFour(user);
@@ -170,8 +168,8 @@ async function walkIn(backend: Backend) {
   for (const { user } of [alice, bob]) {
     await openHome(user);
     await openInSlack(user, { type: "openUnlock", feature: opensOf[user]!.inSlack });
-    await openInSlack(user, { type: "openQuestCrate", quest: firstThanks });
-    await openInSlack(user, { type: "openQuestCrate", quest: firstThanks });
+    await openInSlack(user, { type: "openUnlock", feature: "quests" });
+    await openInSlack(user, { type: "openUnlock", feature: "quests" });
   }
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   for (const member of [alice, bob]) answers[member.user] = await onTheWebsite(member);
@@ -190,7 +188,7 @@ type ActivityPage = FunctionReturnType<typeof api.website.activity.getActivity>;
 
 async function onTheWebsite(identity: { user: string; name: string }) {
   const asSignedIn = await signedIn(identity);
-  const opens = [await asSignedIn.mutation(api.website.commands.openFeature, { feature: opensOf[identity.user]!.onTheWebsite }), await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: firstThanks })];
+  const opens = [await asSignedIn.mutation(api.website.commands.openFeature, { feature: opensOf[identity.user]!.onTheWebsite }), await asSignedIn.mutation(api.website.commands.openFeature, { feature: "quests" })];
   await settleInTimeOrder(t);
   return { opens, ...(await readsOnTheWebsite(identity)) };
 }
@@ -310,7 +308,7 @@ async function reachLevelFour(user: string) {
   await settleInTimeOrder(t);
 }
 
-async function openInSlack(user: string, command: { type: "openUnlock"; feature: Feature } | { type: "openQuestCrate"; quest: Quest }) {
+async function openInSlack(user: string, command: { type: "openUnlock"; feature: Feature }) {
   vi.setSystemTime(Date.now() + minuteMs);
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, staleButtonOf(command)), form));
   await settleInTimeOrder(t);

@@ -13,7 +13,6 @@ import { followTheClock } from "./clock";
 import { signInFaceOf, type Face } from "./faces";
 import { inventoryShownTo, type MemberInventory } from "./inventory";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
-import { journeyStepsOf, type JourneyStep } from "./quests";
 import { settingsShownTo } from "./settings";
 import { skillPointsOf } from "./skillTree";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
@@ -21,7 +20,6 @@ import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, typ
 export type { Face } from "./faces";
 export type { Avatar } from "../album/hoggies/avatar";
 export type { FeatureCard, FeaturePage, PageWaits } from "./unlockPath";
-export type { JourneyStep } from "./quests";
 export type { InventoryItem, ItemSource, MemberInventory } from "./inventory";
 
 export type Kudos = { given: number; received: number };
@@ -39,7 +37,6 @@ export type MemberProfile = {
   chatUrl: string;
   leaderboard: FeaturePage;
   features: FeatureCard[] | null;
-  journey: JourneyStep[] | null;
   progression: Progression | null;
   skillPoints: number | null;
   coins: number | null;
@@ -70,7 +67,6 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     chatUrl: workspaceLink(me.workspace),
     leaderboard,
     features: await featureCardsOf(ctx, me, path),
-    journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
     skillPoints: await skillPointsOf(ctx, me, path),
     coins: (await visibleWalletOf(ctx, me.member))?.balance ?? null,

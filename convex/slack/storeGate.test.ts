@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
-import { flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, publishedHome, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { achievementsLiveIn } from "../achievements/flag";
-import { activityOf } from "../activity/activity";
 import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { xpToReach } from "../progression/levels";
@@ -29,7 +28,6 @@ const alicesEmail = "alice@example.com";
 const savedUp = 400;
 const ribbon = "kudos-emoji-ribbon";
 const rocket = "kudos-emoji-rocket";
-const yourEmojiGoal = "Give a kudos that says why with one of your kudos emoji.";
 const generousSoul = "🏅 You earned Generous Soul (Generosity, silver).";
 
 const everyOtherFeature = ["xp-levels", "unlocks", "skill-tree", "quests", "achievements", "coins"];
@@ -65,7 +63,7 @@ afterEach(() => {
 });
 
 describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout: 120_000 }, () => {
-  test("with store on for Alice, her walk reaches every store path: Coins and inventory, the Inventory tab, the tier emoji line, your-emoji and her owned emoji's kudos", async () => {
+  test("with store on for Alice, her walk reaches every store path: Coins and inventory, the Inventory tab, the tier emoji line and her owned emoji's kudos", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
 
     const { ownedKudos } = await walkEveryStorePath(t, "U_ALICE");
@@ -74,12 +72,10 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     expect(told).toContain("*Coins and inventory* is ready.");
     expect(told).toContain("Coins and inventory are open.");
     expect(told).toContain(`${generousSoul} + :ribbon: Ribbon for your kudos emoji`);
-    expect(told).toContain("Quest done: Give a kudos that says why with one of your kudos emoji (+40 XP, +20 🪙)");
     expect(publishedHome(slack, "U_ALICE")).toEqual(expect.arrayContaining(["header: Inventory", "section: 🦔 Hedgehog", "section: 🎀 Ribbon"]));
     expect(await kudosMessagesOf(t, "U_ALICE")).toContain(ownedKudos);
-    expect(await goalsInActivityOf(t, "U_ALICE")).toContain(yourEmojiGoal);
     expect(await inventoryOf(t, "U_ALICE")).not.toBeNull();
-    expect(await storeRowsOf(t, "U_ALICE")).toMatchObject({ purchases: [{ outcome: { kind: "refused", item: rocket, reason: "not-for-sale" } }], yourEmoji: ["activated", "rewarded"] });
+    expect(await storeRowsOf(t, "U_ALICE")).toMatchObject({ purchases: [{ outcome: { kind: "refused", item: rocket, reason: "not-for-sale" } }] });
   });
 
   test.each([
@@ -100,9 +96,8 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     if (coinsNamed) expect(told).toEqual(expect.arrayContaining(["section: *Coins* is ready. It opens your wallet and the coin perks. [button: Open]", expect.stringMatching(/^Coins are open\. You already have \d+ 🪙\.$/)]));
     if (tierTold) expect(told.join("\n")).toContain(`${generousSoul}\n`);
     expect((await kudosMessagesOf(t, "U_ALICE")).includes(ownedKudos), "her kudos with the emoji she owns").toBe(silverEarned);
-    expect(await goalsInActivityOf(t, "U_ALICE")).not.toContain(yourEmojiGoal);
     expect(await inventoryOf(t, "U_ALICE")).toBeNull();
-    expect(await storeRowsOf(t, "U_ALICE")).toEqual({ collection: silverEarned ? [{ item: ribbon, source: "tier" }] : [], purchases: [], yourEmoji: [] });
+    expect(await storeRowsOf(t, "U_ALICE")).toEqual({ collection: silverEarned ? [{ item: ribbon, source: "tier" }] : [], purchases: [] });
     expect(eventsPublishedSince(0)).not.toContain("itemBought");
   });
 
@@ -146,20 +141,18 @@ describe("ST22 O35 O36: the store flag turned off and on, its stale clicks and i
     const t = await workspaceDeciding(...previewedByAlice);
     await walkEveryStorePath(t, "U_ALICE");
     await openHome(t, "U_ALICE");
-    const shown = { home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE"), goals: await goalsInActivityOf(t, "U_ALICE") };
+    const shown = { home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE") };
     const recorded = await everythingStoredButExposures(t);
 
     await flagsFromPostHog(t, postHog, ...storeOff);
     await openHome(t, "U_ALICE");
-    const hidden = { home: publishedHome(slack, "U_ALICE"), goals: await goalsInActivityOf(t, "U_ALICE") };
+    const hidden = { home: publishedHome(slack, "U_ALICE") };
     await flagsFromPostHog(t, postHog, ...previewedByAlice);
     await openHome(t, "U_ALICE");
 
-    expect(shown.goals).toContain(yourEmojiGoal);
     expect(hidden.home.filter(namesTheStore)).toEqual([]);
-    expect(hidden.goals).not.toContain(yourEmojiGoal);
     expect(await everythingStoredButExposures(t)).toEqual(recorded);
-    expect({ home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE"), goals: await goalsInActivityOf(t, "U_ALICE") }).toEqual(shown);
+    expect({ home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE") }).toEqual(shown);
   });
 
   test.each([
@@ -266,7 +259,7 @@ async function workspaceDeciding(...definitions: FlagDefinition[]) {
   vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
   const t = testBackend();
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, announcementChannel: "C_NEWS" }));
-  await journeyShippedBeforeAnyoneJoined(await flagsFromPostHog(t, postHog, ...definitions));
+  await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(t, postHog, ...definitions));
   await t.run((ctx) => achievementsLiveIn(ctx, "T1"));
   await settle(t);
   return t;
@@ -354,12 +347,6 @@ async function whichMessagesAreKudos(t: Backend, user: string) {
   return sent.filter(({ giver }) => giver === user).map(({ ts }) => kudos.includes(ts));
 }
 
-async function goalsInActivityOf(t: Backend, user: string) {
-  const member = await memberOf(t, user);
-  const { entries } = await t.run((ctx) => activityOf(ctx, member, { filter: "given", cursor: null }));
-  return entries.flatMap((entry) => (entry.kind === "kudosGiven" ? (entry.earned?.questsDone ?? []).map(({ goal }) => goal) : []));
-}
-
 async function storeRowsOf(t: Backend, user: string) {
   const member = await memberOf(t, user);
   return t.run(async (ctx) => {
@@ -367,10 +354,6 @@ async function storeRowsOf(t: Backend, user: string) {
     return {
       collection: ofMember(await ctx.db.query("collection").collect()).map(({ item, source }) => ({ item, source })),
       purchases: ofMember(await ctx.db.query("itemPurchases").collect()).map(({ outcome }) => ({ outcome })),
-      yourEmoji: [
-        ...ofMember(await ctx.db.query("journeySteps").collect()).flatMap(({ step }) => (step === "your-emoji" ? ["activated"] : [])),
-        ...ofMember(await ctx.db.query("rewardRecords").collect()).flatMap(({ key }) => (key === "journey:your-emoji" ? ["rewarded"] : [])),
-      ],
     };
   });
 }

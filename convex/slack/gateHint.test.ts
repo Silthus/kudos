@@ -6,8 +6,6 @@ import { settle, settleInTimeOrder, testBackend, type Backend } from "../../test
 import { emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { PerkId } from "../progression/tree";
-import type { QuestId } from "../quests/pool";
-import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-14T10:00:00Z");
 const ts = `${now.getTime() / 1000}.000100`;
@@ -41,16 +39,6 @@ describe("HH6 HH8: a short kudos earns what any kudos earns, and no success repl
     expect(successRepliesToAlice()).toEqual([[given, "+10 XP · Spark bonus (+5 XP)"]]);
   });
 
-  test("with a quest finished by the same short kudos, the extras line names the bonus and the quest", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree", "quests");
-    const { t, alice } = await workspaceWhereAliceOwns("spark");
-    await questsOpenedWith(t, alice, ["someone-new", "say-why-twice", "say-why-three-times"]);
-
-    await giveKudos(t, "thanks");
-
-    expect(successRepliesToAlice()).toEqual([[given, "+10 XP · Quest done: Thank someone you haven't thanked before (+20 XP) · Spark bonus (+5 XP)"]]);
-  });
-
   test("a reply stored with the hint before is sent without it", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
     const { t } = await workspaceWhereAliceOwns("spark");
@@ -72,14 +60,6 @@ async function workspaceWhereAliceOwns(...perks: PerkId[]) {
     return alice;
   });
   return { t, alice };
-}
-
-async function questsOpenedWith(t: Backend, alice: MemberId, quests: QuestId[]) {
-  await t.run(async (ctx) => {
-    await ctx.db.insert("unlocks", { member: alice, feature: "quests", readyAt: now.getTime(), openedAt: now.getTime() });
-    const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
-    await ctx.db.insert("questDraws", { member: alice, week: "2026-10-12", drawnAt: now.getTime(), slots });
-  });
 }
 
 async function giveKudos(t: Backend, words: string) {

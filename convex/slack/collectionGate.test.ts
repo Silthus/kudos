@@ -2,7 +2,7 @@ import type { FunctionReturnType } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, type FlagDefinition, flagsKey, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding, testBackendServing } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding, testBackendServing } from "../../testing/flags";
 import { withoutCollectionExposure } from "../../testing/hoggies";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settleInTimeOrder, type Backend } from "../../testing/slackBackend";
@@ -10,7 +10,6 @@ import { blockActions, publishedHome, staleButtonOf } from "../../testing/slackI
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { aSession, aSignedInSession } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import type { Quest } from "../quests/step";
 import schema from "../schema";
 import type { Feature } from "../unlocks/feature";
 
@@ -33,8 +32,6 @@ const collection = "collection";
 const everyOtherFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "achievements", "activity"];
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
-const firstThanks: Quest = { kind: "journey", step: "first-thanks" };
-const anUndrawnWeeklyQuest: Quest = { kind: "weekly", week: "2026-10-12", slot: 0 };
 const opensOf = { [alice.user]: { inSlack: "book", onTheWebsite: "leaderboard" }, [bob.user]: { inSlack: "leaderboard", onTheWebsite: "book" } } satisfies Record<string, { inSlack: Feature; onTheWebsite: Feature }>;
 
 let slack: FakeSlack;
@@ -85,8 +82,8 @@ describe("CL18: the collection is dark where collection is off, drops only for t
   test("with collection on, the same walk drops a hoggie for every crate opened and shows them", async () => {
     const walk = await walkIn(await aliceAndBobAtLevelFour([onForEveryone(collection)]));
 
-    expect(walk.tables.drops).toHaveLength(6);
-    expect(walk.answers.U_ALICE!.opens).toEqual([expect.objectContaining({ drop: expect.objectContaining({ copy: expect.any(Number) }) }), expect.objectContaining({ drop: expect.objectContaining({ copy: expect.any(Number) }) })]);
+    expect(walk.tables.drops).toHaveLength(4);
+    expect(walk.answers.U_ALICE!.opens).toEqual([expect.objectContaining({ drop: expect.objectContaining({ copy: expect.any(Number) }) })]);
     expect(walk.homes.U_ALICE!.join("\n")).toContain("Hoggies: ");
     expect(JSON.stringify(walk.answers.U_ALICE!.activity)).toContain('"kind":"found"');
   });
@@ -97,7 +94,7 @@ describe("CL18: the collection is dark where collection is off, drops only for t
 
     const onForAlice = await walkIn(await aliceAndBobAtLevelFour([onForEmails(collection, alice.email)]));
 
-    expect(onForAlice.dropsOf).toEqual({ U_ALICE: 3, U_BOB: 0 });
+    expect(onForAlice.dropsOf).toEqual({ U_ALICE: 2, U_BOB: 0 });
     expect(onForAlice.homes.U_BOB).toEqual(off.homes.U_BOB);
     expect(onForAlice.answers.U_BOB).toEqual(off.answers.U_BOB);
     expect(onForAlice.slackCallsTo.U_BOB).toEqual(off.slackCallsTo.U_BOB);
@@ -107,22 +104,19 @@ describe("CL18: the collection is dark where collection is off, drops only for t
     t = await aliceAndBobAtLevelFour([onForEveryone(collection)], undefined, websiteOpen);
     await hoggiesAliceSees();
     await openInSlack(alice.user, { type: "openUnlock", feature: "coins" });
-    await openInSlack(alice.user, { type: "openQuestCrate", quest: anUndrawnWeeklyQuest });
     const asAlice = await signedIn(alice);
     expect(await asAlice.mutation(api.website.commands.openFeature, { feature: "coins" })).toEqual({ kind: "refused" });
-    expect(await asAlice.mutation(api.website.commands.openQuestCrate, { quest: anUndrawnWeeklyQuest })).toEqual({ kind: "refused" });
     await settleInTimeOrder(t);
     expect(collectionExposures()).toEqual({});
 
     await openInSlack(alice.user, { type: "openUnlock", feature: "book" });
     await openInSlack(alice.user, { type: "openUnlock", feature: "book" });
-    await openInSlack(alice.user, { type: "openQuestCrate", quest: firstThanks });
     await hoggiesAliceSees();
     await flagsFromPostHog(t, postHog, ...everyFlagWith(offForEveryone(collection), ...websiteOpen));
     await openInSlack(alice.user, { type: "openUnlock", feature: "leaderboard" });
     await openInSlack(bob.user, { type: "openUnlock", feature: "coins" });
     expect(collectionExposures()).toEqual({ [await analyticsIdOf(alice.user)]: [true, false] });
-    await openInSlack(bob.user, { type: "openQuestCrate", quest: firstThanks });
+    await openInSlack(bob.user, { type: "openUnlock", feature: "book" });
     await flagsFromPostHog(t, postHog, ...everyFlagWith(onForEveryone(collection), ...websiteOpen));
     await openInSlack(bob.user, { type: "openUnlock", feature: "leaderboard" });
     await hoggiesAliceSees();
@@ -135,7 +129,7 @@ describe("CL11: turning collection off hides every hoggie and takes nothing away
   test.each(turningOff)("with $state, App Home, the Book's collection and the activity show no hoggie and every drop stays as it was, and on again every hoggie shows as before", async ({ off, on }) => {
     t = await aliceAndBobAtLevelFour([onForEveryone(collection)], undefined, websiteOpen);
     await openInSlack(alice.user, { type: "openUnlock", feature: "book" });
-    await openInSlack(alice.user, { type: "openQuestCrate", quest: firstThanks });
+    await openInSlack(alice.user, { type: "openUnlock", feature: "leaderboard" });
     const shownWhileOn = await hoggiesAliceSees();
     const dropsWhileOn = await dropRows();
     expect(shownWhileOn.line).toEqual([expect.stringContaining("Hoggies: 2 of 151")]);
@@ -207,7 +201,7 @@ async function aliceAndBobAtLevelFour(collectionFlag: FlagDefinition[], turnOff?
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   await bookShippedBeforeAnyoneJoined(t);
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await giveKudos(alice.user, bob.user);
   await giveKudos(bob.user, alice.user);
   for (const { user } of [alice, bob]) await reachLevelFour(user);
@@ -220,8 +214,6 @@ async function walkIn(backend: Backend) {
   for (const { user } of [alice, bob]) {
     await openHome(user);
     await openInSlack(user, { type: "openUnlock", feature: opensOf[user]!.inSlack });
-    await openInSlack(user, { type: "openQuestCrate", quest: firstThanks });
-    await openInSlack(user, { type: "openQuestCrate", quest: firstThanks });
   }
   await flagsFromPostHog(t, postHog, ...everyFlagWith(...walkCollection), onForEveryone("website"));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
@@ -243,7 +235,7 @@ type ActivityPage = FunctionReturnType<typeof api.website.activity.getActivity>;
 
 async function onTheWebsite(identity: { user: string; name: string }) {
   const asSignedIn = await signedIn(identity);
-  const opens = [await asSignedIn.mutation(api.website.commands.openFeature, { feature: opensOf[identity.user]!.onTheWebsite }), await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: firstThanks })];
+  const opens = [await asSignedIn.mutation(api.website.commands.openFeature, { feature: opensOf[identity.user]!.onTheWebsite })];
   await settleInTimeOrder(t);
   const activity: ActivityPage[] = [];
   let cursor: string | null = null;
@@ -382,7 +374,7 @@ async function reachLevelFour(user: string) {
   await settleInTimeOrder(t);
 }
 
-async function openInSlack(user: string, command: { type: "openUnlock"; feature: Feature } | { type: "openQuestCrate"; quest: Quest }) {
+async function openInSlack(user: string, command: { type: "openUnlock"; feature: Feature }) {
   vi.setSystemTime(Date.now() + minuteMs);
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, staleButtonOf(command)), form));
   await settleInTimeOrder(t);

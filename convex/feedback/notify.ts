@@ -14,13 +14,10 @@ import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/p
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
-import { rewardKeyOf, rewardWaits } from "../quests/crates";
-import { journeyStepAppliesTo, questsApplyTo } from "../quests/flag";
 import type { MessageKind } from "../messageSettings/kinds";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { messageSettingsOnFor } from "../messageSettings/flag";
-import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "../quests/step";
-import { weekKeyOf, type WeekKey } from "../quests/week";
+import { journeyQuestValidator, weeklyQuestValidator } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { teamSpiritShownTo } from "../stickers/flag";
@@ -31,11 +28,11 @@ import { websiteOriginFor } from "../website/link";
 import { websiteAt, type Website } from "../website/visitSource";
 import { coinsApplyTo, coinsVisibleTo } from "../wallet/visibility";
 import { isCoinPerk, perkOf } from "../progression/tree";
-import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
+import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { coinsOpenedLineOf, inventoryOpenedLineOf } from "./coins";
 import { deepLinkFrom, deepLinks, levelUpRevealOf, type DeepLink } from "./deepLinks";
-import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
+import { perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 import { settingsFooterFor, type SettingsFooter } from "./settingsFooter";
 import { isOpened, whenOpened, whenShipped } from "./unlockFilter";
@@ -95,18 +92,6 @@ export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, 
   await notify(ctx, member, { kind: "features-shipped", ready: featuresOf(ready) });
 }
 
-export async function notifyQuestFinished(ctx: MutationCtx, member: MemberId, quest: JourneyQuest, xp: number, kudos?: MessageRef) {
-  await notify(ctx, member, { kind: "quest-finished", quest, xp }, kudos);
-}
-
-export async function notifyJourneyJoined(ctx: MutationCtx, member: MemberId, finished: Array<{ quest: JourneyQuest; xp: number }>) {
-  await notify(ctx, member, { kind: "journey-joined", finished });
-}
-
-export async function notifyWeeklyQuestFinished(ctx: MutationCtx, member: MemberId, quest: WeeklyQuest, goal: string, xp: number, kudos?: MessageRef) {
-  await notify(ctx, member, { kind: "weekly-quest-finished", quest, goal, xp }, kudos);
-}
-
 export async function notify(ctx: MutationCtx, member: MemberId, notification: Notification, kudos?: MessageRef) {
   const place = await placeOf(ctx, member, messageKindOfNotification(notification));
   if (place === "none") return;
@@ -154,13 +139,9 @@ async function linkedPageOf(ctx: QueryCtx, member: MemberId, notification: Notif
   return linkedPages[notification.kind];
 }
 
-type DeliveryFacts = { website: Website | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null; waiting: ReadonlySet<string>; thisWeek: WeekKey };
+type DeliveryFacts = { website: Website | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null };
 
-function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith, waiting, thisWeek }: DeliveryFacts): NotificationLine[] {
-  const waits = (quest: Quest) => waiting.has(rewardKeyOf(quest));
-  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, waits(notification.quest), website)];
-  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, waits(quest), website));
-  if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, waits(notification.quest), website, thisWeek)];
+function renderNotification(notification: ToldNotification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith }: DeliveryFacts): NotificationLine[] {
   if (notification.kind === "tiers-earned") return [...(notification.teams ?? []).map(completionLineOf), ...tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown))];
   if (notification.kind === "coins-opened") return [inventoryWith === null ? coinsOpenedLineOf(notification.balance) : inventoryOpenedLineOf(notification.balance, inventoryWith)];
   const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), { storeShown: inventoryWith !== null }), website));
@@ -185,8 +166,8 @@ function perkOffersOf(openTree: MemberPerks | null, website: Website | null): No
   return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map((perk) => perkOfferOf(perk, website));
 }
 
-async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
-  if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, member, notification);
+async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<ToldNotification | null> {
+  if (isAboutQuests(notification)) return null;
   if (notification.kind === "tiers-earned") return tiersAndTeamsStillToldOf(ctx, workspace, member, notification);
   if (notification.kind === "coins-opened") return (await coinsVisibleTo(ctx, member)) ? notification : null;
   const unlocksApply = await unlocksAppliedTo(ctx, member);
@@ -198,7 +179,7 @@ async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, n
 
 type TiersEarnedNotification = Extract<Notification, { kind: "tiers-earned" }>;
 
-async function tiersAndTeamsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: TiersEarnedNotification): Promise<Notification | null> {
+async function tiersAndTeamsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: TiersEarnedNotification): Promise<TiersEarnedNotification | null> {
   const tiers = (await isBookOpenIn(ctx, workspace, member)) ? await tiersStillShownTo(ctx, member, notification) : null;
   if (notification.teams === undefined) return tiers;
   const teams = (await teamSpiritShownTo(ctx, member)) ? notification.teams : [];
@@ -212,16 +193,9 @@ async function tiersStillShownTo(ctx: QueryCtx, member: MemberId, notification: 
   return tiers.length === 0 ? null : { ...notification, tiers };
 }
 
-async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: QuestNotification): Promise<QuestNotification | null> {
-  if (!(await questsApplyTo(ctx, member))) return null;
-  if (notification.kind === "quest-finished") return (await journeyStepAppliesTo(ctx, workspace, member, notification.quest.step)) ? notification : null;
-  if (notification.kind === "weekly-quest-finished") return notification;
-  const finished: typeof notification.finished = [];
-  for (const entry of notification.finished) if (await journeyStepAppliesTo(ctx, workspace, member, entry.quest.step)) finished.push(entry);
-  return { ...notification, finished };
-}
-
 type QuestNotification = Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }>;
+
+type ToldNotification = Exclude<Notification, QuestNotification>;
 
 async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification, website: Website | null): Promise<DeliveryFacts> {
   return {
@@ -230,20 +204,7 @@ async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberI
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
     tierRewardsShown: told.kind === "tiers-earned" ? await tierRewardsShownTo(ctx, member) : new Map(),
     inventoryWith: namesCoins(told) && (await storeShownTo(ctx, member)) ? (await settingsOf(ctx, workspace)).kudosEmoji : null,
-    waiting: isAboutQuests(told) ? await waitingRewardKeysOf(ctx, member, cratesToldOf(told)) : new Set(),
-    thisWeek: weekKeyOf(Date.now(), (await timeZoneOf(ctx, member)) ?? undefined),
   };
-}
-
-function cratesToldOf(told: QuestNotification): Quest[] {
-  if (told.kind === "journey-joined") return told.finished.map(({ quest }) => quest);
-  return [told.quest];
-}
-
-async function waitingRewardKeysOf(ctx: QueryCtx, member: MemberId, crates: Quest[]): Promise<Set<string>> {
-  const waiting = new Set<string>();
-  for (const key of crates.map(rewardKeyOf)) if (await rewardWaits(ctx, member, key)) waiting.add(key);
-  return waiting;
 }
 
 async function tierRewardsShownTo(ctx: QueryCtx, member: MemberId): Promise<TierRewardsRecorded> {

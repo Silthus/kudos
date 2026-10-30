@@ -1,5 +1,4 @@
 import type { QueryCtx } from "../../_generated/server";
-import { waitingQuestCratesOf } from "../../quests/waitingCrates";
 import { featureCrateKeyOf } from "../../unlocks/feature";
 import { readyFeaturesOf } from "../../unlocks/unlocks";
 import type { MemberId } from "../../workspace/directory";
@@ -21,7 +20,6 @@ const readPerKind = packsListed + 1;
 export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<WaitingPacks> {
   const features = await readyFeaturesOf(ctx, member, readPerKind);
   const waiting: Waiting[] = [
-    ...(await waitingQuestCratesOf(ctx, member, readPerKind)),
     ...features.map(({ feature, readyAt }) => ({ crate: featureCrateKeyOf(feature), at: readyAt })),
     ...(await boughtCratesWaitingFor(ctx, member, readPerKind)),
   ];

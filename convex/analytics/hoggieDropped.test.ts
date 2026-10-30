@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
 import { settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, staleButtonOf } from "../../testing/slackInteractions";
@@ -10,20 +9,13 @@ import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { Command } from "../commands/commands";
-import { allowanceDay } from "../engine/allowance";
 import { recordReward } from "../progression/progression";
-import { rewardKeyOf } from "../quests/crates";
-import type { Quest } from "../quests/step";
 
 const now = new Date("2026-10-14T10:00:00Z");
-const thisWeek = "2026-10-12";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const juno = { user: "U_JUNO", name: "Juno Whitlock" };
-const rowan = { user: "U_ROWAN", name: "Rowan Pike" };
 const questsFlags = ["xp-levels", "unlocks", "quests", "collection"];
 const crateStoreFlags = ["xp-levels", "unlocks", "achievements", "coins", "collection", "crate-store"];
-const firstThanks: Quest = { kind: "journey", step: "first-thanks" };
-const firstSlot: Quest = { kind: "weekly", week: thisWeek, slot: 0 };
 
 type Caller = Pick<Backend, "mutation">;
 type Opener = { asSignedIn: Caller };
@@ -61,41 +53,13 @@ function flagsOn(packs: Packs, ...keys: string[]) {
 
 async function aTeam() {
   const member = await aMember(t, juno.user);
-  const teammate = await aMember(t, rowan.user);
   const { asSignedIn } = await aSignedInSession(t, juno);
-  return { member, teammate, asSignedIn };
-}
-
-async function thanks(giver: Awaited<ReturnType<typeof aTeam>>["member"], recipient: typeof giver) {
-  const at = Date.now();
-  const saysWhy = { gate: { version: 1, thoughtful: true, words: 7 } };
-  const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, giver, recipient, { annotations: saysWhy, day: allowanceDay(at, undefined), at }));
-  await t.mutation(internal.quests.quests.followKudosGiven, { event });
-}
-
-async function aFinishedJourneyStep(packs: Packs) {
-  await flagsOn(packs, ...questsFlags);
-  await journeyShippedBeforeAnyoneJoined(t);
-  const team = await aTeam();
-  await thanks(team.member, team.teammate);
-  return team;
-}
-
-async function aFinishedWeeklyQuest(packs: Packs) {
-  await flagsOn(packs, ...questsFlags);
-  await journeyShippedBeforeAnyoneJoined(t);
-  const team = await aTeam();
-  await reachesLevel(t, team.member, 3);
-  await opens(t, team.member, "quests");
-  const slots = (["say-why", "say-why-three-times"] as const).map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
-  await t.run((ctx) => ctx.db.insert("questDraws", { member: team.member, week: thisWeek, drawnAt: Date.now(), slots }));
-  await thanks(team.member, team.teammate);
-  return team;
+  return { member, asSignedIn };
 }
 
 async function aReadyFeature(packs: Packs) {
   await flagsOn(packs, ...questsFlags);
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   const team = await aTeam();
   await reachesLevel(t, team.member, 3);
   return team;
@@ -115,22 +79,6 @@ async function aBoughtCrate(packs: Packs) {
 }
 
 const waitingCrates: WaitingCrate[] = [
-  {
-    kind: "a Journey step's",
-    waitingFor: aFinishedJourneyStep,
-    fromAppHome: { type: "openQuestCrate", quest: firstThanks },
-    fromItsWebsiteCommand: (caller) => caller.mutation(api.website.commands.openQuestCrate, { quest: firstThanks }),
-    crate: rewardKeyOf(firstThanks),
-    crateKind: "journey",
-  },
-  {
-    kind: "a weekly quest's",
-    waitingFor: aFinishedWeeklyQuest,
-    fromAppHome: { type: "openQuestCrate", quest: firstSlot },
-    fromItsWebsiteCommand: (caller) => caller.mutation(api.website.commands.openQuestCrate, { quest: firstSlot }),
-    crate: rewardKeyOf(firstSlot),
-    crateKind: "weekly",
-  },
   {
     kind: "a feature's",
     waitingFor: aReadyFeature,

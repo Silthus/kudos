@@ -246,20 +246,6 @@ describe("a website command never launches unlocks", () => {
     expect(publishedEvents()).toEqual([]);
   });
 
-  test("WS62 WS88 P91: with quests on, an open tree and no Journey launch, the purchase answers refused and neither launches the Journey nor joins anyone", async () => {
-    await treeShipped();
-    const { member, asSignedIn } = await aMemberWithTheTreeOpen();
-    await flagsOn(...treeFlags, "quests");
-    const before = await everythingWritten();
-    vi.mocked(publish).mockClear();
-
-    expect(await buyPerk(asSignedIn)).toEqual({ kind: "refused", reason: null });
-    expect(await everythingWritten()).toEqual(before);
-    expect(before.tables.journeyLaunches).toEqual([]);
-    expect(await perksOwnedBy(member)).toEqual([]);
-    expect(publishedEvents()).toEqual([]);
-  });
-
   test("WS62 WS88: with achievements on, an open tree and no Book launch, the purchase answers refused and doesn't launch the Book", async () => {
     await treeShipped();
     const { member, asSignedIn } = await aMemberWithTheTreeOpen();

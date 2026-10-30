@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, isWelcome, rateLimitedFor } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -22,7 +22,6 @@ const rows = {
   kudosReply: "section: *After-kudos reply* — What a kudos you gave earned you, right after you send it. [select: In the channel]",
   levelUps: "section: *Level ups* — When you reach a level, with what it opens for you. [select: As a DM]",
   newFeatures: "section: *New features* — When a new feature is ready for you to open. [select: As a DM]",
-  quests: "section: *Quests and Journey* — When you finish a quest or a Journey step. [select: As a DM]",
   achievements: "section: *Book tiers* — When you earn an achievement tier. [select: As a DM]",
   celebrations: "section: *Public celebrations* — Your level ups and tiers in the announcement channel. [select: In the announcement channel]",
   levelUpsWithoutUnlocks: "section: *Level ups* — When you reach a level. [select: As a DM]",
@@ -32,7 +31,6 @@ const rows = {
 const offRows = {
   levelUps: "section: *Level ups* · Off — When you reach a level, with what it opens for you. [select: None]",
   newFeatures: "section: *New features* · Off — When a new feature is ready for you to open. [select: None]",
-  quests: "section: *Quests and Journey* · Off — When you finish a quest or a Journey step. [select: None]",
   achievements: "section: *Book tiers* · Off — When you earn an achievement tier. [select: None]",
   celebrations: "section: *Public celebrations* · Off — Your level ups and tiers in the announcement channel. [select: None]",
   levelUpsWithoutUnlocks: "section: *Level ups* · Off — When you reach a level. [select: None]",
@@ -50,9 +48,6 @@ const skippedGroup = "I skipped <!subteam^S_TEAM>: `@here`, `@channel` and user 
 const queuedDms: Array<[string, string, Notification]> = [
   ["level-reached", "Level ups", { kind: "level-reached", level: 2, skillPoints: null, xpToNextLevel: 80, ready: [] }],
   ["features-shipped", "New features", { kind: "features-shipped", ready: ["leaderboard"] }],
-  ["quest-finished", "Quests and Journey", { kind: "quest-finished", quest: { kind: "journey", step: "first-thanks" }, xp: 20 }],
-  ["journey-joined", "Quests and Journey", { kind: "journey-joined", finished: [{ quest: { kind: "journey", step: "first-thanks" }, xp: 20 }] }],
-  ["weekly-quest-finished", "Quests and Journey", { kind: "weekly-quest-finished", quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, goal: "Thank 3 teammates", xp: 30 }],
   ["tiers-earned", "Book tiers", { kind: "tiers-earned", tiers: [{ ladder: "generosity", tier: "bronze" }] }],
 ];
 
@@ -109,7 +104,6 @@ describe("QM20: the Settings tab lists what I send you while message-settings is
       rows.kudosReply,
       rows.levelUps,
       rows.newFeatures,
-      rows.quests,
       rows.achievements,
       rows.celebrations,
     ]);
@@ -359,7 +353,7 @@ describe("QM21: the footer says where to change what I send you", () => {
 });
 
 describe("QM14: today's settings are read as defaults, and today's switches show and set the effective values", () => {
-  test("a member who turned DMs off has the four DM kinds off, with no new setting stored", async () => {
+  test("a member who turned DMs off has the three DM kinds off, with no new setting stored", async () => {
     const t = await everythingShipped();
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await bookOpenedBy(t, "U_ALICE");
@@ -369,7 +363,7 @@ describe("QM14: today's settings are read as defaults, and today's switches show
     await click(t, "U_ALICE", "Settings");
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(publishedHome(slack, "U_ALICE")).toEqual(expect.arrayContaining([offRows.levelUps, offRows.newFeatures, offRows.quests, offRows.achievements, rows.celebrations]));
+    expect(publishedHome(slack, "U_ALICE")).toEqual(expect.arrayContaining([offRows.levelUps, offRows.newFeatures, offRows.achievements, rows.celebrations]));
     expect(levelUpDmsTo("U_ALICE")).toEqual([]);
     expect(await storedMessageSettings(t)).toEqual([]);
   });
@@ -523,7 +517,7 @@ async function settingsOpen(flags: string[], settings: { announcementChannel?: s
 
 async function everythingShipped() {
   const t = await workspaceWith([messageSettings, "xp-levels", "everyone-board", "unlocks", "quests", "achievements", "skill-tree"]);
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await bookShippedBeforeAnyoneJoined(t);
   return t;
 }

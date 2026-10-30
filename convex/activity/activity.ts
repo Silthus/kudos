@@ -338,7 +338,7 @@ async function bonusesEarnedBy(ctx: QueryCtx, awards: MessageAward[]): Promise<B
 
 async function gainsShownTo(ctx: QueryCtx, member: MemberId): Promise<GainsShown> {
   const { workspace } = await chatUserOf(ctx, member);
-  const [xp, quests, bonuses] = await Promise.all([xpGainsShownTo(ctx, workspace, member), questGainsShownTo(ctx, workspace, member), bonusGainsShownTo(ctx, workspace, member)]);
+  const [xp, quests, bonuses] = await Promise.all([xpGainsShownTo(ctx, workspace, member), questGainsShownTo(ctx, member), bonusGainsShownTo(ctx, workspace, member)]);
   return { xp, quests, bonuses };
 }
 

@@ -284,23 +284,6 @@ describe("a website command never launches unlocks", () => {
     expect(before.tables.unlockLaunches).toEqual([]);
     expect(await albumOf(asAlice)).toMatchObject({ packs: [], morePacks: false });
   });
-
-  test("WS62 P91: with quests on and no Journey launch, opening a pack answers refused, doesn't launch the Journey, and getAlbum lists no pack to open", async () => {
-    await unlocksShippedBeforeAnyoneJoined(t);
-    await thanks(alice, why, bob);
-    const asAlice = await signedIn(alice);
-    const [forBob] = await waitingPacksOf(asAlice);
-    await switchWebsite(t, postHog, true, ...albumOpen, "xp-levels", "unlocks", "quests");
-    await settle(t);
-    const before = await everythingWritten();
-
-    expect(await open(asAlice, forBob!)).toEqual({ kind: "refused" });
-    await settle(t);
-
-    expect(await everythingWritten()).toEqual(before);
-    expect(before.tables.journeyLaunches).toEqual([]);
-    expect(await albumOf(asAlice)).toMatchObject({ packs: [], morePacks: false });
-  });
 });
 
 const names = new Map<string, string>();

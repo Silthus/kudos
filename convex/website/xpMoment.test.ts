@@ -559,8 +559,8 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
 
     const moment = await theMomentOf(asAlice);
     expect(moment.quests, "the quests finished").toEqual([
-      { kind: "journey", goal: "Give a kudos to someone", xp: 50, waiting: false, hoggie: true },
-      { kind: "journey", goal: "Thank someone new", xp: 50, waiting: false, hoggie: true },
+      { kind: "journey", goal: "Give a kudos to someone", xp: 50, hoggie: true },
+      { kind: "journey", goal: "Thank someone new", xp: 50, hoggie: true },
     ]);
     expect(moment.climb.to, "the climb's end").toEqual((await albumOf(asAlice)).level);
     expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp + 100);
@@ -607,31 +607,6 @@ describe("LP104: a quest finished since the last visit gets its own beat", { tim
     const moment = await theMomentOf(asAlice);
     expect(moment.excerpts.map(({ entry, xp }) => [entry.kind, xp]), "the moment while the quests wait").toEqual([["kudosReceived", 5]]);
     expect([moment.climb.from.xp, moment.climb.to.xp], "the climb").toEqual([atTheVisit, atTheVisit + 5]);
-  });
-
-  test("a quest finished on the unlock path, off the Monday path, gets no beat and climbs as before", async () => {
-    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "quests", "quest-beats");
-    const asAlice = await aReturningMember(alice);
-
-    await thanks(alice, carol);
-
-    const moment = await theMomentOf(asAlice);
-    expect(moment.excerpts.flatMap(({ entry }) => (entry.kind === "kudosGiven" ? (entry.earned?.questsDone ?? []) : [])), "the quests Activity shows on the kudos").not.toEqual([]);
-    expect(moment.quests, "the quests finished").toEqual([]);
-    expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp);
-  });
-
-  test("a quest finished on the unlock path before the member moved onto the Monday path gets no beat and climbs as before", async () => {
-    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "quests", "quest-beats");
-    const asAlice = await aReturningMember(alice);
-    await thanks(alice, carol);
-
-    await switchWebsite(t, postHog, true, ...everyFlagOfTheMoment, "quests", "quest-beats", "monday-quest");
-
-    const moment = await theMomentOf(asAlice);
-    expect(moment.excerpts.flatMap(({ entry }) => (entry.kind === "kudosGiven" ? (entry.earned?.questsDone ?? []) : [])), "the quests Activity shows on the kudos").not.toEqual([]);
-    expect(moment.quests, "the quests finished").toEqual([]);
-    expect(moment.climb.to.xp - moment.climb.from.xp, "the climb").toBe(moment.xp);
   });
 
   test("while quest-beats is off the moment answers no quest and climbs as before", async () => {

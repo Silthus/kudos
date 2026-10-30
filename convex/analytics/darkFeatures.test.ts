@@ -2,7 +2,7 @@ import { getFunctionName, makeFunctionReference } from "convex/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type CapturedEvent, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { blockActions, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { testBackend, type Backend } from "../../testing/slackBackend";
@@ -12,7 +12,6 @@ import { api, internal } from "../_generated/api";
 import { publish, subscribers } from "../bus/publish";
 import type { Command } from "../commands/commands";
 import schema from "../schema";
-import { keepOpen } from "../unlocks/unlocks";
 import { exposed, memberDecision, workspaceDecision } from "./flags";
 import { record } from "./outbox";
 
@@ -38,9 +37,9 @@ type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShow
 
 const now = new Date("2026-10-13T10:00:00Z");
 const stepMs = 10 * 60_000;
+const dayMs = 24 * 60 * 60_000;
 const stepWindowMs = 9 * 60_000;
 const aTotalityOverEveryRecorderWalksSevenTimesMs = 56_000;
-const week = "2026-10-12";
 const mondayNine = Date.parse("2026-10-19T09:00:00Z");
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -128,33 +127,12 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
         "level reached",
         "unlock made ready",
         "unlock opened",
-        "journey step activated",
-        "quest drawn",
-        "quest swapped",
-        "quest finished",
-        "crate opened",
         "hoggie dropped",
         "leaderboard viewed",
         "leaderboard left",
         "leaderboard joined",
       ]),
     );
-  });
-
-  test("the Journey's join, queued before quests is switched off, still runs and sends exactly the steps it stores", async () => {
-    start("on", "flags key set");
-    const t = await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "everyone-board"].map(onForEveryone));
-    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-    await giveKudos(t, "U_ALICE", 2);
-
-    await flagsFromPostHog(t, postHog, ...everyFlag.map(onForEveryone));
-    await t.mutation(internal.quests.newWeek.sweep, {});
-    await flagsFromPostHog(t, postHog, ...everyFlag.filter((flag) => flag !== "quests").map(onForEveryone), offForEveryone("quests"));
-    await settled(t);
-
-    expect((await rowsOf(t, "journeySteps")).length).toBeGreaterThan(0);
-    expect(eventsNamed("journey step activated").length).toBeGreaterThan(0);
-    expect(await factsSent(t)).toEqual(await factsStored(t));
   });
 });
 
@@ -184,10 +162,10 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of seven whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through a group quest whose team page completes, one through the album's tray and one through the item board ending an XP moment and closing the how-it-works card, and one down the Monday path from the welcome to the Monday DM, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of seven whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book, one through groups whose team page completes, one through the album's tray and one through the item board ending an XP moment and closing the how-it-works card, and one down the Monday path from the welcome to the Monday DM, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
-    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest, walkThroughTheAlbumsTray, walkThroughTheItemBoard, walkThroughTheMondayPath]) {
+    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughGroupsToACompletedTeamPage, walkThroughTheAlbumsTray, walkThroughTheItemBoard, walkThroughTheMondayPath]) {
       const { t } = await walked();
       for (const spy of [memberDecision, workspaceDecision, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
       for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
@@ -240,7 +218,7 @@ async function walkThroughTheSkillTreeAndTheBook() {
   start("on", "flags key set");
   const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "skill-tree", "achievements", "hugs"].map(onForEveryone));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
 
   await openHome(t, "U_ALICE");
   await giveKudos(t, "U_ALICE", 1);
@@ -254,27 +232,17 @@ async function walkThroughTheSkillTreeAndTheBook() {
   return { t };
 }
 
-async function walkThroughAGroupQuest() {
+async function walkThroughGroupsToACompletedTeamPage() {
   start("on", "flags key set");
-  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "groups", "group-quest", "sticker-book", "team-pages", "team-spirit"].map(onForEveryone));
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "groups", "sticker-book", "team-pages", "team-spirit"].map(onForEveryone));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   for (const user of members) await openHome(t, user);
   await t.run(async (ctx) => {
     await ctx.db.insert("userGroups", { workspace: "T1", group: "S_ANTS", handle: "ants", name: "Ants", enabled: true, automatic: false, members: members.length, asOf: Date.now(), changedAt: Date.now() });
-    await ctx.db.insert("groupQuestLaunches", { workspace: "T1", at: Date.now() });
     for (const user of members) await ctx.db.insert("userGroupMembers", { workspace: "T1", group: "S_ANTS", user });
   });
   await t.mutation(internal.groups.reconcile.reconcileWorkspace, { workspace: "T1" });
-  await t.run(async (ctx) => {
-    for (const { _id: member } of await ctx.db.query("members").take(members.length)) await keepOpen(ctx, { workspace: "T1", member, at: Date.now() }, "quests");
-  });
-
-  vi.setSystemTime(Date.parse("2026-10-19T00:10:00Z"));
-  await t.mutation(internal.quests.groupQuest.sweep, {});
-  await settled(t);
-
-  expect(eventsNamed("quest drawn").filter(({ properties }) => properties.kind === "group")).toHaveLength(members.length);
 
   await everyoneOnOneTeam(t);
   await giveKudos(t, "U_ALICE", 1);
@@ -288,7 +256,7 @@ async function walkThroughTheAlbumsTray() {
   const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "website", "album"].map(onForEveryone));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
 
   await openHome(t, "U_ALICE");
   await giveKudos(t, "U_ALICE", 1);
@@ -308,7 +276,7 @@ async function walkThroughTheItemBoard() {
   const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "website", "album", "hidden-items", "xp-moments", "onboarding"].map(onForEveryone));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
 
   await openHome(t, "U_ALICE");
   await giveKudos(t, "U_ALICE", 1);
@@ -336,12 +304,20 @@ async function walkThroughTheMondayPath() {
   await giveKudos(t, "U_ALICE", 1);
   await pressAWelcomeLink(t, "U_ALICE");
   await viewTheQuestsPanel(t, "U_ALICE");
+  await finishOnboardingAndDrawTheWeek(t, "U_ALICE");
   await mondayArrives(t);
 
   expect(new Set(eventsNamed("dm sent").map(({ properties }) => properties.kind))).toEqual(new Set(["welcome", "monday"]));
   expect(eventsNamed("dm link clicked").map(({ properties }) => properties.kind)).toEqual(["welcome"]);
   expect(eventsNamed("quests viewed").map(({ properties }) => properties.surface)).toEqual(["panel"]);
+  expect(eventsNamed("quest drawn")).not.toHaveLength(0);
   return { t };
+}
+
+async function finishOnboardingAndDrawTheWeek(t: Backend, user: string) {
+  steps += dayMs / stepMs;
+  await giveKudos(t, user, 1, "now");
+  await giveKudos(t, user, 1, "now");
 }
 
 async function pressAWelcomeLink(t: Backend, user: string) {
@@ -428,17 +404,15 @@ async function walk(setup: Setup, capture: Capture) {
   start(capture, setup.flags === "no flags key" ? "no flags key" : "flags key set");
   const t = setup.flags === "no flags key" ? testBackend() : await flagsFromPostHog(testBackend(), postHog, ...setup.flags);
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   const answers: Array<{ status: number; body: string }> = [];
   const answered = async (response: Response) => answers.push({ status: response.status, body: await response.text() });
 
   await answered(await openHome(t, "U_ALICE"));
   await answered(await giveKudos(t, "U_ALICE", 2));
   await answered(await act(t, "U_ALICE", { type: "openUnlock", feature: "leaderboard" }));
-  await answered(await act(t, "U_ALICE", { type: "openQuestCrate", quest: { kind: "journey", step: "first-thanks" } }));
   await answered(await giveKudos(t, "U_ALICE", 8));
   await answered(await act(t, "U_ALICE", { type: "openUnlock", feature: "quests" }));
-  await answered(await act(t, "U_ALICE", { type: "rerollQuest", quest: { kind: "weekly", week, slot: 0 } }));
   await answered(await act(t, "U_ALICE", { type: "showHomeTab", tab: "leaderboard" }));
   await answered(await act(t, "U_ALICE", { type: "showLeaderboard", period: "month" }));
   await answered(await hedgehug(t, "U_ALICE", "leaderboard all"));
@@ -511,11 +485,12 @@ async function openHome(t: Backend, user: string) {
   return response;
 }
 
-async function giveKudos(t: Backend, giver: string, kudos: number) {
+async function giveKudos(t: Backend, giver: string, kudos: number, postedFrom: "the walk's start" | "now" = "the walk's start") {
   nextStep();
   sentMessages += 1;
   const blocks = [section(mention("U_BOB"), text(` ${saysWhy} `), ...Array.from({ length: kudos }, () => emoji("taco")))];
-  const response = await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${now.getTime() / 1000 + sentMessages}.000100` })));
+  const postedAfter = postedFrom === "now" ? Date.now() : now.getTime();
+  const response = await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${postedAfter / 1000 + sentMessages}.000100` })));
   await settled(t);
   return response;
 }

@@ -14,13 +14,9 @@ import { boughtCrateOpened, crateStoreOf, openedCrateDropOf } from "../album/hog
 import { crateKindOf, dropsAHoggie, type CrateKey } from "../album/hoggies/crateKey";
 import { dropOf, packOf, type Drop } from "../album/hoggies/drops";
 import { avatarShownTo, hoggiesShownTo, packsShownTo } from "../album/hoggies/flag";
-import { crateOpeningOf, questOfRewardKey, rewardKeyOf } from "../quests/crates";
 import type { Refusal } from "../progression/purchases";
-import { rewardOf, type AppliedReward, type StandingWithCoins } from "../progression/rewards";
+import type { AppliedReward, StandingWithCoins } from "../progression/rewards";
 import { perkValidator } from "../progression/tree";
-import { questsApplyTo } from "../quests/flag";
-import { questValidator, weeklyQuestValidator, type Quest } from "../quests/step";
-import { swappedSlotIn } from "../quests/weekly";
 import type { CrateRefusal } from "../album/hoggies/records";
 import type { ItemRefusal } from "../store/rows";
 import { storeVisibleTo } from "../store/visibility";
@@ -42,10 +38,6 @@ import type { VerifiedMember } from "./memberQuery";
 import { featurePageOf, leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
 export type CommandAnswer = { kind: "opened"; applied?: AppliedReward | null; drop?: Drop | null } | { kind: "refused" };
-
-export type CrateAnswer = { kind: "opened"; applied: AppliedReward | null; drop?: Drop | null } | { kind: "refused" };
-
-export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 
 export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "coins" | "coins-not-open" | "not-open";
 
@@ -90,30 +82,6 @@ export const openFeature = memberMutation({
     await republish(ctx, me.member);
     const crate = featureCrateKeyOf(feature);
     return { kind: "opened", ...(await packAppliedShownTo(ctx, me, crate)), ...(await dropShownTo(ctx, me, crate)) };
-  },
-});
-
-export const openQuestCrate = memberMutation({
-  args: { quest: questValidator },
-  handler: async (ctx, me, person, { quest }): Promise<CrateAnswer> => {
-    if (!(await questsLaunchedFor(ctx, me))) return refused;
-    await runFromWebsite(ctx, me, person, { type: "openQuestCrate", quest }, `website:openQuestCrate:${me.member}:${rewardKeyOf(quest)}`);
-    const opening = await crateOpeningOf(ctx, me.member, rewardKeyOf(quest));
-    if (opening === null) return refused;
-    await republish(ctx, me.member);
-    const crate = rewardKeyOf(quest);
-    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, await wholeOpenOf(ctx, me, crate, opening.applied)), ...(await dropShownTo(ctx, me, crate)) };
-  },
-});
-
-export const swapQuest = memberMutation({
-  args: { quest: weeklyQuestValidator },
-  handler: async (ctx, me, person, { quest }): Promise<SwapAnswer> => {
-    if (!(await questsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
-    await runFromWebsite(ctx, me, person, { type: "rerollQuest", quest }, `website:swapQuest:${me.member}:${quest.week}:${quest.slot}`);
-    if ((await swappedSlotIn(ctx, me.member, quest.week)) !== quest.slot) return refused;
-    await republish(ctx, me.member);
-    return { kind: "swapped" };
   },
 });
 
@@ -196,7 +164,7 @@ type PackRoute = {
 };
 
 async function openPack(ctx: MutationCtx, me: VerifiedMember, person: HomeMember, crate: string): Promise<CrateOpenAnswer> {
-  const route = packRouteOf(queryOnly(ctx), crate);
+  const route = packRouteOf(crate);
   if (route === null || !(await route.isOpenableBy(queryOnly(ctx), me))) return refused;
   await runFromWebsite(ctx, me, person, route.command, openCrateKeyOf(me, crate));
   const opening = await route.openingOf(queryOnly(ctx), me);
@@ -206,25 +174,10 @@ async function openPack(ctx: MutationCtx, me: VerifiedMember, person: HomeMember
   return { kind: "opened", applied, drop: await dropOf(ctx, me.member, route.crate) };
 }
 
-function packRouteOf(ctx: QueryCtx, crate: string): PackRoute | null {
-  const quest = questOfRewardKey(ctx, crate);
-  if (quest !== null) return questCrateRoute(quest);
+function packRouteOf(crate: string): PackRoute | null {
   const feature = featureOfCrateKey(crate);
   if (feature !== null) return featureCrateRoute(feature);
   return dropsAHoggie(crate) && crateKindOf(crate) === "bought" ? boughtCrateRoute(crate) : null;
-}
-
-function questCrateRoute(quest: Quest): PackRoute {
-  const crate = rewardKeyOf(quest);
-  return {
-    crate,
-    command: { type: "openQuestCrate", quest },
-    isOpenableBy: async (ctx, me) => (await questsLaunchedFor(ctx, me)) && (await rewardOf(ctx, me.member, crate)) !== null,
-    openingOf: async (ctx, me) => {
-      const opening = await crateOpeningOf(ctx, me.member, crate);
-      return opening === null ? null : { ...(opening.applied && { held: opening.applied }) };
-    },
-  };
 }
 
 function featureCrateRoute(feature: Feature): PackRoute {
@@ -424,12 +377,4 @@ async function isStillAmong(ctx: QueryCtx, me: VerifiedMember, group: string) {
 
 async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {
   return (await unlockPathShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
-}
-
-async function questsOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
-  return (await questsLaunchedFor(ctx, me)) && (await stateOf(ctx, me.member, "quests")) === "open";
-}
-
-async function questsLaunchedFor(ctx: QueryCtx, me: VerifiedMember) {
-  return (await questsApplyTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }

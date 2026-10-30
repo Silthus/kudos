@@ -10,7 +10,6 @@ import type { MutationCtx } from "../_generated/server";
 import { buyCrate } from "../album/hoggies/boughtCrates";
 import { recordReward } from "../progression/progression";
 import type { RewardRecord } from "../progression/rewards";
-import { openQuestCrate } from "../quests/open";
 import type { MemberId } from "../workspace/directory";
 import { balanceOf as balanceRead, spend } from "./wallet";
 
@@ -50,26 +49,6 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
       ["a second kudos to the same person that day", () => thank(t, "U_CAROL", "2026-10-14T11:00:00Z"), 12],
       ["a spend of the whole balance", () => spendOf(t, alice, 12), 0],
       ["a spend of 1 from nothing", () => spendOf(t, alice, 1), 0],
-    ];
-
-    for (const [step, take, balance] of steps) {
-      await take();
-
-      expect({ step, balance: await balanceOf(t, alice) }).toEqual({ step, balance });
-      expect({ step, balance: await recordedCoinsOf(t, alice) }).toEqual({ step, balance });
-    }
-  }, 30_000);
-
-  test("a held reward's coins count from its crate's open, once, beside a reward that counted at its finish", async () => {
-    const t = await withQuests(await withDirectory());
-    const alice = await memberOf(t, "U_ALICE");
-    const steps: Array<[string, () => Promise<unknown>, number]> = [
-      ["a quest reward of 3 coins that counts at its finish", () => t.run((ctx) => rewardOf(ctx, alice, "weekly:2026-10-12:0", 3)), 3],
-      ["a held quest reward of 5 coins", () => t.run((ctx) => rewardOf(ctx, alice, "weekly:2026-10-12:1", 5, { held: true })), 3],
-      ["the counted reward's crate opened", () => openCrateOf(t, alice, 0), 3],
-      ["the held reward's crate opened", () => openCrateOf(t, alice, 1), 8],
-      ["the held reward's crate opened again", () => openCrateOf(t, alice, 1), 8],
-      ["a spend of the whole balance", () => spendOf(t, alice, 8), 0],
     ];
 
     for (const [step, take, balance] of steps) {
@@ -177,11 +156,6 @@ async function withDirectory() {
   return t;
 }
 
-async function withQuests(t: Backend) {
-  flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests");
-  return unlocksShippedBeforeAnyoneJoined(await flagsLoaded(t));
-}
-
 async function withTheCrateStore(t: Backend) {
   aDeploymentForWorkspace();
   flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "coins", "collection", "crate-store");
@@ -196,12 +170,8 @@ async function thank(t: Backend, recipient: string, at: string, words = saysWhy)
   await settleInTimeOrder(t);
 }
 
-function rewardOf(ctx: MutationCtx, member: MemberId, key: string, coins: number, held: Pick<RewardRecord, "held"> = {}) {
-  return recordReward(ctx, "T1", { member, key, xp: 0, coins, item: null, catalogueVersion: "2", at: Date.now(), ...held });
-}
-
-function openCrateOf(t: Backend, member: MemberId, slot: number) {
-  return t.run((ctx) => openQuestCrate(ctx, member, { kind: "weekly", week: "2026-10-12", slot }, "slack"));
+function rewardOf(ctx: MutationCtx, member: MemberId, key: string, coins: number) {
+  return recordReward(ctx, "T1", { member, key, xp: 0, coins, item: null, catalogueVersion: "2", at: Date.now() });
 }
 
 function spendOf(t: Backend, member: MemberId, coins: number) {

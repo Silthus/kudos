@@ -21,9 +21,6 @@ import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { buyPerk } from "../progression/perks";
 import type { PurchaseOutcome } from "../progression/purchases";
 import { perkValidator } from "../progression/tree";
-import { openQuestCrate } from "../quests/open";
-import { questValidator, weeklyQuestValidator } from "../quests/step";
-import { rerollQuest } from "../quests/weekly";
 import { teamPagesApplyTo } from "../companyProfiles/flag";
 import { linkCompanyProfile, type AdminLinkOutcome } from "../companyProfiles/admin";
 import { linkMyCompanyProfile, type SelfLinkOutcome } from "../companyProfiles/links";
@@ -52,8 +49,6 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("setMessageSetting"), kind: messageKindValidator, on: v.boolean() }),
   v.object({ type: v.literal("setAnnouncementChannel"), channel: v.union(v.string(), v.null()) }),
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
-  v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
-  v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
   v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
   v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
@@ -125,12 +120,6 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return null;
     case "openUnlock":
       await openUnlock(ctx, member, command.feature, surface);
-      return null;
-    case "openQuestCrate":
-      await openQuestCrate(ctx, member, command.quest, surface);
-      return null;
-    case "rerollQuest":
-      await rerollQuest(ctx, member, command.quest);
       return null;
     case "setGroupMode": {
       const { type: _, ...change } = command;

@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { kudosGivenEventWithAward } from "../../../testing/busEvents";
 import { FakePostHog, routedFetch } from "../../../testing/fakePostHog";
 import { FakeSlack } from "../../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone } from "../../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEveryone } from "../../../testing/flags";
 import { withoutExposureOf } from "../../../testing/hoggies";
 import { settleInTimeOrder, testBackend, type Backend } from "../../../testing/slackBackend";
 import { opens, reachesLevel } from "../../../testing/unlocks";
@@ -10,11 +9,10 @@ import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } fro
 import { api, internal } from "../../_generated/api";
 import { publish } from "../../bus/publish";
 import type { Command } from "../../commands/commands";
-import { allowanceDay } from "../../engine/allowance";
 import { levelOf } from "../../progression/levels";
 import { recordReward } from "../../progression/progression";
-import type { Quest } from "../../quests/step";
 import schema from "../../schema";
+import type { Feature } from "../../unlocks/feature";
 import type { MemberId } from "../../workspace/directory";
 import type { CrateKey } from "./crateKey";
 import { packBonusOf } from "./draw";
@@ -30,12 +28,7 @@ const juno = { user: "U_JUNO", name: "Juno Whitlock" };
 const rowan = { user: "U_ROWAN", name: "Rowan Pike" };
 const questsFlags = ["xp-levels", "unlocks", "quests"];
 const packsFlags = ["collection", "packs"];
-const saysWhy = { gate: { version: 1, thoughtful: true, words: 7 } };
-const firstThanks: Quest = { kind: "journey", step: "first-thanks" };
-const firstSlot: Quest = { kind: "weekly", week: thisWeek, slot: 0 };
 const startingOut = { xp: 0, level: 1, coins: 0, skillPoints: 0 };
-const journeyCounted = 10;
-const weekCounted = journeyCounted + 20;
 const xpSteps = [5, 10, 15, 20, 25];
 const coinAmounts = [1, 2, 3, 4, 5];
 
@@ -74,35 +67,9 @@ async function aTeamIn(backend: Backend) {
   return { backend, member, teammate, asSignedIn };
 }
 
-async function thanks(backend: Backend, giver: MemberId, recipient: MemberId) {
-  const at = Date.now();
-  const event = await backend.run((ctx) => kudosGivenEventWithAward(ctx, giver, recipient, { annotations: saysWhy, day: allowanceDay(at, undefined), at }));
-  await backend.mutation(internal.quests.quests.followKudosGiven, { event });
-}
-
-async function aFinishedJourneyStepIn(backend: Backend, ...alsoOn: string[]) {
-  await flagsOn(backend, ...questsFlags, ...alsoOn);
-  await journeyShippedBeforeAnyoneJoined(backend);
-  const team = await aTeamIn(backend);
-  await thanks(backend, team.member, team.teammate);
-  return team;
-}
-
-async function aFinishedWeeklyQuestIn(backend: Backend, ...alsoOn: string[]) {
-  await flagsOn(backend, ...questsFlags, ...alsoOn);
-  await journeyShippedBeforeAnyoneJoined(backend);
-  const team = await aTeamIn(backend);
-  await reachesLevel(backend, team.member, 3);
-  await opens(backend, team.member, "quests");
-  const slots = (["say-why", "say-why-three-times"] as const).map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
-  await backend.run((ctx) => ctx.db.insert("questDraws", { member: team.member, week: thisWeek, drawnAt: Date.now(), slots }));
-  await thanks(backend, team.member, team.teammate);
-  return team;
-}
-
 async function aReadyFeatureIn(backend: Backend, ...alsoOn: string[]) {
   await flagsOn(backend, ...questsFlags, ...alsoOn);
-  await journeyShippedBeforeAnyoneJoined(backend);
+  await unlocksShippedBeforeAnyoneJoined(backend);
   const team = await aTeamIn(backend);
   await reachesLevel(backend, team.member, 3);
   return team;
@@ -128,12 +95,8 @@ function packsOn(backend: Backend, ...alsoOn: string[]) {
   return flagsOn(backend, ...questsFlags, ...alsoOn, ...packsFlags);
 }
 
-function openQuestCrate(caller: Caller, quest: Quest = firstThanks) {
-  return caller.mutation(api.website.commands.openQuestCrate, { quest });
-}
-
-function openFeature(caller: Caller) {
-  return caller.mutation(api.website.commands.openFeature, { feature: "quests" });
+function openFeature(caller: Caller, feature: Feature = "quests") {
+  return caller.mutation(api.website.commands.openFeature, { feature });
 }
 
 function openCrate(caller: Caller, crate = "bought:1") {
@@ -183,34 +146,6 @@ function levelUpDmsTo(user: string) {
 }
 
 describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
-  test("CV2 CV5 CV6: a Journey step's crate with nothing held pays its bonus at the website's open, answered as applied with coins hidden", async () => {
-    const { member, asSignedIn } = await aFinishedJourneyStepIn(t);
-    await packsOn(t);
-    const bonus = await bonusDrawnFor(member, "journey:first-thanks");
-
-    expect(await openQuestCrate(asSignedIn), "the open's answer").toEqual({ kind: "opened", applied: { xp: bonus.xp, coins: 0, from: standingAt(journeyCounted), to: standingAt(journeyCounted + bonus.xp) }, drop: expect.objectContaining({ copy: 1 }) });
-    expect(xpSteps, "the bonus XP inside band v1").toContain(bonus.xp);
-  });
-
-  test("CV5 CV6: a held quest reward and the bonus add up in one applied, from the standing before both, and the bonus pays after the held reward and before questOpened", async () => {
-    const { member, asSignedIn } = await aFinishedJourneyStepIn(t, "crate-rewards");
-    await packsOn(t, "crate-rewards");
-    vi.mocked(publish).mockClear();
-    const bonus = await bonusDrawnFor(member, "journey:first-thanks");
-
-    expect(await openQuestCrate(asSignedIn), "the open's answer").toEqual({ kind: "opened", applied: { xp: 10 + bonus.xp, coins: 0, from: startingOut, to: standingAt(10 + bonus.xp) }, drop: expect.objectContaining({ copy: 1 }) });
-    const types = publishedEvents().map(({ type }) => type);
-    expect(types.filter((type) => type !== "levelReached"), "the open's events in order").toEqual(["xpRecorded", "xpRecorded", "hoggieDropped", "questOpened"]);
-  });
-
-  test("CV2 CV6: a weekly quest's crate pays its bonus at the website's open", async () => {
-    const { member, asSignedIn } = await aFinishedWeeklyQuestIn(t);
-    await packsOn(t);
-    const bonus = await bonusDrawnFor(member, `weekly:${thisWeek}:0`);
-
-    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({ kind: "opened", applied: { xp: bonus.xp, coins: 0, from: standingAt(weekCounted), to: standingAt(weekCounted + bonus.xp) }, drop: expect.objectContaining({ copy: 1 }) });
-  });
-
   test("CV2 CV6: a feature's crate opens its feature and pays its bonus, answered as applied beside the drop", async () => {
     const { member, asSignedIn } = await aReadyFeatureIn(t);
     await packsOn(t);
@@ -225,25 +160,6 @@ describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
 
     expect(await openCrate(asSignedIn)).toEqual({ kind: "opened", applied: { xp: bonus.xp, coins: bonus.coins, from: standingAt(1000, 70), to: standingAt(1000 + bonus.xp, 70 + bonus.coins) }, drop: expect.objectContaining({ copy: 1 }) });
     expect(coinAmounts, "the bonus coins inside band v1").toContain(bonus.coins);
-  });
-
-  test("CV5 CV9: crates opened from App Home pay the same bonus, and the website's later opens answer it without paying again", async () => {
-    const { member, asSignedIn } = await aFinishedWeeklyQuestIn(t, "crate-rewards");
-    await packsOn(t, "crate-rewards");
-    await openFromAppHome(t, { type: "openQuestCrate", quest: firstThanks }, "Ev_JOURNEY");
-    await openFromAppHome(t, { type: "openQuestCrate", quest: firstSlot }, "Ev_WEEKLY");
-    const journey = await bonusDrawnFor(member, "journey:first-thanks");
-    const weekly = await bonusDrawnFor(member, `weekly:${thisWeek}:0`);
-    const afterJourney = 10 + journey.xp;
-    const before = await everyTable();
-
-    expect(await openQuestCrate(asSignedIn), "the Journey crate's answer").toEqual({ kind: "opened", applied: { xp: afterJourney, coins: 0, from: startingOut, to: standingAt(afterJourney) }, drop: expect.anything() });
-    expect(await openQuestCrate(asSignedIn, firstSlot), "the weekly crate's answer").toEqual({
-      kind: "opened",
-      applied: { xp: 20 + weekly.xp, coins: 0, from: standingAt(afterJourney), to: standingAt(afterJourney + 20 + weekly.xp) },
-      drop: expect.anything(),
-    });
-    expect(await everyTable(), "tables after the website's opens").toEqual(before);
   });
 
   test("CV5 CV9: a feature and a bought crate opened from App Home pay their bonus once, and the website answers it", async () => {
@@ -261,17 +177,17 @@ describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
   });
 
   test("CV5: a second website open, a replayed App Home Open and a new App Home Open of an opened crate pay nothing and write nothing", async () => {
-    const { asSignedIn } = await aFinishedJourneyStepIn(t);
+    const { asSignedIn } = await aReadyFeatureIn(t);
     await packsOn(t);
-    await openFromAppHome(t, { type: "openQuestCrate", quest: firstThanks });
-    const first = await openQuestCrate(asSignedIn);
+    await openFromAppHome(t, { type: "openUnlock", feature: "quests" });
+    const first = await openFeature(asSignedIn);
     const before = await everythingWritten();
     vi.mocked(publish).mockClear();
     vi.setSystemTime(now.getTime() + 60_000);
 
-    await openFromAppHome(t, { type: "openQuestCrate", quest: firstThanks });
-    await openFromAppHome(t, { type: "openQuestCrate", quest: firstThanks }, "Ev_OPEN_AGAIN");
-    expect(await openQuestCrate(asSignedIn), "the repeated website open").toEqual(first);
+    await openFromAppHome(t, { type: "openUnlock", feature: "quests" });
+    await openFromAppHome(t, { type: "openUnlock", feature: "quests" }, "Ev_OPEN_AGAIN");
+    expect(await openFeature(asSignedIn), "the repeated website open").toEqual(first);
 
     expect((await everythingWritten()).tables, "tables after the repeats").toEqual({ ...before.tables, slackReceipts: expect.any(Array) });
     expect(publishedEvents(), "events of the repeats").toEqual([]);
@@ -279,59 +195,55 @@ describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
 
   test("CV4 CV5: the same member and crate pay the same bonus in a second fresh backend with the same secret", async () => {
     vi.stubEnv("HOGGIE_DRAW_SECRET", "a-deployment-secret");
-    const elsewhere = await aFinishedJourneyStepIn(testBackend());
+    const elsewhere = await aReadyFeatureIn(testBackend());
     await packsOn(elsewhere.backend);
-    const here = await aFinishedJourneyStepIn(t);
+    const here = await aReadyFeatureIn(t);
     await packsOn(t);
     expect(here.member).toBe(elsewhere.member);
-    const bonus = await bonusDrawnFor(here.member, "journey:first-thanks", "a-deployment-secret");
+    const bonus = await bonusDrawnFor(here.member, "unlock:quests", "a-deployment-secret");
 
-    const answer = await openQuestCrate(here.asSignedIn);
+    const answer = await openFeature(here.asSignedIn);
 
-    expect(answer).toEqual(await openQuestCrate(elsewhere.asSignedIn));
+    expect(answer).toEqual(await openFeature(elsewhere.asSignedIn));
     expect(answer).toMatchObject({ applied: { xp: bonus.xp } });
   });
 
   test("CV5 CV9: a bonus that crosses a level publishes levelReached and sends the level-up DM, as any XP does", async () => {
-    const { member } = await aFinishedJourneyStepIn(t);
+    const { member } = await aReadyFeatureIn(t);
     await packsOn(t);
-    await t.run(async (ctx) => {
-      const progress = await ctx.db
-        .query("memberProgress")
-        .withIndex("by_member", (q) => q.eq("member", member))
-        .unique();
-      await ctx.db.patch(progress!._id, { xp: 15 });
-    });
+    await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: 15, pointsSpent: 0 }));
+    await settleInTimeOrder(t);
+    const earlierDms = levelUpDmsTo(juno.user).length;
+    vi.mocked(publish).mockClear();
 
-    await openFromAppHome(t, { type: "openQuestCrate", quest: firstThanks });
+    await openFromAppHome(t, { type: "openUnlock", feature: "quests" });
     await settleInTimeOrder(t);
 
     expect(publishedEvents().filter(({ type }) => type === "levelReached")).toEqual([expect.objectContaining({ member, level: 2 })]);
-    expect(levelUpDmsTo(juno.user)).toEqual([expect.stringContaining("level 2")]);
+    expect(levelUpDmsTo(juno.user).slice(earlierDms)).toEqual([expect.stringContaining("level 2")]);
   });
 
   test("CV5: a refused open pays nothing", async () => {
     await packsOn(t);
-    await journeyShippedBeforeAnyoneJoined(t);
+    await unlocksShippedBeforeAnyoneJoined(t);
     const { member, asSignedIn } = await aTeamIn(t);
 
-    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "refused" });
     expect(await openFeature(asSignedIn)).toEqual({ kind: "refused" });
     expect(await t.run((ctx) => ctx.db.query("memberProgress").collect())).toEqual([]);
     expect(await t.run((ctx) => ctx.db.query("drops").withIndex("by_member", (q) => q.eq("member", member)).collect())).toEqual([]);
   });
 
   test("CV5: a crate opened while packs was off keeps no bonus once packs turns on, and a pack paid stays paid when packs turns off", async () => {
-    const { asSignedIn } = await aFinishedWeeklyQuestIn(t);
-    await flagsOn(t, ...questsFlags, "collection");
-    const openedWhileOff = await openQuestCrate(asSignedIn);
-    await packsOn(t);
+    const { asSignedIn } = await aReadyFeatureIn(t, "everyone-board");
+    await flagsOn(t, ...questsFlags, "everyone-board", "collection");
+    const openedWhileOff = await openFeature(asSignedIn);
+    await packsOn(t, "everyone-board");
 
-    expect(await openQuestCrate(asSignedIn), "the crate opened while packs was off").toEqual({ ...openedWhileOff, applied: null });
-    const paid = await openQuestCrate(asSignedIn, firstSlot);
+    expect(await openFeature(asSignedIn), "the crate opened while packs was off").toEqual({ ...openedWhileOff, applied: null });
+    const paid = await openFeature(asSignedIn, "leaderboard");
     expect(paid).toMatchObject({ applied: { xp: expect.any(Number) } });
-    await flagsOn(t, ...questsFlags, "collection");
-    expect(await openQuestCrate(asSignedIn, firstSlot), "the paid crate with packs off again").toEqual({ ...paid, applied: null });
+    await flagsOn(t, ...questsFlags, "everyone-board", "collection");
+    expect(await openFeature(asSignedIn, "leaderboard"), "the paid crate with packs off again").toEqual({ kind: "opened", drop: (paid as { drop: unknown }).drop });
   });
 });
 
@@ -372,13 +284,13 @@ describe("CV11: with packs off or unset, the opens pay no bonus", () => {
   test.each([
     { condition: "off", packs: [offForEveryone("packs")] },
     { condition: "unset", packs: [] },
-  ])("with packs $condition, the website's opens answer the held reward alone, and no drop record or hoggieDropped carries a bonus", async ({ packs }) => {
-    const { asSignedIn } = await aFinishedWeeklyQuestIn(t, "crate-rewards");
-    await flagsFromPostHog(t, postHog, ...["website", ...questsFlags, "crate-rewards", "collection"].map(onForEveryone), ...packs);
+  ])("with packs $condition, the website's opens answer no applied field, and no drop record or hoggieDropped carries a bonus", async ({ packs }) => {
+    const { asSignedIn } = await aReadyFeatureIn(t, "everyone-board");
+    await flagsFromPostHog(t, postHog, ...["website", ...questsFlags, "everyone-board", "collection"].map(onForEveryone), ...packs);
     vi.mocked(publish).mockClear();
 
-    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened", applied: { xp: 10, coins: 0, from: startingOut, to: standingAt(10) }, drop: expect.anything() });
-    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({ kind: "opened", applied: { xp: 20, coins: 0, from: standingAt(10), to: standingAt(30) }, drop: expect.anything() });
+    expect(await openFeature(asSignedIn)).toEqual({ kind: "opened", drop: expect.anything() });
+    expect(await openFeature(asSignedIn, "leaderboard")).toEqual({ kind: "opened", drop: expect.anything() });
     expect(publishedEvents().filter(({ type }) => type === "hoggieDropped")).toEqual([expect.not.objectContaining({ pack: expect.anything() }), expect.not.objectContaining({ pack: expect.anything() })]);
     expect(withoutExposureOf("packs", await everyTable()).drops).toEqual([expect.not.objectContaining({ pack: expect.anything() }), expect.not.objectContaining({ pack: expect.anything() })]);
   });
@@ -395,15 +307,13 @@ describe("CV11: with packs off or unset, the opens pay no bonus", () => {
 
 describe("CV11: packs' exposure", () => {
   test("goes once per member and value, only in a first successful open while collection is on", async () => {
-    const { member, asSignedIn } = await aFinishedJourneyStepIn(t);
+    const { asSignedIn } = await aReadyFeatureIn(t, "everyone-board");
     await flagsOn(t, ...questsFlags, "packs");
-    await openQuestCrate(asSignedIn);
-    await openQuestCrate(asSignedIn, firstSlot);
+    await openFeature(asSignedIn, "leaderboard");
     await settleInTimeOrder(t);
     expect(packsExposures(), "exposures with collection off").toEqual([]);
 
     await packsOn(t);
-    await reachesLevel(t, member, 3);
     await openFeature(asSignedIn);
     await openFeature(asSignedIn);
     await settleInTimeOrder(t);

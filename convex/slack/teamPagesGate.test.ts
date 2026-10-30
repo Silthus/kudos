@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, type FlagDefinition, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPage as PostHogComTeam } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { withoutExposureOf } from "../../testing/hoggies";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
@@ -262,7 +262,7 @@ async function everyoneInTheWorkspace(flag: FlagDefinition[], { linksWhile = [on
   t = await flagsFromPostHog(testBackend(), postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), ...(linksWhile ?? flag));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await bookShippedBeforeAnyoneJoined(t);
   for (const person of members) {
     await memberChanged(t, "team_join", { id: person.user, is_admin: person === alice, profile: { display_name: person.name, real_name: person.name, email: person.email } });
