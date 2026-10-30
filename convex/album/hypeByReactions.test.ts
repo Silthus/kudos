@@ -8,6 +8,8 @@ import { api, internal } from "../_generated/api";
 import type { HypeReactedEvent } from "../bus/events";
 import { progressionHomeOf } from "../progression/progression";
 import type { MemberId } from "../workspace/directory";
+import type { Instants } from "./packs";
+import { emojiLineOf } from "../feedback/albumRecap";
 import { hypeEmojiFor } from "./hypes";
 import { inTheAlbumOf } from "./stickers";
 
@@ -179,6 +181,15 @@ describe("a teammate's hype emoji is collected by reactions on 10 of their messa
     expect(inTheBook?.earnedAt, "the Book's earning date").toBeGreaterThan(packedAt);
   });
 
+  test("a kudos whose pack waits face down and reactions that collect the hype emoji in the same week name it once in the Monday recap", async () => {
+    await switchWebsite(t, postHog, true, ...hypeByReactionsOn, "hidden-items", "album-slack");
+    const week = { from: Date.now(), to: Date.now() + 7 * 24 * 60 * minuteMs };
+    await thanks(bruno, carol);
+    await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
+
+    expect((await recapEmojiLineOf(bruno, week))?.text, "Bruno's recap line").toBe(`Emojis you earned last week: ${carol.hype}`);
+  });
+
   test("the Book's emojis name the reactions as where the hype emoji came from", async () => {
     await reactOnMessagesOf(carol, { by: bruno, messages: 10 });
 
@@ -219,6 +230,11 @@ async function hypeEmojiInTheBookOf(reader: Person, someone: Person) {
 
 async function milestoneTierOf(reader: Person, name: string) {
   return (await albumOf(reader)).milestones.flatMap(({ tiers }) => tiers).find((tier) => tier.name === name);
+}
+
+async function recapEmojiLineOf(someone: Person, week: Instants) {
+  const member = await memberOf(someone);
+  return t.run((ctx) => emojiLineOf(ctx, { workspace: "T1", member }, week));
 }
 
 async function albumOf(reader: Person) {

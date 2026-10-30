@@ -219,7 +219,7 @@ async function teamsUnlockedBetween(ctx: QueryCtx, member: MemberId, instants: I
 async function hypesEarnedBetween(ctx: QueryCtx, { workspace, member }: PageOwner, instants: Instants): Promise<EarnedCause[]> {
   const causes: EarnedCause[] = [];
   for (const pack of await packsEarnedBetween(ctx, member, instants, mostPeoplePackedRead)) {
-    if ((await isFirstPackFor(ctx, pack)) && !(await isCollectedBefore(ctx, member, pack.recipient, pack.at))) causes.push(await hypeCauseOf(ctx, workspace, pack.recipient));
+    if ((await isFirstPackFor(ctx, pack)) && (await collectedBy(ctx, member, pack.recipient)) === null) causes.push(await hypeCauseOf(ctx, workspace, pack.recipient));
   }
   for (const { person, at } of await peopleCollectedBy(ctx, member, mostPeoplePackedRead)) {
     if (isWithin(instants, at)) causes.push(await hypeCauseOf(ctx, workspace, person));
@@ -229,11 +229,6 @@ async function hypesEarnedBetween(ctx: QueryCtx, { workspace, member }: PageOwne
 
 async function hypeCauseOf(ctx: QueryCtx, workspace: string, person: MemberId): Promise<EarnedCause> {
   return { id: `hype:${person}`, picture: (await hypeFaceOf(ctx, workspace, person)).picture };
-}
-
-async function isCollectedBefore(ctx: QueryCtx, member: MemberId, person: MemberId, at: number): Promise<boolean> {
-  const collected = await collectedBy(ctx, member, person);
-  return collected !== null && collected.at < at;
 }
 
 async function tiersReachedBetween(ctx: QueryCtx, member: MemberId, instants: Instants): Promise<EarnedCause[]> {
