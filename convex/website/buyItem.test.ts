@@ -233,20 +233,6 @@ describe("a website command never launches unlocks", () => {
     expect(publishedEvents()).toEqual([]);
   });
 
-  test("WS62 WS335 P91: with quests on, an open store and no Journey launch, an item purchase answers refused and neither launches the Journey nor joins anyone", async () => {
-    await storeShipped();
-    const { member, asSignedIn } = await aMemberWithTheStoreOpen(100);
-    await flagsOn(...storeFlags, "quests");
-    const before = await everythingWritten();
-    vi.mocked(publish).mockClear();
-
-    expect(await buyItem(asSignedIn)).toEqual({ kind: "refused", reason: null });
-    expect(await everythingWritten()).toEqual(before);
-    expect(before.tables.journeyLaunches).toEqual([]);
-    expect(await collectionOf(member)).toEqual([]);
-    expect(publishedEvents()).toEqual([]);
-  });
-
   test("WS62 WS335: with achievements on, an open store and no Book launch, an item purchase answers refused and doesn't launch the Book", async () => {
     await storeShipped();
     const { member, asSignedIn } = await aMemberWithTheStoreOpen(100);

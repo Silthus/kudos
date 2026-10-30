@@ -1,26 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { feasibility, mondayQuestPool, questOf, questPool, type DrawFacts, type PoolQuest } from "./pool";
+import { feasibility, mondayQuestPool, questOf, type DrawFacts, type PoolQuest } from "./pool";
 
 const lastDayWithOneTeammateAlreadyThanked: DrawFacts = { daysLeft: 1, kudosLeftToday: 3, dailyAllowance: 3, peopleLeft: { anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 0 } };
 
 describe("P83: every quest in the pool keeps the guardrails", () => {
-  test.each(questPool.quests.map((quest) => [quest.quest, quest] as const))("%s", (_, quest) => {
-    expect(breachesOf(quest)).toEqual([]);
-  });
-
-  test("P80: the pool holds a quest that needs nothing but the member and stays feasible on the last day of the week with one teammate", () => {
-    const fallbacks = questPool.quests.filter((quest) => quest.progress.given.to === "anyone" && feasibility(quest, lastDayWithOneTeammateAlreadyThanked) !== null);
-
-    expect(fallbacks.map(({ quest }) => quest)).toEqual(["say-why"]);
-  });
-
-  test("P86 CO6: each quest pays 20 XP and 10 coins, with no item while items haven't shipped, at pool version 2", () => {
-    expect(new Set(questPool.quests.map(({ reward }) => JSON.stringify(reward)))).toEqual(new Set([JSON.stringify({ xp: 20, coins: 10, item: null })]));
-    expect(questPool.version).toBe("2");
-  });
-
   test("each quest has its own stable ID", () => {
-    expect(new Set(questPool.quests.map(({ quest }) => quest)).size).toBe(questPool.quests.length);
+    expect(new Set(mondayQuestPool.quests.map(({ quest }) => quest)).size).toBe(mondayQuestPool.quests.length);
   });
 
   describe("HH13: the Monday path draws from the kudos pool", () => {
@@ -45,10 +30,6 @@ describe("P83: every quest in the pool keeps the guardrails", () => {
 
       expect(fallbacks.map(({ quest }) => quest)).toEqual(["kudos-once"]);
     });
-
-    test("the unlock path's pool keeps its quests", () => {
-      expect(questPool.quests.map(({ quest }) => quest)).toEqual(["say-why", "say-why-twice", "say-why-three-times", "say-why-two-days", "say-why-three-days", "someone-new", "two-new", "not-in-30-days"]);
-    });
   });
 });
 
@@ -60,7 +41,9 @@ describe("P83: the guardrails catch a quest that breaks them", () => {
     ["calls a kudos thoughtful", { goal: "Thank someone with a thoughtful kudos and say why." }],
     ["asks to resend", { goal: "Thank someone and say why, then send it again." }],
   ] as const)("a quest that %s breaks them", (_, change) => {
-    expect(breachesOf({ ...questPool.quests[0], ...change } as PoolQuest)).not.toEqual([]);
+    const sayWhy = questWith({ given: { saysWhy: true, to: "anyone" }, counts: "recognitions", target: 1 });
+    expect(breachesOf(sayWhy), "the quest before the change").toEqual([]);
+    expect(breachesOf({ ...sayWhy, ...change } as PoolQuest)).not.toEqual([]);
   });
 });
 

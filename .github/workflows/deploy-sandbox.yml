@@ -94,9 +94,3 @@ jobs:
         run: pnpm exec convex run album/emojiNames:reserveSharedEmojiNames
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}
-
-      - name: Rebuild the pending-crate index
-        if: ${{ !cancelled() && steps.deploy.outcome == 'success' }}
-        run: pnpm exec convex run quests/pendingCrates:backfillPendingCrates '{"restart":true}'
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}

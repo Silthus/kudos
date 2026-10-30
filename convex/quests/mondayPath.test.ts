@@ -2,7 +2,7 @@ import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
 import { memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHomeBlocks } from "../../testing/slackInteractions";
@@ -17,10 +17,9 @@ import { standingOf } from "../progression/progression";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
 import { advanceOnboarding, nextOnboardingQuestOf } from "./onboarding";
-import { openQuestCrate } from "./open";
 import { questStartOf } from "./start";
 import { weekStartOf } from "./week";
-import { rerollQuest, weeklyQuestsOf } from "./weekly";
+import { weeklyQuestsOf } from "./weekly";
 
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
@@ -600,19 +599,15 @@ describe("HH13: the Monday path draws its quests from the kudos pool", { timeout
 });
 
 describe("MQ8 MQ10 MQ12: a drawn quest on the Monday path pays 20 XP and a Hoggie, never coins, with no swap", { timeout: 60_000 }, () => {
-  test("each drawn quest promises 20 XP and no coins, and none can be swapped", async () => {
+  test("each drawn quest promises 20 XP and no coins", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await aTeammateNotThankedYet(dave);
     await finishOnboarding();
     await sweepForANewWeek();
 
     const week = (await weekOf(alice))!;
-    const member = await memberOf(alice);
-    const swapped = await t.run((ctx) => rerollQuest(ctx, member, { kind: "weekly", week: week.week, slot: 0 }));
 
     expect(week.slots.map(({ reward }) => reward), "each drawn quest's reward").toEqual([drawnReward, drawnReward, drawnReward]);
-    expect(week.swapAvailable, "a swap offered").toBe(false);
-    expect(swapped, "a swap asked for").toBe("refused");
   });
 
   test("finishing drawn quests records 20 XP and no coins each, lays a Hoggie each, and the reply says so with no finish DM", async () => {
@@ -632,21 +627,9 @@ describe("MQ8 MQ10 MQ12: a drawn quest on the Monday path pays 20 XP and a Hoggi
 });
 
 describe("MQ4 MQ10: with the unlock path on too, the Monday path's quests pay only the Monday way", { timeout: 60_000 }, () => {
-  test("a Monday quest's reward opens no crate, so it pays no second Hoggie and no pack XP", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath, "unlocks", "quests");
-    await thanks(alice, saysWhy, bob);
-    const member = await memberOf(alice);
-
-    const opened = await t.run((ctx) => openQuestCrate(ctx, member, { kind: "journey", step: "first-thanks" }, "website"));
-    await settle(t);
-
-    expect(opened, "opening the quest's crate").toBe("refused");
-    expect(await xpOf(alice), "the giver's XP").toBe(70);
-  });
-
   test("a Monday quest's reward waits as no pack in the collection and as no Journey Open on App Home", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath, "unlocks", "quests", "achievements");
-    await journeyShippedBeforeAnyoneJoined(t);
+    await unlocksShippedBeforeAnyoneJoined(t);
     await bookShippedBeforeAnyoneJoined(t);
     await thanks(alice, saysWhy, bob);
     await opens(t, await memberOf(alice), "book");
@@ -659,7 +642,7 @@ describe("MQ4 MQ10: with the unlock path on too, the Monday path's quests pay on
 
   test("a finished drawn quest waits as no pack in the collection and as no Open on App Home", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath, "unlocks", "quests", "achievements");
-    await journeyShippedBeforeAnyoneJoined(t);
+    await unlocksShippedBeforeAnyoneJoined(t);
     await bookShippedBeforeAnyoneJoined(t);
     await finishOnboarding();
     await opens(t, await memberOf(alice), "book");

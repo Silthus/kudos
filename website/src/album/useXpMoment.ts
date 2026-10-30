@@ -101,11 +101,11 @@ function questStepsOf(quests: QuestDone[], advance: (patch: Partial<Progress>) =
   const { questChargeMs, chainedChargeMs, questRevealMs, streamMs, streamSteps, questRewardMs } = xpMomentTiming;
   const steps: Step[] = [];
   let start = 0;
-  quests.forEach((quest, index) => {
+  quests.forEach((_, index) => {
     const burst = start + (index === 0 ? questChargeMs : chainedChargeMs);
     const stream = burst + questRevealMs;
     const reward = stream + streamMs;
-    const fills = quest.waiting ? [] : Array.from({ length: streamSteps }, (_, step): Step => [stream + ((step + 1) * streamMs) / streamSteps, () => advance({ questFilled: step + 1 })]);
+    const fills = Array.from({ length: streamSteps }, (_, step): Step => [stream + ((step + 1) * streamMs) / streamSteps, () => advance({ questFilled: step + 1 })]);
     steps.push([start, () => advance({ quest: index, questStage: "charge", questFilled: 0 })], [burst, () => advance({ questStage: "burst" })], [stream, () => advance({ questStage: "stream" })], ...fills, [reward, () => advance({ questStage: "reward" })]);
     start = reward + questRewardMs;
   });
@@ -154,7 +154,7 @@ function orbXpOf(cards: XpMomentCard[], { dissolved, filled }: Progress, phase: 
 
 function barLevelOf({ climb: { from, to }, quests }: XpMoment, { filled, quest, questFilled }: Progress): AlbumLevel {
   const { streamSteps } = xpMomentTiming;
-  const streaming = quests.slice(quest, quest + 1).filter(({ waiting }) => !waiting);
+  const streaming = quests.slice(quest, quest + 1);
   const ofTheCards = Math.round(((to.xp - from.xp - questXpOf(quests)) * filled) / streamSteps);
   const ofTheQuests = questXpOf(quests.slice(0, quest)) + Math.round((questXpOf(streaming) * questFilled) / streamSteps);
   return standingAt(from.xp + ofTheCards + ofTheQuests);

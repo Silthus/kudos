@@ -266,10 +266,6 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
     const form = { contentType: "application/x-www-form-urlencoded" };
     await t.fetch("/slack/commands", await signedRequest(commandInChannel, form));
     await settle(t);
-    const firstThanksDm = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === people.giver && String(text).startsWith("✅ You finished a Journey step"));
-    const openFirstThanks = blockActions(people.giver, buttonIn(firstThanksDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.828282" } });
-    await t.fetch("/slack/interactivity", await signedRequest(openFirstThanks, form));
-    await settle(t);
     await flagsFromPostHog(t, postHog, ...["xp-levels", "quests", "everyone-board"].map(onForEveryone));
     await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
     await settle(t);
@@ -295,10 +291,6 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
         "level reached",
         "unlock made ready",
         "unlock opened",
-        "journey step activated",
-        "quest drawn",
-        "quest finished",
-        "crate opened",
         "hoggie dropped",
         "attempt failed",
         "app home opened",

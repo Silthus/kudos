@@ -1,8 +1,7 @@
-import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, type FlagDefinition, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, post, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, publishedHome, staleButtonOf } from "../../testing/slackInteractions";
@@ -11,10 +10,8 @@ import { reachesLevel } from "../../testing/unlocks";
 import { aSession, aSignedInSession } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { Command } from "../commands/commands";
-import crons from "../crons";
 import { xpToReach } from "../progression/levels";
 import { recordReward } from "../progression/progression";
-import type { Quest } from "../quests/step";
 import schema from "../schema";
 import type { Feature } from "../unlocks/feature";
 import { keepOpen } from "../unlocks/unlocks";
@@ -29,11 +26,6 @@ vi.mock("../album/hoggies/flag", async (importOriginal) => {
     packsShownTo: vi.fn((...args: Parameters<typeof actual.packsShownTo>) => (thePacks.removed ? Promise.resolve(false) : actual.packsShownTo(...args))),
     packsPayFor: vi.fn((...args: Parameters<typeof actual.packsPayFor>) => (thePacks.removed ? Promise.resolve(false) : actual.packsPayFor(...args))),
   };
-});
-
-vi.mock("../quests/rank", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../quests/rank")>();
-  return { ...actual, drawRank: vi.fn((key: string) => actual.drawRank(key.replace(/^[^:]+/, (member) => namedIds.get(member) ?? member))) };
 });
 
 vi.mock("../website/seen", async (importOriginal) => {
@@ -52,15 +44,12 @@ vi.mock("../album/hoggies/draw", async (importOriginal) => {
 });
 
 const groupsSynced = Date.parse("2026-10-06T10:00:00Z");
-const lastTuesday = Date.parse("2026-10-13T10:00:00Z");
-const mondaySweep = Date.parse("2026-10-19T00:10:00Z");
 const tuesday = Date.parse("2026-10-20T10:00:00Z");
 const wednesday = Date.parse("2026-10-21T10:00:00Z");
-const thisWeek = "2026-10-19";
 const minuteMs = 60_000;
 const siteUrl = "https://kudos-site.test";
 const packs = "packs";
-const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "quests", "groups", "group-quest", "everyone-board", "skill-tree", "activity"];
+const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "coins", "quests", "groups", "everyone-board", "skill-tree", "activity"];
 const outboxDelivery = "analytics/drain:";
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
@@ -69,9 +58,6 @@ const dana = { user: "U_DANA", name: "Dana Lindqvist", email: "dana@example.com"
 const openers = [alice, bob];
 const ants = [alice, bob, carol, dana];
 const antsGroup = "S_ANTS";
-const firstThanks: Quest = { kind: "journey", step: "first-thanks" };
-const firstSlot: Quest = { kind: "weekly", week: thisWeek, slot: 0 };
-const secondSlot: Quest = { kind: "weekly", week: thisWeek, slot: 1 };
 const bandV1 = { xp: [5, 10, 15, 20, 25], coins: [1, 2, 3, 4, 5] };
 
 type Person = typeof alice;
@@ -106,19 +92,18 @@ afterEach(() => {
 type Exposure = { member: string; value: boolean };
 
 const aDrop = expect.objectContaining({ hoggie: expect.any(String), copy: expect.any(Number) });
-const heldRewardsOf = [{ xp: 10, coins: 0 }, { xp: 20, coins: 0 }, { xp: 0, coins: 15 }];
 
-const packsOff: Array<{ condition: string; packsFlag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[]; drops: number; reopenedOnTheWebsite: "with the held rewards alone" | "closed" }> = [
-  { condition: "with packs off", packsFlag: [offForEveryone(packs)], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: "with the held rewards alone" },
-  { condition: "while PostHog has no packs flag", packsFlag: [], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: "with the held rewards alone" },
+const packsOff: Array<{ condition: string; packsFlag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[]; drops: number; reopenedOnTheWebsite: "without a bonus" | "closed" }> = [
+  { condition: "with packs off", packsFlag: [offForEveryone(packs)], exposed: firstOpensExposing(false), drops: 8, reopenedOnTheWebsite: "without a bonus" },
+  { condition: "while PostHog has no packs flag", packsFlag: [], exposed: firstOpensExposing(false), drops: 8, reopenedOnTheWebsite: "without a bonus" },
   { condition: "without the flags key, even when PostHog turned packs on", packsFlag: [onForEveryone(packs)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [], drops: 0, reopenedOnTheWebsite: "closed" },
   {
     condition: "in production, while packs is on in the sandbox and for the product owner's email only",
     packsFlag: [asTheShipCreatesIt()],
     turnOff: () => vi.stubEnv("KUDOS_ENVIRONMENT", "production"),
     exposed: firstOpensExposing(false),
-    drops: 14,
-    reopenedOnTheWebsite: "with the held rewards alone",
+    drops: 8,
+    reopenedOnTheWebsite: "without a bonus",
   },
 ];
 
@@ -153,7 +138,7 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
         expect(bandV1.xp).toContain(xp);
         expect(bandV1.coins).toContain(coins);
       }
-      expect(walk.seen.answers[user]!.before.collection, `${user}'s stack before the opens`).toMatchObject({ packs: expect.arrayContaining([expect.objectContaining({ kind: "group" }), expect.objectContaining({ kind: "weekly" }), expect.objectContaining({ kind: "journey" }), expect.objectContaining({ kind: "unlock" })]) });
+      expect(walk.seen.answers[user]!.before.collection, `${user}'s stack before the opens`).toMatchObject({ packs: expect.arrayContaining([expect.objectContaining({ kind: "unlock" })]) });
     }
     expect(walk.xp.U_ALICE).toBe(withoutPacks.xp.U_ALICE! + bonusesOf(walk, alice.user).reduce((sum, { xp }) => sum + xp, 0));
     expect(packsExposures(walk)).toEqual(firstOpensExposing(true));
@@ -186,7 +171,7 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
     ]);
   });
 
-  test.each(packsOff)("$condition after bonuses were paid, nothing paid is taken back: every XP, wallet and drop record stays, and the website answers the held rewards alone", async ({ packsFlag, turnOff, reopenedOnTheWebsite }) => {
+  test.each(packsOff)("$condition after bonuses were paid, nothing paid is taken back: every XP, wallet and drop record stays, and the website answers without a bonus", async ({ packsFlag, turnOff, reopenedOnTheWebsite }) => {
     const walk = await walkIn(await antsWithEveryKindWaiting([onForEveryone(packs)]));
     const paid = await whatWasPaid();
     expect(bonusesOf(walk, alice.user)).toHaveLength(everyKindOpened.length);
@@ -198,7 +183,7 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
     expect(await whatWasPaid()).toEqual(paid);
     expect(JSON.stringify(afterwards)).not.toMatch(/"packs?"|morePacks/);
     for (const { user } of openers) {
-      const expected = reopenedOnTheWebsite === "closed" ? Array.from({ length: 7 }, () => ({ kind: "closed" })) : reopenedWithTheHeldRewardsAlone(walk, user);
+      const expected = reopenedOnTheWebsite === "closed" ? Array.from({ length: 4 }, () => ({ kind: "closed" })) : Array.from({ length: 4 }, () => ({ kind: "opened", drop: aDrop }));
       expect(afterwards[user]!.opens, `${user}'s website opens of every crate again`).toEqual(expected);
     }
   });
@@ -211,26 +196,25 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
       const asSignedIn = await signedIn(person);
       await asSignedIn.query(api.website.collection.getCollection, {});
       expect(await asSignedIn.mutation(api.website.commands.openCrate, { crate: "bought:1" }), "a bought crate not bought yet").toEqual({ kind: "refused" });
-      expect(await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: secondSlot }), "a weekly quest not finished").toEqual({ kind: "refused" });
     }
     await settled();
     expect(await exposuresSoFar(), "before any open").toEqual([]);
 
     await packsAre(onForEveryone(packs), offForEveryone("collection"));
-    await clickInSlack(alice.user, { type: "openQuestCrate", quest: firstThanks });
+    await clickInSlack(alice.user, { type: "openUnlock", feature: "leaderboard" });
     expect(await exposuresSoFar(), "after an open with collection off").toEqual([]);
 
     await packsAre(onForEveryone(packs));
-    await clickInSlack(alice.user, { type: "openQuestCrate", quest: firstSlot });
-    await clickInSlack(alice.user, { type: "openQuestCrate", quest: firstSlot });
-    await clickInSlack(alice.user, { type: "openUnlock", feature: "leaderboard" });
-    expect(await exposuresSoFar(), "after Alice's first opens and a repeat").toEqual([{ member: alice.user, value: true }]);
+    await clickInSlack(alice.user, { type: "openUnlock", feature: "skillTree" });
+    await clickInSlack(alice.user, { type: "openUnlock", feature: "skillTree" });
+    expect(await exposuresSoFar(), "after Alice's first open and a repeat").toEqual([{ member: alice.user, value: true }]);
 
     await packsAre(offForEveryone(packs));
-    await clickInSlack(alice.user, { type: "openQuestCrate", quest: firstSlot });
+    await clickInSlack(alice.user, { type: "openUnlock", feature: "skillTree" });
     expect(await (await signedIn(alice)).mutation(api.website.commands.openFeature, { feature: "leaderboard" }), "Alice's repeat on the website").toMatchObject({ kind: "opened" });
     expect(await exposuresSoFar(), "after Alice's repeats with packs turned off").toEqual([{ member: alice.user, value: true }]);
-    await clickInSlack(alice.user, { type: "openUnlock", feature: "skillTree" });
+    await clickInSlack(alice.user, { type: "buyCrate", next: 1 });
+    await clickInSlack(alice.user, { type: "openCrate", crate: "bought:1" });
     await (await signedIn(bob)).mutation(api.website.commands.openFeature, { feature: "leaderboard" });
     await packsAre(onForEveryone(packs));
     await (await signedIn(bob)).mutation(api.website.commands.openFeature, { feature: "skillTree" });
@@ -246,7 +230,7 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
   });
 });
 
-const everyKindOpened = ["bought:1", "bought:2", `group:<group Ants>:${thisWeek}`, "journey:first-thanks", "unlock:leaderboard", "unlock:skillTree", `weekly:${thisWeek}:0`].sort();
+const everyKindOpened = ["bought:1", "bought:2", "unlock:leaderboard", "unlock:skillTree"];
 
 function firstOpensExposing(value: boolean): Exposure[] {
   return openers.map(({ user }) => ({ member: user, value }));
@@ -283,7 +267,7 @@ async function antsWithEveryKindWaiting(packsFlag: FlagDefinition[], turnOff?: (
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, url: "https://t1.slack.com/" }));
   await unlocksShippedBeforeAnyoneJoined(t);
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await bookShippedBeforeAnyoneJoined(t);
   for (const person of ants) {
     await memberChanged(t, "team_join", { id: person.user, profile: { display_name: person.name, email: person.email } });
@@ -294,14 +278,6 @@ async function antsWithEveryKindWaiting(packsFlag: FlagDefinition[], turnOff?: (
   await settled();
   namedIds.set(await antsId(), "<group Ants>");
   for (const { user } of openers) await atLevelSixWithCoins((await memberOf(user))!);
-  vi.setSystemTime(lastTuesday);
-  for (const { user } of ants) {
-    const member = (await memberOf(user))!;
-    await t.run((ctx) => keepOpen(ctx, { workspace: "T1", member, at: lastTuesday }, "quests"));
-  }
-  await groupQuestSweepAt(lastTuesday);
-  await groupQuestSweepAt(mondaySweep);
-  for (const { user } of openers) await aWeeklyDrawFor((await memberOf(user))!);
   vi.setSystemTime(tuesday);
   await thanks(alice, "Thanks for untangling the release notes today", bob);
   await thanks(bob, "Thanks for pairing on the flaky deploy this morning", carol);
@@ -317,39 +293,24 @@ async function atLevelSixWithCoins(member: MemberId) {
   await settled();
 }
 
-async function aWeeklyDrawFor(member: MemberId) {
-  const drawn = await t.run((ctx) =>
-    ctx.db
-      .query("questDraws")
-      .withIndex("by_member_week", (q) => q.eq("member", member).eq("week", thisWeek))
-      .unique(),
-  );
-  if (drawn !== null) throw new Error("the weekly quests were drawn before the walk could draw them");
-  const slots = (["say-why", "say-why-three-times"] as const).map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
-  await t.run((ctx) => ctx.db.insert("questDraws", { member, week: thisWeek, drawnAt: Date.now(), slots }));
-}
-
 async function walkIn(backend: Backend) {
   t = backend;
   phase = wednesday;
   steps = 0;
   namedIds = await idsNamedByTheirMember();
-  const group: Quest = { kind: "group", group: await antsId(), week: thisWeek };
   const before: Record<string, Awaited<ReturnType<typeof readsOf>>> = {};
   for (const person of openers) {
     await openHome(person.user);
     before[person.user] = await readsOf(person);
   }
   for (const { user } of openers) await clickInSlack(user, { type: "buyCrate", next: 1 });
-  for (const quest of [firstThanks, firstSlot, group]) await clickInSlack(alice.user, { type: "openQuestCrate", quest });
   await clickInSlack(alice.user, { type: "openUnlock", feature: "leaderboard" });
   await clickInSlack(alice.user, { type: "openCrate", crate: "bought:1" });
   await clickInSlack(bob.user, { type: "openUnlock", feature: "skillTree" });
   await clickInSlack(bob.user, { type: "openCrate", crate: "bought:1" });
   const opens: Record<string, unknown[]> = {};
-  opens[alice.user] = await onTheWebsite(alice, [{ feature: "skillTree" }, { buy: 2 }, { crate: "bought:2" }, { quest: firstThanks }, { crate: "journey:first-thanks" }, { crate: `group:${await antsId()}:${thisWeek}` }]);
-  opens[bob.user] = await onTheWebsite(bob, [{ quest: firstThanks }, { quest: firstSlot }, { quest: group }, { feature: "leaderboard" }, { buy: 2 }, { crate: "bought:2" }, { crate: "journey:first-thanks" }, { crate: "unlock:skillTree" }]);
-  await clickInSlack(bob.user, { type: "openQuestCrate", quest: firstThanks });
+  opens[alice.user] = await onTheWebsite(alice, [{ feature: "skillTree" }, { buy: 2 }, { crate: "bought:2" }]);
+  opens[bob.user] = await onTheWebsite(bob, [{ feature: "leaderboard" }, { buy: 2 }, { crate: "bought:2" }, { crate: "unlock:skillTree" }]);
   await clickInSlack(alice.user, { type: "openUnlock", feature: "leaderboard" });
   const answers: Record<string, { before: Awaited<ReturnType<typeof readsOf>>; opens: unknown[]; after: Awaited<ReturnType<typeof readsOf>> }> = {};
   for (const person of openers) answers[person.user] = { before: before[person.user]!, opens: opens[person.user]!, after: await readsOf(person) };
@@ -368,7 +329,7 @@ async function walkIn(backend: Backend) {
 
 type Walk = Awaited<ReturnType<typeof walkIn>>;
 type Seen = Walk["seen"];
-type WebsiteStep = { feature: Feature } | { quest: Quest } | { crate: string } | { buy: number };
+type WebsiteStep = { feature: Feature } | { crate: string } | { buy: number };
 
 async function onTheWebsite(person: Person, steps: WebsiteStep[]) {
   const asSignedIn = await signedIn(person);
@@ -376,7 +337,6 @@ async function onTheWebsite(person: Person, steps: WebsiteStep[]) {
   for (const step of steps) {
     nextStep();
     if ("feature" in step) answers.push(await asSignedIn.mutation(api.website.commands.openFeature, { feature: step.feature }));
-    if ("quest" in step) answers.push(await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: step.quest }));
     if ("crate" in step) answers.push(await asSignedIn.mutation(api.website.commands.openCrate, { crate: step.crate }));
     if ("buy" in step) answers.push(await asSignedIn.mutation(api.website.commands.buyCrate, { next: step.buy }));
     await settled();
@@ -400,12 +360,10 @@ async function readsOf(person: Person) {
 async function repeatsOfTheWalk() {
   phase = wednesday + 120 * minuteMs;
   steps = 0;
-  const group: Quest = { kind: "group", group: await antsId(), week: thisWeek };
   const answers: Record<string, { opens: Row[]; reads: Awaited<ReturnType<typeof readsOf>> }> = {};
   for (const person of openers) {
     await openHome(person.user);
-    for (const quest of [firstThanks, firstSlot, group]) await clickInSlack(person.user, { type: "openQuestCrate", quest });
-    const opens = (await onTheWebsite(person, [{ quest: firstThanks }, { quest: firstSlot }, { quest: group }, { feature: "leaderboard" }, { feature: "skillTree" }, { crate: "bought:1" }, { crate: "bought:2" }])) as Row[];
+    const opens = (await onTheWebsite(person, [{ feature: "leaderboard" }, { feature: "skillTree" }, { crate: "bought:1" }, { crate: "bought:2" }])) as Row[];
     answers[person.user] = { opens, reads: await readsOf(person) };
   }
   return answers;
@@ -427,16 +385,6 @@ type PackPaid = { xp: number; coins: number; from: Standing; to: Standing };
 
 function bonusesOf(walk: Walk, user: string) {
   return (walk.seen.tables.drops as Row[]).filter(({ member, pack }) => member === `<member ${user}>` && pack !== undefined).map(({ crate, pack }) => ({ crate: String(crate), ...(pack as PackPaid) }));
-}
-
-function reopenedWithTheHeldRewardsAlone(walk: Walk, user: string) {
-  const beforeTheBonus = new Map(bonusesOf(walk, user).map(({ crate, from }) => [crate, from]));
-  const questCrates = ["journey:first-thanks", `weekly:${thisWeek}:0`, `group:<group Ants>:${thisWeek}`];
-  const quests = heldRewardsOf.map((held, index) => {
-    const to = beforeTheBonus.get(questCrates[index]!)!;
-    return { kind: "opened", applied: { ...held, from: { ...to, xp: to.xp - held.xp, coins: to.coins - held.coins }, to }, drop: aDrop };
-  });
-  return [...quests, ...Array.from({ length: 4 }, () => ({ kind: "opened", drop: aDrop }))];
 }
 
 function apartFromTheExposure(seen: Seen) {
@@ -582,14 +530,6 @@ async function idsNamedByTheirMember() {
 async function antsId() {
   const group = await t.run(async (ctx) => (await ctx.db.query("userGroups").collect()).find(({ group }) => group === antsGroup));
   return group!._id;
-}
-
-async function groupQuestSweepAt(at: number) {
-  vi.setSystemTime(at);
-  const job = crons.crons["draw each group's weekly group quest"];
-  if (job === undefined) throw new Error("no cron job draws each group's weekly group quest");
-  await t.mutation(makeFunctionReference<"mutation">(job.name), {});
-  await settled();
 }
 
 function spotlightPositionsFromTheStart() {

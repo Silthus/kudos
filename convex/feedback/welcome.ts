@@ -9,7 +9,6 @@ import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor } from "../progression/xpLevels";
-import { questsApplyTo } from "../quests/flag";
 import { everyoneBoardOnFor } from "../leaderboard/flag";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { readyFromTheStart, scheduled } from "../unlocks/schedule";
@@ -139,7 +138,6 @@ async function welcomedFeaturesOf(ctx: QueryCtx, workspace: string, member: Memb
   const features = [
     { name: "the Book of achievements", level: scheduled("book").level, applies: await bookAppliesIn(ctx, workspace) },
     { name: "the leaderboard", level: scheduled("leaderboard").level, applies: await everyoneBoardOnFor(ctx, member) },
-    { name: "weekly quests", level: scheduled("quests").level, applies: await questsApplyTo(ctx, member) },
     { name: "a skill tree", level: scheduled("skillTree").level, applies: await skillTreeAppliesIn(ctx, workspace) },
   ];
   return features.filter(({ applies }) => applies);

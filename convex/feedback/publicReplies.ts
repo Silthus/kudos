@@ -6,7 +6,6 @@ import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/event
 import { achievementsApplyIn } from "../achievements/flag";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { wantsMessage } from "../messageSettings/messageSettings";
-import { questsApplyIn } from "../quests/flag";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { publicCelebrationsOn } from "../workspace/celebrationsSwitch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -42,8 +41,7 @@ export const celebrateLevel = internalMutation({
     if (!(await xpLevelsShownIn(ctx, event.workspace))) return;
     const { user } = await chatUserOf(ctx, event.member);
     const section = levelSection(event.member, user, event.level);
-    if (event.message === undefined) await announceRewardedLevel(ctx, event, section);
-    else await celebrateLevelBeside(ctx, event.message, event, section);
+    if (event.message !== undefined) await celebrateLevelBeside(ctx, event.message, event, section);
   },
 });
 
@@ -70,11 +68,6 @@ export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, sectio
     await ctx.db.patch(existing._id, { shown: { state: "posting" } });
     await deliver(ctx, existing._id);
   }
-}
-
-async function announceRewardedLevel(ctx: MutationCtx, { workspace, member, level }: LevelReachedEvent, section: PublicSection) {
-  if (!(await questsApplyIn(ctx, workspace)) || (await levelNoticeRow(ctx, member, level)) !== null) return;
-  await announce(ctx, workspace, { reached: { member, level } }, section);
 }
 
 export async function announce(ctx: MutationCtx, workspace: string, announced: Announced, section: PublicSection) {
@@ -145,11 +138,7 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
 }
 
 async function isShownAtAll(ctx: QueryCtx, row: Doc<"publicReplies">) {
-  return (await xpLevelsShownIn(ctx, row.workspace)) && (await publicCelebrationsOn(ctx, row.workspace)) && (await isRewardShownIn(ctx, row)) && (await isCelebratedWhereItIs(ctx, row));
-}
-
-async function isRewardShownIn(ctx: QueryCtx, row: Doc<"publicReplies">) {
-  return !("reached" in row) || (await questsApplyIn(ctx, row.workspace));
+  return (await xpLevelsShownIn(ctx, row.workspace)) && (await publicCelebrationsOn(ctx, row.workspace)) && !("reached" in row) && (await isCelebratedWhereItIs(ctx, row));
 }
 
 async function isCelebratedWhereItIs(ctx: QueryCtx, row: Doc<"publicReplies">) {
@@ -190,12 +179,5 @@ function celebratedLevelRow(ctx: QueryCtx, { workspace, conversation, message }:
   return ctx.db
     .query("celebratedLevels")
     .withIndex("by_member_message", (q) => q.eq("member", member).eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
-    .unique();
-}
-
-function levelNoticeRow(ctx: QueryCtx, member: MemberId, level: number) {
-  return ctx.db
-    .query("publicReplies")
-    .withIndex("by_level_reached", (q) => q.eq("reached.member", member).eq("reached.level", level))
     .unique();
 }

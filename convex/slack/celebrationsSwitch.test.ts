@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
-import { flagsFromPostHog, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonInHome, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
-import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-22T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -119,17 +119,6 @@ describe("public celebrations stop while the workspace switches them off", { tim
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
     expect(postsIn("C_NEWS")).toEqual([]);
-  });
-
-  test("a level a Journey reward reaches gets no notice in the announcement channel, and its DM still arrives", async () => {
-    const t = await unlocksShippedBeforeAnyoneJoined(await workspaceWith([celebrationsSwitch, "xp-levels", "unlocks", "quests"]));
-    await adminTabOpen(t, "U_ADMIN");
-
-    await click(t, "U_ADMIN", "Switch off");
-    await post(t, "U_ALICE", [section(mention("U_BOB"), text(" thanks for untangling the release notes today "), emoji("taco"))]);
-
-    expect(postsIn("C_NEWS")).toEqual([]);
-    expect(levelUpDmsTo("U_ALICE")).toEqual([expect.stringContaining("🎉 You reached level 2!")]);
   });
 
   test("the Settings tab lists no Public celebrations row while it is off, and a member's own choice shows again once it is on", async () => {

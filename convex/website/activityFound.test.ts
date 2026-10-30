@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { testBackend, type Backend } from "../../testing/slackBackend";
+import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { allowanceDay } from "../engine/allowance";
@@ -104,13 +105,15 @@ async function aKudos(giver: MemberId, recipient: MemberId, message: string, at:
 }
 
 describe("CL21: the hoggie a crate dropped is found in the activity", () => {
-  test("opening a Journey step's crate on the website adds a found entry with the drop the open answered, between the kudos around it", async () => {
+  test("opening a feature's crate on the website adds a found entry with the drop the open answered, between the kudos around it", async () => {
     await collection(true);
-    await journeyShippedBeforeAnyoneJoined(t);
+    await unlocksShippedBeforeAnyoneJoined(t);
     const { member, teammate, asSignedIn } = await aTeam();
+    await reachesLevel(t, member, 3);
+    vi.advanceTimersByTime(minute);
     const gaveAt = await thanks(member, teammate, "1760435000.000100");
     vi.advanceTimersByTime(minute);
-    const opened = await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: { kind: "journey", step: "first-thanks" } });
+    const opened = await asSignedIn.mutation(api.website.commands.openFeature, { feature: "quests" });
     const openedAt = Date.now();
     vi.advanceTimersByTime(minute);
     const gotAt = await thanks(teammate, member, "1760435120.000100");

@@ -18,10 +18,10 @@ export type Message = { kind: "text"; segments: Segment[]; edited: boolean } | {
 
 export type Channel = { visibility: "public" | "private" | "unknown" };
 
-export type QuestDone = { kind: "weekly" | "journey"; goal: string; xp: number; waiting: boolean; hoggie: boolean };
+export type QuestDone = { kind: "weekly" | "journey"; goal: string; xp: number; hoggie: boolean };
 
 export function questXpOf(quests: QuestDone[]): number {
-  return quests.filter(({ waiting }) => !waiting).reduce((sum, { xp }) => sum + xp, 0);
+  return quests.reduce((sum, { xp }) => sum + xp, 0);
 }
 
 export type BonusEarned = { perk: { id: PerkId; name: string }; why: string; xp: number };

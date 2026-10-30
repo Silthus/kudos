@@ -70,11 +70,10 @@ export function XpMomentSummary({ moment: { xp, moments, since, timeZone, though
 function QuestsDone({ quests }: { quests: QuestDone[] }) {
   return (
     <ul className="xpm-quests-done">
-      {quests.map(({ goal, xp, waiting }, index) => (
+      {quests.map(({ goal, xp }, index) => (
         <li key={index} aria-label={`Quest complete: ${goal}`}>
           Quest complete: {goal}
           <span className="xpm-chip">+{xp} XP</span>
-          {waiting && " waits in your crate"}
         </li>
       ))}
     </ul>
@@ -109,13 +108,13 @@ function ProgressBeat({ moved: { kind, name, from, to, of }, filled }: { moved: 
   );
 }
 
-function QuestBeat({ quest: { goal, xp, waiting }, stage, first }: { quest: QuestDone; stage: QuestStage; first: boolean }) {
+function QuestBeat({ quest: { goal, xp }, stage, first }: { quest: QuestDone; stage: QuestStage; first: boolean }) {
   const chip = useRef<HTMLSpanElement>(null);
   const opened = stage !== "charge";
   const { questChargeMs, chainedChargeMs, streamMs } = xpMomentTiming;
   useEffect(() => {
-    if (stage === "stream" && !waiting && chip.current !== null) streamInto(chip.current, barEnd(), streamMs);
-  }, [stage, waiting, streamMs]);
+    if (stage === "stream" && chip.current !== null) streamInto(chip.current, barEnd(), streamMs);
+  }, [stage, streamMs]);
   return (
     <article className="xpm-quest" data-stage={stage} aria-label={opened ? `Quest complete: ${goal}` : "A quest finished"} style={{ "--xpm-charge": `${first ? questChargeMs : chainedChargeMs}ms` } as CSSProperties}>
       <span className="xpm-quest-heart" aria-hidden="true">
@@ -136,13 +135,12 @@ function QuestBeat({ quest: { goal, xp, waiting }, stage, first }: { quest: Ques
           </span>
         </>
       )}
-      {stage === "reward" && <QuestReward waiting={waiting} />}
+      {stage === "reward" && <QuestReward />}
     </article>
   );
 }
 
-function QuestReward({ waiting }: { waiting: boolean }) {
-  if (waiting) return <p className="xpm-quest-reward">Its reward waits in your crate</p>;
+function QuestReward() {
   return (
     <div className="xpm-quest-reward">
       <ItemBack />

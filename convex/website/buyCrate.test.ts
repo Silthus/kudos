@@ -289,18 +289,6 @@ describe("a website command never launches unlocks", () => {
     expect(await openCrate(asSignedIn, "bought:1")).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);
   });
-
-  test("WS62 P91: with quests on and no Journey launch, buying a crate answers null and opening one refused, and neither launches the Journey", async () => {
-    const { asSignedIn } = await aCrateStoreShopperWith(100);
-    await buyCrate(asSignedIn, 1);
-    await flagsOn(...crateStoreFlags, "quests");
-    const before = await everythingWritten();
-
-    expect(await buyCrate(asSignedIn, 2)).toBeNull();
-    expect(await openCrate(asSignedIn, "bought:1")).toEqual({ kind: "refused" });
-    expect(await everythingWritten()).toEqual(before);
-    expect(before.tables.journeyLaunches).toEqual([]);
-  });
 });
 
 describe("a website command is a D17 command", () => {

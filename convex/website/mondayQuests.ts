@@ -7,7 +7,7 @@ import { nextOnboardingQuestOf, onboardingFinishedBy, onboardingGoalOf, onboardi
 import { withoutFullStop, type QuestId } from "../quests/pool";
 import type { Quest } from "../quests/step";
 import { daysLeftInWeek } from "../quests/week";
-import { drawnWeekOf, isMondayDraw, type DrawnWeek } from "../quests/weekly";
+import { drawnWeekOf, type DrawnWeek } from "../quests/weekly";
 import type { MemberId } from "../workspace/directory";
 import { followTheClock } from "./clock";
 import type { VerifiedMember } from "./memberQuery";
@@ -52,7 +52,7 @@ export async function mondayQuestsOf(ctx: QueryCtx, me: VerifiedMember): Promise
 
 async function questListOf(ctx: QueryCtx, member: MemberId, at: number): Promise<MondayQuestList> {
   const week = (await onboardingFinishedBy(ctx, member)) ? await drawnWeekOf(ctx, member, at) : null;
-  if (week === null || !isMondayDraw(week)) return { kind: "journey", steps: await gettingStartedOf(ctx, member, at) };
+  if (week === null) return { kind: "journey", steps: await gettingStartedOf(ctx, member, at) };
   return { kind: "drawn", quests: await Promise.all(week.slots.map((slot) => drawnQuestOf(ctx, member, slot))) };
 }
 

@@ -35,7 +35,7 @@ export const feasibleBecauseValidator = v.object({ peopleLeft: v.number(), recog
 
 export type FeasibleBecause = Infer<typeof feasibleBecauseValidator>;
 
-export type QuestPool = { version: string; quests: readonly PoolQuest[] };
+type QuestPool = { version: string; quests: readonly PoolQuest[] };
 
 const personalReward = { xp: 20, coins: 10, item: null };
 
@@ -46,18 +46,6 @@ const reachingOut = [
   thanking("two-new", "Thank 2 people you haven't thanked before.", "someone-new", 2),
   thanking("not-in-30-days", "Thank someone you haven't thanked in the last 30 days.", "someone-not-thanked-in-30-days", 1),
 ];
-
-export const questPool = {
-  version: "2",
-  quests: [
-    sayingWhy("say-why", "Thank someone and say why.", "recognitions", 1),
-    sayingWhy("say-why-twice", "Thank someone and say why, 2 times.", "recognitions", 2),
-    sayingWhy("say-why-three-times", "Thank someone and say why, 3 times.", "recognitions", 3),
-    sayingWhy("say-why-two-days", "Thank someone and say why on 2 different days.", "days", 2),
-    sayingWhy("say-why-three-days", "Thank someone and say why on 3 different days.", "days", 3),
-    ...reachingOut,
-  ],
-} as const satisfies QuestPool;
 
 export const mondayQuestPool = {
   version: mondayCatalogueVersion,
@@ -74,7 +62,7 @@ export function withoutFullStop(goal: string): string {
 }
 
 export function questOf(quest: QuestId): PoolQuest {
-  return [...questPool.quests, ...mondayQuestPool.quests].find((entry) => entry.quest === quest)!;
+  return mondayQuestPool.quests.find((entry) => entry.quest === quest)!;
 }
 
 export function feasibility({ progress }: PoolQuest, facts: DrawFacts): FeasibleBecause | null {
@@ -89,10 +77,6 @@ export function feasibility({ progress }: PoolQuest, facts: DrawFacts): Feasible
 
 function aDayHolds(target: number, people: number, { dailyAllowance, kudosLeftToday, daysLeft }: DrawFacts): boolean {
   return dailyAllowance >= target && (Math.min(kudosLeftToday, people) >= target || daysLeft > 1);
-}
-
-function sayingWhy(quest: QuestId, goal: string, counts: "recognitions" | "days", target: number): PoolQuest {
-  return { quest, kind: "thoughtfulness", goal, progress: { counts, target, given: { saysWhy: true, to: "anyone" } }, needs: [], reward: personalReward };
 }
 
 function givingKudos(quest: QuestId, goal: string, counts: "recognitions" | "days" | "people-in-a-day", target: number): PoolQuest {

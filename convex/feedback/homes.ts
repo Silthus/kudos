@@ -29,11 +29,6 @@ import { messageSettingsOf, notificationSwitchesOf, type MessageSetting, type Sh
 import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
-import { questsShownTo } from "../quests/flag";
-import { earlierGroupCratesOf, groupQuestFor, groupQuestShownAndExposedTo, type GroupQuest, type WaitingGroupCrate } from "../quests/groupQuest";
-import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/journey";
-import { journeyCopyFor, type JourneyStepCopy } from "../quests/journeyCopy";
-import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQuests } from "../quests/weekly";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { customKudosEmojiPickerFor, type CustomKudosEmojiPicker } from "../store/customKudosEmoji";
 import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
@@ -58,11 +53,6 @@ export type ShownTab =
       tab: "profile";
       progression: ToldProgression | null;
       unlocks: UnlocksHome | null;
-      quests: WeeklyQuests | null;
-      groupQuest: GroupQuest | null;
-      earlierCrates: UnopenedCrate[] | null;
-      earlierGroupCrates: WaitingGroupCrate[] | null;
-      journey: JourneyStepShown[] | null;
       hoggies: HoggiesShown | null;
       boughtCrates: string[] | null;
       teaser: string | null;
@@ -90,7 +80,6 @@ type Slices = {
   leaderboard: boolean;
   xp: boolean;
   unlocks: boolean;
-  quests: boolean;
   book: boolean;
   skillTree: boolean;
   coins: boolean;
@@ -105,12 +94,6 @@ type HomeSelection = { tab: HomeTab; period: Period };
 
 const adminsRepublishedPerPage = 100;
 const opensOn: HomeSelection = { tab: "profile", period: "week" };
-
-export type JourneyStepShown = JourneyStepFacts & JourneyStepCopy;
-
-async function journeyShownTo(ctx: QueryCtx, member: MemberId): Promise<JourneyStepShown[]> {
-  return Promise.all((await journeyOf(ctx, member)).map(async (facts) => ({ ...facts, ...(await journeyCopyFor(ctx, member, facts.step)) })));
-}
 
 type Door = { frontDoor: boolean };
 
@@ -129,7 +112,6 @@ export const shownHomeOf = internalMutation({
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member") return null;
     const slices = await slicesShownTo(ctx, workspace, person);
-    if (slices.quests) await activateJourneyOf(ctx, person.member);
     const tabs = tabsOf({ ...slices, frontDoor });
     if (tabs.length === 0) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
@@ -184,7 +166,6 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const board = await isEveryoneBoardShownTo(ctx, workspace, person.member);
   const xp = await xpLevelsShownTo(ctx, person.member);
   const unlocks = await unlocksShownTo(ctx, person.member);
-  const quests = await questsShownTo(ctx, person.member);
   const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
   const skillTree = (await skillTreeShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "skillTree"));
   const coins = unlocks && (await coinsVisibleAndExposedTo(ctx, person.member));
@@ -192,7 +173,7 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const messages = await messageSettingsShownTo(ctx, person.member);
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
   const groups = (await groupsShownAndExposedTo(ctx, person.member)) ? await groupChoiceOf(ctx, person.member) : null;
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, coins, store, messages, admin: person.admin, sharedSettings, groups };
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, book, skillTree, coins, store, messages, admin: person.admin, sharedSettings, groups };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -210,16 +191,12 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
   switch (tab) {
     case "profile": {
       const reads = { teaser: await teaserOf(ctx, viewer.member), thoughtfulGivers: await thoughtfulGiversShownTo(ctx, viewer) };
-      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null, ...reads };
-      if (!slices.unlocks) return { tab, progression: await levelsOnlyProgressionOf(ctx, viewer.member), unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null, ...reads };
+      if (!slices.xp) return { tab, progression: null, unlocks: null, hoggies: null, boughtCrates: null, ...reads };
+      if (!slices.unlocks) return { tab, progression: await levelsOnlyProgressionOf(ctx, viewer.member), unlocks: null, hoggies: null, boughtCrates: null, ...reads };
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
         unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), storeNamingOf(slices)),
-        quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
-        ...(slices.quests ? await openedGroupQuestOf(ctx, viewer.member) : noGroupQuest),
-        earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
-        journey: slices.quests ? await journeyShownTo(ctx, viewer.member) : null,
         hoggies: await hoggiesInTheBookOf(ctx, viewer.member, slices, refused),
         boughtCrates: (await hoggiesShownTo(ctx, viewer.member)) ? await waitingCratesOf(ctx, viewer.member) : null,
         ...reads,
@@ -289,22 +266,6 @@ function itemRefusalIn(refused: HomeRefusal | null): ItemRefusal | null {
 
 async function applyingMessageSettingsOf(ctx: QueryCtx, member: MemberId) {
   return (await messageSettingsOf(ctx, member)).filter(({ applies }) => applies);
-}
-
-async function openedQuestsOf(ctx: MutationCtx, member: MemberId) {
-  return (await isOpened(ctx, member, "quests")) ? thisWeeksQuestsOf(ctx, member, Date.now()) : null;
-}
-
-const noGroupQuest = { groupQuest: null, earlierGroupCrates: null };
-
-async function openedGroupQuestOf(ctx: MutationCtx, member: MemberId) {
-  if (!(await isOpened(ctx, member, "quests")) || !(await groupQuestShownAndExposedTo(ctx, member))) return noGroupQuest;
-  const now = Date.now();
-  return { groupQuest: await groupQuestFor(ctx, member, now), earlierGroupCrates: await earlierGroupCratesOf(ctx, member, now) };
-}
-
-async function openedEarlierCratesOf(ctx: MutationCtx, member: MemberId) {
-  return (await isOpened(ctx, member, "quests")) ? unopenedCratesOf(ctx, member, Date.now()) : null;
 }
 
 async function levelsOnlyProgressionOf(ctx: QueryCtx, member: MemberId): Promise<ToldProgression> {

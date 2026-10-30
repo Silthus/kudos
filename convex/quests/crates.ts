@@ -1,9 +1,5 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
-import { appliedRewardValidator, rewardOf, type RewardRecord } from "../progression/rewards";
-import type { MemberId } from "../workspace/directory";
-import { isPaidOnTheMondayPath } from "./mondayCatalogue";
+import { appliedRewardValidator } from "../progression/rewards";
 import { journeyStepValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "./step";
 
 export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number(), applied: v.optional(appliedRewardValidator) });
@@ -26,53 +22,11 @@ export function weeklyQuestOfRewardKey(key: string): WeeklyQuest | null {
   return match === null ? null : { kind: "weekly", week: match[1]!, slot: Number(match[2]) };
 }
 
-export function groupWeekOfRewardKey(key: string): { group: string; week: string } | null {
-  const match = new RegExp(`^${rewardKeyPrefixOf("group")}([^:]+):(.+)$`).exec(key);
-  return match === null ? null : { group: match[1]!, week: match[2]! };
-}
-
 export function journeyQuestOfRewardKey(key: string): JourneyQuest | null {
   const step = journeyStepValidator.members.map(({ value }) => value).find((candidate) => key === rewardKeyOf({ kind: "journey", step: candidate }));
   return step === undefined ? null : { kind: "journey", step };
 }
 
-export function questOfRewardKey(ctx: QueryCtx, key: string): Quest | null {
-  const quest = weeklyQuestOfRewardKey(key) ?? journeyQuestOfRewardKey(key) ?? groupQuestOfRewardKey(ctx, key);
-  return quest !== null && rewardKeyOf(quest) === key ? quest : null;
-}
-
-function groupQuestOfRewardKey(ctx: QueryCtx, key: string): Quest | null {
-  const groupWeek = groupWeekOfRewardKey(key);
-  const group = groupWeek === null ? null : ctx.db.normalizeId("userGroups", groupWeek.group);
-  return groupWeek === null || group === null ? null : { kind: "group", group, week: groupWeek.week };
-}
-
-export function rewardKeyPrefixOf<K extends Quest["kind"]>(kind: K): `${K}:` {
+function rewardKeyPrefixOf<K extends Quest["kind"]>(kind: K): `${K}:` {
   return `${kind}:`;
-}
-
-export async function rewardWaits(ctx: QueryCtx, member: MemberId, key: string): Promise<boolean> {
-  return recordWaits(ctx, await rewardOf(ctx, member, key));
-}
-
-export async function recordWaits(ctx: QueryCtx, reward: RewardRecord | null): Promise<boolean> {
-  return reward?.held === true && (await crateOpeningOf(ctx, reward.member, reward.key)) === null;
-}
-
-type Finish = Pick<RewardRecord, "at" | "catalogueVersion" | "held">;
-
-export function waitsUnopened(reward: Finish | null, opening: Doc<"crateOpenings"> | null): boolean {
-  return reward?.held === true && opening === null;
-}
-
-export function crateOpenedAt(reward: Finish | null, opening: Doc<"crateOpenings"> | null): number | null {
-  if (opening !== null) return opening.at;
-  return reward !== null && isPaidOnTheMondayPath(reward) ? reward.at : null;
-}
-
-export function crateOpeningOf(ctx: QueryCtx, member: MemberId, key: string) {
-  return ctx.db
-    .query("crateOpenings")
-    .withIndex("by_member_key", (q) => q.eq("member", member).eq("key", key))
-    .unique();
 }

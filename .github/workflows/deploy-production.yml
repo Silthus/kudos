@@ -95,9 +95,3 @@ jobs:
         run: pnpm exec convex run album/emojiNames:reserveSharedEmojiNames
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
-
-      - name: Backfill the pending-crate index once
-        if: ${{ !cancelled() && steps.deploy.outcome == 'success' }}
-        run: pnpm exec convex run quests/pendingCrates:backfillPendingCrates
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}

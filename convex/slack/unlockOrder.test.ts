@@ -1,20 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, isWelcome } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { blockActions, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
+import { bookShippedBeforeAnyoneJoined, flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { convexStops, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, memberEvent, mention, messageEvent, section } from "../../testing/slackMessages";
 import { aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
-import { journeyOf } from "../quests/journey";
 import { verificationTries } from "./verifyMember";
 import type { MemberId } from "../workspace/directory";
 import type { Feature } from "../unlocks/feature";
 
 const now = new Date("2026-10-16T10:00:00Z");
-const form = { contentType: "application/x-www-form-urlencoded" };
 const everyFlag = ["xp-levels", "unlocks", "everyone-board", "quests", "achievements"];
 const bookReady = "section: *Book* is ready. It opens achievements. [button: Open]";
 const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
@@ -100,7 +98,7 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
 
   test("a member at level 1 whom nothing in Slack has shown unlocks signs in to the website first and reads the Book ready, and no DM names it", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
-    const t = await journeyShippedBeforeAnyoneJoined(await workspace());
+    const t = await unlocksShippedBeforeAnyoneJoined(await workspace());
     await switchWebsite(t, postHog, true, ...everyFlag);
     await t.fetch("/slack/events", await signedRequest(memberEvent("team_join", { id: "U_CAROL", name: "carol" })));
     await settle(t);
@@ -113,7 +111,7 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
 
   test("a person the directory doesn't know yet signs in to the website, and once Slack verifies them they read the Book ready, and no DM names it", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
-    const t = await journeyShippedBeforeAnyoneJoined(await workspace());
+    const t = await unlocksShippedBeforeAnyoneJoined(await workspace());
     await switchWebsite(t, postHog, true, ...everyFlag);
 
     const { asSignedIn } = await aSignedInSession(t, { user: "U_CAROL", name: "Carol" });
@@ -125,7 +123,7 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
 
   test("a verification whose last try recorded the person but stopped before it finished still leaves them the Book ready once the stranded sweep finds it", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
-    const t = await journeyShippedBeforeAnyoneJoined(await workspace());
+    const t = await unlocksShippedBeforeAnyoneJoined(await workspace());
     await switchWebsite(t, postHog, true, ...everyFlag);
     const { asSignedIn } = await aSignedInSession(t, { user: "U_CAROL", name: "Carol" });
     await convexStops(t, "slack/verifyMember:verifyMember");
@@ -159,15 +157,6 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
       { feature: "leaderboard", readyAt: now.getTime() + 60_000 },
     ]);
     expect(dmsTo("U_ALICE").slice(dmsBefore).map(readDm)).toEqual([[leaderboardReady]]);
-  });
-
-  test("the Journey lists its steps in the unlock order: first thanks, the Book's two days, the Leaderboard's someone new, then Quests' first quest", async () => {
-    const t = await journeyShippedBeforeAnyoneJoined(await workspace());
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
-    for (const feature of ["quests", "leaderboard", "book"] as const) await send(t, blockActions("U_ALICE", openButtonOf(feature)));
-
-    const member = await memberOf(t, "U_ALICE");
-    expect((await t.run((ctx) => journeyOf(ctx, member))).map(({ step }) => step)).toEqual(["first-thanks", "two-days", "someone-new", "first-quest"]);
   });
 });
 
@@ -227,11 +216,6 @@ async function memberOf(t: Backend, user: string): Promise<MemberId> {
   });
 }
 
-function openButtonOf(feature: Feature) {
-  const command = JSON.stringify({ type: "openUnlock", feature });
-  return { type: "button", action_id: command, value: command } as const;
-}
-
 async function workspace() {
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
@@ -253,10 +237,4 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
 async function openHome(t: Backend, user: string) {
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
   await settle(t);
-}
-
-async function send(t: Backend, interaction: string) {
-  const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
-  await settle(t);
-  return response;
 }

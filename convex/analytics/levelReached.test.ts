@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type CapturedEvent, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
@@ -11,7 +11,6 @@ import { insertAwards } from "../engine/awards";
 const now = new Date("2026-10-13T10:00:00Z");
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const shared = { environment: "sandbox", workspace_key: expect.stringMatching(uuid), taxonomy_version: 1 };
-const saysWhy = "thanks for untangling the release notes today";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -53,18 +52,6 @@ describe("E1 O3: level reached", () => {
         timestamp: new Date(award!.at).toISOString(),
         properties: { ...shared, level: 2, skill_points_gained: 0, via: "kudos" },
       },
-    ]);
-  });
-
-  test("P64 P87: a level crossed by the Journey's first-thanks reward is sent via reward", async () => {
-    const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests"].map(onForEveryone)));
-    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-
-    await giveKudos(t, "U_ALICE", ["U_BOB"], 1, saysWhy);
-
-    const given = productEvents().find((event) => event.event === "kudos given")!;
-    expect(levelsReached().map(({ distinct_id, properties }) => ({ distinct_id, properties }))).toEqual([
-      { distinct_id: given.distinct_id, properties: { ...shared, level: 2, skill_points_gained: 0, via: "reward" } },
     ]);
   });
 
