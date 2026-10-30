@@ -354,7 +354,7 @@ describe("WS31 WS32 WS35: the board is the leaderboard module's, as the viewer s
     await aBoardOf(count, { viewerAt });
     if (viewerAt === 0) await aMember("U_JUNO", "Juno");
     const { asSignedIn } = await aSession(t, juno);
-    const appHome = await t.run((ctx) => everyoneBoardOf(ctx, "T1", juno.user, "week"));
+    const appHome = await t.run((ctx) => everyoneBoardOf(ctx, "T1", juno.user, "week", "kudosGiven"));
 
     const answer = await board("week", asSignedIn);
 

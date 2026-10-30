@@ -3,7 +3,9 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { signedRequest } from "../../testing/signedSlack";
+import { blockActions, buttonIn, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { firstHypeEmojiNameFor } from "../album/emojiNames";
@@ -661,6 +663,103 @@ describe("HH78: emojis within your reach", () => {
   });
 });
 
+describe("HH80 HH81: Slack ranks Everyone by hugs given while leaderboard-hugs is on", () => {
+  test("/hedgehug leaderboard ranks this week's hugs given, and the improvement line counts hugs with the places climbed", async () => {
+    await lastWeek();
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(bob, carol);
+    await hugsOn(alice, carol);
+    await thisWeek();
+    for (let hug = 0; hug < 3; hug += 1) await hugsOn(alice, carol);
+    await hugsOn(bob, carol);
+    await thanks(carol, why, dana);
+
+    expect(await leaderboardSays(alice)).toEqual(["🥇 <@U_ALICE> · 3 hugs", "🥈 <@U_BOB> · 1 hug", "▲ 2 more hugs than this time last week · ▲ 1 place"]);
+  });
+
+  test("the improvement line counts last week's hugs only up to the same weekday", async () => {
+    await lastWeek();
+    await hugsOn(alice, carol);
+    vi.setSystemTime(tuesday.getTime() - weekMs + 2 * dayMs);
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
+    await thisWeek();
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
+
+    expect(await leaderboardSays(alice)).toEqual(["🥇 <@U_ALICE> · 2 hugs", "▲ 1 more hug than this time last week"]);
+  });
+
+  test("the peer line compares the hugs given gained across the member's group", async () => {
+    await inTheOtters(alice, bob, carol, dana);
+    await thisWeek();
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
+    await thanks(bob, why, carol);
+
+    expect(await leaderboardSays(alice)).toContain("You improved more than everyone else in Otters.");
+  });
+
+  test.each([
+    { period: "month", says: ["🥇 <@U_ALICE> · 2 hugs", "🥈 <@U_BOB> · 1 hug", "▲ 2 more hugs than this time last month"] },
+    { period: "all", says: ["🥇 <@U_ALICE> · 2 hugs", "🥈 <@U_BOB> · 1 hug"] },
+  ])("`/hedgehug leaderboard $period` ranks hugs given over the $period", async ({ period, says }) => {
+    await lastWeek();
+    await hugsOn(alice, carol);
+    await thisWeek();
+    await hugsOn(alice, carol);
+    await hugsOn(bob, carol);
+
+    expect(await leaderboardSays(alice, period)).toEqual(says);
+  });
+
+  test("a member without a hug this week is asked for one, and their best week so far counts hugs", async () => {
+    await weeksAgo(2);
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
+    await lastWeek();
+    await hugsOn(alice, carol);
+    await thisWeek();
+    await hugsOn(bob, carol);
+    await thanks(alice, why, carol);
+
+    expect(await leaderboardSays(alice)).toEqual(["🥇 <@U_BOB> · 1 hug", "Give a hug this week to join the board.", "Your best week so far: 2 hugs."]);
+  });
+
+  test("App Home's Leaderboard tab, shown while the website is off, ranks the same hugs as the command", async () => {
+    await leaderboardHugsWithoutTheWebsite();
+    await thisWeek();
+    await hugsOn(alice, carol);
+    await thanks(bob, why, carol);
+    await openHome(alice);
+
+    await clickInHome(alice, "Leaderboard");
+
+    expect(publishedHome(slack, alice.user).at(-1)).toBe(`section: ${(await leaderboardSays(alice)).join("\n")}`);
+    expect(publishedHome(slack, alice.user).at(-1)).toBe("section: 🥇 <@U_ALICE> · 1 hug\n▲ 1 more hug than this time last week");
+  });
+
+  test("the command and App Home's tab each record the viewer's leaderboard-hugs exposure", async () => {
+    await leaderboardHugsWithoutTheWebsite();
+    await thisWeek();
+
+    await leaderboardSays(alice);
+    await openHome(bob);
+    await clickInHome(bob, "Leaderboard");
+
+    expect(await exposuresBy("leaderboard-hugs")).toEqual({ [alice.user]: [true], [bob.user]: [true] });
+  });
+
+  test("while leaderboard-hugs is off, the command and App Home's tab rank kudos given as before", async () => {
+    await switchWebsite(t, postHog, false, "everyone-board", "hugs");
+    await thisWeek();
+    await hugsOn(alice, carol);
+    await thanks(bob, why, carol);
+    await openHome(alice);
+
+    await clickInHome(alice, "Leaderboard");
+
+    expect(await leaderboardSays(alice)).toEqual(["🥇 <@U_BOB> · 1 kudos", "Give kudos this week to join the board."]);
+    expect(publishedHome(slack, alice.user).at(-1)).toBe("section: 🥇 <@U_BOB> · 1 kudos\nGive kudos this week to join the board.");
+    expect(await exposuresBy("leaderboard-hugs")).toEqual({ [alice.user]: [false] });
+  });
+});
+
 describe("HH92: a view of this week's Leaderboard records leaderboard viewed with its measure", () => {
   test.each<HugMeasure>(["hugsGiven", "hugsReceived", "kudosReceived", "level", "hoggies"])("a view on %s records one leaderboard viewed for the people board this week from the website, and exposes leaderboard-hugs", async (measure) => {
     await thisWeek();
@@ -675,6 +774,28 @@ describe("HH92: a view of this week's Leaderboard records leaderboard viewed wit
 
 async function leaderboardHugs(on: boolean) {
   await switchWebsite(t, postHog, true, ...websiteFlags, ...(on ? ["leaderboard-hugs"] : []));
+}
+
+async function leaderboardHugsWithoutTheWebsite() {
+  await switchWebsite(t, postHog, false, "everyone-board", "hugs", "leaderboard-hugs");
+}
+
+async function leaderboardSays(person: Person, period?: string): Promise<string[]> {
+  const body = new URLSearchParams({ team_id: "T1", channel_id: "C1", user_id: person.user, command: "/hedgehug", text: period === undefined ? "leaderboard" : `leaderboard ${period}`, response_url: "https://hooks.slack.com/commands/T1/1/abc" }).toString();
+  const response = await t.fetch("/slack/commands", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
+  await settle(t);
+  return ((await response.json()) as { text: string }).text.split("\n");
+}
+
+async function openHome(person: Person) {
+  await t.fetch("/slack/events", await signedRequest(appHomeOpened(person.user)));
+  await settle(t);
+}
+
+async function clickInHome(person: Person, label: string) {
+  const click = blockActions(person.user, buttonIn(publishedHomeBlocks(slack, person.user), label));
+  await t.fetch("/slack/interactivity", await signedRequest(click, { contentType: "application/x-www-form-urlencoded" }));
+  await settle(t);
 }
 
 async function weeksAgo(weeks: number) {
@@ -827,6 +948,18 @@ function leaderboardViews() {
     .productEvents()
     .filter(({ event }) => event === "leaderboard viewed")
     .map(({ properties: { board, period, surface, measure } }) => ({ board, period, surface, measure }));
+}
+
+function exposuresBy(flag: string) {
+  return t.run(async (ctx) => {
+    const exposures: Record<string, boolean[]> = {};
+    for (const { member, flag: read, value } of await ctx.db.query("flagExposures").collect()) {
+      if (read !== flag) continue;
+      const user = (await ctx.db.get(member))!.user;
+      exposures[user] = [...(exposures[user] ?? []), value as boolean];
+    }
+    return exposures;
+  });
 }
 
 function exposuresOf(flag: string) {

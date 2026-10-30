@@ -1,10 +1,20 @@
 import type { GroupImprovement } from "./groupsBoard";
 import type { Improvement } from "./improvement";
 import type { ComparedPeriod } from "./periods";
+import type { GivenMeasure } from "./totals";
 
-export function improvementLine(improvement: Improvement, period: ComparedPeriod): string {
-  if ("best" in improvement) return `Your best ${period} so far: ${improvement.best} kudos.`;
-  return `▲ ${improvement.gain} more kudos than this time last ${period}${placesClimbedPart(improvement.places)}`;
+export function improvementLine(improvement: Improvement, period: ComparedPeriod, measure: GivenMeasure): string {
+  if ("best" in improvement) return `Your best ${period} so far: ${givenCount(improvement.best, measure)}.`;
+  return `▲ ${improvement.gain} more ${givenNoun(improvement.gain, measure)} than this time last ${period}${placesClimbedPart(improvement.places)}`;
+}
+
+export function givenCount(count: number, measure: GivenMeasure): string {
+  return `${count} ${givenNoun(count, measure)}`;
+}
+
+function givenNoun(count: number, measure: GivenMeasure): string {
+  if (measure === "kudosGiven") return "kudos";
+  return count === 1 ? "hug" : "hugs";
 }
 
 export function groupImprovementLine(improvement: GroupImprovement, group: string, period: ComparedPeriod): string {

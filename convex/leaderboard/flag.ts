@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, memberDecision, memberDecisionWithoutWriting, workspaceDecision, type Flag } from "../analytics/flags";
 import { lookup, type MemberId } from "../workspace/directory";
+import { givenMeasureValidator, type GivenMeasure } from "./totals";
 
 export const everyoneBoardFlag = { key: "everyone-board", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
@@ -11,8 +12,14 @@ export function leaderboardHugsShownTo(ctx: QueryCtx | MutationCtx, member: Memb
   return memberDecisionWithoutWriting(ctx, leaderboardHugsFlag, member);
 }
 
-export async function exposeLeaderboardHugs(ctx: MutationCtx, member: MemberId) {
-  await exposed(ctx, leaderboardHugsFlag, member, await memberDecision(ctx, leaderboardHugsFlag, member));
+export async function leaderboardHugsApplyTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const applies = await memberDecision(ctx, leaderboardHugsFlag, member);
+  await exposed(ctx, leaderboardHugsFlag, member, applies);
+  return applies;
+}
+
+export async function everyoneMeasureFor(ctx: MutationCtx, member: MemberId): Promise<GivenMeasure> {
+  return (await leaderboardHugsApplyTo(ctx, member)) ? "hugsGiven" : "kudosGiven";
 }
 
 export function everyoneBoardShownIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
@@ -47,5 +54,14 @@ export const exposeEveryoneBoard = internalMutation({
   handler: async (ctx, { workspace, user }) => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind === "member") await isEveryoneBoardShownTo(ctx, workspace, person.member);
+  },
+});
+
+export const everyoneMeasure = internalMutation({
+  args: viewerArgs,
+  returns: givenMeasureValidator,
+  handler: async (ctx, { workspace, user }): Promise<GivenMeasure> => {
+    const person = await lookup(ctx, workspace, user);
+    return person?.kind === "member" ? everyoneMeasureFor(ctx, person.member) : "kudosGiven";
   },
 });

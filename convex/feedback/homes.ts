@@ -15,7 +15,7 @@ import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import type { GroupsBoard } from "../leaderboard/groupsBoard";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
-import { isEveryoneBoardShownTo } from "../leaderboard/flag";
+import { everyoneMeasureFor, isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { mondayPostSwitchShownTo, type MondayPostSwitch } from "../leaderboard/mondayPost";
 import { welcomeNudgeSwitchOf } from "./welcomeNudge";
@@ -203,7 +203,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       };
     }
     case "leaderboard":
-      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null, myGroup: null };
+      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period, await everyoneMeasureFor(ctx, viewer.member)), groups: null, myGroup: null };
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":

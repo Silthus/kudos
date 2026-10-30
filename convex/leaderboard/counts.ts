@@ -5,6 +5,7 @@ import type { AwardId } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
 import { dayOfPeriod, keyOf, periods, type Period, type PeriodKey } from "./periods";
+import { addHugsToRunningTotal } from "./hugRunningTotals";
 import { withKudosOn } from "./runningTotal";
 
 export type RecognitionCounts = { kudosGiven: number; kudosReceived: number; hugsGiven: number; hugsReceived: number };
@@ -134,6 +135,8 @@ async function addToPeriod(ctx: MutationCtx, { workspace, member, day }: Landing
   const counts = { ...withAdded(row, added), ...firstDayAdding(row, day, added), ...runningTotalAdding(period, row, day, added.kudosGiven ?? 0) };
   if (row === null) await ctx.db.insert("givenTotals", { workspace, member, period: key, ...counts });
   else await ctx.db.patch(row._id, counts);
+  const hugs = added.hugsGiven ?? 0;
+  if (period !== "all" && hugs > 0) await addHugsToRunningTotal(ctx, period, { workspace, member, day, hugsBefore: row?.hugsGiven ?? 0, hugs });
 }
 
 function periodRowOf(ctx: QueryCtx, member: MemberId, period: PeriodKey) {

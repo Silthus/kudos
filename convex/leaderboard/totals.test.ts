@@ -7,7 +7,7 @@ import { record, type DirectoryEntry } from "../workspace/directory";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import type { BoardView } from "./board";
 import type { Period } from "./periods";
-import { rankedBoardOf } from "./totals";
+import { rankedBoardOf, type GivenMeasure } from "./totals";
 import { setLeaderboardVisibility } from "./visibility";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -314,6 +314,22 @@ describe("GB35: the Everyone board at scale", () => {
     expect(ranked.rows.filter(({ climbed }) => climbed === null)).toHaveLength(300);
     expect(ranked.improvement).toEqual({ gain: 32, places: 300 });
   }, 120_000);
+
+  test("1,500 members hugging every day for two months: the month board of hugs given and its comparison read within Convex's transaction limits", async () => {
+    vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
+    const t = testBackend({ transactionLimits: true });
+    const everyone = await aWorkspaceOf(t, 1_500);
+    const september = { month: "2026-09", days: 30, kudos: (index: number) => 1 + (index % 5) };
+    const october = { month: "2026-10", days: 31, kudos: (index: number) => 1 + ((index + 1) % 5) };
+    await eachHuggedDaily(t, everyone, september);
+    await eachHuggedDaily(t, everyone, october);
+    await theHugDaysOf(t, everyone, september);
+
+    const board = await everyoneBoard(t, "U0000", "month", "hugsGiven");
+
+    expect(board.rows[0]).toMatchObject({ name: "Member 0003", value: 155 });
+    expect(board.improvement).toEqual({ gain: 32, places: 300 });
+  }, 120_000);
 });
 
 type Person = [user: string, name: string, timeZone?: string];
@@ -371,8 +387,8 @@ async function countKudosGiven(t: Backend, event: (t: Backend) => Promise<KudosG
   await t.mutation(internal.leaderboard.totals.countKudosGiven, { event: await event(t) });
 }
 
-function everyoneBoard(t: Backend, viewer: string, period?: Period) {
-  return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer, ...(period && { period }) });
+function everyoneBoard(t: Backend, viewer: string, period?: Period, measure?: GivenMeasure) {
+  return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer, ...(period && { period }), ...(measure && { measure }) });
 }
 
 function rankedBoard(t: Backend, viewer: string, period: Period = "week") {
@@ -405,6 +421,24 @@ async function theDaysOf(t: Backend, everyone: Array<Id<"members">>, { month, da
   for (let day = 1; day <= days; day += 1) {
     await t.run(async (ctx) => {
       for (const [index, member] of everyone.entries()) await ctx.db.insert("givenByDay", { workspace: "T1", member, day: `${month}-${String(day).padStart(2, "0")}`, kudos: kudos(index) });
+    });
+  }
+}
+
+async function eachHuggedDaily(t: Backend, everyone: Array<Id<"members">>, { month, days, kudos: hugs }: DailyGiving) {
+  await t.run(async (ctx) => {
+    for (const [index, member] of everyone.entries()) {
+      const runningTotal = Array.from({ length: days }, (_, day) => hugs(index) * (day + 1));
+      await ctx.db.insert("givenTotals", { workspace: "T1", member, period: `month:${month}`, kudos: 0, hugsGiven: hugs(index) * days, runningTotal: [] });
+      await ctx.db.insert("hugRunningTotals", { workspace: "T1", member, period: `month:${month}`, runningTotal });
+    }
+  });
+}
+
+async function theHugDaysOf(t: Backend, everyone: Array<Id<"members">>, { month, days, kudos: hugs }: DailyGiving) {
+  for (let day = 1; day <= days; day += 1) {
+    await t.run(async (ctx) => {
+      for (const [index, member] of everyone.entries()) await ctx.db.insert("givenByDay", { workspace: "T1", member, day: `${month}-${String(day).padStart(2, "0")}`, kudos: 0, hugsGiven: hugs(index) });
     });
   }
 }

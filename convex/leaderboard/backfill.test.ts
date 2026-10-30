@@ -8,7 +8,7 @@ import schema from "../schema";
 import { modules } from "../test.setup";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import type { BoardView } from "./board";
-import type { EveryoneBoardView } from "./totals";
+import type { EveryoneBoardView, GivenMeasure } from "./totals";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 
@@ -123,6 +123,46 @@ describe("GB35: running totals for the totals counted before they shipped", () =
   });
 });
 
+describe("HH80: running totals of hugs given for the totals counted before they shipped", () => {
+  test("filling counts each day's hugs given once, a hug counted live before the fill included, and filling again changes nothing", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"]);
+    await givenLive(t, "U1", { "U2": 2 }, { message: "1", day: "2026-10-05" });
+    await huggedLive(t, "U1", { message: "2", day: "2026-10-05" });
+    await huggedLive(t, "U1", { message: "3", day: "2026-10-07" });
+    await countedBeforeHugRunningTotalsShipped(t);
+    await huggedLive(t, "U1", { message: "4", day: "2026-10-06" });
+    await huggedLive(t, "U1", { message: "5", day: "2026-10-13" });
+
+    expect(await hugRunningTotalsOf(t, "U1")).toEqual({ "week:2026-10-12": [0, 1] });
+    expect((await everyoneBoard(t, "U1", "hugsGiven")).improvement).toEqual({ best: 3 });
+
+    expect(await fillRunningTotals(t, { pageSize: 1 })).toMatchObject({ filled: 2 });
+    expect((await everyoneBoard(t, "U1", "hugsGiven")).improvement).toEqual({ best: 3 });
+
+    expect(await hugRunningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [1, 2, 3], "month:2026-10": [0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 4], "week:2026-10-12": [0, 1] });
+    expect(await fillRunningTotals(t)).toMatchObject({ filled: 0 });
+    expect(await hugRunningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [1, 2, 3], "month:2026-10": [0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 4], "week:2026-10-12": [0, 1] });
+  });
+});
+
+describe("HH80: a running total of hugs left behind by a rollback", () => {
+  test("is read through the days while a hug counted without it makes it short, and the fill makes it whole again", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"]);
+    await huggedLive(t, "U1", { message: "1", day: "2026-10-05" });
+    await huggedLive(t, "U1", { message: "2", day: "2026-10-06" });
+    await huggedOnlyInTheTotals(t, "U1", { day: "2026-10-06", periods: ["week:2026-10-05", "month:2026-10", "all"] });
+    for (const message of ["3", "4", "5"]) await huggedLive(t, "U1", { message, day: "2026-10-13" });
+    expect((await everyoneBoard(t, "U1", "hugsGiven")).improvement).toEqual({ best: 3 });
+
+    expect(await fillRunningTotals(t)).toMatchObject({ filled: 2 });
+
+    expect(await hugRunningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [1, 3], "month:2026-10": [0, 0, 0, 0, 1, 3, 3, 3, 3, 3, 3, 3, 6], "week:2026-10-12": [0, 3] });
+    expect((await everyoneBoard(t, "U1", "hugsGiven")).improvement).toEqual({ best: 3 });
+  });
+});
+
 type Person = [user: string, name: string];
 
 async function members(t: Backend, ...people: Person[]) {
@@ -180,6 +220,33 @@ async function fillRunningTotals(t: Backend, args: { pageSize?: number } = {}) {
   return t.action(internal.leaderboard.backfill.fillRunningTotals, args);
 }
 
+async function huggedLive(t: Backend, giverUser: string, { message, day }: Given) {
+  const giver = await memberId(t, giverUser);
+  const event = { type: "hugGiven" as const, workspace: "T1", giver, message: { workspace: "T1", conversation: "C1", message }, onKudos: false, at: Date.parse(`${day}T12:00:00Z`), day };
+  await t.mutation(internal.leaderboard.hugs.countHugGiven, { event });
+}
+
+async function countedBeforeHugRunningTotalsShipped(t: Backend) {
+  await t.run(async (ctx) => {
+    for (const { _id } of await ctx.db.query("hugRunningTotals").collect()) await ctx.db.delete(_id);
+  });
+}
+
+async function huggedOnlyInTheTotals(t: Backend, user: string, { day, periods }: { day: string; periods: string[] }) {
+  const member = await memberId(t, user);
+  await t.run(async (ctx) => {
+    const days = (await ctx.db.query("givenByDay").collect()).filter((row) => row.member === member && row.day === day);
+    const totals = (await ctx.db.query("givenTotals").collect()).filter((row) => row.member === member && periods.includes(row.period));
+    for (const row of [...days, ...totals]) await ctx.db.patch(row._id, { hugsGiven: (row.hugsGiven ?? 0) + 1 });
+  });
+}
+
+async function hugRunningTotalsOf(t: Backend, user: string) {
+  const member = await memberId(t, user);
+  const rows = await t.run((ctx) => ctx.db.query("hugRunningTotals").collect());
+  return Object.fromEntries(rows.filter((row) => row.member === member).map((row) => [row.period, row.runningTotal]));
+}
+
 async function countedBeforeRunningTotalsShipped(t: Backend) {
   await t.run(async (ctx) => {
     for (const total of await ctx.db.query("givenTotals").collect()) await ctx.db.replace(total._id, { workspace: total.workspace, member: total.member, period: total.period, kudos: total.kudos });
@@ -196,8 +263,8 @@ async function interruptedAfterFirstPage(t: Backend) {
   await t.mutation(internal.leaderboard.backfill.countEarlierKudosPage, { cursor: null, pageSize: 1 });
 }
 
-function everyoneBoard(t: Backend, viewer: string): Promise<EveryoneBoardView> {
-  return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer });
+function everyoneBoard(t: Backend, viewer: string, measure?: GivenMeasure): Promise<EveryoneBoardView> {
+  return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer, ...(measure && { measure }) });
 }
 
 function shown(view: BoardView) {
