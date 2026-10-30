@@ -1,4 +1,4 @@
-import { memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import { exposed, memberDecision, memberDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
@@ -70,4 +70,16 @@ export const bookNextFlag = { key: "book-next", safeDefault: false, values: [fal
 
 export function bookNextShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecisionWithoutWriting(ctx, bookNextFlag, member);
+}
+
+export const hypeByReactionsFlag = { key: "hype-by-reactions", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export function hypeByReactionsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, hypeByReactionsFlag, member);
+}
+
+export async function hypeByReactionsCollectFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const collects = await memberDecision(ctx, hypeByReactionsFlag, member);
+  await exposed(ctx, hypeByReactionsFlag, member, collects);
+  return collects;
 }

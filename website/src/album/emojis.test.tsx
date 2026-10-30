@@ -128,6 +128,14 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(pictures).toHaveLength(5);
   });
 
+  it("a hype emoji collected by reactions says it came from the reactions, not a pack", async () => {
+    const view = visit("/", { album: withHypeByReactions(midway, "hype:ines-okafor") });
+
+    const popup = await openTheEmojis(view);
+
+    expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your reactions on 10 of Ines Okafor's messages · 9 Oct 2026Add to Slack"]);
+  });
+
   it("#707: groups milestone emojis by milestone, each tier in order from bronze to diamond with its picture, its Slack name and its date or progress", async () => {
     const view = visit("/");
     const milestones = shelf(await openTheEmojis(view), "Milestones");
@@ -314,6 +322,16 @@ describe("AL26: an earned emoji is marked seen only once its moment has shown", 
   function cardsIn(bundle: HTMLElement) {
     return within(within(bundle).getByRole("list", { name: "Your new emojis" })).getAllByRole("listitem");
   }
+
+  it("a waiting hype emoji collected by reactions names the reactions in the bundle", async () => {
+    preferReducedMotion();
+    visit("/", { album: withHypeByReactions(fresh, "hype:bram-teller") });
+
+    const cards = cardsIn(await aBundle());
+
+    expect(cards[2]).toHaveTextContent("Your reactions on 10 of Bram Teller's messages");
+    expect(cards[3]).toHaveTextContent("Your first pack for Fen Marlowe");
+  });
 
   it("#721: several waiting emojis open as one bundle showing each one's picture, its name and what it came from, and only taking it sends markEmojisSeen, once, for all of them", async () => {
     preferReducedMotion();
@@ -553,3 +571,7 @@ describe("#664 AL32: the Settings page shows workspace admins the shared list", 
     expect(screen.queryByRole("region", { name: "Shared emojis" })).not.toBeInTheDocument();
   });
 });
+
+function withHypeByReactions(album: Album, id: string): Album {
+  return { ...album, emojis: album.emojis.map((emoji) => (emoji.id === id ? { ...emoji, byReactions: true } : emoji)) };
+}
