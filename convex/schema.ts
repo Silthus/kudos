@@ -49,6 +49,7 @@ import {
   talliedAwardValidator,
   talliedHugValidator,
   hypeReactionValidator,
+  hypeCollectedValidator,
   teamStickerValidator,
   thoughtfulPackValidator,
   thoughtfulTallyValidator,
@@ -639,7 +640,9 @@ export default defineSchema({
 
   talliedHugs: defineTable(talliedHugValidator).index("by_hug_person", ["hug", "person"]),
 
-  hypeReactions: defineTable(hypeReactionValidator).index("by_giver_at", ["giver", "at"]).index("by_giver_owner_message", ["giver", "owner", "conversation", "message"]),
+  hypeReactions: defineTable(hypeReactionValidator).index("by_giver_at", ["giver", "at"]).index("by_giver_owner_message", ["giver", "owner", "conversation", "message"]).index("by_giver_owner_author", ["giver", "owner", "author"]),
+
+  hypesCollected: defineTable(hypeCollectedValidator).index("by_member_person", ["member", "person"]),
 
   teamPageCompletions: defineTable(teamPageCompletionValidator).index("by_member_team", ["member", "team"]),
 
