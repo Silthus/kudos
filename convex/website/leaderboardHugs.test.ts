@@ -9,7 +9,7 @@ import { api, internal } from "../_generated/api";
 import { firstHypeEmojiNameFor } from "../album/emojiNames";
 import { catalogue } from "../album/hoggies/catalogue";
 import { xpToReach } from "../progression/levels";
-import { allowanceRange } from "../workspace/settingsBounds";
+import { allowanceRange, hugBudgetRange } from "../workspace/settingsBounds";
 import type { BoardsNextStep, HugBoardsRead, HugMeasure, Highlight, PersonRow, JoiningTeam, Tallies, WithinReach } from "./leaderboard";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -547,7 +547,7 @@ describe("HH72: one next step beside the you card", () => {
   });
 
   test("the teammate thanked most counts the whole week, however many teammates were thanked since", { timeout: 60_000 }, async () => {
-    await withTheLargestAllowance();
+    await withTheLargestSettings();
     const crowd = await moreTeammates(allowanceRange.most * 5);
     await thisWeek();
     await thanks(carol, why, dana);
@@ -555,6 +555,19 @@ describe("HH72: one next step beside the you card", () => {
     for (let day = 0; day < 5; day += 1) {
       vi.setSystemTime(Date.now() + dayMs);
       await thanks(carol, why, ...crowd.slice(day * allowanceRange.most, (day + 1) * allowanceRange.most));
+    }
+
+    expect((await boardsOf(carol)).next).toMatchObject({ kind: "lively", teammate: { name: dana.name } });
+  });
+
+  test("the teammate hugged most counts the whole week, however many hugs were given since", { timeout: 120_000 }, async () => {
+    await withTheLargestSettings();
+    const crowd = await moreTeammates(60);
+    await thisWeek();
+    for (let hug = 0; hug < 3; hug += 1) await hugsOn(carol, dana);
+    for (let day = 0; day < 3; day += 1) {
+      vi.setSystemTime(Date.now() + dayMs);
+      for (let hug = 0; hug < 40; hug += 1) await hugsOn(carol, crowd[(day * 40 + hug) % crowd.length]!);
     }
 
     expect((await boardsOf(carol)).next).toMatchObject({ kind: "lively", teammate: { name: dana.name } });
@@ -707,7 +720,7 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
 
 async function hugs(giver: Person, author: Person, ts: string) {
   messages += 1;
-  await react(t, { user: giver.user, itemUser: author.user, ts, eventId: `EvHug${messages}` });
+  await react(t, { user: giver.user, itemUser: author.user, ts, eventId: `EvHug${messages}`, eventTs: `${Math.floor(Date.now() / 1000)}.999999` });
   await settle(t);
 }
 
@@ -750,14 +763,15 @@ async function owns(person: Person, hoggies: number) {
   });
 }
 
-function withTheLargestAllowance() {
+function withTheLargestSettings() {
+  const largest = { baseAllowance: allowanceRange.most, hugBudget: hugBudgetRange.most };
   return t.run(async (ctx) => {
     const row = await ctx.db
       .query("workspaces")
       .withIndex("by_workspace", (q) => q.eq("workspace", "T1"))
       .unique();
-    if (row === null) await ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: allowanceRange.most });
-    else await ctx.db.patch(row._id, { baseAllowance: allowanceRange.most });
+    if (row === null) await ctx.db.insert("workspaces", { workspace: "T1", ...largest });
+    else await ctx.db.patch(row._id, largest);
   });
 }
 
