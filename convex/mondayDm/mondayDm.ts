@@ -13,13 +13,14 @@ import { questsSectionFor, type QuestsSection } from "../quests/mondaySection";
 import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { welcomeOf } from "../welcome/welcome";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
+import { hypeNudgeFor, hypeNudgeOf, keepHypeNudge } from "./hypeNudge";
 import { questsCopyOf, type QuestsCopy } from "./questsCopy";
-import type { MondayDmContent, MondayDmSection } from "./records";
+import type { MondayDmContent, MondayDmSection, SentMondayDmSection } from "./records";
 import { mondayDmOf, type MondayDmRow } from "./rows";
 
 export type MondayQuests = QuestsCopy & { waiting: boolean; links: DmLinks | null };
 
-export type MondayDm = { dm: Id<"mondayDms">; workspace: string; user: string } & MondayDmContent;
+export type MondayDm = { dm: Id<"mondayDms">; workspace: string; user: string; nudge: string | null } & MondayDmContent;
 
 type Sections = { hugs: HugsSection | null; quests: QuestsSection | null };
 
@@ -55,8 +56,10 @@ export const startMondayDm = internalMutation({
     }
     const { workspace, user } = await chatUserOf(ctx, row.member);
     const content = await contentOf(ctx, workspace, row.member, sections);
+    const nudge = sections.quests === null ? null : await hypeNudgeFor(ctx, row.member);
+    await keepHypeNudge(ctx, dm, nudge);
     await ctx.db.patch(dm, { tries: attempt, dueAt: Date.now(), sections: sent, content });
-    return { dm, workspace, user, ...content };
+    return { dm, workspace, user, nudge, ...content };
   },
 });
 
@@ -80,10 +83,14 @@ export const mondayDmEnded = internalMutation({
   },
 });
 
-async function reportDelivered(ctx: MutationCtx, { member, monday, sections = [] }: MondayDmRow) {
+async function reportDelivered(ctx: MutationCtx, { _id, member, monday, sections = [] }: MondayDmRow) {
   const { workspace } = await chatUserOf(ctx, member);
-  await reportMondayDmSent(ctx, { workspace, member, sections, at: Date.now() });
+  await reportMondayDmSent(ctx, { workspace, member, sections: [...sections, ...(await nudgeSectionOf(ctx, _id))], at: Date.now() });
   if (sections.includes("hugs")) await hugsSentInTheMondayDm(ctx, member, monday);
+}
+
+async function nudgeSectionOf(ctx: QueryCtx, dm: Id<"mondayDms">): Promise<SentMondayDmSection[]> {
+  return (await hypeNudgeOf(ctx, dm)) === null ? [] : ["nudge"];
 }
 
 async function isTheMondayDmFor(ctx: MutationCtx, member: MemberId) {
