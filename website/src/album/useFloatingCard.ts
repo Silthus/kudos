@@ -17,7 +17,7 @@ export function useFloatingCard<Spot extends HTMLElement>() {
     setHovered(false);
   }, []);
   const hover = {
-    onMouseEnter: () => {
+    onMouseOver: () => {
       window.clearTimeout(leaving.current);
       setHovered(true);
     },
