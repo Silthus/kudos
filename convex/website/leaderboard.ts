@@ -1,5 +1,7 @@
+import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import { albumShownTo } from "../album/flag";
+import { loopLessonIn, type LoopLesson } from "../album/items/welcome";
 import { hoggiesFoundIn, teammatesThankedBy } from "../album/weekThanks";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
 import { weekCountsThrough, type RecognitionCounts } from "../leaderboard/counts";
@@ -15,6 +17,7 @@ import { timeZoneOf, type MemberId } from "../workspace/directory";
 import { followTheClock } from "./clock";
 import { signInFaceOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
+import { hugMeasureValidator, peopleBoardsOf, type PeopleBoards } from "./peopleBoards";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
 export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean; climbed: number | null };
@@ -69,7 +72,9 @@ export type Highlight =
 
 export type YouThisWeek = { tallies: Tallies; lastWeek: Tallies; highlight: Highlight };
 
-export type HugBoards = { kind: "boards"; you: YouThisWeek };
+export type { HugMeasure, PersonRow } from "./peopleBoards";
+
+export type HugBoards = { kind: "boards"; you: YouThisWeek; kudosEmoji: LoopLesson } & PeopleBoards;
 
 export type HugBoardsAnswer = { kind: "off" } | HugBoards;
 
@@ -80,11 +85,12 @@ type Weeks = { thisWeek: DayKey; lastWeek: DayKey };
 type HugWeeks = Map<DayKey, RecognitionCounts>;
 
 export const getBoards = memberQuery({
-  args: {},
-  handler: async (ctx, me): Promise<HugBoardsAnswer> => {
+  args: { measure: v.optional(hugMeasureValidator) },
+  handler: async (ctx, me, { measure = "hugsGiven" }): Promise<HugBoardsAnswer> => {
     if (!(await albumShownTo(ctx, me.member)) || !(await leaderboardHugsShownTo(ctx, me.member))) return { kind: "off" };
     await followTheClock(ctx);
-    return { kind: "boards", you: await youThisWeekOf(ctx, me.member, await weeksOf(ctx, me.member)) };
+    const weeks = await weeksOf(ctx, me.member);
+    return { kind: "boards", you: await youThisWeekOf(ctx, me.member, weeks), kudosEmoji: await loopLessonIn(ctx, me.workspace), ...(await peopleBoardsOf(ctx, { workspace: me.workspace, member: me.member }, measure, weeks)) };
   },
 });
 
