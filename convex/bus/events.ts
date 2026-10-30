@@ -86,6 +86,16 @@ export const memberWelcomedEventValidator = v.object({
 
 export type MemberWelcomedEvent = Infer<typeof memberWelcomedEventValidator>;
 
+export const memberGreetedEventValidator = v.object({
+  type: v.literal("memberGreeted"),
+  workspace: v.string(),
+  member: v.id("members"),
+  owesTheWelcomeItem: v.boolean(),
+  at: v.number(),
+});
+
+export type MemberGreetedEvent = Infer<typeof memberGreetedEventValidator>;
+
 export type LevelReachedEvent = Infer<typeof levelReachedEventValidator>;
 
 export type XpRecordedEvent = Infer<typeof xpRecordedEventValidator>;
@@ -331,6 +341,7 @@ export type DomainEvent =
   | KudosGivenEvent
   | AttemptFailedEvent
   | MemberWelcomedEvent
+  | MemberGreetedEvent
   | LevelReachedEvent
   | XpRecordedEvent
   | UnlockReadyEvent

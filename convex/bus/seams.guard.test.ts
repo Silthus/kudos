@@ -9,7 +9,7 @@ const placesThatWriteRewards = ["progression", "wallet", "album/items", "album/h
 
 const tablesOf: Record<string, string[]> = {
   achievements: ["bookLaunches", "ladderCounts", "ladderMarks", "countedAwards", "bookBatches", "bookReplays", "bookReplayCursors", "earnedTiers"],
-  album: ["thoughtfulGiverCounts", "thoughtfulPacks", "trayItems", "grantRecords", "grantsTold", "thoughtfulTallies", "thoughtfulBoardTallies", "boardCountedAwards", "albumStickers", "teamStickers", "milestoneTiers", "emojiNames", "secondEmojiNames", "emojiNameNumbers", "seenEmojis", "kudosEmojiPicks", "emojiClasses", "randomEmojiDrops", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "hypeReactions", "items", "drops", "hoggieTallies", "dropTallies", "trayDrops", "hoggieAvatars", "petHoggies", "boughtCrates"],
+  album: ["thoughtfulGiverCounts", "thoughtfulPacks", "trayItems", "grantRecords", "grantsTold", "thoughtfulTallies", "thoughtfulBoardTallies", "boardCountedAwards", "albumStickers", "teamStickers", "milestoneTiers", "emojiNames", "secondEmojiNames", "emojiNameNumbers", "seenEmojis", "kudosEmojiPicks", "emojiClasses", "randomEmojiDrops", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs", "hypeReactions", "hypesCollected", "items", "drops", "hoggieTallies", "dropTallies", "trayDrops", "hoggieAvatars", "petHoggies", "boughtCrates"],
   analytics: ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"],
   bus: ["replays"],
   companyProfiles: ["companyProfiles", "companyTeams", "companyFaces", "companyProfileLinks"],
@@ -53,7 +53,6 @@ const allowed: string[] = [
   "convex/feedback/tierNotices.ts table:members",
   "convex/feedback/tierNotices.ts table:unlockLaunches",
   "convex/feedback/welcome.ts table:welcomes",
-  "convex/feedback/welcomeNudge.ts earnWelcomeItem",
   "convex/feedback/welcomeNudge.ts table:users",
   "convex/groups/groups.ts table:userGroups",
   "convex/groups/reconcile.ts table:members",
@@ -68,7 +67,6 @@ const allowed: string[] = [
   "convex/quests/journey.ts table:members",
   "convex/quests/newWeek.ts table:members",
   "convex/slack/appHome.ts xpLevelsShownTo",
-  "convex/slack/verifyMember.ts earnWelcomeItem",
   "convex/store/buying.ts spend",
   "convex/store/visibility.ts coinsShownTo",
   "convex/unlocks/launch.ts table:members",
@@ -82,8 +80,6 @@ const allowed: string[] = [
   "convex/website/commands.ts dropOf",
   "convex/website/commands.ts openedCrateDropOf",
   "convex/website/linkPreviews.ts table:companyTeams",
-  "convex/website/signIn.ts earnWelcomeItem",
-  "convex/welcome/welcome.ts earnWelcomeItem",
 ];
 
 describe("HH16: writes cross modules as bus facts", () => {
@@ -109,7 +105,7 @@ describe("HH16: writes cross modules as bus facts", () => {
     ["a star re-export of another module", `export * from "../album/items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/album/items/ledger"]],
     ["a named star re-export of another module", `export * as ledger from "../album/items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/album/items/ledger"]],
     ["a namespace import beside a default import", `import ledger, * as all from "../album/items/ledger";`, ["convex/stickers/stickers.ts namespace:convex/album/items/ledger"]],
-    ["a wrapper of a write in a module that writes rewards", `import { earnWelcomeItem } from "../album/items/welcome";`, ["convex/stickers/stickers.ts earnWelcomeItem"]],
+    ["a wrapper of a write in a module that writes rewards", `import { earnTeamItem } from "../album/items/achievements";`, ["convex/stickers/stickers.ts earnTeamItem"]],
     ["a read of a module that writes rewards", `import { standingOf } from "../progression/progression";`, []],
     ["a write of a module that doesn't write rewards", `import { finishMondayQuest } from "../quests/finish";`, []],
     ["a query with a type argument", `await ctx.db.query<"items">("items").collect();`, ["convex/stickers/stickers.ts table:items"]],

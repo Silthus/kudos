@@ -4,7 +4,8 @@ import { awardsOfMessage } from "../engine/awards";
 import { messageRefValidator, type ChatUserId, type MessageRef } from "../engine/messageEvent";
 import { publicQuoteOf } from "../feedback/welcomeNudge";
 import { hugOf } from "../hugs/records";
-import { shownWaitingHoggiesOf, type WaitingCount } from "../album/items/ledger";
+import type { WaitingCount } from "../album/items/ledger";
+import { shownWaitingHoggiesAtTheWelcomeOf } from "../album/items/welcome";
 import { dmLinksFor, type DmLinks } from "../feedback/dmLinks";
 import type { OnboardingQuest, OnboardingStep } from "../quests/onboarding";
 import { chatUserOf, profileNameOf, type MemberId } from "../workspace/directory";
@@ -41,11 +42,11 @@ export type MondayWelcome = {
 };
 
 export const mondayWelcomeOf = internalQuery({
-  args: { workspace: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator },
-  handler: (ctx, { workspace, member, cause, journey }): Promise<MondayWelcome> => mondayWelcomeFor(ctx, workspace, member, cause, journey),
+  args: { workspace: v.string(), member: v.id("members"), cause: mondayWelcomeCauseValidator, journey: onboardingJourneyValidator, owesTheWelcomeItem: v.optional(v.boolean()) },
+  handler: (ctx, { workspace, member, cause, journey, owesTheWelcomeItem = false }): Promise<MondayWelcome> => mondayWelcomeFor(ctx, workspace, member, cause, journey, owesTheWelcomeItem),
 });
 
-async function mondayWelcomeFor(ctx: QueryCtx, workspace: string, member: MemberId, cause: MondayWelcomeCause, journey: OnboardingQuest[]): Promise<MondayWelcome> {
+async function mondayWelcomeFor(ctx: QueryCtx, workspace: string, member: MemberId, cause: MondayWelcomeCause, journey: OnboardingQuest[], owesTheWelcomeItem: boolean): Promise<MondayWelcome> {
   const next = journey.find(({ finished }) => !finished)?.step ?? null;
   const links = await dmLinksFor(ctx, workspace, member, "welcome");
   return {
@@ -53,7 +54,7 @@ async function mondayWelcomeFor(ctx: QueryCtx, workspace: string, member: Member
     opening: await openingOf(ctx, member, cause),
     journey,
     next,
-    waiting: await shownWaitingHoggiesOf(ctx, member, links),
+    waiting: await shownWaitingHoggiesAtTheWelcomeOf(ctx, member, links, owesTheWelcomeItem),
     links,
   };
 }

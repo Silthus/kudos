@@ -61,6 +61,14 @@ export async function awardsInWeekNewestDaysFirst(ctx: QueryCtx, member: MemberI
   return newest.map(({ workspace, conversation, message, giver, recipient, at }) => ({ message: { workspace, conversation, message }, giver, recipient, at }));
 }
 
+export async function givenInWeek(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week): Promise<Array<Pick<AwardRow, "recipient" | "at">>> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", monday).lte("day", sunday))
+    .collect();
+  return awards.map(({ recipient, at }) => ({ recipient, at }));
+}
+
 export type EarlierAward = Pick<AwardRow, "recipient" | "day">;
 
 export async function givenEarlierInWeek(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week, before: AwardId): Promise<EarlierAward[]> {

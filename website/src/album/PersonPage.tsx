@@ -8,6 +8,7 @@ import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
 import { hypeEmblemPicture, slugOf } from "../../../convex/album/emojiCatalogue";
+import { reactionsWayOf, yourReactionsOf } from "./hypeWays";
 import type { Album, AlbumEmoji, AlbumTeam, PersonPage as Person, PersonShown } from "./answer";
 import { ComingSoonToSlack, FindInSlackWhileOn, MapInPlace, useMapsInPlace, useSlackWay } from "./findInSlack";
 import { hrefOf } from "./place";
@@ -124,11 +125,18 @@ function HypeEmoji({ person, first, picker, emojiPage }: { person: Person; first
       <PersonPicture face={person.face} name={person.name} collected={earned} frame="al-hype-frame" className="al-hype-face" />
       <p>
         {name !== null && <code>:{name}:</code>}
-        <span>{earned ? `Unlocked by your first kudos to ${first}` : `Give ${first} a kudos to unlock their hype emoji`}</span>
+        <span>{hypeWayWords(person.hype, first)}</span>
+        {reactionsWayOf(person.hype) !== null && <span>{reactionsWayOf(person.hype)}</span>}
       </p>
       {person.hypePick ? <OwnHypePick emoji={ownHypeEmojiOf(person)} emojiPage={emojiPage} {...picker} /> : name !== null && <HypeInSlack emoji={{ id: `hype:${person.person}`, kind: "hype", name, picture: picture ?? hypeEmblemPicture, from: person.name, inSlack: inSlack ?? true }} earned={earned} />}
     </div>
   );
+}
+
+function hypeWayWords(hype: Person["hype"], first: string): string {
+  const yourReactions = yourReactionsOf(hype, first);
+  if (yourReactions !== null) return `Unlocked by ${yourReactions}`;
+  return hype.earned ? `Unlocked by your first kudos to ${first}` : `Give ${first} a kudos to unlock their hype emoji`;
 }
 
 function HypeInSlack({ emoji, earned }: { emoji: HypeShown; earned: boolean }) {

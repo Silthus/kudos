@@ -1,13 +1,13 @@
 import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Highlight, HugBoards, HugMeasure } from "../../../convex/website/leaderboard";
+import type { BoardsNextStep, Highlight, HugBoards, HugMeasure, WithinReach } from "../../../convex/website/leaderboard";
 import { albumFixtures, fixedAlbum } from "../album/albumFixtures";
 import { boardsFixtures, fixedBoards } from "../album/boardsFixtures";
 import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import type { HugBoardsShown } from "../album/answer";
-import { byHoggies, byKudosReceived, byLevel, fixedHugBoards, hugBoardsFixtures, offTheBoards } from "./thisWeekFixtures";
+import { byHoggies, byKudosReceived, byLevel, fixedHugBoards, hugBoardsFixtures, junosKudos, nextSteps, offTheBoards, slackOfTheWorkspace, withinReach } from "./thisWeekFixtures";
 
 const arrival = { timeout: 10_000 };
 
@@ -42,6 +42,26 @@ function startingIn(region: ReturnType<typeof within>) {
 
 async function youCard() {
   return within(await screen.findByRole("region", { name: "You this week" }, arrival));
+}
+
+async function nextStep() {
+  return within(await screen.findByRole("region", { name: "Your next step" }, arrival));
+}
+
+async function reach() {
+  return within(await screen.findByRole("region", { name: "Emojis within your reach" }, arrival));
+}
+
+function linksIn(region: ReturnType<typeof within>) {
+  return region.getAllByRole("link").map((link: HTMLElement) => [link.textContent, link.getAttribute("href")]);
+}
+
+function withNext(next: BoardsNextStep, team = hugBoardsFixtures.lively.team) {
+  return { ...hugBoardsFixtures.lively, next, team };
+}
+
+function withReach(reachable: Partial<WithinReach>) {
+  return { ...hugBoardsFixtures.lively, withinReach: { hype: null, team: null, level: null, ...reachable } };
 }
 
 function withHighlight(highlight: Highlight) {
@@ -284,6 +304,117 @@ describe("HH76 HH77: teams joining in", { timeout: 30_000 }, () => {
     await board("People");
 
     expect(screen.queryByRole("region", { name: "Teams joining in" })).not.toBeInTheDocument();
+  });
+});
+
+describe("HH72: one next step beside the you card", { timeout: 30_000 }, () => {
+  it("asks a member who gave this week to give the named teammate a kudos, with one Open Slack button", async () => {
+    visit();
+    const card = await nextStep();
+
+    expect(card.getByText("Kudos · a message")).toBeInTheDocument();
+    expect(card.getByRole("heading", { level: 2, name: "Give Wren a kudos" })).toBeInTheDocument();
+    expect(card.getByText(/what they did/)).toHaveTextContent("Write 🌮 @Wren and what they did. You collect Wren's hype emoji, and kudos are the only way to find epic hoggies.");
+    expect(linksIn(card)).toEqual([["Open Slack (opens in a new tab)", slackOfTheWorkspace]]);
+  });
+
+  it("sits inside the you card", async () => {
+    visit();
+
+    expect((await youCard()).getByRole("region", { name: "Your next step" })).toBeInTheDocument();
+  });
+
+  it.each<[Partial<Extract<BoardsNextStep, { kind: "lively" }>>, string]>([
+    [{ collectsHype: true, epicHoggiesByKudos: false }, "Write 🌮 @Wren and what they did. You collect Wren's hype emoji."],
+    [{ collectsHype: false, epicHoggiesByKudos: true }, "Write 🌮 @Wren and what they did. Kudos are the only way to find epic hoggies."],
+    [{ collectsHype: false, epicHoggiesByKudos: false }, "Write 🌮 @Wren and what they did."],
+  ])("says only what holds: %o reads %s", async (facts, why) => {
+    visit(withNext({ ...nextSteps.lively, ...facts }));
+
+    expect((await nextStep()).getByText(/what they did/)).toHaveTextContent(why);
+  });
+
+  it("asks a member who got a kudos they can still hug back to hug it back, its one button opening that kudos", async () => {
+    visit(hugBoardsFixtures.quiet);
+    const card = await nextStep();
+
+    expect(card.getByText("Hug · a reaction")).toBeInTheDocument();
+    expect(card.getByRole("heading", { level: 2, name: "Hug Juno's kudos back" })).toBeInTheDocument();
+    expect(card.getByText(/thanked you/)).toHaveTextContent("Juno thanked you on Tuesday. React with 🌮 to their message and they get a hug back.");
+    expect(linksIn(card)).toEqual([["Open Juno's message (opens in a new tab)", junosKudos]]);
+  });
+
+  it("asks everyone else for the first hug of the week, with one Open Slack button", async () => {
+    visit(hugBoardsFixtures.empty);
+    const card = await nextStep();
+
+    expect(card.getByText("Hug · a reaction")).toBeInTheDocument();
+    expect(card.getByRole("heading", { level: 2, name: "Give the first hug of the week" })).toBeInTheDocument();
+    expect(card.getByText(/teammate's message/)).toHaveTextContent("React with 🌮 to a teammate's message. The first hug each day pays extra XP, and the first one this week puts you and Lanterns on the board.");
+    expect(linksIn(card)).toEqual([["Open Slack (opens in a new tab)", slackOfTheWorkspace]]);
+  });
+
+  it.each<[boolean, boolean, string]>([
+    [false, true, "React with 🌮 to a teammate's message. The first one this week puts you and Lanterns on the board."],
+    [true, false, "React with 🌮 to a teammate's message. The first hug each day pays extra XP."],
+    [false, false, "React with 🌮 to a teammate's message."],
+  ])("for the first hug, extra XP %s and a team %s read: %s", async (firstHugPaysExtra, inATeam, why) => {
+    visit(withNext({ kind: "empty", firstHugPaysExtra }, inATeam ? hugBoardsFixtures.lively.team : null));
+
+    expect((await nextStep()).getByText(/teammate's message/)).toHaveTextContent(why);
+  });
+});
+
+describe("HH78: emojis within your reach", { timeout: 30_000 }, () => {
+  it("lists the teammate's hype emoji, the team emoji and the next level emoji, each with its picture, name and how to get it", async () => {
+    visit();
+    const emojis = await reach();
+
+    expect(emojis.getByRole("heading", { level: 2, name: "Emojis within your reach" })).toBeInTheDocument();
+    expect(rowsIn(emojis)).toEqual([
+      "Wren's hype emoji :wren-alder-hype:Give Wren a kudos",
+      "Your team emoji :team-lanterns:Collect 1 more Lanterns sticker",
+      "Level 10 emoji :level-10:290 XP to go: a hug a day gets you there",
+    ]);
+    expect(emojis.getAllByRole("listitem").map((row: HTMLElement) => row.querySelector("img")?.getAttribute("src"))).toEqual(["/emoji/hype.png", "/emoji/team-workflows.png", "/emoji/level-10.png"]);
+  });
+
+  it("shows a progress bar for each emoji that takes more than one step", async () => {
+    visit();
+    const emojis = await reach();
+
+    expect(emojis.getAllByRole("progressbar").map((bar: HTMLElement) => [bar.getAttribute("aria-valuenow"), bar.getAttribute("aria-valuemax")])).toEqual([
+      ["4", "5"],
+      ["1210", "1500"],
+    ]);
+  });
+
+  it("counts the stickers to go", async () => {
+    visit(withReach({ team: { ...withinReach.team!, progress: { have: 3, need: 5 } } }));
+
+    expect(rowsIn(await reach())).toEqual(["Your team emoji :team-lanterns:Collect 2 more Lanterns stickers"]);
+  });
+
+  it("shows only the emojis that exist", async () => {
+    visit(withReach({ level: withinReach.level }));
+
+    expect(rowsIn(await reach())).toEqual(["Level 10 emoji :level-10:290 XP to go: a hug a day gets you there"]);
+  });
+
+  it("without an emoji within reach there is no section", async () => {
+    visit(withReach({}));
+    await board("People");
+
+    expect(screen.queryByRole("region", { name: "Emojis within your reach" })).not.toBeInTheDocument();
+  });
+
+  it("an answer from functions deployed before the next step and the emojis within reach shows the page without them", async () => {
+    const { next: _next, withinReach: _withinReach, slack: _slack, ...answerFromBefore } = hugBoardsFixtures.lively;
+    visit(answerFromBefore as HugBoards);
+    await board("People");
+
+    expect(screen.queryByRole("region", { name: "Your next step" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Emojis within your reach" })).not.toBeInTheDocument();
   });
 });
 

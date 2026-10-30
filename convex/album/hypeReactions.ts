@@ -4,6 +4,7 @@ import { hypeReactedEventValidator, type HypeReactedEvent } from "../bus/events"
 import { isMember, type MemberId } from "../workspace/directory";
 import { hypeEarnedBy } from "./earnedEmojis";
 import { emojiNameOf } from "./emojiNames";
+import { collectByReactions } from "./hypeCollections";
 
 export type Nudge = { person: MemberId; emoji: string; reactions: number };
 
@@ -19,6 +20,7 @@ export const keepHypeReaction = internalMutation({
     if (await isKept(ctx, event)) return;
     const { workspace, giver, owner, author, emoji, message, at } = event;
     await ctx.db.insert("hypeReactions", { workspace, giver, owner, author, emoji, conversation: message.conversation, message: message.message, at });
+    await collectByReactions(ctx, event);
   },
 });
 

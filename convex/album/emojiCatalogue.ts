@@ -36,6 +36,8 @@ export const teamEmblemPicture = "/emoji/team.png";
 
 export const hypeEmblemPicture = "/emoji/hype.png";
 
+export const reactionsToCollect = 10;
+
 export function emojiArtPictureOf(kind: EmojiArtKind, catalogueId: string | number): string {
   return `/emoji/${kind}-${catalogueId}.png`;
 }
