@@ -114,6 +114,7 @@ const fixturesByName: Record<string, ShellState> = {
   "album-quests": shellFixtures.member,
   "album-quests-week": shellFixtures.member,
   "album-leaderboard-hugs": shellFixtures.member,
+  "album-leaderboard-hugs-fresh": shellFixtures.member,
   "album-activity-next-empty": shellFixtures.member,
   "album-activity-next-quiet": shellFixtures.member,
   "album-activity-next-thanked": shellFixtures.member,
