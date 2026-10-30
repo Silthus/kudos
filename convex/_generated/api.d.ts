@@ -347,6 +347,8 @@ import type * as wallet_visibility from "../wallet/visibility.js";
 import type * as wallet_wallet from "../wallet/wallet.js";
 import type * as website_abandonedHandshakes from "../website/abandonedHandshakes.js";
 import type * as website_activity from "../website/activity.js";
+import type * as website_activityNextFlag from "../website/activityNextFlag.js";
+import type * as website_activityWeek from "../website/activityWeek.js";
 import type * as website_album from "../website/album.js";
 import type * as website_albumPages from "../website/albumPages.js";
 import type * as website_book from "../website/book.js";
@@ -755,6 +757,8 @@ declare const fullApi: ApiFromModules<{
   "wallet/wallet": typeof wallet_wallet;
   "website/abandonedHandshakes": typeof website_abandonedHandshakes;
   "website/activity": typeof website_activity;
+  "website/activityNextFlag": typeof website_activityNextFlag;
+  "website/activityWeek": typeof website_activityWeek;
   "website/album": typeof website_album;
   "website/albumPages": typeof website_albumPages;
   "website/book": typeof website_book;

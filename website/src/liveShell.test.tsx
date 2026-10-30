@@ -439,7 +439,7 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
     const thisWeek = { kind: "week", week: "2026-10-12", thisWeek: "2026-10-12", weeks, issue: { ...quiet, kudosGiven: 1, thoughtfulGiven: 1, days: weeks[0]!.days, thanked: { people: [ines], more: 0 }, given: { kudos: [thanksToInes], more: false } } };
     const lastWeek = { kind: "week", week: "2026-10-05", thisWeek: "2026-10-12", weeks, issue: quiet };
     const weekAnswer = (args: { week?: string }) => (args.week === "2026-10-05" ? lastWeek : thisWeek);
-    showTheAlbum(albumV1, (query, args) => (query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : undefined));
+    showTheAlbum(albumV1, (query, args) => (query === "website/album:getAlbumWeek" ? weekAnswer(args as { week?: string }) : query === "website/activity:getActivityWeek" ? { kind: "edition" } : undefined));
     window.history.replaceState(null, "", "/book#milestones");
     const { user } = renderLiveSite();
     await screen.findByRole("heading", { level: 1, name: "Milestones" });
@@ -454,6 +454,21 @@ describe("AL40: the album shell reads getAlbum through the live shell", () => {
 
     expect(await screen.findByText("A quiet week. Give someone a kudos in Slack, and it shows here.")).toBeInTheDocument();
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbumWeek")).toEqual([{ query: "website/album:getAlbumWeek", args: { week: "2026-10-05" } }]);
+  });
+
+  it("HH61: while activity-next is on, /activity reads getActivityWeek alone and leads with the next step", async () => {
+    const nextStep = { kind: "week", next: { kind: "empty" }, kudos: { kudosEmoji: "hedgehug", kudosEmojiImage: null }, slack: "https://app.slack.com/client/T1" };
+    showTheAlbum(albumV1, (query) => (query === "website/activity:getActivityWeek" ? nextStep : undefined));
+    window.history.replaceState(null, "", "/book#milestones");
+    const { user } = renderLiveSite();
+    await screen.findByRole("heading", { level: 1, name: "Milestones" });
+    expect([...subscriptions].map(({ query }) => query)).not.toContain("website/activity:getActivityWeek");
+
+    await user.click(within((await screen.findAllByRole("banner"))[0]!).getByRole("link", { name: "Activity" }));
+
+    expect(within(await screen.findByRole("region", { name: "Your next step" })).getByRole("heading", { level: 2, name: "Give your first hug" })).toBeInTheDocument();
+    expect([...subscriptions].filter(({ query }) => query === "website/activity:getActivityWeek")).toEqual([{ query: "website/activity:getActivityWeek", args: {} }]);
+    expect([...subscriptions].map(({ query }) => query)).not.toContain("website/album:getAlbumWeek");
   });
 
   it("the people getAlbum holds are found in the sidebar, before their teams are answered", async () => {

@@ -11,6 +11,7 @@ import { emojiMappingsFixtures, fixtureAppEmojis, fixtureSlackEmojiMatches } fro
 import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import { fixedXpMoment, xpMomentAlbum } from "./album/xpMomentFixtures";
 import { fixedQuests, noQuests, questsFixtures } from "./album/questsFixtures";
+import { activityWeekFixtures, fixedActivityWeek, theWeeklyEdition } from "./activity/activityWeekFixtures";
 
 const fixtureSettings = fixedSettings(settingsFixtures.everything);
 
@@ -60,6 +61,7 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useHugBoards: fixedHugBoards(hugBoardsFixtures.lively),
     useAlbumPerson: fixturePeople,
     useAlbumWeek: fixtureWeek,
+    useActivityWeek: activityWeekOf(fixture),
     useAlbumProfile: fixtureProfile,
     useAlbumHoggies: fixtureHoggies,
     useLevelUp: fixtureLevelUp,
@@ -67,4 +69,12 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     usePlayerCard: fixedPlayerCards(),
     useQuests: fixture === withQuests ? fixedQuests(questsFixtures.halfway) : fixture === withThisWeeksQuests ? fixedQuests(questsFixtures.week) : noQuests,
   };
+}
+
+const activityNextFixture = "album-activity-next-";
+
+function activityWeekOf(fixture: string | undefined) {
+  if (!fixture?.startsWith(activityNextFixture)) return theWeeklyEdition;
+  const state = fixture.slice(activityNextFixture.length);
+  return state === "thanked" || state === "quiet" ? fixedActivityWeek(activityWeekFixtures[state]) : fixedActivityWeek(activityWeekFixtures.empty);
 }
