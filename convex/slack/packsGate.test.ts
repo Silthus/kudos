@@ -447,7 +447,7 @@ function withStableIds<T>(value: T): T {
   const seen = new Map<string, string>();
   const stable = (kind: string, id: string) => seen.get(id) ?? seen.set(id, `<${kind} ${seen.size + 1}>`).get(id)!;
   return JSON.parse(JSON.stringify(value, (_, field) => (typeof field === "bigint" ? `${field}n` : field)), (key, field) => {
-    if (key === "_id" || key === "_creationTime" || key === "uuid") return undefined;
+    if (key === "_id" || key === "_creationTime" || key === "uuid" || key === "fact") return undefined;
     if (opaque.has(key) && typeof field === "string") return stable(key, field);
     if (typeof field !== "string") return field;
     if (namedIds.has(field)) return namedIds.get(field);

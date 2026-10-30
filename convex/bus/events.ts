@@ -1,4 +1,4 @@
-import { v, type Infer } from "convex/values";
+import { v, type Infer, type PropertyValidators } from "convex/values";
 import { ladderValidator, tierValidator } from "../achievements/ladders";
 import { awardIdValidator } from "../engine/awards";
 import { attributedAwardValidator, groupOrNoneValidator } from "../groups/attributedAward";
@@ -15,9 +15,13 @@ import { surfaceValidator } from "../commands/surface";
 import type { MemberId } from "../workspace/directory";
 import { grantOutcomeValidator } from "../album/records";
 
+function domainEvent<Fields extends PropertyValidators>(fields: Fields) {
+  return v.object({ ...fields, fact: v.optional(v.string()) });
+}
+
 export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
 
-export const kudosGivenEventValidator = v.object({
+export const kudosGivenEventValidator = domainEvent({
   type: v.literal("kudosGiven"),
   workspace: v.string(),
   message: messageRefValidator,
@@ -36,7 +40,7 @@ export const kudosGivenEventValidator = v.object({
   at: v.number(),
 });
 
-export const levelReachedEventValidator = v.object({
+export const levelReachedEventValidator = domainEvent({
   type: v.literal("levelReached"),
   workspace: v.string(),
   member: v.id("members"),
@@ -48,7 +52,7 @@ export const levelReachedEventValidator = v.object({
   at: v.number(),
 });
 
-export const xpRecordedEventValidator = v.object({
+export const xpRecordedEventValidator = domainEvent({
   type: v.literal("xpRecorded"),
   workspace: v.string(),
   member: v.id("members"),
@@ -57,7 +61,7 @@ export const xpRecordedEventValidator = v.object({
 
 export type KudosGivenEvent = Infer<typeof kudosGivenEventValidator>;
 
-export const attemptFailedEventValidator = v.object({
+export const attemptFailedEventValidator = domainEvent({
   type: v.literal("attemptFailed"),
   workspace: v.string(),
   message: messageRefValidator,
@@ -76,7 +80,7 @@ export const attemptFailedEventValidator = v.object({
 
 export type AttemptFailedEvent = Infer<typeof attemptFailedEventValidator>;
 
-export const memberWelcomedEventValidator = v.object({
+export const memberWelcomedEventValidator = domainEvent({
   type: v.literal("memberWelcomed"),
   workspace: v.string(),
   member: v.id("members"),
@@ -86,7 +90,7 @@ export const memberWelcomedEventValidator = v.object({
 
 export type MemberWelcomedEvent = Infer<typeof memberWelcomedEventValidator>;
 
-export const memberGreetedEventValidator = v.object({
+export const memberGreetedEventValidator = domainEvent({
   type: v.literal("memberGreeted"),
   workspace: v.string(),
   member: v.id("members"),
@@ -102,15 +106,15 @@ export type XpRecordedEvent = Infer<typeof xpRecordedEventValidator>;
 
 const unlockFields = { workspace: v.string(), member: v.id("members"), feature: featureValidator, at: v.number() };
 
-export const unlockReadyEventValidator = v.object({ type: v.literal("unlockReady"), ...unlockFields });
+export const unlockReadyEventValidator = domainEvent({ type: v.literal("unlockReady"), ...unlockFields });
 
-export const unlockOpenedEventValidator = v.object({ type: v.literal("unlockOpened"), ...unlockFields, byLaunch: v.optional(v.literal(true)) });
+export const unlockOpenedEventValidator = domainEvent({ type: v.literal("unlockOpened"), ...unlockFields, byLaunch: v.optional(v.literal(true)) });
 
 export type UnlockReadyEvent = Infer<typeof unlockReadyEventValidator>;
 
 export type UnlockOpenedEvent = Infer<typeof unlockOpenedEventValidator>;
 
-export const unlocksLaunchedEventValidator = v.object({
+export const unlocksLaunchedEventValidator = domainEvent({
   type: v.literal("unlocksLaunched"),
   workspace: v.string(),
   openings: v.array(v.object({ member: v.id("members"), feature: featureValidator })),
@@ -123,7 +127,7 @@ const poolQuestIdValidator = v.union(questIdValidator, groupQuestIdValidator);
 
 const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
 
-export const questFinishedEventValidator = v.object({
+export const questFinishedEventValidator = domainEvent({
   type: v.literal("questFinished"),
   ...questFields,
   poolQuest: v.optional(poolQuestIdValidator),
@@ -133,15 +137,15 @@ export const questFinishedEventValidator = v.object({
   cause: v.optional(messageRefValidator),
 });
 
-export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(poolQuestIdValidator) });
+export const questOpenedEventValidator = domainEvent({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(poolQuestIdValidator) });
 
 const weekFields = { workspace: v.string(), member: v.id("members"), week: v.string(), at: v.number() };
 
-export const questsDrawnEventValidator = v.object({ type: v.literal("questsDrawn"), ...weekFields, quests: v.array(questIdValidator) });
+export const questsDrawnEventValidator = domainEvent({ type: v.literal("questsDrawn"), ...weekFields, quests: v.array(questIdValidator) });
 
-export const questSwappedEventValidator = v.object({ type: v.literal("questSwapped"), ...weekFields, replaced: questIdValidator, swappedIn: questIdValidator });
+export const questSwappedEventValidator = domainEvent({ type: v.literal("questSwapped"), ...weekFields, replaced: questIdValidator, swappedIn: questIdValidator });
 
-export const groupQuestDrawnEventValidator = v.object({
+export const groupQuestDrawnEventValidator = domainEvent({
   type: v.literal("groupQuestDrawn"),
   workspace: v.string(),
   week: v.string(),
@@ -156,7 +160,7 @@ export type GroupQuestDrawnEvent = Infer<typeof groupQuestDrawnEventValidator>;
 
 export type QuestSwappedEvent = Infer<typeof questSwappedEventValidator>;
 
-export const achievementEarnedEventValidator = v.object({
+export const achievementEarnedEventValidator = domainEvent({
   type: v.literal("achievementEarned"),
   workspace: v.string(),
   member: v.id("members"),
@@ -168,19 +172,19 @@ export const achievementEarnedEventValidator = v.object({
 
 export type AchievementEarnedEvent = Infer<typeof achievementEarnedEventValidator>;
 
-export const perkBoughtEventValidator = v.object({ type: v.literal("perkBought"), workspace: v.string(), member: v.id("members"), perk: perkValidator, at: v.number() });
+export const perkBoughtEventValidator = domainEvent({ type: v.literal("perkBought"), workspace: v.string(), member: v.id("members"), perk: perkValidator, at: v.number() });
 
 export type PerkBoughtEvent = Infer<typeof perkBoughtEventValidator>;
 
-export const itemBoughtEventValidator = v.object({ type: v.literal("itemBought"), workspace: v.string(), member: v.id("members"), item: v.string(), price: v.number(), at: v.number() });
+export const itemBoughtEventValidator = domainEvent({ type: v.literal("itemBought"), workspace: v.string(), member: v.id("members"), item: v.string(), price: v.number(), at: v.number() });
 
 export type ItemBoughtEvent = Infer<typeof itemBoughtEventValidator>;
 
 const membershipFields = { workspace: v.string(), member: v.id("members"), at: v.number() };
 
-export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), ...membershipFields });
+export const memberLeftEventValidator = domainEvent({ type: v.literal("memberLeft"), ...membershipFields });
 
-export const memberRejoinedEventValidator = v.object({ type: v.literal("memberRejoined"), ...membershipFields });
+export const memberRejoinedEventValidator = domainEvent({ type: v.literal("memberRejoined"), ...membershipFields });
 
 export type MemberLeftEvent = Infer<typeof memberLeftEventValidator>;
 
@@ -190,7 +194,7 @@ export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
 export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
 
-export const primaryGroupChangedEventValidator = v.object({
+export const primaryGroupChangedEventValidator = domainEvent({
   type: v.literal("primaryGroupChanged"),
   workspace: v.string(),
   member: v.id("members"),
@@ -213,11 +217,11 @@ const attributedFields = {
   awards: v.array(attributedAwardValidator),
 };
 
-export const awardsAttributedEventValidator = v.object({ type: v.literal("awardsAttributed"), ...attributedFields });
+export const awardsAttributedEventValidator = domainEvent({ type: v.literal("awardsAttributed"), ...attributedFields });
 
 export type AwardsAttributedEvent = Infer<typeof awardsAttributedEventValidator>;
 
-export const journeyStepActivatedEventValidator = v.object({
+export const journeyStepActivatedEventValidator = domainEvent({
   type: v.literal("journeyStepActivated"),
   workspace: v.string(),
   member: v.id("members"),
@@ -227,7 +231,7 @@ export const journeyStepActivatedEventValidator = v.object({
 
 export type JourneyStepActivatedEvent = Infer<typeof journeyStepActivatedEventValidator>;
 
-export const hoggieDroppedEventValidator = v.object({
+export const hoggieDroppedEventValidator = domainEvent({
   type: v.literal("hoggieDropped"),
   workspace: v.string(),
   member: v.id("members"),
@@ -242,7 +246,7 @@ export const hoggieDroppedEventValidator = v.object({
 
 export type HoggieDroppedEvent = Infer<typeof hoggieDroppedEventValidator>;
 
-export const teamPagesCompletedEventValidator = v.object({
+export const teamPagesCompletedEventValidator = domainEvent({
   type: v.literal("teamPagesCompleted"),
   workspace: v.string(),
   member: v.id("members"),
@@ -255,7 +259,7 @@ export const teamPagesCompletedEventValidator = v.object({
 
 export type TeamPagesCompletedEvent = Infer<typeof teamPagesCompletedEventValidator>;
 
-export const stickersCollectedEventValidator = v.object({
+export const stickersCollectedEventValidator = domainEvent({
   type: v.literal("stickersCollected"),
   workspace: v.string(),
   stickers: v.array(v.object({ collector: v.id("members"), person: v.id("members"), firstAward: awardIdValidator, firstGiver: v.id("members") })),
@@ -264,7 +268,7 @@ export const stickersCollectedEventValidator = v.object({
 
 export type StickersCollectedEvent = Infer<typeof stickersCollectedEventValidator>;
 
-export const thoughtfulPacksGrantedEventValidator = v.object({
+export const thoughtfulPacksGrantedEventValidator = domainEvent({
   type: v.literal("thoughtfulPacksGranted"),
   workspace: v.string(),
   giver: v.id("members"),
@@ -275,27 +279,27 @@ export const thoughtfulPacksGrantedEventValidator = v.object({
 
 export type ThoughtfulPacksGrantedEvent = Infer<typeof thoughtfulPacksGrantedEventValidator>;
 
-export const stickerPutInEventValidator = v.object({ type: v.literal("stickerPutIn"), workspace: v.string(), member: v.id("members"), person: v.id("members"), at: v.number() });
+export const stickerPutInEventValidator = domainEvent({ type: v.literal("stickerPutIn"), workspace: v.string(), member: v.id("members"), person: v.id("members"), at: v.number() });
 
 export type StickerPutInEvent = Infer<typeof stickerPutInEventValidator>;
 
-export const itemTurnedEventValidator = v.object({ type: v.literal("itemTurned"), workspace: v.string(), member: v.id("members"), source: itemSourceValidator, rarity: v.optional(rarityValidator), isNew: v.boolean(), at: v.number() });
+export const itemTurnedEventValidator = domainEvent({ type: v.literal("itemTurned"), workspace: v.string(), member: v.id("members"), source: itemSourceValidator, rarity: v.optional(rarityValidator), isNew: v.boolean(), at: v.number() });
 
 export type ItemTurnedEvent = Infer<typeof itemTurnedEventValidator>;
 
-export const companyTeamsReplacedEventValidator = v.object({ type: v.literal("companyTeamsReplaced"), at: v.number() });
+export const companyTeamsReplacedEventValidator = domainEvent({ type: v.literal("companyTeamsReplaced"), at: v.number() });
 
 export type CompanyTeamsReplacedEvent = Infer<typeof companyTeamsReplacedEventValidator>;
 
-export const companyMatchesKeptEventValidator = v.object({ type: v.literal("companyMatchesKept"), workspace: v.string(), at: v.number() });
+export const companyMatchesKeptEventValidator = domainEvent({ type: v.literal("companyMatchesKept"), workspace: v.string(), at: v.number() });
 
 export type CompanyMatchesKeptEvent = Infer<typeof companyMatchesKeptEventValidator>;
 
-export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
+export const crateBoughtEventValidator = domainEvent({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
 
 export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
 
-export const hugGivenEventValidator = v.object({
+export const hugGivenEventValidator = domainEvent({
   type: v.literal("hugGiven"),
   workspace: v.string(),
   giver: v.id("members"),
@@ -311,7 +315,7 @@ export const hugGivenEventValidator = v.object({
 
 export type HugGivenEvent = Infer<typeof hugGivenEventValidator>;
 
-export const hugReceivedEventValidator = v.object({
+export const hugReceivedEventValidator = domainEvent({
   type: v.literal("hugReceived"),
   workspace: v.string(),
   giver: v.id("members"),
@@ -324,7 +328,7 @@ export const hugReceivedEventValidator = v.object({
 
 export type HugReceivedEvent = Infer<typeof hugReceivedEventValidator>;
 
-export const hypeReactedEventValidator = v.object({
+export const hypeReactedEventValidator = domainEvent({
   type: v.literal("hypeReacted"),
   workspace: v.string(),
   giver: v.id("members"),
