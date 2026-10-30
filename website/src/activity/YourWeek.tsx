@@ -2,8 +2,10 @@ import { useEffect, useRef } from "react";
 import type { ActivityState, ActivityWeek, NextStep } from "../../../convex/website/activity";
 import type { MondayQuests } from "../../../convex/website/quests";
 import { PageTitle } from "../PageTitle";
+import { LastWeekLine } from "./LastWeekLine";
 import { NextStepCard } from "./NextStepCard";
 import { QuestsBox } from "./QuestsBox";
+import { ThankedBox } from "./ThankedBox";
 
 type YourWeekPageProps = { week: ActivityWeek; quests: MondayQuests | null; inSight: boolean; onViewed: (state: ActivityState) => void };
 
@@ -16,11 +18,11 @@ export function YourWeekPage({ week, quests, inSight, onViewed }: YourWeekPagePr
         Your week
       </PageTitle>
       <NextStepCard step={week.next} kudos={week.kudos} slack={week.slack} />
-      {quests !== null && (
-        <div className="al-your-week-grid">
-          <QuestsBox quests={quests} kudos={week.kudos} />
-        </div>
-      )}
+      <div className="al-your-week-grid">
+        {quests !== null && <QuestsBox quests={quests} kudos={week.kudos} />}
+        <ThankedBox thanked={week.thanked} />
+      </div>
+      {week.lastWeek !== null && <LastWeekLine lastWeek={week.lastWeek} />}
     </div>
   );
 }

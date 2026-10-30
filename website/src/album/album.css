@@ -1390,6 +1390,67 @@
   font-size: 0.8125rem;
 }
 
+.al-week-box-quiet {
+  margin: 0;
+  color: var(--al-quiet);
+}
+
+.al-thanked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.al-thanks {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.625rem;
+}
+
+.al-thanks-face {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.al-thanks-words {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.al-thanks-who {
+  margin: 0;
+  font-weight: 700;
+}
+
+.al-thanks-way {
+  color: var(--al-quiet);
+  font-weight: 400;
+}
+
+.al-thanks-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.al-last-week {
+  margin: 0;
+  color: var(--al-quiet);
+}
+
+.al-last-week a {
+  color: var(--al-accent-ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 48rem) {
   .al-next-step,
   .al-your-week-grid {

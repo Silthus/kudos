@@ -113,9 +113,9 @@ export type TimelineHug = { message: MessageRef; onKudos: boolean; emoji: string
 
 export type GivenHug = TimelineHug & { people: MemberId[] };
 
-export type ReceivedHugs = TimelineHug & { hugs: number; givers: MemberId[] };
+export type PaidGiver = { giver: MemberId; at: number };
 
-type PaidGiver = { giver: MemberId; at: number };
+export type ReceivedHugs = TimelineHug & { hugs: number; givers: PaidGiver[] };
 
 type HugsReceivedRow = Doc<"hugsReceived">;
 
@@ -162,7 +162,7 @@ function isLiveAt({ _creationTime, supersededAt }: HugsReceivedRow, snapshot: nu
 }
 
 function receivedHugsOf(row: HugsReceivedRow): ReceivedHugs {
-  return { ...timelineHugOf(row), hugs: row.hugs, givers: row.givers.map(({ giver }) => giver) };
+  return { ...timelineHugOf(row), hugs: row.hugs, givers: row.givers };
 }
 
 function timelineHugOf({ workspace, conversation, message, onKudos, emoji, at, _creationTime }: Hug | Doc<"hugsReceived">): TimelineHug {

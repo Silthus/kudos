@@ -15,7 +15,7 @@ import { memberQuery, type Denial } from "./memberQuery";
 
 export type { Activity, ActivityEntry, Channel, Found, KudosGiven, KudosReceived, LevelUp, Message, Person, QuestDone, RecentKudos, Segment, Spotlight, HugGiven, HugReceived } from "../activity/entries";
 
-export type { ActivityWeek, NextStep } from "./activityWeek";
+export type { ActivityWeek, LastWeek, NextStep, Thanks } from "./activityWeek";
 
 export type { LoopLesson } from "../album/items/welcome";
 

@@ -19,7 +19,7 @@ import { levelUpsByDecision } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
 import type { MessageRef } from "../engine/messageEvent";
 import type { Activity, ActivityEntry, BonusEarned, Found, KudosGiven, KudosReceived, LevelUp, Message, RecentKudos, HugGiven, HugReceived } from "./entries";
-import { kudosFactsOf, kudosWordsOf, mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
+import { kudosFactsOf, kudosWordsStillInSlack, mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
 import { belowFor, decodeCursor, encodeCursor, keyOf, newestFirst, ranks, type Cursor, type Position, type Rank } from "./position";
 
 export type Filter = "all" | "received" | "given";
@@ -294,7 +294,7 @@ async function givenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, g
 
 async function hugReceivedEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, received: ReceivedHugs): Promise<HugReceived> {
   const { givers, emoji, hugs, at } = received;
-  const [persons, xp, facts] = await Promise.all([Promise.all(givers.map((giver) => personOf(ctx, giver))), hugXpShownTo(viewer, hugs), hugFactsOf(ctx, mentions, received)]);
+  const [persons, xp, facts] = await Promise.all([Promise.all(givers.map(({ giver }) => personOf(ctx, giver))), hugXpShownTo(viewer, hugs), hugFactsOf(ctx, mentions, received)]);
   return { kind: "hugReceived", key: facts.on, at, givers: persons, emoji, hugs, xp, ...facts };
 }
 
@@ -309,10 +309,6 @@ type HugFacts = { emojiImage?: string; on: string; permalink: string | null; kud
 async function hugFactsOf(ctx: QueryCtx, mentions: Mentions, { message, onKudos, emoji }: TimelineHug): Promise<HugFacts> {
   const [emojiImage, permalink, kudos] = await Promise.all([mentions.emojiImage(message.workspace, withoutSkinTone(emoji)), permalinkOfMessage(ctx, message), onKudos ? kudosWordsStillInSlack(ctx, mentions, message) : null]);
   return { ...(emojiImage !== undefined && { emojiImage }), on: onKeyOf(message), permalink, kudos };
-}
-
-async function kudosWordsStillInSlack(ctx: QueryCtx, mentions: Mentions, message: MessageRef): Promise<Message | null> {
-  return (await takenBackInSlack(ctx, message)) ? null : kudosWordsOf(ctx, mentions, message);
 }
 
 async function stillShown(pending: Pending[]): Promise<Pending[]> {
