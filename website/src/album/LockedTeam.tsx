@@ -51,10 +51,13 @@ export function MissingTeammate({ album, team, bookNext, person, children }: Loc
   const card = useFloatingCard<HTMLLIElement>();
   return (
     <li ref={card.spot} className="al-photo-person" data-out="">
-      <button type="button" className="al-photo-link al-photo-missing" aria-label={`${person.name}, not in your album yet: how to get them`} aria-expanded={card.open} onClick={card.toggle}>
+      <button type="button" className="al-photo-link al-photo-missing" aria-expanded={card.open} onClick={card.toggle}>
         <PersonPicture face={person.face} name={person.name} collected={false} frame="al-photo-sticker" className="al-photo-face" />
         <span className="al-photo-name ph-no-capture">{person.name}</span>
-        <span className="al-photo-hint">How to get</span>
+        <span className="al-unseen">, not in your album yet: how to get them</span>
+        <span className="al-photo-hint" aria-hidden="true">
+          How to get
+        </span>
       </button>
       {children}
       {card.open && <TeamCard state={card} album={album} team={team} bookNext={bookNext} focus={person} />}
@@ -63,10 +66,18 @@ export function MissingTeammate({ album, team, bookNext, person, children }: Loc
 }
 
 function TeamCard({ state, album, team, bookNext, focus }: Locked & { state: FloatingCardState; focus: AlbumPerson | null }) {
-  const title = focus === null ? `Unlock the ${team.name} sticker` : `${firstNameOf(focus.name)} isn't in your album yet`;
+  const title = useId();
   return (
-    <FloatingCard state={state} label={title}>
-      <h4 className="al-floating-title">{title}</h4>
+    <FloatingCard state={state} titleId={title}>
+      <h4 id={title} className="al-floating-title">
+        {focus === null ? (
+          `Unlock the ${team.name} sticker`
+        ) : (
+          <>
+            <span className="ph-no-capture">{firstNameOf(focus.name)}</span> isn't in your album yet
+          </>
+        )}
+      </h4>
       <p className="al-floating-label">How to get it</p>
       {focus === null ? <HowToCompleteTheTeam album={album} team={team} chatUrl={bookNext.chatUrl} /> : <HowToGetTeammate album={album} team={team} person={focus} chatUrl={bookNext.chatUrl} />}
       <p className="al-floating-label">What the sticker pays</p>
@@ -97,10 +108,10 @@ function HowToCompleteTheTeam({ album, team, chatUrl }: { album: Album; team: Al
 
 function HowToGetTeammate({ album, team, person, chatUrl }: { album: Album; team: AlbumTeam; person: AlbumPerson; chatUrl: string }) {
   const waiting = waitingStickerOf(album, person.person);
-  if (waiting !== null) return <p>{waitingStickerWords(waiting, person.name)}</p>;
+  if (waiting !== null) return <p className="ph-no-capture">{waitingStickerWords(waiting, person.name)}</p>;
   return (
     <>
-      <p>{oneMoreKudosWords(team, person.name)}</p>
+      <p className="ph-no-capture">{oneMoreKudosWords(team, person.name)}</p>
       <ul className="al-give">
         <GiveRow person={person} waiting={null} chatUrl={chatUrl} />
       </ul>

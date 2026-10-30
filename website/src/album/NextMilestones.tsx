@@ -32,6 +32,7 @@ function NextTile({ album, bookNext, medal }: { album: Album; bookNext: BookNext
   const { milestone, tier } = medal;
   const done = Math.min(milestone.count, tier.at);
   const card = useFloatingCard<HTMLLIElement>();
+  const title = useId();
   return (
     <li ref={card.spot} className="al-next-tile" {...card.hover}>
       <span role="img" aria-label={milestoneNameOf(milestone.id)}>
@@ -47,15 +48,15 @@ function NextTile({ album, bookNext, medal }: { album: Album; bookNext: BookNext
         <span className="al-next-bar-fill" style={{ width: `${Math.max(4, shareOf(medal) * 100)}%` }} />
       </span>
       {card.open && (
-        <FloatingCard state={card} label={tier.name}>
-          <MilestoneCard album={album} bookNext={bookNext} medal={medal} />
+        <FloatingCard state={card} titleId={title}>
+          <MilestoneCard album={album} bookNext={bookNext} medal={medal} titleId={title} />
         </FloatingCard>
       )}
     </li>
   );
 }
 
-function MilestoneCard({ album, bookNext, medal }: { album: Album; bookNext: BookNext; medal: NextMedal }) {
+function MilestoneCard({ album, bookNext, medal, titleId }: { album: Album; bookNext: BookNext; medal: NextMedal; titleId: string }) {
   const { milestone, tier } = medal;
   const emoji = tierEmojiOf(album, milestone, tier);
   return (
@@ -64,7 +65,9 @@ function MilestoneCard({ album, bookNext, medal }: { album: Album; bookNext: Boo
         <Medal tier={tier.tier} earned={false} size={16} />
         {milestoneNameOf(milestone.id)} · {tierWordOf(tier.tier)}
       </p>
-      <h4 className="al-floating-title">{tier.name}</h4>
+      <h4 id={titleId} className="al-floating-title">
+        {tier.name}
+      </h4>
       <p className="al-floating-label">How to get it</p>
       <p>{howToGetWords(milestone.id, toGoOf(medal))}</p>
       <p className="al-floating-label">What it pays</p>
