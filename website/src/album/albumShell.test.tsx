@@ -406,7 +406,13 @@ describe("HH88: with book-next, the sidebar leads with Hoggies and Milestones an
     expect(within(teams).getAllByRole("link")).toHaveLength(10);
   });
 
-  it("keeps Show fewer stuck to the bottom of the sidebar while the expanded list scrolls", () => {
+  it("keeps Show fewer stuck to the bottom of the sidebar while the expanded list scrolls", async () => {
+    const { user } = visit("/", withBookNext);
+    const side = await sidebar();
+
+    await user.click(side.getByRole("button", { name: "Show 2 more" }));
+
+    expect(side.getByRole("button", { name: "Show fewer" }).matches(".al-more[data-sticky]")).toBe(true);
     expect(declarationsOf(".al-more[data-sticky]")).toMatchObject({ position: "sticky", bottom: "0" });
   });
 
