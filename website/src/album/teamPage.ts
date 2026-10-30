@@ -16,11 +16,25 @@ export function nameOnThePhoto(shown: OnThePhoto) {
   return shown.kind === "person" ? shown.person.name : shown.name;
 }
 
-export function howToCollectWords(album: Album, person: string, name: string) {
+export type WaitingSticker = "tray" | "pack";
+
+export function waitingStickerOf(album: Album, person: string): WaitingSticker | null {
+  if (isInTheTray(album, person)) return "tray";
+  if (hasAPackWaiting(album, person)) return "pack";
+  return null;
+}
+
+export function waitingStickerWords(waiting: WaitingSticker, name: string) {
   const first = firstNameOf(name);
-  if (isInTheTray(album, person)) return `${first}'s card is in your tray. Put it in from the top bar.`;
-  if (hasAPackWaiting(album, person)) return `${first}'s pack is waiting. Open it from your packs to add ${first} to your album.`;
-  return `Give ${first} a kudos in Slack: mention them in a message with your kudos emoji. Their sticker comes in the pack.`;
+  return waiting === "tray" ? `${first}'s card is in your tray. Put it in from the top bar.` : `${first}'s pack is waiting. Open it from your packs to add ${first} to your album.`;
+}
+
+export const waitingStickerLabels: Record<WaitingSticker, string> = { tray: "In your tray", pack: "Pack waiting" };
+
+export function howToCollectWords(album: Album, person: string, name: string) {
+  const waiting = waitingStickerOf(album, person);
+  if (waiting !== null) return waitingStickerWords(waiting, name);
+  return `Give ${firstNameOf(name)} a kudos in Slack: mention them in a message with your kudos emoji. Their sticker comes in the pack.`;
 }
 
 function isInTheTray(album: Album, person: string) {

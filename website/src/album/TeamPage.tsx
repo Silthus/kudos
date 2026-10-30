@@ -55,7 +55,7 @@ export function TeamPage({ album, team, unlocking }: { album: Album; team: Album
 }
 
 function lockedOf(album: Album, team: AlbumTeam): BookNext | null {
-  return team.state === "progress" ? (album.bookNext ?? null) : null;
+  return team.state === "progress" && team.total > 0 ? (album.bookNext ?? null) : null;
 }
 
 type ShownPet = { pet: AlbumPet; owner: string };

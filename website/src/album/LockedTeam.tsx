@@ -7,7 +7,7 @@ import { kudosOnlyOddsWords } from "./milestones";
 import { PersonPicture } from "./PersonPicture";
 import { SealArt, sealSize } from "./Seal";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
-import { firstNameOf, missingFrom, oneMoreKudosWords, teamEmojiNameOf, teamEmojiOf, teamHoggiePaidWords } from "./teamPage";
+import { firstNameOf, missingFrom, oneMoreKudosWords, teamEmojiNameOf, teamEmojiOf, teamHoggiePaidWords, waitingStickerLabels, waitingStickerOf, waitingStickerWords, type WaitingSticker } from "./teamPage";
 import { useFloatingCard, type FloatingCardState } from "./useFloatingCard";
 import "./lockedTeam.css";
 
@@ -63,22 +63,16 @@ export function MissingTeammate({ album, team, bookNext, person, children }: Loc
 }
 
 function TeamCard({ state, album, team, bookNext, focus }: Locked & { state: FloatingCardState; focus: AlbumPerson | null }) {
-  const listed = focus === null ? missingFrom(album, team) : [focus];
   const title = focus === null ? `Unlock the ${team.name} sticker` : `${firstNameOf(focus.name)} isn't in your album yet`;
   return (
     <FloatingCard state={state} label={title}>
       <h4 className="al-floating-title">{title}</h4>
       <p className="al-floating-label">How to get it</p>
-      <p>{focus === null ? `Give a kudos to every member. ${plural(listed.length, "person", "people")} left:` : oneMoreKudosWords(team, focus.name)}</p>
-      <ul className="al-give">
-        {listed.map((person) => (
-          <GiveRow key={person.person} person={person} chatUrl={bookNext.chatUrl} />
-        ))}
-      </ul>
+      {focus === null ? <HowToCompleteTheTeam album={album} team={team} chatUrl={bookNext.chatUrl} /> : <HowToGetTeammate album={album} team={team} person={focus} chatUrl={bookNext.chatUrl} />}
       <p className="al-floating-label">What the sticker pays</p>
       <ul className="al-floating-pays" aria-label="What the sticker pays">
         <li>{teamHoggiePaidWords(bookNext.rarityCaps)}</li>
-        <li>
+        <li className="ph-no-capture">
           <TeamEmojiPicture art={team.art} name={team.name} emoji={teamEmojiOf(album, team.team)} size={16} />:{teamEmojiNameOf(album, team.team)}:
         </li>
       </ul>
@@ -87,14 +81,45 @@ function TeamCard({ state, album, team, bookNext, focus }: Locked & { state: Flo
   );
 }
 
-function GiveRow({ person, chatUrl }: { person: AlbumPerson; chatUrl: string }) {
+function HowToCompleteTheTeam({ album, team, chatUrl }: { album: Album; team: AlbumTeam; chatUrl: string }) {
+  const left = missingFrom(album, team);
+  return (
+    <>
+      <p>Give a kudos to every member. {plural(left.length, "person", "people")} left:</p>
+      <ul className="al-give">
+        {left.map((person) => (
+          <GiveRow key={person.person} person={person} waiting={waitingStickerOf(album, person.person)} chatUrl={chatUrl} />
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function HowToGetTeammate({ album, team, person, chatUrl }: { album: Album; team: AlbumTeam; person: AlbumPerson; chatUrl: string }) {
+  const waiting = waitingStickerOf(album, person.person);
+  if (waiting !== null) return <p>{waitingStickerWords(waiting, person.name)}</p>;
+  return (
+    <>
+      <p>{oneMoreKudosWords(team, person.name)}</p>
+      <ul className="al-give">
+        <GiveRow person={person} waiting={null} chatUrl={chatUrl} />
+      </ul>
+    </>
+  );
+}
+
+function GiveRow({ person, waiting, chatUrl }: { person: AlbumPerson; waiting: WaitingSticker | null; chatUrl: string }) {
   return (
     <li className="al-give-row">
       <PersonPicture face={person.face} name={person.name} collected={false} frame="al-give-face" className="al-photo-face" />
       <span className="al-give-name ph-no-capture">{person.name}</span>
-      <SlackLink chatUrl={chatUrl} variant="outline">
-        Give {firstNameOf(person.name)} a kudos
-      </SlackLink>
+      {waiting === null ? (
+        <SlackLink chatUrl={chatUrl} variant="outline">
+          Give {firstNameOf(person.name)} a kudos
+        </SlackLink>
+      ) : (
+        <span className="al-give-waiting">{waitingStickerLabels[waiting]}</span>
+      )}
     </li>
   );
 }
