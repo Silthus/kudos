@@ -7,7 +7,7 @@ import { authorOfGiven, awardsReceivedNewestFirst, fromTheNewest, newestReceived
 import { takenBackInSlack } from "../engine/kudosText";
 import { hugRewardsShownTo } from "../hugs/flag";
 import { hugsLeftOf } from "../hugs/hugs";
-import { hasHuggedBefore, hugOf, newestHugsReceivedSince, type ReceivedHugs } from "../hugs/records";
+import { hasHuggedBefore, hugOf, newestHugsPaidTo, type Hug } from "../hugs/records";
 import { firstCountedWeekOf, totalsOf } from "../leaderboard/counts";
 import { keyOf } from "../leaderboard/periods";
 import { workspaceLink } from "../slack/workspaceLink";
@@ -88,18 +88,14 @@ async function thankedThisWeek(ctx: QueryCtx, me: VerifiedMember, today: Today):
 }
 
 async function hugsThisWeek(ctx: QueryCtx, me: VerifiedMember, { weekBegan }: Today, mentions: Mentions): Promise<Thanked[]> {
-  const thanked: Thanked[] = [];
-  for (const received of await newestHugsReceivedSince(ctx, me.member, weekBegan, thanksListed)) {
-    const facts = await hugFactsOf(ctx, me, mentions, received);
-    for (const { giver, at } of received.givers) if (at >= weekBegan) thanked.push({ giver, at, facts });
-  }
-  return thanked;
+  const hugs = await newestHugsPaidTo(ctx, me.member, weekBegan, thanksListed);
+  return Promise.all(hugs.map(async (hug) => ({ giver: hug.giver, at: hug.at, facts: await hugFactsOf(ctx, me, mentions, hug) })));
 }
 
-async function hugFactsOf(ctx: QueryCtx, me: VerifiedMember, mentions: Mentions, { message, onKudos }: ReceivedHugs): Promise<ThanksFacts> {
-  if (onKudos) return { way: "hugged-a-kudos-you-got", words: await kudosWordsStillInSlack(ctx, mentions, message) };
-  if ((await authorOfGiven(ctx, message)) === me.member) return { way: "hugged-your-kudos-back", words: await kudosWordsStillInSlack(ctx, mentions, message) };
-  return { way: "hugged-your-message", permalink: await permalinkOfMessage(ctx, message) };
+async function hugFactsOf(ctx: QueryCtx, me: VerifiedMember, mentions: Mentions, hug: Hug): Promise<ThanksFacts> {
+  if (hug.onKudos) return { way: "hugged-a-kudos-you-got", words: await kudosWordsStillInSlack(ctx, mentions, hug) };
+  if ((await authorOfGiven(ctx, hug)) === me.member) return { way: "hugged-your-kudos-back", words: await kudosWordsStillInSlack(ctx, mentions, hug) };
+  return { way: "hugged-your-message", permalink: await permalinkOfMessage(ctx, hug) };
 }
 
 async function kudosThisWeek(ctx: QueryCtx, me: VerifiedMember, { weekBegan }: Today, mentions: Mentions): Promise<Thanked[]> {

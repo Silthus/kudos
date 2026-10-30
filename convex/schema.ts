@@ -367,7 +367,7 @@ export default defineSchema({
     .index("by_giver_day", ["giver", "day"])
     .index("by_giver_decided", ["giver"]),
 
-  hugPeople: defineTable({ hug: v.id("hugs"), member: v.id("members"), at: v.number() }).index("by_hug_member", ["hug", "member"]),
+  hugPeople: defineTable({ hug: v.id("hugs"), member: v.id("members"), at: v.number() }).index("by_hug_member", ["hug", "member"]).index("by_member_at", ["member", "at"]),
 
   hugsReceived: defineTable({
     member: v.id("members"),

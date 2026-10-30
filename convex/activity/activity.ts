@@ -294,7 +294,7 @@ async function givenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, g
 
 async function hugReceivedEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, received: ReceivedHugs): Promise<HugReceived> {
   const { givers, emoji, hugs, at } = received;
-  const [persons, xp, facts] = await Promise.all([Promise.all(givers.map(({ giver }) => personOf(ctx, giver))), hugXpShownTo(viewer, hugs), hugFactsOf(ctx, mentions, received)]);
+  const [persons, xp, facts] = await Promise.all([Promise.all(givers.map((giver) => personOf(ctx, giver))), hugXpShownTo(viewer, hugs), hugFactsOf(ctx, mentions, received)]);
   return { kind: "hugReceived", key: facts.on, at, givers: persons, emoji, hugs, xp, ...facts };
 }
 

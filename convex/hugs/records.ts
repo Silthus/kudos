@@ -113,9 +113,9 @@ export type TimelineHug = { message: MessageRef; onKudos: boolean; emoji: string
 
 export type GivenHug = TimelineHug & { people: MemberId[] };
 
-export type PaidGiver = { giver: MemberId; at: number };
+export type ReceivedHugs = TimelineHug & { hugs: number; givers: MemberId[] };
 
-export type ReceivedHugs = TimelineHug & { hugs: number; givers: PaidGiver[] };
+type PaidGiver = { giver: MemberId; at: number };
 
 type HugsReceivedRow = Doc<"hugsReceived">;
 
@@ -147,13 +147,14 @@ export async function* hugsReceivedByDecision(ctx: QueryCtx, member: MemberId, b
   for await (const version of versions) if (isLiveAt(version, snapshot)) yield receivedHugsOf(version);
 }
 
-export async function newestHugsReceivedSince(ctx: QueryCtx, member: MemberId, since: number, versionsAtMost: number): Promise<ReceivedHugs[]> {
-  const versions = await ctx.db
-    .query("hugsReceived")
-    .withIndex("by_member", (q) => q.eq("member", member).gt("_creationTime", since))
+export async function newestHugsPaidTo(ctx: QueryCtx, member: MemberId, since: number, atMost: number): Promise<Hug[]> {
+  const paid = await ctx.db
+    .query("hugPeople")
+    .withIndex("by_member_at", (q) => q.eq("member", member).gte("at", since))
     .order("desc")
-    .take(versionsAtMost);
-  return versions.filter((version) => isLiveAt(version, undefined)).map(receivedHugsOf);
+    .take(atMost);
+  const hugs = await Promise.all(paid.map(({ hug }) => ctx.db.get(hug)));
+  return hugs.filter((hug): hug is Hug => hug !== null);
 }
 
 export async function hugsOnTheMessageAsOf(ctx: QueryCtx, member: MemberId, { workspace, conversation, message }: MessageRef, at: number): Promise<number> {
@@ -171,7 +172,7 @@ function isLiveAt({ _creationTime, supersededAt }: HugsReceivedRow, snapshot: nu
 }
 
 function receivedHugsOf(row: HugsReceivedRow): ReceivedHugs {
-  return { ...timelineHugOf(row), hugs: row.hugs, givers: row.givers };
+  return { ...timelineHugOf(row), hugs: row.hugs, givers: row.givers.map(({ giver }) => giver) };
 }
 
 function timelineHugOf({ workspace, conversation, message, onKudos, emoji, at, _creationTime }: Hug | Doc<"hugsReceived">): TimelineHug {
