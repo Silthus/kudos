@@ -122,16 +122,18 @@ async function anAlbumNotLoadedYet() {
 
 const arrival = { timeout: 10_000 };
 
+const anUnidentifiedItem = { name: "An unidentified item. Identify it" };
+
 async function theFirstItem() {
   const board = within(await screen.findByRole("dialog", { name: "Your items" }, arrival));
-  return board.getAllByRole("button", { name: "An unidentified item. Identify it" })[0]!;
+  return board.getAllByRole("button", anUnidentifiedItem)[0]!;
 }
 
 function theFirstItemTheMomentItShows() {
   return new Promise<HTMLElement>((resolve) => {
     const watching = new MutationObserver(() => {
       const board = screen.queryByRole("dialog", { name: "Your items" });
-      const item = board === null ? undefined : within(board).queryAllByRole("button", { name: "A face-down item. Turn it over" })[0];
+      const item = board === null ? undefined : within(board).queryAllByRole("button", anUnidentifiedItem)[0];
       if (item === undefined) return;
       watching.disconnect();
       resolve(item);
