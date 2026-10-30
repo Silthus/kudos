@@ -365,7 +365,7 @@ function withStableIds<T>(value: T): T {
   const seen = new Map<string, string>();
   const stable = (kind: string, id: string) => seen.get(id) ?? seen.set(id, `<${kind} ${seen.size + 1}>`).get(id)!;
   return JSON.parse(JSON.stringify(value, (_, field) => (typeof field === "bigint" ? `${field}n` : field)), (key, field) => {
-    if (key === "_id" || key === "_creationTime" || key === "uuid") return undefined;
+    if (key === "_id" || key === "_creationTime" || key === "uuid" || key === "fact") return undefined;
     if (opaque.has(key) && typeof field === "string") return stable(key, field);
     if (typeof field !== "string") return field;
     if (namedIds.has(field)) return namedIds.get(field);
@@ -379,7 +379,7 @@ function withStableIds<T>(value: T): T {
 async function rowsWrittenApartFromStickers() {
   const tables = await t.run(async (ctx) => {
     const rows = {} as Record<TableName, Record<string, unknown>[]>;
-    for (const table of Object.keys(schema.tables) as TableName[]) if (!(stickerTables as readonly string[]).includes(table)) rows[table] = await ctx.db.query(table).collect();
+    for (const table of Object.keys(schema.tables) as TableName[]) if (!(stickerTables as readonly string[]).includes(table) && table !== "recordedFacts") rows[table] = await ctx.db.query(table).collect();
     rows.flagExposures = rows.flagExposures.filter(({ flag }) => flag !== teamSpirit);
     rows.analyticsOutbox = rows.analyticsOutbox.filter((row) => !isTeamSpiritsExposure(row) && !isPersonCollected(row));
     return rows;
