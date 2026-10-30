@@ -6,7 +6,7 @@ import { memberChanged, react, settle, setWorkspaceSettings, testBackend, type B
 import { internal } from "../_generated/api";
 import type { HypeReactedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
-import { mostHypeReactionsRead, nudgesFor } from "./hypeReactions";
+import { mostHypeReactionsRead, mostOwnersChecked, nudgesFor } from "./hypeReactions";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
@@ -153,6 +153,20 @@ describe("HH22 HH58: Album keeps the hype reactions and answers the nudges from 
     }
 
     expect(await nudgesOf("U_BOB")).toEqual([{ person: dana, emoji: "dana-hype", reactions: mostHypeReactionsRead }]);
+  });
+
+  test("the answer checks only the owners the member reacted to most, so a teammate past them is left out", async () => {
+    const bob = await aMember("U_BOB");
+    for (let index = 0; index < mostOwnersChecked; index += 1) {
+      const owner = await hypeEmojiOf(`U_HELD${index}`, `held-${index}`);
+      await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: hypeReacted(bob, owner, `held-${index}`, now.getTime() + index) });
+      await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: hypeReacted(bob, owner, `held-${index}`, now.getTime() + index) });
+      await holdHypeEmoji("U_BOB", owner);
+    }
+    const carol = await hypeEmojiOf("U_CAROL", "carol-hype");
+    await t.mutation(internal.album.hypeReactions.keepHypeReaction, { event: hypeReacted(bob, carol, "carol-hype", now.getTime()) });
+
+    expect(await nudgesOf("U_BOB")).toEqual([]);
   });
 
   test("the answer names at most as many teammates as asked", async () => {

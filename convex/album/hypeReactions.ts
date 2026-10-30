@@ -14,6 +14,8 @@ type ReactedOwner = { workspace: string; owner: MemberId; reactions: number };
 
 export const mostHypeReactionsRead = 500;
 
+export const mostOwnersChecked = 20;
+
 export const keepHypeReaction = internalMutation({
   args: { event: hypeReactedEventValidator },
   handler: async (ctx, { event }) => {
@@ -26,7 +28,7 @@ export const keepHypeReaction = internalMutation({
 
 export async function nudgesFor(ctx: QueryCtx, member: MemberId, most: number): Promise<Nudge[]> {
   const nudges: Nudge[] = [];
-  for (const reacted of reactedOwnersOf(await newestHypeReactionsBy(ctx, member))) {
+  for (const reacted of reactedOwnersOf(await newestHypeReactionsBy(ctx, member)).slice(0, mostOwnersChecked)) {
     if (nudges.length === most) break;
     const nudge = await nudgeOf(ctx, member, reacted);
     if (nudge !== null) nudges.push(nudge);

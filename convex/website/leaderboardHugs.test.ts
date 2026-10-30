@@ -9,6 +9,7 @@ import { appHomeOpened, emoji, mention, section, text } from "../../testing/slac
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { firstHypeEmojiNameFor } from "../album/emojiNames";
+import { mostHypeReactionsRead } from "../album/hypeReactions";
 import { catalogue } from "../album/hoggies/catalogue";
 import { xpToReach } from "../progression/levels";
 import { allowanceRange, hugBudgetRange } from "../workspace/settingsBounds";
@@ -50,13 +51,17 @@ beforeEach(async () => {
   for (const person of people) slack.withMember(person.user, slackUserOf(person));
   vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slack.fetch(input, init))));
   t = testBackend();
+  await aWorkspaceOfPeople();
+});
+
+async function aWorkspaceOfPeople() {
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", url: workspaceUrl, kudosEmoji: "taco", baseAllowance: 200 }));
   await leaderboardHugs(true);
   for (const person of people) {
     await memberChanged(t, "team_join", { id: person.user, ...slackUserOf(person) });
     await settle(t);
   }
-});
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -637,6 +642,16 @@ describe("HH78: emojis within your reach", () => {
     expect((await boardsOf(dana)).withinReach.hype, "without a nudge").toBeNull();
   });
 
+  test("the boards load for a member who already holds the hype emojis of every teammate they reacted to", { timeout: 60_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await aWorkspaceOfPeople();
+    await switchWebsite(t, postHog, true, ...websiteFlags, "leaderboard-hugs", "hidden-items");
+    await thisWeek();
+    await heldHypeReactionsBy(carol, mostHypeReactionsRead);
+
+    expect((await boardsOf(carol)).withinReach.hype).toBeNull();
+  });
+
   test("the member's team emoji shows the stickers to go while the team page is still collecting", async () => {
     await theCompanyCopyHolds({ slug: "otters", name: "Otters", profiles: profilesOf(alice, bob, carol, dana) });
     await thisWeek();
@@ -971,6 +986,19 @@ async function hypeReactsTo(giver: Person, owner: Person) {
   messages += 1;
   await react(t, { user: giver.user, itemUser: owner.user, ts, reaction: firstHypeEmojiNameFor(owner.name), eventId: `EvHype${messages}` });
   await settle(t);
+}
+
+async function heldHypeReactionsBy(giver: Person, owners: number) {
+  const holder = await memberOf(giver);
+  await t.run(async (ctx) => {
+    for (let index = 0; index < owners; index += 1) {
+      const owner = await ctx.db.insert("members", { workspace: "T1", user: `U_HYPED${index}`, kind: "member" });
+      const message = { workspace: "T1", conversation: "C1", message: `${tuesday.getTime() / 1000}.${String(index).padStart(6, "0")}` };
+      await ctx.db.insert("emojiNames", { workspace: "T1", emoji: "hype", person: owner, name: `hyped-${index}` });
+      await ctx.db.insert("hypeReactions", { workspace: "T1", giver: holder, owner, author: owner, emoji: `hyped-${index}`, conversation: message.conversation, message: message.message, at: Date.now() - index });
+      await ctx.db.insert("thoughtfulPacks", { workspace: "T1", giver: holder, recipient: owner, week: "2026-10-12", message, holdsSticker: false, at: Date.now() });
+    }
+  });
 }
 
 async function faceOf(person: Person) {
