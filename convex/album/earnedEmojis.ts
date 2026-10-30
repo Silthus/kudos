@@ -496,7 +496,12 @@ function teamStickerOf(ctx: QueryCtx, member: MemberId, team: string) {
 
 async function holdsMilestoneTier(ctx: QueryCtx, member: MemberId, cause: string): Promise<boolean> {
   const emoji = milestoneTierEmojiOf(cause);
-  return emoji !== null && (await tierOf(ctx, member, emoji.milestone, emoji.tier)) !== null;
+  const reached = emoji === null ? null : await tierOf(ctx, member, emoji.milestone, emoji.tier);
+  return reached !== null && (await isTierTurnedBy(ctx, member, reached));
+}
+
+async function isTierTurnedBy(ctx: QueryCtx, member: MemberId, tier: ReachedTier & { at: number }): Promise<boolean> {
+  return !(await hiddenItemsShownTo(ctx, member)) || (await tierUnlockedAt(ctx, member, tier, tier.at)) !== null;
 }
 
 function tierOf(ctx: QueryCtx, member: MemberId, milestone: MilestoneId, tier: MilestoneTier) {
