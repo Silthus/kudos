@@ -90,7 +90,7 @@ export const memberWelcomedEventValidator = domainEvent({
 
 export type MemberWelcomedEvent = Infer<typeof memberWelcomedEventValidator>;
 
-export const memberGreetedEventValidator = v.object({
+export const memberGreetedEventValidator = domainEvent({
   type: v.literal("memberGreeted"),
   workspace: v.string(),
   member: v.id("members"),
