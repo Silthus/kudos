@@ -11,6 +11,17 @@ const chatUrl = "https://app.slack.com/client/T1";
 
 const withBookNext: Album = { ...albumFixtures.midway, bookNext: { chatUrl, rarityCaps: true } };
 
+const withStickersWaiting: Album = {
+  ...withBookNext,
+  packs: [{ pack: "pack-ivo", person: "ivo-lark", earnedAt: 0, thanked: { name: "Ivo Lark", face: null } }],
+  tray: [{ item: "tray-mara", kind: "sticker", person: "mara-fenn", thanked: { name: "Mara Fenn", face: null } }],
+};
+
+const withAnEmptyTeam: Album = {
+  ...withBookNext,
+  teams: [...withBookNext.teams, { ...withBookNext.teams.find(({ team }) => team === "lanterns")!, team: "soloists", name: "Soloists", mine: false, people: [], unmatched: [], held: 0, total: 0, state: "progress" }],
+};
+
 const arrival = { timeout: 10_000 };
 
 beforeEach(() => {
@@ -91,11 +102,23 @@ describe("HH86: a team page still collecting explains how to complete it", { tim
   });
 
   it("says the last missing teammate completes the team", async () => {
-    visit("paper-moons");
+    visit("paper-moons", { ...withBookNext, packs: [] });
 
     await userEvent.click((await photo()).getByRole("button", { name: "Rook Dale, not in your album yet: how to get them" }));
 
     expect(screen.getByRole("dialog", { name: "Rook isn't in your album yet" })).toHaveTextContent("Give Rook a kudos: their sticker joins your album, and the team is complete.");
+  });
+
+  it("sends you to a missing teammate's waiting pack or tray card instead of asking for another kudos", async () => {
+    visit("salt-and-sparrow", withStickersWaiting);
+
+    await userEvent.click((await photo()).getByRole("button", { name: /^Ivo Lark/ }));
+    const ivo = within(screen.getByRole("dialog", { name: "Ivo isn't in your album yet" }));
+    expect(ivo.getByText("Ivo's pack is waiting. Open it from your packs to add Ivo to your album.")).toBeInTheDocument();
+    expect(ivo.queryByRole("link")).toBeNull();
+
+    await userEvent.click((await photo()).getByRole("button", { name: /^Mara Fenn/ }));
+    expect(screen.getByRole("dialog", { name: "Mara isn't in your album yet" })).toHaveTextContent("Mara's card is in your tray. Put it in from the top bar.");
   });
 
   it("gives a missing teammate's sticker a How to get hint", async () => {
@@ -108,6 +131,14 @@ describe("HH86: a team page still collecting explains how to complete it", { tim
     visit("salt-and-sparrow");
 
     expect((await photo()).getByRole("link", { name: "Oren Pike In your album" })).toHaveAttribute("href", "/book#people/oren-pike");
+  });
+
+  it("leaves a team nobody can collect yet as it is", async () => {
+    visit("soloists", withAnEmptyTeam);
+
+    expect(await screen.findByRole("heading", { name: "Soloists" }, arrival)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Unlock the Soloists sticker/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /how to unlock it$/ })).toBeNull();
   });
 
   it.each([
@@ -133,6 +164,17 @@ describe("HH87: the team card says who is left and what the sticker pays", { tim
       [expect.stringMatching(/^Give Mara a kudos/), chatUrl],
       [expect.stringMatching(/^Give Teo a kudos/), chatUrl],
     ]);
+  });
+
+  it("says whose sticker already waits in a pack or the tray, with no Give a kudos button for them", async () => {
+    const card = within(await openedTeamCard("Salt and Sparrow", "salt-and-sparrow", withStickersWaiting));
+
+    expect(card.getAllByRole("listitem").filter((row) => row.closest(".al-give")).map((row) => row.textContent)).toEqual([
+      expect.stringMatching(/^.*Ivo Lark.*Pack waiting$/),
+      expect.stringMatching(/^.*Mara Fenn.*In your tray$/),
+      expect.stringMatching(/Give Teo a kudos/),
+    ]);
+    expect(card.getAllByRole("link", { name: /^Give / })).toHaveLength(1);
   });
 
   it("pays a rare hoggie and the team emoji, and no XP, and says only kudos reach epic and legendary", async () => {
