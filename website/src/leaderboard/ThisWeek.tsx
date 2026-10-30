@@ -2,14 +2,17 @@ import { useEffect, useRef } from "react";
 import type { Highlight, HugBoards, Tallies } from "../../../convex/website/leaderboard";
 import type { AlbumLevel, AlbumMe } from "../album/answer";
 import { levelShareOf, plural, xpToNextOf } from "../album/facts";
+import { NamedEmoji } from "../Emoji";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { AnswerPage } from "../pages/AnswerPage";
 import { LoadingPage } from "../pages/LoadingPage";
 import "./leaderboard.css";
 import { isWaitingForTheWeeksBoards, type HugBoardsOfMeasure } from "./measures";
+import { NextStep } from "./NextStep";
 import { PeopleBoard, TeamBoard, type MeasureChoice } from "./PeopleBoard";
 import { TeamsJoiningInBoard } from "./TeamsJoiningIn";
+import { WithinReach } from "./WithinReach";
 
 type ThisWeekAnswerProps = { boards: HugBoardsOfMeasure; me: AlbumMe; level: AlbumLevel; onViewed: () => void; onSignIn: () => void; onSignOut: () => void };
 
@@ -44,6 +47,7 @@ function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
           </div>
         )}
       </div>
+      {boards.withinReach !== undefined && <WithinReach reachable={boards.withinReach} />}
     </div>
   );
 }
@@ -59,22 +63,26 @@ function useViewedOnce(onViewed: () => void) {
   }, []);
 }
 
-function YouCard({ boards: { you }, me, level }: { boards: HugBoards; me: AlbumMe; level: AlbumLevel }) {
+function YouCard({ boards, me, level }: { boards: HugBoards; me: AlbumMe; level: AlbumLevel }) {
+  const { you, next, kudosEmoji, slack, team } = boards;
   return (
     <section className="lb-you" aria-label="You this week">
-      <div className="lb-you-who">
-        <MemberFace face={me.face} className="lb-face-lg" />
-        <div>
-          <p className="lb-you-name ph-no-capture">{me.name}</p>
-          <LevelBar level={level} />
+      <div className="lb-you-main">
+        <div className="lb-you-who">
+          <MemberFace face={me.face} className="lb-face-lg" />
+          <div>
+            <p className="lb-you-name ph-no-capture">{me.name}</p>
+            <LevelBar level={level} />
+          </div>
         </div>
+        <HighlightLine words={wordsOf(you.highlight)} />
+        <dl className="lb-tallies">
+          {(Object.keys(tallyTerms) as Array<keyof Tallies>).map((tally) => (
+            <Tally key={tally} figure={you.tallies[tally]} before={you.lastWeek[tally]} term={tallyTerms[tally]} />
+          ))}
+        </dl>
       </div>
-      <HighlightLine words={wordsOf(you.highlight)} />
-      <dl className="lb-tallies">
-        {(Object.keys(tallyTerms) as Array<keyof Tallies>).map((tally) => (
-          <Tally key={tally} figure={you.tallies[tally]} before={you.lastWeek[tally]} term={tallyTerms[tally]} />
-        ))}
-      </dl>
+      {next !== undefined && <NextStep step={next} emoji={<NamedEmoji name={kudosEmoji.kudosEmoji} image={kudosEmoji.kudosEmojiImage ?? undefined} />} slack={slack} team={team?.name ?? null} />}
     </section>
   );
 }
