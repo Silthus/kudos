@@ -25,12 +25,14 @@ export async function hugRunningTotalsIn(ctx: QueryCtx, workspace: string, perio
   return new Map(rows.map(({ member, runningTotal }) => [member, runningTotal]));
 }
 
-export async function hasHugRunningTotal(ctx: QueryCtx, member: MemberId, period: PeriodKey): Promise<boolean> {
-  return (await runningTotalRowOf(ctx, member, period)) !== null;
+export async function hugRunningTotalOf(ctx: QueryCtx, member: MemberId, period: PeriodKey): Promise<RunningTotal | null> {
+  return (await runningTotalRowOf(ctx, member, period))?.runningTotal ?? null;
 }
 
 export async function recordHugRunningTotal(ctx: MutationCtx, { workspace, member, period }: PeriodOfMember, runningTotal: RunningTotal) {
-  await ctx.db.insert("hugRunningTotals", { workspace, member, period, runningTotal });
+  const row = await runningTotalRowOf(ctx, member, period);
+  if (row === null) await ctx.db.insert("hugRunningTotals", { workspace, member, period, runningTotal });
+  else await ctx.db.patch(row._id, { runningTotal });
 }
 
 function runningTotalRowOf(ctx: QueryCtx, member: MemberId, period: PeriodKey) {

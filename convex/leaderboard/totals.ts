@@ -12,7 +12,7 @@ import { improvement, type Improvement } from "./improvement";
 import { peerOf, type Peer } from "./peer";
 import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay, periodOfKey, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Days, type Period, type PeriodKey } from "./periods";
 import { addCounts, countedKeys, countOnce, landingAt } from "./counts";
-import { hasHugRunningTotal, hugRunningTotalsIn, recordHugRunningTotal } from "./hugRunningTotals";
+import { hugRunningTotalOf, hugRunningTotalsIn, recordHugRunningTotal } from "./hugRunningTotals";
 import { noteThanker } from "./thankers";
 import { boardMembers, boardViewOf, giversAmong, rankedOf, withoutViewer, type KudosByMember, type Ranked } from "./rankedBoard";
 import { totalUpTo, withKudosOn, type RunningTotal } from "./runningTotal";
@@ -87,7 +87,7 @@ async function fillKudosRunningTotal(ctx: MutationCtx, total: Total) {
 }
 
 async function fillHugRunningTotal(ctx: MutationCtx, total: Total) {
-  if (givenIn(total, "hugsGiven") === 0 || (await hasHugRunningTotal(ctx, total.member, total.period))) return false;
+  if (givenIn(total, "hugsGiven") === 0 || isWholeFor(await hugRunningTotalOf(ctx, total.member, total.period), total)) return false;
   const runningTotal = await runningTotalFromDays(ctx, total, "hugsGiven");
   if (runningTotal === undefined) return false;
   await recordHugRunningTotal(ctx, total, runningTotal);
@@ -147,7 +147,11 @@ function kudosRunningTotalsOf(totals: Total[]): Map<MemberId, RunningTotal> | nu
 
 async function hugRunningTotalsOf(ctx: QueryCtx, workspace: string, period: PeriodKey, totals: Total[]): Promise<Map<MemberId, RunningTotal> | null> {
   const runningTotals = await hugRunningTotalsIn(ctx, workspace, period);
-  return totals.every((total) => givenIn(total, "hugsGiven") === 0 || runningTotals.has(total.member)) ? runningTotals : null;
+  return totals.every((total) => givenIn(total, "hugsGiven") === 0 || isWholeFor(runningTotals.get(total.member) ?? null, total)) ? runningTotals : null;
+}
+
+function isWholeFor(runningTotal: RunningTotal | null, total: Total): boolean {
+  return runningTotal !== null && (runningTotal.at(-1) ?? 0) === givenIn(total, "hugsGiven");
 }
 
 async function dayTotalsUpToTheSameDay(ctx: QueryCtx, workspace: string, { first, last }: Days, measure: GivenMeasure): Promise<KudosByMember> {

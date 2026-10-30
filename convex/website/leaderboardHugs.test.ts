@@ -687,6 +687,15 @@ describe("HH80 HH81: Slack ranks Everyone by hugs given while leaderboard-hugs i
     expect(await leaderboardSays(alice)).toEqual(["🥇 <@U_ALICE> · 2 hugs", "▲ 1 more hug than this time last week"]);
   });
 
+  test("the peer line compares the hugs given gained across the member's group", async () => {
+    await inTheOtters(alice, bob, carol, dana);
+    await thisWeek();
+    for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
+    await thanks(bob, why, carol);
+
+    expect(await leaderboardSays(alice)).toContain("You improved more than everyone else in Otters.");
+  });
+
   test.each([
     { period: "month", says: ["🥇 <@U_ALICE> · 2 hugs", "🥈 <@U_BOB> · 1 hug", "▲ 2 more hugs than this time last month"] },
     { period: "all", says: ["🥇 <@U_ALICE> · 2 hugs", "🥈 <@U_BOB> · 1 hug"] },
