@@ -22,6 +22,7 @@ export function useFloatingCard<Spot extends HTMLElement>() {
       setHovered(true);
     },
     onMouseLeave: () => {
+      window.clearTimeout(leaving.current);
       leaving.current = window.setTimeout(() => setHovered(false), hoverGrace);
     },
   };

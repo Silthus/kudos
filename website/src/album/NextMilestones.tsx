@@ -4,7 +4,7 @@ import { Medal } from "../book/Medal";
 import { SlackLink } from "../SlackLink";
 import type { Album, BookNext } from "./answer";
 import { FloatingCard } from "./FloatingCard";
-import { emblemOf, hoggiePaidWords, howToGetWords, milestoneNameOf, slackActionWords, tierEmojiOf, tierWordOf } from "./milestones";
+import { emblemOf, hoggiePaidWords, howToGetWords, kudosOnlyOddsWords, milestoneNameOf, slackActionWords, tierEmojiOf, tierWordOf } from "./milestones";
 import { highestEarnedOf, nextMilestonesOf, shareOf, toGoOf, type NextMedal } from "./profile";
 import { useFloatingCard } from "./useFloatingCard";
 import "./nextMilestones.css";
@@ -74,6 +74,7 @@ function MilestoneCard({ album, bookNext, medal }: { album: Album; bookNext: Boo
           <img src={emoji.picture} alt="" />:{emoji.name}:
         </li>
       </ul>
+      {bookNext.rarityCaps && <p className="al-floating-note">{kudosOnlyOddsWords}</p>}
       <SlackLink chatUrl={bookNext.chatUrl} variant="primary">
         {slackActionWords(milestone.id)}
       </SlackLink>

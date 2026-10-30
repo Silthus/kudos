@@ -162,6 +162,14 @@ describe("HH84: a milestone tile opens a card with how to get it and what it pay
     expect(paysOf(await opened("Bridge builder", { ...onPageD, bookNext: { chatUrl, rarityCaps: false } }))[0]).toBe("A rare hoggie or rarer");
   });
 
+  it("says kudos are the only way to epic and legendary hoggies while rarity-caps is on", async () => {
+    expect(await opened("Bridge builder")).toHaveTextContent("Kudos are the only way to epic and legendary hoggies.");
+  });
+
+  it("says nothing about epic and legendary while rarity-caps is off", async () => {
+    expect(await opened("Bridge builder", { ...onPageD, bookNext: { chatUrl, rarityCaps: false } })).not.toHaveTextContent(/only way/);
+  });
+
   it.each([
     ["Full of friends", "Give a kudos to 13 people you haven't thanked yet.", "Give a kudos in Slack"],
     ["Collector", "Find 22 hoggies you don't have yet: hugs and kudos both find them.", "Hug a message in Slack"],
@@ -235,6 +243,21 @@ describe("HH85: the card floats, opens on hover or click, and closes on Escape, 
     fireEvent.mouseLeave(dialog);
     await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("stays open when the pointer leaves the card and comes back to the tile within a moment", async () => {
+    visit("/book#me");
+    const bridge = (await tile("Bridge builder")).closest("li")!;
+
+    fireEvent.mouseEnter(bridge);
+    const dialog = card("Bridge builder");
+    fireEvent.mouseLeave(bridge);
+    fireEvent.mouseEnter(dialog);
+    fireEvent.mouseLeave(dialog);
+    fireEvent.mouseEnter(bridge);
+    await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+
+    expect(card("Bridge builder")).toBeInTheDocument();
   });
 
   it("stays open once a click pinned it, when the pointer leaves", async () => {

@@ -78,6 +78,12 @@
   height: 1rem;
 }
 
+.al-floating-note {
+  margin: -0.25rem 0 0.625rem;
+  color: var(--al-quiet);
+  font-size: 0.75rem;
+}
+
 @keyframes al-floating-swirl-up {
   from {
     opacity: 0;

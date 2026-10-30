@@ -102,6 +102,8 @@ const hoggiePaid: Record<"capped" | "today", Record<MilestoneTierId, string>> = 
   today: { bronze: "An uncommon hoggie or rarer", silver: "A rare hoggie or rarer", gold: "An epic hoggie or rarer", diamond: "A legendary hoggie" },
 };
 
+export const kudosOnlyOddsWords = "Kudos are the only way to epic and legendary hoggies.";
+
 export function hoggiePaidWords(tier: MilestoneTierId, rarityCaps: boolean) {
   return hoggiePaid[rarityCaps ? "capped" : "today"][tier];
 }
