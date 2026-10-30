@@ -30,7 +30,6 @@ const mondayPath = [...todaysFlags, "monday-quest"];
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
 const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teammate with :taco:, earns much more XP.";
 const sendMondayDm = "slack/mondayDm:sendMondayDm";
-const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
 const welcomeOnFirstThanks = "welcome/welcome:welcomeOnFirstThanks";
 const carolsHype = "carol-lindqvist-hype";
 
@@ -149,7 +148,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     expect(dmsTo(alice)).toEqual([]);
   });
 
-  test("a member whose quests never started keeps today's recap and gets no Monday DM", async () => {
+  test("a member whose quests never started gets today's recap from the Monday DM", async () => {
     await switchWebsite(t, postHog, true, ...todaysFlags);
     const carolsMessage = await thanks(carol, "thanks", alice);
     await hug(bob, carol, carolsMessage);
@@ -158,6 +157,7 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     await mondayArrives();
 
     expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
+    expect((await mondayDmsSentTo(bob)).map(({ properties }) => properties.sections)).toEqual(["hugs"]);
   });
 
   test("for a member previewing the website while it is closed for the workspace, the links go through the sign-in entry", async () => {
@@ -293,60 +293,6 @@ describe("HH58 HH59 HH60: while hype-nudge is on, the Monday DM names one teamma
   });
 });
 
-describe("MQ26: a member's week of hugs goes out once, in the Monday DM, whichever start runs first", { timeout: 60_000 }, () => {
-  test("with today's recap starting first, the member still gets one DM with their hugs and their quests", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await thanks(alice, saysWhy, bob);
-    const hugged = await hug(bob, alice);
-    await sweepsAt(Date.now() + hourMs);
-    await settleUpTo(t, mondayNine - 1);
-
-    await startsFirst(sendHugsRecap);
-    await settleUpTo(t, mondayNine + hourMs);
-
-    expect(dmsTo(alice).map(seen).map((dm) => [dm[0]?.split("\n")[0], dm[2]?.split("\n")[0]])).toEqual([["section: :taco: Your week in hugs", "section: *Your onboarding journey* · 1 of 3 done"]]);
-  });
-
-  test("with the Monday DM starting first and its post held, today's recap stands down, and one DM goes out", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await thanks(alice, saysWhy, bob);
-    const hugged = await hug(bob, alice);
-    await sweepsAt(Date.now() + hourMs);
-    await settleUpTo(t, mondayNine - 1);
-    const recap = await cancelled(sendHugsRecap);
-    const held = slack.holdNext("chat.postMessage");
-
-    const sending = settleUpTo(t, mondayNine);
-    await held.reached;
-    await t.mutation(internal.hugs.recap.startRecap, recap);
-    held.release();
-    await sending;
-    await settleUpTo(t, mondayNine + hourMs);
-
-    expect(dmsTo(alice)).toHaveLength(1);
-    expect(seen(dmsTo(alice)[0]!)[0]).toMatch(/^section: :taco: Your week in hugs/);
-  });
-});
-
-describe("MQ26: once today's recap has begun its tries, the week stays its own", { timeout: 60_000 }, () => {
-  test("a Monday DM row that appears before the recap's retry leaves the hugs to the recap", async () => {
-    await switchWebsite(t, postHog, true, ...mondayPath);
-    await hug(bob, alice);
-    slack.answeringIn("chat.postMessage", alice.user, rateLimitedFor(30 * 60));
-    await mondayArrives(mondayNine + 10 * minuteMs);
-
-    slack.withMember(alice.user, { real_name: alice.name, tz: "Pacific/Honolulu" });
-    await memberChanged(t, "user_change", { id: alice.user, team_id: "T1", real_name: alice.name, tz: "Pacific/Honolulu" });
-    await thanksWithinAMinute(alice, saysWhy, bob);
-    await sweepsAt(mondayNine + 15 * minuteMs);
-    await settleUpTo(t, honoluluMondayNine - minuteMs);
-    await startsFirst(sendHugsRecap);
-    await settleUpTo(t, honoluluMondayNine + minuteMs);
-
-    expect(seen(dmsTo(alice).at(-1)!)[0]).toMatch(/^section: \*Your onboarding journey\*/);
-  });
-});
-
 describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () => {
   test("a delivered DM records dm sent with its sections, and hugs recap sent as today", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
@@ -359,7 +305,7 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
     expect(productEvents("hugs recap sent").map(({ properties }) => properties.hugs_received).toSorted(), "the hugs received in Bob's recap and in Alice's Monday DM").toEqual([0, 1]);
   });
 
-  test("hugs recap sent names the DM that carried the hugs, so the Monday DM's add up with its dm sent", async () => {
+  test("hugs recap sent names the Monday DM as the DM that carried the hugs, so its count adds up with dm sent", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
     await hug(bob, alice);
@@ -367,15 +313,15 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
 
     await mondayArrives();
 
-    expect(dmsTo(carol), "Carol was only hugged, so she keeps today's recap").toHaveLength(1);
+    expect(dmsTo(carol), "Carol was only hugged, so her Monday DM is her recap alone").toHaveLength(1);
     const recapsSent = productEvents("hugs recap sent").map(({ properties }) => ({ given: properties.hugs_given, received: properties.hugs_received, via: properties.via }));
-    expect(recapsSent.toSorted((first, second) => JSON.stringify(first).localeCompare(JSON.stringify(second))), "Alice's and Bob's Monday DMs, and Carol's recap").toEqual([
+    expect(recapsSent.toSorted((first, second) => JSON.stringify(first).localeCompare(JSON.stringify(second))), "Alice's, Bob's and Carol's Monday DMs").toEqual([
       { given: 0, received: 1, via: "monday" },
-      { given: 0, received: 1, via: "recap" },
+      { given: 0, received: 1, via: "monday" },
       { given: 2, received: 0, via: "monday" },
     ]);
     const mondayDmsWithHugs = productEvents("dm sent").filter(({ properties }) => properties.kind === "monday" && String(properties.sections).split(",").includes("hugs"));
-    expect(recapsSent.filter(({ via }) => via === "monday")).toHaveLength(mondayDmsWithHugs.length);
+    expect(recapsSent).toHaveLength(mondayDmsWithHugs.length);
   });
 
   test("a rate limit is retried, at most three tries in all", async () => {
@@ -419,8 +365,8 @@ describe("MQ27: the Monday DM goes out at most once", { timeout: 60_000 }, () =>
     await sweepsAt(Date.now() + hourMs);
     await settleUpTo(t, mondayNine - 1);
 
-    await startsFirst(sendMondayDm);
-    await startsFirst(sendMondayDm);
+    await startsFirst();
+    await startsFirst();
     await sweepsAt(mondayNine + hourMs);
     await sweepsAt(mondayNine + 2 * hourMs);
 
@@ -610,14 +556,14 @@ describe("MQ35: a link button's dm-link action records dm link clicked, on the w
 });
 
 describe("MQ31 MQ32 MQ33 retired: the catch-up went out once, and no Monday DM carries it again", { timeout: 60_000 }, () => {
-  test("a member who used HedgeHug and was never welcomed gets no catch-up and no Monday DM row of their own, even with catch-up-welcome on", async () => {
+  test("a member who used HedgeHug and was never welcomed gets no catch-up, only their hugs in the Monday DM, even with catch-up-welcome on", async () => {
     await usedBeforeTheMondayPath();
 
     await mondayArrives();
 
     expect(dmsTo(bob).map(({ text, blocks }) => ({ opening: String(text).split("\n").slice(0, 2), blocks }))).toEqual([{ opening: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP)."], blocks: undefined }]);
     expect(dmsTo(carol)).toEqual([]);
-    expect(await mondayDmRowsOf(bob, carol)).toEqual([]);
+    expect((await mondayDmRowsOf(bob, carol)).map(({ sections }) => sections)).toEqual([["hugs"]]);
     expect(await welcomePathsOf(bob, carol)).toEqual([]);
   });
 });
@@ -659,7 +605,7 @@ describe("MQ23 MQ24: the sweep ensures a Monday DM row only for a member the Mon
     expect(await mondayDmsSentTo(alice)).toEqual([]);
   });
 
-  test("a started member taken out of monday-quest before their row is ensured gets today's recap from the recap itself", async () => {
+  test("a started member taken out of monday-quest before their row is ensured gets today's recap alone from the Monday DM", async () => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     await thanks(alice, saysWhy, bob);
     await hug(bob, alice);
@@ -668,7 +614,7 @@ describe("MQ23 MQ24: the sweep ensures a Monday DM row only for a member the Mon
     await mondayArrives();
 
     expect(dmsTo(alice).map(({ text, blocks }) => ({ opening: String(text).split("\n")[0], blocks }))).toEqual([{ opening: ":taco: Your week in hugs", blocks: undefined }]);
-    expect(await mondayDmsSentTo(alice)).toEqual([]);
+    expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["hugs"]);
   });
 });
 
@@ -746,7 +692,6 @@ async function mondayArrives(until = mondayNine + hourMs) {
 
 async function sweepsAt(at: number) {
   await settleUpTo(t, at);
-  await t.mutation(cronNamed("schedule each member's weekly hugs recap"), {});
   await t.mutation(cronNamed("ensure each member's coming Monday DM"), {});
   await settleUpTo(t, at);
 }
@@ -758,9 +703,8 @@ function cronNamed(name: string) {
   return makeFunctionReference<"mutation">(job.name);
 }
 
-async function startsFirst(functionName: typeof sendMondayDm | typeof sendHugsRecap) {
-  const args = await cancelled(functionName);
-  await t.mutation(functionName === sendMondayDm ? internal.mondayDm.mondayDm.startMondayDm : internal.hugs.recap.startRecap, args);
+async function startsFirst() {
+  await t.mutation(internal.mondayDm.mondayDm.startMondayDm, await cancelled(sendMondayDm));
 }
 
 async function stopped(functionName: string) {

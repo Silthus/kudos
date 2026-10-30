@@ -338,7 +338,7 @@ export default defineSchema({
     tries: v.number(),
   })
     .index("by_member_week", ["member", "week"])
-    .index("by_recap_due", ["recap", "dueAt"]),
+    .index("by_week", ["week"]),
 
   mondayDms: defineTable(mondayDmValidator).index("by_member_monday", ["member", "monday"]).index("by_state_due", ["state", "dueAt"]),
 
