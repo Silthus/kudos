@@ -12,6 +12,7 @@ import { improvement, type Improvement } from "./improvement";
 import { peerOf, type Peer } from "./peer";
 import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay, periodOfKey, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Days, type Period, type PeriodKey } from "./periods";
 import { addCounts, countedKeys, countOnce, landingAt } from "./counts";
+import { noteThanker } from "./thankers";
 import { boardMembers, boardViewOf, giversAmong, rankedOf, withoutViewer, type KudosByMember, type Ranked } from "./rankedBoard";
 import { totalUpTo, withKudosOn, type RunningTotal } from "./runningTotal";
 import { isOnTheBoards } from "./visibility";
@@ -43,9 +44,11 @@ export async function countGiven(ctx: MutationCtx, given: GivenMessage) {
   return true;
 }
 
-export async function countReceived(ctx: MutationCtx, { workspace, at }: Pick<KudosGivenEvent, "workspace" | "at">, { award, recipient, kudos }: AwardWithId) {
+export async function countReceived(ctx: MutationCtx, { workspace, giver, at }: Pick<KudosGivenEvent, "workspace" | "giver" | "at">, { award, recipient, kudos }: AwardWithId) {
   if (!(await countOnce(ctx, workspace, countedKeys.kudosReceived(award)))) return false;
-  await addCounts(ctx, await landingAt(ctx, workspace, recipient, at), { kudosReceived: kudos });
+  const landing = await landingAt(ctx, workspace, recipient, at);
+  await addCounts(ctx, landing, { kudosReceived: kudos });
+  await noteThanker(ctx, landing, giver);
   return true;
 }
 
