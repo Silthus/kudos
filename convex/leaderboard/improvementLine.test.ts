@@ -9,6 +9,6 @@ describe("G18's improvement line in words", () => {
     { rule: "no gain names the best completed period", improvement: { best: 6 }, period: "week", line: "Your best week so far: 6 kudos." },
     { rule: "the best period follows the period asked for", improvement: { best: 19 }, period: "month", line: "Your best month so far: 19 kudos." },
   ] as const)("$rule", ({ improvement, period, line }) => {
-    expect(improvementLine(improvement, period)).toBe(line);
+    expect(improvementLine(improvement, period, "kudosGiven")).toBe(line);
   });
 });

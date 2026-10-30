@@ -2,11 +2,11 @@ import type { ViewedBoard } from "../analytics/projections";
 import type { GroupId } from "../groups/groups";
 import type { BoardRow, BoardView } from "../leaderboard/board";
 import type { GroupsBoard, GroupsBoardRow } from "../leaderboard/groupsBoard";
-import { groupImprovementLine, improvementLine } from "../leaderboard/improvementLine";
+import { givenCount, groupImprovementLine, improvementLine } from "../leaderboard/improvementLine";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import type { Peer } from "../leaderboard/peer";
 import type { Period } from "../leaderboard/periods";
-import type { EveryoneBoardView } from "../leaderboard/totals";
+import type { EveryoneBoardView, GivenMeasure } from "../leaderboard/totals";
 import { asWritten } from "./groupCopy";
 import { slashCommand } from "./naming";
 import type { Line } from "./segments";
@@ -15,17 +15,24 @@ const medals = ["🥇", "🥈", "🥉"];
 
 const aheadOfEveryone = 100;
 
-const joinTheBoard: Record<Period, string> = {
-  week: "Give kudos this week to join the board.",
-  month: "Give kudos this month to join the board.",
-  all: "Give kudos to join the board.",
+const joinTheBoard: Record<GivenMeasure, Record<Period, string>> = {
+  kudosGiven: {
+    week: "Give kudos this week to join the board.",
+    month: "Give kudos this month to join the board.",
+    all: "Give kudos to join the board.",
+  },
+  hugsGiven: {
+    week: "Give a hug this week to join the board.",
+    month: "Give a hug this month to join the board.",
+    all: "Give a hug to join the board.",
+  },
 };
 
 export type ShownBoard = { board: ViewedBoard; lines: Line[] };
 
 export function renderEveryoneBoard(view: EveryoneBoardView, period: Period): Line[] {
-  const improvement = view.improvement === null || period === "all" ? [] : [[{ text: improvementLine(view.improvement, period) }]];
-  return [...renderIndividualBoard(view, period), ...improvement, ...peerLine(view.peer)];
+  const improvement = view.improvement === null || period === "all" ? [] : [[{ text: improvementLine(view.improvement, period, view.measure) }]];
+  return [...renderIndividualBoard(view, period, view.measure), ...improvement, ...peerLine(view.peer)];
 }
 
 export function renderBoards(groups: GroupsBoard<GroupId> | null, myGroup: MyGroupBoardView | null, everyone: EveryoneBoardView, period: Period): ShownBoard[] {
@@ -37,13 +44,13 @@ export function renderBoards(groups: GroupsBoard<GroupId> | null, myGroup: MyGro
   return [...groupBoards, { board: "everyone", lines: groupBoards.length === 0 ? everyoneBoard : [everyoneHeading, ...everyoneBoard] }];
 }
 
-function renderIndividualBoard(view: BoardView, period: Period): Line[] {
-  const rows = view.rows.map((row) => ("gap" in row ? [{ text: "…" }] : boardRow(row)));
-  return [...rows, ...nudgeFor(view, period)];
+function renderIndividualBoard(view: BoardView, period: Period, measure: GivenMeasure): Line[] {
+  const rows = view.rows.map((row) => ("gap" in row ? [{ text: "…" }] : boardRow(row, measure)));
+  return [...rows, ...nudgeFor(view, period, measure)];
 }
 
 function renderMyGroupBoard({ group, board }: MyGroupBoardView, period: Period): Line[] {
-  return [[{ text: `*${asWritten(group)}*` }], ...renderIndividualBoard(board, period)];
+  return [[{ text: `*${asWritten(group)}*` }], ...renderIndividualBoard(board, period, "kudosGiven")];
 }
 
 function peerLine(peer: Peer | null): Line[] {
@@ -73,14 +80,14 @@ export function renderLeaderboardUsage(): Line[] {
   return [[{ text: `Try ${forms[0]}, ${forms[1]} or ${forms[2]}.` }]];
 }
 
-function nudgeFor({ viewerAbsent }: BoardView, period: Period): Line[] {
+function nudgeFor({ viewerAbsent }: BoardView, period: Period, measure: GivenMeasure): Line[] {
   if (viewerAbsent === "left") return [[{ text: "You're not on the leaderboards. You can change that in Settings." }]];
-  if (viewerAbsent === "not-ranked") return [[{ text: joinTheBoard[period] }]];
+  if (viewerAbsent === "not-ranked") return [[{ text: joinTheBoard[measure][period] }]];
   return [];
 }
 
-function boardRow({ rank, id, value }: BoardRow): Line {
-  return [{ text: `${medalOf(rank)} ` }, { mention: { kind: "person", user: id } }, { text: ` · ${value} kudos` }];
+function boardRow({ rank, id, value }: BoardRow, measure: GivenMeasure): Line {
+  return [{ text: `${medalOf(rank)} ` }, { mention: { kind: "person", user: id } }, { text: ` · ${givenCount(value, measure)}` }];
 }
 
 function groupRow(row: GroupsBoardRow<GroupId>): Line {

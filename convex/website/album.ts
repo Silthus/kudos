@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
 import { hypesHeldFor } from "../album/items/hypes";
 import { reportLeaderboardViewed, type LeaderboardView } from "../analytics/isolatedUsage";
-import { exposeLeaderboardHugs, leaderboardHugsShownTo } from "../leaderboard/flag";
+import { leaderboardHugsApplyTo, leaderboardHugsShownTo } from "../leaderboard/flag";
 import { kudosEmojiPicksOf, pickKudosEmoji as pickKudosEmojiOf, type KudosEmojiPick } from "../album/kudosEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPeriod, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
@@ -415,7 +415,7 @@ export const viewLeaderboard = memberMutation({
   args: { period: v.optional(boardPeriodValidator), measure: v.optional(hugMeasureValidator) },
   handler: async (ctx, me, _person, viewed): Promise<LeaderboardViewAnswer> => {
     if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
-    await exposeLeaderboardHugs(ctx, me.member);
+    await leaderboardHugsApplyTo(ctx, me.member);
     await reportLeaderboardViewed(ctx, { workspace: me.workspace, member: me.member, ...boardViewedOf(viewed), surface: "website", at: Date.now() });
     return { kind: "viewed" };
   },

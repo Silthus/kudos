@@ -12,7 +12,7 @@ describe("GB16 WS344: the peer line says what the website's says", () => {
     { percent: 100, line: "You improved more than everyone else in Ants." },
     { percent: 101, line: "You improved more than everyone else in Ants." },
   ])("at $percent percent: $line", ({ percent, line }) => {
-    const lines = renderEveryoneBoard({ rows: [], improvement: null, peer: { percent, group: ants } }, "week");
+    const lines = renderEveryoneBoard({ rows: [], measure: "kudosGiven", improvement: null, peer: { percent, group: ants } }, "week");
 
     expect(slackTextOf(lines)).toBe(line);
   });

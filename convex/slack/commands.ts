@@ -158,7 +158,8 @@ async function leaderboardReply(ctx: ActionCtx, viewer: Viewer, rest: string[]):
   await ctx.runMutation(internal.groups.flag.exposeGroups, viewer);
   const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, asked);
   const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, asked);
-  const everyone = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, asked);
+  const measure = await ctx.runMutation(internal.leaderboard.flag.everyoneMeasure, viewer);
+  const everyone = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { ...asked, measure });
   const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period }, source: "reply" });
   const boards = renderBoards(groups, myGroup, everyone, period);
   const shown = { groups: boards.some(({ board }) => board === "groups"), myGroup: boards.some(({ board }) => board === "my-group") };
