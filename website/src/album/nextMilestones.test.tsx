@@ -233,29 +233,26 @@ describe("HH85: the card floats, opens on hover or click, and closes on Escape, 
     visit("/book#me");
     const bridge = await tile("Bridge builder");
 
-    fireEvent.mouseEnter(bridge.closest("li")!);
+    movePointer(document.body, bridge);
     const dialog = card("Bridge builder");
-    fireEvent.mouseLeave(bridge.closest("li")!);
-    fireEvent.mouseEnter(dialog);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+    movePointer(bridge, dialog);
+    await aMomentPasses();
     expect(card("Bridge builder")).toBeInTheDocument();
 
-    fireEvent.mouseLeave(dialog);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+    movePointer(dialog, screen.getByRole("region", { name: "This week" }));
+    await aMomentPasses();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("stays open when the pointer leaves the card and comes back to the tile within a moment", async () => {
+  it("stays open when the pointer moves from the card back onto its tile", async () => {
     visit("/book#me");
-    const bridge = (await tile("Bridge builder")).closest("li")!;
+    const bridge = await tile("Bridge builder");
 
-    fireEvent.mouseEnter(bridge);
+    movePointer(document.body, bridge);
     const dialog = card("Bridge builder");
-    fireEvent.mouseLeave(bridge);
-    fireEvent.mouseEnter(dialog);
-    fireEvent.mouseLeave(dialog);
-    fireEvent.mouseEnter(bridge);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+    movePointer(bridge, dialog);
+    movePointer(dialog, bridge);
+    await aMomentPasses();
 
     expect(card("Bridge builder")).toBeInTheDocument();
   });
@@ -296,4 +293,13 @@ describe("HH85: the card floats, opens on hover or click, and closes on Escape, 
 
 function withNoMedals(album: Album): Album {
   return { ...album, milestones: album.milestones.map((milestone) => ({ ...milestone, tiers: milestone.tiers.map((tier) => ({ ...tier, earnedAt: null })) })) };
+}
+
+function movePointer(from: Element, to: Element) {
+  fireEvent.mouseOut(from, { relatedTarget: to });
+  fireEvent.mouseOver(to, { relatedTarget: from });
+}
+
+function aMomentPasses() {
+  return act(() => new Promise((resolve) => setTimeout(resolve, 300)));
 }
