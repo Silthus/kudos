@@ -57,7 +57,7 @@ describe("LP5 LP7: a thanks in Slack earns its pack's hoggie as one item", () =>
 
     const { board } = await albumOf(await signedIn(alice));
 
-    const thankedBob = { kind: "thanks", thanked: { name: bob.name, face: expect.anything() } };
+    const thankedBob = { kind: "thanks", person: await memberOf(bob), thanked: { name: bob.name, face: expect.anything() } };
     expect(board?.items.map(({ reason }) => reason)).toEqual([thankedBob, thankedBob]);
   });
 

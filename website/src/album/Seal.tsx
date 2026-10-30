@@ -1,6 +1,8 @@
 import { TeamCrest } from "../crates/TeamCrest";
 import type { AlbumTeam } from "./answer";
 
+export const sealSize = 128;
+
 export function SealArt({ team, coloured, size }: { team: AlbumTeam; coloured: boolean; size: number }) {
   return (
     <span className="al-seal-art" data-coloured={coloured ? "" : undefined} aria-hidden="true">
