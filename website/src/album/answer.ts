@@ -71,9 +71,11 @@ export type Album = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
-  bookNext?: true;
+  bookNext?: BookNext;
   leaderboardHugs?: true;
 };
+
+export type BookNext = { chatUrl: string; rarityCaps: boolean };
 
 export type AlbumAnswer = { kind: "off" } | Album;
 

@@ -32,11 +32,17 @@ async function albumOfAlice() {
   return asSignedIn.query(api.website.album.getAlbum, {});
 }
 
-describe("HH83 HH89: getAlbum tells the Book whether book-next is on for the member", { timeout: 60_000 }, () => {
-  test("says bookNext while book-next is on", async () => {
+describe("HH83 HH84 HH89: getAlbum tells the Book whether book-next is on for the member", { timeout: 60_000 }, () => {
+  test("says bookNext while book-next is on, with the workspace's Slack link and rarity-caps for the milestone cards", async () => {
+    await switchWebsite(t, postHog, true, "album", "book-next", "rarity-caps");
+
+    expect(await albumOfAlice()).toMatchObject({ kind: "album", bookNext: { chatUrl: "https://app.slack.com/client/T1", rarityCaps: true } });
+  });
+
+  test("says rarity-caps is off while it is off for the member", async () => {
     await switchWebsite(t, postHog, true, "album", "book-next");
 
-    expect(await albumOfAlice()).toMatchObject({ kind: "album", bookNext: true });
+    expect(await albumOfAlice()).toMatchObject({ kind: "album", bookNext: { rarityCaps: false } });
   });
 
   test("leaves bookNext out while book-next is off", async () => {

@@ -22,7 +22,7 @@ import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import type { Id } from "../_generated/dataModel";
 import { hoggieForgeShownTo, hoggiesShownTo, petHoggieShownTo } from "../album/hoggies/flag";
-import { highestForgedFor } from "../album/hoggies/rarityCaps";
+import { highestForgedFor, rarityCapsShownTo } from "../album/hoggies/rarityCaps";
 import { forge } from "../album/hoggies/forge";
 import { makePetOf, petOf, petsIn, type Pet } from "../album/hoggies/pet";
 import { hiddenItemsShownTo } from "../album/items/flag";
@@ -36,6 +36,7 @@ import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import { nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { customEmojiPageOf } from "../workspace/url";
+import { workspaceLink } from "../slack/workspaceLink";
 import { albumPersonOf, albumProfileOf, albumWeekOf, type AlbumPersonAnswer, type AlbumProfileAnswer, type AlbumWeekAnswer } from "./albumPages";
 import { followTheClock } from "./clock";
 import { lastVisitOf } from "./lastVisit";
@@ -72,9 +73,11 @@ export type AlbumAnswer = {
   shareableUrls?: true;
   linkPreviews?: true;
   personPageD?: true;
-  bookNext?: true;
+  bookNext?: BookNext;
   leaderboardHugs?: true;
 } & Onboarding;
+
+export type BookNext = { chatUrl: string; rarityCaps: boolean };
 
 export const mostPeopleShown = 500;
 
@@ -181,7 +184,8 @@ async function personPageDOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<Al
 }
 
 async function bookNextOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "bookNext">> {
-  return (await bookNextShownTo(ctx, me.member)) ? { bookNext: true } : {};
+  if (!(await bookNextShownTo(ctx, me.member))) return {};
+  return { bookNext: { chatUrl: workspaceLink(me.workspace), rarityCaps: await rarityCapsShownTo(ctx, me.member) } };
 }
 
 async function linkPreviewsOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "linkPreviews">> {
