@@ -93,7 +93,7 @@
 
 .lb-tally {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
 }
 
 .lb-tally dd {

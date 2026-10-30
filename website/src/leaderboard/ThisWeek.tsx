@@ -98,11 +98,11 @@ function HighlightLine({ words }: { words: Words }) {
 function Tally({ figure, before, term }: { figure: number; before: number; term: string }) {
   return (
     <div className="lb-tally">
+      <dt>{term}</dt>
       <dd>
         {figure}
         {figure > before && <span className="lb-tally-up">+{figure - before}</span>}
       </dd>
-      <dt>{term}</dt>
     </div>
   );
 }

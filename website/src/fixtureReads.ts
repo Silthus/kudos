@@ -38,6 +38,8 @@ const withQuests = "album-quests";
 
 const withThisWeeksQuests = "album-quests-week";
 
+const withTheWeeksLeaderboard = "album-leaderboard-hugs";
+
 const fixturePeople = fixedPeople(albumFixtures.midway);
 const fixtureWeek = fixtureWeeks();
 
@@ -53,7 +55,7 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
     useSlackEmojiMatches: fixtureSlackEmojiMatches,
     useAppEmojis: fixture === withTheEmojiWizard ? fixtureAppEmojis : (asking) => (asking ? { kind: "off" } : undefined),
-    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === withAnXpMoment ? fixedAlbum(xpMomentAlbum) : fixture === withPersonPageD ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true }) : fixture === withQuests || fixture === withThisWeeksQuests ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true, gettingStarted: null }) : fixtureAlbum,
+    useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixture === withTheEmojiWizard ? fixedAlbum({ ...albumFixtures.midway, emojiWizard: true }) : fixture === withItems ? fixedAlbum(albumFixtures.withItems) : fixture === withAnXpMoment ? fixedAlbum(xpMomentAlbum) : fixture === withPersonPageD ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true }) : fixture === withTheWeeksLeaderboard ? fixedAlbum({ ...albumFixtures.midway, leaderboardHugs: true }) : fixture === withQuests || fixture === withThisWeeksQuests ? fixedAlbum({ ...albumFixtures.midway, personPageD: true, linkPreviews: true, gettingStarted: null }) : fixtureAlbum,
     useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
     useHugBoards: fixedHugBoards(hugBoardsFixtures.lively),
     useAlbumPerson: fixturePeople,
