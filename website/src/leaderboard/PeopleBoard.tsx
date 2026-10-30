@@ -76,7 +76,9 @@ function TeamStanding({ team, measure }: { team: Team; measure: Measure }) {
 }
 
 function teamStandingWords({ name, rows, joinedIn }: Team, { tab, weekly }: Measure): string | null {
-  const rank = rows.find(({ you }) => you)?.rank ?? null;
+  const mine = rows.find(({ you }) => you);
+  if (mine === undefined) return null;
+  const { rank } = mine;
   if (rank === 1) return `You lead ${name} on ${tab.toLowerCase()} this week.`;
   if (rank !== null) return `You're No. ${rank} of ${rows.length} in ${name} on ${tab.toLowerCase()} this week.`;
   if (!weekly || joinedIn) return null;

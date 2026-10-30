@@ -81,6 +81,10 @@ export function byKudosReceived(boards: HugBoards): HugBoards {
   };
 }
 
+export function offTheBoards(boards: HugBoards): HugBoards {
+  return { ...boards, team: boards.team && { ...boards.team, rows: boards.team.rows.filter((row) => !row.you), joinedIn: false } };
+}
+
 export function measuredBy(boards: HugBoards): (measure: HugMeasure) => HugBoards {
   return (measure) => (measure === "level" ? byLevel(boards) : { ...boards, measure });
 }
