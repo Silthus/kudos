@@ -405,12 +405,20 @@ async function analyticsIdOf(t: Backend, user: string) {
 }
 
 async function everythingStoredButExposures(t: Backend) {
-  const stored = await everythingStored(t, { except: ["slackReceipts"] });
-  return stored.filter((row) => !isCrateRewardsExposure(row));
+  const stored = (await everythingStored(t, { except: ["slackReceipts", "recordedFacts"] })).filter((row) => !isCrateRewardsExposure(row));
+  return [...stored.filter((row) => !isFlagExposure(row)), ...exposuresInAnyOrder(stored.filter(isFlagExposure))];
+}
+
+function isFlagExposure(row: Record<string, unknown>) {
+  return "flag" in row && "value" in row;
+}
+
+function exposuresInAnyOrder(exposures: Array<Record<string, unknown>>) {
+  return exposures.map(({ member, flag, value }) => ({ member, flag, value })).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
 }
 
 function isCrateRewardsExposure(row: Record<string, unknown>) {
-  if ("flag" in row && "value" in row) return row.flag === crateRewards;
+  if (isFlagExposure(row)) return row.flag === crateRewards;
   return "event" in row && row.event === "$feature_flag_called" && (row.properties as { feature_flag?: string }).feature_flag === crateRewards;
 }
 
@@ -459,7 +467,7 @@ function inAnyOrder(items: unknown[]) {
 const generatedId = /(?<=[":])\d+[A-Za-z]+(?=")/g;
 
 function withGeneratedIdsRanked<Observed>(observed: Observed): Observed {
-  const json = jsonOf(observed, { except: "_creationTime" });
+  const json = jsonOf(observed, { except: ["_creationTime", "fact"] });
   const ids = [...new Set(json.match(generatedId) ?? [])].filter((id) => id.length === 32);
   const ranks = new Map<string, string>();
   for (const table of new Set(ids.map(tableOf))) {
@@ -471,8 +479,8 @@ function withGeneratedIdsRanked<Observed>(observed: Observed): Observed {
   return JSON.parse(uuids.reduce((ranked, uuid, rank) => ranked.replaceAll(uuid, `uuid#${rank}`), idsRanked));
 }
 
-function jsonOf(value: unknown, { except }: { except?: string } = {}) {
-  return JSON.stringify(value, (key, field: unknown) => (key === except ? undefined : typeof field === "bigint" ? `${field}n` : field));
+function jsonOf(value: unknown, { except = [] }: { except?: string[] } = {}) {
+  return JSON.stringify(value, (key, field: unknown) => (except.includes(key) ? undefined : typeof field === "bigint" ? `${field}n` : field));
 }
 
 function tableOf(id: string) {

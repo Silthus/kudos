@@ -868,6 +868,10 @@ export default defineSchema({
     .index("by_state", ["state"])
     .index("by_due", ["state", "dueAt"]),
 
+  recordedFacts: defineTable({
+    fact: v.string(),
+  }).index("by_fact", ["fact"]),
+
   analyticsDrain: defineTable({
     job: v.id("_scheduled_functions"),
     generation: v.string(),

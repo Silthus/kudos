@@ -80,8 +80,9 @@ export const subscribers: Registry = {
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {
+  const identified = { ...event, fact: crypto.randomUUID() };
   for (const subscription of subscribers[event.type] as Array<Subscription<DomainEvent>>) {
     const { subscriber, only } = "subscriber" in subscription ? subscription : { subscriber: subscription, only: () => true };
-    if (only(event)) await ctx.scheduler.runAfter(0, subscriber, { event });
+    if (only(identified)) await ctx.scheduler.runAfter(0, subscriber, { event: identified });
   }
 }
