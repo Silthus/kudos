@@ -11,6 +11,7 @@ import { AnswerPage } from "../pages/AnswerPage";
 import { LoadingPage } from "../pages/LoadingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SlackLink } from "../SlackLink";
+import { reactionsWayOf, yourReactionsOf } from "./hypeWays";
 import type { Album, CardEmojisShown, KudosOfTheWeek, PersonPage, PersonShown, PlayerCard, PlayerCardAnswer, PlayerCardReads, PlayerCardShown, WeekPerson, WeekShown } from "./answer";
 import { levelShareOf, plural, xpToNextOf } from "./facts";
 import { emblemOf } from "./milestones";
@@ -350,7 +351,7 @@ function Together({ name, together }: { name: string; together: PersonPage }) {
       </dl>
       {together.hype.name !== null && (
         <p className="al-pp-small al-pp-together-hype ph-no-capture">
-          <code>:{together.hype.name}:</code> <span className="al-pp-quiet">{together.hype.earned ? "unlocked by your first kudos" : `give ${first} a kudos to unlock it`}</span>
+          <code>:{together.hype.name}:</code> <span className="al-pp-quiet">{hypeWayWords(together.hype, first)}</span>
         </p>
       )}
     </section>
@@ -491,4 +492,12 @@ const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
 
 function shortDay(at: number) {
   return weekday.format(at);
+}
+
+function hypeWayWords(hype: PersonPage["hype"], first: string): string {
+  const yourReactions = yourReactionsOf(hype, first);
+  if (yourReactions !== null) return `unlocked by ${yourReactions}`;
+  if (hype.earned) return "unlocked by your first kudos";
+  const reactionsWay = reactionsWayOf(hype);
+  return reactionsWay === null ? `give ${first} a kudos to unlock it` : `give ${first} a kudos to unlock it. ${reactionsWay}`;
 }

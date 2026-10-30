@@ -2,14 +2,16 @@ import type { QueryCtx } from "../_generated/server";
 import { storedCompanyMatchOf } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type TeamCrestArt } from "../companyProfiles/teams";
 import { isAPersonOf, type MemberId } from "../workspace/directory";
-import { hypeEarnedBy, hypeEmojiOf as shownHypeEmojiOf } from "./earnedEmojis";
+import { hypeEarnedBy, hypeEarnedByKudos, hypeEmojiOf as shownHypeEmojiOf } from "./earnedEmojis";
+import { hypeByReactionsShownTo } from "./flag";
+import { reactionsToward, type ReactionsToward } from "./hypeCollections";
 import type { PageOwner } from "./teamPages";
 import { inTheAlbumOf } from "./stickers";
 import { anEmptyPair, pairTallyFor, type PairTally } from "./tallies";
 
 export type PersonTeam = { team: string; name: string; art: TeamCrestArt };
 
-export type HypeEmoji = { earned: boolean; name: string | null; picture: string | null; inSlack: boolean };
+export type HypeEmoji = { earned: boolean; name: string | null; picture: string | null; inSlack: boolean; reactions?: ReactionsToward; byReactions?: true };
 
 export type PersonPage = PairTally & { held: boolean; teams: PersonTeam[]; hype: HypeEmoji };
 
@@ -34,5 +36,12 @@ export async function personTeamsOf(ctx: QueryCtx, workspace: string, person: Me
 
 async function hypeEmojiOf(ctx: QueryCtx, { workspace, member }: PageOwner, person: MemberId): Promise<HypeEmoji> {
   const shown = await shownHypeEmojiOf(ctx, workspace, person);
-  return { earned: await hypeEarnedBy(ctx, member, person), name: shown?.name ?? null, picture: shown?.picture ?? null, inSlack: shown?.inSlack ?? false };
+  const earned = await hypeEarnedBy(ctx, member, person);
+  return { earned, name: shown?.name ?? null, picture: shown?.picture ?? null, inSlack: shown?.inSlack ?? false, ...(await collectingByReactionsOf(ctx, member, person, earned)) };
+}
+
+async function collectingByReactionsOf(ctx: QueryCtx, member: MemberId, person: MemberId, earned: boolean): Promise<Pick<HypeEmoji, "reactions" | "byReactions">> {
+  if (member === person || !(await hypeByReactionsShownTo(ctx, member))) return {};
+  const reactions = await reactionsToward(ctx, member, person);
+  return earned && !(await hypeEarnedByKudos(ctx, member, person)) ? { reactions, byReactions: true } : { reactions };
 }

@@ -33,6 +33,11 @@ export async function recordHistorySticker(ctx: MutationCtx, member: MemberId, p
   await ctx.db.insert("albumStickers", { member, person, from: "history", at });
 }
 
+export async function recordReactionsSticker(ctx: MutationCtx, member: MemberId, person: MemberId, at: number) {
+  if (member === person || (await inTheAlbumOf(ctx, member, person))) return;
+  await ctx.db.insert("albumStickers", { member, person, from: "reactions", at });
+}
+
 export async function recordPackSticker(ctx: MutationCtx, member: MemberId, person: MemberId, pack: Id<"thoughtfulPacks">, at: number): Promise<boolean> {
   if (member === person || (await inTheAlbumOf(ctx, member, person))) return false;
   await ctx.db.insert("albumStickers", { member, person, from: "pack", pack, at });

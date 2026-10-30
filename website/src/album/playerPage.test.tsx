@@ -172,6 +172,23 @@ describe("LP93 LP95 LP96: page D shows a teammate's card, their rarest find, the
     expect(together.getByRole("link", { name: "Open in Slack, Wren's profile (opens in a new tab)" })).toBeInTheDocument();
   });
 
+  it("shows how many of their messages you reacted on with their hype emoji, beside the kudos way to unlock it", async () => {
+    visit("/book#people/wren-alder", withPageD, { people: personWithHype({ earned: false, name: "wren-alder-hype", reactions: { have: 3, need: 10 } }) });
+
+    const hype = (await region("You and Wren")).getByText(":wren-alder-hype:").closest("p")!;
+    expect(hype).toHaveTextContent("give Wren a kudos to unlock it");
+    expect(hype).toHaveTextContent("Or react with it on 10 of their messages: 3 of 10");
+  });
+
+  it("names your reactions as the way their hype emoji was unlocked", async () => {
+    visit("/book#people/wren-alder", withPageD, { people: personWithHype({ earned: true, name: "wren-alder-hype", reactions: { have: 10, need: 10 }, byReactions: true }) });
+
+    const hype = (await region("You and Wren")).getByText(":wren-alder-hype:").closest("p")!;
+    expect(hype).toHaveTextContent("unlocked by your reactions on 10 of Wren's messages");
+    expect(hype).not.toHaveTextContent("first kudos");
+    expect(hype).not.toHaveTextContent("Or react");
+  });
+
   it("shows their rarest find under their name, with no way into your own hoggies", async () => {
     visit("/book#people/wren-alder");
 
@@ -218,3 +235,7 @@ describe("LP98: while person-page-d is off, both pages stay as they are", { time
     expect(screen.queryByRole("region", { name: "Wren Alder's card" })).not.toBeInTheDocument();
   });
 });
+
+function personWithHype(hype: PersonPage["hype"]): PersonRead {
+  return (asking, person) => (asking && person !== null ? { ...(fixturePersonOf(withPageD, person) as PersonPage), hype } : undefined);
+}

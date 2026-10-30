@@ -190,7 +190,7 @@ export type PersonPage = {
   hugsReceived: number;
   best: AlbumKudos | null;
   teams: PersonTeam[];
-  hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean };
+  hype: { earned: boolean; name: string | null; picture?: string | null; inSlack?: boolean; reactions?: { have: number; need: number }; byReactions?: true };
   slackProfile: string | null;
   hypePick?: true;
 };
