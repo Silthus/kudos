@@ -149,17 +149,17 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
     expect(contextOf(recapTo(alice)).at(-1)).toEqual({ type: "mrkdwn", text: "Emojis you earned last week: level-5" });
   });
 
-  test("with hidden items on, a milestone tier reached while its item lies face down is not on that week's recap, as the Book still holds it", async () => {
+  test("with hidden items on, a milestone tier and a teammate's hype emoji whose items lie face down are not on that week's recap, as the Book still holds them", async () => {
     await fourMembers([onForEveryone(albumSlack), ...itemsOn]);
     await thanks(alice, why, bob);
     await hugs(alice, await says(dana, "Lunch is in the kitchen"));
 
     await recapsSentOnMonday();
 
-    expect(emojiNamesIn(recapTo(alice))).not.toContain("first-thank-you");
+    expect(emojiNamesIn(recapTo(alice))).toEqual([]);
   });
 
-  test("with hidden items on, a milestone tier reached one week and unlocked by a turn the next is on the recap of the week it unlocked, as the Book shows it", async () => {
+  test("with hidden items on, a milestone tier and a teammate's hype emoji earned one week and unlocked by a turn the next are on the recap of the week they unlocked, as the Book shows them", async () => {
     await fourMembers([onForEveryone(albumSlack), ...itemsOn], { startingAt: lastWeeksTuesday });
     await thanks(alice, why, bob);
     vi.setSystemTime(tuesday);
@@ -168,7 +168,7 @@ describe("AL60: the Monday hug recap names the emojis earned last week", { timeo
 
     await recapsSentOnMonday();
 
-    expect(emojiNamesIn(recapTo(alice))).toEqual(["first-face", "first-thank-you"]);
+    expect(emojiNamesIn(recapTo(alice))).toEqual(["bob-okonkwo-hype", "first-face", "first-thank-you"]);
   });
 
   test("a recap whose pictures Slack refuses goes once more without them, its emoji line as words", async () => {
