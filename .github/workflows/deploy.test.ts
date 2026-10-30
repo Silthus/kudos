@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
 import { runStep } from "./workflowStep";
@@ -21,7 +21,6 @@ const deployments = [
     trigger: "only a run started by hand deploys, never a push or a pull request",
     on: { workflow_dispatch: null },
     secret: "CONVEX_DEPLOY_KEY_SANDBOX",
-    backfill: `pnpm exec convex run quests/pendingCrates:backfillPendingCrates '{"restart":true}'`,
   },
   {
     name: "production",
@@ -29,11 +28,10 @@ const deployments = [
     trigger: "only a push to main deploys, never a pull request",
     on: { push: { branches: ["main"] } },
     secret: "CONVEX_DEPLOY_KEY_PRODUCTION",
-    backfill: "pnpm exec convex run quests/pendingCrates:backfillPendingCrates",
   },
 ];
 
-describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret, backfill }) => {
+describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret }) => {
   const workflow = parse(readFileSync(new URL(`./${file}`, import.meta.url), "utf8")) as Workflow;
   const deployJob = Object.values(workflow.jobs).find((job) => job.steps?.some((step) => step.run?.includes("convex deploy")));
   const steps = deployJob?.steps ?? [];
@@ -42,25 +40,23 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   const uploadStep = steps.find((step) => step.run?.includes("static-hosting upload"));
   const prepareStep = steps.find((step) => step.run?.includes("website/flag:prepareWebsiteFlag"));
   const faceSyncStep = steps.find((step) => step.run?.includes("companyProfiles/sync:syncCompanyProfiles"));
-  const pendingCratesStep = steps.find((step) => step.run?.includes("quests/pendingCrates:backfillPendingCrates"));
   const emojiNamesStep = steps.find((step) => step.run?.includes("album/emojiNames:reserveSharedEmojiNames"));
-  const keyedSteps = [deployStep, pendingCratesStep, uploadStep, prepareStep, faceSyncStep, emojiNamesStep];
+  const keyedSteps = [deployStep, uploadStep, prepareStep, faceSyncStep, emojiNamesStep];
 
   test(trigger, () => {
     expect(workflow.on).toEqual(on);
   });
 
-  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the pending-crate backfill, the website upload, prepareWebsiteFlag, the face sync and the emoji name reservation", () => {
+  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag, the face sync and the emoji name reservation", () => {
     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_DEPLOY_KEY: `\${{ secrets.${secret} }}` });
     const elsewhere = JSON.stringify(workflow, (_, value) => (keyedSteps.includes(value) ? undefined : value));
     expect(elsewhere).not.toContain("secrets");
   });
 
-  test("P85: every deploy backfills the pending-crate index last, so a failing backfill never holds back the website, and runs it whenever the backend deployed", () => {
-    expect(steps.at(-1)).toBe(pendingCratesStep);
-    expect(pendingCratesStep?.run).toBe(backfill);
-    expect(pendingCratesStep?.if).toBe(`\${{ !cancelled() && steps.${deployStep?.id}.outcome == 'success' }}`);
-    expect(deployStep?.id).toBe("deploy");
+  test("every function a deploy runs is one the backend still exports", () => {
+    const ran = steps.flatMap((step) => [...(step.run ?? "").matchAll(/convex run ([\w/]+):(\w+)/g)].map(([, module, name]) => ({ module: module!, name: name! })));
+    expect(ran.length).toBeGreaterThan(0);
+    expect(ran.filter((fn) => !isExported(fn)).map(({ module, name }) => `${module}:${name}`)).toEqual([]);
   });
 
   test("WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting", () => {
@@ -109,7 +105,7 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     const checkedOut = "c".repeat(40);
     const resolved = runStep(tip!.steps!.find((step) => step.id === "tip")!.run!, { git: `[ "$*" = "rev-parse HEAD" ] && echo ${checkedOut}` });
     expect(resolved).toEqual({ status: 0, output: `sha=${checkedOut}\n` });
-    for (const step of keyedSteps.filter((step) => step !== pendingCratesStep)) expect(step?.if).toBeUndefined();
+    for (const step of keyedSteps) expect(step?.if).toBeUndefined();
   });
 
   test("re-running only the failed jobs keeps the first attempt's commit, so it deploys only while that commit is still the branch's tip and never rolls the deployment back", () => {
@@ -128,3 +124,8 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(withRemoteTip(nestedBranchFirst)).not.toBe(0);
   });
 });
+
+function isExported({ module, name }: { module: string; name: string }) {
+  const source = new URL(`../../convex/${module}.ts`, import.meta.url);
+  return existsSync(source) && new RegExp(`^export const ${name}\\b`, "m").test(readFileSync(source, "utf8"));
+}

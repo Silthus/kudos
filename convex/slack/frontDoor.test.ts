@@ -12,26 +12,17 @@ import { recordReward } from "../progression/progression";
 import type { QuestId } from "../quests/pool";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
-const saturday = Date.parse("2026-10-17T10:00:00Z");
-const nextMonday = Date.parse("2026-10-19T10:00:00Z");
-const dayMs = 24 * 60 * 60 * 1000;
 const siteUrl = "https://kudos-site.test";
 const alicesEmail = "alice@example.com";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const saysWhy = "thanks for untangling the release notes today";
-const sayWhy = "Thank someone and say why.";
-const twice = "Thank someone and say why, 2 times.";
-const threeTimes = "Thank someone and say why, 3 times.";
-const twoDays = "Thank someone and say why on 2 different days.";
 const sayingWhyThreeWays: QuestId[] = ["say-why", "say-why-twice", "say-why-three-times"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "skill-tree"];
 const openOnTheWeb = (path: string) => `[link: Open ${fromAppHome(`${siteUrl}${path}`)}]`;
-const swapOnTheWeb = (slot: number) => `[link: Swap ${siteUrl}/?src=app-home]`;
 const onTheWebLine = "You can change this on the web, too.";
 const sectionOnTheWeb = (label: string, section: string, entry = "") => `section: ${onTheWebLine} [link: ${label} ${siteUrl}${entry}/settings?section=${section}&src=app-home]`;
 const inventoryLine = "Your inventory is on the web, too.";
 const inventoryOnTheWeb = `section: ${inventoryLine} [link: Inventory ${siteUrl}/?src=app-home]`;
-const sayingWhyCounts = "context: Saying why counts when your message has 5 or more words besides mentions and emoji.";
 const hints = [
   "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
   "context: To add me to a channel, type `/hedgehug` there.",
@@ -60,7 +51,7 @@ afterEach(() => {
 });
 
 describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link", { timeout: 30_000 }, () => {
-  test("a member who opened Quests and the Leaderboard sees the summary: allowance, one level line, the waiting crate, the week's quests with Swap, and buttons to Home, the Leaderboard and Quests", async () => {
+  test("a member who opened Quests and the Leaderboard sees the summary: allowance, one level line, and buttons to Home, the Leaderboard and Quests", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
     await openReadyFeatures(t);
@@ -70,18 +61,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "actions: [Profile] | Settings",
       "header: Your kudos",
       "section: You have *8* kudos left today. You get *10* more at midnight.",
-      "section: Level 3 · 120 XP to level 4",
-      "divider",
-      `section: ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-      `section: ✅ Give a kudos that says why. ${openOnTheWeb("/")}`,
-      `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/")}`,
-      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/")}`,
-      "divider",
-      "section: *Quests this week*",
-      `section: ✅ ${sayWhy} You earned *20 XP*.`,
-      `section: ${twice} *1/2* · *20 XP* ${swapOnTheWeb(1)}`,
-      `section: ${threeTimes} *1/3* · *20 XP* ${swapOnTheWeb(2)}`,
-      sayingWhyCounts,
+      "section: Level 3 · 190 XP to level 4",
       "divider",
       "actions: Open HedgeHug | Leaderboard | Quests",
       "divider",
@@ -389,82 +369,13 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("Give a kudos that says why."))).toEqual([]);
   });
 
-  test("P85: after the Monday turn, last week's unopened crate waits in the summary before the Journey's, and Open opens it", async () => {
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
-    vi.setSystemTime(nextMonday);
-
-    await openHome(t, "U_ALICE");
-
-    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      `section: *Week of Oct 12:* ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-      `section: ✅ Give a kudos that says why. ${openOnTheWeb("/")}`,
-      `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/")}`,
-      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/")}`,
-    ]);
-
-    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "openQuestCrate", quest: { kind: "weekly", week: "2026-10-12", slot: 0 } })));
-
-    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      `section: ✅ Give a kudos that says why. ${openOnTheWeb("/")}`,
-      `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/")}`,
-      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/")}`,
-    ]);
-  });
-
-  test("P85: with 7 crates waiting from earlier weeks, the summary shows the oldest 5 and how many more", async () => {
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    await waitingFromAnEarlierWeek(t, "U_ALICE", 7);
-
-    await openHome(t, "U_ALICE");
-
-    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      ...Array.from({ length: 5 }, () => `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/")}`),
-      `section: ✅ Give a kudos that says why. ${openOnTheWeb("/")}`,
-      `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/")}`,
-      "context: 2 more crates from earlier weeks wait to open.",
-    ]);
-  });
-
-  test("P85: each crate waiting from an earlier week names its week by the Monday its member's week began, and this week's crates stay as they were", async () => {
-    slack.withMember("U_ALICE", { tz: "America/Los_Angeles" });
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-09-28");
-    await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-10-05");
-
-    await openHome(t, "U_ALICE");
-
-    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      `section: *Week of Sep 28:* ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-      `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-      `section: ✅ Give a kudos that says why. ${openOnTheWeb("/")}`,
-      `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/")}`,
-    ]);
-  });
-
   const todaysHome = [
     "actions: [Profile] | Leaderboard | Settings",
     "header: Your kudos",
     "section: You have *8* kudos left today. You get *10* more at midnight.",
     "divider",
-    "section fields: *Level*\n*3* | *XP to level 4*\n*120*",
+    "section fields: *Level*\n*3* | *XP to level 4*\n*190*",
     "section: Next: Skill tree at level 5.",
-    "divider",
-    "section: *Quests this week*",
-    `section: ✅ ${sayWhy} You earned *20 XP*. [button: Open]`,
-    `section: ${twice} *1/2* · *20 XP* [button: Swap]`,
-    `section: ${threeTimes} *1/3* · *20 XP* [button: Swap]`,
-    sayingWhyCounts,
-    "divider",
-    "section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*. [button: Open]",
-    "section: *Journey:* ✅ Thank someone you haven't thanked before. You earned *30 XP*. [button: Open]",
-    "section: *Journey:* ✅ Finish a weekly quest. You earned *20 XP*. [button: Open]",
     "divider",
     "section fields: *Given this week*\n*2* | *Received this week*\n*0* | *Given in total*\n*2* | *Received in total*\n*0*",
     "divider",
@@ -564,50 +475,6 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's Skill tree page" });
   });
 
-  test("a Journey step's crate links to the Journey's crate on the home, this week's quest crate to its quest's card on the Quests page, and an earlier week's to its own waiting crate there", async () => {
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    await waitingFromAnEarlierWeek(t, "U_ALICE", 1);
-    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
-
-    expect(accessoryBeside("*Week of Oct 5:*")).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:weekly:2026-10-05:0", accessibility_label: "Open on HedgeHug's Quests page" });
-
-    expect(accessoryBeside(`✅ ${sayWhy}`)).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:weekly:2026-10-12:0", accessibility_label: "Open on HedgeHug's Quests page" });
-    expect(accessoryBeside("✅ Give a kudos that says why.")).toMatchObject({ url: `${siteUrl}/?src=app-home`, action_id: "website-link:journey:first-thanks", accessibility_label: "Open on HedgeHug's home page" });
-  });
-
-  test("each of this week's quest crates links to its own quest's card on the Quests page, by its slot", async () => {
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    for (const day of [1, 2, 3]) {
-      vi.setSystemTime(tuesday + day * dayMs);
-      await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
-    }
-
-    expect([sayWhy, twice, threeTimes].map((goal) => accessoryBeside(`✅ ${goal}`))).toMatchObject(
-      [0, 1, 2].map((slot) => ({ url: `${siteUrl}/?src=app-home`, action_id: `website-link:weekly:2026-10-12:${slot}`, accessibility_label: "Open on HedgeHug's Quests page" })),
-    );
-  });
-
-  test("each earlier week's quest crate links to its own waiting crate on the Quests page, by its week and slot", async () => {
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    await waitingFromAnEarlierWeek(t, "U_ALICE", 2, "2026-09-28");
-    await waitingFromAnEarlierWeek(t, "U_ALICE", 2, "2026-10-05");
-
-    await openHome(t, "U_ALICE");
-
-    expect(waitingIn(publishedHome(slack, "U_ALICE")).filter((line) => line.includes("*Week of"))).toEqual([
-      `section: *Week of Sep 28:* ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-      `section: *Week of Sep 28:* ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-      `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-      `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/")}`,
-    ]);
-  });
-
   test("a ready Book links to its crate on /book, and ready Coins, which has no crate on the home, links to the home", async () => {
     const t = await workspace(...everyFlag, "achievements", "coins", "website");
     await everyFeatureOpenedAtLevelFive(t, ["quests", "leaderboard", "skillTree"]);
@@ -641,74 +508,6 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(response.status).toBe(200);
     expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
     expect(publishedHome(slack, "U_ALICE")).toContain(`section: *Quests* is ready. ${openOnTheWeb("/")}`);
-  });
-});
-
-describe("each quest's Swap in Slack links to its card on the Quests page while the website is open", { timeout: 30_000 }, () => {
-  test("each quest still to finish has a Swap that links to its own card on /quests and names the page to screen readers", async () => {
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-
-    expect(questsIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      "section: *Quests this week*",
-      `section: ${sayWhy} *0/1* · *20 XP* ${swapOnTheWeb(0)}`,
-      `section: ${twice} *0/2* · *20 XP* ${swapOnTheWeb(1)}`,
-      `section: ${threeTimes} *0/3* · *20 XP* ${swapOnTheWeb(2)}`,
-      sayingWhyCounts,
-    ]);
-    expect(accessoryBeside(twice)).toEqual({
-      type: "button",
-      text: { type: "plain_text", text: "Swap" },
-      url: `${siteUrl}/?src=app-home`,
-      action_id: "website-link:swap:weekly:2026-10-12:1",
-      accessibility_label: "Swap on HedgeHug's Quests page",
-    });
-  });
-
-  test("clicking a Swap link swaps nothing and publishes App Home no more, while a Swap left from an earlier view still swaps its quest", async () => {
-    const t = await workspace(...everyFlag, "website");
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    vi.setSystemTime(saturday);
-    const published = publishedViews(slack, "U_ALICE").length;
-
-    const response = await send(t, buttonBeside(twice, "Swap"));
-
-    expect(response.status).toBe(200);
-    expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
-    expect(await swapsOf(t, "U_ALICE")).toEqual([]);
-
-    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "rerollQuest", quest: { kind: "weekly", week: "2026-10-12", slot: 1 } })));
-
-    expect(questsIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      "section: *Quests this week*",
-      `section: ${sayWhy} *0/1* · *20 XP*`,
-      `section: ${twoDays} *0/2* · *20 XP*`,
-      `section: ${threeTimes} *0/3* · *20 XP*`,
-      sayingWhyCounts,
-    ]);
-  });
-
-  test("for a member previewing the website while it is closed for the workspace, Swap links through the page's sign-in entry", async () => {
-    slack.withMember("U_ALICE", { profile: { email: alicesEmail } });
-    const t = await workspace(...everyFlag, onForEmails("website", alicesEmail));
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-
-    expect(accessoryBeside(twice)).toMatchObject({ url: `${siteUrl}/sign-in/?src=app-home`, action_id: "website-link:swap:weekly:2026-10-12:1" });
-  });
-
-  test("while the website flag is off, Swap is today's command and swaps its quest", async () => {
-    const t = await workspace(...everyFlag);
-    await levelThreeWithQuestsDrawn(t);
-    await openReadyFeatures(t);
-    vi.setSystemTime(saturday);
-    expect(questsIn(publishedHome(slack, "U_ALICE"))[2]).toBe(`section: ${twice} *0/2* · *20 XP* [button: Swap]`);
-
-    await send(t, buttonBeside(twice, "Swap"));
-
-    expect(questsIn(publishedHome(slack, "U_ALICE"))[2]).toBe(`section: ${twoDays} *0/2* · *20 XP*`);
   });
 });
 
@@ -785,30 +584,6 @@ async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: Date.now(), slots }));
 }
 
-async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number, week = "2026-10-05") {
-  const reward = { xp: 20, coins: 0, item: null };
-  const slots = Array.from({ length: crates }, (_, slot) => ({ slot, quest: "say-why" as QuestId, reward, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
-  const member = await memberOf(t, user);
-  await t.run(async (ctx) => {
-    await ctx.db.insert("questDraws", { member, week, drawnAt: Date.parse(`${week}T00:00:00Z`), slots });
-    for (const { slot } of slots) {
-      const key = `weekly:${week}:${slot}`;
-      await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse(`${week}T10:00:00Z`) + 2 * dayMs + slot });
-      await ctx.db.insert("pendingCrates", { member, key });
-    }
-  });
-}
-
-async function swapsOf(t: Backend, user: string) {
-  const member = await memberOf(t, user);
-  return t.run((ctx) =>
-    ctx.db
-      .query("questSwaps")
-      .withIndex("by_member_week", (q) => q.eq("member", member))
-      .collect(),
-  );
-}
-
 async function onTheBoards(t: Backend, user: string) {
   const member = await memberOf(t, user);
   return t.run((ctx) => isOnTheBoards(ctx, member));
@@ -844,16 +619,6 @@ async function levelReached(t: Backend, user: string, level: number) {
 function buttonBeside(text: string, label: string) {
   const blocks = publishedHomeBlocks(slack, "U_ALICE").filter((block) => readBlocks([block]).some((line) => line.includes(text)));
   return blockActions("U_ALICE", buttonIn(blocks, label));
-}
-
-function waitingIn(home: string[]) {
-  const start = home.indexOf("divider") + 1;
-  return home.slice(start, home.indexOf("divider", start));
-}
-
-function questsIn(home: string[]) {
-  const start = home.findIndex((line) => line.includes("*Quests this week*"));
-  return start === -1 ? [] : home.slice(start, home.indexOf("divider", start));
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, words: string) {

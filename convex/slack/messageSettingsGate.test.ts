@@ -10,7 +10,6 @@ import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { levelOf, xpToReach } from "../progression/levels";
 import { recordReward } from "../progression/progression";
-import { questOf, questPool, type QuestId } from "../quests/pool";
 import type { MemberId } from "../workspace/directory";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -20,7 +19,6 @@ vi.mock("../bus/publish", async (importOriginal) => {
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const dayMs = 24 * 60 * 60 * 1000;
-const thisWeek = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const messageSettings = "message-settings";
@@ -33,8 +31,6 @@ const previewedByAlice = [...everyOtherFeatureOn, onForEmails(messageSettings, a
 const settingsOff = [...everyOtherFeatureOn, offForEveryone(messageSettings)];
 const settingsNotCreated = everyOtherFeatureOn;
 
-const sayWhyDrawnFromTheDeployOn = { quest: "say-why" as QuestId, reward: questOf("say-why").reward, catalogueVersion: questPool.version };
-const questsOneKudosLeavesOpen: QuestId[] = ["say-why-three-times", "say-why-three-days"];
 const friendsOf: Record<string, [string, string, string]> = { U_ALICE: ["U_BOB", "U_CAROL", "U_DANA"], U_BOB: ["U_ALICE", "U_CAROL", "U_DANA"] };
 
 const settingsTab = "header: Settings";
@@ -182,7 +178,6 @@ async function walkEveryMessagePath(t: Backend, user: string) {
   await giveKudos(t, user, [first], saysWhy);
   await openHome(t, user);
   await xpOf(t, user, xpToReach(9) - 10);
-  await sayWhyDrawnFor(t, user);
   await giveKudos(t, user, [second], "thanks");
   for (const feature of ["skillTree", "coins", "book", "quests"]) await click(t, user, { type: "openUnlock", feature });
   await savings(t, user, 400);
@@ -274,13 +269,6 @@ async function interact(t: Backend, user: string, action: BlockAction) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), form));
   expect(response.status).toBe(200);
   await settle(t);
-}
-
-async function sayWhyDrawnFor(t: Backend, user: string) {
-  const member = await memberOf(t, user);
-  const quests = [sayWhyDrawnFromTheDeployOn.quest, ...questsOneKudosLeavesOpen];
-  const slots = quests.map((quest, slot) => ({ slot, quest, reward: sayWhyDrawnFromTheDeployOn.reward, catalogueVersion: sayWhyDrawnFromTheDeployOn.catalogueVersion, feasibleBecause: { peopleLeft: 2, recognitionsLeft: 18 } }));
-  await t.run((ctx) => ctx.db.insert("questDraws", { member, week: thisWeek, drawnAt: Date.now(), slots }));
 }
 
 async function savings(t: Backend, user: string, saved: number) {

@@ -1,17 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { anIdInHalfOf, journeyShippedBeforeAnyoneJoined, onForEveryone, onForHalf, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome, staleButtonOf } from "../../testing/slackInteractions";
-import { signedRequest } from "../../testing/signedSlack";
-import { reachesLevel } from "../../testing/unlocks";
-import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
+import { anIdInHalfOf, unlocksShippedBeforeAnyoneJoined, onForEveryone, onForHalf } from "../../testing/flags";
+import { post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { PerkId } from "../progression/tree";
+import { mondayCatalogueVersion } from "../quests/mondayCatalogue";
 import type { QuestId } from "../quests/pool";
-import type { Quest } from "../quests/step";
 import type { Activity, ActivityEntry } from "./activity";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -19,7 +16,6 @@ const alice = { user: "U_ALICE", name: "Alice Archer" };
 const bob = { user: "U_BOB", name: "Bob Brandt" };
 const carol = { user: "U_CAROL", name: "Carol Chen" };
 const saysWhy = "thanks for untangling the release notes today";
-const form = { contentType: "application/x-www-form-urlencoded" };
 const progression = ["activity", "xp-levels", "unlocks"];
 const skillTree = [...progression, "skill-tree"];
 
@@ -91,67 +87,6 @@ describe("AT25: what each given kudos earned", () => {
       { xp: 20, questsDone: [], bonuses: [] },
     ]);
     expect(gainsLinesTo(alice).toReversed()).toEqual(given.map(({ earned }) => `+${earned?.xp} XP`));
-  });
-
-  test("a kudos that finishes a weekly quest and the Journey step it opens lists both with their goals and XP, as its success reply names them", async () => {
-    await questsOpened(["say-why-twice", "say-why-three-days", "two-new"]);
-
-    await thank([bob, carol], saysWhy);
-
-    const [finishing] = givenEntries(await activityOf(alice, { filter: "given" }));
-    expect(finishing?.earned).toEqual({
-      xp: 20,
-      questsDone: [
-        { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false, hoggie: false },
-        { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: false, hoggie: false },
-      ],
-      bonuses: [],
-    });
-    expect(gainsLinesTo(alice).at(-1)).toBe("+20 XP · Quest done: Thank someone and say why, 2 times (+20 XP) · Quest done: Finish a weekly quest (+20 XP)");
-  });
-
-  test("a kudos that finishes no quest lists none, and the kudos before it keeps the step it finished", async () => {
-    await questsOpened(["say-why-twice", "say-why-three-days", "two-new"]);
-
-    await thank([bob], "thanks");
-
-    expect(givenEntries(await activityOf(alice, { filter: "given" })).map(({ earned }) => earned)).toEqual([
-      { xp: 10, questsDone: [], bonuses: [] },
-      { xp: 10, questsDone: [{ kind: "journey", goal: "Give a kudos that says why.", xp: 10, waiting: false, hoggie: false }], bonuses: [] },
-    ]);
-  });
-
-  test("a Journey step finished by the Journey's join from a member's history attaches to no entry", async () => {
-    await switchWebsite(t, postHog, true, ...progression);
-    await unlocksShippedBeforeAnyoneJoined(t);
-    await thank([bob], saysWhy);
-
-    await switchWebsite(t, postHog, true, ...progression, "quests");
-    await journeyShippedBeforeAnyoneJoined(t);
-    await settleInTimeOrder(t);
-
-    expect(await rewardKeysOf(alice)).toEqual(["journey:first-thanks"]);
-    expect(givenEntries(await activityOf(alice, { filter: "given" })).map(({ earned }) => earned)).toEqual([{ xp: 10, questsDone: [], bonuses: [] }]);
-  });
-});
-
-describe("CR12: a quest's reward finished while crate-rewards is on waits in the timeline until its crate opens", () => {
-  test("each quest the kudos finished is waiting, and waiting flips at its own crate's open", async () => {
-    await questsOpenedWithCrateRewards(["say-why-twice", "say-why-three-days", "two-new"]);
-
-    await thank([bob, carol], saysWhy);
-
-    expect(await questsDoneByLatestKudosOf(alice)).toEqual([
-      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: true, hoggie: false },
-      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true, hoggie: false },
-    ]);
-
-    await openQuestCrateFromSlack(alice, { kind: "weekly", week: "2026-10-12", slot: 0 });
-
-    expect(await questsDoneByLatestKudosOf(alice)).toEqual([
-      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false, hoggie: false },
-      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true, hoggie: false },
-    ]);
   });
 });
 
@@ -228,35 +163,23 @@ describe("AT25 AT26 SW5: each part follows the member's view at read time", () =
     expect(entries.map(({ kind }) => kind)).toEqual(["kudosGiven"]);
     expect(givenEntries({ entries })[0]?.earned).toBeNull();
   });
-
-  test("with quests not applying, questsDone is empty while XP still shows", async () => {
-    await questsOpened(["say-why-twice", "say-why-three-days", "two-new"]);
-    await thank([bob, carol], saysWhy);
-
-    await switchWebsite(t, postHog, true, ...progression);
-
-    expect(givenEntries(await activityOf(alice, { filter: "given" })).map(({ earned }) => earned)).toEqual([
-      { xp: 20, questsDone: [], bonuses: [] },
-      { xp: 10, questsDone: [], bonuses: [] },
-    ]);
-  });
 });
 
 describe("AT18: a page's reads are bounded", () => {
   test("pages of level-ups and given kudos that each finished every quest stay within Convex's limits inside one instant", { timeout: 60_000 }, async () => {
     t = testBackend({ transactionLimits: true });
-    await switchWebsite(t, postHog, true, ...progression, "quests");
+    await switchWebsite(t, postHog, true, ...progression, "monday-quest");
     await unlocksShippedBeforeAnyoneJoined(t);
     const at = now.getTime();
     const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
     const teammate = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member", name: bob.name, asOf: 0 }));
-    await drawFor(alice.user, ["say-why-twice", "say-why-three-days", "two-new"]);
+    await drawFor(alice.user, ["kudos-once", "kudos-two-days", "two-new"]);
     const everyQuest = ["weekly:2026-10-12:0", "weekly:2026-10-12:1", "weekly:2026-10-12:2", "journey:first-thanks", "journey:first-quest", "journey:someone-new", "journey:two-days"];
     await t.run(async (ctx) => {
       for (let index = 0; index < 60; index++) {
         const cause = { workspace: "T1", conversation: "C1", message: `given-${index}` };
         await ctx.db.insert("awards", { ...cause, giver: me, recipient: teammate, kudos: 1, day: "2026-10-13", at });
-        for (const key of everyQuest) await ctx.db.insert("rewardRecords", { member: me, key, xp: 20, coins: 0, item: null, catalogueVersion: "1", at, cause });
+        for (const key of everyQuest) await ctx.db.insert("rewardRecords", { member: me, key, xp: 20, coins: 0, item: null, catalogueVersion: mondayCatalogueVersion, at, cause });
       }
       for (let index = 0; index < 60; index++) await ctx.db.insert("levelUps", { member: me, level: index + 2, ready: [], at });
     });
@@ -309,8 +232,8 @@ describe("AT18: a page's reads are bounded", () => {
     { messages: 50, recipientsEach: 16 },
   ])("pages of $messages messages to $recipientsEach people each, whose words mention 40 different people, each finishing every quest and paying a bonus on every award, stay within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async ({ messages, recipientsEach }) => {
     t = testBackend({ transactionLimits: true });
-    await switchWebsite(t, postHog, true, ...skillTree, "quests");
-    await journeyShippedBeforeAnyoneJoined(t);
+    await switchWebsite(t, postHog, true, ...skillTree, "monday-quest");
+    await unlocksShippedBeforeAnyoneJoined(t);
     const at = now.getTime();
     const mentionsEach = 40;
     const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
@@ -320,12 +243,12 @@ describe("AT18: a page's reads are bounded", () => {
       return ids;
     });
     const spark = [{ source: "spark" as const, xp: 5 }];
-    await drawFor(alice.user, ["say-why-twice", "say-why-three-days", "two-new"]);
+    await drawFor(alice.user, ["kudos-once", "kudos-two-days", "two-new"]);
     const everyQuest = ["weekly:2026-10-12:0", "weekly:2026-10-12:1", "weekly:2026-10-12:2", "journey:first-thanks", "journey:first-quest", "journey:someone-new", "journey:two-days"];
     await t.run(async (ctx) => {
       for (let index = 0; index < messages; index++) {
         const message = `1760350${String(index).padStart(3, "0")}.000100`;
-        for (const key of everyQuest) await ctx.db.insert("rewardRecords", { member: me, key, xp: 20, coins: 0, item: null, catalogueVersion: "1", at, cause: { workspace: "T1", conversation: "C1", message } });
+        for (const key of everyQuest) await ctx.db.insert("rewardRecords", { member: me, key, xp: 20, coins: 0, item: null, catalogueVersion: mondayCatalogueVersion, at, cause: { workspace: "T1", conversation: "C1", message } });
         const segments = Array.from({ length: mentionsEach }, (_, mentioned) => ({ kind: "person" as const, user: `U_MENTIONED_${index}_${mentioned}` }));
         await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: alice.user, edited: false, segments, visibility: "public", gate: null });
         for (const recipient of thanked) {
@@ -386,57 +309,11 @@ function bonusPartsOf({ earned }: Extract<ActivityEntry, { kind: "kudosGiven" }>
   return (earned?.bonuses ?? []).map(({ perk, xp }) => `${perk.name} bonus (+${xp} XP)`);
 }
 
-async function questsOpened(quests: QuestId[]) {
-  await switchWebsite(t, postHog, true, ...progression, "quests");
-  await unlocksShippedBeforeAnyoneJoined(t);
-  await thank([bob], saysWhy);
-  await reachesLevel(t, await memberOf(alice), 3);
-  await t.fetch("/slack/events", await signedRequest(appHomeOpened(alice.user)));
-  await settle(t);
-  await drawFor(alice.user, quests);
-  await t.fetch("/slack/interactivity", await signedRequest(blockActions(alice.user, buttonInHome(slack, alice.user, "Open")), form));
-  await settle(t);
-}
-
-async function questsOpenedWithCrateRewards(quests: QuestId[]) {
-  await switchWebsite(t, postHog, true, ...progression, "quests", "crate-rewards");
-  await unlocksShippedBeforeAnyoneJoined(t);
-  await thank([bob], saysWhy);
-  await reachesLevel(t, await memberOf(alice), 3);
-  await t.fetch("/slack/events", await signedRequest(appHomeOpened(alice.user)));
-  await settle(t);
-  await openQuestCrateFromSlack(alice, { kind: "journey", step: "first-thanks" });
-  await drawFor(alice.user, quests);
-  await t.fetch("/slack/interactivity", await signedRequest(blockActions(alice.user, staleButtonOf({ type: "openUnlock", feature: "quests" })), form));
-  await settle(t);
-}
-
-async function questsDoneByLatestKudosOf(person: { user: string; name: string }) {
-  const [latest] = givenEntries(await activityOf(person, { filter: "given" }));
-  return latest?.earned?.questsDone;
-}
-
-async function openQuestCrateFromSlack({ user }: { user: string }, quest: Quest) {
-  await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, staleButtonOf({ type: "openQuestCrate", quest })), form));
-  await settle(t);
-}
-
-function memberOf({ user }: { user: string }) {
-  return t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
-}
-
 async function drawFor(user: string, quests: QuestId[]) {
-  const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
+  const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: mondayCatalogueVersion, feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
   await t.run(async (ctx) => {
     const member = (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id;
     await ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: now.getTime(), slots });
-  });
-}
-
-async function rewardKeysOf({ user }: { user: string }) {
-  return t.run(async (ctx) => {
-    const member = (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id;
-    return (await ctx.db.query("rewardRecords").collect()).filter((reward) => reward.member === member).map(({ key }) => key);
   });
 }
 

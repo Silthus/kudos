@@ -11,7 +11,6 @@ import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { xpToReach } from "../progression/levels";
 import { recordReward } from "../progression/progression";
-import { questOf, questPool, type QuestId } from "../quests/pool";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 
@@ -22,7 +21,6 @@ vi.mock("../bus/publish", async (importOriginal) => {
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const dayMs = 24 * 60 * 60 * 1000;
-const thisWeek = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const coins = "coins";
@@ -39,8 +37,6 @@ const coinsNotCreated = featuresOn(...everyOtherFeature);
 const onWithoutXpLevels = [...featuresOnBut("xp-levels"), onForEveryone(coins)];
 const onWithoutUnlocks = [...featuresOnBut("unlocks"), onForEveryone(coins)];
 
-const sayWhyDrawnFromTheDeployOn = { quest: "say-why" as QuestId, reward: questOf("say-why").reward, catalogueVersion: questPool.version };
-const questsOneKudosLeavesOpen: QuestId[] = ["say-why-three-times", "say-why-three-days"];
 const friendsOf: Record<string, [string, string, string]> = { U_ALICE: ["U_BOB", "U_CAROL", "U_DANA"], U_BOB: ["U_ALICE", "U_CAROL", "U_DANA"] };
 
 let slack: FakeSlack;
@@ -62,7 +58,7 @@ afterEach(() => {
 });
 
 describe("CO14 P78: coins are dark where they aren't shown, and still recorded", { timeout: 60_000 }, () => {
-  test("with coins on for Alice, her walk reaches every coins path: readiness, the Coins DM, the balance, the coin perks and prices, and the reply, quest and tier coins", async () => {
+  test("with coins on for Alice, her walk reaches every coins path: readiness, the Coins DM, the balance, the coin perks and prices, and the reply and tier coins", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
 
     await walkEveryCoinsPath(t, "U_ALICE");
@@ -73,7 +69,7 @@ describe("CO14 P78: coins are dark where they aren't shown, and still recorded",
     expect(told).toMatch(/\*Coins\*\n\*\d+ 🪙\*/);
     expect(told).toContain("*Treasurer* · 1 skill point");
     expect(told).toContain("*Flame* · 1 skill point · 150 🪙");
-    expect(told).toContain("+10 XP · +6 🪙 · Quest done: Thank someone and say why (+20 XP, +10 🪙) · Quest done: Finish a weekly quest (+20 XP) · Flame bonus (+8 XP)");
+    expect(told).toContain("+10 XP · +6 🪙 · Flame bonus (+8 XP)");
     expect(told).toMatch(/🏅 You earned [^\n]+, bronze\)\. \+10 🪙/);
     expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["spark", "flame", "treasurer"]);
     expect(await walletOf(t, "U_ALICE")).toEqual({ balance: await balanceRecordedFor(t, "U_ALICE") });
@@ -203,7 +199,6 @@ async function walkEveryCoinsPath(t: Backend, user: string) {
   await giveKudos(t, user, [first], saysWhy);
   await openHome(t, user);
   await xpOf(t, user, xpToReach(9) - 10);
-  await sayWhyDrawnFor(t, user);
   await giveKudos(t, user, [second], "thanks");
   for (const feature of ["skillTree", "coins", "book", "quests"]) await click(t, user, { type: "openUnlock", feature });
   await savings(t, user, savedUp);
@@ -267,13 +262,6 @@ async function send(t: Backend, interaction: string) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
   expect(response.status).toBe(200);
   await settle(t);
-}
-
-async function sayWhyDrawnFor(t: Backend, user: string) {
-  const member = await memberOf(t, user);
-  const quests = [sayWhyDrawnFromTheDeployOn.quest, ...questsOneKudosLeavesOpen];
-  const slots = quests.map((quest, slot) => ({ slot, quest, reward: sayWhyDrawnFromTheDeployOn.reward, catalogueVersion: sayWhyDrawnFromTheDeployOn.catalogueVersion, feasibleBecause: { peopleLeft: 2, recognitionsLeft: 18 } }));
-  await t.run((ctx) => ctx.db.insert("questDraws", { member, week: thisWeek, drawnAt: Date.now(), slots }));
 }
 
 async function savings(t: Backend, user: string, saved: number) {

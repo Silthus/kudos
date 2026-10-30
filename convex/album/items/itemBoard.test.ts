@@ -243,22 +243,6 @@ describe("a website command never launches unlocks", () => {
     expect(await everythingWritten()).toEqual(before);
     expect(before.tables.unlockLaunches).toEqual([]);
   });
-
-  test("WS62 P91: with quests on and no Journey launch, turning an item answers refused and doesn't launch the Journey", async () => {
-    await unlocksShippedBeforeAnyoneJoined(t);
-    await thanks(alice, why, bob);
-    const asAlice = await signedIn(alice);
-    const item = await itemOf(alice);
-    await switchWebsite(t, postHog, true, ...itemsOn, "xp-levels", "unlocks", "quests");
-    await settle(t);
-    const before = await everythingWritten();
-
-    expect(await turn(asAlice, item)).toEqual({ kind: "refused" });
-    await settle(t);
-
-    expect(await everythingWritten()).toEqual(before);
-    expect(before.tables.journeyLaunches).toEqual([]);
-  });
 });
 
 describe("LP6: with hidden-items off, packs, the tray and the open stay as today, and the open marks the item turned", () => {

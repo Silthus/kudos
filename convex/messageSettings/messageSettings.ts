@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { achievementsApplyIn, bookAppliesIn } from "../achievements/flag";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
-import { questsFor } from "../quests/flag";
+import { onTheMondayPath } from "../quests/flag";
 import { hugsShownTo } from "../hugs/flag";
 import { unlocksAppliedTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
@@ -23,7 +23,7 @@ const appliesWhile: Record<MessageKind, Applies> = {
   tips: async () => false,
   "level-ups": (ctx, member) => xpLevelsOnFor(ctx, member),
   "new-features": async (ctx, member) => (await xpLevelsOnFor(ctx, member)) && (await unlocksAppliedTo(ctx, member)),
-  quests: async (ctx, member) => (await questsFor(ctx, member)) !== null,
+  quests: (ctx, member) => onTheMondayPath(ctx, member),
   achievements: async (ctx, member, workspace) => (await bookAppliesIn(ctx, workspace)) && (await stateOf(ctx, member, "book")) === "open",
   celebrations: async (ctx, _, workspace) => (await xpLevelsShownIn(ctx, workspace)) && (await publicCelebrationsOn(ctx, workspace)),
   "hugs-recap": (ctx, member) => hugsShownTo(ctx, member),

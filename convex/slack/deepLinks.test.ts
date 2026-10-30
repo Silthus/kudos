@@ -7,7 +7,6 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageChangedEvent, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import { notifyJourneyJoined, notifyQuestFinished, notifyWeeklyQuestFinished } from "../feedback/notify";
 import { replyPrivately, type Given } from "../feedback/replies";
 import type { MemberId } from "../workspace/directory";
 
@@ -19,7 +18,6 @@ const leaderboardReady = `section: *Leaderboard* is ready. It opens the boards. 
 const openLeaderboardCommand = JSON.stringify({ type: "openUnlock", feature: "leaderboard" });
 const openLeaderboard = { type: "button", action_id: openLeaderboardCommand, value: openLeaderboardCommand } as const;
 const form = { contentType: "application/x-www-form-urlencoded" };
-const weeklyQuest = { kind: "weekly", week: "2026-10-12", slot: 0 } as const;
 
 const closed: Array<{ condition: string; flags: string[]; env?: Record<string, string> }> = [
   { condition: "while the website flag is off", flags: [] },
@@ -174,64 +172,6 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([[leaderboardReady, `section: <${siteUrl}/?src=reply|See what's ready on the web>`]]);
     expect(dmsTo("U_ALICE")).toHaveLength(2);
   });
-
-  test("a finished Journey step's DM links to the Journey on the web, after its Open button", async () => {
-    const t = await questsLive();
-    const alice = await memberInserted(t, "U_ALICE");
-
-    await notified(t, (ctx) => notifyQuestFinished(ctx, alice, { kind: "journey", step: "first-thanks" }, 50));
-
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/?src=reply]`, `section: <${siteUrl}/?src=reply|See your Journey on the web>`],
-    ]);
-  });
-
-  test("the Journey joined DM links to the Journey on the web once, as its last line", async () => {
-    const t = await questsLive();
-    const alice = await memberInserted(t, "U_ALICE");
-
-    await notified(t, (ctx) => notifyJourneyJoined(ctx, alice, [{ quest: { kind: "journey", step: "first-thanks" }, xp: 50 }, { quest: { kind: "journey", step: "someone-new" }, xp: 50 }]));
-
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [
-        `section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/?src=reply]`,
-        `section: ✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *50 XP*. [link: Open ${siteUrl}/?src=reply]`,
-        `section: <${siteUrl}/?src=reply|See your Journey on the web>`,
-      ],
-    ]);
-  });
-
-  test.each([0, 1, 2])("a finished weekly quest's DM in slot %i links its Open to that quest's card and its last line to the quests on the web", async (slot) => {
-    const t = await questsLive();
-    const alice = await memberInserted(t, "U_ALICE");
-
-    await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, { ...weeklyQuest, slot }, "Give kudos on two days.", 20));
-
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/?src=reply]`, `section: <${siteUrl}/?src=reply|See your quests on the web>`],
-    ]);
-  });
-
-  test("a finished weekly quest's DM delivered after its week turned links its Open to that week's waiting crate on the Quests page, not this week's card in its slot", async () => {
-    const t = await questsLive();
-    const alice = await memberInserted(t, "U_ALICE");
-
-    await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, { kind: "weekly", week: "2026-10-05", slot: 1 }, "Give kudos on two days.", 20));
-
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/?src=reply]`, `section: <${siteUrl}/?src=reply|See your quests on the web>`],
-    ]);
-  });
-
-  test.each(closed)("$condition, a quest DM has no link", async ({ flags, env = {} }) => {
-    stubbed(env);
-    const t = await questsLive(flags);
-    const alice = await memberInserted(t, "U_ALICE");
-
-    await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, weeklyQuest, "Give kudos on two days.", 20));
-
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([["section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [button: Open]"]]);
-  });
 });
 
 async function workspaceDeciding(...flags: string[]) {
@@ -248,10 +188,6 @@ async function unlocksLive(...flags: string[]) {
   return unlocksShippedBeforeAnyoneJoined(await workspaceDeciding(...flags));
 }
 
-async function questsLive(website = ["website"]) {
-  return unlocksLive("xp-levels", "unlocks", "quests", ...website);
-}
-
 async function levelThreeWhileTheBoardWasOff() {
   const t = await unlocksLive("xp-levels", "unlocks", "website");
   await giveKudos(t, "U_ALICE", ["U_BOB"], 10);
@@ -261,11 +197,6 @@ async function levelThreeWhileTheBoardWasOff() {
 
 async function sweep(t: Backend) {
   await t.mutation(internal.unlocks.sweep.sweep, {});
-  await settle(t);
-}
-
-async function notified(t: Backend, notify: Parameters<Backend["run"]>[0]) {
-  await t.run(notify);
   await settle(t);
 }
 

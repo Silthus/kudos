@@ -1,7 +1,6 @@
 import type { FunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { journeyStepOpenedBy } from "../quests/step";
 import { crateKindOf } from "../album/hoggies/crateKey";
 import { isTheFirstThanks } from "../welcome/firstThanks";
 import type { DomainEvent } from "./events";
@@ -32,31 +31,28 @@ export const subscribers: Registry = {
   unlockReady: [internal.analytics.subscribers.recordUnlockReady],
   unlockOpened: [
     { subscriber: internal.analytics.subscribers.recordUnlockOpened, only: ({ byLaunch }) => byLaunch !== true },
-    { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "quests" },
-    { subscriber: internal.quests.journey.activateJourney, only: ({ feature, byLaunch }) => byLaunch !== true && journeyStepOpenedBy(feature) !== null },
     { subscriber: internal.feedback.tierNotices.tellOpeningSummary, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "book" },
     { subscriber: internal.feedback.coins.tellCoinsOpened, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "coins" },
   ],
   unlocksLaunched: [internal.analytics.subscribers.recordUnlocksLaunched],
   questFinished: [
-    { subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" },
     { subscriber: internal.welcome.welcome.welcomeOnFirstThanks, only: ({ quest }) => isTheFirstThanks(quest) },
     internal.progression.questRewards.payQuestFinished,
     internal.album.items.questHoggies.earnQuestHoggie,
     internal.analytics.subscribers.recordQuestFinished,
   ],
-  questOpened: [internal.analytics.subscribers.recordQuestOpened],
+  questOpened: [],
   questsDrawn: [internal.analytics.subscribers.recordQuestsDrawn],
-  groupQuestDrawn: [internal.analytics.subscribers.recordGroupQuestDrawn],
-  questSwapped: [internal.analytics.subscribers.recordQuestSwapped],
-  journeyStepActivated: [internal.analytics.subscribers.recordJourneyStepActivated],
+  groupQuestDrawn: [],
+  questSwapped: [],
+  journeyStepActivated: [],
   achievementEarned: [internal.analytics.subscribers.recordAchievementEarned],
   perkBought: [internal.analytics.subscribers.recordPerkBought],
   itemBought: [],
   memberLeft: [internal.quests.journey.recheckSomeoneNew, internal.engine.kudosText.forgetWordsOfLeaver],
   memberRejoined: [internal.quests.journey.recheckRejoined],
   primaryGroupChanged: [],
-  awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
+  awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed],
   hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped, { subscriber: internal.album.milestones.recordMilestonesAfterAHoggieDrop, only: ({ crate }) => crateKindOf(crate) !== "thoughtful" }],
   crateBought: [],
   hugGiven: [

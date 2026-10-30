@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEveryone } from "../../testing/flags";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { signingSecret } from "../../testing/signedSlack";
 import { post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
@@ -141,17 +141,6 @@ describe("SW1 SW3: the giver's gains line shows the bonus XP each owned perk pai
     await thank(t, "U_BOB", saysWhy, "2026-10-14T11:00:00Z");
 
     expect(gainsLinesTo("U_ALICE")).toEqual(["+10 XP · Spark bonus (+5 XP) · Rhythm bonus (+2 XP)", "+10 XP · Rhythm bonus (+2 XP)", "+10 XP"]);
-  });
-
-  test("a reply held for Quests keeps its bonus when released, after the quest it finished", async () => {
-    const { t } = await giverOwning("UTC", "spark");
-    await flagsFromPostHog(t, postHog, ...[...skillTreeFlags, "quests"].map(onForEveryone));
-    await journeyShippedBeforeAnyoneJoined(t);
-    await settle(t);
-
-    await thank(t, "U_BOB", saysWhy, "2026-10-14T13:00:00Z");
-
-    expect(gainsLineTo("U_ALICE")).toBe("+10 XP · Quest done: Give a kudos that says why (+10 XP) · Spark bonus (+5 XP)");
   });
 
   test("with skill-tree switched off before Slack takes the reply, the gains line shows base XP only", async () => {

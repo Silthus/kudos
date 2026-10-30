@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type CapturedEvent, type FakePostHog, type FlagDefinition, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, post, react, settleInTimeOrder, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
@@ -83,7 +83,7 @@ describe("AL37: with album and album-slack on and every retired flag off, a memb
     expectTheAlbumsWholeLoop(endState);
   });
 
-  test("App Home shows no coins, store, quests, Journey, skill tree, ladders or level unlocks on any tab, where the same walk with the retired flags on shows each", async () => {
+  test("App Home shows no coins, store, quests, skill tree, ladders or level unlocks on any tab, where the same walk with the retired flags on shows each", async () => {
     const withTheRetiredOn = await walkWith("on");
     const endState = await walkWith("off");
 
@@ -96,7 +96,6 @@ const retiredFeatures = [
   { feature: "coins", shown: /🪙|\bcoins?\b/i },
   { feature: "store", shown: /\bstore\b|\bbuy\b/i },
   { feature: "quests", shown: /\bquests?\b/i },
-  { feature: "Journey", shown: /\bjourney\b/i },
   { feature: "skill tree", shown: /\bskill (tree|points?)\b/i },
   { feature: "ladders", shown: /\bbook\b|\bachievements?\b|\btiers?\b/i },
   { feature: "level unlocks", shown: /\bis ready\b|\bwhat it opens\b|\bat level \d+\b/i },
@@ -243,7 +242,7 @@ async function fourMembersAtLevelSixBeforeTheRetirement() {
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 50, announcementChannel }));
   await t.mutation(internal.workspace.url.rememberWorkspaceUrl, { workspace: "T1", url: slackUrl });
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await bookShippedBeforeAnyoneJoined(t);
   for (const someone of everyone) {
     nextStep();

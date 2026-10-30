@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, onForEmails, onForEveryone } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined, onForEmails, onForEveryone } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, memberChanged, post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, kudosAppBotUser, mention, section, type ReactionOptions } from "../../testing/slackMessages";
@@ -337,7 +337,7 @@ function withoutLeaderboardsHugCounts(rows: Array<Record<string, unknown>>) {
 async function everyFeatureOn() {
   const t = await workspace();
   await flagsFromPostHog(t, postHog, ...everyFeature.map(onForEveryone));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   return bookShippedBeforeAnyoneJoined(t);
 }
 

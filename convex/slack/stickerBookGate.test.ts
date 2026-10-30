@@ -2,7 +2,7 @@ import { getFunctionName } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, type FlagDefinition, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, unlocksShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHome } from "../../testing/slackInteractions";
@@ -226,7 +226,7 @@ async function aliceBobAndCarolInAnts(flag: FlagDefinition[], turnOff?: () => vo
   turnOff?.();
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   await bookShippedBeforeAnyoneJoined(t);
   for (const person of members) {
     await memberChanged(t, "team_join", { id: person.user, profile: { display_name: person.name, email: person.email } });
@@ -277,7 +277,7 @@ async function kudosOfTheWalk() {
 const everySurfaceOpen = {
   collection: { kind: "collection" },
   book: { kind: "book" },
-  quests: { kind: "quests", slots: expect.any(Array) },
+  quests: { kind: "not-found" },
   leaderboard: { kind: "board" },
   groupBoards: { kind: "boards" },
   activity: { kind: "activity", entries: expect.any(Array) },

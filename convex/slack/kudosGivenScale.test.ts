@@ -2,7 +2,7 @@ import { getFunctionName, makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, onForEveryone } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined, onForEveryone } from "../../testing/flags";
 import { post, testBackend, type Backend } from "../../testing/slackBackend";
 import { signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, section } from "../../testing/slackMessages";
@@ -70,7 +70,7 @@ async function everyFeatureOn() {
   const t = await flagsFromPostHog(testBackend({ transactionLimits: true }), postHog, ...everyFeature.map(onForEveryone));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 700 }));
-  await journeyShippedBeforeAnyoneJoined(t);
+  await unlocksShippedBeforeAnyoneJoined(t);
   return bookShippedBeforeAnyoneJoined(t);
 }
 

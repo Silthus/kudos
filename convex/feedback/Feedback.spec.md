@@ -59,24 +59,6 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: retry-classification dismissed: the Slack adapter's delivery classifies failures as before; a reply with nothing to show makes no call
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a reply has exactly one target, the announcement channel picked when its first section was set
-- a rewarded level is announced once: A level a reward record reaches, which no kudos message reached, is celebrated with one public notice in the announcement channel, keyed by the member and the level, and nowhere else: no thread gets it, a replayed levelReached posts nothing new, a member who muted public notices gets none, and while no announcement channel is picked nothing is posted.
-  over: every public notice the app asks Slack to post for the level 2 that the Journey's first-thanks step reaches: with an announcement channel picked and without one, for a member who muted public notices, with the same levelReached delivered again, and for a notice still posting when the announcement channel is cleared
-  via: P64: a level reached through a reward record
-  refuted: announceRewardedLevel no longer looked for an existing notice for the member and level -> 1 of 4 tests failed on its assertion: a replayed levelReached posted a second notice in the announcement channel (2026-10-13)
-  because: P64 and P87 give such a level no kudos message to reply under, so a notice keyed by one would have to make up a reference, and a notice keyed by nothing would be posted again on every replay; P65 keeps a muted member's progress out of every channel
-  kinds: message, output
-  checklist: destination-confinement dismissed: the notice goes to Slack's API at one configured base URL, to the workspace's announcement channel only, with no redirect followed and no destination taken from a request
-  checklist: message-authenticity dismissed: the notice is outbound, and levelReached comes only from progression
-  checklist: redaction dismissed: the notice holds only the app's copy and a member mention, never a kudos message's text or its giver (P64)
-  checklist: input-validation dismissed: the notice is set from levelReached, which Convex validates at the subscriber's boundary
-  checklist: retry-recognition declared as a rewarded level is announced once
-  checklist: duplicate-suppression declared as a rewarded level is announced once
-  checklist: keyed-ordering dismissed: a notice has one section, for one member and one level, and is never edited
-  checklist: acknowledgment-barrier dismissed: the notice is delivered as a public reply, so one public reply per kudos message's barrier holds for it: claimed as sending before chat.postMessage, never posted again on an unknown answer
-  checklist: commit-ordered-effects dismissed: the notice row and its delivery are scheduled in the subscriber's transaction, and the delivery runs only after it commits
-  checklist: retry-classification dismissed: the Slack adapter's delivery classifies failures as for every public reply
-  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
-  checklist: declared-target-coverage dismissed: a notice has exactly one target, the announcement channel
 - a tier is told once per member and kudos: A tier a kudos earns a member who has opened the Book is told in one DM and one section of the kudos message's public reply, kept as one stored notice per member and kudos message; telling it again, from a redelivered kudosGiven or a second call for the same member and kudos, enqueues no second DM and no edit of the reply.
   over: the DMs and public replies the app asks Slack to send for a kudos that earns its giver and recipient a tier, with its kudosGiven delivered twice, and with the same member and kudos told twice
   via: P63 P64: a tier is told once per member and kudos
@@ -177,19 +159,6 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: commit-ordered-effects dismissed: the DM is rendered at delivery after the reads commit; a click on a link schedules nothing
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a DM has one target, the member it is about
-- a quest's swap button links to the website: While the website's link function answers the member a link, by the same member decision App Home's front door reads, every `Swap` on a weekly quest in App Home is a link button to the album's root, `/`, where the Quests page lands (AL67), never a command, through the sign-in entry for a member previewing the website while it is closed for the workspace: its label stays `Swap`, its accessibility label names the page, and a click on it swaps nothing and publishes App Home no more, while a `Swap` left from an earlier view still swaps its quest; with the website closed the `Swap` is the command it was.
-  over: App Home of a member with every flag on at level 3 who opened Quests and the Leaderboard while the website is open, a click on its `Swap` link on Saturday and on a `Swap` command left from an earlier view, the same App Home for a member previewing the website while it is closed for the workspace, and the same App Home with the website flag off and its `Swap` clicked
-  via: each quest's Swap in Slack links to its card on the Quests page while the website is open
-  refuted: Swap rendered the rerollQuest command whatever the website's link function answered -> 3 of 4 tests failed: App Home showed command buttons where links to each quest's card belong, the previewer got the command, and the click on Swap swapped the quest (2026-10-14)
-  because: the website swaps a quest through the same command Slack runs (#288), so Slack funnels Swap to the quest's card as it funnels each crate's `Open` and each perk's `Buy` (#406); a `Swap` from an earlier view still works, because Slack keeps a published view's buttons until the next publish
-  crossing: slack-request -> domain
-  entrances: route POST /slack/events, route POST /slack/interactivity
-  kinds: output
-  checklist: destination-confinement dismissed: the view goes to Slack's views.publish at one configured base URL for the member who opened App Home; the link's origin is the deployment's own SITE_URL and its path comes from the route list, with no parameter
-  checklist: redaction dismissed: a link carries only a path and a slot number, and its button's identifier only the quest's reward key, never an identity
-  checklist: commit-ordered-effects dismissed: the view is desired state rendered after the reads commit; a click on a link schedules nothing
-  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
-  checklist: declared-target-coverage dismissed: App Home has exactly one target, the member it is about
 - a feature's lines wait for its opening: A member is told nothing about their own progress in a feature, in a DM, in App Home or in a command's reply, until they have opened it: while the feature is unshipped, and while it is only ready, the level-up DM and the Profile tab name none of it, its ready crate and the Next line aside, App Home has no tab for it and its command answers only that it opens at its level or is ready to open, and once it is open they show it in full; what the member earned for it is stored all the same, and their row on a board other members see stays as it was.
   over: the level-up DMs and App Home views the app asks Slack to send to a member reaching levels 5 and 6, with the skill tree unshipped, shipped and ready, and opened, and the member's stored skill points; and the App Home tab bar, the Leaderboard tab and the `/hedgehug leaderboard` reply for a member at level 1, at level 3 before opening and after opening the Leaderboard, with everyone-board on and off, and the board another member sees
   via: P76: a feature's lines wait for its opening
@@ -225,37 +194,6 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: commit-ordered-effects dismissed: the gains are stored in the evaluation's or the release's transaction, and the delivery that renders them runs only after it commits
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a reply has exactly one target, the giver
-- a quest part names its coins only where coins are visible: A Given success reply's quest part names its reward's coins, `Quest done: {goal} (+{xp} XP, +{coins} 🪙)`, only while coins are visible to the giver when Slack takes the reply (CO19, SW5); with coins off, previewed by another member, not yet opened, or turned off before delivery, and for a reward without coins, it reads `Quest done: {goal} (+{xp} XP)` as before and the reply names no coins.
-  over: the ephemerals the app asks Slack to post for a member who finishes a weekly quest with Coins open, with a quest drawn without coins, with coins off, previewed by another member and not yet opened, and with coins turned off between the finish and delivery
-  via: CO19: the quest-done part says its coins only while coins are visible to the giver
-  refuted: the quest parts kept their reward's coins whether or not coins are visible to the giver -> 4 of 6 tests failed on their assertions: with coins off, previewed by another member, not yet opened, and turned off before delivery, the part said +10 🪙 (2026-10-14)
-  because: CO19 says where a member's coins came from, and CO14 keeps coins dark where they aren't shown; a quest part frozen with its coins when the quest finished would name coins after a preview ends
-  kinds: output
-  checklist: destination-confinement dismissed: the reply goes only to its giver, as private replies reach only the giver says
-  checklist: redaction dismissed: the part holds only the quest's goal and numbers from the app's own copy
-  checklist: commit-ordered-effects dismissed: the quests done are stored by the release's transaction, and the delivery that renders them runs only after it commits
-  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
-  checklist: declared-target-coverage dismissed: a reply has exactly one target, the giver
-- a reward waiting in its crate is told as waiting: While a weekly quest's or Journey step's reward record is held and its crate has no opening, every Slack line about it says it waits: the giver's success reply names it `Quest done: {goal} (+{xp} XP waiting in your crate)`, or `(+{xp} XP, +{coins} 🪙 waiting in your crate)` while coins are visible to the giver, decided at each delivery attempt, the quest DMs (`quest-finished`, `weekly-quest-finished` and `journey-joined`) say `**{xp} XP** waits in your crate.`, decided at delivery, and App Home's done rows say the same in the profile's week, `Waiting to open` and Journey, while the front door's crate lines end ` · {xp} XP waits in your crate`; a reply or DM delivered after its crate was opened, and every line about a reward that counted at its finish, reads `You earned **{xp} XP**.` and `(+{xp} XP)` as before (CR9–CR11).
-  over: the ephemerals, DMs and App Home views the app asks Slack to post or publish for a member who finishes a Journey step, a weekly quest with coins and its first-quest while crate-rewards is on, with coins visible and not, at the Journey's join, before and after opening each crate, in the profile and the front door and from an earlier week, and the same finishes with crate-rewards off, plus the reply's and the DM's delivery reads after and around its crate's open
-  via: CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and as earned once its crate opens
-  refuted: the wait check read only the record's held mark and ignored its crate opening -> 2 of 12 tests failed on their assertions: the DM delivered after the open and the profile's opened rows still said waits in your crate (2026-10-15)
-  refuted: the wait check ignored the record's held mark, so any unopened crate's reward read as waiting -> 3 of 12 tests failed on their assertions: the reply, the DM and the front door of rewards that counted at their finish said waiting (2026-10-15)
-  refuted: the success reply said waiting for every held record it stored, without reading the crate opening at delivery -> the reply delivered after its crate was opened said (+10 XP waiting in your crate), alone 1 of 13 failing on its assertion (2026-10-15)
-  because: a held reward counts for nothing until its crate opens (CR2), so a line saying the member earned it would promise XP their bar doesn't show, and the Open button would lose its reason (decision 23 on #411); a DM worded when it was queued would still say waiting after a quick open, so the wording is decided at delivery
-  kinds: output, message
-  checklist: destination-confinement dismissed: each line goes only where it went before, the reply to its giver, the DM or ephemeral to its member and App Home to its member
-  checklist: redaction dismissed: the words hold only the member's own goals and the reward numbers from the app's own records
-  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery; the adapter delivers with its own retries
-  checklist: declared-target-coverage dismissed: the surfaces are the given private reply, the three quest notifications and App Home's two views, each named in the sentence and covered in over
-  checklist: message-authenticity dismissed: the wording reads the member's own reward record and crate opening, never a field from outside
-  checklist: input-validation dismissed: notification and reply arguments are checked by their validators, which gain no field
-  checklist: retry-recognition dismissed: a redelivered DM or reply reads the record and its opening again, so a retry after an open reads You earned
-  checklist: duplicate-suppression dismissed: the wording adds no message; each reply, DM and App Home publish is sent exactly as often as before
-  checklist: keyed-ordering dismissed: the words read the record and its opening at each render, so a render after the open reads You earned whatever order deliveries run in
-  checklist: acknowledgment-barrier dismissed: nothing acknowledges the wording; the reply, DM and App Home keep their delivery paths' guarantees
-  checklist: commit-ordered-effects dismissed: the reply's held record key is stored by the mutation that writes the reward record, and each reply, DM and App Home render reads committed rows only after the mutation that scheduled it commits
-  checklist: retry-classification dismissed: no new call to Slack; the existing delivery paths classify their failures as before
 - a success reply links home only while the website is open: A Given success reply's extras line ends with a link to the giver's progress on the web, SITE_URL plus the root, decided at each delivery attempt by the website's one link function, so a reply with no other part gets an extras line holding only the link; while that function answers nothing (the website flag off, SITE_URL unset, or another workspace) the ephemeral is byte-for-byte the reply without it, and a reply held for Quests whose website closes before its release goes out with no link.
   over: the ephemerals the app asks Slack to post for a kudos with `xp-levels` on and off while the website is open, for the same kudos with the website flag off, SITE_URL unset and another workspace, and for a success reply held for Quests whose website flag turns off before its release
   via: SW13 SW14 SW18: the success reply ends its extras line with a link to the giver's progress while the website is open when Slack takes it
@@ -285,11 +223,12 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: keyed-ordering dismissed: a DM is one message; the link is its last line
   checklist: acknowledgment-barrier dismissed: nothing acknowledges a DM; its intent commits before its delivery is scheduled
   checklist: retry-classification dismissed: the link changes no Slack answer's classification; a DM's attempts are classified by the delivery as before
-- a success reply held for Quests is never lost: Where Quests applies, a success reply held for Quests' kudosGiven subscriber goes out once, with its quests done on the gains line when the subscriber releases it and with none 10 seconds after the kudos when nobody does, and where Quests doesn't apply the reply's delivery is scheduled by the kudos' own mutation, as before.
-  over: a held success reply nobody releases, before and after 10 seconds, and a kudos with quests off whose delivery is read from the scheduled functions right after its request, at the Slack boundary
+- a success reply held for Quests is never lost: On the giver's Monday path, a success reply held for Quests' kudosGiven subscriber goes out once, with its quests done on the gains line when the subscriber releases it and with none 10 seconds after the kudos when nobody does, and off the Monday path the reply's delivery is scheduled by the kudos' own mutation, as before.
+  over: a held success reply on the Monday path nobody releases, before and after 10 seconds, and a kudos off the Monday path whose delivery is read from the scheduled functions right after its request, at the Slack boundary
   via: P71 R36: a success reply held for Quests is never lost
   because: the core loop's reply must never be lost or wait on Quests where it doesn't apply (#127, R36), and while it waits for Quests' subscriber its delay must stay bounded, because a subscriber can fail or be delayed and the giver would otherwise never learn their kudos went through
   refuted: a held success reply got no bound, so only Quests' subscriber could release it -> the nobody-releases case failed: no reply went out (2026-10-14)
+  refuted: a held success reply scheduled no release on the Monday path -> the nobody-releases case failed: no reply went out (2026-10-30)
   kinds: message
   checklist: destination-confinement dismissed: holding changes only when the reply goes out, never where; it reaches only the giver, as private replies reach only the giver says
   checklist: message-authenticity dismissed: the reply is written by the engine's own transaction from the outcome, never from outside
@@ -323,24 +262,6 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: revalidated-permission dismissed: the click's own mutation reads the workspace decision and the admin role fresh, whatever App Home the picker came from; the role check is only admins set the announcement channel
   checklist: separation-of-duties dismissed: flags are switched in PostHog by the owner, outside this deployment; no approval policy applies to the setting
   checklist: resumption-coverage dismissed: no batch operation resumes; each notice and click is decided once in its own mutation
-- a level a previewed quest reward reaches is never announced: A level a member reaches through a quest or Journey reward while they preview quests through their email and `quests` is off in the workspace decision posts no public notice, even with an announcement channel picked, and the member still gets their level-up DM; a notice queued while quests applied in the workspace decision is not posted when Slack takes it after quests stopped applying there.
-  over: the public notices the app asks Slack to post and the DMs to the member, for the level 2 the Journey's first-thanks step reaches for a member who previews quests through their email, in a workspace with an announcement channel picked and `xp-levels` and `unlocks` on for everyone, and for a notice queued while quests was on for everyone whose delivery Slack held back while quests turned off for the workspace
-  via: F18: a level a previewed quest reward reaches
-  refuted: announceRewardedLevel no longer read whether quests applies in the workspace decision -> the test failed: the previewer's level 2 was posted in the announcement channel (2026-10-14)
-  refuted: the desired public reply stopped rechecking quests for a reward-reached notice -> 1 of 2 tests failed: the notice Slack held back was posted in C_NEWS on its retry after quests turned off for the workspace (2026-10-14)
-  because: a level reached through a reward is announced in public only when the rewarding feature is on in the workspace decision too (`d-54f92e49`, F18), or the announcement channel would reveal a quests preview to every member
-  kinds: output
-  checklist: destination-confinement dismissed: the decision only withholds the notice; where a notice goes is decided by a rewarded level is announced once
-  checklist: redaction dismissed: the decision removes the whole notice rather than scrubbing content inside it
-  checklist: commit-ordered-effects dismissed: the notice reads the workspace decision in the mutation that would store and schedule it and again in the query its delivery reads, so a withheld notice is never stored or sent
-  checklist: circuit-breaker-policy dismissed: the decision is read from the PostHog component's cached definitions, never by calling PostHog per read
-  checklist: declared-target-coverage dismissed: a notice has exactly one target, the announcement channel
-  checklist: revalidated-permission dismissed: no permission is involved; the workspace decision is read in the levelReached subscriber's own mutation
-  checklist: separation-of-duties dismissed: no approval policy applies
-  checklist: legal-state-succession dismissed: a withheld notice writes nothing
-  checklist: supersession-safety dismissed: the decision is read in the mutation that would store the notice, so a late levelReached reads the flags of its own moment
-  checklist: worker-fencing dismissed: no worker owns a notice; Convex serializes the mutations that read the decision and store it
-  checklist: resumption-coverage dismissed: no batch operation resumes; each levelReached is decided once in its own mutation
 - album moments are dark where album-slack is off: With `album-slack` off in the giver's member decision, not created, unread without the flags key, on only in the sandbox while the deployment is production, on for someone else's email only, or on while `album` is off for the giver, every Slack call a walk of thoughtful, short and threaded kudos makes equals the calls the same walk makes without the thread reply, and nothing exposes `album-slack`, while the thoughtful packs are earned all the same (AL3, AL58); every delivery attempt decides both flags again, so a reply still waiting when `album-slack` turns off for the giver is never posted; and the Monday hug recaps and the Monday post equal the ones the same week sends with the album moments shut, the recap deciding both flags for its member and the post deciding both for the workspace, so a recap gains its emoji line only where `album-slack` applies to its member and the post becomes the week's top kudos only where it applies to the workspace (AL60, AL61).
   over: the Slack calls of a thoughtful kudos to two people, a short kudos and a thoughtful kudos posted in a thread, in each of those six off states, beside the same walk with the thread reply's subscriber removed; a reply waiting on Slack's rate limit when `album-slack` turns off for its giver; and the same walk with `album-slack` on for the first giver's email only, which adds only that giver's thread reply; the Slack calls of a week with a team sticker unlocked, a thoughtful kudos and a hug, up to its Monday recaps and Monday post, in each of those six off states, beside the same week with the album moments shut; and that week with `album-slack` on for one member's email, where only that member's recap gains its line and the Monday post stays the groups post
   via: AL58: album moments are dark where album-slack is off

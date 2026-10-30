@@ -146,7 +146,7 @@ async function drawnFromTheUnlockPool(person: Person) {
       .query("questDraws")
       .withIndex("by_member_week", (q) => q.eq("member", member))
       .take(10);
-    for (const draw of draws) await ctx.db.patch(draw._id, { slots: draw.slots.map((slot) => ({ ...slot, catalogueVersion: "1" })) });
+    for (const draw of draws) await ctx.db.patch(draw._id, { slots: draw.slots.map((slot) => ({ ...slot, quest: "say-why" as const, catalogueVersion: "1" })) });
   });
 }
 

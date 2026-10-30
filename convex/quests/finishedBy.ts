@@ -1,25 +1,21 @@
 import type { QueryCtx } from "../_generated/server";
 import type { MessageRef } from "../engine/messageEvent";
 import { rewardsCausedBy } from "../progression/rewards";
-import { chatUserOf, type MemberId } from "../workspace/directory";
-import { journeyQuestOfRewardKey, recordWaits, weeklyQuestOfRewardKey } from "./crates";
-import { journeyStepNamedTo } from "./flag";
+import type { MemberId } from "../workspace/directory";
+import { journeyQuestOfRewardKey, weeklyQuestOfRewardKey } from "./crates";
 import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { finishedStepGoalOf } from "./onboarding";
 import { weeklyGoalOf } from "./weekly";
 
-export type QuestFinishedBy = { kind: "weekly" | "journey"; goal: string; xp: number; waiting: boolean; hoggie: boolean };
+export type QuestFinishedBy = { kind: "weekly" | "journey"; goal: string; xp: number; hoggie: boolean };
 
 export async function questsFinishedByMessage(ctx: QueryCtx, member: MemberId, message: MessageRef): Promise<QuestFinishedBy[]> {
-  const { workspace } = await chatUserOf(ctx, member);
   const finished: QuestFinishedBy[] = [];
-  for (const reward of await rewardsCausedBy(ctx, member, message)) {
-    const { key, xp } = reward;
+  for (const { key, xp } of (await rewardsCausedBy(ctx, member, message)).filter(isPaidOnTheMondayPath)) {
     const weekly = weeklyQuestOfRewardKey(key);
     const journey = journeyQuestOfRewardKey(key);
-    const hoggie = isPaidOnTheMondayPath(reward);
-    if (weekly !== null) finished.push({ kind: "weekly", goal: await weeklyGoalOf(ctx, member, weekly), xp, waiting: await recordWaits(ctx, reward), hoggie });
-    else if (journey !== null && (await journeyStepNamedTo(ctx, workspace, member, journey.step))) finished.push({ kind: "journey", goal: finishedStepGoalOf(journey.step, hoggie), xp, waiting: await recordWaits(ctx, reward), hoggie });
+    if (weekly !== null) finished.push({ kind: "weekly", goal: await weeklyGoalOf(ctx, member, weekly), xp, hoggie: true });
+    else if (journey !== null) finished.push({ kind: "journey", goal: finishedStepGoalOf(journey.step, true), xp, hoggie: true });
   }
   return finished;
 }

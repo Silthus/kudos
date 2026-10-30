@@ -105,14 +105,4 @@ describe("a website command never launches unlocks", () => {
     expect(await setAvatar(asSignedIn, "rocket")).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);
   });
-
-  test("WS62 P91: with quests on and no Journey launch, setting an avatar answers refused and doesn't launch the Journey", async () => {
-    const { asSignedIn } = await aMemberHoldingRocket();
-    await flagsOn(...avatarFlags, "quests");
-    const before = await everythingWritten();
-
-    expect(await setAvatar(asSignedIn, "rocket")).toEqual({ kind: "refused" });
-    expect(await everythingWritten()).toEqual(before);
-    expect(before.tables.journeyLaunches).toEqual([]);
-  });
 });
