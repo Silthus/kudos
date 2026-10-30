@@ -201,6 +201,7 @@ describe("a website command never launches unlocks", () => {
     await flagsOn(t, ...questsFlags);
     const { asSignedIn } = await aTeamIn();
     const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
 
     expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);

@@ -11,7 +11,6 @@ import { onboardingReward } from "../../quests/onboarding";
 import { mondayCatalogueVersion } from "../../quests/mondayCatalogue";
 import type { MemberId } from "../../workspace/directory";
 import { earnTeamItem, earnTierItem } from "../items/achievements";
-import { earnWelcomeItem } from "../items/welcome";
 import { dropLevelUpHoggies } from "../levelUpHoggies";
 import { openThoughtfulPack } from "../opening";
 import { crateKeyOf } from "../packs";
@@ -54,7 +53,7 @@ const itemSources: Record<string, ItemSource> = {
     today: [{ key: "thoughtful:" }],
   },
   "the welcome item": {
-    earns: (member) => t.run((ctx) => earnWelcomeItem(ctx, "T1", member, Date.now())),
+    earns: (member) => t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, owesTheWelcomeItem: true, at: Date.now() } }),
     capped: [{ key: "welcome:first", ...exactlyRare }],
     today: [{ key: "welcome:first", floor: "rare" }],
   },
