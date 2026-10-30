@@ -29,7 +29,7 @@ import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator, petHoggieValidator, trayDropValidator } from "./album/hoggies/records";
 import { itemValidator } from "./album/items/records";
-import { mondayDmValidator } from "./mondayDm/records";
+import { mondayDmNudgeValidator, mondayDmValidator } from "./mondayDm/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import {
@@ -340,6 +340,8 @@ export default defineSchema({
     .index("by_recap_due", ["recap", "dueAt"]),
 
   mondayDms: defineTable(mondayDmValidator).index("by_member_monday", ["member", "monday"]).index("by_state_due", ["state", "dueAt"]),
+
+  mondayDmNudges: defineTable(mondayDmNudgeValidator).index("by_dm", ["dm"]),
 
   hugWeekMessages: defineTable({ member: v.id("members"), week: v.string(), conversation: v.string(), message: v.string(), hugs: v.number(), lastAt: v.number() }).index("by_member_week_message", [
     "member",

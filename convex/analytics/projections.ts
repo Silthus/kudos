@@ -33,7 +33,7 @@ import { crateKindOf } from "../album/hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
 import type { WelcomePath } from "../welcome/welcomedAs";
-import type { MondayDmSection } from "../mondayDm/records";
+import type { SentMondayDmSection } from "../mondayDm/records";
 
 export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.number(), v.boolean()));
 
@@ -101,7 +101,7 @@ export type UsageFact =
   | { kind: "questsViewed"; workspace: string; member: MemberId; surface: QuestsSurface; at: number }
   | { kind: "activityViewed"; workspace: string; member: MemberId; state: ActivityState; at: number };
 
-export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: MondayDmSection[] };
+export type SentDm = { kind: "welcome"; path: WelcomePath } | { kind: "monday"; sections: SentMondayDmSection[] };
 
 export const dmKindValidator = v.union(v.literal("welcome"), v.literal("monday"), v.literal("kudos-reply"));
 

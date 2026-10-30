@@ -6,6 +6,8 @@ const sectionOfTheRetiredCatchUp = v.literal("catch-up");
 
 export const mondayDmSectionValidator = v.union(v.literal("hugs"), v.literal("quests"), sectionOfTheRetiredCatchUp);
 
+export const sentMondayDmSectionValidator = v.union(mondayDmSectionValidator, v.literal("nudge"));
+
 const recapLineValidator = v.union(v.string(), v.object({ text: v.string(), link: v.object({ url: v.string(), label: v.string() }) }));
 
 const hugsSectionValidator = v.object({
@@ -39,6 +41,10 @@ export const mondayDmValidator = v.object({
   content: v.optional(mondayDmContentValidator),
 });
 
+export const mondayDmNudgeValidator = v.object({ dm: v.id("mondayDms"), line: v.string() });
+
 export type MondayDmSection = Infer<typeof mondayDmSectionValidator>;
+
+export type SentMondayDmSection = Infer<typeof sentMondayDmSectionValidator>;
 
 export type MondayDmContent = Infer<typeof mondayDmContentValidator>;
