@@ -5,6 +5,7 @@ import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
+import type { Id } from "../../../convex/_generated/dataModel";
 import type { Album } from "./answer";
 
 const chatUrl = "https://app.slack.com/client/T1";
@@ -15,6 +16,13 @@ const withStickersWaiting: Album = {
   ...withBookNext,
   packs: [{ pack: "pack-ivo", person: "ivo-lark", earnedAt: 0, thanked: { name: "Ivo Lark", face: null } }],
   tray: [{ item: "tray-mara", kind: "sticker", person: "mara-fenn", thanked: { name: "Mara Fenn", face: null } }],
+};
+
+const withItemsWaiting: Album = {
+  ...withBookNext,
+  packs: [],
+  tray: [],
+  board: { items: [{ item: "item-ivo" as Id<"items">, earnedAt: 0, reason: { kind: "thanks", person: "ivo-lark" as Id<"members">, thanked: { name: "Ivo Lark", face: { kind: "initials", initials: "IL" } } } }], more: false },
 };
 
 const withAnEmptyTeam: Album = {
@@ -121,6 +129,16 @@ describe("HH86: a team page still collecting explains how to complete it", { tim
     expect(screen.getByRole("dialog", { name: "Mara isn't in your album yet" })).toHaveTextContent("Mara's card is in your tray. Put it in from the top bar.");
   });
 
+  it("sends you to your unidentified items when a kudos to a missing teammate already left items on your board", async () => {
+    visit("salt-and-sparrow", withItemsWaiting);
+
+    await userEvent.click((await photo()).getByRole("button", { name: /^Ivo Lark/ }));
+
+    const ivo = within(screen.getByRole("dialog", { name: "Ivo isn't in your album yet" }));
+    expect(ivo.getByText("Ivo's sticker waits among your unidentified items. Identify them from the top bar.")).toBeInTheDocument();
+    expect(ivo.queryByRole("link")).toBeNull();
+  });
+
   it("gives a missing teammate's sticker a How to get hint", async () => {
     visit("salt-and-sparrow");
 
@@ -175,6 +193,16 @@ describe("HH87: the team card says who is left and what the sticker pays", { tim
       expect.stringMatching(/Give Teo a kudos/),
     ]);
     expect(card.getAllByRole("link", { name: /^Give / })).toHaveLength(1);
+  });
+
+  it("marks a teammate whose kudos items wait on your board, with no Give a kudos button for them", async () => {
+    const card = within(await openedTeamCard("Salt and Sparrow", "salt-and-sparrow", withItemsWaiting));
+
+    expect(card.getAllByRole("listitem").filter((row) => row.closest(".al-give")).map((row) => row.textContent)).toEqual([
+      expect.stringMatching(/^.*Ivo Lark.*Item waiting$/),
+      expect.stringMatching(/Give Mara a kudos/),
+      expect.stringMatching(/Give Teo a kudos/),
+    ]);
   });
 
   it("pays a rare hoggie and the team emoji, and no XP, and says only kudos reach epic and legendary", async () => {

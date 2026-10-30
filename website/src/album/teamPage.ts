@@ -16,24 +16,30 @@ export function nameOnThePhoto(shown: OnThePhoto) {
   return shown.kind === "person" ? shown.person.name : shown.name;
 }
 
-export type WaitingSticker = "tray" | "pack";
+export type WaitingSticker = "tray" | "pack" | "board";
 
 export function waitingStickerOf(album: Album, person: string): WaitingSticker | null {
   if (isInTheTray(album, person)) return "tray";
   if (hasAPackWaiting(album, person)) return "pack";
+  if (hasAnItemWaiting(album, person)) return "board";
   return null;
 }
 
+const waitingWords: Record<WaitingSticker, (first: string) => string> = {
+  tray: (first) => `${first}'s card is in your tray. Put it in from the top bar.`,
+  pack: (first) => `${first}'s pack is waiting. Open it from your packs to add ${first} to your album.`,
+  board: (first) => `${first}'s sticker waits among your unidentified items. Identify them from the top bar.`,
+};
+
 export function waitingStickerWords(waiting: WaitingSticker, name: string) {
-  const first = firstNameOf(name);
-  return waiting === "tray" ? `${first}'s card is in your tray. Put it in from the top bar.` : `${first}'s pack is waiting. Open it from your packs to add ${first} to your album.`;
+  return waitingWords[waiting](firstNameOf(name));
 }
 
-export const waitingStickerLabels: Record<WaitingSticker, string> = { tray: "In your tray", pack: "Pack waiting" };
+export const waitingStickerLabels: Record<WaitingSticker, string> = { tray: "In your tray", pack: "Pack waiting", board: "Item waiting" };
 
 export function howToCollectWords(album: Album, person: string, name: string) {
-  const waiting = waitingStickerOf(album, person);
-  if (waiting !== null) return waitingStickerWords(waiting, name);
+  if (isInTheTray(album, person)) return waitingStickerWords("tray", name);
+  if (hasAPackWaiting(album, person)) return waitingStickerWords("pack", name);
   return `Give ${firstNameOf(name)} a kudos in Slack: mention them in a message with your kudos emoji. Their sticker comes in the pack.`;
 }
 
@@ -43,6 +49,10 @@ function isInTheTray(album: Album, person: string) {
 
 function hasAPackWaiting(album: Album, person: string) {
   return album.packs.some((pack) => pack.person === person);
+}
+
+function hasAnItemWaiting(album: Album, person: string) {
+  return album.board?.items.some(({ reason }) => reason.kind === "thanks" && reason.person === person) ?? false;
 }
 
 export function teamEmojiOf(album: Album, team: string): AlbumEmoji | undefined {
