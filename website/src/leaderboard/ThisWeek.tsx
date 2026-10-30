@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Highlight, HugBoards, Tallies } from "../../../convex/website/leaderboard";
 import type { AlbumLevel, AlbumMe, HugBoardsShown } from "../album/answer";
+import { levelShareOf, plural, xpToNextOf } from "../album/facts";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
 import { AnswerPage } from "../pages/AnswerPage";
@@ -67,22 +68,16 @@ function YouCard({ boards: { you }, me, level }: { boards: HugBoards; me: AlbumM
   );
 }
 
-function LevelBar({ level: { level, xp, startsAt, nextAt } }: { level: AlbumLevel }) {
+function LevelBar({ level }: { level: AlbumLevel }) {
   return (
     <div className="lb-level">
       <span className="lb-level-label">
-        Level {level} · {nextAt - xp} XP to level {level + 1}
+        Level {level.level} · {xpToNextOf(level)} XP to level {level.level + 1}
       </span>
-      <Share have={xp - startsAt} of={nextAt - startsAt} />
+      <span className="lb-share" aria-hidden="true">
+        <span className="lb-share-fill" style={{ width: `${Math.max(3, levelShareOf(level) * 100)}%` }} />
+      </span>
     </div>
-  );
-}
-
-function Share({ have, of }: { have: number; of: number }) {
-  return (
-    <span className="lb-share" aria-hidden="true">
-      <span className="lb-share-fill" style={{ width: `${Math.max(3, (have / of) * 100)}%` }} />
-    </span>
   );
 }
 
@@ -115,18 +110,15 @@ function Tally({ figure, before, term }: { figure: number; before: number; term:
 function wordsOf(highlight: Highlight): Words {
   switch (highlight.kind) {
     case "best-week":
-      return { headline: "Your best week of hugs yet", detail: [`${plural(highlight.hugsGiven, "hug")} given, ${highlight.more} more than last week`, ...(highlight.hoggiesFound > 0 ? [plural(highlight.hoggiesFound, "new hoggie")] : [])].join(" · ") };
+      return { headline: "Your best week of hugs yet", detail: [`${plural(highlight.hugsGiven, "hug", "hugs")} given, ${highlight.more} more than last week`, ...(highlight.hoggiesFound > 0 ? [plural(highlight.hoggiesFound, "new hoggie", "new hoggies")] : [])].join(" · ") };
     case "more-hugs":
-      return { headline: `${plural(highlight.more, "more hug")} than last week`, detail: `${plural(highlight.hugsGiven, "hug")} given this week` };
+      return { headline: `${plural(highlight.more, "more hug", "more hugs")} than last week`, detail: `${plural(highlight.hugsGiven, "hug", "hugs")} given this week` };
     case "thanked":
-      return { headline: `${plural(highlight.teammates, "teammate")} thanked you this week`, detail: `Your thanks have reached ${plural(highlight.reach, "teammate")}` };
+      return { headline: `${plural(highlight.teammates, "teammate", "teammates")} thanked you this week`, detail: `Your thanks have reached ${plural(highlight.reach, "teammate", "teammates")}` };
     case "last-week":
-      return { headline: `Last week you gave ${plural(highlight.hugs, "hug")}`, detail: `${highlight.best ? "Your best week yet. " : ""}Your thanks have reached ${plural(highlight.reach, "teammate")} so far.` };
+      return { headline: `Last week you gave ${plural(highlight.hugs, "hug", "hugs")}`, detail: `${highlight.best ? "Your best week yet. " : ""}Your thanks have reached ${plural(highlight.reach, "teammate", "teammates")} so far.` };
     case "reach":
-      return { headline: `Your thanks have reached ${plural(highlight.teammates, "teammate")}`, detail: "Every hug and kudos you give adds to it." };
+      return { headline: `Your thanks have reached ${plural(highlight.teammates, "teammate", "teammates")}`, detail: "Every hug and kudos you give adds to it." };
   }
 }
 
-function plural(count: number, word: string) {
-  return `${count} ${count === 1 ? word : `${word}s`}`;
-}
