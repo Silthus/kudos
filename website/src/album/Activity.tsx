@@ -11,17 +11,18 @@ import { PageTitle } from "../PageTitle";
 import type { Message } from "../shell";
 import { LoadingPage } from "../pages/LoadingPage";
 import { SlackLink } from "../SlackLink";
-import type { ActivityWeekShown, AlbumWeek, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
+import type { ActivityWeekShown, AlbumWeek, QuestsShown, HoggiesFound, KudosOfTheWeek, PeopleListed, WeekIssue, WeekKudos, WeekKudosList, WeekPerson, WeekTab } from "./answer";
 import { plural } from "./facts";
 import { rarityWordOf } from "./opening";
+import { mondayQuestsIn } from "./QuestsPanel";
 import { hrefOf } from "./place";
 import { isWaitingForTheWeek, type WeekEdition } from "./weekEdition";
 
-type ActivityAnswerProps = { week: ActivityWeekShown | undefined; edition: WeekEdition; me: string; inSight: boolean; onViewed: (state: ActivityState) => void; onSignIn: () => void; onSignOut: () => void };
+type ActivityAnswerProps = { week: ActivityWeekShown | undefined; edition: WeekEdition; quests: QuestsShown | undefined; me: string; inSight: boolean; onViewed: (state: ActivityState) => void; onSignIn: () => void; onSignOut: () => void };
 
-export function ActivityAnswerPage({ week, edition, me, inSight, onViewed, ...answers }: ActivityAnswerProps) {
+export function ActivityAnswerPage({ week, edition, quests, me, inSight, onViewed, ...answers }: ActivityAnswerProps) {
   if (week === undefined || week.kind === "off") return <LoadingPage shape="column" />;
-  if (week.kind === "week") return <YourWeekPage week={week} inSight={inSight} onViewed={onViewed} />;
+  if (week.kind === "week") return <YourWeekPage week={week} quests={mondayQuestsIn(quests)} inSight={inSight} onViewed={onViewed} />;
   if (week.kind !== "edition") return <AnswerPage answer={week} {...answers} />;
   return <WeeklyEditionAnswerPage edition={edition} me={me} {...answers} />;
 }

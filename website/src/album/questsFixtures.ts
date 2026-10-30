@@ -15,6 +15,11 @@ function newcomerJourney(): GettingStartedStep[] {
   ];
 }
 
+function beforeTheFirstHugJourney(): GettingStartedStep[] {
+  const [hug, ...rest] = newcomerJourney();
+  return [{ ...hug!, progress: once, done: false }, ...rest];
+}
+
 function firstThanksJourney(): GettingStartedStep[] {
   const [hug, firstThanks, ...rest] = newcomerJourney();
   return [hug!, { ...firstThanks!, progress: finishedOnce, done: true, item: "waiting" }, ...rest];
@@ -34,6 +39,7 @@ function drawnWeek(): DrawnQuest[] {
 }
 
 export const questsFixtures = {
+  beforeTheFirstHug: { kind: "monday", firstName: "Sam", next: "first-thanks", daysLeft: 5, quests: { kind: "journey", steps: beforeTheFirstHugJourney() } },
   newcomer: { kind: "monday", firstName: "Sam", next: "first-thanks", daysLeft: 5, quests: { kind: "journey", steps: newcomerJourney() } },
   firstThanks: { kind: "monday", firstName: "Sam", next: "someone-new", daysLeft: 5, quests: { kind: "journey", steps: firstThanksJourney() } },
   halfway: { kind: "monday", firstName: "Sam", next: "someone-new", daysLeft: 5, quests: { kind: "journey", steps: halfwayJourney() } },

@@ -97,7 +97,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onThisWeeksLeaderboard && isWaitingForTheWeeksBoards(hugBoards)) || (onActivity && isWaitingForTheActivity(activityWeek, edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp)) || (player !== null && isWaitingForThePlayer(ownPlayer, playerReads))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={leaderboardHugs ? <ThisWeekAnswerPage shown={hugBoards} me={album.me} level={album.level} onViewed={() => actions.viewLeaderboard("week")} {...answers} /> : <LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} onViewed={actions.viewLeaderboard} {...answers} />}
-        activity={(inSight) => <ActivityAnswerPage week={activityWeek} edition={edition} me={album.me.person} inSight={inSight} onViewed={actions.viewActivity} {...answers} />}
+        activity={(inSight) => <ActivityAnswerPage week={activityWeek} edition={edition} quests={quests} me={album.me.person} inSight={inSight} onViewed={actions.viewActivity} {...answers} />}
         person={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
         profile={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
@@ -113,7 +113,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         endXpMoment={visit.endTheMoment}
         missedXpMoment={visit.missed}
         closeHowItWorks={actions.closeHowItWorks}
-        quests={quests}
+        quests={onActivity && activityWeek?.kind === "week" ? undefined : quests}
         questsLanding={questsLanding}
         viewQuests={actions.viewQuests}
         anEntryIsOpen={anEntryIsOpenAt(place, hoggies)}
