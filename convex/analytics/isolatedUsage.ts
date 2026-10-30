@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { boardPeriodValidator } from "../album/boards";
 import { messageKindValidator, messagePlaceValidator } from "../messageSettings/kinds";
-import { mondayDmSectionValidator } from "../mondayDm/records";
+import { sentMondayDmSectionValidator } from "../mondayDm/records";
 import { welcomePathValidator } from "../welcome/welcomedAs";
 import { failuresLogged } from "./failures";
 import { dmKindValidator, dmLinkDestinationValidator, hugsRecapCarrierValidator, questsSurfaceValidator } from "./projections";
@@ -122,7 +122,7 @@ export const recordHugsRecapSent = internalMutation({
 const mondayDmSentValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
-  sections: v.array(mondayDmSectionValidator),
+  sections: v.array(sentMondayDmSectionValidator),
   at: v.number(),
 });
 

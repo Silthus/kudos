@@ -32,6 +32,7 @@ const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teamm
 const sendMondayDm = "slack/mondayDm:sendMondayDm";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
 const welcomeOnFirstThanks = "welcome/welcome:welcomeOnFirstThanks";
+const carolsHype = "carol-lindqvist-hype";
 
 type Person = { user: string; name: string };
 
@@ -194,6 +195,86 @@ describe("MQ23 MQ24 MQ25 MQ28: at Monday 9:00 local a Monday-path member gets on
     await mondayArrives();
 
     expect(dmTimesTo(alice)).toEqual([Date.parse("2026-10-19T03:30:00Z")]);
+  });
+});
+
+describe("HH58 HH59 HH60: while hype-nudge is on, the Monday DM names one teammate whose hype emoji a kudos collects", { timeout: 60_000 }, () => {
+  test("a member who reacted with Carol's hype emoji on Carol's message gets one nudge line after the quests checklist, and dm sent names it", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "hype-nudge");
+    await thanks(alice, saysWhy, bob);
+    await thanks(bob, saysWhy, carol);
+    await hypeReaction(alice, carol, carolsHype);
+
+    await mondayArrives();
+
+    const [dm, ...more] = dmsTo(alice).map(seen);
+    expect(more).toEqual([]);
+    expect(dm?.slice(-4)).toEqual([
+      "👉 *Thank someone new*",
+      "⚪ Thank someone on two different days _1 of 2 days_",
+      `section: Give Carol a kudos to collect :${carolsHype}:.`,
+      `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book?src=monday-dm) | See your quests (dm-link:monday:quests → ${siteUrl}/book?src=monday-dm#me/quests) | Stop Monday quests`,
+    ]);
+    expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["quests,nudge"]);
+  });
+
+  test("with hype-nudge off, the same member's DM carries no nudge and dm sent names only its sections", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await thanks(alice, saysWhy, bob);
+    await thanks(bob, saysWhy, carol);
+    await hypeReaction(alice, carol, carolsHype);
+
+    await mondayArrives();
+
+    const [dm] = dmsTo(alice).map(seen);
+    expect(dm?.filter((line) => line.includes("Give Carol"))).toEqual([]);
+    expect(dm?.slice(-2)).toEqual([
+      "⚪ Thank someone on two different days _1 of 2 days_",
+      `actions: Identify them on the website (primary, dm-link:monday:book → ${siteUrl}/book?src=monday-dm) | See your quests (dm-link:monday:quests → ${siteUrl}/book?src=monday-dm#me/quests) | Stop Monday quests`,
+    ]);
+    expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["quests"]);
+  });
+
+  test("a member with a nudge but no hugs and no quests gets nothing that Monday", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "hype-nudge");
+    await thanks(alice, saysWhy, bob);
+    await thanks(bob, saysWhy, carol);
+    await hypeReaction(alice, carol, carolsHype);
+    await sweepsAt(Date.now() + hourMs);
+
+    await switchWebsite(t, postHog, true, ...todaysFlags, "hype-nudge");
+    await mondayArrives();
+
+    expect(dmsTo(alice)).toEqual([]);
+  });
+
+  test("Stop takes the nudge away with the quests, and the undo brings back the DM as it was sent", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "hype-nudge");
+    await thanks(alice, saysWhy, bob);
+    await thanks(bob, saysWhy, carol);
+    await hypeReaction(alice, carol, carolsHype);
+    await mondayArrives();
+    const [asSent] = dmsTo(alice);
+
+    await press(alice, "Stop Monday quests");
+    expect(dmsTo(alice).map(seen)).toEqual([["section: 🔕 *Done, no more Monday quests from me.* Changed your mind? One press brings them back.", "actions: Turn Monday quests back on"]]);
+
+    await press(alice, "Turn Monday quests back on");
+    expect(dmsTo(alice)).toEqual([asSent]);
+    expect(dmsTo(alice).map(seen)[0]).toContain(`section: Give Carol a kudos to collect :${carolsHype}:.`);
+  });
+
+  test("a rate-limited DM goes out on a later try with one nudge line, recorded once", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath, "hype-nudge");
+    await thanks(alice, saysWhy, bob);
+    await thanks(bob, saysWhy, carol);
+    await hypeReaction(alice, carol, carolsHype);
+    slack.answeringIn("chat.postMessage", alice.user, rateLimitedFor(30));
+
+    await mondayArrives();
+
+    expect(dmsTo(alice).map(seen).map((dm) => dm.filter((line) => line.startsWith("section: Give Carol")))).toEqual([[`section: Give Carol a kudos to collect :${carolsHype}:.`]]);
+    expect((await mondayDmsSentTo(alice)).map(({ properties }) => properties.sections)).toEqual(["quests,nudge"]);
   });
 });
 
@@ -635,6 +716,11 @@ async function hug(giver: Person, author: Person, message = `${Math.floor(Date.n
   await react(t, { user: giver.user, itemUser: author.user, ts: message });
   await settleUpTo(t, Date.now() + minuteMs);
   return message;
+}
+
+async function hypeReaction(giver: Person, owner: Person, emojiName: string) {
+  await react(t, { user: giver.user, itemUser: owner.user, ts: `${Math.floor(Date.now() / 1000) - 600}.000200`, reaction: emojiName });
+  await settleUpTo(t, Date.now() + minuteMs);
 }
 
 async function mondayArrives(until = mondayNine + hourMs) {
