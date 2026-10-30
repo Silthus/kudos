@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MondayDm, MondayQuests } from "../mondayDm/mondayDm";
 import type { MondayDmContent } from "../mondayDm/records";
 import type { HugsSection } from "../hugs/recap";
-import { buttonOf, mrkdwn, urlButtonOf } from "./blocks";
+import { buttonOf, escaped, mrkdwn, urlButtonOf } from "./blocks";
 import { checklistBlockOf } from "./checklist";
 import { attemptArgs, attemptCall, isRateLimited, retryAfter, sendOnce, tryAtMostThreeTimes, type Attempt } from "./delivery";
 import { emojiLineBlockOf, footerOf, lineTextOf, postRecap } from "./hugsRecap";
@@ -35,7 +35,7 @@ export const showMondayDm = observedAction({
       async (attempt) => {
         const shown = await ctx.runQuery(internal.mondayDm.stop.shownMondayDm, { dm });
         if (shown?.content.quests == null) return null;
-        const message = shown.stopped ? stoppedMessageOf(dm, shown.workspace, shown.content) : messageOf({ dm, workspace: shown.workspace, ...shown.content }, shown.content.quests);
+        const message = shown.stopped ? stoppedMessageOf(dm, shown.workspace, shown.content) : messageOf({ dm, workspace: shown.workspace, nudge: shown.nudge, ...shown.content }, shown.content.quests);
         return sendOnce(ctx, shown.workspace, "chat.update", { channel, ts, ...message }, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.mondayDm.showMondayDm, { dm, channel, ts, attempt: retry.attempt }),
@@ -74,11 +74,12 @@ function textOf(hugs: HugsSection | null, quests: MondayQuests) {
   return [...(hugs?.lines.map(lineTextOf) ?? []), quests.heading].join("\n");
 }
 
-function blocksOf({ dm, workspace, hugs, footer }: Omit<MondayDm, "user">, quests: MondayQuests) {
+function blocksOf({ dm, workspace, hugs, nudge, footer }: Omit<MondayDm, "user">, quests: MondayQuests) {
   return [
     ...(hugs === null ? [] : hugsBlocksOf(hugs)),
     { type: "section", text: mrkdwn(quests.heading) },
     checklistBlockOf(quests.checklist),
+    ...(nudge === null ? [] : [{ type: "section", text: mrkdwn(escaped(nudge)) }]),
     { type: "actions", elements: buttonsOf(dm, quests) },
     ...footerBlocksOf(workspace, footer),
   ];

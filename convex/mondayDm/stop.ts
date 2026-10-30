@@ -7,9 +7,10 @@ import type { MessagePlace } from "../messageSettings/kinds";
 import { placeOf, setMessageSetting } from "../messageSettings/messageSettings";
 import { onTheMondayPath } from "../quests/flag";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { hypeNudgeOf } from "./hypeNudge";
 import type { MondayDmContent } from "./records";
 
-export type ShownMondayDm = { workspace: string; content: MondayDmContent; stopped: boolean };
+export type ShownMondayDm = { workspace: string; content: MondayDmContent; nudge: string | null; stopped: boolean };
 
 export type PressedIn = { channel: string; ts: string } | undefined;
 
@@ -27,7 +28,7 @@ export const shownMondayDm = internalQuery({
     const row = await ctx.db.get(dm);
     if (row?.content === undefined) return null;
     const { workspace } = await chatUserOf(ctx, row.member);
-    return { workspace, content: row.content, stopped: (await placeOf(ctx, row.member, "quests")) === "none" };
+    return { workspace, content: row.content, nudge: await hypeNudgeOf(ctx, dm), stopped: (await placeOf(ctx, row.member, "quests")) === "none" };
   },
 });
 
