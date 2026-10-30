@@ -6,9 +6,9 @@ import { SlackLink } from "../SlackLink";
 
 type StepShown = { title: string; why: ReactNode; button: string; href: string };
 
-type NextStepCardProps = { step: NextStep; kudos: LoopLesson; slack: string };
+type NextStepCardProps = { step: NextStep; kudos: LoopLesson; slack: string; picture: ReactNode };
 
-export function NextStepCard({ step, kudos, slack }: NextStepCardProps) {
+export function NextStepCard({ step, kudos, slack, picture }: NextStepCardProps) {
   const { title, why, button, href } = stepShownOf(step, <NamedEmoji name={kudos.kudosEmoji} image={kudos.kudosEmojiImage ?? undefined} />, slack);
   return (
     <section className="al-next-step" aria-label="Your next step">
@@ -20,6 +20,7 @@ export function NextStepCard({ step, kudos, slack }: NextStepCardProps) {
           {button}
         </SlackLink>
       </div>
+      {picture}
     </section>
   );
 }

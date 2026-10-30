@@ -63,11 +63,16 @@ export function fixtureReadsFor(fixture?: string): AppReads {
     useLevelUp: fixtureLevelUp,
     useXpMoment: fixture === withAnXpMoment ? fixedXpMoment : (asking) => (asking ? { kind: "off" } : undefined),
     usePlayerCard: fixedPlayerCards(),
-    useQuests: fixture === withQuests ? fixedQuests(questsFixtures.halfway) : fixture === withThisWeeksQuests ? fixedQuests(questsFixtures.week) : noQuests,
+    useQuests: fixture === withQuests ? fixedQuests(questsFixtures.halfway) : fixture === withThisWeeksQuests ? fixedQuests(questsFixtures.week) : activityQuestsOf(fixture),
   };
 }
 
 const activityNextFixture = "album-activity-next-";
+
+function activityQuestsOf(fixture: string | undefined) {
+  if (!fixture?.startsWith(activityNextFixture)) return noQuests;
+  return fixture === `${activityNextFixture}empty` ? fixedQuests(questsFixtures.newcomer) : fixedQuests(questsFixtures.week);
+}
 
 function activityWeekOf(fixture: string | undefined) {
   if (!fixture?.startsWith(activityNextFixture)) return theWeeklyEdition;
