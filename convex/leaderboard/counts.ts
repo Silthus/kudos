@@ -74,7 +74,15 @@ export async function weekCountsBetween(ctx: QueryCtx, member: MemberId, oldest:
     .query("givenTotals")
     .withIndex("by_member_period", (q) => q.eq("member", member).gte("period", keyOf("week", oldest)).lte("period", keyOf("week", newest)))
     .collect();
-  return new Map(rows.map((row) => [row.period.slice(weekKeys.from.length), countsOf(row)]));
+  return countsByWeek(rows);
+}
+
+export async function weekCountsThrough(ctx: QueryCtx, member: MemberId, newest: DayKey): Promise<Map<DayKey, RecognitionCounts>> {
+  const rows = await ctx.db
+    .query("givenTotals")
+    .withIndex("by_member_period", (q) => q.eq("member", member).gte("period", weekKeys.from).lte("period", keyOf("week", newest)))
+    .collect();
+  return countsByWeek(rows);
 }
 
 export async function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<MemberTotals[]> {
@@ -83,6 +91,10 @@ export async function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodK
     .withIndex("by_period", (q) => q.eq("workspace", workspace).eq("period", period))
     .collect();
   return rows.map((row) => ({ member: row.member, ...periodTotalsOf(row) }));
+}
+
+function countsByWeek(rows: Total[]): Map<DayKey, RecognitionCounts> {
+  return new Map(rows.map((row) => [row.period.slice(weekKeys.from.length), countsOf(row)]));
 }
 
 function periodTotalsOf(row: Total | null): PeriodTotals {

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { earnedEmojisOf, markEmojisSeenBy, sharedEmojisOf, type EarnedEmoji, type SharedEmoji } from "../album/earnedEmojis";
 import { hypesHeldFor } from "../album/items/hypes";
 import { reportLeaderboardViewed } from "../analytics/isolatedUsage";
+import { exposeLeaderboardHugs, leaderboardHugsShownTo } from "../leaderboard/flag";
 import { kudosEmojiPicksOf, pickKudosEmoji as pickKudosEmojiOf, type KudosEmojiPick } from "../album/kudosEmojis";
 import { boardPeriodValidator, thoughtfulBoardsOf, type BoardPerson, type BoardTeam, type Standing } from "../album/boards";
 import { emojiInPlaceFor, type EmojiInPlace } from "../album/emojiWizard";
@@ -72,6 +73,7 @@ export type AlbumAnswer = {
   linkPreviews?: true;
   personPageD?: true;
   bookNext?: true;
+  leaderboardHugs?: true;
 } & Onboarding;
 
 export const mostPeopleShown = 500;
@@ -159,7 +161,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const emojiWizard = await emojiWizardShownTo(ctx, me.member);
   const sharedEmojis = emojiWizard ? null : await sharedEmojisOf(ctx, me.member, earned);
   const emojiPage = await customEmojiPageOf(ctx, me.workspace);
-  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, ...picks, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)), ...(await bookNextOn(ctx, me)) };
+  return { kind: "album", me: await meIn(ctx, me), level, teams, people: [...held, ...unlisted], morePeople, packs, morePacks, tray, moreTray, milestones, emojis: earned.emojis, moreEmojis: earned.more, ...picks, sharedEmojis, emojiPage, emojiWizard, emojiInPlace: await emojiInPlaceFor(ctx, me.member), ...(waiting !== null && { board: await boardShownOf(waiting, thanked) }), ...(await petsShownTo(ctx, me)), ...(itemsShown && { lastVisit: await lastVisitOf(ctx, me.member) }), ...(await shareableUrlsTo(ctx, me)), ...(await onboardingOf(ctx, me, level)), ...(await linkPreviewsOn(ctx, me)), ...(await personPageDOn(ctx, me)), ...(await bookNextOn(ctx, me)), ...(await leaderboardHugsOn(ctx, me)) };
 });
 
 async function kudosEmojiPicksShownOf(ctx: QueryCtx, member: MemberId): Promise<Pick<AlbumAnswer, "kudosEmojiPicks">> {
@@ -168,6 +170,10 @@ async function kudosEmojiPicksShownOf(ctx: QueryCtx, member: MemberId): Promise<
 
 async function shareableUrlsTo(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "shareableUrls">> {
   return (await shareableUrlsShownTo(ctx, me.member)) ? { shareableUrls: true } : {};
+}
+
+async function leaderboardHugsOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "leaderboardHugs">> {
+  return (await leaderboardHugsShownTo(ctx, me.member)) ? { leaderboardHugs: true } : {};
 }
 
 async function personPageDOn(ctx: QueryCtx, me: VerifiedMember): Promise<Pick<AlbumAnswer, "personPageD">> {
@@ -402,6 +408,7 @@ export const viewLeaderboard = memberMutation({
   args: { period: boardPeriodValidator },
   handler: async (ctx, me, _person, { period }): Promise<LeaderboardViewAnswer> => {
     if (!(await albumShownTo(ctx, me.member))) return { kind: "refused" };
+    await exposeLeaderboardHugs(ctx, me.member);
     await reportLeaderboardViewed(ctx, { workspace: me.workspace, member: me.member, board: "everyone", period, surface: "website", at: Date.now() });
     return { kind: "viewed" };
   },

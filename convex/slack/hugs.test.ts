@@ -308,7 +308,7 @@ async function workspace({ transactionLimits = false } = {}) {
 
 const everyFeature = ["hugs", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
 
-const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "countedRecognitions", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
+const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "countedRecognitions", "weekThankers", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
 
 function withoutTheAlbumsHugCounts(rows: Array<Record<string, unknown>>) {
   const thanked = (row: Record<string, unknown>) => row.kudosGiven !== 0 || row.kudosReceived !== 0;
