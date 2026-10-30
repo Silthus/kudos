@@ -15,7 +15,8 @@ import { levelShareOf, myTeamOf, xpToNextOf } from "./facts";
 import { countedWords, emblemOf, milestoneNameOf, progressWords, tierWordOf } from "./milestones";
 import { rarityWordOf } from "./opening";
 import { findYourselfHref, hrefOf } from "./place";
-import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, type BestMedal, type NextMedal, type Standing } from "./profile";
+import { NextMilestones } from "./NextMilestones";
+import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, toGoOf, type BestMedal, type NextMedal, type Standing } from "./profile";
 import { dateOf } from "./teamPage";
 import { ShareLink } from "./ShareLink";
 import "./team.css";
@@ -61,6 +62,7 @@ function ProfilePage({ album, profile, standing, hoggies }: { album: Album; prof
         <Entry album={album} team={team} note={profile.note} />
         <Rank standing={standing} />
       </div>
+      <NextMilestones album={album} />
       {team === undefined && <FindYourTeam />}
       <Glance album={album} team={team} hoggies={hoggies} />
       <Finds album={album} newest={profile.newest} hoggies={hoggies} />
@@ -407,7 +409,7 @@ function ClosestNext({ next }: { next: NextMedal }) {
       <Bar label={`${words} for ${tier.name}`} now={Math.min(milestone.count, tier.at)} min={0} max={tier.at} share={shareOf(next)} />
       <p className="al-profile-next-way al-profile-small">
         <span>{words}</span>
-        <span className="al-quiet">{Math.max(0, tier.at - milestone.count)} to go</span>
+        <span className="al-quiet">{toGoOf(next)} to go</span>
       </p>
     </div>
   );
