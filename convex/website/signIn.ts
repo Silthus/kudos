@@ -1,7 +1,7 @@
 import type { GenericMutationCtx, WithoutSystemFields } from "convex/server";
 import type { DataModel, Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { earnWelcomeItem } from "../album/items/welcome";
+import { publish } from "../bus/publish";
 import { allowedSignIn } from "../slack/signIn";
 import { verifyLater } from "../slack/verifyMember";
 import { lookup, type MemberFacts } from "../workspace/directory";
@@ -25,7 +25,7 @@ export async function rememberSignedInMember(ctx: GenericMutationCtx<DataModel>,
 
 async function firstSignIn(ctx: MutationCtx, user: NewUser, person: MemberFacts | undefined): Promise<Id<"users">> {
   const signedIn = await ctx.db.insert("users", user);
-  if (person?.kind === "member") await earnWelcomeItem(ctx, user.chatIdentity.workspace, person.member, Date.now());
+  if (person?.kind === "member") await publish(ctx, { type: "memberGreeted", workspace: user.chatIdentity.workspace, member: person.member, at: Date.now() });
   return signedIn;
 }
 

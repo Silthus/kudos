@@ -4,7 +4,7 @@ import { FakeSlack, httpStatus } from "../../../testing/fakeSlack";
 import { memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../../testing/slackMessages";
 import { aDeploymentForWorkspace, allowedWorkspace, switchWebsite } from "../../../testing/website";
-import { api } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { catalogue } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
@@ -103,6 +103,17 @@ describe("LP44 LP50: a member's first sign-in earns one welcome item", () => {
   });
 });
 
+describe("LP44: Album earns the welcome item from memberGreeted", () => {
+  test("a greeting delivered twice earns one welcome item", async () => {
+    const event = { type: "memberGreeted" as const, workspace: allowedWorkspace, member: await memberOf(juno), at: Date.now() };
+
+    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event });
+    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event });
+
+    expect(await itemsOf(juno)).toEqual([{ source: "hoggie", key: welcomeCrateKey, floor: "rare", reason: { kind: "welcome" } }]);
+  });
+});
+
 describe("LP11 LP44 LP49: the welcome item turns at least rare, pays no XP and teaches the loop once", () => {
   test("its turn draws the rare-floored hoggie, pays no XP and answers the workspace's kudos emoji for the line that teaches the loop", async () => {
     const { reader } = await signsIn(juno);
@@ -154,6 +165,7 @@ async function joins(person: Person) {
 async function signsIn(person: Person, existingUserId: Id<"users"> | null = null) {
   const profile = { id: `${allowedWorkspace}/${person.user}`, chatWorkspace: allowedWorkspace, chatUser: person.user, name: person.name };
   const user = await t.run((ctx) => rememberSignedInMember(ctx, { existingUserId, profile }));
+  await settle(t);
   const session = await t.run((ctx) => ctx.db.insert("authSessions", { userId: user, expirationTime: Date.now() + 3_600_000 }));
   return { user, reader: t.withIdentity({ subject: `${user}|${session}` }) };
 }

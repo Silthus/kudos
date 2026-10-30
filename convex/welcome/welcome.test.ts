@@ -391,6 +391,18 @@ describe("MQ17: a welcome earns the welcome item, starts the quests and schedule
     expect(readWelcome(welcome).at(-1)).toBe("actions: [See your quests]");
   });
 
+  test("the welcome counts the welcome item it owes as waiting before Album earns it, and once after", async () => {
+    t = await workspace(mondayPath);
+    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member" }));
+    const waitingAtTheWelcome = async () => (await t.query(internal.welcome.mondayWelcome.mondayWelcomeOf, { workspace: "T1", member, cause: { path: "thoughtful-given" }, journey: [] })).waiting;
+
+    const beforeTheEarn = await waitingAtTheWelcome();
+    await t.mutation(internal.album.items.welcome.earnWelcomeItemOnGreeting, { event: { type: "memberGreeted", workspace: "T1", member, at: Date.now() } });
+
+    expect(beforeTheEarn, "waiting before Album earns the welcome item").toBe(1);
+    expect(await waitingAtTheWelcome(), "waiting once Album earned it").toBe(1);
+  });
+
   test("the hug welcome starts Bob's quests", async () => {
     t = await workspace(mondayPath);
 

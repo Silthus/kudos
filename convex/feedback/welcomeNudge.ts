@@ -3,10 +3,10 @@ import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { mentionsOfOnePage, permalinkOfMessage, readableSegmentsOf } from "../activity/kudos";
 import { hugGivenEventValidator, kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
+import { publish } from "../bus/publish";
 import { wordsOf } from "../engine/kudosText";
 import { messageRefValidator, type ChatUserId, type MessageRef, type WordSegment } from "../engine/messageEvent";
 import { hugOf, hugPeoplePageOf } from "../hugs/records";
-import { earnWelcomeItem } from "../album/items/welcome";
 import { welcomeItemShownTo } from "../album/items/welcomeFlag";
 import { websiteOriginFor } from "../website/link";
 import { signInEntry } from "../website/routes";
@@ -75,7 +75,7 @@ async function nudge(ctx: MutationCtx, member: MemberId, cause: WelcomeNudgeCaus
   const { workspace, user } = await chatUserOf(ctx, member);
   if (!(await isNudgedWelcome(ctx, workspace, user, member)) || (await isWelcomedOnTheMondayPath(ctx, member, causeWelcomes))) return;
   await ctx.db.insert("welcomeNudges", { member, at });
-  await earnWelcomeItem(ctx, workspace, member, at);
+  await publish(ctx, { type: "memberGreeted", workspace, member, at });
   await ctx.scheduler.runAfter(0, internal.slack.welcomeNudge.deliverWelcomeNudge, { workspace, user, member, cause });
 }
 

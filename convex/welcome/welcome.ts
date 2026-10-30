@@ -8,7 +8,6 @@ import { publish } from "../bus/publish";
 import { sendsOnce } from "../feedback/sentNotices";
 import { requestWelcome } from "../feedback/welcome";
 import { hugOf } from "../hugs/records";
-import { earnWelcomeItem } from "../album/items/welcome";
 import { onboardingShownTo } from "../album/items/onboardingFlag";
 import { rewardKeyOf } from "../quests/crates";
 import { questFinishOf } from "../quests/finishes";
@@ -62,7 +61,7 @@ export async function welcomeOnTheMondayPath(ctx: MutationCtx, member: MemberId,
 async function recordWelcome(ctx: MutationCtx, member: MemberId, cause: MondayWelcomeCause, at: number) {
   await ctx.db.insert("welcomes", { member, path: cause.path });
   const { workspace, user } = await chatUserOf(ctx, member);
-  await earnWelcomeItem(ctx, workspace, member, at);
+  await publish(ctx, { type: "memberGreeted", workspace, member, at });
   if (await mondayPathShownTo(ctx, member)) await startQuests(ctx, member, at);
   await analyticsIdOf(ctx, member);
   return { workspace, user, journey: await onboardingQuestsOf(ctx, member, at) };

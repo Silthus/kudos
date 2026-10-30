@@ -1,10 +1,13 @@
 import type { Id } from "../../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../../_generated/server";
+import { memberGreetedEventValidator } from "../../bus/events";
 import type { CrateKey } from "../hoggies/crateKey";
 import { customEmojiImageOf } from "../../workspace/customEmoji";
 import type { MemberId } from "../../workspace/directory";
 import { settingsOf } from "../../workspace/settings";
+import type { DmLinks } from "../../feedback/dmLinks";
 import { earnHoggieItem, welcomeRarities } from "../hoggies/rarityCaps";
+import { earnedItemOf, shownWaitingHoggiesOf, type WaitingCount } from "./ledger";
 import type { Turned } from "./turn";
 import { welcomeItemShownTo } from "./welcomeFlag";
 
@@ -14,9 +17,24 @@ export type Taught = { teaches?: LoopLesson };
 
 export const welcomeCrateKey: CrateKey = "welcome:first";
 
-export async function earnWelcomeItem(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<void> {
+export const earnWelcomeItemOnGreeting = internalMutation({
+  args: { event: memberGreetedEventValidator },
+  handler: async (ctx, { event: { workspace, member, at } }): Promise<void> => {
+    await earnWelcomeItem(ctx, workspace, member, at);
+  },
+});
+
+async function earnWelcomeItem(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<void> {
   if (!(await welcomeItemShownTo(ctx, member))) return;
   await earnHoggieItem(ctx, { workspace, member, key: welcomeCrateKey, reason: { kind: "welcome" }, earnedAt: at }, welcomeRarities);
+}
+
+export async function shownWaitingHoggiesAtTheWelcomeOf(ctx: QueryCtx, member: MemberId, links: DmLinks | null): Promise<WaitingCount> {
+  return shownWaitingHoggiesOf(ctx, member, links, { notYetEarned: (await welcomeItemOwedTo(ctx, member)) ? 1 : 0 });
+}
+
+async function welcomeItemOwedTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await welcomeItemShownTo(ctx, member)) && (await earnedItemOf(ctx, member, "hoggie", welcomeCrateKey)) === null;
 }
 
 export async function lessonAfter(ctx: QueryCtx, owner: { workspace: string; member: MemberId }, item: Id<"items">, { again }: Turned): Promise<Taught> {
