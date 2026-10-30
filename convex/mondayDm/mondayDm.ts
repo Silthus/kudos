@@ -32,7 +32,7 @@ const dueHour = 9;
 export const ensureMondayDms = internalMutation({
   args: { cursor: v.optional(v.string()) },
   handler: async (ctx, { cursor }): Promise<void> => {
-    if (cursor === undefined) await settleStrandedStarts(ctx);
+    if (cursor === undefined) await startTheSweep(ctx);
     const starts = await ctx.db.query("questStarts").paginate({ numItems: startsPerSweep, cursor: cursor ?? null });
     for (const { member } of starts.page) if (await isTheMondayDmFor(ctx, member)) await ensureMondayDm(ctx, member, Date.now());
     if (!starts.isDone) await ctx.scheduler.runAfter(0, internal.mondayDm.mondayDm.ensureMondayDms, { cursor: starts.continueCursor });
@@ -99,9 +99,12 @@ async function isTheMondayDmFor(ctx: MutationCtx, member: MemberId) {
 
 async function ensureMondayDm(ctx: MutationCtx, member: MemberId, at: number) {
   const timeZone = (await timeZoneOf(ctx, member)) ?? undefined;
-  const monday = await comingMondayOf(ctx, member, allowanceDay(at, timeZone), timeZone);
+  await ensureMondayDmOn(ctx, member, await comingMondayOf(ctx, member, allowanceDay(at, timeZone), timeZone));
+}
+
+export async function ensureMondayDmOn(ctx: MutationCtx, member: MemberId, monday: DayKey) {
   if ((await mondayDmOf(ctx, member, monday)) !== null) return;
-  const dueAt = wallClockAt(monday, dueHour, timeZone);
+  const dueAt = await dueAtOf(ctx, member, monday);
   const dm = await ctx.db.insert("mondayDms", { member, monday, state: "scheduled", dueAt, tries: 0 });
   await ctx.scheduler.runAt(dueAt, internal.slack.mondayDm.sendMondayDm, { dm, attempt: 1 });
 }
@@ -141,6 +144,11 @@ async function scheduleTry(ctx: MutationCtx, dm: Id<"mondayDms">, dueAt: number,
   await ctx.db.patch(dm, { dueAt });
   await ctx.scheduler.runAt(dueAt, internal.slack.mondayDm.sendMondayDm, { dm, attempt });
   return null;
+}
+
+async function startTheSweep(ctx: MutationCtx) {
+  await settleStrandedStarts(ctx);
+  await ctx.scheduler.runAfter(0, internal.mondayDm.hugWeeks.ensureMondayDmsOfHugWeeks, {});
 }
 
 async function settleStrandedStarts(ctx: MutationCtx) {

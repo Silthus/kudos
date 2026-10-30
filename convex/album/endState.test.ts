@@ -134,7 +134,7 @@ function expectTheAlbumsWholeLoop({ album, moments, albumEvents }: Walk) {
   expect(moments.threadReplies.map(({ text }) => text), "a thread reply after each kudos").toEqual(["Bob is new in your album · Carol is new in your album", "Alice is new in your album", "Bob is new in your album", "Bob is new in your album"]);
   expect(moments.recaps.find(({ channel: to }) => to === alice.user)?.text, "Alice's recap line").toContain("Emojis you earned last week: :lantern-glow:, bob-okonkwo-hype, carol-lindqvist-hype");
   expect(moments.weeklyPosts.map(({ text }) => text.split("\n")[0]), "the weekly post").toEqual(["🏆 Last week's top kudos"]);
-  expect(new Set(albumEvents.map(({ event }) => event))).toEqual(new Set(["app home opened", "member welcomed", "kudos given", "kudos received", "packs earned", "person collected", "hoggie dropped", "album sticker collected", "hug given", "hugs recap sent"]));
+  expect(new Set(albumEvents.map(({ event }) => event))).toEqual(new Set(["app home opened", "member welcomed", "kudos given", "kudos received", "packs earned", "person collected", "hoggie dropped", "album sticker collected", "hug given", "hugs recap sent", "dm sent"]));
 }
 
 async function walkWith(retiredFlags: "on" | "off") {
@@ -325,9 +325,9 @@ async function hugs(hugger: Person, { channel: hugged, ts }: Sent) {
 }
 
 async function mondayComes() {
-  const recapJob = crons.crons["schedule each member's weekly hugs recap"];
-  if (recapJob === undefined) throw new Error("no cron job schedules each member's weekly hugs recap");
-  await t.mutation(makeFunctionReference<"mutation">(recapJob.name), {});
+  const sweep = crons.crons["ensure each member's coming Monday DM"];
+  if (sweep === undefined) throw new Error("no cron job ensures each member's coming Monday DM");
+  await t.mutation(makeFunctionReference<"mutation">(sweep.name), {});
   const member = await memberOf(alice.user);
   await t.run((ctx) => setMondayPost(ctx, "T1", { member, admin: true, timeZone: "UTC" }, { on: true, timeZone: "UTC" }));
   await settleUpTo(t, mondayTen);

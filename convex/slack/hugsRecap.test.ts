@@ -5,7 +5,7 @@ import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
-import { convexStops, memberChanged, pendingJobs, react, settleUpTo, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, pendingJobs, react, settleUpTo, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { hugCounted } from "../../testing/leaderboard";
 import { internal } from "../_generated/api";
@@ -25,6 +25,7 @@ const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you>
 const nudge = "Hugs are a quick thanks. A kudos, a message that mentions a teammate with :taco:, earns much more XP.";
 const recapRow = "section: *Weekly hugs recap* — Last week's hugs, the :taco: you and your teammates reacted, with their XP, on Monday morning. [select: As a DM]";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
+const sendMondayDm = "slack/mondayDm:sendMondayDm";
 
 const everyone = ["U_ALICE", "U_BOB", "U_CAROL", "U_DANA", "U_ERIN"];
 
@@ -225,21 +226,27 @@ describe("SR12 SR14: the most-hugged message is the one that got the member the 
   });
 });
 
-describe("SR12 SR14: one recap per member and week", () => {
-  test("a week the sweep first sees after its Monday 09:00 schedules one recap job, and sends one recap", async () => {
+describe("SR12 SR14: one recap per member and week, in the Monday DM", () => {
+  test("a member whose quests never started gets their week in hugs as a Monday DM with the hugs section alone", async () => {
+    const t = await workspace();
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+
+    await recapsSentOnMonday(t);
+
+    expect(mondayDmsSent().map(({ properties }) => properties.sections)).toEqual(["hugs", "hugs"]);
+  });
+
+  test("a week the sweep first sees after its Monday 09:00 sends one recap at once", async () => {
     const t = await workspace();
     await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await settleUpTo(t, mondayNineInUtc + hourMs);
 
-    await t.mutation(recapSweep(), {});
+    await sweepAt(t, Date.now());
 
-    expect(await pendingJobs(t, sendHugsRecap)).toBe(2);
-    await settleUpTo(t, Date.now() + minuteMs);
-    expect(recapsTo("U_ALICE")).toHaveLength(1);
-    expect(recapsTo("U_BOB")).toHaveLength(1);
+    expect(recapTimes()).toEqual([mondayNineInUtc + hourMs, mondayNineInUtc + hourMs]);
   });
 
-  test("a redelivered sweep and two sweeps in the same hour schedule one recap", async () => {
+  test("a redelivered sweep and two sweeps in the same hour send one recap", async () => {
     const t = await workspace();
     await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
@@ -254,7 +261,7 @@ describe("SR12 SR14: one recap per member and week", () => {
     expect(recapsTo("U_BOB")).toHaveLength(1);
   });
 
-  test("a recap Slack refused once is sent again, once", async () => {
+  test("a recap Slack answered with an error is not sent again", async () => {
     const t = await workspace();
     await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
@@ -263,79 +270,41 @@ describe("SR12 SR14: one recap per member and week", () => {
     await settleUpTo(t, mondayNineInUtc + hourMs);
     await sweepAt(t, mondayNineInUtc + 2 * hourMs);
 
-    expect([...recapsTo("U_ALICE"), ...recapsTo("U_BOB")]).toHaveLength(2);
-    expect(recapsSent()).toHaveLength(2);
+    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel).toSorted()).toEqual(["U_ALICE", "U_BOB"]);
+    expect(recapsSent()).toHaveLength(1);
   });
 
-  test("a recap is tried at most 3 times", async () => {
-    const t = await workspace();
-    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
-    await sweepAt(t, tuesday + hourMs);
-    slack.answering("chat.postMessage", ...Array.from({ length: 6 }, () => httpStatus(500)));
-
-    await settleUpTo(t, mondayNineInUtc + hourMs);
-    await sweepAt(t, mondayNineInUtc + 2 * hourMs);
-    await sweepAt(t, mondayNineInUtc + 3 * hourMs);
-
-    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel).toSorted()).toEqual(["U_ALICE", "U_ALICE", "U_ALICE", "U_BOB", "U_BOB", "U_BOB"]);
-    expect(recapsSent()).toEqual([]);
-  });
-
-  test("a recap whose job Convex stopped is sent by the next sweep, once", async () => {
-    const t = await workspace();
-    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
-    await sweepAt(t, tuesday + hourMs);
-    await convexStops(t, sendHugsRecap);
-
-    await settleUpTo(t, mondayNineInUtc + hourMs);
-    expect(recaps()).toEqual([]);
-    await sweepAt(t, mondayNineInUtc + hourMs);
-    await sweepAt(t, mondayNineInUtc + 2 * hourMs);
-
-    expect(recaps().map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
-    expect(await pendingJobs(t, sendHugsRecap)).toBe(0);
-  });
-
-  test("a recap job Convex runs late, after the sweep started it again, sends nothing more", async () => {
-    const t = await workspace();
-    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
-    await sweepAt(t, tuesday + hourMs);
-    await settleUpTo(t, mondayNineInUtc - 1);
-
-    vi.setSystemTime(mondayNineInUtc + 15 * minuteMs);
-    await t.mutation(recapSweep(), {});
-    await settleUpTo(t, mondayNineInUtc + hourMs);
-
-    expect(recaps().map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
-  });
-
-  test("a recap whose try Convex stopped after it started is tried at most 3 times in all", async () => {
-    const t = await workspace();
-    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
-    await sweepAt(t, tuesday + hourMs);
-    await settleUpTo(t, mondayNineInUtc - 1);
-    vi.setSystemTime(mondayNineInUtc);
-
-    await convexStopsEachTryOnceStarted(t);
-    for (const hour of [1, 2]) {
-      await settleUpTo(t, mondayNineInUtc + hour * hourMs);
-      await t.mutation(recapSweep(), {});
-      await convexStopsEachTryOnceStarted(t);
-    }
-    await sweepAt(t, mondayNineInUtc + 3 * hourMs);
-    await sweepAt(t, mondayNineInUtc + 4 * hourMs);
-
-    expect(recaps()).toEqual([]);
-    expect(await pendingJobs(t, sendHugsRecap)).toBe(0);
-  });
-
-  test("the sweep schedules more recaps than one mutation may schedule, within Convex's limits", { timeout: 120_000 }, async () => {
+  test("the sweep ensures more Monday DMs than one mutation may schedule, within Convex's limits", { timeout: 120_000 }, async () => {
     const t = await workspace({ transactionLimits: true });
     await hugWeeksSeeded(t, 1_100);
 
     await sweepAt(t, tuesday + hourMs);
 
-    expect(await pendingJobs(t, sendHugsRecap)).toBe(1_100);
+    expect(await pendingJobs(t, sendMondayDm)).toBe(1_100);
+  });
+});
+
+describe("SR12: a week queued for the standalone recap before the Monday DM took it over goes out once", () => {
+  test("the recap's queued job sends nothing, and the week goes out in the Monday DM", async () => {
+    const t = await workspace();
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await queuedForTheStandaloneRecap(t);
+
+    await recapsSentOnMonday(t);
+
+    expect(recaps().map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
+    expect(mondayDmsSent()).toHaveLength(2);
+    expect(await pendingJobs(t, sendHugsRecap)).toBe(0);
+  });
+
+  test("a week whose standalone recap began a try is not sent again", async () => {
+    const t = await workspace();
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await queuedForTheStandaloneRecap(t, { begunFor: "U_ALICE" });
+
+    await recapsSentOnMonday(t);
+
+    expect(recaps().map(({ channel }) => channel)).toEqual(["U_BOB"]);
   });
 });
 
@@ -399,7 +368,7 @@ describe("SR12 SR13 SR21: the recap goes only while the member wants it", () => 
 });
 
 describe("SR16: hugs recap sent reaches PostHog", () => {
-  test("with the hugs given and received, their XP and the recap as its DM, and nothing else", async () => {
+  test("with the hugs given and received, their XP and the Monday DM as its DM, and nothing else", async () => {
     const t = await workspace();
     await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await hug(t, "U_CAROL", "U_ALICE", messageOf(1));
@@ -409,9 +378,9 @@ describe("SR16: hugs recap sent reaches PostHog", () => {
 
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
     expect(recapsSent().map(({ properties }) => properties)).toEqual([
-      { ...shared, hugs_given: 1, hugs_received: 2, xp: 3, via: "recap" },
-      { ...shared, hugs_given: 1, hugs_received: 1, xp: 2, via: "recap" },
-      { ...shared, hugs_given: 1, hugs_received: 0, xp: 1, via: "recap" },
+      { ...shared, hugs_given: 1, hugs_received: 2, xp: 3, via: "monday" },
+      { ...shared, hugs_given: 1, hugs_received: 1, xp: 2, via: "monday" },
+      { ...shared, hugs_given: 1, hugs_received: 0, xp: 1, via: "monday" },
     ]);
     expect(JSON.stringify(recapsSent())).not.toMatch(new RegExp(`U_ALICE|U_BOB|U_CAROL|C1|${messageOf(1).split(".")[0]}`));
   });
@@ -464,26 +433,27 @@ async function hugWeeksSeeded(t: Backend, members: number) {
   });
 }
 
-async function convexStopsEachTryOnceStarted(t: Backend) {
+async function queuedForTheStandaloneRecap(t: Backend, { begunFor }: { begunFor?: string } = {}) {
+  const begun = begunFor === undefined ? null : await memberOf(t, begunFor);
   await t.run(async (ctx) => {
-    for (const job of await ctx.db.system.query("_scheduled_functions").collect()) {
-      if (job.name !== sendHugsRecap || job.state.kind !== "pending") continue;
-      await ctx.scheduler.cancel(job._id);
-      await ctx.runMutation(internal.hugs.recap.startRecap, job.args[0]);
+    for (const week of await ctx.db.query("hugWeeks").collect()) {
+      const tries = week.member === begun ? 1 : 0;
+      await ctx.db.patch(week._id, { recap: "scheduled", dueAt: mondayNineInUtc, tries });
+      await ctx.scheduler.runAt(mondayNineInUtc, makeFunctionReference<"action">(sendHugsRecap), { week: week._id, attempt: tries + 1 });
     }
   });
 }
 
-function recapSweep() {
-  const job = crons.crons["schedule each member's weekly hugs recap"];
-  if (job === undefined) throw new Error("no cron job schedules each member's weekly hugs recap");
+function mondayDmSweep() {
+  const job = crons.crons["ensure each member's coming Monday DM"];
+  if (job === undefined) throw new Error("no cron job ensures each member's coming Monday DM");
   expect(job.schedule).toEqual({ type: "interval", hours: 1 });
   return makeFunctionReference<"mutation">(job.name);
 }
 
 async function sweepAt(t: Backend, at: number) {
   await settleUpTo(t, at);
-  await t.mutation(recapSweep(), {});
+  await t.mutation(mondayDmSweep(), {});
   await settleUpTo(t, at);
 }
 
@@ -574,4 +544,8 @@ function emailOf(user: string) {
 
 function slackTs(at: number) {
   return `${Math.floor(at / 1000)}.000100`;
+}
+
+function mondayDmsSent() {
+  return postHog.productEvents().filter(({ event, properties }) => event === "dm sent" && properties.kind === "monday");
 }
