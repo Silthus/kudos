@@ -1,6 +1,6 @@
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { HugBoardsRead, HugBoardsShown } from "../album/answer";
-import type { HugBoards, HugMeasure, PersonRow } from "../../../convex/website/leaderboard";
+import type { HugBoards, HugMeasure, JoiningTeam, PersonRow } from "../../../convex/website/leaderboard";
 
 type Ranked = [person: string, name: string, figure: number, rank: number | null];
 
@@ -16,6 +16,26 @@ function rowOf([person, name, figure, rank]: Ranked): PersonRow {
 
 function rowsOf(...ranked: Ranked[]): PersonRow[] {
   return ranked.map(rowOf);
+}
+
+type Joining = [name: string, crest: string | null, joined: number, of: number, standing: [rank: number, gain: number] | null];
+
+function joiningTeamOf([name, crest, joined, of, standing]: Joining): JoiningTeam {
+  const team = crest === null ? null : name.toLowerCase().replaceAll(" ", "-");
+  return {
+    group: `group-${name.toLowerCase().replaceAll(" ", "-")}` as Id<"userGroups">,
+    name,
+    team,
+    art: crest === null ? null : { kind: "crest", slug: crest },
+    joined,
+    of,
+    standing: standing && { rank: standing[0], gain: standing[1] },
+    mine: name === "Lanterns",
+  };
+}
+
+function joiningIn(...teams: Joining[]) {
+  return { teams: teams.map(joiningTeamOf) };
 }
 
 const kudosEmoji = { kudosEmoji: "taco", kudosEmojiImage: null };
@@ -34,6 +54,7 @@ const lively: HugBoards = {
     lastWeek: null,
   },
   team: { name: "Lanterns", rows: rowsOf(["ines-okafor", "Ines Okafor", 4, 1], [you, "Sam Example", 4, 1], ["oona-vasquez", "Oona Vasquez", 0, null]), joinedIn: true, yetToJoin: 2 },
+  joiningIn: joiningIn(["Lanterns", "workflows", 3, 5, [1, 40]], ["Kettle Works", "experiments", 3, 3, [2, 33]], ["Paper Moons", "growth", 1, 4, [3, 25]], ["Tin Orchard", "replay", 2, 3, null], ["Night Shift", null, 0, 4, null]),
 };
 
 const quiet: HugBoards = {
@@ -47,6 +68,7 @@ const quiet: HugBoards = {
   measure: "hugsGiven",
   people: { rows: rowsOf(["wren-alder", "Wren Alder", 2, 1], [you, "Sam Example", 0, null]), lastWeek: null },
   team: { name: "Lanterns", rows: rowsOf(["ines-okafor", "Ines Okafor", 1, 1], [you, "Sam Example", 0, null]), joinedIn: false, yetToJoin: 3 },
+  joiningIn: joiningIn(["Lanterns", "workflows", 1, 5, null], ["Kettle Works", "experiments", 1, 3, null]),
 };
 
 const empty: HugBoards = {
@@ -60,6 +82,7 @@ const empty: HugBoards = {
   measure: "hugsGiven",
   people: { rows: rowsOf([you, "Sam Example", 0, null]), lastWeek: rowsOf(["wren-alder", "Wren Alder", 9, 1], ["ines-okafor", "Ines Okafor", 6, 2], [you, "Sam Example", 6, 2]) },
   team: { name: "Lanterns", rows: rowsOf([you, "Sam Example", 0, null]), joinedIn: false, yetToJoin: 4 },
+  joiningIn: joiningIn(["Lanterns", "workflows", 0, 5, null], ["Kettle Works", "experiments", 0, 3, null]),
 };
 
 export const hugBoardsFixtures = { lively, quiet, empty } satisfies Record<string, HugBoards>;

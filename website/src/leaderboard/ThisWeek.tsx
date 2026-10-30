@@ -9,6 +9,7 @@ import { LoadingPage } from "../pages/LoadingPage";
 import "./leaderboard.css";
 import { isWaitingForTheWeeksBoards, type HugBoardsOfMeasure } from "./measures";
 import { PeopleBoard, TeamBoard, type MeasureChoice } from "./PeopleBoard";
+import { TeamsJoiningInBoard } from "./TeamsJoiningIn";
 
 type ThisWeekAnswerProps = { boards: HugBoardsOfMeasure; me: AlbumMe; level: AlbumLevel; onViewed: () => void; onSignIn: () => void; onSignOut: () => void };
 
@@ -35,9 +36,10 @@ function ThisWeekPage({ boards, choice, me, level, onViewed }: ThisWeekProps) {
       <YouCard boards={boards} me={me} level={level} />
       <div className="lb-grid">
         <PeopleBoard boards={boards} choice={choice} />
-        {boards.team !== null && (
+        {(boards.team !== null || boards.joiningIn !== null) && (
           <div className="lb-side">
-            <TeamBoard team={boards.team} measure={boards.measure} />
+            {boards.team !== null && <TeamBoard team={boards.team} measure={boards.measure} />}
+            {boards.joiningIn !== null && <TeamsJoiningInBoard joiningIn={boards.joiningIn} />}
           </div>
         )}
       </div>

@@ -32,6 +32,14 @@ function rowsIn(region: ReturnType<typeof within>) {
   return region.getAllByRole("listitem").map((row: HTMLElement) => row.textContent);
 }
 
+function rankedIn(region: ReturnType<typeof within>) {
+  return region.queryAllByRole("listitem").filter((row: HTMLElement) => row.closest("details") === null).map((row: HTMLElement) => row.textContent);
+}
+
+function startingIn(region: ReturnType<typeof within>) {
+  return region.getAllByRole("listitem", { hidden: true }).filter((row: HTMLElement) => row.closest("details") !== null).map((row: HTMLElement) => row.textContent);
+}
+
 async function youCard() {
   return within(await screen.findByRole("region", { name: "You this week" }, arrival));
 }
@@ -224,7 +232,62 @@ describe("HH75: You in your team", { timeout: 30_000 }, () => {
   });
 });
 
+describe("HH76 HH77: teams joining in", { timeout: 30_000 }, () => {
+  it("ranks the teams that brought more teammates in than last week, each with its share joined in and its points, and marks the member's team", async () => {
+    visit();
+    const teams = await board("Teams joining in");
+
+    expect(teams.getByRole("heading", { level: 2, name: "Teams joining in" })).toBeInTheDocument();
+    expect(rankedIn(teams)).toEqual(["1Lanterns3 of 5 joined in · your team+40 pts", "2Kettle Works3 of 3 joined in+33 pts", "3Paper Moons1 of 4 joined in+25 pts"]);
+  });
+
+  it("folds every other team under the teams getting started, unranked and with no points", async () => {
+    visit();
+    const teams = await board("Teams joining in");
+
+    expect(teams.getByText("2 teams getting started")).toBeInTheDocument();
+    expect(startingIn(teams)).toEqual(["·Tin Orchard2 of 3 joined in", "·NNight Shift0 of 4 joined in"]);
+  });
+
+  it("gives a team where everyone joined in its own line", async () => {
+    visit();
+    expect((await board("Teams joining in")).getByText("Everyone in Kettle Works joined in this week.")).toBeInTheDocument();
+  });
+
+  it("when no team has joined in yet, says how to start the team's week", async () => {
+    visit(hugBoardsFixtures.empty);
+    const teams = await board("Teams joining in");
+
+    expect(teams.getByText("No team has started yet. Start your team's week with a hug or a kudos.")).toBeInTheDocument();
+    expect(teams.queryByText(/joined in this week/)).not.toBeInTheDocument();
+  });
+
+  it("when teams joined in but none gained on last week, every team folds", async () => {
+    visit(hugBoardsFixtures.quiet);
+    const teams = await board("Teams joining in");
+
+    expect(rankedIn(teams)).toEqual([]);
+    expect(teams.getByText("2 teams getting started")).toBeInTheDocument();
+    expect(teams.queryByText(/No team has started yet/)).not.toBeInTheDocument();
+  });
+
+  it("without teams there is no teams joining in", async () => {
+    visit({ ...hugBoardsFixtures.lively, joiningIn: null });
+    await board("People");
+
+    expect(screen.queryByRole("region", { name: "Teams joining in" })).not.toBeInTheDocument();
+  });
+});
+
 describe("HH79: rows are links", { timeout: 30_000 }, () => {
+  it("every team row with a team page opens it, and a group without one is no link", async () => {
+    visit();
+    const teams = await board("Teams joining in");
+
+    expect(teams.getByRole("link", { name: /Lanterns/ })).toHaveAttribute("href", "/book#teams/lanterns");
+    expect(teams.queryByRole("link", { name: /Night Shift/ })).not.toBeInTheDocument();
+  });
+
   it("every person row opens their person page", async () => {
     visit();
     const people = await board("People");

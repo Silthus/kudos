@@ -7,7 +7,7 @@ import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../
 import { api, internal } from "../_generated/api";
 import { catalogue } from "../album/hoggies/catalogue";
 import { xpToReach } from "../progression/levels";
-import type { HugBoardsRead, HugMeasure, Highlight, PersonRow, Tallies } from "./leaderboard";
+import type { HugBoardsRead, HugMeasure, Highlight, PersonRow, JoiningTeam, Tallies } from "./leaderboard";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
@@ -26,6 +26,7 @@ type Person = { user: string; name: string; tz?: string };
 type Reader = Pick<Backend, "query" | "mutation">;
 type Boards = Extract<HugBoardsRead, { kind: "boards" }>;
 type Shown = Pick<PersonRow, "name" | "rank" | "figure" | "you">;
+type Joining = Pick<JoiningTeam, "name" | "joined" | "of" | "standing" | "mine">;
 
 let postHog: FakePostHog;
 let slack: FakeSlack;
@@ -395,6 +396,113 @@ describe("HH75: You in your team", () => {
   });
 });
 
+describe("HH76 HH77: teams joining in", () => {
+  test("a team scores the points it gained in the share of its members who joined in, against the same weekday last week, and gaining teams rank by points", async () => {
+    const [ezra] = await moreTeammates(1);
+    await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!] });
+    await lastWeek();
+    await thanks(bob, why, dana);
+    await thisWeek();
+    await thanks(alice, why, dana);
+    await hugsOn(bob, kiri);
+    await hugsOn(carol, kiri);
+    await thanks(dana, why, alice);
+
+    expect(joining(await boardsOf(alice))).toEqual<Joining[]>([
+      { name: "Otters", joined: 3, of: 3, standing: { rank: 1, gain: 67 }, mine: true },
+      { name: "Badgers", joined: 1, of: 3, standing: { rank: 2, gain: 33 }, mine: false },
+    ]);
+  });
+
+  test("equal gains share a rank, and a team that gained nothing or lost ground folds with no figure", async () => {
+    const [ezra, finn, gale, hal] = await moreTeammates(4);
+    await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!], Herons: [finn!, gale!, hal!] });
+    await lastWeek();
+    await thanks(finn!, why, alice);
+    await thanks(gale!, why, alice);
+    await thisWeek();
+    await thanks(alice, why, dana);
+    await thanks(dana, why, alice);
+    await thanks(finn!, why, alice);
+
+    expect(joining(await boardsOf(alice))).toEqual<Joining[]>([
+      { name: "Badgers", joined: 1, of: 3, standing: { rank: 1, gain: 33 }, mine: false },
+      { name: "Otters", joined: 1, of: 3, standing: { rank: 1, gain: 33 }, mine: true },
+      { name: "Herons", joined: 1, of: 3, standing: null, mine: false },
+    ]);
+  });
+
+  test("last week counts only who joined in on or before today's weekday", async () => {
+    await inGroups({ Otters: [alice, bob, carol] });
+    await lastWeek();
+    await thanks(bob, why, dana);
+    vi.setSystemTime(Date.now() + 2 * dayMs);
+    await thanks(carol, why, dana);
+    await thisWeek();
+    await thanks(alice, why, dana);
+    await thanks(carol, why, dana);
+
+    expect(joining(await boardsOf(alice))).toEqual<Joining[]>([{ name: "Otters", joined: 2, of: 3, standing: { rank: 1, gain: 33 }, mine: true }]);
+  });
+
+  test("every team folds before the first week anything was counted", async () => {
+    await inGroups({ Otters: [alice, bob, carol] });
+    await thisWeek();
+    await thanks(alice, why, dana);
+
+    expect(joining(await boardsOf(alice))).toEqual<Joining[]>([{ name: "Otters", joined: 1, of: 3, standing: null, mine: true }]);
+  });
+
+  test("a team whose group is newer than the same weekday last week folds", async () => {
+    const [ezra] = await moreTeammates(1);
+    await inGroups({ Otters: [alice, bob, carol] });
+    await lastWeek();
+    await thanks(kiri, why, alice);
+    await thisWeek();
+    await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!] });
+    await thanks(alice, why, dana);
+    await thanks(dana, why, alice);
+
+    expect(joining(await boardsOf(alice))).toEqual<Joining[]>([
+      { name: "Otters", joined: 1, of: 3, standing: { rank: 1, gain: 33 }, mine: true },
+      { name: "Badgers", joined: 1, of: 3, standing: null, mine: false },
+    ]);
+  });
+
+  test("a member who left the boards counts neither among who joined in nor among the team", async () => {
+    const [ezra] = await moreTeammates(1);
+    await inGroups({ Otters: [alice, bob, carol, ezra!] });
+    await lastWeek();
+    await thanks(kiri, why, dana);
+    await thisWeek();
+    await thanks(alice, why, dana);
+    await thanks(ezra!, why, dana);
+    await leavesTheBoards(ezra!);
+
+    expect(joining(await boardsOf(alice))).toEqual<Joining[]>([{ name: "Otters", joined: 1, of: 3, standing: { rank: 1, gain: 33 }, mine: true }]);
+  });
+
+  test("a team carries the crest and page of the company team with its name, and only groups of three or more primary members join the board", async () => {
+    await t.run((ctx) => ctx.db.insert("companyTeams", { team: "otters", name: "Otters", crestImage: "https://example.com/otters.png", leads: [], people: [], asOf: Date.now() }));
+    await inGroups({ Otters: [alice, bob, carol], Pairs: [dana, kiri] });
+    await thisWeek();
+
+    const { joiningIn } = await boardsOf(alice);
+
+    expect(joiningIn?.teams.map(({ name, team, art }) => ({ name, team, art }))).toEqual([{ name: "Otters", team: "otters", art: { kind: "image", url: "https://example.com/otters.png" } }]);
+  });
+
+  test("teams joining in is missing while groups is off or without a team", async () => {
+    await inGroups({ Pairs: [alice, bob] });
+    await thisWeek();
+    expect((await boardsOf(alice)).joiningIn, "no team").toBeNull();
+
+    await inGroups({ Otters: [alice, bob, carol] });
+    await switchWebsite(t, postHog, true, ...websiteFlags.filter((flag) => flag !== "groups"), "leaderboard-hugs");
+    expect((await boardsOf(alice)).joiningIn, "groups off").toBeNull();
+  });
+});
+
 async function leaderboardHugs(on: boolean) {
   await switchWebsite(t, postHog, true, ...websiteFlags, ...(on ? ["leaderboard-hugs"] : []));
 }
@@ -513,9 +621,17 @@ async function leavesTheBoards(person: Person) {
 }
 
 async function inTheOtters(...otters: Person[]) {
-  slack.withUserGroup("S_OTTERS", { name: "Otters", users: otters.map(({ user }) => user) });
+  await inGroups({ Otters: otters });
+}
+
+async function inGroups(groups: Record<string, Person[]>) {
+  for (const [name, members] of Object.entries(groups)) slack.withUserGroup(`S_${name.toUpperCase()}`, { name, users: members.map(({ user }) => user) });
   await t.action(internal.slack.userGroups.syncUserGroups, {});
   await settle(t);
+}
+
+function joining({ joiningIn }: Boards): Joining[] {
+  return (joiningIn?.teams ?? []).map(({ name, joined, of, standing, mine }) => ({ name, joined, of, standing, mine }));
 }
 
 function exposuresOf(flag: string) {
