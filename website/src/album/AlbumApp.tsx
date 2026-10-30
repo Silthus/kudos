@@ -10,8 +10,8 @@ import { useSectionOnceLanded } from "../linkTarget";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import { rememberSignInStarted } from "../signInAttempt";
-import type { Album, BoardPeriod, HoggiesShown } from "./answer";
-import { ActivityAnswerPage, asksForTheEdition, isWaitingForTheActivity, showsYourWeek } from "./Activity";
+import type { ActivityWeekShown, Album, BoardPeriod, HoggiesShown } from "./answer";
+import { ActivityAnswerPage, isWaitingForTheActivity } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, useBoardsOfPeriod, type AddressedChoice } from "./boardPeriods";
@@ -68,9 +68,8 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
   const playerReads = { cards: playerCards, week: ownWeek, together: person };
   const hoggieAddress = useHoggieAddress(navigate, replaceAddress);
   const onActivity = place.kind === "activity";
-  const activityWeek = useActivityWeek(onActivity);
-  const addressedWeek = place.kind === "activity" ? place.week : undefined;
-  const edition = useWeekEdition(useAlbumWeek, onActivity && asksForTheEdition(activityWeek, addressedWeek), viewAddress && weekAddressedIn(place, viewAddress));
+  const activityWeek = editionAtAnAddressedWeek(useActivityWeek(onActivity), place);
+  const edition = useWeekEdition(useAlbumWeek, onActivity && activityWeek?.kind === "edition", viewAddress && weekAddressedIn(place, viewAddress));
   const expectArrival = useTitleFocusOnArrival(arrivals);
   useTitleFocusAfterChange(album === undefined ? "loading" : album.kind);
   useSectionOnceLanded(route, album?.kind === "album" && onSettings && settings?.kind === "settings");
@@ -95,10 +94,10 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onThisWeeksLeaderboard && isWaitingForTheWeeksBoards(hugBoards)) || (onActivity && isWaitingForTheActivity(activityWeek, addressedWeek, edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp)) || (player !== null && isWaitingForThePlayer(ownPlayer, playerReads))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onThisWeeksLeaderboard && isWaitingForTheWeeksBoards(hugBoards)) || (onActivity && isWaitingForTheActivity(activityWeek, edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies)) || (onLevelUp && isWaitingForTheLevelUp(levelUp)) || (player !== null && isWaitingForThePlayer(ownPlayer, playerReads))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={leaderboardHugs ? <ThisWeekAnswerPage shown={hugBoards} me={album.me} level={album.level} onViewed={() => actions.viewLeaderboard("week")} {...answers} /> : <LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} onViewed={actions.viewLeaderboard} {...answers} />}
-        activity={(inSight) => <ActivityAnswerPage week={activityWeek} addressedWeek={addressedWeek} edition={edition} quests={quests} me={album.me.person} inSight={inSight} onViewed={actions.viewActivity} {...answers} />}
+        activity={(inSight) => <ActivityAnswerPage week={activityWeek} edition={edition} quests={quests} me={album.me.person} inSight={inSight} onViewed={actions.viewActivity} {...answers} />}
         person={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <PersonAnswerPage shown={person} album={album} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} />}
         profile={player !== null ? <PlayerAnswerPage album={album} own={ownPlayer} reads={playerReads} picker={{ useSlackEmojiMatches, pickMyHypeEmoji: actions.pickMyHypeEmoji }} {...answers} /> : <ProfileAnswerPage album={album} profile={profile} boards={boards.shown} hoggies={hoggies} {...answers} />}
         levelUp={(emojisShown, covered) => <LevelUpAnswerPage shown={levelUp} covered={covered} onEmojisShown={emojisShown} {...answers} />}
@@ -114,7 +113,7 @@ export default function AlbumApp({ arrivals, actions, useAlbum, useSettings, use
         endXpMoment={visit.endTheMoment}
         missedXpMoment={visit.missed}
         closeHowItWorks={actions.closeHowItWorks}
-        quests={onActivity && showsYourWeek(activityWeek, addressedWeek) ? undefined : quests}
+        quests={onActivity && activityWeek?.kind === "week" ? undefined : quests}
         questsLanding={questsLanding}
         viewQuests={actions.viewQuests}
         anEntryIsOpen={anEntryIsOpenAt(place, hoggies)}
@@ -159,6 +158,10 @@ function periodAddressedIn(place: Place, viewAddress: (place: Place) => void): A
     chosen: (place.kind === "leaderboard" && place.period) || "week",
     choose: (period) => viewAddress(period === "week" ? { kind: "leaderboard" } : { kind: "leaderboard", period }),
   };
+}
+
+function editionAtAnAddressedWeek(week: ActivityWeekShown | undefined, place: Place): ActivityWeekShown | undefined {
+  return week?.kind === "week" && place.kind === "activity" && place.week !== undefined ? { kind: "edition" } : week;
 }
 
 function weekAddressedIn(place: Place, viewAddress: (place: Place) => void): AddressedChoice<string | undefined> {
