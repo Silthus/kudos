@@ -42,6 +42,8 @@ export const featureOpeningRarities: SourceRarities = { today: {}, capped: cappe
 
 export const boughtCrateRarities: SourceRarities = { today: {}, capped: cappedAtRare };
 
+export const hugFindRarities: RarityRange = cappedAtRare;
+
 const forgedUpTo = { today: "legendary", capped: "rare" } as const satisfies { today: Rarity; capped: Rarity };
 
 export async function highestForgedFor(ctx: QueryCtx, member: MemberId): Promise<Rarity> {
@@ -51,11 +53,6 @@ export async function highestForgedFor(ctx: QueryCtx, member: MemberId): Promise
 export async function earnHoggieItem(ctx: MutationCtx, earning: HoggieEarning, rarities: SourceRarities): Promise<Id<"items">> {
   const earned = await earnedItemOf(ctx, earning.member, "hoggie", earning.key);
   return earned?._id ?? (await earnItem(ctx, { ...earning, source: "hoggie", ...(await rarityRangeFor(ctx, earning.member, rarities)) }));
-}
-
-export async function earnHoggieItemCappedAtRare(ctx: MutationCtx, earning: HoggieEarning): Promise<Id<"items">> {
-  const earned = await earnedItemOf(ctx, earning.member, "hoggie", earning.key);
-  return earned?._id ?? (await earnItem(ctx, { ...earning, source: "hoggie", ...cappedAtRare }));
 }
 
 export async function rarityRangeFor(ctx: MutationCtx, member: MemberId, { today, capped }: SourceRarities): Promise<RarityRange> {

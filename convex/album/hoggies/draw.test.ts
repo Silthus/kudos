@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { catalogue, hoggiesOfRarity, rarities, type Rarity } from "./catalogue";
-import { drawOf, type DrawInput } from "./draw";
+import { drawOf, findsOnHug, type DrawInput } from "./draw";
 import drawnBefore from "./drawsBeforeCaps.json";
 
 const keys = Array.from({ length: 400 }, (_, n) => ({ secret: "draw-test", member: `member-${n % 9}`, crate: `quest:week-${n}`, version: catalogue.version }));
@@ -61,3 +61,23 @@ function fourStandardDeviationsOf(percent: number, draws: number) {
   const share = percent / 100;
   return 4 * Math.sqrt((share * (1 - share)) / draws) * 100;
 }
+
+describe("HH35: about one hug in five finds a hoggie, decided again the same", () => {
+  const hugs = Array.from({ length: 2000 }, (_, n) => ({ secret: "draw-test", member: `member-${n % 9}`, hug: `C${n % 7}:1760349600.${String(n).padStart(6, "0")}` }));
+
+  test("over many hugs, between 18% and 22% find", async () => {
+    const found = (await Promise.all(hugs.map(findsOnHug))).filter(Boolean).length;
+
+    expect(found / hugs.length).toBeGreaterThan(0.18);
+    expect(found / hugs.length).toBeLessThan(0.22);
+  });
+
+  test("the same hug decides the same, and another draw secret decides afresh", async () => {
+    const first = await Promise.all(hugs.map(findsOnHug));
+    const again = await Promise.all(hugs.map(findsOnHug));
+    const otherSecret = await Promise.all(hugs.map((hug) => findsOnHug({ ...hug, secret: "another-deployment" })));
+
+    expect(again).toEqual(first);
+    expect(otherSecret).not.toEqual(first);
+  });
+});
