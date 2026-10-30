@@ -93,6 +93,14 @@ export async function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodK
   return rows.map((row) => ({ member: row.member, ...periodTotalsOf(row) }));
 }
 
+export async function weekCountedBy(ctx: QueryCtx, workspace: string, monday: DayKey): Promise<boolean> {
+  const earliest = await ctx.db
+    .query("givenTotals")
+    .withIndex("by_period", (q) => q.eq("workspace", workspace).gte("period", weekKeys.from).lte("period", keyOf("week", monday)))
+    .first();
+  return earliest !== null;
+}
+
 function countsByWeek(rows: Total[]): Map<DayKey, RecognitionCounts> {
   return new Map(rows.map((row) => [row.period.slice(weekKeys.from.length), countsOf(row)]));
 }
