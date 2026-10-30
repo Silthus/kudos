@@ -81,6 +81,14 @@ export function byKudosReceived(boards: HugBoards): HugBoards {
   };
 }
 
+export function byHoggies(boards: HugBoards): HugBoards {
+  return {
+    ...boards,
+    measure: "hoggies",
+    team: boards.team && { ...boards.team, rows: rowsOf(["ines-okafor", "Ines Okafor", 3, 1], [you, "Sam Example", 0, null], ["oona-vasquez", "Oona Vasquez", 0, null]), yetToJoin: 0 },
+  };
+}
+
 export function offTheBoards(boards: HugBoards): HugBoards {
   return { ...boards, team: boards.team && { ...boards.team, rows: boards.team.rows.filter((row) => !row.you), joinedIn: false } };
 }

@@ -7,7 +7,7 @@ import { shellFixtures } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import type { HugBoardsShown } from "../album/answer";
-import { byKudosReceived, byLevel, fixedHugBoards, hugBoardsFixtures, offTheBoards } from "./thisWeekFixtures";
+import { byHoggies, byKudosReceived, byLevel, fixedHugBoards, hugBoardsFixtures, offTheBoards } from "./thisWeekFixtures";
 
 const arrival = { timeout: 10_000 };
 
@@ -197,6 +197,14 @@ describe("HH75: You in your team", { timeout: 30_000 }, () => {
     const team = await board("You in Lanterns");
 
     expect(rowsIn(team)).toEqual(["1IOInes Okafor1 kudos", "–SESam ExampleYou0 kudos", "–OVOona Vasquez0 kudos"]);
+    expect(team.queryByText(/Your first hug|has started yet/)).not.toBeInTheDocument();
+  });
+
+  it("on hoggies the whole team is listed, so a member without a hoggie gets no first-hug line, even before joining in", async () => {
+    visit(byHoggies(hugBoardsFixtures.quiet));
+    const team = await board("You in Lanterns");
+
+    expect(rowsIn(team)).toEqual(["1IOInes Okafor3 hoggies", "–SESam ExampleYou0 hoggies", "–OVOona Vasquez0 hoggies"]);
     expect(team.queryByText(/Your first hug|has started yet/)).not.toBeInTheDocument();
   });
 
