@@ -70,19 +70,28 @@ function groupsBoardOf(groups: ShownGroups | null, period: Period): ShownBoard[]
   return groups.rows.length === 0 ? [] : [{ board: "groups", lines: renderGroupsBoard(groups, period) }];
 }
 
+type RankedTeam = { team: JoiningTeam; standing: JoiningStanding };
+
+type ShownTeam = RankedTeam & { skipped: boolean };
+
 function renderTeamsJoiningIn({ teams }: TeamsJoiningIn): Line[] {
-  const everyoneIn = teams.filter(({ joined, of }) => joined === of).map(({ name }) => [{ text: `Everyone in ${asWritten({ name })} joined in this week.` }]);
   const emptyRace = teams.every(({ joined }) => joined === 0) ? [[{ text: "No team has started yet. Start your team's week with a hug or a kudos." }]] : [];
   const ranked = teams.flatMap((team) => (team.standing === null ? [] : [{ team, standing: team.standing }]));
-  return [[{ text: "*Teams joining in*" }], ...everyoneIn, ...emptyRace, ...windowedTeamRows(ranked), ...gettingStartedLine(teams.length - ranked.length)];
+  const shown = windowedTeams(ranked);
+  return [[{ text: "*Teams joining in*" }], ...everyoneInLines(shown), ...emptyRace, ...shown.flatMap(teamRowLines), ...gettingStartedLine(teams.length - ranked.length)];
 }
 
-function windowedTeamRows(ranked: Array<{ team: JoiningTeam; standing: JoiningStanding }>): Line[] {
+function windowedTeams(ranked: RankedTeam[]): ShownTeam[] {
   const window = windowOf(ranked.length, ranked.findIndex(({ team }) => team.mine) + 1);
-  return window.flatMap((position, index) => {
-    const { team, standing } = ranked[position - 1]!;
-    return [...(skipsBefore(window, index) ? [[{ text: "…" }]] : []), joiningTeamRow(team, standing)];
-  });
+  return window.map((position, index) => ({ ...ranked[position - 1]!, skipped: skipsBefore(window, index) }));
+}
+
+function everyoneInLines(shown: ShownTeam[]): Line[] {
+  return shown.filter(({ team }) => team.joined === team.of).map(({ team }) => [{ text: `Everyone in ${asWritten(team)} joined in this week.` }]);
+}
+
+function teamRowLines({ team, standing, skipped }: ShownTeam): Line[] {
+  return [...(skipped ? [[{ text: "…" }]] : []), joiningTeamRow(team, standing)];
 }
 
 function joiningTeamRow({ name, joined, of, mine }: JoiningTeam, { rank, gain }: JoiningStanding): Line {

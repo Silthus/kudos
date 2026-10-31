@@ -775,6 +775,21 @@ describe("HH80 HH81: Slack ranks Everyone by hugs given while leaderboard-hugs i
     ]);
   });
 
+  test("in a long week, only the teams the window shows get their everyone-in line", { timeout: 60_000 }, async () => {
+    const crowd = await moreTeammates(30);
+    const teams = Object.fromEntries(Array.from({ length: 10 }, (_, index) => [`Team ${String(index + 1).padStart(2, "0")}`, crowd.slice(index * 3, index * 3 + 3)]));
+    await inGroups({ ...teams, Zebras: [alice, bob, carol] });
+    await lastWeek();
+    await thanks(kiri, why, dana);
+    await thisWeek();
+    for (const member of crowd) await thanks(member, why, dana);
+    await thanks(alice, why, dana);
+
+    const everyoneIn = firstBoardOf(await leaderboardSays(alice)).filter((line) => line.startsWith("Everyone in"));
+
+    expect(everyoneIn).toEqual(["01", "02", "03", "08", "09", "10"].map((team) => `Everyone in Team ${team} joined in this week.`));
+  });
+
   test("before any team joined in this week, the Groups board says no team has started yet", async () => {
     const [ezra] = await moreTeammates(1);
     await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!] });
