@@ -316,7 +316,7 @@ A newcomer's first visit ends on one line about the next item, and nothing teach
   While `onboarding` is off, the button and the popup are as today.
 - **LP75 Unlock next.** `Unlock next` shows at most three emojis the member does not hold, each with how to earn it and a progress bar, in this order:
   1. The level-2 emoji, while they do not hold it: "Reach level 2 · your first kudos does it".
-  2. Until they hold their first hype emoji, one generic row: "Thank someone and say why: unlock their hype emoji". Hype emojis are never listed one by one.
+  2. Until they hold their first hype emoji, one generic row: "Give someone a kudos or react with their hype emoji on 10 of their messages: unlock it". Hype emojis are never listed one by one.
   3. The rest, by the share of their progress done, highest first, ties in the shelves' order.
 
   With nothing left to earn, the section is gone.

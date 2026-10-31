@@ -13,7 +13,7 @@ import { subscribers } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
-const everyFeature = ["xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
+const everyFeature = ["xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "website", "groups", "everyone-board", "activity"];
 const kudosTs = `${now.getTime() / 1000}.000100`;
 const convexScheduleLimit = 1000;
 const kudosGivenSubscribers = new Set(subscribers.kudosGiven.map((subscription) => getFunctionName("subscriber" in subscription ? subscription.subscriber : subscription)));

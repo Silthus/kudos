@@ -8,7 +8,7 @@ export type ShelfKind = { kind: EarnedEmojiKind; title: string; hint: string; ea
 
 export const shelfKinds: ShelfKind[] = [
   { kind: "team", title: "Team stickers", hint: "Collect everyone on a team, then unlock its sticker.", earnedShown: 6, lockedShown: 3, onlyEarned: false },
-  { kind: "hype", title: "Hype", hint: "Give someone their first kudos to unlock their hype emoji.", earnedShown: 6, lockedShown: 0, onlyEarned: true },
+  { kind: "hype", title: "Hype", hint: `Give someone their first kudos to unlock their hype emoji. Or react with it on ${reactionsToCollect} of their messages.`, earnedShown: 6, lockedShown: 0, onlyEarned: true },
   { kind: "milestone", title: "Milestones", hint: "Earn a milestone's medals: each one has its emoji.", earnedShown: 6, lockedShown: 3, onlyEarned: false },
   { kind: "level", title: "Levels", hint: "One every five levels, up to level 25.", earnedShown: 6, lockedShown: 2, onlyEarned: false },
   { kind: "random", title: "Random drops", hint: "Now and then a pack drops one of the workspace's emojis.", earnedShown: 6, lockedShown: 0, onlyEarned: true },

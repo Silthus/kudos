@@ -50,7 +50,7 @@ const recordingJobs = ["analytics/drain:drain", "analytics/person:identifyNewPeo
 const mondayPathRecorders = ["analytics/isolatedUsage:recordWelcomeDmSent", "analytics/isolatedUsage:recordDmLinkClicked", "analytics/isolatedUsage:recordQuestsViewed", "analytics/isolatedUsage:recordMondayDmSent"];
 const mondayPathFlags = ["website", "album", "packs", "hidden-items", "welcome-item", "onboarding", "hugs", "message-settings", "monday-quest"];
 const recordingWrites: Table[] = ["analyticsOutbox", "analyticsIds", "workspaceKeys", "analyticsDrain", "recordedFacts"];
-const darkFeatureTables: Table[] = ["unlocks", "unlockLaunches", "journeyLaunches", "journeySteps", "questDraws", "questSwaps", "questProgress", "rewardRecords", "crateOpenings", "leaderboardSettings"];
+const darkFeatureTables: Table[] = ["unlocks", "unlockLaunches", "questDraws", "questProgress", "rewardRecords", "leaderboardSettings"];
 
 const everyFlagOff: Setup = { name: "every flag off", flags: everyFlag.map(offForEveryone), boardShown: false };
 const flagsKeyMissing: Setup = { name: "the flags key missing", flags: "no flags key", boardShown: false };
@@ -110,7 +110,7 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
     const { t } = await walk(questsOnUnlocksOff, "on");
 
     expect(eventsNamed("unlock made ready").map(({ distinct_id, properties }) => `${distinct_id === giver() ? "giver" : "recipient"} ${String(properties.feature)}`)).toEqual(["giver leaderboard", "giver quests", "recipient leaderboard"]);
-    for (const table of ["journeySteps", "questDraws", "questSwaps", "rewardRecords", "crateOpenings"] as const) expect(await rowsOf(t, table), table).toEqual([]);
+    for (const table of ["questDraws", "rewardRecords"] as const) expect(await rowsOf(t, table), table).toEqual([]);
   });
 
   test("with every flag on, every event of the slice is sent", async () => {
@@ -550,27 +550,22 @@ function nextStep() {
 
 async function factsStored(t: Backend) {
   const draws = (await rowsOf(t, "questDraws")) as unknown as Array<{ week: string; slots: Array<{ slot: number; quest: string }> }>;
-  const swaps = (await rowsOf(t, "questSwaps")) as unknown as Array<{ week: string; swappedIn: { slot: number; quest: string } }>;
   const facts = [
     ...(await rowsOf(t, "levelUps")).map((row) => `${String(row.member)} level reached ${String(row.level)}`),
     ...(await rowsOf(t, "unlocks")).flatMap((row) => [
       ...(row.readyAt === row.openedAt ? [] : [`${String(row.member)} unlock made ready ${String(row.feature)}`]),
       ...(row.openedAt === undefined ? [] : [`${String(row.member)} unlock opened ${String(row.feature)}`]),
     ]),
-    ...(await rowsOf(t, "journeySteps")).map((row) => `${String(row.member)} journey step activated ${String(row.step)}`),
     ...(await rowsOf(t, "questDraws")).flatMap((row) => (row.slots as Array<{ quest: string }>).map(({ quest }) => `${String(row.member)} quest drawn ${quest}`)),
-    ...(await rowsOf(t, "questSwaps")).map((row) => `${String(row.member)} quest swapped ${String(row.replaced)} ${(row.swappedIn as { quest: string }).quest}`),
     ...(await rowsOf(t, "rewardRecords")).map((row) => `${String(row.member)} quest finished ${questOfKey(row.key)} ${String(row.xp)} ${String(row.coins)}`),
-    ...(await rowsOf(t, "crateOpenings")).map((row) => `${String(row.member)} crate opened ${questOfKey(row.key)}`),
   ];
   return facts.sort();
 
   function questOfKey(key: unknown) {
     const [kind, weekOrStep, slot] = String(key).split(":");
     if (kind === "journey") return `journey ${weekOrStep}`;
-    const swapped = swaps.find((swap) => swap.week === weekOrStep && swap.swappedIn.slot === Number(slot));
     const drawn = draws.find((draw) => draw.week === weekOrStep)?.slots.find((drawnSlot) => drawnSlot.slot === Number(slot));
-    return `weekly ${swapped?.swappedIn.quest ?? drawn?.quest}`;
+    return `weekly ${drawn?.quest}`;
   }
 }
 
@@ -584,16 +579,10 @@ async function factsSent(t: Backend) {
       case "unlock made ready":
       case "unlock opened":
         return [`${on} ${String(properties.feature)}`];
-      case "journey step activated":
-        return [`${on} ${String(properties.step)}`];
       case "quest drawn":
         return [`${on} ${String(properties.quest)}`];
-      case "quest swapped":
-        return [`${on} ${String(properties.replaced)} ${String(properties.quest)}`];
       case "quest finished":
         return [`${on} ${String(properties.kind)} ${String(properties.quest)} ${String(properties.xp)} ${String(properties.coins)}`];
-      case "crate opened":
-        return [`${on} ${String(properties.kind)} ${String(properties.quest)}`];
       default:
         return [];
     }

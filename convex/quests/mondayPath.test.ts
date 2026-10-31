@@ -4,7 +4,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
-import { memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { deliverAgain, memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHomeBlocks } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { opens } from "../../testing/unlocks";
@@ -40,6 +40,7 @@ const drawnReward = { xp: 20, coins: 0, item: null };
 const drawnPaid = { xp: 20, coins: 0 };
 const firstThanksDone = "Quest done: Give a kudos to someone · +50 XP and an unidentified Hoggie for your collection";
 const someoneNewDone = "Quest done: Thank someone new · +50 XP and an unidentified Hoggie for your collection";
+const followKudosGiven = "quests/quests:followKudosGiven";
 
 const deliverForReal = vi.mocked(publish).getMockImplementation()!;
 
@@ -91,8 +92,8 @@ describe("MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first
   });
 
   test.each([
-    ["Quests before Progression", ["quests/quests:followKudosGiven", "progression/progression:recordEffects"]],
-    ["Progression before Quests", ["progression/progression:recordEffects", "quests/quests:followKudosGiven"]],
+    ["Quests before Progression", [followKudosGiven, "progression/progression:recordEffects"]],
+    ["Progression before Quests", ["progression/progression:recordEffects", followKudosGiven]],
   ])("with %s, the giver still lands at 70 XP", async (_, order) => {
     await switchWebsite(t, postHog, true, ...mondayPath);
     const held = holdingKudosGiven();
@@ -109,7 +110,7 @@ describe("MQ5 MQ7 MQ10 MQ12: a first kudos on the Monday path finishes the first
     const held = holdingKudosGiven();
 
     await thanks(alice, saysWhy, bob);
-    for (let delivery = 0; delivery < 3; delivery += 1) await deliverInOrder(held[0]!, ["progression/progression:recordEffects", "quests/quests:followKudosGiven"]);
+    for (let delivery = 0; delivery < 3; delivery += 1) await deliverInOrder(held[0]!, ["progression/progression:recordEffects", followKudosGiven]);
 
     expect(await xpOf(alice), "the giver's XP").toBe(70);
     expect(await finishesOf(alice), "the finish records").toHaveLength(1);
@@ -153,7 +154,7 @@ describe("HH24: Quests publishes its finish and pays nothing; its followers pay 
     await thanks(alice, saysWhy, bob);
     const finished = holdingQuestFinished();
 
-    await runSubscribersInOrder(given[0]!, ["quests/quests:followKudosGiven", "progression/progression:recordEffects"]);
+    await runSubscribersInOrder(given[0]!, [followKudosGiven, "progression/progression:recordEffects"]);
     for (const fact of finished) await deliverNow(fact);
 
     expect(await xpOf(alice), "the giver's XP").toBe(70);
@@ -577,6 +578,38 @@ describe("MQ9: drawn quests come once the three onboarding quests are finished",
   });
 });
 
+describe("Quests handles a kudos delivered twice as once", { timeout: 60_000 }, () => {
+  test.each([
+    ["on the Monday path", mondayPath],
+    ["with monday-quest off", todaysFlags],
+  ])("%s, a second delivery keeps one judged marker per award and moves, pays and replies nothing more", async (_, flags) => {
+    await switchWebsite(t, postHog, true, ...flags);
+    await thanks(alice, saysWhy, bob, carol);
+    const once = await questStateOf(alice);
+
+    await deliverAgain(t, followKudosGiven);
+
+    expect(await judgedMarkers(), "the judged markers of the kudos's awards").toEqual(once.judgedMarkers);
+    expect(await questStateOf(alice), "the giver's quests, XP, items and replies").toEqual(once);
+  });
+
+  test("a kudos delivered again in a later week draws no quests, and the sweep still draws that week", async () => {
+    await switchWebsite(t, postHog, true, ...mondayPath);
+    await aTeammateNotThankedYet(dave);
+    await finishOnboarding();
+    await thanks(alice, saysWhy, dave);
+    vi.setSystemTime(new Date("2026-10-20T10:00:00Z"));
+    const drawnBefore = questsDrawnPublished();
+
+    await deliverAgain(t, followKudosGiven);
+    expect(await drawnWeeksOf(alice), "the weeks drawn after the late delivery").toEqual(["2026-10-12"]);
+    expect(questsDrawnPublished(), "the questsDrawn facts published").toBe(drawnBefore);
+
+    await sweepForANewWeek();
+    expect(await drawnWeeksOf(alice), "the weeks drawn after the sweep").toEqual(["2026-10-12", "2026-10-19"]);
+  });
+});
+
 describe("HH13: the Monday path draws its quests from the kudos pool", { timeout: 60_000 }, () => {
   const kudosPool = ["kudos-once", "kudos-two-days", "three-in-a-day", "someone-new", "two-new", "not-in-30-days"];
 
@@ -796,6 +829,19 @@ async function onboardingRecordsOf(person: Person) {
     .filter((record) => record.member === member && record.key.startsWith("journey:"))
     .map(({ key }) => key)
     .toSorted();
+}
+
+async function questStateOf(person: Person) {
+  return { judgedMarkers: await judgedMarkers(), xp: await xpOf(person), finishes: await finishesOf(person), questItems: await questItemsOf(person), replies: slack.ephemeralsTo(person.user).length };
+}
+
+async function judgedMarkers() {
+  const markers = await t.run((ctx) => ctx.db.query("questsJudged").collect());
+  return markers.map(({ award }) => award).toSorted();
+}
+
+function questsDrawnPublished() {
+  return vi.mocked(publish).mock.calls.filter(([, event]) => event.type === "questsDrawn").length;
 }
 
 async function forgetWhatQuestsHandled() {

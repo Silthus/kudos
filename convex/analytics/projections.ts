@@ -5,16 +5,12 @@ import type {
   AttemptFailedEvent,
   HoggieDroppedEvent,
   HugGivenEvent,
-  GroupQuestDrawnEvent,
-  JourneyStepActivatedEvent,
   KudosGivenEvent,
   LevelReachedEvent,
   MemberWelcomedEvent,
   PerkBoughtEvent,
   QuestFinishedEvent,
-  QuestOpenedEvent,
   QuestsDrawnEvent,
-  QuestSwappedEvent,
   StickersCollectedEvent,
   StickerPutInEvent,
   ItemTurnedEvent,
@@ -52,10 +48,7 @@ export type ProductEvent = {
     | "unlock made ready"
     | "unlock opened"
     | "quest drawn"
-    | "quest swapped"
     | "quest finished"
-    | "crate opened"
-    | "journey step activated"
     | "perk bought"
     | "hoggie dropped"
     | "hug given"
@@ -241,14 +234,6 @@ export function projectQuestsDrawn(event: QuestsDrawnEvent): ProductEvent[] {
   return event.quests.map((quest) => ({ event: "quest drawn", subject: { member: event.member }, at: event.at, properties: { quest } }));
 }
 
-export function projectGroupQuestDrawn({ quest, participants, at }: GroupQuestDrawnEvent): ProductEvent[] {
-  return participants.map((member) => ({ event: "quest drawn", subject: { member }, at, properties: { quest, kind: "group" } }));
-}
-
-export function projectQuestSwapped(event: QuestSwappedEvent): ProductEvent {
-  return { event: "quest swapped", subject: { member: event.member }, at: event.at, properties: { replaced: event.replaced, quest: event.swappedIn } };
-}
-
 export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
   return {
     event: "quest finished",
@@ -258,17 +243,9 @@ export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
   };
 }
 
-export function projectQuestOpened(event: QuestOpenedEvent): ProductEvent {
-  return { event: "crate opened", subject: { member: event.member }, at: event.at, properties: questNamed(event) };
-}
-
-function questNamed({ quest, poolQuest }: QuestFinishedEvent | QuestOpenedEvent) {
+function questNamed({ quest, poolQuest }: QuestFinishedEvent) {
   const id = quest.kind === "journey" ? quest.step : poolQuest;
   return { kind: quest.kind, ...(id === undefined ? {} : { quest: id }) };
-}
-
-export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): ProductEvent {
-  return { event: "journey step activated", subject: { member: event.member }, at: event.at, properties: { step: event.step } };
 }
 
 export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
