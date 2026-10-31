@@ -51,3 +51,18 @@ Quests: owns each member's quests on the Monday path (spec/monday-quests.md, ADR
   because: Quests decides only what a member pursues and writes no other module's tables (ADR-0015); keyed followers make a redelivered fact pay nothing twice, and a reader left on the reward record would see a finished quest as open in the moment before its XP is paid
   refuted: finishMondayQuest published questFinished without its reward key -> the finish facts case failed: the published fact had no reward key (2026-10-29)
   kinds: state, output
+
+- a kudos delivered twice is judged once: followKudosGiven marks each award of a kudos judged with one questsJudged row, on the Monday path or off it, however often the bus delivers that kudosGiven, and a second delivery moves no quest, pays nothing, earns no item and sends no other reply; a delivery in a later week draws no week, since the subscriber draws for the kudos's own time, and the hourly sweep still draws the current one.
+  over: a first kudos to two teammates on the Monday path and with monday-quest off, delivered to Quests a second time, and every kudos of a member past onboarding delivered again in the next week, at the Slack boundary, read through the judged rows, the giver's XP, finish rows, quest items and replies, the weeks drawn and the questsDrawn facts
+  via: Quests handles a kudos delivered twice as once
+  because: the bus can deliver a fact again on a retry or a replay of a failed subscriber, and a row per delivery grows Quests' table with each replay while its readers take the first; a draw bound to the time of the kudos keeps a late replay from drawing a week the kudos was never part of
+  refuted: judgeQuestsOf inserted a questsJudged row for every award on every delivery -> both second-delivery cases failed: 4 judged rows for 2 awards (2026-10-31)
+  refuted: advanceWeeklyQuests drew the giver's week for the delivery's time instead of the kudos's -> the later-week case failed: the late delivery drew the week of 2026-10-19 (2026-10-31)
+  kinds: state
+  checklist: revalidated-permission dismissed: no permission is involved; the subscriber reads the slice predicate itself on each delivery
+  checklist: separation-of-duties dismissed: no approval policy applies
+  checklist: legal-state-succession dismissed: a judged row is written once and never changed
+  checklist: supersession-safety dismissed: each delivery reads the award's judged row in its own transaction, so two deliveries racing write one row, as Convex retries the loser
+  checklist: worker-fencing dismissed: no worker owns a kudos; each delivery is one mutation
+  checklist: commit-ordered-effects dismissed: the judged row, the counted awards and the held reply's release are written in the subscriber's one mutation
+  checklist: resumption-coverage dismissed: no batch operation resumes
