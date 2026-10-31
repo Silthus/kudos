@@ -6,9 +6,10 @@ import { ReportableError } from "../analytics/exceptions";
 import type { ViewedBoard } from "../analytics/projections";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
-import { renderBoards, renderFullBoardLink, renderLeaderboardUsage } from "../feedback/leaderboard";
+import { renderBoards, renderFullBoardLink, renderLeaderboardUsage, type ShownGroups } from "../feedback/leaderboard";
 import type { Line } from "../feedback/segments";
 import { periodValidator, type Period } from "../leaderboard/periods";
+import type { GivenMeasure } from "../leaderboard/totals";
 import { lookup } from "../workspace/directory";
 import { answerCommand, onceKnown, replyPrivately, type Viewer } from "./commandReplies";
 import { attemptArgs } from "./delivery";
@@ -148,6 +149,12 @@ type ShownGroupBoards = { groups: boolean; myGroup: boolean };
 
 const noGroupBoards: ShownGroupBoards = { groups: false, myGroup: false };
 
+async function shownGroupsOf(ctx: ActionCtx, asked: { workspace: string; viewer: string; period: Period }, measure: GivenMeasure): Promise<ShownGroups | null> {
+  if (measure === "kudosGiven") return ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, asked);
+  if (asked.period !== "week") return null;
+  return ctx.runQuery(internal.website.leaderboard.teamsJoiningInFor, { workspace: asked.workspace, user: asked.viewer });
+}
+
 async function leaderboardReply(ctx: ActionCtx, viewer: Viewer, rest: string[]): Promise<{ lines: Line[]; period: Period | null; shown: ShownGroupBoards }> {
   const { lines: unopened, shownToUnknownViewer } = await ctx.runMutation(internal.feedback.unlockFilter.unopenedReplyOf, { ...viewer, feature: "leaderboard" });
   if (shownToUnknownViewer !== null) await ctx.scheduler.runAfter(0, internal.slack.commands.exposeOnceKnown, { ...viewer, flag: "unlocks", shown: shownToUnknownViewer });
@@ -156,9 +163,9 @@ async function leaderboardReply(ctx: ActionCtx, viewer: Viewer, rest: string[]):
   if (period === null) return { lines: renderLeaderboardUsage(), period: null, shown: noGroupBoards };
   const asked = { workspace: viewer.workspace, viewer: viewer.user, period };
   await ctx.runMutation(internal.groups.flag.exposeGroups, viewer);
-  const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, asked);
-  const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, asked);
   const measure = await ctx.runMutation(internal.leaderboard.flag.everyoneMeasure, viewer);
+  const groups = await shownGroupsOf(ctx, asked, measure);
+  const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, asked);
   const everyone = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { ...asked, measure });
   const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period }, source: "reply" });
   const boards = renderBoards(groups, myGroup, everyone, period);

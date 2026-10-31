@@ -1,12 +1,13 @@
 import type { ViewedBoard } from "../analytics/projections";
 import type { GroupId } from "../groups/groups";
-import type { BoardRow, BoardView } from "../leaderboard/board";
+import { windowOf, type BoardRow, type BoardView } from "../leaderboard/board";
 import type { GroupsBoard, GroupsBoardRow } from "../leaderboard/groupsBoard";
 import { givenCount, groupImprovementLine, improvementLine } from "../leaderboard/improvementLine";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import type { Peer } from "../leaderboard/peer";
 import type { Period } from "../leaderboard/periods";
 import type { EveryoneBoardView, GivenMeasure } from "../leaderboard/totals";
+import type { JoiningStanding, JoiningTeam, TeamsJoiningIn } from "../website/teamsJoiningIn";
 import { asWritten } from "./groupCopy";
 import { slashCommand } from "./naming";
 import type { Line } from "./segments";
@@ -35,9 +36,11 @@ export function renderEveryoneBoard(view: EveryoneBoardView, period: Period): Li
   return [...renderIndividualBoard(view, period, view.measure), ...improvement, ...peerLine(view.peer)];
 }
 
-export function renderBoards(groups: GroupsBoard<GroupId> | null, myGroup: MyGroupBoardView | null, everyone: EveryoneBoardView, period: Period): ShownBoard[] {
+export type ShownGroups = GroupsBoard<GroupId> | TeamsJoiningIn;
+
+export function renderBoards(groups: ShownGroups | null, myGroup: MyGroupBoardView | null, everyone: EveryoneBoardView, period: Period): ShownBoard[] {
   const groupBoards: ShownBoard[] = [
-    ...(groups === null || groups.rows.length === 0 ? [] : [{ board: "groups" as const, lines: renderGroupsBoard(groups, period) }]),
+    ...groupsBoardOf(groups, period),
     ...(myGroup === null ? [] : [{ board: "my-group" as const, lines: renderMyGroupBoard(myGroup, period) }]),
   ];
   const everyoneBoard = renderEveryoneBoard(everyone, period);
@@ -59,6 +62,45 @@ function peerLine(peer: Peer | null): Line[] {
 
 function peerText(percent: number, group: string) {
   return percent >= aheadOfEveryone ? `You improved more than everyone else in ${group}.` : `You improved more than ${percent}% of ${group}.`;
+}
+
+function groupsBoardOf(groups: ShownGroups | null, period: Period): ShownBoard[] {
+  if (groups === null) return [];
+  if ("teams" in groups) return [{ board: "groups", lines: renderTeamsJoiningIn(groups) }];
+  return groups.rows.length === 0 ? [] : [{ board: "groups", lines: renderGroupsBoard(groups, period) }];
+}
+
+type RankedTeam = { team: JoiningTeam; standing: JoiningStanding };
+
+type ShownTeam = RankedTeam & { skipped: boolean };
+
+function renderTeamsJoiningIn({ teams }: TeamsJoiningIn): Line[] {
+  const emptyRace = teams.every(({ joined }) => joined === 0) ? [[{ text: "No team has started yet. Start your team's week with a hug or a kudos." }]] : [];
+  const ranked = teams.flatMap((team) => (team.standing === null ? [] : [{ team, standing: team.standing }]));
+  const shown = windowedTeams(ranked);
+  return [[{ text: "*Teams joining in*" }], ...everyoneInLines(shown), ...emptyRace, ...shown.flatMap(teamRowLines), ...gettingStartedLine(teams.length - ranked.length)];
+}
+
+function windowedTeams(ranked: RankedTeam[]): ShownTeam[] {
+  const window = windowOf(ranked.length, ranked.findIndex(({ team }) => team.mine) + 1);
+  return window.map((position, index) => ({ ...ranked[position - 1]!, skipped: skipsBefore(window, index) }));
+}
+
+function everyoneInLines(shown: ShownTeam[]): Line[] {
+  return shown.filter(({ team }) => team.joined === team.of).map(({ team }) => [{ text: `Everyone in ${asWritten(team)} joined in this week.` }]);
+}
+
+function teamRowLines({ team, standing, skipped }: ShownTeam): Line[] {
+  return [...(skipped ? [[{ text: "…" }]] : []), joiningTeamRow(team, standing)];
+}
+
+function joiningTeamRow({ name, joined, of, mine }: JoiningTeam, { rank, gain }: JoiningStanding): Line {
+  return [{ text: `${medalOf(rank)} ${asWritten({ name })} · ${joined} of ${of} joined in${mine ? " · your team" : ""} · +${gain} pts` }];
+}
+
+function gettingStartedLine(folded: number): Line[] {
+  if (folded === 0) return [];
+  return [[{ text: `${folded} ${folded === 1 ? "team" : "teams"} getting started` }]];
 }
 
 function renderGroupsBoard(board: GroupsBoard<GroupId>, period: Period): Line[] {
