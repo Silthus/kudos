@@ -3,14 +3,11 @@ import { awardId, kudosGivenEvent } from "../../testing/busEvents";
 import type {
   AchievementEarnedEvent,
   AttemptFailedEvent,
-  JourneyStepActivatedEvent,
   KudosGivenEvent,
   LevelReachedEvent,
   PerkBoughtEvent,
   QuestFinishedEvent,
-  QuestOpenedEvent,
   QuestsDrawnEvent,
-  QuestSwappedEvent,
   UnlockOpenedEvent,
   UnlockReadyEvent,
   UnlocksLaunchedEvent,
@@ -20,15 +17,12 @@ import type { MemberId } from "../workspace/directory";
 import {
   projectAchievementEarned,
   projectAttemptFailed,
-  projectJourneyStepActivated,
   projectKudosGiven,
   projectLevelReached,
   projectMemberWelcomed,
   projectPerkBought,
   projectQuestFinished,
-  projectQuestOpened,
   projectQuestsDrawn,
-  projectQuestSwapped,
   projectUnlockOpened,
   projectUnlockReady,
   projectUnlocksLaunched,
@@ -208,7 +202,7 @@ describe("E1: unlock made ready and unlock opened", () => {
   });
 });
 
-describe("E1: quest drawn and quest swapped", () => {
+describe("E1: quest drawn", () => {
   const drawn: QuestsDrawnEvent = { type: "questsDrawn", workspace: "T1", member: bob, week: "2026-10-12", quests: ["say-why", "say-why-three-times", "say-why-two-days"], at };
 
   test("a draw projects one quest drawn per quest, naming only its pool ID, on the member at the draw's time", () => {
@@ -219,20 +213,6 @@ describe("E1: quest drawn and quest swapped", () => {
 
   test("a draw of fewer quests projects fewer", () => {
     expect(projectQuestsDrawn({ ...drawn, quests: ["say-why"] }).map(({ properties }) => properties)).toEqual([{ quest: "say-why" }]);
-  });
-
-  test("a swap projects quest swapped with the replaced quest and the swapped-in quest as quest", () => {
-    const swapped: QuestSwappedEvent = { type: "questSwapped", workspace: "T1", member: bob, week: "2026-10-12", replaced: "say-why-twice", swappedIn: "say-why-two-days", at };
-
-    expect(projectQuestSwapped(swapped)).toEqual({ event: "quest swapped", subject: { member: bob }, at, properties: { replaced: "say-why-twice", quest: "say-why-two-days" } });
-  });
-});
-
-describe("E1: journey step activated", () => {
-  test.each<JourneyStepActivatedEvent["step"]>(["first-thanks", "first-quest", "someone-new"])("activating %s lists only its step, on the member at the activation's time", (step) => {
-    const activated: JourneyStepActivatedEvent = { type: "journeyStepActivated", workspace: "T1", member: bob, step, at };
-
-    expect(projectJourneyStepActivated(activated)).toEqual({ event: "journey step activated", subject: { member: bob }, at, properties: { step } });
   });
 });
 
@@ -263,19 +243,6 @@ describe("E1 E5: quest finished", () => {
     ["a Journey step queued before the deploy has its kind and step", { quest: firstThanks }, { kind: "journey", quest: "first-thanks" }],
   ])("%s, on the member at the fact's time", (_, fields, properties) => {
     expect(projectQuestFinished({ type: "questFinished", workspace: "T1", member: bob, at, ...fields })).toEqual({ event: "quest finished", subject: { member: bob }, at, properties });
-  });
-});
-
-describe("E1 E5: crate opened", () => {
-  const weekly = { kind: "weekly", week: "2026-10-12", slot: 1 } as const;
-  const someoneNew = { kind: "journey", step: "someone-new" } as const;
-
-  test.each<[string, Omit<QuestOpenedEvent, "type" | "workspace" | "member" | "at">, Record<string, string>]>([
-    ["a weekly quest's crate is named by its pool ID", { quest: weekly, poolQuest: "someone-new" }, { kind: "weekly", quest: "someone-new" }],
-    ["a Journey step's crate is named by its step, kind keeping it apart from the pool quest of the same ID", { quest: someoneNew }, { kind: "journey", quest: "someone-new" }],
-    ["a weekly crate queued before the deploy has only its kind", { quest: weekly }, { kind: "weekly" }],
-  ])("%s, on the member at the opening's time", (_, fields, properties) => {
-    expect(projectQuestOpened({ type: "questOpened", workspace: "T1", member: bob, at, ...fields })).toEqual({ event: "crate opened", subject: { member: bob }, at, properties });
   });
 });
 

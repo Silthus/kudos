@@ -17,7 +17,7 @@ import { rewardValidator } from "./journey";
 import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { onboardingFinishedAt } from "./onboarding";
 import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, withoutFullStop, type DrawFacts, type FeasibleBecause, type PoolQuest, type Recipient } from "./pool";
-import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type Moved, type MovedQuest, type ProgressRead, type QuestAward } from "./progress";
+import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type Moved, type MovedQuest, type ProgressRead, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
 import { questStartOf } from "./start";
 import type { WeeklyQuest } from "./step";
@@ -45,8 +45,6 @@ export const questProgressValidator = v.object({
   day: v.string(),
   at: v.number(),
 });
-
-export const questSwapValidator = v.object({ member: v.id("members"), week: v.string(), swappedAt: v.number(), replaced: questIdValidator, swappedIn: slotValidator });
 
 type Slot = Infer<typeof slotValidator>;
 

@@ -5,7 +5,6 @@ import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace } from "../../testing/website";
-import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { buyCrate } from "../album/hoggies/boughtCrates";
 import { recordReward } from "../progression/progression";
@@ -190,9 +189,8 @@ async function recordedCoinsOf(t: Backend, member: MemberId) {
   return t.run(async (ctx) => {
     const effects = (await ctx.db.query("effectsRecords").collect()).filter((record) => record.member === member);
     const rewards = (await ctx.db.query("rewardRecords").collect()).filter((reward) => reward.member === member);
-    const openings = (await ctx.db.query("crateOpenings").collect()).filter((opening) => opening.member === member);
     const spends = (await ctx.db.query("coinSpends").collect()).filter((spent) => spent.member === member);
-    const rewardCoinsOf = ({ key, coins, held }: RewardRecord) => (held === true ? (openings.find((opening) => opening.key === key)?.applied?.coins ?? 0) : coins);
+    const rewardCoinsOf = ({ coins, held }: RewardRecord) => (held === true ? 0 : coins);
     const earned = effects.flatMap(({ coins = [] }) => coins).reduce((sum, line) => sum + line.coins, 0) + rewards.reduce((sum, reward) => sum + rewardCoinsOf(reward), 0);
     return earned - spends.reduce((sum, spent) => sum + spent.coins, 0);
   });

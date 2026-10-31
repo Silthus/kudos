@@ -1,6 +1,5 @@
 import { v, type Infer } from "convex/values";
-import { weeklyQuestValidator, type GroupQuestCrate, type Quest, type WeeklyQuest } from "../quests/step";
-import type { WeekKey } from "../quests/week";
+import { weeklyQuestValidator } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import type { pageValidator } from "./link";
 import { linkFrom, type VisitSource } from "./visitSource";
@@ -133,12 +132,6 @@ export function readyCratePageOf(feature: Feature): Page {
   return page === null ? { page: "home" } : { ...page, crate: feature };
 }
 
-export function questCratePageOf(quest: Quest): Page {
-  if (quest.kind === "journey") return { page: "home", crate: "journey" };
-  if (quest.kind === "weekly") return { page: "quests", quest: quest.slot };
-  return { page: "quests", crate: "group" };
-}
-
 export function boughtCratePageOf(crate: string): Page {
   const target = boughtCrateTargetOf(crate);
   return target === undefined ? { page: "bookCollection" } : { page: "bookCollection", crate: target };
@@ -146,15 +139,6 @@ export function boughtCratePageOf(crate: string): Page {
 
 export function crateOfferPageOf(): Page {
   return { page: "bookCollection", crate: "store" };
-}
-
-export function earlierWeekCratePageOf(quest: WeeklyQuest | GroupQuestCrate): Page {
-  if (quest.kind === "group") return { page: "quests", crate: { kind: "group", week: quest.week } };
-  return { page: "quests", crate: { kind: "weekly", week: quest.week, slot: quest.slot } };
-}
-
-export function weeklyCratePageOf(quest: WeeklyQuest, thisWeek: WeekKey): Page {
-  return quest.week === thisWeek ? questCratePageOf(quest) : earlierWeekCratePageOf(quest);
 }
 
 export function urlOf(origin: string, page: Page, source: VisitSource) {

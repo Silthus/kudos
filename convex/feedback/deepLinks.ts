@@ -15,8 +15,6 @@ export const deepLinks = {
   welcome: { page: home, label: "See your progress" },
   levelReached: { page: home, label: "See your level on the web" },
   featuresShipped: { page: home, label: "See what's ready on the web" },
-  journey: { page: home, label: "See your Journey on the web" },
-  weeklyQuest: { page: { page: "quests" }, label: "See your quests on the web" },
   tiersEarned: { page: { page: "bookEarned" }, label: "See what you earned on the web" },
 } satisfies Record<string, Destination>;
 

@@ -76,7 +76,7 @@ function openFeature(caller: Pick<Backend, "mutation">) {
   return caller.mutation(api.website.commands.openFeature, { feature: "leaderboard" });
 }
 
-function rowsOf<Table extends "users" | "flagExposures" | "previewMoments" | "unlockLaunches" | "journeyLaunches" | "bookLaunches">(table: Table) {
+function rowsOf<Table extends "users" | "flagExposures" | "previewMoments" | "unlockLaunches" | "bookLaunches">(table: Table) {
   return t.run((ctx) => ctx.db.query(table).collect());
 }
 
@@ -239,7 +239,6 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
 
       expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
       expect(await rowsOf("unlockLaunches")).toEqual([]);
-      expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
 
     test("unlocks and quests switched on for the workspace after an unlocks preview: the previewer's command starts no Journey preview, and nothing it schedules records a launch", async () => {
@@ -253,7 +252,6 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
 
       expect(await previewMoments()).toEqual([{ member, moment: "unlocks" }]);
       expect(await rowsOf("unlockLaunches")).toEqual([]);
-      expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
 
     test("achievements switched on for the workspace after unlocks launched: the previewer's sign-in runs no Journey preview, and their open answers refused and records no Book launch", async () => {
@@ -269,7 +267,6 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
       await settle(t);
       expect(await rowsOf("bookLaunches")).toEqual([]);
-      expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
   });
 
@@ -284,7 +281,6 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await websiteExposures()).toEqual([{ member, value: true }]);
       expect(await previewMoments()).toContainEqual({ member, moment: "unlocks" });
       expect(await rowsOf("unlockLaunches")).toEqual([]);
-      expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
 
     test("a member the preview doesn't name answers closed and writes nothing", async () => {

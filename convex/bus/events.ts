@@ -5,9 +5,8 @@ import { attributedAwardValidator, groupOrNoneValidator } from "../groups/attrib
 import { primaryGroupCauseValidator } from "../groups/cause";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
 import { perkValidator } from "../progression/tree";
-import { groupQuestIdValidator } from "../quests/groupPool";
 import { questIdValidator } from "../quests/pool";
-import { journeyStepValidator, questValidator } from "../quests/step";
+import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import { rarityValidator } from "../album/hoggies/catalogue";
 import { itemSourceValidator } from "../album/items/records";
@@ -123,42 +122,23 @@ export const unlocksLaunchedEventValidator = domainEvent({
 
 export type UnlocksLaunchedEvent = Infer<typeof unlocksLaunchedEventValidator>;
 
-const poolQuestIdValidator = v.union(questIdValidator, groupQuestIdValidator);
-
 const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
 
 export const questFinishedEventValidator = domainEvent({
   type: v.literal("questFinished"),
   ...questFields,
-  poolQuest: v.optional(poolQuestIdValidator),
+  poolQuest: v.optional(questIdValidator),
   rewardKey: v.optional(v.string()),
   reward: v.optional(v.object({ xp: v.number(), coins: v.number() })),
   catalogueVersion: v.optional(v.string()),
   cause: v.optional(messageRefValidator),
 });
 
-export const questOpenedEventValidator = domainEvent({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(poolQuestIdValidator) });
-
 const weekFields = { workspace: v.string(), member: v.id("members"), week: v.string(), at: v.number() };
 
 export const questsDrawnEventValidator = domainEvent({ type: v.literal("questsDrawn"), ...weekFields, quests: v.array(questIdValidator) });
 
-export const questSwappedEventValidator = domainEvent({ type: v.literal("questSwapped"), ...weekFields, replaced: questIdValidator, swappedIn: questIdValidator });
-
-export const groupQuestDrawnEventValidator = domainEvent({
-  type: v.literal("groupQuestDrawn"),
-  workspace: v.string(),
-  week: v.string(),
-  quest: groupQuestIdValidator,
-  participants: v.array(v.id("members")),
-  at: v.number(),
-});
-
 export type QuestsDrawnEvent = Infer<typeof questsDrawnEventValidator>;
-
-export type GroupQuestDrawnEvent = Infer<typeof groupQuestDrawnEventValidator>;
-
-export type QuestSwappedEvent = Infer<typeof questSwappedEventValidator>;
 
 export const achievementEarnedEventValidator = domainEvent({
   type: v.literal("achievementEarned"),
@@ -192,8 +172,6 @@ export type MemberRejoinedEvent = Infer<typeof memberRejoinedEventValidator>;
 
 export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
-export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
-
 export const primaryGroupChangedEventValidator = domainEvent({
   type: v.literal("primaryGroupChanged"),
   workspace: v.string(),
@@ -220,16 +198,6 @@ const attributedFields = {
 export const awardsAttributedEventValidator = domainEvent({ type: v.literal("awardsAttributed"), ...attributedFields });
 
 export type AwardsAttributedEvent = Infer<typeof awardsAttributedEventValidator>;
-
-export const journeyStepActivatedEventValidator = domainEvent({
-  type: v.literal("journeyStepActivated"),
-  workspace: v.string(),
-  member: v.id("members"),
-  step: journeyStepValidator,
-  at: v.number(),
-});
-
-export type JourneyStepActivatedEvent = Infer<typeof journeyStepActivatedEventValidator>;
 
 export const hoggieDroppedEventValidator = domainEvent({
   type: v.literal("hoggieDropped"),
@@ -352,11 +320,7 @@ export type DomainEvent =
   | UnlockOpenedEvent
   | UnlocksLaunchedEvent
   | QuestFinishedEvent
-  | QuestOpenedEvent
   | QuestsDrawnEvent
-  | GroupQuestDrawnEvent
-  | QuestSwappedEvent
-  | JourneyStepActivatedEvent
   | AchievementEarnedEvent
   | PerkBoughtEvent
   | ItemBoughtEvent

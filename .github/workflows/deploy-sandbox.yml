@@ -1,5 +1,5 @@
 # A run started by hand deploys the chosen branch's tip to the sandbox Convex deployment, which every lane shares.
-# The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag, read the faces and backfill the pending-crate index.
+# The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag, read the faces and reserve the shared emoji names.
 name: Deploy sandbox
 
 on:

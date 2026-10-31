@@ -34,9 +34,9 @@ const site = "https://kudos-site.test";
 const slackUrl = "https://t1.slack.com/";
 const channel = "C_TEAM";
 const announcementChannel = "C_KUDOS";
-const keptOn = ["website", "website-analytics", "album", "album-slack", "collection", "packs", "xp-levels", "everyone-board", "hugs", "activity", "book-spread", "crate-rewards", "crests", "custom-kudos-emoji", "groups", "hoggie-avatar", "message-settings", "monday-post", "profile-card", "slots-retired", "sticker-book", "team-pages"];
+const keptOn = ["website", "website-analytics", "album", "album-slack", "collection", "packs", "xp-levels", "everyone-board", "hugs", "activity", "book-spread", "crests", "custom-kudos-emoji", "groups", "hoggie-avatar", "message-settings", "monday-post", "profile-card", "slots-retired", "sticker-book", "team-pages"];
 const retired = ["crate-store", "store", "coins", "group-quest", "quests", "team-spirit", "achievements", "unlocks", "skill-tree"];
-const retiredFeatureEvents = ["achievement earned", "crate opened", "journey step activated", "perk bought", "quest drawn", "quest finished", "quest swapped", "team page completed", "unlock made ready", "unlock opened"];
+const retiredFeatureEvents = ["achievement earned", "perk bought", "quest drawn", "quest finished", "team page completed", "unlock made ready", "unlock opened"];
 
 type Person = { user: string; name: string; email: string; profile: number };
 type Walk = Awaited<ReturnType<typeof walkWith>>;
