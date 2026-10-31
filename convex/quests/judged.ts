@@ -5,10 +5,17 @@ import { awardIdValidator, type AwardId } from "../engine/awards";
 export const questsJudgedValidator = v.object({ award: awardIdValidator });
 
 export async function judgeQuestsOf(ctx: MutationCtx, awards: { award: AwardId }[]) {
-  for (const { award } of awards) await ctx.db.insert("questsJudged", { award });
+  for (const { award } of awards) if ((await judgedMarkerOf(ctx, award)) === null) await ctx.db.insert("questsJudged", { award });
 }
 
 export async function questsJudgedFor(ctx: QueryCtx, awards: { award: AwardId }[]): Promise<boolean> {
-  const judged = await Promise.all(awards.map(({ award }) => ctx.db.query("questsJudged").withIndex("by_award", (q) => q.eq("award", award)).first()));
+  const judged = await Promise.all(awards.map(({ award }) => judgedMarkerOf(ctx, award)));
   return judged.every((marker) => marker !== null);
+}
+
+function judgedMarkerOf(ctx: QueryCtx, award: AwardId) {
+  return ctx.db
+    .query("questsJudged")
+    .withIndex("by_award", (q) => q.eq("award", award))
+    .first();
 }
