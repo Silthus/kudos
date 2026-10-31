@@ -752,6 +752,29 @@ describe("HH80 HH81: Slack ranks Everyone by hugs given while leaderboard-hugs i
     expect(firstBoardOf(await leaderboardSays(alice))).toEqual(["*Teams joining in*", "🥇 Badgers · 1 of 3 joined in · +33 pts", "🥇 Otters · 1 of 3 joined in · your team · +33 pts", "1 team getting started"]);
   });
 
+  test("a long week of gaining teams shows Leaderboard's window: the top three and the teams around the member's", { timeout: 60_000 }, async () => {
+    const crowd = await moreTeammates(32);
+    const teams = Object.fromEntries(Array.from({ length: 10 }, (_, index) => [`Team ${String(index + 1).padStart(2, "0")}`, crowd.slice(index * 3, index * 3 + 3)]));
+    await inGroups({ ...teams, Zebras: [alice, ...crowd.slice(30, 32)] });
+    await lastWeek();
+    await thanks(bob, why, dana);
+    await thisWeek();
+    for (const [first] of Object.values(teams)) await thanks(first!, why, dana);
+    await thanks(alice, why, dana);
+
+    expect(firstBoardOf(await leaderboardSays(alice))).toEqual([
+      "*Teams joining in*",
+      "🥇 Team 01 · 1 of 3 joined in · +33 pts",
+      "🥇 Team 02 · 1 of 3 joined in · +33 pts",
+      "🥇 Team 03 · 1 of 3 joined in · +33 pts",
+      "…",
+      "🥇 Team 08 · 1 of 3 joined in · +33 pts",
+      "🥇 Team 09 · 1 of 3 joined in · +33 pts",
+      "🥇 Team 10 · 1 of 3 joined in · +33 pts",
+      "🥇 Zebras · 1 of 3 joined in · your team · +33 pts",
+    ]);
+  });
+
   test("before any team joined in this week, the Groups board says no team has started yet", async () => {
     const [ezra] = await moreTeammates(1);
     await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!] });

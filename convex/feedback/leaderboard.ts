@@ -1,6 +1,6 @@
 import type { ViewedBoard } from "../analytics/projections";
 import type { GroupId } from "../groups/groups";
-import type { BoardRow, BoardView } from "../leaderboard/board";
+import { windowOf, type BoardRow, type BoardView } from "../leaderboard/board";
 import type { GroupsBoard, GroupsBoardRow } from "../leaderboard/groupsBoard";
 import { givenCount, groupImprovementLine, improvementLine } from "../leaderboard/improvementLine";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
@@ -73,8 +73,16 @@ function groupsBoardOf(groups: ShownGroups | null, period: Period): ShownBoard[]
 function renderTeamsJoiningIn({ teams }: TeamsJoiningIn): Line[] {
   const everyoneIn = teams.filter(({ joined, of }) => joined === of).map(({ name }) => [{ text: `Everyone in ${asWritten({ name })} joined in this week.` }]);
   const emptyRace = teams.every(({ joined }) => joined === 0) ? [[{ text: "No team has started yet. Start your team's week with a hug or a kudos." }]] : [];
-  const ranked = teams.flatMap((team) => (team.standing === null ? [] : [joiningTeamRow(team, team.standing)]));
-  return [[{ text: "*Teams joining in*" }], ...everyoneIn, ...emptyRace, ...ranked, ...gettingStartedLine(teams.filter(({ standing }) => standing === null).length)];
+  const ranked = teams.flatMap((team) => (team.standing === null ? [] : [{ team, standing: team.standing }]));
+  return [[{ text: "*Teams joining in*" }], ...everyoneIn, ...emptyRace, ...windowedTeamRows(ranked), ...gettingStartedLine(teams.length - ranked.length)];
+}
+
+function windowedTeamRows(ranked: Array<{ team: JoiningTeam; standing: JoiningStanding }>): Line[] {
+  const window = windowOf(ranked.length, ranked.findIndex(({ team }) => team.mine) + 1);
+  return window.flatMap((position, index) => {
+    const { team, standing } = ranked[position - 1]!;
+    return [...(skipsBefore(window, index) ? [[{ text: "…" }]] : []), joiningTeamRow(team, standing)];
+  });
 }
 
 function joiningTeamRow({ name, joined, of, mine }: JoiningTeam, { rank, gain }: JoiningStanding): Line {
