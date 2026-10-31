@@ -59,12 +59,9 @@ import {
   weekPersonValidator,
   weekTallyValidator,
 } from "./album/records";
-import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { questFinishValidator } from "./quests/finishes";
-import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
-import { journeyActivationValidator, rewardValidator } from "./quests/journey";
 import { questsJudgedValidator } from "./quests/judged";
-import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
+import { questDrawValidator, questProgressValidator } from "./quests/weekly";
 import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
 import { welcomedAsValidator, welcomePathValidator } from "./welcome/welcomedAs";
@@ -477,14 +474,7 @@ export default defineSchema({
 
   customKudosEmoji: defineTable(customKudosEmojiValidator).index("by_workspace_name", ["workspace", "name"]),
 
-  journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
-
   questStarts: defineTable({ member: v.id("members"), at: v.number() }).index("by_member", ["member"]),
-
-  journeyLaunches: defineTable({
-    workspace: v.string(),
-    at: v.number(),
-  }).index("by_workspace", ["workspace"]),
 
   bookLaunches: defineTable({
     workspace: v.string(),
@@ -532,39 +522,7 @@ export default defineSchema({
 
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
 
-  questSwaps: defineTable(questSwapValidator).index("by_member_week", ["member", "week"]),
-
   questProgress: defineTable(questProgressValidator).index("by_member_week_slot", ["member", "week", "slot"]),
-
-  groupQuestLaunches: defineTable({ workspace: v.string(), at: v.number() }).index("by_workspace", ["workspace"]),
-
-  groupQuestWeeks: defineTable({ workspace: v.string(), week: v.string(), drawnAt: v.number() }).index("by_workspace_week", ["workspace", "week"]),
-
-  groupQuests: defineTable({
-    workspace: v.string(),
-    group: v.id("userGroups"),
-    week: v.string(),
-    quest: groupQuestIdValidator,
-    participants: v.array(v.id("members")),
-    target: v.number(),
-    reward: rewardValidator,
-    catalogueVersion: v.string(),
-    feasibleBecause: groupFeasibleBecauseValidator,
-    drawnAt: v.number(),
-  }).index("by_group_week", ["group", "week"]),
-
-  groupQuestContributions: defineTable({
-    workspace: v.string(),
-    group: v.id("userGroups"),
-    week: v.string(),
-    member: v.id("members"),
-    message: messageRefValidator,
-    at: v.number(),
-  }).index("by_group_week_member", ["group", "week", "member"]),
-
-  crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
-
-  pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]).index("by_member", ["member"]),
 
   drops: defineTable(dropValidator).index("by_member_crate", ["member", "crate"]).index("by_member", ["member"]),
 
@@ -651,11 +609,6 @@ export default defineSchema({
   boughtCrates: defineTable(boughtCrateValidator).index("by_member_crate", ["member", "crate"]).index("by_member_n", ["member", "n"]).index("by_member_opened", ["member", "openedAt", "n"]),
 
   questFinishes: defineTable(questFinishValidator).index("by_member_key", ["member", "key"]),
-
-  pendingCratesBackfill: defineTable({
-    cursor: v.union(v.string(), v.null()),
-    isDone: v.boolean(),
-  }),
 
   effectsBackfill: defineTable({
     before: v.number(),

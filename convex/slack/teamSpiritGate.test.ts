@@ -83,7 +83,6 @@ const everyOtherFlag = [
   "collection",
   "crests",
   "crate-store",
-  "crate-rewards",
   "coins",
   "store",
   "quests",

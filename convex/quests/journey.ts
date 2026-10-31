@@ -6,20 +6,10 @@ import { thankedAtOrBefore } from "../engine/awards";
 import { teammatesOf, type MemberId } from "../workspace/directory";
 import { onTheMondayPath } from "./flag";
 import { finishSomeoneNewOnceEveryoneIsThanked, someoneNewWaitsOnTheMondayPath } from "./onboarding";
-import { journeyStepValidator } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
 export type Reward = Infer<typeof rewardValidator>;
-
-export const journeyActivationValidator = v.object({
-  member: v.id("members"),
-  step: journeyStepValidator,
-  activatedAt: v.number(),
-  reward: rewardValidator,
-  catalogueVersion: v.string(),
-  sayingWhy: v.optional(v.object({ day: v.string(), at: v.number() })),
-});
 
 const membersPerRecheck = 100;
 

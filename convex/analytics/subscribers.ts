@@ -4,16 +4,12 @@ import {
   teamPagesCompletedEventValidator,
   attemptFailedEventValidator,
   hoggieDroppedEventValidator,
-  journeyStepActivatedEventValidator,
   kudosGivenEventValidator,
   levelReachedEventValidator,
   memberWelcomedEventValidator,
   perkBoughtEventValidator,
   questFinishedEventValidator,
-  questOpenedEventValidator,
   questsDrawnEventValidator,
-  groupQuestDrawnEventValidator,
-  questSwappedEventValidator,
   hugGivenEventValidator,
   stickersCollectedEventValidator,
   thoughtfulPacksGrantedEventValidator,
@@ -36,16 +32,12 @@ import {
   projectTeamPagesCompleted,
   projectAttemptFailed,
   projectHoggieDropped,
-  projectJourneyStepActivated,
   projectKudosGiven,
   projectLevelReached,
   projectMemberWelcomed,
   projectPerkBought,
   projectQuestFinished,
-  projectQuestOpened,
   projectQuestsDrawn,
-  projectGroupQuestDrawn,
-  projectQuestSwapped,
   projectHugGiven,
   projectPersonCollected,
   projectPacksEarned,
@@ -108,29 +100,9 @@ export const recordQuestsDrawn = internalMutation({
   handler: (ctx, { event }) => recordOnce(ctx, event, () => projectQuestsDrawn(event)),
 });
 
-export const recordGroupQuestDrawn = internalMutation({
-  args: { event: groupQuestDrawnEventValidator },
-  handler: (ctx, { event }) => recordOnce(ctx, event, () => projectGroupQuestDrawn(event)),
-});
-
-export const recordQuestSwapped = internalMutation({
-  args: { event: questSwappedEventValidator },
-  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectQuestSwapped(event)]),
-});
-
 export const recordQuestFinished = internalMutation({
   args: { event: questFinishedEventValidator },
   handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectQuestFinished(event)]),
-});
-
-export const recordQuestOpened = internalMutation({
-  args: { event: questOpenedEventValidator },
-  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectQuestOpened(event)]),
-});
-
-export const recordJourneyStepActivated = internalMutation({
-  args: { event: journeyStepActivatedEventValidator },
-  handler: (ctx, { event }) => recordOnce(ctx, event, () => [projectJourneyStepActivated(event)]),
 });
 
 export const recordHoggieDropped = internalMutation({

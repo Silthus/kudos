@@ -1,10 +1,5 @@
 import { v } from "convex/values";
-import { appliedRewardValidator } from "../progression/rewards";
 import { journeyStepValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "./step";
-
-export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number(), applied: v.optional(appliedRewardValidator) });
-
-export const pendingCrateValidator = v.object({ member: v.id("members"), key: v.string() });
 
 export function rewardKeyOf(quest: Quest): `${Quest["kind"]}:${string}` {
   switch (quest.kind) {
@@ -12,8 +7,6 @@ export function rewardKeyOf(quest: Quest): `${Quest["kind"]}:${string}` {
       return `${rewardKeyPrefixOf("journey")}${quest.step}`;
     case "weekly":
       return `${rewardKeyPrefixOf("weekly")}${quest.week}:${quest.slot}`;
-    case "group":
-      return `${rewardKeyPrefixOf("group")}${quest.group}:${quest.week}`;
   }
 }
 

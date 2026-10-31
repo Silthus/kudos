@@ -118,7 +118,7 @@ async function everythingWritten(backend: Backend = t) {
 
 async function domainTablesOf(backend: Backend) {
   const { tables } = await everythingWritten(backend);
-  const domain = ["drops", "crateOpenings", "pendingCrates", "unlocks", "boughtCrates", "memberProgress", "rewardRecords", "hoggieTallies"] as const;
+  const domain = ["drops", "unlocks", "boughtCrates", "memberProgress", "rewardRecords", "hoggieTallies"] as const;
   return Object.fromEntries(domain.map((table) => [table, tables[table].map(withoutGeneratedFields)]));
 }
 

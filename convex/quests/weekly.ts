@@ -46,8 +46,6 @@ export const questProgressValidator = v.object({
   at: v.number(),
 });
 
-export const questSwapValidator = v.object({ member: v.id("members"), week: v.string(), swappedAt: v.number(), replaced: questIdValidator, swappedIn: slotValidator });
-
 type Slot = Infer<typeof slotValidator>;
 
 type Draw = Infer<typeof questDrawValidator>;

@@ -21,7 +21,7 @@ const tablesOf: Record<string, string[]> = {
   messageSettings: ["progressSettings", "messageSettings"],
   mondayDm: ["mondayDms", "mondayDmNudges"],
   progression: ["effectsRecords", "rewardRecords", "receivingGivers", "effectsBackfill", "memberProgress", "perksOwned", "perkPurchases"],
-  quests: ["journeySteps", "questStarts", "journeyLaunches", "questDraws", "questSwaps", "questProgress", "groupQuestLaunches", "groupQuestWeeks", "groupQuests", "groupQuestContributions", "crateOpenings", "pendingCrates", "questsJudged", "questFinishes", "pendingCratesBackfill"],
+  quests: ["questStarts", "questDraws", "questProgress", "questsJudged", "questFinishes"],
   slack: ["memberVerifications", "firstSignIns", "slackReceipts", "placedReactions", "slackRateLimits", "cardPictures"],
   stickers: ["stickers", "stickerBackfills", "teamPageCompletions", "teamPageChecks"],
   store: ["collection", "itemPurchases", "customKudosEmoji"],

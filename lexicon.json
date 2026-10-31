@@ -568,7 +568,7 @@
     },
     {
       "name": "held reward",
-      "definition": "A reward record for a weekly quest or Journey step written while crate-rewards was on for its member, marked held at insert. It counts toward nothing (no XP, level, skill point or coin) until its crate's first open applies it, once, from Slack or the website; achievement tier coins are never held, and the record, not the flag, decides."
+      "definition": "A reward record for a weekly quest or Journey step that the unlock path's quest crates marked held at insert. It counts toward nothing (no XP, level, skill point or coin): the crate open that applied it is gone, so it stays held. Achievement tier coins are never held, and the record, not a flag, decides."
     },
     {
       "name": "item",
