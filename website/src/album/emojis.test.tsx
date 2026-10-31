@@ -136,6 +136,14 @@ describe("#664 AL29: the emoji popup shows every emoji by kind, each earned one 
     expect(rowsIn(shelf(popup, "Hype"))).toEqual(["IO:ines-okafor-hype:From your reactions on 10 of Ines Okafor's messages · 9 Oct 2026Add to Slack"]);
   });
 
+  it("the Hype shelf names both ways to collect a hype emoji: a first kudos, or reacting with it on 10 messages", async () => {
+    const view = visit("/");
+
+    const popup = await openTheEmojis(view);
+
+    expect(shelf(popup, "Hype").getByText("Give someone their first kudos to unlock their hype emoji. Or react with it on 10 of their messages.")).toBeInTheDocument();
+  });
+
   it("#707: groups milestone emojis by milestone, each tier in order from bronze to diamond with its picture, its Slack name and its date or progress", async () => {
     const view = visit("/");
     const milestones = shelf(await openTheEmojis(view), "Milestones");

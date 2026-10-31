@@ -1,6 +1,6 @@
 import { IconSearch } from "@posthog/icons";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { hypeEmblemPicture } from "../../../convex/album/emojiCatalogue";
+import { hypeEmblemPicture, reactionsToCollect } from "../../../convex/album/emojiCatalogue";
 import type { LoopLesson } from "../../../convex/album/items/welcome";
 import { AppLink } from "../AppLink";
 import { NamedEmoji } from "../Emoji";
@@ -130,7 +130,7 @@ function HypeToUnlock() {
         <img src={hypeEmblemPicture} alt="" width={36} height={36} loading="lazy" decoding="async" />
       </span>
       <span className="al-emoji-words">
-        <span className="al-emoji-why">Give someone a kudos: unlock their hype emoji</span>
+        <span className="al-emoji-why">Give someone a kudos or react with their hype emoji on {reactionsToCollect} of their messages: unlock it</span>
         <span className="al-emoji-bar" aria-hidden="true">
           <span style={{ width: "4%" }} />
         </span>
