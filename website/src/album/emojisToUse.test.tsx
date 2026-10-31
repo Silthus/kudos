@@ -214,7 +214,7 @@ describe("LP74 LP75: the emoji popup leads with what the member can use", () => 
     expect(next).toHaveLength(3);
     expect(next[0]).toContain(":raised_hands:");
     expect(next[0]).toContain("Reach level 2 · your first kudos does it");
-    expect(next[1]).toBe("Give someone a kudos: unlock their hype emoji");
+    expect(next[1]).toBe("Give someone a kudos or react with their hype emoji on 10 of their messages: unlock it");
     expect(next[2]).toContain(":team-kettle-works:");
   });
 
