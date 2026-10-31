@@ -724,6 +724,55 @@ describe("HH80 HH81: Slack ranks Everyone by hugs given while leaderboard-hugs i
     expect(await leaderboardSays(alice, period)).toEqual(says);
   });
 
+  test("/hedgehug leaderboard's Groups board is this week's teams joining in, ranked by points gained, with everyone-in lines and the member's team marked", async () => {
+    const [ezra] = await moreTeammates(1);
+    await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!] });
+    await lastWeek();
+    await thanks(bob, why, dana);
+    await thisWeek();
+    await thanks(alice, why, dana);
+    await hugsOn(bob, kiri);
+    await hugsOn(carol, kiri);
+    await thanks(dana, why, alice);
+
+    expect(firstBoardOf(await leaderboardSays(alice))).toEqual(["*Teams joining in*", "Everyone in Otters joined in this week.", "🥇 Otters · 3 of 3 joined in · your team · +67 pts", "🥈 Badgers · 1 of 3 joined in · +33 pts"]);
+  });
+
+  test("teams that gained nothing fold into one count of teams getting started", async () => {
+    const [ezra, finn, gale, hal] = await moreTeammates(4);
+    await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!], Herons: [finn!, gale!, hal!] });
+    await lastWeek();
+    await thanks(finn!, why, alice);
+    await thanks(gale!, why, alice);
+    await thisWeek();
+    await thanks(alice, why, dana);
+    await thanks(dana, why, alice);
+    await thanks(finn!, why, alice);
+
+    expect(firstBoardOf(await leaderboardSays(alice))).toEqual(["*Teams joining in*", "🥇 Badgers · 1 of 3 joined in · +33 pts", "🥇 Otters · 1 of 3 joined in · your team · +33 pts", "1 team getting started"]);
+  });
+
+  test("before any team joined in this week, the Groups board says no team has started yet", async () => {
+    const [ezra] = await moreTeammates(1);
+    await inGroups({ Otters: [alice, bob, carol], Badgers: [dana, kiri, ezra!] });
+    await lastWeek();
+    await thanks(bob, why, dana);
+    await thisWeek();
+
+    expect(firstBoardOf(await leaderboardSays(alice))).toEqual(["*Teams joining in*", "No team has started yet. Start your team's week with a hug or a kudos.", "2 teams getting started"]);
+  });
+
+  test.each(["month", "all"])("`/hedgehug leaderboard %s` shows no Groups board", async (period) => {
+    await inGroups({ Otters: [alice, bob, carol] });
+    await thisWeek();
+    await thanks(alice, why, dana);
+
+    const says = await leaderboardSays(alice, period);
+
+    expect(says).not.toContain("*Teams joining in*");
+    expect(says).not.toContain("*Groups*");
+  });
+
   test("a member without a hug this week is asked for one, and their best week so far counts hugs", async () => {
     await weeksAgo(2);
     for (let hug = 0; hug < 2; hug += 1) await hugsOn(alice, carol);
@@ -936,6 +985,11 @@ async function moreTeammates(count: number): Promise<Person[]> {
 async function leavesTheBoards(person: Person) {
   await (await signedIn(person)).mutation(api.website.commands.setBoardVisibility, { visible: false });
   await settle(t);
+}
+
+function firstBoardOf(lines: string[]): string[] {
+  const end = lines.indexOf("");
+  return end === -1 ? lines : lines.slice(0, end);
 }
 
 async function inTheOtters(...otters: Person[]) {

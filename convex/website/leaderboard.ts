@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { QueryCtx } from "../_generated/server";
+import { internalQuery, type QueryCtx } from "../_generated/server";
 import { albumShownTo } from "../album/flag";
 import { nudgesFor, type Nudge } from "../album/hypeReactions";
 import { loopLessonIn, type LoopLesson } from "../album/items/welcome";
@@ -14,7 +14,7 @@ import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/tot
 import { teammatesWhoThanked } from "../leaderboard/thankers";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { workspaceLink } from "../slack/workspaceLink";
-import { timeZoneOf, type MemberId } from "../workspace/directory";
+import { lookup, timeZoneOf, type MemberId } from "../workspace/directory";
 import { followTheClock } from "./clock";
 import { signInFaceOf, teammateOf, type Face } from "./faces";
 import { boardsNextStepOf, type BoardsNextStep } from "./leaderboardNextStep";
@@ -112,6 +112,15 @@ export const getBoards = memberQuery({
       withinReach: await withinReachOf(ctx, viewer, nudge),
       slack: workspaceLink(me.workspace),
     };
+  },
+});
+
+export const teamsJoiningInFor = internalQuery({
+  args: { workspace: v.string(), user: v.string() },
+  handler: async (ctx, { workspace, user }): Promise<TeamsJoiningIn | null> => {
+    const person = await lookup(ctx, workspace, user);
+    if (person?.kind !== "member") return null;
+    return teamsJoiningInOf(ctx, { workspace, member: person.member }, await weeksOf(ctx, person.member));
   },
 });
 
