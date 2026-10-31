@@ -56,6 +56,8 @@ Quests: owns each member's quests on the Monday path (spec/monday-quests.md, ADR
   over: a first kudos to two teammates on the Monday path and with monday-quest off, delivered to Quests a second time, and every kudos of a member past onboarding delivered again in the next week, at the Slack boundary, read through the judged rows, the giver's XP, finish rows, quest items and replies, the weeks drawn and the questsDrawn facts
   via: Quests handles a kudos delivered twice as once
   because: the bus can deliver a fact again on a retry or a replay of a failed subscriber, and a row per delivery grows Quests' table with each replay while its readers take the first; a draw bound to the time of the kudos keeps a late replay from drawing a week the kudos was never part of
+  refuted: judgeQuestsOf inserted a questsJudged row for every award on every delivery -> both second-delivery cases failed: 4 judged rows for 2 awards (2026-10-31)
+  refuted: advanceWeeklyQuests drew the giver's week for the delivery's time instead of the kudos's -> the later-week case failed: the late delivery drew the week of 2026-10-19 (2026-10-31)
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; the subscriber reads the slice predicate itself on each delivery
   checklist: separation-of-duties dismissed: no approval policy applies
