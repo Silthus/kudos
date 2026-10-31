@@ -1,4 +1,3 @@
-import { v } from "convex/values";
 import { journeyStepValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "./step";
 
 export function rewardKeyOf(quest: Quest): `${Quest["kind"]}:${string}` {

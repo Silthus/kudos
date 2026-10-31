@@ -5,7 +5,6 @@ import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace } from "../../testing/website";
-import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { buyCrate } from "../album/hoggies/boughtCrates";
 import { recordReward } from "../progression/progression";

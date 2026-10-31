@@ -17,7 +17,7 @@ import { rewardValidator } from "./journey";
 import { isPaidOnTheMondayPath } from "./mondayCatalogue";
 import { onboardingFinishedAt } from "./onboarding";
 import { feasibility, feasibleBecauseValidator, mondayQuestPool, questIdValidator, questOf, withoutFullStop, type DrawFacts, type FeasibleBecause, type PoolQuest, type Recipient } from "./pool";
-import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type CountedAward, type Moved, type MovedQuest, type ProgressRead, type QuestAward } from "./progress";
+import { counts, isRecipient, notThankedForMs, progressUnitOf, questProgress, type Moved, type MovedQuest, type ProgressRead, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
 import { questStartOf } from "./start";
 import type { WeeklyQuest } from "./step";
